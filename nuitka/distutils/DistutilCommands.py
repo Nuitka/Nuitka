@@ -36,7 +36,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import deleteFile, renameFile
+from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -77,17 +77,14 @@ class build(distutils.command.build.build):
 
     # pylint: disable=attribute-defined-outside-init
     def run(self):
-        wheel_logger.info(
-            "Specified packages: %s." % self.distribution.packages, style="blue"
-        )
-        wheel_logger.info(
-            "Specified modules: %s." % self.distribution.py_modules, style="blue"
-        )
+        wheel_logger.info("Specified packages: %s." % self.distribution.packages)
+        wheel_logger.info("Specified modules: %s." % self.distribution.py_modules)
 
         self.compile_packages = self.distribution.packages or []
         self.py_modules = self.distribution.py_modules or []
 
-        # Determine
+        # Determine impact from entry points, might have to add modules from
+        # there.
         self.script_module_names = OrderedSet()
         if self.distribution.entry_points is not None:
             for group, script_specs in self.distribution.entry_points.items():
@@ -97,7 +94,7 @@ class build(distutils.command.build.build):
                             script_spec.split("=", 1)[1].strip().split(":")[0]
                         )
                     except Exception as e:  # Catch all the things, pylint: disable=broad-except
-                        wheel_logger.info(
+                        wheel_logger.warning(
                             "Problem parsing '%s' script specification in '%s' due to %s"
                             % (script_spec, group, e)
                         )
@@ -193,6 +190,14 @@ class build(distutils.command.build.build):
                 parent_package=None,
                 level=0,
             )
+
+            if os.path.isdir(main_filename):
+                if not getFileList(main_filename, only_suffixes=(".py",)):
+                    wheel_logger.info(
+                        "Skipping '%s' from Nuitka compilation due to containing no Python code."
+                        % module_name_orig
+                    )
+                    continue
 
             # Handle extension modules already compiled. They are either to be replaced, or
             # they are included as they are, because there is no source, then the task can
@@ -329,8 +334,7 @@ class build(distutils.command.build.build):
 
             # Adding traces for clarity
             wheel_logger.info(
-                "Building: '%s' with command '%s'" % (module_name.asString(), command),
-                style="blue",
+                "Building: '%s' with command '%s'" % (module_name.asString(), command)
             )
             check_call(command, cwd=build_lib)
             wheel_logger.info(

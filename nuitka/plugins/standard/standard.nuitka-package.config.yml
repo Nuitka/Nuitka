@@ -5318,6 +5318,13 @@
         'from transformers.utils.notebook import NotebookProgressCallback': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'transformers.models.auto.configuration_auto'
+  anti-bloat:
+    - description: 'remove docstring dependency'
+      change_function:
+        'docstring_decorator': "'(lambda fn: fn)'"
+      when: 'no_docstrings'
+
 - module-name: 'transformers.models.deformable_detr.load_custom'
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -5365,6 +5372,10 @@
                 g.__kwdefaults__ = f.__kwdefaults__
 
             return g
+    - description: 'remove docstring dependency'
+      change_function:
+        '_prepare_output_docstrings': "'(lambda *args, **kwargs: str())'"
+      when: 'no_docstrings'
 
 - module-name: 'transformers.utils.hub'
   implicit-imports:
