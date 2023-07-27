@@ -108,6 +108,7 @@ struct _dictkeysobject {
     PyDictKeyEntry dk_entries[1];
 #else
     Py_ssize_t dk_nentries;
+#if PYTHON_VERSION < 0x370
     union {
         int8_t as_1[8];
         int16_t as_2[4];
@@ -116,7 +117,9 @@ struct _dictkeysobject {
         int64_t as_8[1];
 #endif
     } dk_indices;
-
+#else
+    char dk_indices[];
+#endif
 #endif
 };
 
@@ -133,7 +136,11 @@ struct _dictkeysobject {
 #define DK_IXSIZE(dk) (DK_SIZE(dk) <= 0xff ? 1 : DK_SIZE(dk) <= 0xffff ? 2 : sizeof(int32_t))
 #endif
 
+#if PYTHON_VERSION < 0x370
 #define DK_ENTRIES(dk) ((PyDictKeyEntry *)(&(dk)->dk_indices.as_1[DK_SIZE(dk) * DK_IXSIZE(dk)]))
+#else
+#define DK_ENTRIES(dk) ((PyDictKeyEntry *)(&((int8_t *)((dk)->dk_indices))[DK_SIZE(dk) * DK_IXSIZE(dk)]))
+#endif
 
 #endif
 

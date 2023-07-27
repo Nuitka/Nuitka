@@ -24,8 +24,9 @@ import pickle
 import sys
 
 from nuitka import OutputDirectories
-from nuitka.__past__ import ExceptionGroup  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import (
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    BaseExceptionGroup,
+    ExceptionGroup,
     GenericAlias,
     UnionType,
     basestring,
@@ -234,6 +235,8 @@ class ConstantAccessor(object):
                 key = "(PyObject *)PyExc_%s" % constant.__name__
             elif constant is ExceptionGroup:
                 key = "(PyObject *)_PyInterpreterState_GET()->exc_state.PyExc_ExceptionGroup"
+            elif constant is BaseExceptionGroup:
+                key = "(PyObject *)PyExc_BaseExceptionGroup"
             else:
                 type_name = constant.__name__
 
