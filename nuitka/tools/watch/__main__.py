@@ -199,14 +199,32 @@ python_version = "%(python_version)s"
                     % pipenv_filename_full
                 )
 
-                check_call([installed_python.getPythonExe(), "-m", "pipenv", "update"])
+                check_call(
+                    [
+                        installed_python.getPythonExe(),
+                        "-m",
+                        "pipenv",
+                        "update",
+                        "--python",
+                        installed_python.getPythonExe(),
+                    ]
+                )
             else:
                 watch_logger.info(
                     "Working with pipenv file '%s' to install virtualenv, may take a while."
                     % pipenv_filename_full
                 )
 
-                check_call([installed_python.getPythonExe(), "-m", "pipenv", "install"])
+                check_call(
+                    [
+                        installed_python.getPythonExe(),
+                        "-m",
+                        "pipenv",
+                        "install",
+                        "--python",
+                        installed_python.getPythonExe(),
+                    ]
+                )
 
             check_call(
                 [
