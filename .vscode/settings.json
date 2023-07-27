@@ -162,6 +162,7 @@
         "DYLD",
         "dylib",
         "elif",
+        "embeddable",
         "EPEL",
         "finalizer",
         "FLUFL",
