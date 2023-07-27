@@ -769,7 +769,7 @@ def locateModule(module_name, parent_package, level):
         if parent_package is not None:
             if not module_name:
                 module_name = parent_package
-            else:
+            elif level != 0:
                 module_name = ModuleName.makeModuleNameInPackage(
                     package_name=parent_package, module_name=module_name
                 )
