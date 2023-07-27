@@ -170,7 +170,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
                         stderr_cpython,
                         exit_cpython,
                     ) = pickle.load(cache_file)
-            except (IOError, EOFError):
+            except (IOError, EOFError, ValueError):
                 # Broken cache content.
                 pass
             else:

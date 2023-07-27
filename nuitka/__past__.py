@@ -185,6 +185,11 @@ try:
 except NameError:
     ExceptionGroup = None
 
+try:
+    BaseExceptionGroup = BaseExceptionGroup
+except NameError:
+    BaseExceptionGroup = None
+
 # For PyLint to be happy.
 assert long
 assert unicode
