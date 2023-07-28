@@ -1454,6 +1454,7 @@ def isClang():
         or isMacOS()
         or isOpenBSD()
         or (isFreeBSD() and getArchitecture() != "powerpc")
+        or isTermuxPython()
     )
 
 
