@@ -60,6 +60,7 @@ from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     addConstantBlobFile,
     checkWindowsCompilerFound,
+    importEnvironmentVariableSettings,
     reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
@@ -482,29 +483,8 @@ source_files = discoverSourceFiles()
 
 target = env.Program(result_exe, source_files)
 
-# Avoid dependency on MinGW libraries.
-if win_target and env.gcc_mode and not env.clang_mode:
-    env.Append(LINKFLAGS=["-static-libgcc"])
-
-# Outside compiler settings are respected.
-if "CPPFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
-    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-if "CCFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-    env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-if "CXXFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
-    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
-
-# Outside linker flags are respected.
-if "LDFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
-    env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+# Use compiler/linker flags provided via environment variables
+importEnvironmentVariableSettings(env)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
 # and then lingers from previous builds,
