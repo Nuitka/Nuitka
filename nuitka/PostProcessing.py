@@ -433,4 +433,5 @@ __name__ = ...
                     "import %s" % module_name for module_name in getImportedNames()
                 )
             },
+            encoding="utf-8",
         )
