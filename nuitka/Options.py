@@ -578,7 +578,12 @@ it before using it: '%s' (from --output-filename='%s')."""
                 % splash_screen_filename
             )
 
-    if file_version or product_version or getWindowsVersionInfoStrings():
+    if (
+        file_version
+        or product_version
+        or getWindowsVersionInfoStrings()
+        and isWin32Windows()
+    ):
         if not (file_version or product_version) and getCompanyName():
             Tracing.options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."

@@ -1534,7 +1534,7 @@ version_group.add_option(
     metavar="TRADEMARK_TEXT",
     default=None,
     help="""\
-Copyright used in version information. Windows only at this time. Defaults to not present.""",
+Trademark used in version information. Windows only at this time. Defaults to not present.""",
 )
 
 

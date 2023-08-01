@@ -31,6 +31,9 @@ if not hasattr(setuptools.build_meta, "suppress_known_deprecation"):
 else:
     suppress_known_deprecation = setuptools.build_meta.suppress_known_deprecation
 
+SETUPTOOLS_ENABLE_FEATURES = os.getenv("SETUPTOOLS_ENABLE_FEATURES", "").lower()
+LEGACY_EDITABLE = "legacy-editable" in SETUPTOOLS_ENABLE_FEATURES.replace("_", "-")
+
 
 # reusing private "build" package code, pylint: disable=protected-access
 class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
@@ -52,3 +55,8 @@ get_requires_for_build_sdist = _BACKEND.get_requires_for_build_sdist
 prepare_metadata_for_build_wheel = _BACKEND.prepare_metadata_for_build_wheel
 build_wheel = _BACKEND.build_wheel
 build_sdist = _BACKEND.build_sdist
+
+if not LEGACY_EDITABLE:
+    get_requires_for_build_editable = _BACKEND.get_requires_for_build_editable
+    prepare_metadata_for_build_editable = _BACKEND.prepare_metadata_for_build_editable
+    build_editable = _BACKEND.build_editable

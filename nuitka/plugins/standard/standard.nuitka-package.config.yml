@@ -5242,6 +5242,7 @@
     - description: 'remove docstring dependency'
       change_function:
         '_prepare_output_docstrings': "'(lambda *args, **kwargs: str())'"
+        'docstring_decorator': "'(lambda fn: fn)'"
       when: 'no_docstrings'
 
 - module-name: 'transformers.utils.hub'
