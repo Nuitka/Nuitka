@@ -69,6 +69,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableWindowsStackSize,
+    importEnvironmentVariableSettings,
     reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
@@ -100,8 +101,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
-# spell-checker: ignore cxxflags,ldflags
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -778,11 +778,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 # that is located inside Nuitka installation.
 env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
 
-
-# MinGW64 for 64 bits needs this due to CPython bugs.
-if env.mingw_mode and target_arch == "x86_64":
-    env.Append(CPPDEFINES=["MS_WIN64"])
-
 # Set load libpython from binary directory default
 if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
     if env.standalone_mode:
@@ -884,35 +879,13 @@ if module_mode:
 else:
     target = env.Program(result_exe, source_files)
 
-# Avoid dependency on MinGW libraries.
-if win_target and env.gcc_mode and not env.clang_mode:
-    env.Append(LINKFLAGS=["-static-libgcc"])
-
-# Outside compiler settings are respected.
-if "CPPFLAGS" in os.environ:
-    scons_logger.info(
-        "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
-    )
-    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-if "CCFLAGS" in os.environ:
-    scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-    env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-if "CXXFLAGS" in os.environ:
-    scons_logger.info(
-        "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
-    )
-    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
-
-# Outside linker flags are respected.
-if "LDFLAGS" in os.environ:
-    scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
-    env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+# Use compiler/linker flags provided via environment variables
+importEnvironmentVariableSettings(env)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
 # and then lingers from previous builds,
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
-
 
 if job_count:
     scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)

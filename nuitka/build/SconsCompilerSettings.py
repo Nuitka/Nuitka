@@ -760,6 +760,14 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
+    # Avoid dependency on MinGW libraries.
+    if env.mingw_mode and not env.clang_mode:
+        env.Append(LINKFLAGS=["-static-libgcc"])
+
+    # MinGW64 for 64 bits needs this due to CPython bugs.
+    if env.mingw_mode and env.target_arch == "x86_64":
+        env.Append(CPPDEFINES=["MS_WIN64"])
+
     # For shell API usage to lookup app folders we need this. Note that on Windows ARM
     # we didn't manage to have a "shell32.lib" that is not considered corrupt, so we
     # have to do this.
@@ -923,3 +931,33 @@ def reportCCompiler(env, context, output_func):
         "%s C compiler: %s (%s)."
         % (context, getReportPath(env.the_compiler), cc_output)
     )
+
+
+def importEnvironmentVariableSettings(env):
+    """Import typical environment variables that compilation should use."""
+    # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
+
+    # Outside compiler settings are respected.
+    if "CPPFLAGS" in os.environ:
+        scons_logger.info(
+            "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
+        )
+        env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
+    if "CFLAGS" in os.environ:
+        scons_logger.info("Inherited CFLAGS='%s' variable." % os.environ["CFLAGS"])
+        env.Append(CCFLAGS=os.environ["CFLAGS"].split())
+    if "CCFLAGS" in os.environ:
+        scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
+        env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
+    if "CXXFLAGS" in os.environ:
+        scons_logger.info(
+            "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
+        )
+        env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
+
+    # Outside linker flags are respected.
+    if "LDFLAGS" in os.environ:
+        scons_logger.info(
+            "Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"]
+        )
+        env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
