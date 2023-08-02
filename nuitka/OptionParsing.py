@@ -40,6 +40,7 @@ from nuitka.utils.Utils import (
     getOS,
     getWindowsRelease,
     isLinux,
+    isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
     withNoSyntaxWarning,
@@ -158,6 +159,7 @@ needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
 
 parser.add_option(
     "--main",
+    "--script-name",
     action="append",
     dest="mains",
     metavar="PATH",
@@ -169,6 +171,16 @@ When given multiple times, it enables "multidist"
 (see User Manual) it allows you to create binaries
 that depending on file name or invocation name.
 """,
+)
+
+# Option for use with GitHub action workflow, where options are read
+# from the environment variable with the input values given there.
+parser.add_option(
+    "--github-workflow-options",
+    action="store_true",
+    dest="github_workflow_options",
+    default=False,
+    help=SUPPRESS_HELP,
 )
 
 include_group = parser.add_option_group(
@@ -1567,7 +1579,7 @@ del version_group
 plugin_group = parser.add_option_group("Plugin control")
 
 plugin_group.add_option(
-    "--enable-plugin",
+    "--enable-plugins",
     "--plugin-enable",
     action="append",
     dest="plugins_enabled",
@@ -1579,7 +1591,7 @@ full list and exit. Default empty.""",
 )
 
 plugin_group.add_option(
-    "--disable-plugin",
+    "--disable-plugins",
     "--plugin-disable",
     action="append",
     dest="plugins_disabled",
@@ -1647,8 +1659,10 @@ def _considerPluginOptions(logger):
     addStandardPluginCommandLineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
-        if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
-            plugin_names = arg[16:]
+        if arg.startswith(
+            ("--enable-plugin=", "--enable-plugins=", "--plugin-enable=")
+        ):
+            plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
                 logger.sysexit(
                     "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
@@ -1813,6 +1827,69 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
                 assert False, (command, line)
 
 
+def _considerGithubWorkflowOptions(phase):
+    try:
+        github_option_index = sys.argv.index("--github-workflow-options")
+    except ValueError:
+        return
+
+    import json
+
+    early_names = "main", "script-name", "enable-plugins", "disable-plugins"
+
+    def filterByName(key):
+        # Not for Nuitka at all.
+        if key in (
+            "nuitka-version",
+            "working-directory",
+            "access-token",
+            "disable-cache",
+        ):
+            return False
+
+        # Ignore platform specific options.
+        if key.startswith("macos-") and not isMacOS():
+            return False
+        if (key.startswith("windows-") or key == "mingw64") and not isWin32Windows():
+            return False
+        if key.startswith("linux-") and not isLinux():
+            return False
+
+        if phase == "early":
+            return key in early_names
+        else:
+            return key not in early_names
+
+    options_added = []
+
+    for key, value in json.loads(os.environ["NUITKA_WORKFLOW_INPUTS"]).items():
+        if not value:
+            continue
+
+        if not filterByName(key):
+            continue
+
+        option_name = "--%s" % key
+
+        if parser.isBooleanOption("--%s" % key):
+            if value == "false":
+                continue
+
+            options_added.append(option_name)
+        else:
+            # Boolean disabled options from inactive plugins that default to off.
+            if value == "false":
+                continue
+
+            options_added.append("%s=%s" % (option_name, value))
+
+    sys.argv = (
+        sys.argv[: github_option_index + (0 if phase == "early" else 1)]
+        + options_added
+        + sys.argv[github_option_index + 1 :]
+    )
+
+
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
     # well as integrating with plugins and run modes, and dispatching of tool
@@ -1864,8 +1941,14 @@ def parseOptions(logger):
             + sys.argv[1:]
         )
 
+    # Options may be coming from GitHub workflow configuration as well.
+    _considerGithubWorkflowOptions(phase="early")
+
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions(logger)
+
+    # Options may be coming from GitHub workflow configuration as well.
+    _considerGithubWorkflowOptions(phase="late")
 
     options, positional_args = parser.parse_args()
 

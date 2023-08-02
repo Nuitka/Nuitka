@@ -86,6 +86,14 @@ class OurOptionParser(OptionParser):
 
         return False
 
+    def isBooleanOption(self, option_name):
+        for option in self.iterateOptions():
+            # Need to use private option attribute, pylint: disable=protected-access
+            if option_name in option._long_opts:
+                return option.action in ("store_true", "store_false")
+
+        return False
+
 
 class OurHelpFormatter(IndentedHelpFormatter):
     def format_option_strings(self, option):
