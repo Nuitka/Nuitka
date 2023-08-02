@@ -5177,6 +5177,7 @@
       - 'torch'
       - 'flax'
       - 'tensorflow'
+      - 'tokenizers'
 
 - module-name: 'transformers.integrations'
   anti-bloat:
