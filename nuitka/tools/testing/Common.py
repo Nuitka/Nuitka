@@ -1751,7 +1751,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith(("site-packages", "dist-packages")):
+        if loaded_filename.endswith(
+            ("site-packages", "dist-packages", "vendor-packages")
+        ):
             continue
 
         # QtNetwork insist on doing this it seems.
