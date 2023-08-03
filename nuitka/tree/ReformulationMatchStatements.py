@@ -164,24 +164,24 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
         )
     )
 
-    if min_length:
-        exact = all(
-            seq_pattern.__class__ is not ast.MatchStar
-            for seq_pattern in pattern.patterns
-        )
+    exact = all(
+        seq_pattern.__class__ is not ast.MatchStar for seq_pattern in pattern.patterns
+    )
 
-        # TODO: Could special case "1" with truth check.
-        conditions.append(
-            makeComparisonExpression(
-                left=ExpressionBuiltinLen(
-                    value=make_against(),
-                    source_ref=source_ref,
-                ),
-                right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
-                comparator="Eq" if exact else "GtE",
+    # Could special case ">=1" or "==0" with truth checks potentially, but that
+    # is for generic optimization to recognize, we don't know much about the
+    # matched value at this point yet.
+    conditions.append(
+        makeComparisonExpression(
+            left=ExpressionBuiltinLen(
+                value=make_against(),
                 source_ref=source_ref,
-            )
+            ),
+            right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
+            comparator="Eq" if exact else "GtE",
+            source_ref=source_ref,
         )
+    )
 
     star_pos = None
 

@@ -234,6 +234,9 @@ def scanStandardLibraryPath(stdlib_dir):
             if "__pycache__" in dirs:
                 dirs.remove("__pycache__")
 
+        # Ignore ".idea", ".git" and similar folders, they are not modules
+        dirs = [dirname for dirname in dirs if not dirname.startswith(".")]
+
         for dirname in dirs:
             if import_path == "":
                 yield ModuleName(dirname)
