@@ -42,6 +42,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -295,7 +296,10 @@ def _loadPluginClassesFromPackage(scan_package):
         if item.ispkg:  # spell-checker: ignore ispkg
             continue
 
-        module_loader = item.module_finder.find_module(item.name)
+        if python_version < 0x3C0:
+            module_loader = item.module_finder.find_module(item.name)
+        else:
+            module_loader = item.module_finder.find_spec(item.name).loader
 
         # Ignore bytecode only left overs.
         try:
