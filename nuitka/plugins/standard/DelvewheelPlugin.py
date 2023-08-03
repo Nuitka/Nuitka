@@ -112,6 +112,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
             if os.path.basename(self.dll_directory) in (
                 "site-packages",
                 "dist-packages",
+                "vendor-packages",
             ):
                 self.dll_directory = None
 

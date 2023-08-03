@@ -128,7 +128,11 @@ def isStandardLibraryPath(filename):
         return True
 
     # These never are in standard library paths.
-    if "dist-packages" in filename or "site-packages" in filename:
+    if (
+        "dist-packages" in filename
+        or "site-packages" in filename
+        or "vendor-packages" in filename
+    ):
         return False
 
     for candidate in getStandardLibraryPaths():
@@ -161,6 +165,8 @@ def scanStandardLibraryPath(stdlib_dir):
                 dirs.remove("site-packages")
             if "dist-packages" in dirs:
                 dirs.remove("dist-packages")
+            if "vendor-packages" in dirs:
+                dirs.remove("vendor-packages")
             if "test" in dirs:
                 dirs.remove("test")
             if "turtledemo" in dirs:
