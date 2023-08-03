@@ -333,9 +333,14 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
 
         # For Python3.11
         if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            # The MSVC can only be used with an Windows SDK installed, and for 3.11 we need it
+            # to be a least a minimum version.
             if (
                 # This is actually OK to use like this, pylint: disable=bad-chained-comparison
-                None is not env.python_version >= (3, 11)
+                not isGccName(the_cc_name)
+                and None is not env.python_version >= (3, 11)
                 and getMsvcVersion(env) < _python311_min_msvc_version
             ):
                 scons_logger.info(
