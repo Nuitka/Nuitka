@@ -38,7 +38,6 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 import collections
 import hashlib
-import imp
 import os
 import sys
 import zipfile
@@ -56,6 +55,7 @@ from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
 from nuitka.utils.Importing import (
+    getModuleFilenameSuffixes,
     getSharedLibrarySuffixes,
     isBuiltinModuleName,
 )
@@ -453,9 +453,9 @@ def _findModuleInPath2(package_name, module_name, search_path):
 
     # Higher values are lower priority.
     priority_map = {
-        imp.PY_COMPILED: 3,
-        imp.PY_SOURCE: 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
-        imp.C_EXTENSION: 1,
+        "PY_COMPILED": 3,
+        "PY_SOURCE": 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
+        "C_EXTENSION": 1,
     }
 
     for count, entry in enumerate(search_path):
@@ -472,8 +472,8 @@ def _findModuleInPath2(package_name, module_name, search_path):
         if os.path.isdir(package_directory):
             found = False
 
-            for suffix, _mode, module_type in imp.get_suffixes():
-                if module_type == imp.C_EXTENSION:
+            for suffix, module_type in getModuleFilenameSuffixes():
+                if module_type == "C_EXTENSION":
                     continue
 
                 package_file_name = "__init__" + suffix
@@ -505,7 +505,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
 
         # Then, check out suffixes of all kinds, but only for one directory.
         last_module_type = 0
-        for suffix, _mode, module_type in imp.get_suffixes():
+        for suffix, module_type in getModuleFilenameSuffixes():
             # Use first match per kind only.
             if module_type == last_module_type:
                 continue
@@ -555,7 +555,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
         # Nothing found.
         raise ImportError
     if (
-        found_candidate.module_type == imp.C_EXTENSION
+        found_candidate.module_type == "C_EXTENSION"
         and isMacOS()
         and not hasUniversalOrMatchingMacOSArchitecture(found_candidate.full_path)
     ):
@@ -571,7 +571,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
 
     return (
         found_candidate.full_path,
-        "extension" if found_candidate.module_type == imp.C_EXTENSION else "py",
+        "extension" if found_candidate.module_type == "C_EXTENSION" else "py",
     )
 
 
