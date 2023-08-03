@@ -486,6 +486,12 @@
     empty_dirs:
       - '.'
 
+- module-name: 'ctypes'
+  anti-bloat:
+    - description: 'remove comtypes dependency'
+      no-auto-follow:
+        'comtypes': 'ignore'
+
 - module-name: 'curses'
   implicit-imports:
     - depends:
