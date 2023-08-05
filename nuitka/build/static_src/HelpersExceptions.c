@@ -129,6 +129,7 @@ static PyObject *_Nuitka_Err_CreateException(PyObject *exception_type, PyObject 
     return exc;
 }
 
+#if PYTHON_VERSION < 0x3c0
 // Our replacement for PyErr_NormalizeException, that however does not attempt
 // to deal with recursion, i.e. exception during normalization, we just avoid
 // the API call overhead in the normal case.
@@ -209,3 +210,4 @@ error:
     PyErr_NormalizeException(exc, val, (PyObject **)tb);
 #endif
 }
+#endif

@@ -25,7 +25,8 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
 
     // Normalize existing exception first.
 #if PYTHON_VERSION < 0x3b0
-    NORMALIZE_EXCEPTION(&EXC_TYPE(thread_state), &EXC_VALUE(thread_state), EXC_TRACEBACK_PTR(thread_state));
+    NORMALIZE_EXCEPTION_TSTATE(thread_state, &EXC_TYPE(thread_state), &EXC_VALUE(thread_state),
+                               EXC_TRACEBACK_PTR(thread_state));
 #endif
 
     PyObject *old_exc_value = EXC_VALUE(thread_state);

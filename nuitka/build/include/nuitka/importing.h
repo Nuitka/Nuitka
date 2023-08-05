@@ -127,7 +127,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyObject *module)
 #endif
 
     if (unlikely(filename == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
         filename = PyUnicode_FromString("unknown location");
     }
 

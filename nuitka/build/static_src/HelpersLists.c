@@ -523,7 +523,7 @@ PyObject *LIST_INDEX3(PyObject *list, PyObject *item, PyObject *start) {
     PyObject *start_index = Nuitka_Number_IndexAsLong(start);
 
     if (unlikely(start_index == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
         return NULL;
@@ -541,7 +541,7 @@ PyObject *LIST_INDEX4(PyObject *list, PyObject *item, PyObject *start, PyObject 
     PyObject *start_index = Nuitka_Number_IndexAsLong(start);
 
     if (unlikely(start_index == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
         return NULL;
@@ -552,7 +552,7 @@ PyObject *LIST_INDEX4(PyObject *list, PyObject *item, PyObject *start, PyObject 
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
     if (unlikely(stop_index == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
         return NULL;
@@ -571,7 +571,7 @@ bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item) {
     PyObject *index_long = Nuitka_Number_IndexAsLong(index);
 
     if (unlikely(index_long == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
 
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' cannot be interpreted as an integer", index);
         return false;

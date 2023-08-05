@@ -154,7 +154,7 @@ void registerDillPluginTables(char const *module_name, PyMethodDef *reduce_compi
     PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
 
     if (function_tables == NULL) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
 
         function_tables = MAKE_DICT_EMPTY();
         PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);

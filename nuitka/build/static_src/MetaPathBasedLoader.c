@@ -394,7 +394,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
         PyObject *filenames_list = getFileList(path_element);
 
         if (filenames_list == NULL) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED();
             continue;
         }
 
