@@ -137,7 +137,7 @@ extern _PyRuntimeState _PyRuntime;
 #undef CALL_FUNCTION
 #endif
 
-#ifndef PY_NOGIL
+#if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))

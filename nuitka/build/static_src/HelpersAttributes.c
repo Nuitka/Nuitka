@@ -559,7 +559,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
-                DROP_ERROR_OCCURRED();
+                CLEAR_ERROR_OCCURRED();
 
                 return false;
             }
@@ -665,7 +665,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
         PyObject *result = LOOKUP_INSTANCE(source, attr_name);
 
         if (result == NULL) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED();
 
             return false;
         }
@@ -692,7 +692,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
         PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
 
         if (result == NULL) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED();
 
             return false;
         }

@@ -613,6 +613,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
                 PyObject *saved_exception_type, *saved_exception_value;
                 PyTracebackObject *saved_exception_tb;
 
+                // TODO: For Python3.12, this kind of code ought to use tstate methods entirely.
                 FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
                 NORMALIZE_EXCEPTION(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 
@@ -835,7 +836,7 @@ static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject *
     }
 
     if (PyExceptionClass_Check(*exception_type)) {
-        // TODO: Must not normalize here.
+        // TODO: Must not / need not normalize here?
         NORMALIZE_EXCEPTION(exception_type, exception_value, exception_tb);
     } else if (PyExceptionInstance_Check(*exception_type)) {
         if (*exception_value != NULL && *exception_value != Py_None) {

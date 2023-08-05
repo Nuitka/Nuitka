@@ -546,6 +546,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
                     PyObject *saved_exception_type, *saved_exception_value;
                     PyTracebackObject *saved_exception_tb;
 
+                    // TODO: For Python3.12, this kind of code ought to use tstate methods entirely.
                     FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
                     NORMALIZE_EXCEPTION(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 

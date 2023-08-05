@@ -215,7 +215,7 @@ static void undoEnvironmentVariable(char const *variable_name, environment_char_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED();
         }
     }
 
@@ -790,7 +790,7 @@ static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
     PyObject *file_no_value = CALL_METHOD_NO_ARGS(file_handle, const_str_plain_fileno);
 
     if (unlikely(file_no_value == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
         return;
     }
 
@@ -798,8 +798,7 @@ static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
 
     Py_DECREF(file_no_value);
 
-    if (unlikely(file_number == -1 && ERROR_OCCURRED())) {
-        DROP_ERROR_OCCURRED();
+    if (unlikely(file_number == -1 && DROP_ERROR_OCCURRED())) {
         return;
     }
 
