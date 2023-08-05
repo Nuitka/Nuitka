@@ -1425,7 +1425,7 @@ static inline bool RICH_COMPARE_EQ_CBOOL_ARG_NAMES(PyObject *operand1, PyObject 
 
     // Should be close to impossible, we will have to ignore it though.
     if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED();
         return false;
     }
 
