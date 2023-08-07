@@ -1745,14 +1745,12 @@
     - from_filenames:
         relative_path: 'capi'
         prefixes:
-          - 'onnxruntime_providers_shared'
+          - 'onnxruntime'
       when: 'win32'
     - from_filenames:
         relative_path: 'capi'
         prefixes:
-          - 'libonnxruntime_providers_shared'
-        suffixes:
-          - 'so'
+          - 'libonnxruntime'
       dest_path: '.'
       when: 'linux'
 
