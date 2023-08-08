@@ -27,13 +27,13 @@ CHECK_OBJECT(%(iterator_name)s); assert(HAS_ITERNEXT(%(iterator_name)s));
 %(attempt_name)s = (*Py_TYPE(%(iterator_name)s)->tp_iternext)(%(iterator_name)s);
 
 if (likely(%(attempt_name)s == NULL)) {
-    PyObject *error = GET_ERROR_OCCURRED();
+    PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
 
     if (error != NULL) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
-            CLEAR_ERROR_OCCURRED();
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration)) {
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
         } else {
-            FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+            FETCH_ERROR_OCCURRED_TSTATE(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
 %(release_temps_1)s
 %(var_description_code_1)s
 %(line_number_code_1)s
@@ -56,12 +56,12 @@ if (likely(%(attempt_name)s == NULL)) {
 
 template_loop_break_next = """\
 if (%(to_name)s == NULL) {
-    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED()) {
+    if (CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate)) {
 %(break_indicator_code)s
         goto %(break_target)s;
     } else {
 %(release_temps)s
-        FETCH_ERROR_OCCURRED(&%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+        FETCH_ERROR_OCCURRED_TSTATE(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
 %(var_description_code)s
 %(line_number_code)s
         goto %(exception_target)s;

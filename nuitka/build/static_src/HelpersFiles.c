@@ -24,7 +24,8 @@
 #endif
 
 // Small helper to open files with few arguments.
-PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering, PyObject *encoding) {
+PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
+                              PyObject *encoding) {
     PyObject *mode_obj = Nuitka_String_FromString(mode);
     PyObject *buffering_obj = buffering ? const_int_pos_1 : const_int_0;
 
@@ -38,7 +39,7 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
     }
 #endif
 
-    result = BUILTIN_OPEN(filename, mode_obj, buffering_obj);
+    result = BUILTIN_OPEN(tstate, filename, mode_obj, buffering_obj);
 
 #else
     if ((strcmp(mode, "w") == 0) && buffering == false) {
@@ -51,7 +52,8 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 
         PyObject *mode_obj2 = PyUnicode_FromString("wb");
 
-        PyObject *binary_stream = BUILTIN_OPEN(filename, mode_obj2, buffering_obj, NULL, NULL, NULL, NULL, NULL);
+        PyObject *binary_stream =
+            BUILTIN_OPEN(tstate, filename, mode_obj2, buffering_obj, NULL, NULL, NULL, NULL, NULL);
 
         Py_DECREF(mode_obj2);
 
@@ -71,9 +73,9 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 
         PyObject *args[] = {binary_stream, encoding, Py_None, Py_None, Py_False, Py_True};
 
-        result = CALL_FUNCTION_WITH_ARGS6(_io_module_text_io_wrapper, args);
+        result = CALL_FUNCTION_WITH_ARGS6(tstate, _io_module_text_io_wrapper, args);
     } else {
-        result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, encoding, NULL, NULL, NULL, NULL);
+        result = BUILTIN_OPEN(tstate, filename, mode_obj, buffering_obj, encoding, NULL, NULL, NULL, NULL);
     }
 
 #endif
@@ -82,50 +84,51 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
     return result;
 }
 
-PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyObject *filename) {
+PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filename) {
     PyObject *result;
 
 #if PYTHON_VERSION < 0x300
     // On Windows, it seems that line buffering is actually the default.
-    result = BUILTIN_OPEN(filename, const_str_plain_rb, const_int_0);
+    result = BUILTIN_OPEN(tstate, filename, const_str_plain_rb, const_int_0);
 #else
-    result = BUILTIN_OPEN(filename, const_str_plain_rb, const_int_0, NULL, NULL, NULL, NULL, NULL);
+    result = BUILTIN_OPEN(tstate, filename, const_str_plain_rb, const_int_0, NULL, NULL, NULL, NULL, NULL);
 #endif
 
     return result;
 }
 
-PyObject *GET_FILE_BYTES(PyObject *filename) {
+PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename) {
     PyObject *result;
 
-    if (TRACE_FILE_READ(filename, &result)) {
+    if (TRACE_FILE_READ(tstate, filename, &result)) {
         return result;
     }
 
-    PyObject *data_file = BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
+    PyObject *data_file = BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
 
     if (unlikely(data_file == NULL)) {
         // TODO: Issue a runtime warning maybe.
         return NULL;
     }
 
-    PyObject *read_method = LOOKUP_ATTRIBUTE(data_file, const_str_plain_read);
+    PyObject *read_method = LOOKUP_ATTRIBUTE(tstate, data_file, const_str_plain_read);
     Py_DECREF(data_file);
 
     if (unlikely(read_method == NULL)) {
         return NULL;
     }
 
-    result = CALL_FUNCTION_NO_ARGS(read_method);
+    result = CALL_FUNCTION_NO_ARGS(tstate, read_method);
     Py_DECREF(read_method);
     return result;
 }
 
-static PyObject *IMPORT_HARD_OS_PATH(void) {
+// TODO: Don't we have this generated.
+static PyObject *IMPORT_HARD_OS_PATH(PyThreadState *tstate) {
     static PyObject *os_path = NULL;
 
     if (os_path == NULL) {
-        os_path = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS(), const_str_plain_path);
+        os_path = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_path);
 
         CHECK_OBJECT(os_path);
     }
@@ -133,98 +136,98 @@ static PyObject *IMPORT_HARD_OS_PATH(void) {
     return os_path;
 }
 
-PyObject *OS_PATH_FILE_EXISTS(PyObject *filename) {
+PyObject *OS_PATH_FILE_EXISTS(PyThreadState *tstate, PyObject *filename) {
     PyObject *result;
 
-    if (TRACE_FILE_EXISTS(filename, &result)) {
+    if (TRACE_FILE_EXISTS(tstate, filename, &result)) {
         return result;
     }
 
-    PyObject *exists_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_exists);
+    PyObject *exists_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_exists);
 
-    result = CALL_FUNCTION_WITH_SINGLE_ARG(exists_func, filename);
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, exists_func, filename);
 
     Py_DECREF(exists_func);
     return result;
 }
 
-PyObject *OS_PATH_FILE_ISFILE(PyObject *filename) {
+PyObject *OS_PATH_FILE_ISFILE(PyThreadState *tstate, PyObject *filename) {
     PyObject *result;
 
-    if (TRACE_FILE_ISFILE(filename, &result)) {
+    if (TRACE_FILE_ISFILE(tstate, filename, &result)) {
         return result;
     }
 
-    PyObject *isfile_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isfile);
+    PyObject *isfile_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_isfile);
 
-    result = CALL_FUNCTION_WITH_SINGLE_ARG(isfile_func, filename);
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, isfile_func, filename);
 
     Py_DECREF(isfile_func);
     return result;
 }
 
-PyObject *OS_PATH_FILE_ISDIR(PyObject *filename) {
+PyObject *OS_PATH_FILE_ISDIR(PyThreadState *tstate, PyObject *filename) {
     PyObject *result;
 
-    if (TRACE_FILE_ISDIR(filename, &result)) {
+    if (TRACE_FILE_ISDIR(tstate, filename, &result)) {
         return result;
     }
 
-    PyObject *isdir_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isdir);
+    PyObject *isdir_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_isdir);
 
-    result = CALL_FUNCTION_WITH_SINGLE_ARG(isdir_func, filename);
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, isdir_func, filename);
 
     Py_DECREF(isdir_func);
     return result;
 }
 
-PyObject *OS_LISTDIR(PyObject *path) {
+PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path) {
     PyObject *result;
 
-    if (TRACE_FILE_LISTDIR(path, &result)) {
+    if (TRACE_FILE_LISTDIR(tstate, path, &result)) {
         return result;
     }
 
-    PyObject *listdir_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS(), const_str_plain_listdir);
+    PyObject *listdir_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_listdir);
 
     if (path != NULL) {
-        result = CALL_FUNCTION_WITH_SINGLE_ARG(listdir_func, path);
+        result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, listdir_func, path);
     } else {
-        result = CALL_FUNCTION_NO_ARGS(listdir_func);
+        result = CALL_FUNCTION_NO_ARGS(tstate, listdir_func);
     }
 
     Py_DECREF(listdir_func);
     return result;
 }
 
-PyObject *OS_PATH_BASENAME(PyObject *filename) {
+PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 
-    PyObject *basename_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_basename);
+    PyObject *basename_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_basename);
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(basename_func, filename);
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, basename_func, filename);
 
     Py_DECREF(basename_func);
     return result;
 }
 
-PyObject *OS_PATH_ABSPATH(PyObject *filename) {
+PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 
-    PyObject *abspath_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_abspath);
+    PyObject *abspath_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_abspath);
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(abspath_func, filename);
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, abspath_func, filename);
 
     Py_DECREF(abspath_func);
     return result;
 }
 
-PyObject *OS_PATH_ISABS(PyObject *filename) {
+PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 
-    PyObject *isabs_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isabs);
+    PyObject *isabs_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_isabs);
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(isabs_func, filename);
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, isabs_func, filename);
 
     Py_DECREF(isabs_func);
     return result;

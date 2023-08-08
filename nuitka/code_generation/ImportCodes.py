@@ -76,7 +76,7 @@ def _getCountedArgumentsHelperCallCode(
 
     if None in args:
         emit(
-            "%s = %s_KW(%s);"
+            "%s = %s_KW(tstate, %s);"
             % (
                 to_name,
                 helper_prefix,
@@ -88,7 +88,7 @@ def _getCountedArgumentsHelperCallCode(
         assert len(args) >= min_args
 
         emit(
-            "%s = %s%d(%s);"
+            "%s = %s%d(tstate, %s);"
             % (to_name, helper_prefix, len(args), ", ".join(str(arg) for arg in args))
         )
 
@@ -117,6 +117,8 @@ def _getBuiltinImportCode(
 ):
     emitLineNumberUpdateCode(expression, emit, context)
 
+    # Spell the resulting helper names out, so this can be found,
+    # IMPORT_MODULE_KW, IMPORT_MODULE1, IMPORT_MODULE2, IMPORT_MODULE3, IMPORT_MODULE5
     _getCountedArgumentsHelperCallCode(
         helper_prefix="IMPORT_MODULE",
         to_name=to_name,
@@ -139,7 +141,7 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
         to_name, "imported_value", expression, emit, context
     ) as value_name:
         emit(
-            """%s = IMPORT_MODULE1(%s);"""
+            """%s = IMPORT_MODULE1(tstate, %s);"""
             % (value_name, context.getConstantCode(module_name.asString()))
         )
 
@@ -233,12 +235,12 @@ def getImportModuleNameHardCode(
     PyObject *hard_module = {{module_code_name}}();
 {% if needs_check %}
     if (likely(hard_module != NULL)) {
-        {{to_name}} = LOOKUP_ATTRIBUTE(hard_module, {{import_name}});
+        {{to_name}} = LOOKUP_ATTRIBUTE(tstate, hard_module, {{import_name}});
     } else {
         {{to_name}} = NULL;
     }
 {% else %}
-    {{to_name}} = LOOKUP_ATTRIBUTE(hard_module, {{import_name}});
+    {{to_name}} = LOOKUP_ATTRIBUTE(tstate, hard_module, {{import_name}});
 {% endif %}
 }
 """,
@@ -298,12 +300,12 @@ def generateImportlibImportCallCode(to_name, expression, emit, context):
                 r"""
 {
     PyObject *hard_module = {{import_hard_importlib}}();
-    PyObject *import_module_func = LOOKUP_ATTRIBUTE(hard_module, {{context.getConstantCode("import_module")}});
+    PyObject *import_module_func = LOOKUP_ATTRIBUTE(tstate, hard_module, {{context.getConstantCode("import_module")}});
 {% if package_name == None %}
-    {{to_name}} = CALL_FUNCTION_WITH_SINGLE_ARG(import_module_func, {{import_name}});
+    {{to_name}} = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, import_module_func, {{import_name}});
 {% else %}
     PyObject *args[2] = { {{import_name}}, {{package_name}} };
-    {{to_name}} = CALL_FUNCTION_WITH_ARGS2(import_module_func, args);
+    {{to_name}} = CALL_FUNCTION_WITH_ARGS2(tstate, import_module_func, args);
 {% endif %}
     Py_DECREF(import_module_func);
 }
@@ -342,14 +344,14 @@ def generateImportStarCode(statement, emit, context):
 
         if type(target_scope) is GlobalsDictHandle:
             emit(
-                "%s = IMPORT_MODULE_STAR(%s, true, %s);"
+                "%s = IMPORT_MODULE_STAR(tstate, %s, true, %s);"
                 % (res_name, getModuleAccessCode(context=context), module_name)
             )
         else:
             locals_declaration = context.addLocalsDictName(target_scope.getCodeName())
 
             emit(
-                "%(res_name)s = IMPORT_MODULE_STAR(%(locals_dict)s, false, %(module_name)s);"
+                "%(res_name)s = IMPORT_MODULE_STAR(tstate, %(locals_dict)s, false, %(module_name)s);"
                 % {
                     "res_name": res_name,
                     "locals_dict": locals_declaration,
@@ -383,13 +385,14 @@ def generateImportNameCode(to_name, expression, emit, context):
                 """\
 if (PyModule_Check(%(from_arg_name)s)) {
     %(to_name)s = IMPORT_NAME_OR_MODULE(
+        tstate,
         %(from_arg_name)s,
         (PyObject *)moduledict_%(module_identifier)s,
         %(import_name)s,
         %(import_level)s
     );
 } else {
-    %(to_name)s = IMPORT_NAME_FROM_MODULE(%(from_arg_name)s, %(import_name)s);
+    %(to_name)s = IMPORT_NAME_FROM_MODULE(tstate, %(from_arg_name)s, %(import_name)s);
 }
 """
                 % {
@@ -406,7 +409,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
             )
         else:
             emit(
-                "%s = IMPORT_NAME_FROM_MODULE(%s, %s);"
+                "%s = IMPORT_NAME_FROM_MODULE(tstate, %s, %s);"
                 % (
                     value_name,
                     from_arg_name,

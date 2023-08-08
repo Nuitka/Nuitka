@@ -35,7 +35,7 @@ bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) 
     return Nuitka_DictNext(metadata_values_dict, pos, distribution_name_ptr, &value);
 }
 
-PyObject *Nuitka_Distribution_New(PyObject *name) {
+PyObject *Nuitka_Distribution_New(PyThreadState *tstate, PyObject *name) {
     // TODO: Have our own Python code to be included in compiled form,
     // this duplicates with inspec patcher code.
     static PyObject *nuitka_distribution_type = NULL;
@@ -76,7 +76,7 @@ class nuitka_distribution(Distribution):\n\
             importlib_metadata_distribution = PyObject_GetAttrString(module, "distribution");
             CHECK_OBJECT(importlib_metadata_distribution);
 
-            bool bool_res = Nuitka_DelModuleString("nuitka_distribution_patch");
+            bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_distribution_patch");
             assert(bool_res != false);
 
             Py_DECREF(module);
@@ -85,7 +85,7 @@ class nuitka_distribution(Distribution):\n\
 
     PyObject *metadata_value_item = DICT_GET_ITEM0(metadata_values_dict, name);
     if (metadata_value_item == NULL) {
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name);
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, importlib_metadata_distribution, name);
 
         return result;
     } else {
@@ -96,13 +96,13 @@ class nuitka_distribution(Distribution):\n\
         struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString_Unchecked(package_name));
 
         if (entry == NULL) {
-            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name);
+            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, importlib_metadata_distribution, name);
 
             return result;
         }
 
-        PyObject *args[3] = {getModuleDirectory(entry), metadata, entry_points};
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(nuitka_distribution_type, args);
+        PyObject *args[3] = {getModuleDirectory(tstate, entry), metadata, entry_points};
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(tstate, nuitka_distribution_type, args);
         CHECK_OBJECT(result);
         return result;
     }

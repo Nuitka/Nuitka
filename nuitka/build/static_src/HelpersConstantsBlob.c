@@ -497,7 +497,9 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
     }
 }
 
-static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned char const *data, int count) {
+static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data,
+                                                 int count) {
+
     for (int _i = 0; _i < count; _i++) {
         // Make sure we discover failures to assign.
         *output = NULL;
@@ -526,7 +528,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *t = PyTuple_New(size);
 
             if (size > 0) {
-                data = _unpackBlobConstants(&PyTuple_GET_ITEM(t, 0), data, size);
+                data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
             }
 
             insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
@@ -544,7 +546,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *l = PyList_New(size);
 
             if (size > 0) {
-                data = _unpackBlobConstants(&PyList_GET_ITEM(l, 0), data, size);
+                data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
             }
 
             insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
@@ -565,8 +567,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
                 NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-                data = _unpackBlobConstants(&keys[0], data, size);
-                data = _unpackBlobConstants(&values[0], data, size);
+                data = _unpackBlobConstants(tstate, &keys[0], data, size);
+                data = _unpackBlobConstants(tstate, &values[0], data, size);
 
                 for (int i = 0; i < size; i++) {
                     PyDict_SetItem(d, keys[i], values[i]);
@@ -597,7 +599,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                     static PyObject *empty_frozenset = NULL;
 
                     if (empty_frozenset == NULL) {
-                        empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyFrozenSet_Type,
+                        empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)&PyFrozenSet_Type,
                                                                         Nuitka_Bytes_FromStringAndSize("", 0));
                     }
 
@@ -610,7 +612,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             if (size > 0) {
                 NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-                data = _unpackBlobConstants(&values[0], data, size);
+                data = _unpackBlobConstants(tstate, &values[0], data, size);
 
                 for (int i = 0; i < size; i++) {
                     PySet_Add(s, values[i]);
@@ -735,9 +737,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *parts[2];
 
             // Complex via float is done for ones that are 0, nan, float.
-            data = _unpackBlobConstants(&parts[0], data, 2);
+            data = _unpackBlobConstants(tstate, &parts[0], data, 2);
 
-            *output = BUILTIN_COMPLEX2(parts[0], parts[1]);
+            *output = BUILTIN_COMPLEX2(tstate, parts[0], parts[1]);
             is_object = true;
 
             break;
@@ -915,7 +917,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case ':': {
             // Slice object
             PyObject *items[3];
-            data = _unpackBlobConstants(&items[0], data, 3);
+            data = _unpackBlobConstants(tstate, &items[0], data, 3);
 
             PyObject *s = MAKE_SLICE_OBJECT3(items[0], items[1], items[2]);
 
@@ -934,9 +936,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *s = MAKE_XRANGE(start, stop, step);
 #else
             PyObject *items[3];
-            data = _unpackBlobConstants(&items[0], data, 3);
+            data = _unpackBlobConstants(tstate, &items[0], data, 3);
 
-            PyObject *s = BUILTIN_XRANGE3(items[0], items[1], items[2]);
+            PyObject *s = BUILTIN_XRANGE3(tstate, items[0], items[1], items[2]);
 #endif
             *output = s;
             is_object = true;
@@ -1097,7 +1099,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case 'G': {
             // GenericAlias object
             PyObject *items[2];
-            data = _unpackBlobConstants(&items[0], data, 2);
+            data = _unpackBlobConstants(tstate, &items[0], data, 2);
 
             PyObject *g = Py_GenericAlias(items[0], items[1]);
 
@@ -1112,7 +1114,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case 'H': {
             // UnionType object
             PyObject *args;
-            data = _unpackBlobConstants(&args, data, 1);
+            data = _unpackBlobConstants(tstate, &args, data, 1);
 
             PyObject *union_type = MAKE_UNION_TYPE(args);
 
@@ -1155,13 +1157,13 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
     return data;
 }
 
-static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
+static void unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data) {
     int count = (int)unpackValueUint16(&data);
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     printf("unpackBlobConstants count %d\n", count);
 #endif
-    _unpackBlobConstants(output, data, count);
+    _unpackBlobConstants(tstate, output, data, count);
 }
 
 #if _NUITKA_CONSTANTS_FROM_MACOS_SECTION
@@ -1211,7 +1213,9 @@ unsigned char *findMacOSBinarySection(void) {
 
 #endif
 
-void loadConstantsBlob(PyObject **output, char const *name) {
+void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *name) {
+    assert(PyThreadState_GET() == tstate);
+
     static bool init_done = false;
 
     if (init_done == false) {
@@ -1291,5 +1295,5 @@ void loadConstantsBlob(PyObject **output, char const *name) {
         w += size;
     }
 
-    unpackBlobConstants(output, w);
+    unpackBlobConstants(tstate, output, w);
 }

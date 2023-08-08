@@ -290,7 +290,7 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_CAUSE(&%s, &%s, &%s, %s);"
+        "RAISE_EXCEPTION_WITH_CAUSE(tstate, &%s, &%s, &%s, %s);"
         % (exception_type, exception_value, exception_tb, raise_cause_name)
     )
 

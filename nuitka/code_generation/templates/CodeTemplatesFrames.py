@@ -186,7 +186,7 @@ template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
+if (!EXCEPTION_MATCH_GENERATOR(tstate, %(exception_type)s)) {
     if (%(exception_tb)s == NULL) {
         %(exception_tb)s = %(tb_making)s;
     } else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {

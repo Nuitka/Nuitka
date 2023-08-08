@@ -120,7 +120,7 @@ def getVariableReferenceCode(
 %(value_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
 
 if (unlikely(%(value_name)s == NULL)) {
-    %(value_name)s = %(helper_code)s(%(var_name)s);
+    %(value_name)s = %(helper_code)s(tstate, %(var_name)s);
 }
 """
                 % {
@@ -411,7 +411,7 @@ def _getVariableDelCode(
         context=context,
     )
 
-    if needs_check and not tolerant:
+    if to_name is not None:
         if variable.isModuleVariable():
             getNameReferenceErrorCode(
                 variable_name=variable.getName(),

@@ -65,7 +65,7 @@ def generateBuiltinSuper1Code(to_name, expression, emit, context):
         to_name, "super_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = BUILTIN_SUPER2(moduledict_%s, %s, NULL);"
+            "%s = BUILTIN_SUPER2(tstate, moduledict_%s, %s, NULL);"
             % (
                 value_name,
                 context.getModuleCodeName(),
@@ -92,7 +92,7 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
         to_name, "super_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = BUILTIN_SUPER%d(moduledict_%s, %s, %s);"
+            "%s = BUILTIN_SUPER%d(tstate, moduledict_%s, %s, %s);"
             % (
                 value_name,
                 2 if expression.isExpressionBuiltinSuper2() else 0,
@@ -133,7 +133,7 @@ def generateTypeOperationPrepareCode(to_name, expression, emit, context):
         to_name, "prepare_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = CALL_FUNCTION(%s, %s, %s);"
+            "%s = CALL_FUNCTION(tstate, %s, %s, %s);"
             % (
                 value_name,
                 prepare_func_name,

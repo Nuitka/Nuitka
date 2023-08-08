@@ -67,7 +67,7 @@ extern void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exce
                                       PyTracebackObject **exception_tb);
 
 #if PYTHON_VERSION >= 0x300
-extern void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                        PyTracebackObject **exception_tb, PyObject *exception_cause);
 #endif
 

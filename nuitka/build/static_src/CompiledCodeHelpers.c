@@ -152,7 +152,7 @@ static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
 
 NUITKA_DEFINE_BUILTIN(range);
 
-PyObject *BUILTIN_RANGE(PyObject *boundary) {
+PyObject *BUILTIN_RANGE(PyThreadState *tstate, PyObject *boundary) {
     PyObject *boundary_temp = TO_RANGE_ARG(boundary, "end");
 
     if (unlikely(boundary_temp == NULL)) {
@@ -161,12 +161,10 @@ PyObject *BUILTIN_RANGE(PyObject *boundary) {
 
     long start = PyInt_AsLong(boundary_temp);
 
-    if (start == -1 && ERROR_OCCURRED()) {
-        CLEAR_ERROR_OCCURRED();
-
+    if (start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate)) {
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(range), boundary_temp);
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(range), boundary_temp);
 
         Py_DECREF(boundary_temp);
 
@@ -177,7 +175,7 @@ PyObject *BUILTIN_RANGE(PyObject *boundary) {
     return _BUILTIN_RANGE_INT(start);
 }
 
-PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
+PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
     PyObject *low_temp = TO_RANGE_ARG(low, "start");
 
     if (unlikely(low_temp == NULL)) {
@@ -195,15 +193,13 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
 
     long start = PyInt_AsLong(low_temp);
 
-    if (unlikely(start == -1 && ERROR_OCCURRED())) {
-        CLEAR_ERROR_OCCURRED();
+    if (unlikely(start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         fallback = true;
     }
 
     long end = PyInt_AsLong(high_temp);
 
-    if (unlikely(end == -1 && ERROR_OCCURRED())) {
-        CLEAR_ERROR_OCCURRED();
+    if (unlikely(end == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         fallback = true;
     }
 
@@ -212,7 +208,7 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
         PyObject *pos_args = MAKE_TUPLE2_0(low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -225,7 +221,7 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
     }
 }
 
-PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
+PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step) {
     PyObject *low_temp = TO_RANGE_ARG(low, "start");
 
     if (unlikely(low_temp == NULL)) {
@@ -251,22 +247,19 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
     long start = PyInt_AsLong(low_temp);
 
-    if (unlikely(start == -1 && ERROR_OCCURRED())) {
-        CLEAR_ERROR_OCCURRED();
+    if (unlikely(start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         fallback = true;
     }
 
     long end = PyInt_AsLong(high_temp);
 
-    if (unlikely(end == -1 && ERROR_OCCURRED())) {
-        CLEAR_ERROR_OCCURRED();
+    if (unlikely(end == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         fallback = true;
     }
 
     long step_long = PyInt_AsLong(step_temp);
 
-    if (unlikely(step_long == -1 && ERROR_OCCURRED())) {
-        CLEAR_ERROR_OCCURRED();
+    if (unlikely(step_long == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         fallback = true;
     }
 
@@ -275,7 +268,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -454,7 +447,7 @@ static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
 #endif
 
 /* Built-in xrange (Python2) or xrange (Python3) with one argument. */
-PyObject *BUILTIN_XRANGE1(PyObject *high) {
+PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(high))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
@@ -499,7 +492,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
-PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
+PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
@@ -509,7 +502,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 
     long int_low = PyInt_AsLong(low);
 
-    if (unlikely(int_low == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_low == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -521,7 +514,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 
     long int_high = PyInt_AsLong(high);
 
-    if (unlikely(int_high == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_high == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -532,7 +525,7 @@ PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high) {
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
-PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
+PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
@@ -542,7 +535,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
     long int_low = PyInt_AsLong(low);
 
-    if (unlikely(int_low == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_low == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -554,7 +547,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
     long int_high = PyInt_AsLong(high);
 
-    if (unlikely(int_high == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_high == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -566,7 +559,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
     long int_step = PyInt_AsLong(step);
 
-    if (unlikely(int_step == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_step == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -582,7 +575,7 @@ PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step) {
 #endif
 }
 
-PyObject *BUILTIN_ALL(PyObject *value) {
+PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
     CHECK_OBJECT(value);
 
     PyObject *it = PyObject_GetIter(value);
@@ -603,6 +596,7 @@ PyObject *BUILTIN_ALL(PyObject *value) {
             Py_DECREF(it);
             return NULL;
         }
+
         if (cmp == 0) {
             Py_DECREF(it);
             Py_INCREF(Py_False);
@@ -611,7 +605,8 @@ PyObject *BUILTIN_ALL(PyObject *value) {
     }
 
     Py_DECREF(it);
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
+
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
         return NULL;
     }
 
@@ -619,19 +614,19 @@ PyObject *BUILTIN_ALL(PyObject *value) {
     return Py_True;
 }
 
-PyObject *BUILTIN_LEN(PyObject *value) {
+PyObject *BUILTIN_LEN(PyThreadState *tstate, PyObject *value) {
     CHECK_OBJECT(value);
 
     Py_ssize_t res = Nuitka_PyObject_Size(value);
 
-    if (unlikely(res < 0 && ERROR_OCCURRED())) {
+    if (unlikely(res < 0 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
     return PyInt_FromSsize_t(res);
 }
 
-PyObject *BUILTIN_ANY(PyObject *value) {
+PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
     CHECK_OBJECT(value);
 
     PyObject *it = PyObject_GetIter(value);
@@ -660,7 +655,7 @@ PyObject *BUILTIN_ANY(PyObject *value) {
     }
 
     Py_DECREF(it);
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
         return NULL;
     }
 
@@ -681,7 +676,7 @@ PyObject *BUILTIN_ABS(PyObject *o) {
 
 NUITKA_DEFINE_BUILTIN(format);
 
-PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
+PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *format_spec) {
     CHECK_OBJECT(value);
     CHECK_OBJECT(format_spec);
 
@@ -689,7 +684,7 @@ PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
 
     PyObject *args[2] = {value, format_spec};
 
-    return CALL_FUNCTION_WITH_ARGS2(NUITKA_ACCESS_BUILTIN(format), args);
+    return CALL_FUNCTION_WITH_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(format), args);
 }
 
 // Helper functions for print. Need to play nice with Python softspace
@@ -730,26 +725,28 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
     PyObject *result;
 
     if (likely(file == NULL)) {
-        result = CALL_FUNCTION_NO_ARGS(NUITKA_ACCESS_BUILTIN(print));
+        result = CALL_FUNCTION_NO_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print));
     } else {
         PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
         PyObject *kw_args = MAKE_DICT(kw_pairs, 1);
 
         // TODO: This should use something that does not build a dictionary at all, and not
         // uses a tuple.
-        result = CALL_FUNCTION_WITH_KEYARGS(NUITKA_ACCESS_BUILTIN(print), kw_args);
+        result = CALL_FUNCTION_WITH_KEYARGS(tstate, NUITKA_ACCESS_BUILTIN(print), kw_args);
 
         Py_DECREF(kw_args);
     }
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
     return result != NULL;
 #endif
@@ -822,7 +819,9 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY();
@@ -836,14 +835,14 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     PyObject *print_args = MAKE_TUPLE1(object);
 
-    PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
+    PyObject *result = CALL_FUNCTION(tstate, NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
     Py_DECREF(print_args);
     Py_DECREF(print_kw);
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
     return result != NULL;
 #endif
@@ -886,7 +885,9 @@ bool PRINT_REPR(PyObject *object) {
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
     bool res;
 
@@ -903,7 +904,7 @@ bool PRINT_REPR(PyObject *object) {
         res = PRINT_NULL();
     }
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
     return res;
 }
@@ -1222,7 +1223,7 @@ struct Nuitka_QuickIterator {
     } iterator_data;
 };
 
-static bool MAKE_QUICK_ITERATOR(PyObject *sequence, struct Nuitka_QuickIterator *qiter) {
+static bool MAKE_QUICK_ITERATOR(PyThreadState *tstate, PyObject *sequence, struct Nuitka_QuickIterator *qiter) {
     if (Nuitka_Generator_Check(sequence)) {
         qiter->iterator_mode = ITERATOR_COMPILED_GENERATOR;
         qiter->iterator_data.generator = (struct Nuitka_GeneratorObject *)sequence;
@@ -1237,7 +1238,7 @@ static bool MAKE_QUICK_ITERATOR(PyObject *sequence, struct Nuitka_QuickIterator 
     } else {
         qiter->iterator_mode = ITERATOR_GENERIC;
 
-        qiter->iterator_data.iter = MAKE_ITERATOR(sequence);
+        qiter->iterator_data.iter = MAKE_ITERATOR(tstate, sequence);
         if (unlikely(qiter->iterator_data.iter == NULL)) {
             return false;
         }
@@ -1246,7 +1247,7 @@ static bool MAKE_QUICK_ITERATOR(PyObject *sequence, struct Nuitka_QuickIterator 
     return true;
 }
 
-static PyObject *QUICK_ITERATOR_NEXT(struct Nuitka_QuickIterator *qiter, bool *finished) {
+static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickIterator *qiter, bool *finished) {
     PyObject *result;
 
     switch (qiter->iterator_mode) {
@@ -1256,7 +1257,7 @@ static PyObject *QUICK_ITERATOR_NEXT(struct Nuitka_QuickIterator *qiter, bool *f
         if (result == NULL) {
             Py_DECREF(qiter->iterator_data.iter);
 
-            if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED())) {
+            if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
                 *finished = false;
                 return NULL;
             }
@@ -1268,7 +1269,7 @@ static PyObject *QUICK_ITERATOR_NEXT(struct Nuitka_QuickIterator *qiter, bool *f
         *finished = false;
         return result;
     case ITERATOR_COMPILED_GENERATOR:
-        result = Nuitka_Generator_qiter(qiter->iterator_data.generator, finished);
+        result = Nuitka_Generator_qiter(tstate, qiter->iterator_data.generator, finished);
 
         return result;
     case ITERATOR_TUPLE:
@@ -1304,10 +1305,10 @@ static PyObject *QUICK_ITERATOR_NEXT(struct Nuitka_QuickIterator *qiter, bool *f
     return NULL;
 }
 
-PyObject *BUILTIN_SUM1(PyObject *sequence) {
+PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
     struct Nuitka_QuickIterator qiter;
 
-    if (unlikely(MAKE_QUICK_ITERATOR(sequence, &qiter) == false)) {
+    if (unlikely(MAKE_QUICK_ITERATOR(tstate, sequence, &qiter) == false)) {
         return NULL;
     }
 
@@ -1320,7 +1321,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
     for (;;) {
         bool finished;
 
-        item = QUICK_ITERATOR_NEXT(&qiter, &finished);
+        item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
 
         if (finished) {
 #if PYTHON_VERSION < 0x300
@@ -1412,7 +1413,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
         CHECK_OBJECT(result);
 
         bool finished;
-        item = QUICK_ITERATOR_NEXT(&qiter, &finished);
+        item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
 
         if (finished) {
             break;
@@ -1442,7 +1443,7 @@ PyObject *BUILTIN_SUM1(PyObject *sequence) {
 
 NUITKA_DEFINE_BUILTIN(sum);
 
-PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
+PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *start) {
     NUITKA_ASSIGN_BUILTIN(sum);
 
     CHECK_OBJECT(sequence);
@@ -1450,7 +1451,7 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
 
     PyObject *pos_args = MAKE_TUPLE2(sequence, start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
 

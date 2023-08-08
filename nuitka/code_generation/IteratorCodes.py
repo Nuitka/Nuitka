@@ -126,7 +126,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             emit("%s = UNPACK_NEXT_INFALLIBLE(%s);" % (result_name, value_name))
         elif python_version < 0x350:
             emit(
-                "%s = UNPACK_NEXT(%s, %s);"
+                "%s = UNPACK_NEXT(tstate, %s, %s);"
                 % (result_name, value_name, expression.getCount() - 1)
             )
         else:
@@ -134,7 +134,7 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
             expected = expression.getExpected()
 
             emit(
-                "%s = UNPACK_NEXT%s(%s, %s, %s);"
+                "%s = UNPACK_NEXT%s(tstate, %s, %s, %s);"
                 % (
                     result_name,
                     "_STARRED" if starred else "",
@@ -259,6 +259,7 @@ def generateBuiltinNext2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_NEXT2",
+        tstate=True,
         arg_desc=(
             ("next_arg", expression.subnode_iterator),
             ("next_default", expression.subnode_default),
@@ -277,6 +278,7 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
+        tstate=may_raise,
         arg_desc=(("iter_arg", expression.subnode_value),),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -292,6 +294,7 @@ def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_UNPACK_ITERATOR" if may_raise else "MAKE_ITERATOR_INFALLIBLE",
+        tstate=False,
         arg_desc=(("iter_arg", expression.subnode_value),),
         may_raise=may_raise,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -305,6 +308,7 @@ def generateBuiltinIter2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ITER2",
+        tstate=False,
         arg_desc=(
             ("iter_callable", expression.subnode_callable_arg),
             ("iter_sentinel", expression.subnode_sentinel),
@@ -321,6 +325,7 @@ def generateBuiltinLenCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_LEN",
+        tstate=True,
         arg_desc=(("len_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -334,6 +339,7 @@ def generateBuiltinAnyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ANY",
+        tstate=True,
         arg_desc=(("any_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -347,6 +353,7 @@ def generateBuiltinAllCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ALL",
+        tstate=True,
         arg_desc=(("all_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

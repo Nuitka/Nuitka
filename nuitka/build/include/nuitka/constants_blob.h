@@ -29,6 +29,6 @@
  *
  */
 
-extern void loadConstantsBlob(PyObject **, char const *name);
+extern void loadConstantsBlob(PyThreadState *tstate, PyObject **, char const *name);
 
 #endif

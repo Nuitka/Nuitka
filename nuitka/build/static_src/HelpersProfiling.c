@@ -74,14 +74,17 @@ void stopProfiling(void) {
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
 
     // Save the current exception, if any, we must preserve it.
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
 
     PyObject *result = CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(vmprof_module, "disable"));
 
-    if (result == NULL)
-        CLEAR_ERROR_OCCURRED();
+    if (result == NULL) {
+        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+    }
 
     fclose(tempfile_profile);
 
@@ -94,7 +97,7 @@ void stopProfiling(void) {
 
     fclose(tempfile_times);
 
-    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
 }
 
 #endif

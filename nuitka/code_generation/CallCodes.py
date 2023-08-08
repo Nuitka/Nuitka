@@ -224,7 +224,7 @@ def _getCallCodeKwSplitFromConstant(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        """%s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(%s, &PyTuple_GET_ITEM(%s, 0), %s);"""
+        """%s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(tstate, %s, &PyTuple_GET_ITEM(%s, 0), %s);"""
         % (
             to_name,
             called_name,
@@ -252,7 +252,7 @@ def getCallCodeKwSplit(
 {
     PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
 
-    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(%(called_name)s, kw_values, %(kw_names)s);
+    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(tstate, %(called_name)s, kw_values, %(kw_names)s);
 }
 """
         % {
@@ -361,7 +361,7 @@ def _generateCallCodeKwDict(
 
     emit(
         """\
-%(to_name)s = CALL_FUNCTION_WITH_KEYARGS(%(called_name)s, %(kw_dict_name)s);
+%(to_name)s = CALL_FUNCTION_WITH_KEYARGS(tstate, %(called_name)s, %(kw_dict_name)s);
 """
         % {
             "to_name": to_name,
@@ -546,7 +546,7 @@ def generateCallCode(to_name, expression, emit, context):
 def getCallCodeNoArgs(to_name, called_name, expression, emit, context):
     emitLineNumberUpdateCode(expression, emit, context)
 
-    emit("%s = CALL_FUNCTION_NO_ARGS(%s);" % (to_name, called_name))
+    emit("%s = CALL_FUNCTION_NO_ARGS(tstate, %s);" % (to_name, called_name))
 
     getErrorExitCode(
         check_name=to_name,
@@ -565,7 +565,7 @@ def _getInstanceCallCodeNoArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_METHOD_NO_ARGS(%s, %s);"
+        "%s = CALL_METHOD_NO_ARGS(tstate, %s, %s);"
         % (to_name, called_name, called_attribute_name)
     )
 
@@ -606,7 +606,7 @@ def _getInstanceCallCodePosArgsQuick(
     # be more efficient.
     if arg_size == 1:
         emit(
-            """%s = CALL_METHOD_WITH_SINGLE_ARG(%s, %s, %s);"""
+            """%s = CALL_METHOD_WITH_SINGLE_ARG(tstate, %s, %s, %s);"""
             % (to_name, called_name, called_attribute_name, arg_names[0])
         )
     else:
@@ -617,6 +617,7 @@ def _getInstanceCallCodePosArgsQuick(
 {
     PyObject *call_args[] = {%(call_args)s};
     %(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+        tstate,
         %(called_name)s,
         %(called_attribute_name)s,
         call_args
@@ -655,7 +656,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, c
     # be more efficient.
     if arg_size == 1:
         emit(
-            """%s = CALL_FUNCTION_WITH_SINGLE_ARG(%s, %s);"""
+            """%s = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, %s, %s);"""
             % (to_name, called_name, arg_names[0])
         )
     else:
@@ -665,7 +666,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, c
             """\
 {
     PyObject *call_args[] = {%s};
-    %s = CALL_FUNCTION_WITH_ARGS%d(%s, call_args);
+    %s = CALL_FUNCTION_WITH_ARGS%d(tstate, %s, call_args);
 }
 """
             % (
@@ -707,6 +708,7 @@ def _getInstanceCallCodeFromTuple(
     if arg_size == 1:
         template = """\
 %(to_name)s = CALL_METHOD_WITH_SINGLE_ARG(
+    tstate,
     %(called_name)s,
     %(called_attribute_name)s,
     PyTuple_GET_ITEM(%(arg_tuple)s, 0)
@@ -715,6 +717,7 @@ def _getInstanceCallCodeFromTuple(
     else:
         template = """\
 %(to_name)s = CALL_METHOD_WITH_ARGS%(arg_size)d(
+    tstate,
     %(called_name)s,
     %(called_attribute_name)s,
     &PyTuple_GET_ITEM(%(arg_tuple)s, 0)
@@ -773,7 +776,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
 
     emit(
         """\
-%s = CALL_FUNCTION_WITH_POSARGS%d(%s, %s);
+%s = CALL_FUNCTION_WITH_POSARGS%d(tstate, %s, %s);
 """
         % (to_name, arg_size, called_name, arg_tuple_name)
     )
@@ -819,7 +822,10 @@ def _getInstanceCallCodePosArgs(
 def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, context):
     emitLineNumberUpdateCode(expression, emit, context)
 
-    emit("%s = CALL_FUNCTION_WITH_POSARGS(%s, %s);" % (to_name, called_name, args_name))
+    emit(
+        "%s = CALL_FUNCTION_WITH_POSARGS(tstate, %s, %s);"
+        % (to_name, called_name, args_name)
+    )
 
     getErrorExitCode(
         check_name=to_name,
@@ -883,7 +889,8 @@ def _getCallCodePosConstKeywordVariableArgs(
         """\
 {
     PyObject *kw_values[%(kw_size)d] = {%(kw_values)s};
-    %(to_name)s = CALL_FUNCTION_WITH_POSARGS%(args_count)d_KWSPLIT(%(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
+    %(to_name)s = CALL_FUNCTION_WITH_POSARGS%(args_count)d_KWSPLIT(\
+tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
 }
 """
         % {
@@ -969,7 +976,7 @@ def getCallCodePosVariableKeywordVariableArgs(
 {
     PyObject *args[] = {%(call_arg_names)s};
     PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
-    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d_KWSPLIT(%(called_name)s, args, kw_values, %(kw_names)s);
+    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d_KWSPLIT(tstate, %(called_name)s, args, kw_values, %(kw_names)s);
 }
 """
         % {
@@ -1029,7 +1036,7 @@ def _getCallCodePosConstantKeywordConstArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        """%s = CALL_FUNCTION_WITH_ARGS%d_VECTORCALL(%s, &PyTuple_GET_ITEM(%s, 0), %s);"""
+        """%s = CALL_FUNCTION_WITH_ARGS%d_VECTORCALL(tstate, %s, &PyTuple_GET_ITEM(%s, 0), %s);"""
         % (
             to_name,
             arg_size,
@@ -1056,7 +1063,7 @@ def _getCallCodePosKeywordArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_FUNCTION(%s, %s, %s);"
+        "%s = CALL_FUNCTION(tstate, %s, %s, %s);"
         % (to_name, called_name, call_args_name, call_kw_name)
     )
 

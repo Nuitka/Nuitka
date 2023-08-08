@@ -37,20 +37,42 @@ struct Nuitka_ResourceReaderFilesObject {
     PyObject *m_path;
 };
 
-static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path);
+static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
+                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path);
 
-static PyObject *_Nuitka_ResourceReaderFiles_GetPath(struct Nuitka_ResourceReaderFilesObject const *files) {
+static PyObject *_Nuitka_ResourceReaderFiles_GetPath(PyThreadState *tstate,
+                                                     struct Nuitka_ResourceReaderFilesObject const *files) {
     // Allow for absolute paths, TODO: Too lazy to have OS_PATH_JOIN at this
     // time also not clearly how early JOIN2 is used, i.e. do we have importing
     // available for it.
 
-    PyObject *is_abs = OS_PATH_ISABS(files->m_path);
+    PyObject *is_abs = OS_PATH_ISABS(tstate, files->m_path);
     PyObject *result;
     if (is_abs == Py_True) {
+#if 0
+        PRINT_STRING("Getting path from absolute: ");
+        PRINT_ITEM(files->m_path);
+        PRINT_NEW_LINE();
+#endif
+
         result = files->m_path;
         Py_INCREF(result);
     } else {
-        result = JOIN_PATH2(getModuleDirectory(files->m_loader_entry), files->m_path);
+        result = getModuleDirectory(tstate, files->m_loader_entry);
+
+#if 0
+        PRINT_STRING("Getting path from relative: ");
+        PRINT_ITEM(result);
+        PRINT_STRING(" ");
+        PRINT_ITEM(files->m_path);
+        PRINT_NEW_LINE();
+#endif
+
+        if (files->m_path != const_str_empty) {
+            PyObject *old = result;
+            result = JOIN_PATH2(result, files->m_path);
+            Py_DECREF(old);
+        }
     }
 
     Py_DECREF(is_abs);
@@ -72,7 +94,8 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReader
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
-    return _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
+    return _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 }
 
 // Obligatory, even if we have nothing to own
@@ -91,8 +114,10 @@ static int Nuitka_ResourceReaderFiles_tp_traverse(struct Nuitka_ResourceReaderFi
 //
 static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
-    PyObject *file_path = _Nuitka_ResourceReaderFiles_GetPath(files);
-    PyObject *file_names = OS_LISTDIR(file_path);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *file_path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+    PyObject *file_names = OS_LISTDIR(tstate, file_path);
     Py_DECREF(file_path);
 
     // TODO: Actually we ought to behave like a generator and delay this error,
@@ -111,7 +136,7 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
         PyObject *joined = JOIN_PATH2(files->m_path, file_name);
         CHECK_OBJECT(joined);
 
-        PyObject *files_object = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+        PyObject *files_object = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
         bool res = LIST_APPEND1(files_objects, files_object);
         assert(res);
 
@@ -135,13 +160,15 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
 
 static PyObject *Nuitka_ResourceReaderFiles_read_bytes(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                        PyObject *kwds) {
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 
     if (unlikely(file_name == NULL)) {
         return NULL;
     }
 
-    return GET_FILE_BYTES(file_name);
+    return GET_FILE_BYTES(tstate, file_name);
 }
 
 //    def read_text(self, encoding=None):
@@ -164,13 +191,15 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
         return NULL;
     }
 
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 
     if (unlikely(file_name == NULL)) {
         return NULL;
     }
 
-    PyObject *file_object = BUILTIN_OPEN_SIMPLE(file_name, "r", true, encoding);
+    PyObject *file_object = BUILTIN_OPEN_SIMPLE(tstate, file_name, "r", true, encoding);
 
     Py_DECREF(file_name);
 
@@ -178,14 +207,14 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
         return NULL;
     }
 
-    PyObject *read_method = LOOKUP_ATTRIBUTE(file_object, const_str_plain_read);
+    PyObject *read_method = LOOKUP_ATTRIBUTE(tstate, file_object, const_str_plain_read);
     Py_DECREF(file_object);
 
     if (unlikely(read_method == NULL)) {
         return NULL;
     }
 
-    PyObject *result = CALL_FUNCTION_NO_ARGS(read_method);
+    PyObject *result = CALL_FUNCTION_NO_ARGS(PyThreadState_GET(), read_method);
     Py_DECREF(read_method);
     return result;
 }
@@ -200,22 +229,25 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
 static PyObject *Nuitka_ResourceReaderFiles_is_dir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                    PyObject *kwds) {
 
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
-    PyObject *result = OS_PATH_FILE_ISDIR(file_name);
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+    PyObject *result = OS_PATH_FILE_ISDIR(tstate, file_name);
     Py_DECREF(file_name);
     return result;
 }
+
 //    @abc.abstractmethod
 //    def is_file(self) -> bool:
 //        """
 //        Return True if self is a file
 //        """
-
 static PyObject *Nuitka_ResourceReaderFiles_is_file(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
 
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
-    PyObject *result = OS_PATH_FILE_ISFILE(file_name);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+    PyObject *result = OS_PATH_FILE_ISFILE(tstate, file_name);
     Py_DECREF(file_name);
     return result;
 }
@@ -273,7 +305,9 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReade
         }
     }
 
-    PyObject *result = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
 
     Py_DECREF(joined);
 
@@ -294,7 +328,9 @@ PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFile
         return NULL;
     }
 
-    PyObject *result = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
 
     return result;
 }
@@ -328,9 +364,11 @@ static PyObject *Nuitka_ResourceReaderFiles_open(struct Nuitka_ResourceReaderFil
         return NULL;
     }
 
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
 
-    return BUILTIN_OPEN(file_name, mode, buffering, encoding, errors, newline, NULL, NULL);
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+
+    return BUILTIN_OPEN(tstate, file_name, mode, buffering, encoding, errors, newline, NULL, NULL);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_as_file(struct Nuitka_ResourceReaderFilesObject *files) {
@@ -355,19 +393,23 @@ static PyObject *Nuitka_ResourceReaderFiles_exit(struct Nuitka_ResourceReaderFil
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_fspath(struct Nuitka_ResourceReaderFilesObject *files) {
-    return _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReaderFilesObject *files) {
-    PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *abspath = OS_PATH_ABSPATH(path);
+    PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+
+    PyObject *abspath = OS_PATH_ABSPATH(tstate, path);
 
     if (unlikely(abspath == NULL)) {
         return NULL;
     }
 
-    return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, abspath);
+    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, abspath);
 }
 
 static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
@@ -395,8 +437,13 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
 //        """
 
 static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReaderFilesObject *files) {
-    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
-    return file_name;
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+    PyObject *result = OS_PATH_BASENAME(tstate, file_name);
+    Py_DECREF(file_name);
+
+    return result;
 }
 
 static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_FunctionObject *files, PyObject *value) {
@@ -444,7 +491,8 @@ static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     Nuitka_ResourceReaderFiles_getset,                    // tp_getset
 };
 
-static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path) {
+static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
+                                                struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path) {
     struct Nuitka_ResourceReaderFilesObject *result;
 
     static bool init_done = false;
@@ -460,13 +508,17 @@ static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoade
         // Also register our open, which can avoid a temporary file being created.
         PyObject *importlib_resources_module = IMPORT_HARD_IMPORTLIB__RESOURCES();
 
-        PyObject *as_file = LOOKUP_ATTRIBUTE(importlib_resources_module, const_str_plain_as_file);
+        PyObject *as_file = LOOKUP_ATTRIBUTE(tstate, importlib_resources_module, const_str_plain_as_file);
         CHECK_OBJECT(as_file);
 
-        PyObject *args[2] = {(PyObject *)&Nuitka_ResourceReaderFiles_Type,
-                             LOOKUP_ATTRIBUTE((PyObject *)&Nuitka_ResourceReaderFiles_Type, const_str_plain_as_file)};
+        PyObject *args[2] = {
+            (PyObject *)&Nuitka_ResourceReaderFiles_Type,
+            LOOKUP_ATTRIBUTE(tstate, (PyObject *)&Nuitka_ResourceReaderFiles_Type, const_str_plain_as_file)};
 
-        CALL_METHOD_WITH_ARGS2(as_file, const_str_plain_register, args);
+        CALL_METHOD_WITH_ARGS2(tstate, as_file, const_str_plain_register, args);
+
+        Py_DECREF(as_file);
+        Py_DECREF(args[1]);
 
         init_done = true;
     }

@@ -151,7 +151,9 @@ extern int count_released_frame_cache_instances;
 extern int count_hit_frame_cache_instances;
 #endif
 
+#if _DEBUG_FRAME
 extern void dumpFrameStack(void);
+#endif
 
 inline static PyCodeObject *Nuitka_Frame_GetCodeObject(PyFrameObject *frame) {
 #if PYTHON_VERSION >= 0x3b0

@@ -187,7 +187,7 @@ template_read_locals_mapping_with_fallback = """\
 %(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
-    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()) {
+    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED_TSTATE(tstate)) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
     } else {

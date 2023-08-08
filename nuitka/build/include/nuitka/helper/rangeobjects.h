@@ -20,15 +20,14 @@
 
 /* For built-in built-in range() functionality. */
 
-extern PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step);
-extern PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high);
-extern PyObject *BUILTIN_RANGE(PyObject *boundary);
+extern PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step);
+extern PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high);
+extern PyObject *BUILTIN_RANGE(PyThreadState *tstate, PyObject *boundary);
 
 /* For built-in built-in xrange() functionality. */
-
-extern PyObject *BUILTIN_XRANGE1(PyObject *high);
-extern PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high);
-extern PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step);
+extern PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high);
+extern PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high);
+extern PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step);
 
 #if PYTHON_VERSION >= 0x300
 

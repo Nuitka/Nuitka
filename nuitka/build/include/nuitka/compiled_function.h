@@ -31,7 +31,7 @@
 struct Nuitka_FunctionObject;
 
 // The actual function code with arguments as an array.
-typedef PyObject *(*function_impl_code)(struct Nuitka_FunctionObject const *, PyObject **);
+typedef PyObject *(*function_impl_code)(PyThreadState *tstate, struct Nuitka_FunctionObject const *, PyObject **);
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
@@ -125,22 +125,26 @@ static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
     return ((struct Nuitka_FunctionObject *)object)->m_name;
 }
 
-PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function);
+PyObject *Nuitka_CallFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function);
 
-PyObject *Nuitka_CallFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                     Py_ssize_t args_size);
+PyObject *Nuitka_CallFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                     PyObject *const *args, Py_ssize_t args_size);
 
-PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size);
-PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                           Py_ssize_t args_size, PyObject *kw);
-PyObject *Nuitka_CallFunctionPosArgsKwSplit(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                            Py_ssize_t args_size, PyObject *const *kw_values, PyObject *kw_names);
+PyObject *Nuitka_CallFunctionVectorcall(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                        PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_names,
+                                        Py_ssize_t kw_size);
+PyObject *Nuitka_CallFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                           PyObject *const *args, Py_ssize_t args_size, PyObject *kw);
+PyObject *Nuitka_CallFunctionPosArgsKwSplit(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                            PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_values,
+                                            PyObject *kw_names);
 
-PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *function, PyObject *object);
-PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                           PyObject *const *args, Py_ssize_t args_size);
-PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                                 PyObject *const *args, Py_ssize_t args_size, PyObject *kw);
+PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                          PyObject *object);
+PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size);
+PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                                 PyObject *object, PyObject *const *args, Py_ssize_t args_size,
+                                                 PyObject *kw);
 
 #endif

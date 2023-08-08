@@ -77,7 +77,7 @@ def generateLoopCode(statement, emit, context):
     # Note: We are using the wrong line here, but it's an exception, it's unclear what line it would be anyway.
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
         getErrorExitBoolCode(
-            condition="CONSIDER_THREADING() == false", emit=emit, context=context
+            condition="CONSIDER_THREADING(tstate) == false", emit=emit, context=context
         )
 
     getGotoCode(loop_start_label, emit)

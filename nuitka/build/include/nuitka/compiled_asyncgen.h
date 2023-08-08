@@ -103,7 +103,7 @@ struct Nuitka_AsyncgenObject {
 
 extern PyTypeObject Nuitka_Asyncgen_Type;
 
-typedef PyObject *(*asyncgen_code)(struct Nuitka_AsyncgenObject *, PyObject *);
+typedef PyObject *(*asyncgen_code)(PyThreadState *tstate, struct Nuitka_AsyncgenObject *, PyObject *);
 
 extern PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *name, PyObject *qualname,
                                      PyCodeObject *code_object, struct Nuitka_CellObject **closure,
