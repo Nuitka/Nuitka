@@ -1420,6 +1420,23 @@
         "imp.find_module('pytest')": "'None'"
       when: 'not use_pytest'
 
+- module-name: 'moviepy.audio.fx'
+  implicit-imports:
+    - depends:
+        - '.*'
+
+- module-name: 'moviepy.video.fx'
+  implicit-imports:
+    - depends:
+        - '.*'
+
+- module-name: 'moviepy.video.io.html_tools'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import HTML': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'mozilla-ca'
   data-files:
     patterns:
