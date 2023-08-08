@@ -1094,10 +1094,10 @@ not use compiled code while it exists."""
 def main():
     try:
         _main()
-    except BaseException as orig_exception:
+    except BaseException:
         try:
             writeCompilationReports(aborted=True)
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
             general.warning("Report writing was prevented by exception %s" % e)
 
-        raise orig_exception
+        raise
