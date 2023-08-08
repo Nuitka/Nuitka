@@ -39,8 +39,8 @@ extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
 #define MAKE_LIST_EMPTY(size) PyList_New(size)
 #endif
 
-extern bool LIST_EXTEND_FROM_ITERABLE(PyObject *list, PyObject *other);
-extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *other);
 
 // Like PyList_Append, but we get to specify the transfer of refcount ownership.
 extern bool LIST_APPEND1(PyObject *target, PyObject *item);
@@ -68,7 +68,7 @@ extern bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item);
 // Like PyList_Insert
 extern void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item);
 
-extern PyObject *MAKE_LIST(PyObject *iterable);
+extern PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable);
 
 extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
 

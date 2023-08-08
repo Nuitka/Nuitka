@@ -27,6 +27,7 @@ def generateBuiltinIdCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyLong_FromVoidPtr",
+        tstate=False,
         arg_desc=(("id_arg", expression.subnode_value),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -40,6 +41,7 @@ def generateBuiltinHashCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_HASH",
+        tstate=True,
         arg_desc=(("hash_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

@@ -71,14 +71,14 @@ static PyObject *module_filename_obj = NULL;
 static bool constants_created = false;
 
 /* Function to create module private constants. */
-static void createModuleConstants(void) {
+static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(&mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
+        loadConstantsBlob(tstate, &mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
         for (int i = 0; i < %(constants_count)d; i++) {
-            mod_consts_hash[i] = DEEP_HASH(mod_consts[i]);
+            mod_consts_hash[i] = DEEP_HASH(tstate, mod_consts[i]);
         }
 #endif
     }
@@ -86,19 +86,19 @@ static void createModuleConstants(void) {
 
 // We want to be able to initialize the "__main__" constants in any case.
 #if %(is_dunder_main)s
-void createMainModuleConstants(void) {
-    createModuleConstants();
+void createMainModuleConstants(PyThreadState *tstate) {
+    createModuleConstants(tstate);
 }
 #endif
 
 /* Function to verify module private constants for non-corruption. */
 #ifndef __NUITKA_NO_ASSERT__
-void checkModuleConstants_%(module_identifier)s(void) {
+void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
     for (int i = 0; i < %(constants_count)d; i++) {
-        assert(mod_consts_hash[i] == DEEP_HASH(mod_consts[i]));
+        assert(mod_consts_hash[i] == DEEP_HASH(tstate, mod_consts[i]));
         CHECK_OBJECT_DEEP(mod_consts[i]);
     }
 }
@@ -285,7 +285,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
     PGO_onModuleEntered("%(module_name)s");
 
@@ -303,7 +303,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 
         // Initialize the constant values used.
         _initBuiltinModule();
-        createGlobalConstants();
+        createGlobalConstants(tstate);
 
         /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
@@ -323,17 +323,17 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #ifdef _NUITKA_TRACE
         PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
 #endif
-        setupMetaPathBasedLoader();
+        setupMetaPathBasedLoader(tstate);
 
 #if PYTHON_VERSION >= 0x300
-        patchInspectModule();
+        patchInspectModule(tstate);
 #endif
 
 #endif
 
         /* The constants only used by this module are created now. */
         NUITKA_PRINT_TRACE("%(module_name)s: Calling createModuleConstants().\n");
-        createModuleConstants();
+        createModuleConstants(tstate);
 
         createModuleCodeObjects();
 
@@ -435,7 +435,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         PyObject *_spec_from_module = PyObject_GetAttrString(bootstrap_module, "_spec_from_module");
         CHECK_OBJECT(_spec_from_module);
 
-        PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(_spec_from_module, module_%(module_identifier)s);
+        PyObject *spec_value = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, _spec_from_module, module_%(module_identifier)s);
         Py_DECREF(_spec_from_module);
 
         // We can assume this to never fail, or else we are in trouble anyway.
@@ -447,7 +447,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         }
 
 // Mark the execution in the "__spec__" value.
-        SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_True);
+        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
 
         UPDATE_STRING_DICT1(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value);
     }
@@ -583,14 +583,16 @@ MOD_INIT_DECL(%(module_identifier)s) {
     assert(res != false);
 #endif
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #if PYTHON_VERSION < 0x300
-    modulecode_%(module_identifier)s(module, NULL);
+    modulecode_%(module_identifier)s(tstate, module, NULL);
 
     // TODO: Our "__file__" value will not be respected by CPython and one
     // way we could avoid it, is by having a capsule type, that when it gets
     // released, we are called.
 #else
-    PyObject *result = modulecode_%(module_identifier)s(module, NULL);
+    PyObject *result = modulecode_%(module_identifier)s(tstate, module, NULL);
 
     if (result != NULL) {
         // Make sure we undo the change of the "__file__" attribute during importing. We do not
@@ -598,7 +600,7 @@ MOD_INIT_DECL(%(module_identifier)s) {
         orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
         PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
 
-        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1((PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
     }
 
     return result;
@@ -614,13 +616,13 @@ template_module_exception_exit = """\
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
         if (module_name != NULL) {
-            Nuitka_DelModule(module_name);
+            Nuitka_DelModule(tstate, module_name);
         }
     }
 #endif
     PGO_onModuleExit("%(module_identifier)s", false);
 
-    RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_tb);
     return NULL;
 }"""
 

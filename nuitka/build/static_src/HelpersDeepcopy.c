@@ -282,14 +282,14 @@ PyObject *DEEP_COPY(PyObject *value) {
 
 #ifndef __NUITKA_NO_ASSERT__
 
-static Py_hash_t DEEP_HASH_INIT(PyObject *value) {
+static Py_hash_t DEEP_HASH_INIT(PyThreadState *tstate, PyObject *value) {
     // To avoid warnings about reduced sizes, we put an intermediate value
     // that is size_t.
     size_t value2 = (size_t)value;
     Py_hash_t result = (Py_hash_t)(value2);
 
     if (Py_TYPE(value) != &PyType_Type) {
-        result ^= DEEP_HASH((PyObject *)Py_TYPE(value));
+        result ^= DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
     }
 
     return result;
@@ -306,50 +306,50 @@ static void DEEP_HASH_CSTR(Py_hash_t *hash, char const *s) { DEEP_HASH_BLOB(hash
 
 // Hash function that actually verifies things done to the bit level. Can be
 // used to detect corruption.
-Py_hash_t DEEP_HASH(PyObject *value) {
+Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
     assert(value != NULL);
 
     if (PyType_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         DEEP_HASH_CSTR(&result, ((PyTypeObject *)value)->tp_name);
         return result;
     } else if (PyDict_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t pos = 0;
         PyObject *key, *dict_value;
 
         while (Nuitka_DictNext(value, &pos, &key, &dict_value)) {
             if (key != NULL && value != NULL) {
-                result ^= DEEP_HASH(key);
-                result ^= DEEP_HASH(dict_value);
+                result ^= DEEP_HASH(tstate, key);
+                result ^= DEEP_HASH(tstate, dict_value);
             }
         }
 
         return result;
     } else if (PyTuple_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t n = PyTuple_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
-            result ^= DEEP_HASH(PyTuple_GET_ITEM(value, i));
+            result ^= DEEP_HASH(tstate, PyTuple_GET_ITEM(value, i));
         }
 
         return result;
     } else if (PyList_CheckExact(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t n = PyList_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
-            result ^= DEEP_HASH(PyList_GET_ITEM(value, i));
+            result ^= DEEP_HASH(tstate, PyList_GET_ITEM(value, i));
         }
 
         return result;
     } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         PyObject *iterator = PyObject_GetIter(value);
         CHECK_OBJECT(iterator);
@@ -361,7 +361,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
             CHECK_OBJECT(item);
 
-            result ^= DEEP_HASH(item);
+            result ^= DEEP_HASH(tstate, item);
 
             Py_DECREF(item);
         }
@@ -370,29 +370,29 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     } else if (PyLong_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
         PyObject *str = PyObject_Str(value);
-        result ^= DEEP_HASH(str);
+        result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);
 
-        RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
         return result;
     } else if (PyUnicode_Check(value)) {
-        Py_hash_t result = DEEP_HASH((PyObject *)Py_TYPE(value));
+        Py_hash_t result = DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
 
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
 #if PYTHON_VERSION >= 0x300
         char const *s = (char const *)PyUnicode_DATA(value);
@@ -403,18 +403,18 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         PyObject *str = PyUnicode_AsUTF8String(value);
 
         if (str) {
-            result ^= DEEP_HASH(str);
+            result ^= DEEP_HASH(tstate, str);
         }
 
         Py_DECREF(str);
 #endif
-        RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
         return result;
     }
 #if PYTHON_VERSION < 0x300
     else if (PyString_Check(value)) {
-        Py_hash_t result = DEEP_HASH((PyObject *)Py_TYPE(value));
+        Py_hash_t result = DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
 
         Py_ssize_t size;
         char *s;
@@ -428,7 +428,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 #else
     else if (PyBytes_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size;
         char *s;
@@ -442,7 +442,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 #endif
     else if (PyByteArray_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = PyByteArray_Size(value);
         assert(size >= 0);
@@ -453,11 +453,11 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     } else if (value == Py_None || value == Py_Ellipsis || value == Py_NotImplemented) {
-        return DEEP_HASH_INIT(value);
+        return DEEP_HASH_INIT(tstate, value);
     } else if (PyComplex_Check(value)) {
         Py_complex c = PyComplex_AsCComplex(value);
 
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = sizeof(c);
         char *s = (char *)&c;
@@ -468,7 +468,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     } else if (PyFloat_Check(value)) {
         double f = PyFloat_AsDouble(value);
 
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = sizeof(f);
         char *s = (char *)&f;
@@ -481,7 +481,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         PyInt_Check(value) ||
 #endif
         PyBool_Check(value) || PyRange_Check(value) || PySlice_Check(value) || PyCFunction_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
 #if 0
         printf("Too simple deep hash: %s\n", Py_TYPE(value)->tp_name);
@@ -490,20 +490,20 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         return result;
 #if PYTHON_VERSION >= 0x390
     } else if (Py_TYPE(value) == &Py_GenericAliasType) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         GenericAliasObject *generic_alias = (GenericAliasObject *)value;
 
-        result ^= DEEP_HASH(generic_alias->args);
-        result ^= DEEP_HASH(generic_alias->origin);
+        result ^= DEEP_HASH(tstate, generic_alias->args);
+        result ^= DEEP_HASH(tstate, generic_alias->origin);
 
         return result;
 #endif
 #if PYTHON_VERSION >= 0x3a0
     } else if (Py_TYPE(value) == Nuitka_PyUnion_Type) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
-        result ^= DEEP_HASH(LOOKUP_ATTRIBUTE(value, const_str_plain___args__));
+        result ^= DEEP_HASH(tstate, LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__));
 
         return result;
 #endif

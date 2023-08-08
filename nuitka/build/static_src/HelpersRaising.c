@@ -118,8 +118,8 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
 }
 
 #if PYTHON_VERSION >= 0x300
-void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb,
-                                PyObject *exception_cause) {
+void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
+                                PyTracebackObject **exception_tb, PyObject *exception_cause) {
     CHECK_OBJECT(*exception_type);
     CHECK_OBJECT(exception_cause);
     *exception_tb = NULL;
@@ -137,7 +137,7 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_
             Py_DECREF(*exception_type);
             Py_XDECREF(*exception_tb);
 
-            FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+            FETCH_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_tb);
 
             return;
         }
@@ -151,7 +151,7 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_
 
 #ifdef _NUITKA_FULL_COMPAT
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "exception causes must derive from BaseException");
-        FETCH_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
+        FETCH_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_tb);
 #else
         FORMAT_TYPE_ERROR1(exception_type, exception_value,
                            "exception causes must derive from BaseException (%s does not)",

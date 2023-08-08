@@ -270,7 +270,8 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
         getNameReferenceErrorCode(
             variable_name=variable_name,
-            condition="%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
+            condition="%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED_TSTATE(tstate)"
+            % value_name,
             emit=emit,
             context=context,
         )
@@ -293,7 +294,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name,
-            condition="DICT_HAS_ITEM(%(locals_dict)s, %(var_name)s) == 1"
+            condition="DICT_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s) == 1"
             % {
                 "locals_dict": locals_declaration,
                 "var_name": context.getConstantCode(constant=variable_name),
@@ -304,7 +305,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
         tmp_name = context.getIntResName()
 
         template = """\
-%(tmp_name)s = MAPPING_HAS_ITEM(%(locals_dict)s, %(var_name)s);
+%(tmp_name)s = MAPPING_HAS_ITEM(tstate, %(locals_dict)s, %(var_name)s);
 """
 
         emit(

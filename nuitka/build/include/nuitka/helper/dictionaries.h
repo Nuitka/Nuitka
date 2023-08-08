@@ -267,21 +267,21 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
 }
 
 // Get dict lookup for a key, similar to PyDict_GetItemWithError, ref returned
-extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, with only hash error, does not create KeyError, 1=ref returned, 0=not
-extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key);
-extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
 extern PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key);
 extern PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_Contains
-extern int DICT_HAS_ITEM(PyObject *dict, PyObject *key);
+extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Convert to dictionary, helper for built-in "dict" mainly.
-extern PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj);
+extern PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj);
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);

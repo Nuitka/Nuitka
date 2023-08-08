@@ -112,7 +112,7 @@ struct Nuitka_GeneratorObject {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-typedef PyObject *(*generator_code)(struct Nuitka_GeneratorObject *, PyObject *);
+typedef PyObject *(*generator_code)(PyThreadState *tstate, struct Nuitka_GeneratorObject *, PyObject *);
 
 extern PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *name,
 #if PYTHON_VERSION >= 0x350
@@ -128,7 +128,8 @@ extern PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
                                            PyCodeObject *code_object, struct Nuitka_CellObject **closure,
                                            Py_ssize_t closure_given);
 
-extern PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool *finished);
+extern PyObject *Nuitka_Generator_qiter(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
+                                        bool *finished);
 
 static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }
 

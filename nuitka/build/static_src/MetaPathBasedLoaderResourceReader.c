@@ -52,8 +52,9 @@ static int Nuitka_ResourceReader_tp_traverse(struct Nuitka_ResourceReaderObject 
     return 0;
 }
 
-static PyObject *_Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReaderObject *reader, PyObject *resource) {
-    PyObject *dir_name = getModuleDirectory(reader->m_loader_entry);
+static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, struct Nuitka_ResourceReaderObject *reader,
+                                                      PyObject *resource) {
+    PyObject *dir_name = getModuleDirectory(tstate, reader->m_loader_entry);
 
     if (unlikely(dir_name == NULL)) {
         return NULL;
@@ -75,7 +76,9 @@ static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReade
         return NULL;
     }
 
-    return _Nuitka_ResourceReader_resource_path(reader, resource);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
 }
 
 static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
@@ -88,9 +91,11 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
         return NULL;
     }
 
-    PyObject *filename = _Nuitka_ResourceReader_resource_path(reader, resource);
+    PyThreadState *tstate = PyThreadState_GET();
 
-    return BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
+    PyObject *filename = _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
+
+    return BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
 }
 
 #if PYTHON_VERSION >= 0x390
@@ -100,7 +105,8 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
 static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
                                              PyObject *kwds) {
 
-    return Nuitka_ResourceReaderFiles_New(reader->m_loader_entry, const_str_empty);
+    PyThreadState *tstate = PyThreadState_GET();
+    return Nuitka_ResourceReaderFiles_New(tstate, reader->m_loader_entry, const_str_empty);
 }
 #endif
 
