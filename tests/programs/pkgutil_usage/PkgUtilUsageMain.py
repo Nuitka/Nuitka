@@ -23,6 +23,7 @@ the file must exist in the file system.
 """
 
 # nuitka-project: --include-package=package
+# nuitka-project: --follow-imports
 # nuitka-project-if: {Commercial} is not None:
 #  nuitka-project: --embed-data-files-runtime-pattern=*
 #  nuitka-project: --include-package-data=package
