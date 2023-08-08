@@ -4350,6 +4350,7 @@
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
+        "'IPython' not in modules": 'True'
         'import IPython': 'raise ImportError'
         'from IPython import get_ipython': 'raise ImportError'
         'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
