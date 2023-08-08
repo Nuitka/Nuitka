@@ -30,7 +30,7 @@ struct %(function_identifier)s_locals {
 };
 #endif
 
-static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
+static PyObject *%(function_identifier)s_context(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
     CHECK_OBJECT(generator);
     assert(Nuitka_Generator_Check((PyObject *)generator));
     CHECK_OBJECT_X(yield_return_value);
@@ -99,7 +99,7 @@ template_generator_exception_exit = """\
     function_exception_exit:
 %(function_cleanup)s
     assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """

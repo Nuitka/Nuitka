@@ -37,6 +37,7 @@ def generateBuiltinLong1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyNumber_Long",
+        tstate=False,
         arg_desc=(("long_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -73,6 +74,7 @@ def generateBuiltinInt1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyNumber_Int",
+        tstate=False,
         arg_desc=(("int_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -90,7 +92,9 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "int_value", expression, emit, context
     ) as result_name:
-        emit("%s = BUILTIN_INT2(%s, %s);" % (result_name, value_name, base_name))
+        emit(
+            "%s = BUILTIN_INT2(tstate, %s, %s);" % (result_name, value_name, base_name)
+        )
 
         getErrorExitCode(
             check_name=result_name,

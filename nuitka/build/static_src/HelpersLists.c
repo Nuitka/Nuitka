@@ -164,7 +164,7 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 #endif
 }
 
-bool LIST_EXTEND_FROM_ITERABLE(PyObject *target, PyObject *other) {
+bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject *other) {
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
 
@@ -224,7 +224,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyObject *target, PyObject *other) {
     }
 
     // Slow path needs to use iterator. TODO:
-    PyObject *iter = MAKE_ITERATOR(other);
+    PyObject *iter = MAKE_ITERATOR(tstate, other);
 
     if (iter == NULL) {
         return false;
@@ -262,7 +262,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyObject *target, PyObject *other) {
         PyObject *item = iternext(iter);
 
         if (item == NULL) {
-            bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED();
+            bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate);
 
             Py_DECREF(iter);
 
@@ -311,10 +311,10 @@ bool LIST_EXTEND_FROM_ITERABLE(PyObject *target, PyObject *other) {
 }
 
 #if PYTHON_VERSION >= 0x390
-bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
+bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *other) {
     // TODO: For improved performance, inline this, but we probably wait
     // until code generation for this kind of helpers is there.
-    bool result = LIST_EXTEND_FROM_ITERABLE(list, other);
+    bool result = LIST_EXTEND_FROM_ITERABLE(tstate, list, other);
 
     if (likely(result)) {
         return true;
@@ -322,7 +322,7 @@ bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
 
     PyObject *error = GET_ERROR_OCCURRED();
 
-    if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_TypeError) &&
+    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_TypeError) &&
         (Py_TYPE(other)->tp_iter == NULL && !PySequence_Check(other))) {
         CLEAR_ERROR_OCCURRED();
         PyErr_Format(PyExc_TypeError, "Value after * must be an iterable, not %s", Py_TYPE(other)->tp_name);
@@ -663,7 +663,7 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 }
 #endif
 
-PyObject *MAKE_LIST(PyObject *iterable) {
+PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
     // Can leave the size hinting to later functions, because the list is allocated empty without
     // items, and when then extending, etc. length hints can be used.
     PyObject *list = MAKE_LIST_EMPTY(0);
@@ -698,7 +698,7 @@ PyObject *MAKE_LIST(PyObject *iterable) {
     }
 #endif
 
-    bool res = LIST_EXTEND_FROM_ITERABLE(list, iterable);
+    bool res = LIST_EXTEND_FROM_ITERABLE(tstate, list, iterable);
 
     if (unlikely(res == false)) {
         Py_DECREF(list);

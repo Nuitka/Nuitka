@@ -345,7 +345,7 @@ static void Nuitka_finalize_garbage(PyThreadState *tstate, PyGC_Head *collectabl
     Nuitka_gc_list_merge(&seen, collectable);
 }
 
-static int Nuitka_handle_weakrefs(PyGC_Head *unreachable, PyGC_Head *old) {
+static int Nuitka_handle_weakrefs(PyThreadState *tstate, PyGC_Head *unreachable, PyGC_Head *old) {
     PyGC_Head *gc;
     PyObject *op;
     PyWeakReference *wr;
@@ -399,7 +399,7 @@ static int Nuitka_handle_weakrefs(PyGC_Head *unreachable, PyGC_Head *old) {
         wr = (PyWeakReference *)op;
         callback = wr->wr_callback;
 
-        temp = CALL_FUNCTION_WITH_SINGLE_ARG(callback, (PyObject *)wr);
+        temp = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, callback, (PyObject *)wr);
         if (temp == NULL)
             PyErr_WriteUnraisable(callback);
         else
@@ -545,7 +545,7 @@ static Py_ssize_t Nuitka_gc_collect_main(PyThreadState *tstate, int generation, 
 
     Nuitka_move_legacy_finalizer_reachable(&finalizers);
 
-    m += Nuitka_handle_weakrefs(&unreachable, old);
+    m += Nuitka_handle_weakrefs(tstate, &unreachable, old);
 
     Nuitka_finalize_garbage(tstate, &unreachable);
 

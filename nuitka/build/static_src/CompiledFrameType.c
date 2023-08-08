@@ -359,10 +359,12 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
 #endif
 
     Nuitka_GC_UnTrack(nuitka_frame);
@@ -396,8 +398,6 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     releaseToFreeList(free_list_frames, nuitka_frame, MAX_FRAME_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    PyThreadState *tstate = PyThreadState_GET();
-
     assert(tstate->curexc_type == save_exception_type);
     assert(tstate->curexc_value == save_exception_value);
     assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
@@ -471,6 +471,8 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 #if PYTHON_VERSION >= 0x340
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
+    PyThreadState *tstate = PyThreadState_GET();
+
     if (Nuitka_Frame_IsExecuting(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
 
@@ -504,14 +506,14 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)f_gen;
             Nuitka_SetFrameGenerator(frame, NULL);
 
-            close_exception = !_Nuitka_Generator_close(generator);
+            close_exception = !_Nuitka_Generator_close(tstate, generator);
         }
 #if PYTHON_VERSION >= 0x350
         else if (Nuitka_Coroutine_Check(f_gen)) {
             struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)f_gen;
             Nuitka_SetFrameGenerator(frame, NULL);
 
-            close_exception = !_Nuitka_Coroutine_close(coroutine);
+            close_exception = !_Nuitka_Coroutine_close(tstate, coroutine);
         }
 #endif
 #if PYTHON_VERSION >= 0x360
@@ -519,7 +521,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)f_gen;
             Nuitka_SetFrameGenerator(frame, NULL);
 
-            close_exception = !_Nuitka_Asyncgen_close(asyncgen);
+            close_exception = !_Nuitka_Asyncgen_close(tstate, asyncgen);
         }
 #endif
         else {
@@ -791,7 +793,10 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     // it. Really serious non-immutable shit. We have triggered that changes
     // behind our back in the past.
 #ifndef __NUITKA_NO_ASSERT__
-    Py_hash_t hash = DEEP_HASH(argnames);
+    // TODO: Reactivate once code object creation becomes un-streaming driven
+    // and we can pass the extra args with no worries.
+
+    // Py_hash_t hash = DEEP_HASH(argnames);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -855,7 +860,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #endif
     );
 
-    assert(DEEP_HASH(argnames) == hash);
+    // assert(DEEP_HASH(tstate, argnames) == hash);
 
     if (result == NULL) {
         PyErr_PrintEx(0);
@@ -952,11 +957,14 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
 }
 
 // Make a dump of the active frame stack. For debugging purposes only.
+#if _DEBUG_FRAME
 void dumpFrameStack(void) {
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyObject *saved_exception_type, *saved_exception_value;
     PyTracebackObject *saved_exception_tb;
 
-    FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
+    FETCH_ERROR_OCCURRED_TSTATE(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 
     int total = 0;
 
@@ -967,15 +975,15 @@ void dumpFrameStack(void) {
         current = current->f_back;
     }
 
-    current = PyThreadState_GET()->frame;
+    current = tstate->frame;
 #else
-    _PyCFrame *current = PyThreadState_GET()->cframe;
+    _PyCFrame *current = tstate->cframe;
     while (current != NULL) {
         total++;
         current = current->previous;
     }
 
-    current = PyThreadState_GET()->cframe;
+    current = tstate->cframe;
 #endif
 
     PRINT_STRING(">--------->\n");
@@ -1010,10 +1018,9 @@ void dumpFrameStack(void) {
 
     PRINT_STRING(">---------<\n");
 
-    RESTORE_ERROR_OCCURRED(saved_exception_type, saved_exception_value, saved_exception_tb);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, saved_exception_type, saved_exception_value, saved_exception_tb);
 }
 
-#if _DEBUG_FRAME
 static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {
     PRINT_STRING(prefix);
     PRINT_STRING(" ");

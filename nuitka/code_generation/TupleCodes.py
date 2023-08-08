@@ -103,6 +103,7 @@ def generateBuiltinTupleCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySequence_Tuple",
+        tstate=False,
         arg_desc=(("tuple_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

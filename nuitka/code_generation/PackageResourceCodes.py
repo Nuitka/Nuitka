@@ -180,7 +180,7 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
         to_name, "distribution_value", expression, emit, context
     ) as value_name:
         emit(
-            """%(to_name)s = Nuitka_Distribution_New(%(name)s);"""
+            """%(to_name)s = Nuitka_Distribution_New(tstate, %(name)s);"""
             % {
                 "to_name": value_name,
                 "name": context.getConstantCode(original_name),
@@ -824,6 +824,7 @@ def generateOsPathExistsCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_FILE_EXISTS",
+        tstate=True,
         arg_desc=(("exists_arg", expression.subnode_path),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -837,6 +838,7 @@ def generateOsPathIsfileCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_FILE_ISFILE",
+        tstate=True,
         arg_desc=(("isfile_arg", expression.subnode_path),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -850,6 +852,7 @@ def generateOsPathIsdirCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_FILE_ISDIR",
+        tstate=True,
         arg_desc=(("isdir_arg", expression.subnode_path),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -863,6 +866,7 @@ def generateOsPathBasenameCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_BASENAME",
+        tstate=True,
         arg_desc=(("path_arg", expression.subnode_p),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -876,6 +880,7 @@ def generateOsPathAbspathCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_ABSPATH",
+        tstate=True,
         arg_desc=(("path_arg", expression.subnode_path),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -889,6 +894,7 @@ def generateOsPathIsabsCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_PATH_ISABS",
+        tstate=True,
         arg_desc=(("path_arg", expression.subnode_s),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -902,6 +908,7 @@ def generateOsListdirCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="OS_LISTDIR",
+        tstate=True,
         arg_desc=(("path_arg", expression.subnode_path),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

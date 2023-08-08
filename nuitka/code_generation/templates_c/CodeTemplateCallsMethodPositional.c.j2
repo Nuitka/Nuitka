@@ -18,20 +18,20 @@
 {% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% macro call_function_with_args(called, args, args_count) %}
 {% if args_count == 0 %}
-CALL_FUNCTION_NO_ARGS({{ called }})
+CALL_FUNCTION_NO_ARGS(tstate, {{ called }})
 {% elif args_count == 1 %}
-CALL_FUNCTION_WITH_SINGLE_ARG({{ called }}, {{ args }}[0])
+CALL_FUNCTION_WITH_SINGLE_ARG(tstate, {{ called }}, {{ args }}[0])
 {% else %}
-CALL_FUNCTION_WITH_ARGS{{args_count}}({{ called }}, {{args}})
+CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, {{ called }}, {{args}})
 {% endif %}
 {% endmacro %}
 {% if args_count == 0 %}
-PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
+PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name) {
 {% elif args_count == 1 %}
-PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyObject *arg) {
+PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *arg) {
     PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
-PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_name, PyObject *const *args) {
+PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *source, PyObject *attr_name, PyObject *const *args) {
 {% endif %}
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
@@ -113,6 +113,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
             if (func == Nuitka_Function_Type.tp_descr_get) {
 {% if args_count != 0 %}
                 PyObject *result = Nuitka_CallMethodFunctionPosArgs(
+                    tstate,
                     (struct Nuitka_FunctionObject const *)descr,
                     source,
                     args,
@@ -120,6 +121,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
                 );
 {% else %}
                 PyObject *result = Nuitka_CallMethodFunctionNoArgs(
+                    tstate,
                     (struct Nuitka_FunctionObject const *)descr,
                     source
                 );
@@ -199,6 +201,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
 {% if args_count != 0 %}
                 return Nuitka_CallMethodFunctionPosArgs(
+                    tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source,
                     args,
@@ -206,6 +209,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
                 );
 {% else %}
                 return Nuitka_CallMethodFunctionNoArgs(
+                    tstate,
                     (struct Nuitka_FunctionObject const *)called_object,
                     source
                 );
@@ -247,6 +251,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
             };
 
             called_object = CALL_FUNCTION_WITH_ARGS2(
+                tstate,
                 source_instance->in_class->cl_getattr,
                 args2
             );

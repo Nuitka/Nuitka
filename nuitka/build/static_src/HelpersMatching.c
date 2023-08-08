@@ -33,12 +33,12 @@ static void FORMAT_MATCH_MISMATCH_ERROR(PyTypeObject *type, Py_ssize_t max_allow
                  ((PyTypeObject *)type)->tp_name, max_allowed, plural_form, actual);
 }
 
-PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
+PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed) {
     PyObject *match_args = NULL;
     PyTypeObject *type = Py_TYPE(matched);
 
     // First, the positional sub-patterns:
-    match_args = LOOKUP_ATTRIBUTE((PyObject *)type, const_str_plain___match_args__);
+    match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
     Py_ssize_t actual;
 
     if (match_args) {
@@ -50,7 +50,7 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
         }
 
         actual = PyTuple_GET_SIZE(match_args);
-    } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED()) {
+    } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate)) {
         if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
             if (max_allowed > 1) {
                 FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, 1);
@@ -90,7 +90,7 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
             return NULL;
         }
 
-        PyObject *arg_value = LOOKUP_ATTRIBUTE(matched, arg_name);
+        PyObject *arg_value = LOOKUP_ATTRIBUTE(tstate, matched, arg_name);
         if (unlikely(arg_value == NULL)) {
             Py_DECREF(match_args);
             Py_DECREF(result);

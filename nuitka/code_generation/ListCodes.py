@@ -162,7 +162,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = %s(%s, %s);"
+        "%s = %s(tstate, %s, %s);"
         % (
             res_name,
             "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND_FROM_ITERABLE",
@@ -396,6 +396,7 @@ def generateListOperationPop1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_POP1",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -409,6 +410,7 @@ def generateListOperationPop2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_POP2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -448,6 +450,7 @@ def generateListOperationSort1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_SORT1",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -461,6 +464,7 @@ def generateListOperationSort2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_SORT2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -474,6 +478,7 @@ def generateListOperationSort3Code(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=to_name,
         capi="LIST_SORT3",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -488,6 +493,7 @@ def generateBuiltinListCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_LIST",
+        tstate=True,
         arg_desc=(("list_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
