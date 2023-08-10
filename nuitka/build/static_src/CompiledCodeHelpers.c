@@ -1554,8 +1554,12 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     CHECK_OBJECT(filename);
 
     // Avoid string APIs, so str, unicode doesn't matter for input.
-    PyObject *result = PyNumber_Add(dirname, getPathSeparatorStringObject());
-    CHECK_OBJECT(result);
+    PyObject *result = dirname;
+
+    if (dirname != const_str_empty) {
+        result = PyNumber_InPlaceAdd(result, getPathSeparatorStringObject());
+        CHECK_OBJECT(result);
+    }
 
     result = PyNumber_InPlaceAdd(result, filename);
     CHECK_OBJECT(result);
