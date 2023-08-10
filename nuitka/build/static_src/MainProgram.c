@@ -823,12 +823,12 @@ static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
     return NuitkaUnicode_FromWideChar(filename_buffer, -1);
 }
 #else
-static PyObject *getExpandedTemplatePath(char const *template) {
+static PyObject *getExpandedTemplatePath(char const *template_path) {
     char filename_buffer[1024];
-    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer));
+    bool res = expandTemplatePath(filename_buffer, template_path, sizeof(filename_buffer));
 
     if (res == false) {
-        printf("Error, couldn't expand pattern: %s\n", template);
+        printf("Error, couldn't expand pattern: %s\n", template_path);
         abort();
     }
 
@@ -1029,23 +1029,23 @@ static void Nuitka_Py_Initialize(void) {
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(_WIN32)
 
-static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, filename_char_t const *template) {
+static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, filename_char_t const *template_path) {
     filename_char_t filename_buffer[1024];
 
     // TODO: We should only have one that works with filename_char_t rather than having
     // to make a difference here.
 #ifdef _WIN32
-    bool res = expandTemplatePathW(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
 
     if (res == false) {
-        wprintf(L"Error, couldn't expand pattern '%lS'\n", template);
+        wprintf(L"Error, couldn't expand pattern '%lS'\n", template_path);
         abort();
     }
 #else
-    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+    bool res = expandTemplatePath(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
 
     if (res == false) {
-        printf("Error, couldn't expand pattern: '%s'\n", template);
+        printf("Error, couldn't expand pattern: '%s'\n", template_path);
         abort();
     }
 #endif
@@ -1111,13 +1111,13 @@ static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, file
     setvbuf(std_handle, NULL, _IOLBF, 4096);
 }
 #else
-static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *template) {
+static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *template_path) {
     filename_char_t filename_buffer[1024];
 
-    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+    bool res = expandTemplatePath(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
 
     if (res == false) {
-        printf("Error, couldn't expand pattern: '%s'\n", template);
+        printf("Error, couldn't expand pattern: '%s'\n", template_path);
         abort();
     }
 
