@@ -69,6 +69,10 @@ def _getReportInputData(aborted):
         (module.getFullName(), module.__class__.__name__) for module in getDoneModules()
     )
 
+    module_sources = dict(
+        (module.getFullName(), module.source_ref) for module in getDoneModules()
+    )
+
     module_inclusion_infos = dict(
         (module.getFullName(), getModuleInclusionInfoByName(module.getFullName()))
         for module in getDoneModules()
@@ -179,6 +183,9 @@ def _addModulesToReport(root, report_input_data, diffable):
             kind=report_input_data["module_kinds"][module_name],
             usage=active_module_info.usage_tag,
             reason=active_module_info.reason,
+            source_path=_getCompilationReportPath(
+                report_input_data["module_sources"][module_name].getFilename()
+            ),
         )
 
         for plugin_name, influence, detail in report_input_data[

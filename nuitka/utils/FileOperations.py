@@ -1160,6 +1160,8 @@ def _getReportPath(filename, prefixes):
 
     if isWin32Windows():
         try:
+            old_filename = filename
+
             filename = getWindowsLongPathName(filename)
         except FileNotFoundError:
             dirname = os.path.dirname(filename)
@@ -1171,6 +1173,9 @@ def _getReportPath(filename, prefixes):
                     pass
                 else:
                     filename = os.path.join(dirname, os.path.basename(filename))
+        else:
+            if old_filename != filename:
+                return _getReportPath(filename, prefixes)
 
     return filename
 
