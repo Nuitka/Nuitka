@@ -445,6 +445,29 @@
         - 'chromadb.telemetry.posthog'
         - 'chromadb.api.local'
         - 'chromadb.db.duckdb'
+        - 'chromadb.db.impl.sqlite'
+        - 'chromadb.api.segment'
+        - 'chromadb.api.fastapi'
+        - 'chromadb.segment.impl.manager.local'
+        - 'chromadb.segment.impl.metadata.sqlite'
+        - 'chromadb.migrations.embeddings_queue'
+        - 'chromadb.migrations.sysdb'
+        - 'chromadb.migrations.metadb'
+
+- module-name: 'chromadb.migrations.embeddings_queue'
+  data-files:
+    patterns:
+      - '*.sql'
+
+- module-name: 'chromadb.migrations.metadb'
+  data-files:
+    patterns:
+      - '*.sql'
+
+- module-name: 'chromadb.migrations.sysdb'
+  data-files:
+    patterns:
+      - '*.sql'
 
 - module-name: 'clr'
   dlls:
@@ -1132,6 +1155,14 @@
   data-files:
     patterns:
       - 'version.txt'
+  options:
+    checks:
+      - description: "For best support use '--experimental=eliminate-backports' until Nuitka covers it fully"
+        support_info: 'warning'
+        when: 'python38_or_higher'
+      - description: 'For best support use newer Python >= 3.8 until Nuitka covers it fully'
+        support_info: 'warning'
+        when: 'before_python38'
 
 - module-name: 'importlib_resources._compat'
   anti-bloat:
@@ -2387,7 +2418,7 @@
     - description: 'avoid Qt dependency'
       no-auto-follow:
         'PIL.ImageQt': 'PIL will not be able to create Qt image objects'
-      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6")'
+      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6") and not plugin("no-qt")'
     - description: 'avoid Qt dependency'
       no-auto-follow:
         'PIL.ImageQt': 'ignore'
