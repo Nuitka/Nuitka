@@ -3646,6 +3646,13 @@
         - 'skimage.transform._radon_transform'
         - 'skimage.transform._warps_cy'
 
+- module-name: 'skimage.util.apply_parallel'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as da': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'sklearn._distributor_init'
   dlls:
     - from_filenames:
