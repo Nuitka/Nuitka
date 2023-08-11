@@ -109,7 +109,11 @@ class PythonModuleBase(NodeBase):
 
             assert package_filename is not None, (package_name, finding)
 
-            # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
+            assert _package_name == package_name, (
+                package_filename,
+                _package_name,
+                package_name,
+            )
 
             decision, _reason = decideRecursion(
                 using_module_name=self.getFullName(),
