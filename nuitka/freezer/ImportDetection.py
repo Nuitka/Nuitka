@@ -39,7 +39,12 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 
+# Could be simpler?
 IMPORT_CODE = """
+import sys
+
+sys.real_prefix = sys.prefix
+sys.path = %s
 imports = %r
 
 failed = set()
@@ -82,7 +87,17 @@ def _detectImports(imports):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=too-many-branches,too-many-statements
 
-    command = IMPORT_CODE % (imports,)
+    # Make sure the right import path (the one Nuitka binary is running with)
+    # is used.
+    reduced_path = [
+        path_element
+        for path_element in sys.path
+        if not areSamePaths(path_element, ".")
+        if not areSamePaths(
+            path_element, os.path.dirname(sys.modules["__main__"].__file__)
+        )
+    ]
+    command = IMPORT_CODE % (repr(reduced_path), imports)
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 0x300:
@@ -92,21 +107,6 @@ print("\\n".join(sorted(
     for module in sys.modules.values()
     if getattr(module, "__file__", None) not in (None, "<frozen>"
 ))), file = sys.stderr)"""
-
-    reduced_path = [
-        path_element
-        for path_element in sys.path
-        if not areSamePaths(path_element, ".")
-        if not areSamePaths(
-            path_element, os.path.dirname(sys.modules["__main__"].__file__)
-        )
-    ]
-
-    # Make sure the right import path (the one Nuitka binary is running with)
-    # is used.
-    command = (
-        "import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)
-    ) + command
 
     if str is not bytes:
         command = command.encode("utf8")
