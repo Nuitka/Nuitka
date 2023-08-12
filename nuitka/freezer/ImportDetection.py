@@ -206,12 +206,12 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    encodings_names = ";".join(
+    encodings_subs = ";".join(
         "import encodings.%s" % m[1]
         for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
     )
 
-    import_code = encodings_names ";import locale"
+    import_code = encodings_subs + ";import locale"
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
