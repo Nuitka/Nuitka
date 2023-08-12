@@ -248,7 +248,7 @@ print("\\n".join(sorted(
 def _detectEarlyImports():
     # TODO: `_detectImports(code, collect_submoduls=True)` Could be used instead.
     imports = tuple(
-        "import encodings.%s" % m[1]
+        "encodings.%s" % m[1]
         for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
     )
 
