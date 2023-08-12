@@ -206,38 +206,16 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    encoding_names = [
-        m[1] for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
-    ]
-
-    if os.name != "nt":
-        # On posix systems, and posix Python variants on Windows, these won't
-        # work and fail to import.
-        for encoding_name in ("mbcs", "cp65001", "oem"):
-            if encoding_name in encoding_names:
-                encoding_names.remove(encoding_name)
-
-    # Not for startup.
-    for non_locale_encoding in (
-        "bz2_codec",
-        "idna",
-        "base64_codec",
-        "hex_codec",
-        "rot_13",
-    ):
-        if non_locale_encoding in encoding_names:
-            encoding_names.remove(non_locale_encoding)
-
-    import_code = ";".join(
-        "import encodings.%s" % encoding_name
-        for encoding_name in sorted(encoding_names)
+    encodings_names = ";".join(
+        "import encodings.%s" % m[1]
+        for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
     )
 
-    import_code += ";import locale;"
+    import_code = encodings_names ";import locale"
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
-        import_code += "import inspect;import importlib._bootstrap"
+        import_code += ";import inspect;import importlib._bootstrap"
 
     return _detectImports(command=import_code)
 
