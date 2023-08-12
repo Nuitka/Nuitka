@@ -82,7 +82,7 @@ def _detectImports(imports):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=too-many-branches,too-many-statements
 
-    command = IMPORT_CODE % imports
+    command = IMPORT_CODE % (imports,)
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 0x300:
