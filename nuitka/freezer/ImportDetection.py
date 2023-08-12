@@ -39,7 +39,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 
-IMPORT_CODE = import_code = """
+IMPORT_CODE = """
 imports = %r
 
 failed = set()
