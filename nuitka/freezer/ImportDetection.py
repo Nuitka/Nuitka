@@ -39,7 +39,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 
-# Could be simpler?
+# Ignore import errors, we only need sys.modules
 IMPORT_CODE = """
 import sys
 
@@ -47,38 +47,11 @@ sys.real_prefix = sys.prefix
 sys.path = %s
 imports = %r
 
-failed = set()
-
-class ImportBlocker(object):
-    def find_module(self, fullname, path = None):
-        if fullname in failed:
-            return self
-
-        return None
-
-    def load_module(self, name):
-        raise ImportError("%%s has failed before" %% name)
-
-sys.meta_path.insert(0, ImportBlocker())
-
 for imp in imports:
     try:
         __import__(imp)
-    except (ImportError, SyntaxError):
-        failed.add(imp)
-    except ValueError as e:
-        if "cannot contain null bytes" in e.args[0]:
-            failed.add(imp)
-        else:
-            sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-            raise
     except Exception:
-        sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-        raise
-
-    for fail in failed:
-        if fail in sys.modules:
-            del sys.modules[fail]
+        pass
 """
 
 
