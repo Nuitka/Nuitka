@@ -39,10 +39,50 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 
+IMPORT_CODE = import_code = """
+imports = %r
 
-def _detectImports(command):
+failed = set()
+
+class ImportBlocker(object):
+    def find_module(self, fullname, path = None):
+        if fullname in failed:
+            return self
+
+        return None
+
+    def load_module(self, name):
+        raise ImportError("%%s has failed before" %% name)
+
+sys.meta_path.insert(0, ImportBlocker())
+
+for imp in imports:
+    try:
+        __import__(imp)
+    except (ImportError, SyntaxError):
+        failed.add(imp)
+    except ValueError as e:
+        if "cannot contain null bytes" in e.args[0]:
+            failed.add(imp)
+        else:
+            sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
+            raise
+    except Exception:
+        sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
+        raise
+
+    for fail in failed:
+        if fail in sys.modules:
+            del sys.modules[fail]
+"""
+
+
+# TODO: option to collect_submodules
+def _detectImports(imports):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=too-many-branches,too-many-statements
+
+    command = IMPORT_CODE % imports
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 0x300:
@@ -206,18 +246,23 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    encodings_subs = ";".join(
+    # TODO: `_detectImports(code, collect_submoduls=True)` Could be used instead.
+    imports = tuple(
         "import encodings.%s" % m[1]
-        for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
+        for m in pkgutil.iter_modules(sys.modules["encodings"].__path__):
     )
 
-    import_code = encodings_subs + ";import locale"
+    # Why `locale` needed for interpreter startup?
+    imports +=("locale",)
 
     # For Python3 we patch inspect without knowing if it is used.
+    # Why???
     if python_version >= 0x300:
-        import_code += ";import inspect;import importlib._bootstrap"
+        # TODO: `_detectImports(code, collect_submoduls=True)` Could be used for importlib.
+        imports += ("inspect", "importlib._bootstrap")
 
-    return _detectImports(command=import_code)
+
+    return _detectImports(imports)
 
 
 _early_modules_names = None
@@ -261,51 +306,14 @@ def _detectStdlibAutoInclusionModules():
     # Otherwise this just makes imports of everything so we can see where
     # it comes from and what it requires.
 
-    import_code = """
-imports = %r
-
-failed = set()
-
-class ImportBlocker(object):
-    def find_module(self, fullname, path = None):
-        if fullname in failed:
-            return self
-
-        return None
-
-    def load_module(self, name):
-        raise ImportError("%%s has failed before" %% name)
-
-sys.meta_path.insert(0, ImportBlocker())
-
-for imp in imports:
-    try:
-        __import__(imp)
-    except (ImportError, SyntaxError):
-        failed.add(imp)
-    except ValueError as e:
-        if "cannot contain null bytes" in e.args[0]:
-            failed.add(imp)
-        else:
-            sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-            raise
-    except Exception:
-        sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-        raise
-
-    for fail in failed:
-        if fail in sys.modules:
-            del sys.modules[fail]
-""" % (
-        tuple(
-            module_name.asString()
-            for module_name in sorted(
-                stdlib_modules, key=lambda name: (name not in first_ones, name)
-            )
-        ),
+    imports = tuple(
+        module_name.asString()
+        for module_name in sorted(
+            stdlib_modules, key=lambda name: (name not in first_ones, name)
+        )
     )
 
-    return _detectImports(command=import_code)
+    return _detectImports(imports)
 
 
 _stdlib_modules_names = None
