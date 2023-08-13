@@ -55,8 +55,7 @@ for imp in imports:
 """
 
 
-# TODO: option to collect_submodules
-def _detectImports(imports):
+def _detectImports(imports, sub_collect=False):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=too-many-branches,too-many-statements
 
@@ -208,9 +207,14 @@ print("\\n".join(sorted(
                 continue
 
             module_names.add(module_name)
-        elif kind == "precompiled":
-            module_names.add(module_name)
-        elif kind == "sourcefile":
+
+        elif kind in ("precompiled", "sourcefile"):
+            if sub_collect and os.path.basename(filename) in ("__init__.pyc", "__init__.py"):
+                module_names.update(
+                    ModuleName("%s.%s" % (module_name, m[1]))
+                    for m in pkgutil.iter_modules([os.path.dirname(filename)])
+                )
+
             module_names.add(module_name)
         else:
             assert False, kind
@@ -219,23 +223,15 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    # TODO: `_detectImports(code, collect_submoduls=True)` Could be used instead.
-    imports = tuple(
-        "encodings.%s" % m[1]
-        for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
-    )
-
-    # Why `locale` needed for interpreter startup?
-    imports += ("locale",)
+    # Why `locale` needed here?
+    imports = ("locale",)
 
     # For Python3 we patch inspect without knowing if it is used.
-    # Why???
     if python_version >= 0x300:
-        # TODO: `_detectImports(code, collect_submoduls=True)` Could be used for importlib.
+        # Why `importlib` needed here? part of `inspect` patch?
         imports += ("inspect", "importlib._bootstrap")
 
-
-    return _detectImports(imports)
+    return _detectImports(imports, sub_collect=True)
 
 
 _early_modules_names = None
