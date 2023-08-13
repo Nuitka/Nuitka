@@ -223,12 +223,10 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    # Why `locale` needed here?
     imports = ("locale",)
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
-        # Why `importlib` needed here? part of `inspect` patch?
         imports += ("inspect", "importlib._bootstrap")
 
     return _detectImports(imports, sub_collect=True)
