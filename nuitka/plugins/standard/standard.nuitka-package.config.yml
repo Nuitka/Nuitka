@@ -1206,6 +1206,11 @@
       - 'fonts'
       - 'images'
 
+- module-name: 'langchain.chains.llm_summarization_checker'
+  data-files:
+    patterns:
+      - '*.txt'
+
 - module-name: 'lark'
   data-files:
     dirs:
