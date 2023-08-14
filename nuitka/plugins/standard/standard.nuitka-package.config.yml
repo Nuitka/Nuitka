@@ -3985,6 +3985,13 @@
     - depends:
         - 'sqlalchemy.dialects.mssql.pyodbc'
 
+- module-name: 'sqlalchemy.orm.util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'randomize_unitofwork': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'sqlalchemy.sql'
   implicit-imports:
     - depends:
