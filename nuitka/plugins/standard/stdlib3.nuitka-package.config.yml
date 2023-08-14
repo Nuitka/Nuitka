@@ -351,6 +351,16 @@
       change_function:
         'test': "'(lambda: None)'"
 
+- module-name: 'wsgiref.simple_server'
+  implicit-imports:
+    - depends:
+        - 'http.server'
+
+- module-name: 'xml.sax'
+  implicit-imports:
+    - depends:
+        - 'xml.sax.expatreader'
+
 - module-name: 'zipapp'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
