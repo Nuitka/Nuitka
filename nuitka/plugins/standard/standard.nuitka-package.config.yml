@@ -604,6 +604,13 @@
     patterns:
       - 'distributed.yaml'
 
+- module-name: 'distributed.deploy.cluster'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'distributed.scheduler'
   anti-bloat:
     - description: 'remove cython support'
@@ -1199,6 +1206,11 @@
       - 'fonts'
       - 'images'
 
+- module-name: 'langchain.chains.llm_summarization_checker'
+  data-files:
+    patterns:
+      - '*.txt'
+
 - module-name: 'lark'
   data-files:
     dirs:
@@ -1419,6 +1431,23 @@
       replacements:
         "imp.find_module('pytest')": "'None'"
       when: 'not use_pytest'
+
+- module-name: 'moviepy.audio.fx'
+  implicit-imports:
+    - depends:
+        - '.*'
+
+- module-name: 'moviepy.video.fx'
+  implicit-imports:
+    - depends:
+        - '.*'
+
+- module-name: 'moviepy.video.io.html_tools'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import HTML': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'mozilla-ca'
   data-files:
@@ -1728,14 +1757,12 @@
     - from_filenames:
         relative_path: 'capi'
         prefixes:
-          - 'onnxruntime_providers_shared'
+          - 'onnxruntime'
       when: 'win32'
     - from_filenames:
         relative_path: 'capi'
         prefixes:
-          - 'libonnxruntime_providers_shared'
-        suffixes:
-          - 'so'
+          - 'libonnxruntime'
       dest_path: '.'
       when: 'linux'
 
@@ -3631,6 +3658,13 @@
         - 'skimage.transform._radon_transform'
         - 'skimage.transform._warps_cy'
 
+- module-name: 'skimage.util.apply_parallel'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as da': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'sklearn._distributor_init'
   dlls:
     - from_filenames:
@@ -3955,6 +3989,13 @@
   implicit-imports:
     - depends:
         - 'sqlalchemy.dialects.mssql.pyodbc'
+
+- module-name: 'sqlalchemy.orm.util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'randomize_unitofwork': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'sqlalchemy.sql'
   implicit-imports:
@@ -4335,6 +4376,7 @@
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
+        "'IPython' not in modules": 'True'
         'import IPython': 'raise ImportError'
         'from IPython import get_ipython': 'raise ImportError'
         'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'

@@ -372,6 +372,17 @@
     - depends:
         - 'http.server'
 
+- module-name: 'xml.sax'
+  implicit-imports:
+    - depends:
+        - 'xml.sax.expatreader'
+
+- module-name: 'zipapp'
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
 - module-name: 'zipfile'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
