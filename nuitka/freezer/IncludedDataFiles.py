@@ -90,6 +90,15 @@ class IncludedDataFile(object):
 
     def __init__(self, kind, source_path, dest_path, reason, data, tags, tracer):
         tags_set = getDataFileTags(dest_path)
+
+        current = dest_path
+        while True:
+            current = os.path.dirname(current)
+            if not current:
+                break
+
+            tags_set.update(getDataFileTags(current))
+
         tags_set.update(decodeDataFileTags(tags))
 
         # Copy, unless specified otherwise.
