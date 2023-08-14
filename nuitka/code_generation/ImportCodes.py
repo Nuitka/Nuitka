@@ -221,6 +221,7 @@ def getImportModuleNameHardCode(
 ):
     if module_name == "sys":
         emit("""%s = Nuitka_SysGetObject("%s");""" % (to_name, import_name))
+        needs_release = False
     elif module_name in hard_modules:
         if needs_check:
             emitLineNumberUpdateCode(expression=None, emit=emit, context=context)
@@ -249,13 +250,16 @@ def getImportModuleNameHardCode(
             )
         )
 
-        context.addCleanupTempName(to_name)
+        needs_release = True
     else:
         assert False, module_name
 
     getErrorExitCode(
         check_name=to_name, needs_check=needs_check, emit=emit, context=context
     )
+
+    if needs_release:
+        context.addCleanupTempName(to_name)
 
 
 def generateImportModuleNameHardCode(to_name, expression, emit, context):

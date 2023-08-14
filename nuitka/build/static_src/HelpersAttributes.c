@@ -646,9 +646,9 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
             }
 
             if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() == false) {
-                return -1;
+                return false;
             }
-            return 0;
+            return true;
         }
 
         if (descr != NULL) {

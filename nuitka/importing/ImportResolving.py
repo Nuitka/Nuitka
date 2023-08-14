@@ -20,6 +20,7 @@
 """
 
 from nuitka.__past__ import unicode
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -129,6 +130,8 @@ _six_moves = {
 def resolveModuleName(module_name):
     """Resolve a module name to its real module name."""
 
+    # return driven, pylint: disable=too-many-return-statements
+
     # TODO: This is not handling decoding errors all that well.
     if str is not unicode and type(module_name) is unicode:
         module_name = str(module_name)
@@ -154,5 +157,17 @@ def resolveModuleName(module_name):
     elif module_name in _six_moves:
         # six moves replicated
         return ModuleName(_six_moves[module_name])
+    elif (
+        module_name == "importlib_metadata"
+        and python_version >= 0x380
+        and isExperimental("eliminate-backports")
+    ):
+        return ModuleName("importlib.metadata")
+    elif (
+        module_name == "importlib_resources"
+        and python_version >= 0x390
+        and isExperimental("eliminate-backports")
+    ):
+        return ModuleName("importlib.resources")
     else:
         return module_name

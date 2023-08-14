@@ -449,6 +449,9 @@ def adaptModuleName(value):
     if value == "importlib_metadata":
         return "importlib_metadata_backport"
 
+    if value == "importlib_resources":
+        return "importlib_resources_backport"
+
     return value
 
 
@@ -466,7 +469,7 @@ def getCallModuleName(module_name, function_name):
             return "PackageResourceNodes"
 
         return "PackageMetadataNodes"
-    if module_name in ("pkgutil", "importlib.resources"):
+    if module_name in ("pkgutil", "importlib.resources", "importlib_resources"):
         return "PackageResourceNodes"
     if module_name in ("os", "sys", "os.path"):
         return "OsSysNodes"
