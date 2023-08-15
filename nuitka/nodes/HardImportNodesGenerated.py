@@ -47,6 +47,9 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_entry_points_since_310_spec,
     importlib_metadata_metadata_spec,
     importlib_metadata_version_spec,
+    importlib_resources_backport_files_spec,
+    importlib_resources_backport_read_binary_spec,
+    importlib_resources_backport_read_text_spec,
     importlib_resources_files_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
@@ -1072,6 +1075,307 @@ class ExpressionImportlibMetadataVersionCallBase(
             self.attempted
             or not importlib_metadata_version_spec.isCompileTimeComputable(
                 (self.subnode_distribution_name,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportFilesRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.files"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="files",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportFilesCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportFilesCall,
+            builtin_spec=importlib_resources_backport_files_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.files' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportFilesRef
+] = importlib_resources_backport_files_spec
+
+
+class ExpressionImportlibResourcesBackportFilesCallBase(
+    ChildHavingPackageMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportFilesCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("package",)
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_files_spec
+
+    def __init__(self, package, source_ref):
+        ChildHavingPackageMixin.__init__(
+            self,
+            package=package,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_files_spec.isCompileTimeComputable(
+                (self.subnode_package,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportReadBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.read_binary"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="read_binary",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportReadBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportReadBinaryCall,
+            builtin_spec=importlib_resources_backport_read_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.read_binary' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportReadBinaryRef
+] = importlib_resources_backport_read_binary_spec
+
+
+class ExpressionImportlibResourcesBackportReadBinaryCallBase(
+    ExpressionBytesShapeExactMixin, ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportReadBinaryCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_read_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_read_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportReadTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.read_text"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="read_text",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesBackportReadTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesBackportReadTextCall,
+            builtin_spec=importlib_resources_backport_read_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.read_text' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportReadTextRef
+] = importlib_resources_backport_read_text_spec
+
+
+class ExpressionImportlibResourcesBackportReadTextCallBase(
+    ExpressionStrShapeExactMixin,
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for ImportlibResourcesBackportReadTextCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_read_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_read_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

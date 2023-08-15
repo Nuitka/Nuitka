@@ -357,7 +357,7 @@ static PyObject *Nuitka_ResourceReaderFiles_open(struct Nuitka_ResourceReaderFil
     PyObject *errors = NULL;
     PyObject *newline = NULL;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|OOOO:open", (char **)_kw_list_open, &mode, &buffering,
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|OOOOO:open", (char **)_kw_list_open, &mode, &buffering,
                                           &encoding, &errors, &newline);
 
     if (unlikely(res == 0)) {
@@ -491,6 +491,29 @@ static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     Nuitka_ResourceReaderFiles_getset,                    // tp_getset
 };
 
+#if PYTHON_VERSION >= 0x390
+static void registerResourceReaderFiles(PyThreadState *tstate, PyObject *resources_module) {
+    PyObject *as_file = LOOKUP_ATTRIBUTE(tstate, resources_module, const_str_plain_as_file);
+    if (likely(as_file != NULL)) {
+        PyObject *our_as_file =
+            LOOKUP_ATTRIBUTE(tstate, (PyObject *)&Nuitka_ResourceReaderFiles_Type, const_str_plain_as_file);
+        CHECK_OBJECT(our_as_file);
+
+        PyObject *args[2] = {(PyObject *)&Nuitka_ResourceReaderFiles_Type, our_as_file};
+
+        PyObject *register_result = CALL_METHOD_WITH_ARGS2(tstate, as_file, const_str_plain_register, args);
+        if (unlikely(register_result == NULL)) {
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        }
+
+        Py_DECREF(as_file);
+        Py_DECREF(our_as_file);
+    } else {
+        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+    }
+}
+#endif
+
 static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
                                                 struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path) {
     struct Nuitka_ResourceReaderFilesObject *result;
@@ -505,20 +528,18 @@ static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
 
         Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, NULL, true, false, true, false, false);
 
+#if PYTHON_VERSION >= 0x390
         // Also register our open, which can avoid a temporary file being created.
         PyObject *importlib_resources_module = IMPORT_HARD_IMPORTLIB__RESOURCES();
+        registerResourceReaderFiles(tstate, importlib_resources_module);
 
-        PyObject *as_file = LOOKUP_ATTRIBUTE(tstate, importlib_resources_module, const_str_plain_as_file);
-        CHECK_OBJECT(as_file);
-
-        PyObject *args[2] = {
-            (PyObject *)&Nuitka_ResourceReaderFiles_Type,
-            LOOKUP_ATTRIBUTE(tstate, (PyObject *)&Nuitka_ResourceReaderFiles_Type, const_str_plain_as_file)};
-
-        CALL_METHOD_WITH_ARGS2(tstate, as_file, const_str_plain_register, args);
-
-        Py_DECREF(as_file);
-        Py_DECREF(args[1]);
+        PyObject *importlib_resources_backport_module = IMPORT_HARD_IMPORTLIB_RESOURCES();
+        if (importlib_resources_backport_module != NULL) {
+            registerResourceReaderFiles(tstate, importlib_resources_backport_module);
+        } else {
+            DROP_ERROR_OCCURRED_TSTATE(tstate);
+        }
+#endif
 
         init_done = true;
     }

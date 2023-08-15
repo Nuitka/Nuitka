@@ -122,6 +122,7 @@ hard_modules_non_stdlib = frozenset(
         "site",
         "pkg_resources",
         "importlib_metadata",
+        "importlib_resources",
     )
 )
 
@@ -282,6 +283,11 @@ hard_modules_trust = {
         "resource_stream": trust_node,
     },
     "importlib.resources": {
+        "read_binary": trust_node,
+        "read_text": trust_node,
+        "files": trust_node,
+    },
+    "importlib_resources": {
         "read_binary": trust_node,
         "read_text": trust_node,
         "files": trust_node,
