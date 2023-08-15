@@ -206,7 +206,8 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 #if PYTHON_VERSION < 0x3a0
     if (f->f_lasti == -1) {
         if (unlikely(arg && arg != Py_None)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
+            SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(tstate, PyExc_TypeError,
+                                                   "can't send non-None value to a just-started generator");
 
             return NULL;
         }
@@ -272,7 +273,7 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
             PyObject *e = PyObject_CallFunctionObjArgs(PyExc_StopIteration, result, NULL);
 
             if (e != NULL) {
-                SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_StopIteration, e);
+                SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, PyExc_StopIteration, e);
             }
         }
 

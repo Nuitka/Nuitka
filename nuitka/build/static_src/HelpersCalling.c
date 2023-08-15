@@ -339,7 +339,7 @@ static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *ty
     PyObject *result = DICT_GET_ITEM_WITH_ERROR(tstate, type->tp_dict, const_str_plain___abstractmethods__);
     if (unlikely(result == NULL)) {
         if (!HAS_ERROR_OCCURRED(tstate)) {
-            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___abstractmethods__);
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, const_str_plain___abstractmethods__);
         }
         return NULL;
     }

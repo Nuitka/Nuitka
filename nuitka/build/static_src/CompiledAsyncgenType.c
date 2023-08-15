@@ -434,7 +434,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
 
             Nuitka_Asyncgen_release_closure(asyncgen);
 
-            PyObject *error_occurred = GET_ERROR_OCCURRED();
+            PyObject *error_occurred = GET_ERROR_OCCURRED_TSTATE(tstate);
 
             if (error_occurred == PyExc_StopIteration || error_occurred == PyExc_StopAsyncIteration) {
                 PyObject *saved_exception_type, *saved_exception_value;
@@ -646,7 +646,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
                     return NULL;
                 }
 
-                CLEAR_ERROR_OCCURRED();
+                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 
                 // Passing exception ownership to that code.
                 goto throw_here;
@@ -1391,7 +1391,7 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
     CHECK_OBJECT_X(result);
 
     if (result == NULL) {
-        PyObject *error = GET_ERROR_OCCURRED();
+        PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
 
         if (error == NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
@@ -1634,7 +1634,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
     // TODO: This might not be all that necessary as this is not directly outside facing,
     // but there were tests failing when this was not the specific value.
     if (result == NULL) {
-        if (GET_ERROR_OCCURRED() == NULL) {
+        if (GET_ERROR_OCCURRED_TSTATE(tstate) == NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopAsyncIteration);
         }
     }
@@ -1983,7 +1983,7 @@ check_error:
         asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 
         if (asyncgen_athrow->m_args == NULL) {
-            CLEAR_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
         }
     } else if (PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
@@ -1992,7 +1992,7 @@ check_error:
 #if PYTHON_VERSION >= 0x380
         if (asyncgen_athrow->m_args == NULL) {
 #endif
-            CLEAR_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
 #if PYTHON_VERSION >= 0x380
         }
