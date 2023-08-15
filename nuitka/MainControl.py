@@ -150,17 +150,16 @@ def _createMainModule():
 
     # First, build the raw node tree from the source code.
     if len(main_filenames) > 1:
+        assert not Options.shallMakeModule()
+
         main_module = buildMainModuleTree(
             # TODO: Should not be given.
             filename=main_filenames[0],
-            is_main=True,
             source_code=createMultidistMainSourceCode(main_filenames),
         )
-
     else:
         main_module = buildMainModuleTree(
             filename=main_filenames[0],
-            is_main=not Options.shallMakeModule(),
             source_code=None,
         )
 

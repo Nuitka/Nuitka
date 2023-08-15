@@ -1145,18 +1145,24 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         )
 
 
-def buildMainModuleTree(filename, is_main, source_code):
+def buildMainModuleTree(filename, source_code):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
-    if is_main:
+    if Options.shallMakeModule():
+        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+
+        if module_name is None:
+            general.sysexit(
+                "Error, filename '%s' suffix does not appear to be Python module code."
+                % filename
+            )
+    else:
         # TODO: Doesn't work for deeply nested packages at all.
         if Options.hasPythonFlagPackageMode():
             module_name = ModuleName(os.path.basename(filename) + ".__main__")
         else:
             module_name = ModuleName("__main__")
-    else:
-        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
 
     module = buildModule(
         module_name=module_name,
@@ -1164,13 +1170,13 @@ def buildMainModuleTree(filename, is_main, source_code):
         module_filename=filename,
         source_code=source_code,
         is_top=True,
-        is_main=is_main,
+        is_main=not Options.shallMakeModule(),
         module_kind="py",
         is_fake=source_code is not None,
         hide_syntax_error=False,
     )
 
-    if is_main and Options.isStandaloneMode():
+    if Options.isStandaloneMode():
         module.setStandardLibraryModules(
             early_module_names=detectEarlyImports(),
             stdlib_modules_names=detectStdlibAutoInclusionModules(),
