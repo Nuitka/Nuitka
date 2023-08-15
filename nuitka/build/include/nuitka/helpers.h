@@ -420,4 +420,8 @@ extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
                                 bool self_iter, bool await_self_iter, bool self_aiter);
 
+#if PYTHON_VERSION >= 0x3b0
+#include "nuitka/exception_groups.h"
+#endif
+
 #endif
