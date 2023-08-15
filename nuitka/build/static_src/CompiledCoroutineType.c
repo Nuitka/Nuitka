@@ -538,7 +538,7 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
 #endif
                 return PYGEN_RETURN;
             } else {
-                PyObject *error = GET_ERROR_OCCURRED();
+                PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
 
                 if (error == NULL) {
                     *result = NULL;
@@ -822,7 +822,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
                     return NULL;
                 }
 
-                CLEAR_ERROR_OCCURRED();
+                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 
                 // Passing exception ownership to that code.
                 goto throw_here;
@@ -1669,17 +1669,20 @@ static PyObject *Nuitka_AIterWrapper_tp_repr(struct Nuitka_AIterWrapper *aw) {
 static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
     CHECK_OBJECT(aw);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #if PYTHON_VERSION < 0x360
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_StopIteration, aw->aw_aiter);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
 #else
     if (!PyTuple_Check(aw->aw_aiter) && !PyExceptionInstance_Check(aw->aw_aiter)) {
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_StopIteration, aw->aw_aiter);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
     } else {
         PyObject *result = PyObject_CallFunctionObjArgs(PyExc_StopIteration, aw->aw_aiter, NULL);
         if (unlikely(result == NULL)) {
             return NULL;
         }
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_StopIteration, result);
+
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, PyExc_StopIteration, result);
     }
 #endif
 

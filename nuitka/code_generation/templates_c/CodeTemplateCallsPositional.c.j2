@@ -415,8 +415,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, const_str_plain___init__);
                             }
 
                             return NULL;

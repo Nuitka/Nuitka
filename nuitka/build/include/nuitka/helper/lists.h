@@ -59,9 +59,9 @@ extern PyObject *LIST_COPY(PyObject *list);
 extern PyObject *LIST_COUNT(PyObject *list, PyObject *item);
 
 // Like list.index
-extern PyObject *LIST_INDEX2(PyObject *list, PyObject *item);
-extern PyObject *LIST_INDEX3(PyObject *list, PyObject *item, PyObject *start);
-extern PyObject *LIST_INDEX4(PyObject *list, PyObject *item, PyObject *start, PyObject *stop);
+extern PyObject *LIST_INDEX2(PyThreadState *tstate, PyObject *list, PyObject *item);
+extern PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start);
+extern PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start, PyObject *stop);
 
 // Like list.index
 extern bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item);
