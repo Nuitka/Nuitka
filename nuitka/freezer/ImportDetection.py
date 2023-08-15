@@ -115,13 +115,13 @@ print("\\n".join(sorted(
         if line.startswith(b"import "):
             parts = line.split(b" # ", 2)
 
-            module_name = parts[0].split(b" ", 2)[1].strip(b"'")
+            _module_name = parts[0].split(b" ", 2)[1].strip(b"'")
             origin = parts[1].split()[0]
 
             if python_version >= 0x300:
-                module_name = module_name.decode("utf8")
+                _module_name = _module_name.decode("utf8")
 
-            module_name = ModuleName(module_name)
+            module_name = ModuleName(_module_name)
 
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
@@ -148,10 +148,17 @@ print("\\n".join(sorted(
                     detections.append((module_name, 2, "sourcefile", filename))
                 else:
                     assert False
-            elif origin == b"sourcefile":
-                filename = parts[1][len(b"sourcefile ") :]
-                if python_version >= 0x300:
-                    filename = filename.decode("utf8")
+            elif origin in (b"sourcefile", b"<_frozen_importlib_external.SourceFileLoader"):
+                if origin == b"sourcefile":
+                    filename = parts[1][len(b"sourcefile ") :]
+                    if python_version >= 0x300:
+                        filename = filename.decode("utf8")
+                else:
+                    mod = pkgutil.get_loader(_module_name)
+                    if python_version >= 0x300:
+                        filename = mod.get_filename()
+                    else:
+                        filename = mod.filename
 
                 # Do not leave standard library when freezing.
                 if not isStandardLibraryPath(filename):
