@@ -193,6 +193,12 @@ print("\\n".join(sorted(
     module_names = set()
 
     for module_name, _priority, kind, filename in sorted(detections):
+        if sub_collect and os.path.basename(filename) in ("__init__.pyc", "__init__.py"):
+            for m in pkgutil.iter_modules([os.path.dirname(filename)]):
+                mod = ModuleName("%s.%s" % (module_name, m[1]))
+                mod.dont_follow = True
+                module_names.add(mod)
+
         if isStandardLibraryNoAutoInclusionModule(module_name):
             continue
 
@@ -207,14 +213,9 @@ print("\\n".join(sorted(
                 continue
 
             module_names.add(module_name)
-
-        elif kind in ("precompiled", "sourcefile"):
-            if sub_collect and os.path.basename(filename) in ("__init__.pyc", "__init__.py"):
-                module_names.update(
-                    ModuleName("%s.%s" % (module_name, m[1]))
-                    for m in pkgutil.iter_modules([os.path.dirname(filename)])
-                )
-
+        elif kind == "precompiled":
+            module_names.add(module_name)
+        elif kind == "sourcefile":
             module_names.add(module_name)
         else:
             assert False, kind

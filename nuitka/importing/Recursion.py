@@ -125,6 +125,9 @@ def _decideRecursion(
     if module_kind == "extension" and not Options.isStandaloneMode():
         return False, "Extension modules cannot be inspected."
 
+    if getattr(module_name, 'dont_follow', False):
+        return False, "Decided to not following imports in this module."
+
     if module_name in detectEarlyImports():
         return True, "Technically required for CPython library startup."
 
