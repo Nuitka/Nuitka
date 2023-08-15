@@ -98,8 +98,6 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
     return BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
 }
 
-#if PYTHON_VERSION >= 0x390
-
 #include "MetaPathBasedLoaderResourceReaderFiles.c"
 
 static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
@@ -108,14 +106,11 @@ static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject 
     PyThreadState *tstate = PyThreadState_GET();
     return Nuitka_ResourceReaderFiles_New(tstate, reader->m_loader_entry, const_str_empty);
 }
-#endif
 
 static PyMethodDef Nuitka_ResourceReader_methods[] = {
     {"resource_path", (PyCFunction)Nuitka_ResourceReader_resource_path, METH_VARARGS | METH_KEYWORDS, NULL},
     {"open_resource", (PyCFunction)Nuitka_ResourceReader_open_resource, METH_VARARGS | METH_KEYWORDS, NULL},
-#if PYTHON_VERSION >= 0x390
     {"files", (PyCFunction)Nuitka_ResourceReader_files, METH_NOARGS, NULL},
-#endif
     {NULL}};
 
 static PyTypeObject Nuitka_ResourceReader_Type = {

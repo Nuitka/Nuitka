@@ -748,7 +748,7 @@ def generateImportlibResourcesFilesCallCode(to_name, expression, emit, context):
 
         getImportModuleNameHardCode(
             to_name=files_function,
-            module_name="importlib.resources",
+            module_name=expression.importlib_resources_name,
             import_name="files",
             needs_check=False,
             emit=emit,

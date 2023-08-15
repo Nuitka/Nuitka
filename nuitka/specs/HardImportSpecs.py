@@ -98,14 +98,31 @@ importlib_resources_read_binary_spec = BuiltinParameterSpec(
     default_count=0,
     type_shape=tshape_bytes,
 )
+importlib_resources_backport_read_binary_spec = BuiltinParameterSpec(
+    "importlib_resources.read_binary",
+    ("package", "resource"),
+    default_count=0,
+    type_shape=tshape_bytes,
+)
 importlib_resources_read_text_spec = BuiltinParameterSpec(
     "importlib.resources.read_text",
     ("package", "resource", "encoding", "errors"),
     default_count=2,
     type_shape=tshape_str,
 )
+importlib_resources_backport_read_text_spec = BuiltinParameterSpec(
+    "importlib_resources.read_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
+    type_shape=tshape_str,
+)
 importlib_resources_files_spec = BuiltinParameterSpec(
     "importlib.resources.files",
+    ("package",),
+    default_count=0,
+)
+importlib_resources_backport_files_spec = BuiltinParameterSpec(
+    "importlib_resources.files",
     ("package",),
     default_count=0,
 )

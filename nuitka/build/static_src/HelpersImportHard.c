@@ -256,6 +256,21 @@ PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void) {
     return module_import_hard_importlib_metadata;
 }
 
+/* C helper for hard import of module "importlib_resources" import. */
+PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void) {
+    static PyObject *module_import_hard_importlib_resources = NULL;
+
+    if (module_import_hard_importlib_resources == NULL) {
+        module_import_hard_importlib_resources = PyImport_ImportModule("importlib_resources");
+
+        if (unlikely(module_import_hard_importlib_resources == NULL)) {
+            return NULL;
+        }
+    }
+
+    return module_import_hard_importlib_resources;
+}
+
 /* C helper for hard import of module "io" import. */
 PyObject *IMPORT_HARD_IO(void) {
     static PyObject *module_import_hard_io = NULL;

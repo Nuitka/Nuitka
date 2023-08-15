@@ -1151,24 +1151,11 @@
         '__version__ = version(__name__)': 'repr(version("importlib_metadata"))'
       when: 'standalone'
 
-- module-name: 'importlib_resources'
-  data-files:
-    patterns:
-      - 'version.txt'
-  options:
-    checks:
-      - description: "For best support use '--experimental=eliminate-backports' until Nuitka covers it fully"
-        support_info: 'warning'
-        when: 'python38_or_higher'
-      - description: 'For best support use newer Python >= 3.8 until Nuitka covers it fully'
-        support_info: 'warning'
-        when: 'before_python38'
-
 - module-name: 'importlib_resources._compat'
   anti-bloat:
-    - description: 'workaround file reader check'
+    - description: 'workaround for file reader not used'
       replacements_plain:
-        'path.exists()': 'True'
+        '_file_reader(self.spec)': '_native_reader(self.spec) or _file_reader(self.spec)'
 
 - module-name: 'ipcqueue'
   implicit-imports:
