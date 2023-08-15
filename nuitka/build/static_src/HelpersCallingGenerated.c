@@ -247,8 +247,9 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -642,8 +643,9 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -1040,8 +1042,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -1420,8 +1423,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -1799,8 +1803,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -2178,8 +2183,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -2557,8 +2563,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -2936,8 +2943,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -3315,8 +3323,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -3694,8 +3703,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -4073,8 +4083,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -4452,8 +4463,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -4831,8 +4843,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -5210,8 +5223,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -5589,8 +5603,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -5968,8 +5983,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -6347,8 +6363,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -6726,8 +6743,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -7105,8 +7123,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -7484,8 +7503,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;
@@ -7863,8 +7883,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
                         }
 
                         if (unlikely(init_method == NULL)) {
-                            if (!ERROR_OCCURRED()) {
-                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___init__);
+                            if (!HAS_ERROR_OCCURRED(tstate)) {
+                                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError,
+                                                                   const_str_plain___init__);
                             }
 
                             return NULL;

@@ -209,9 +209,9 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
     if (PyTuple_Check(key) || key == Py_None) {
         PyObject *tuple = PyTuple_Pack(1, key);
 
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_KeyError, tuple);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, PyExc_KeyError, tuple);
     } else {
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_KeyError, key);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_KeyError, key);
     }
 #else
     return _MAKE_EXCEPTION_FROM_TYPE_ARG(PyExc_KeyError, key);

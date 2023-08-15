@@ -50,13 +50,13 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
                 getErrorExitBoolCode(
                     condition="""\
-%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(), PyExc_KeyError)"""
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED_TSTATE(tstate), PyExc_KeyError)"""
                     % value_name,
                     emit=emit,
                     context=context,
                 )
 
-                emit("CLEAR_ERROR_OCCURRED();")
+                emit("CLEAR_ERROR_OCCURRED_TSTATE(tstate);")
 
                 context.addCleanupTempName(value_name)
 

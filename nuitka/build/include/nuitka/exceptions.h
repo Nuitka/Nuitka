@@ -49,12 +49,6 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED_TSTATE(PyThreadS
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED(void) {
-    PyThreadState *tstate = PyThreadState_GET();
-
-    return GET_ERROR_OCCURRED_TSTATE(tstate);
-}
-
 // Clear error, which likely set, similar to _PyErr_Clear(tstate)
 NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED_TSTATE(PyThreadState *tstate) {
 #if PYTHON_VERSION < 0x3c0
@@ -83,8 +77,7 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
     CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 }
 
-// Clear error, which is not likely set. This is about bugs from CPython,
-// use CLEAR_ERROR_OCCURRED is not sure.
+// Clear error, which is not likely set, use CLEAR_ERROR_OCCURRED not sure there is an error.
 NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED_TSTATE(PyThreadState *tstate) {
 
 #if PYTHON_VERSION < 0x3c0
@@ -407,10 +400,8 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *ex
 
 // Same as "PyErr_SetObject" CPython API, use this instead.
 #if PYTHON_VERSION < 0x3c0
-NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObject *exception_type,
-                                                                           PyObject *exception_value) {
-    PyThreadState *tstate = PyThreadState_GET();
-
+NUITKA_MAY_BE_UNUSED inline static void
+SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_type, PyObject *exception_value) {
     PyObject *old_exception_type = tstate->curexc_type;
     PyObject *old_exception_value = tstate->curexc_value;
     PyObject *old_exception_traceback = tstate->curexc_traceback;
@@ -431,10 +422,8 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObj
     Py_XDECREF(old_exception_traceback);
 }
 
-NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObject *exception_type,
-                                                                           PyObject *exception_value) {
-    PyThreadState *tstate = PyThreadState_GET();
-
+NUITKA_MAY_BE_UNUSED inline static void
+SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(PyThreadState *tstate, PyObject *exception_type, PyObject *exception_value) {
     PyObject *old_exception_type = tstate->curexc_type;
     PyObject *old_exception_value = tstate->curexc_value;
     PyObject *old_exception_traceback = tstate->curexc_traceback;
@@ -454,14 +443,29 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObj
     Py_XDECREF(old_exception_traceback);
 }
 
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObject *exception_type,
+                                                                           PyObject *exception_value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, exception_type, exception_value);
+}
+
 #endif
 
 // Helper that sets the current thread exception, and has no reference passed.
 // Same as CPython API PyErr_SetString
-NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
+
+NUITKA_MAY_BE_UNUSED inline static void
+SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(PyThreadState *tstate, PyObject *exception_type, char const *value) {
     PyObject *exception_value = Nuitka_String_FromString(value);
 
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(exception_type, exception_value);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, exception_type, exception_value);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(tstate, exception_type, value);
 }
 
 // Helper that sets the current thread exception with format of one or two arg, and has no reference passed.

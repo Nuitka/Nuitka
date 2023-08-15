@@ -611,7 +611,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 #if PYTHON_VERSION < 0x370
                 generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
 #endif
-                GET_ERROR_OCCURRED() == PyExc_StopIteration) {
+                GET_ERROR_OCCURRED_TSTATE(tstate) == PyExc_StopIteration) {
                 PyObject *saved_exception_type, *saved_exception_value;
                 PyTracebackObject *saved_exception_tb;
 
@@ -945,7 +945,7 @@ static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yieldfrom) {
             PyErr_WriteUnraisable(yieldfrom);
         }
 
-        CLEAR_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Leave, has no close method.\n");
@@ -1089,7 +1089,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
                     return NULL;
                 }
 
-                CLEAR_ERROR_OCCURRED();
+                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 
                 // Passing exception ownership to that code.
                 goto throw_here;
@@ -1180,7 +1180,7 @@ throw_here:
             _Nuitka_Generator_send(tstate, generator, NULL, exception_type, exception_value, exception_tb);
 
         if (result == NULL) {
-            if (GET_ERROR_OCCURRED() == NULL) {
+            if (GET_ERROR_OCCURRED_TSTATE(tstate) == NULL) {
                 SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
             }
         }

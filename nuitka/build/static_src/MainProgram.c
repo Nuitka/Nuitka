@@ -181,7 +181,8 @@ static void unsetEnvironmentVariable(char const *name) { unsetenv(name); }
 
 #endif
 
-static void undoEnvironmentVariable(char const *variable_name, environment_char_t const *old_value) {
+static void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name,
+                                    environment_char_t const *old_value) {
     PyObject *os_module = IMPORT_HARD_OS();
     CHECK_OBJECT(os_module);
 
@@ -215,7 +216,7 @@ static void undoEnvironmentVariable(char const *variable_name, environment_char_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-            CLEAR_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
         }
     }
 
@@ -1523,19 +1524,19 @@ orig_argv = argv;
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONHASHSEED' value.");
-    undoEnvironmentVariable("PYTHONHASHSEED", old_env_hash_seed);
+    undoEnvironmentVariable(tstate, "PYTHONHASHSEED", old_env_hash_seed);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONUNBUFFERED' value.");
-    undoEnvironmentVariable("PYTHONUNBUFFERED", old_env_unbuffered);
+    undoEnvironmentVariable(tstate, "PYTHONUNBUFFERED", old_env_unbuffered);
 #endif
 
 #ifdef _NUITKA_STANDALONE
     // Restore the PATH, so the program can use it.
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
-    undoEnvironmentVariable("PATH", old_env_path);
-    undoEnvironmentVariable("PYTHONHOME", old_env_pythonhome);
+    undoEnvironmentVariable(tstate, "PATH", old_env_path);
+    undoEnvironmentVariable(tstate, "PYTHONHOME", old_env_pythonhome);
 #endif
 
 #if _NUITKA_PROFILE

@@ -979,7 +979,8 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
 
             // TODO: Not possible for set, is it?
             if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
-                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
+                PyThreadState *tstate = PyThreadState_GET();
+                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
                 return false;
             }
 
@@ -1208,7 +1209,7 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
     }
 
 #if PYTHON_VERSION < 0x3B0
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
 #else
     // TODO: Maybe we should have dedicated variations with the 4 hard coded
     // attribute names, might save a bit of complexity to large programs not

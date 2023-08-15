@@ -234,7 +234,10 @@ def generateListOperationIndex2Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
-        emit("%s = LIST_INDEX2(%s, %s);" % (result_name, list_arg_name, value_arg_name))
+        emit(
+            "%s = LIST_INDEX2(tstate, %s, %s);"
+            % (result_name, list_arg_name, value_arg_name)
+        )
 
         getErrorExitCode(
             check_name=result_name,
@@ -256,7 +259,7 @@ def generateListOperationIndex3Code(to_name, expression, emit, context):
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
         emit(
-            "%s = LIST_INDEX3(%s, %s, %s);"
+            "%s = LIST_INDEX3(tstate, %s, %s, %s);"
             % (result_name, list_arg_name, value_arg_name, start_arg_name)
         )
 
@@ -283,7 +286,7 @@ def generateListOperationIndex4Code(to_name, expression, emit, context):
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
         emit(
-            "%s = LIST_INDEX4(%s, %s, %s, %s);"
+            "%s = LIST_INDEX4(tstate, %s, %s, %s, %s);"
             % (
                 result_name,
                 list_arg_name,
