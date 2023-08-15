@@ -2,7 +2,7 @@
 # working easily, so lets exclude that.
 ordered-set == 4.1.0; python_version >= '3.7'
 orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
-orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.4' and python_version < '3.7'
+orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.6' and python_version < '3.7'
 orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 
 # Make testing more reliable on Python2 with timeout features added.
