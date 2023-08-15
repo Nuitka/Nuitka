@@ -195,7 +195,10 @@ from .ReformulationSequenceCreation import (
     buildTupleCreationNode,
 )
 from .ReformulationSubscriptExpressions import buildSubscriptNode
-from .ReformulationTryExceptStatements import buildTryExceptionNode
+from .ReformulationTryExceptStatements import (
+    buildTryExceptionNode,
+    buildTryStarExceptionNode,
+)
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
@@ -307,6 +310,38 @@ def buildTryNode(provider, node, source_ref):
             statements=mergeStatements(
                 (
                     buildTryExceptionNode(
+                        provider=provider, node=node, source_ref=source_ref
+                    ),
+                ),
+                allow_none=True,
+            ),
+            allow_none=True,
+            source_ref=source_ref,
+        ),
+        node=node,
+        source_ref=source_ref,
+    )
+
+
+def buildTryStarNode(provider, node, source_ref):
+    # Note: This variant is used for Python3.11 or higher only, where an exception
+    # group is caught. Mixing groups and non-group catches is not allowed.
+
+    # Without handlers, this would not be used, but instead "Try" would be used,
+    # but assert against it.
+    assert node.handlers
+
+    if not node.finalbody:  # spell-checker: ignore finalbody
+        return buildTryStarExceptionNode(
+            provider=provider, node=node, source_ref=source_ref
+        )
+
+    return buildTryFinallyNode(
+        provider=provider,
+        build_tried=lambda: makeStatementsSequence(
+            statements=mergeStatements(
+                (
+                    buildTryStarExceptionNode(
                         provider=provider, node=node, source_ref=source_ref
                     ),
                 ),
@@ -713,6 +748,8 @@ setBuildingDispatchers(
         "TryFinally": buildTryFinallyNode2,
         "Try": buildTryNode,
         "Raise": buildRaiseNode,
+        # Python3.11 exception group catching
+        "TryStar": buildTryStarNode,
         "Import": buildImportModulesNode,
         "ImportFrom": buildImportFromNode,
         "Assert": buildAssertNode,
