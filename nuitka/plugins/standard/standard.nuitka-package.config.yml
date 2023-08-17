@@ -2920,20 +2920,21 @@
   implicit-imports:
     - post-import-code:
         - |
-          def myconnect(self, func):
-              if hasattr(func, "im_func"):
-                  if hasattr(func.im_func, "__compiled__"):
-                      myconnect._protected = getattr(myconnect, "_protected", set())
-                      myconnect._protected.add(func)
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", set())
+                      patched_connect._protected.add(receiver)
 
-                  if not func.im_func.__name__.startswith("_pyside2_workaround_"):
-                      func.im_func.__name__ = "_nuitka_" + func.im_func.__name__
+                  if not receiver.im_func.__name__.startswith("_pyside2_workaround_"):
+                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
 
-              return orig_connect(self, func)
+              return orig_connect(self, receiver, type)
 
           from PySide2 import QtCore
           orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = myconnect
+          QtCore.SignalInstance.connect = patched_connect
 
   options:
     checks:
@@ -2971,20 +2972,21 @@
         - 'PySide6.support.deprecated'
     - post-import-code:
         - |
-          def myconnect(self, func):
-              if hasattr(func, "im_func"):
-                  if hasattr(func.im_func, "__compiled__"):
-                      myconnect._protected = getattr(myconnect, "_protected", set())
-                      myconnect._protected.add(func)
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", set())
+                      patched_connect._protected.add(receiver)
 
-                  if not func.im_func.__name__.startswith("_pyside6_workaround_"):
-                      func.im_func.__name__ = "_nuitka_" + func.im_func.__name__
+                  if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
+                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
 
-              return orig_connect(self, func)
+              return orig_connect(self, receiver, type)
 
           from PySide6 import QtCore
           orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = myconnect
+          QtCore.SignalInstance.connect = patched_connect
 
 - module-name: 'pysnmp.smi'
   data-files:
