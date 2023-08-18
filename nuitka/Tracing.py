@@ -255,6 +255,11 @@ def my_print(*args, **kwargs):
 class ReportingSystemExit(SystemExit):
     """Our own system exit, after which a report should be written."""
 
+    def __init__(self, exit_code, exit_message):
+        SystemExit.__init__(self, exit_code)
+
+        self.exit_message = exit_message
+
 
 class OurLogger(object):
     def __init__(self, name, quiet=False, base_style=None):
@@ -336,7 +341,7 @@ class OurLogger(object):
             )
 
         if reporting:
-            raise ReportingSystemExit(exit_code)
+            raise ReportingSystemExit(exit_code=exit_code, exit_message=message)
 
         sys.exit(exit_code)
 
