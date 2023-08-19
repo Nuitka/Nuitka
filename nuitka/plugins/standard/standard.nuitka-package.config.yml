@@ -2701,6 +2701,12 @@
     dirs:
       - '.'
 
+- module-name: 'pygame'
+  options:
+    checks:
+      - description: 'PyGame is a GUI framework'
+        console: 'recommend'
+
 - module-name: 'pygeos._geometry'
   implicit-imports:
     - depends:
