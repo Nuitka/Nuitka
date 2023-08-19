@@ -16,30 +16,27 @@
 #     limitations under the License.
 #
 
-
 FROM debian:11-slim
 ENV container docker
 
 VOLUME [ "/sys/fs/cgroup" ]
 
-# Install what we use for CI generally
+## Install what we use for CI generally
 COPY requirements-devel.txt /etc/requirements-devel.txt
 RUN mkdir /src
 RUN echo >>/etc/apt/sources.list "deb http://deb.debian.org/debian bullseye-backports main"
 RUN apt-get update && apt-get install -y apt-utils gcc python2 python2-dev python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
 
-# Install pbuilder extra stuff along with Nuitka build dependencies.
-RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro \
-    python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync \
-    python3-yaml python3-glob2 patchelf libzstd-dev
+## Install pbuilder extra stuff along with Nuitka build dependencies.
+RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
 
-# Update reprepro from backports
+## Update reprepro from backports
 RUN apt-get install -y -t bullseye-backports reprepro
 
 RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
-# Clean up APT when done.
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+## Clean up APT when done.
+RUN apt-get clean && rm -rf "/var/lib/apt/lists/*" "/tmp/*" "/var/tmp/*"
 
-# Do what git asks us to do, for working with git checkouts.
+## Do what git asks us to do, for working with git checkouts.
 RUN git config --global --add safe.directory /src
