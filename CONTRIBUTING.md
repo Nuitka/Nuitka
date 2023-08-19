@@ -7,11 +7,11 @@ Welcome on board. Nuitka is an ambitious project. We are friendly. Join it now.
 This document aims to give an overview of how to contribute to Nuitka. It tries
 to answer commonly asked questions regarding that, and to provide some insight on how to do it properly.
 
-* If you plan on submitting an issue
+- If you plan on submitting an issue
 
   Please follow this [template](https://github.com/Nuitka/Nuitka/blob/develop/.github/ISSUE_TEMPLATE.md).
 
-* If you want to open a pull request
+- If you want to open a pull request
 
   Make sure to read the information on further down this page but also have a
   look at our [pull request
@@ -19,16 +19,17 @@ to answer commonly asked questions regarding that, and to provide some insight o
 
 ## Getting Started
 
-* Read the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html)
-* Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
-* Checkout the [git repo of Nuitka](https://github.com/Nuitka/Nuitka) additional docs and sources
-* Join the [Discord Server](https://discord.gg/nZ9hr9tUck)
+- Read the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html)
+- Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
+- Checkout the [git repo of Nuitka](https://github.com/Nuitka/Nuitka) additional docs and sources
+- Join the [Discord Server](https://discord.gg/nZ9hr9tUck)
 
 ## Submitting a Pull Request
 
 Pull requests are great. Here's a quick guide:
 
 1. Fork the repo on github.
+
 2. Install the `pre-commit` git hook
 
    That is going to automatically format your code as described in the
@@ -63,11 +64,11 @@ e.g. via pull request, you automatically license it as that too.
 If you want to ask a question about a specific Nuitka aspect, please be kind
 and first of all..
 
-* Search for existing issues
+- Search for existing issues
 
   Consider [GitHub issues tagged as "question"](https://github.com/Nuitka/Nuitka/issues?q=label%3Aquestion)
 
-* If not asked yet, ask it there.
+- If not asked yet, ask it there.
 
 ## Submitting Issues
 

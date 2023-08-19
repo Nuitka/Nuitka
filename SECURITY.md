@@ -13,7 +13,6 @@ as bug free as possible.
 | main    | :white_check_mark: |
 | develop | :white_check_mark: |
 
-
 ## Reporting a Vulnerability
 
 When you email me at `kay.hayen@gmail.com` with a well defined report, I
