@@ -103,6 +103,15 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
+    parser.add_option(
+        "--md",
+        action="store_true",
+        dest="md",
+        default=False,
+        help="""Format only matching markdown files
+Defaults to off.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if options.from_commit:
@@ -119,6 +128,7 @@ Defaults to off.""",
                 "rpm",
                 "setup.py",
                 "tests",
+                ".github",
             ]
 
         my_print("Working on:", ", ".join(positional_args))
@@ -169,6 +179,7 @@ Defaults to off.""",
                 limit_c=options.c,
                 limit_python=options.python,
                 limit_rst=options.rst,
+                limit_md=options.md,
             ):
                 result += 1
 
