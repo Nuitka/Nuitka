@@ -889,10 +889,7 @@ def handleSyntaxError(e):
     error_message = SyntaxErrors.formatOutput(e)
 
     if not Options.is_full_compat:
-        if python_version < 0x300:
-            suggested_python_version_str = getSupportedPythonVersions()[-1]
-        else:
-            suggested_python_version_str = "2.7"
+        suggested_python_version_str = getSupportedPythonVersions()[-1]
 
         error_message += """
 
