@@ -302,7 +302,7 @@ Nuitka binary to compile with. Defaults to one near the nuitka-watch usage.""",
     ):
         installed_pythons[python_version] = findPythons(python_version)
 
-    nuitka_binary = os.path.abspath(options.nuitka_binary)
+    nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
 
     assert os.path.exists(nuitka_binary)
 
