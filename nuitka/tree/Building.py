@@ -92,7 +92,6 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode,
 )
-from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
     StatementReraiseException,
@@ -128,7 +127,6 @@ from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
-from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.pgo.PGO import decideCompilationFromPGO
@@ -202,7 +200,11 @@ from .ReformulationTryExceptStatements import (
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
-from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
+from .ReformulationYieldExpressions import (
+    buildAwaitNode,
+    buildYieldFromNode,
+    buildYieldNode,
+)
 from .SourceHandling import (
     checkPythonVersionFromCode,
     getSourceCodeDiff,
@@ -658,16 +660,6 @@ def buildConditionalExpressionNode(provider, node, source_ref):
         condition=buildNode(provider, node.test, source_ref),
         expression_yes=buildNode(provider, node.body, source_ref),
         expression_no=buildNode(provider, node.orelse, source_ref),
-        source_ref=source_ref,
-    )
-
-
-def buildAwaitNode(provider, node, source_ref):
-    return ExpressionYieldFromWaitable(
-        expression=ExpressionAsyncWait(
-            expression=buildNode(provider, node.value, source_ref),
-            source_ref=source_ref,
-        ),
         source_ref=source_ref,
     )
 
