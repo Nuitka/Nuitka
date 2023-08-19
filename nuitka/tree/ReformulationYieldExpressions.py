@@ -25,24 +25,29 @@ source code comments with Developer Manual sections.
 import ast
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
-from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
+from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
+from nuitka.nodes.YieldNodes import (
+    ExpressionYield,
+    ExpressionYieldFrom,
+    ExpressionYieldFromWaitable,
+)
 from nuitka.PythonVersions import python_version
 
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import buildNode
 
 
-def _checkInsideGenerator(provider, node, source_ref):
+def _checkInsideGenerator(construct_name, provider, node, source_ref):
     if provider.isCompiledPythonModule():
         raiseSyntaxError(
-            "'yield' outside function", source_ref.atColumnNumber(node.col_offset)
+            "'%s' outside function"
+            % (construct_name if construct_name == "await" else "yield"),
+            source_ref.atColumnNumber(node.col_offset),
         )
 
     # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
     # is neither.
-    if provider.isExpressionAsyncgenObjectBody() and (
-        node.__class__ is not ast.Yield or python_version < 0x360
-    ):
+    if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield_from":
         raiseSyntaxError(
             "'%s' inside async function"
             % ("yield" if node.__class__ is ast.Yield else "yield from",),
@@ -53,6 +58,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         python_version >= 0x380
         and provider.isExpressionGeneratorObjectBody()
         and provider.name == "<genexpr>"
+        and construct_name != "await"
     ):
         raiseSyntaxError(
             "'%s' inside generator expression"
@@ -60,14 +66,18 @@ def _checkInsideGenerator(provider, node, source_ref):
             provider.getSourceReference(),
         )
 
+    while provider.isExpressionOutlineFunction():
+        provider = provider.getParentVariableProvider()
+
     assert (
         provider.isExpressionGeneratorObjectBody()
         or provider.isExpressionAsyncgenObjectBody()
+        or provider.isExpressionCoroutineObjectBody()
     ), provider
 
 
 def buildYieldNode(provider, node, source_ref):
-    _checkInsideGenerator(provider, node, source_ref)
+    _checkInsideGenerator("yield", provider, node, source_ref)
 
     if node.value is not None:
         return ExpressionYield(
@@ -84,8 +94,20 @@ def buildYieldNode(provider, node, source_ref):
 def buildYieldFromNode(provider, node, source_ref):
     assert python_version >= 0x300
 
-    _checkInsideGenerator(provider, node, source_ref)
+    _checkInsideGenerator("yield_from", provider, node, source_ref)
 
     return ExpressionYieldFrom(
         expression=buildNode(provider, node.value, source_ref), source_ref=source_ref
+    )
+
+
+def buildAwaitNode(provider, node, source_ref):
+    _checkInsideGenerator("await", provider, node, source_ref)
+
+    return ExpressionYieldFromWaitable(
+        expression=ExpressionAsyncWait(
+            expression=buildNode(provider, node.value, source_ref),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
     )
