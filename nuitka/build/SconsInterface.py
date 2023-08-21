@@ -54,6 +54,7 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
@@ -149,22 +150,7 @@ Anaconda Python.
 
 
 @contextlib.contextmanager
-def _setupSconsEnvironment(scons_filename):
-    """Setup the scons execution environment.
-
-    For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
-    Python DLL lives, in case it needs to be copied, and then also the
-    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
-
-    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
-    potentially as well, so not to confuse the other Python binary used to run
-    scons.
-    """
-
-    # For Python2, avoid unicode working directory.
-    if isWin32Windows():
-        os.chdir(getWindowsShortPathName(os.getcwd()))
-
+def _setupSconsEnvironment2(scons_filename):
     is_backend = scons_filename == "Backend.scons"
 
     if is_backend and isWin32Windows() and not Options.shallUseStaticLibPython():
@@ -207,6 +193,30 @@ def _setupSconsEnvironment(scons_filename):
     del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
     del os.environ["NUITKA_PACKAGE_DIR"]
+
+
+@contextlib.contextmanager
+def _setupSconsEnvironment(scons_filename):
+    """Setup the scons execution environment.
+
+    For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
+    Python DLL lives, in case it needs to be copied, and then also the
+    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
+
+    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
+    potentially as well, so not to confuse the other Python binary used to run
+    scons.
+    """
+
+    # For Python2, and bad Python3 setups, avoid unicode working directory.
+    if isWin32Windows():
+        change_dir = getWindowsShortPathName(os.getcwd())
+    else:
+        change_dir = None
+
+    with withDirectoryChange(change_dir, allow_none=True):
+        with _setupSconsEnvironment2(scons_filename=scons_filename):
+            yield
 
 
 def _buildSconsCommand(options, scons_filename):
