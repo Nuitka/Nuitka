@@ -446,10 +446,28 @@ static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReade
     return result;
 }
 
-static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_FunctionObject *files, PyObject *value) {
+static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_ResourceReaderFilesObject *files, PyObject *value) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "readonly attribute");
 
     return -1;
+}
+
+static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_ResourceReaderFilesObject *files_a,
+                                                           PyObject *other, int op) {
+    PyObject *a = PyObject_Str((PyObject *)files_a);
+    CHECK_OBJECT(a);
+
+    PyObject *b = PyObject_Str(other);
+    if (unlikely(b == NULL)) {
+        Py_DECREF(a);
+        return NULL;
+    }
+
+    PyObject *result = PyObject_RichCompare(a, b, op);
+
+    Py_DECREF(b);
+
+    return result;
 }
 
 static PyGetSetDef Nuitka_ResourceReaderFiles_getset[] = {
@@ -461,34 +479,34 @@ static PyNumberMethods Nuitka_resource_reader_as_number = {0};
 
 static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_resource_reader_files",
-    sizeof(struct Nuitka_ResourceReaderFilesObject),      // tp_basicsize
-    0,                                                    // tp_itemsize
-    (destructor)Nuitka_ResourceReaderFiles_tp_dealloc,    // tp_dealloc
-    0,                                                    // tp_print
-    0,                                                    // tp_getattr
-    0,                                                    // tp_setattr
-    0,                                                    // tp_reserved
-    (reprfunc)Nuitka_ResourceReaderFiles_tp_repr,         // tp_repr
-    &Nuitka_resource_reader_as_number,                    // tp_as_number
-    0,                                                    // tp_as_sequence
-    0,                                                    // tp_as_mapping
-    0,                                                    // tp_hash
-    0,                                                    // tp_call
-    (reprfunc)Nuitka_ResourceReaderFiles_tp_str,          // tp_str
-    0,                                                    // tp_getattro (PyObject_GenericGetAttr)
-    0,                                                    // tp_setattro
-    0,                                                    // tp_as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,              // tp_flags
-    0,                                                    // tp_doc
-    (traverseproc)Nuitka_ResourceReaderFiles_tp_traverse, // tp_traverse
-    0,                                                    // tp_clear
-    0,                                                    // tp_richcompare
-    0,                                                    // tp_weaklistoffset
-    0,                                                    // tp_iter (PyObject_SelfIter)
-    0,                                                    // tp_iternext
-    Nuitka_ResourceReaderFiles_methods,                   // tp_methods
-    0,                                                    // tp_members
-    Nuitka_ResourceReaderFiles_getset,                    // tp_getset
+    sizeof(struct Nuitka_ResourceReaderFilesObject),        // tp_basicsize
+    0,                                                      // tp_itemsize
+    (destructor)Nuitka_ResourceReaderFiles_tp_dealloc,      // tp_dealloc
+    0,                                                      // tp_print
+    0,                                                      // tp_getattr
+    0,                                                      // tp_setattr
+    0,                                                      // tp_reserved
+    (reprfunc)Nuitka_ResourceReaderFiles_tp_repr,           // tp_repr
+    &Nuitka_resource_reader_as_number,                      // tp_as_number
+    0,                                                      // tp_as_sequence
+    0,                                                      // tp_as_mapping
+    0,                                                      // tp_hash
+    0,                                                      // tp_call
+    (reprfunc)Nuitka_ResourceReaderFiles_tp_str,            // tp_str
+    0,                                                      // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                      // tp_setattro
+    0,                                                      // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                // tp_flags
+    0,                                                      // tp_doc
+    (traverseproc)Nuitka_ResourceReaderFiles_tp_traverse,   // tp_traverse
+    0,                                                      // tp_clear
+    (richcmpfunc)Nuitka_ResourceReaderFiles_tp_richcompare, // tp_richcompare
+    0,                                                      // tp_weaklistoffset
+    0,                                                      // tp_iter (PyObject_SelfIter)
+    0,                                                      // tp_iternext
+    Nuitka_ResourceReaderFiles_methods,                     // tp_methods
+    0,                                                      // tp_members
+    Nuitka_ResourceReaderFiles_getset,                      // tp_getset
 };
 
 #if PYTHON_VERSION >= 0x390
