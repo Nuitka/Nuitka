@@ -77,12 +77,14 @@ def checkFreezingModuleSet():
 
         def checkModulePath(module):
             module_filename = module.getCompileTimeFilename()
-            module_name = module.getFullName()
+            module_filename_parts = module_filename.split("/")
 
             if (
-                "dist-packages" in module_filename.split("/")
-                and not module_name.isFakeModuleName()
+                "dist-packages" in module_filename_parts
+                and "local" not in module_filename_parts
             ):
+                module_name = module.getFullName()
+
                 package_name = module_name.getTopLevelPackageName()
 
                 if package_name is not None:
@@ -99,7 +101,8 @@ def checkFreezingModuleSet():
     # only Debian is done.
     if checkModulePath is not None:
         for module in ModuleRegistry.getDoneModules():
-            checkModulePath(module)
+            if not module.getFullName().isFakeModuleName():
+                checkModulePath(module)
 
     if problem_modules:
         general.info("Using Debian packages for '%s'." % ",".join(problem_modules))
