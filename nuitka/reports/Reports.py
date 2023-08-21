@@ -301,6 +301,10 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
+    # When failing to write the crash report, we need to indicate that it was
+    # not done to the atexit handler, pylint: disable=global-statement
+    global _crash_report_filename
+
     exit_message = None
     if not report_input_data["nuitka_aborted"]:
         completion = "yes"
@@ -491,6 +495,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "Compilation report write to file '%s' failed due to: %s."
             % (report_filename, e)
         )
+
+        if _crash_report_filename == report_filename:
+            _crash_report_filename = None
     else:
         reports_logger.info(
             "Compilation report written to file '%s'." % report_filename
@@ -559,13 +566,14 @@ _crash_report_filename = "nuitka-crash-report.xml"
 
 
 def _informAboutCrashReport():
-    reports_logger.info(
-        """\
+    if _crash_report_filename is not None:
+        reports_logger.info(
+            """\
 Compilation crash report written to file '%s'. Please include it in \
 your bug report."""
-        % _crash_report_filename,
-        style="red",
-    )
+            % _crash_report_filename,
+            style="red",
+        )
 
 
 def writeCompilationReports(aborted):
