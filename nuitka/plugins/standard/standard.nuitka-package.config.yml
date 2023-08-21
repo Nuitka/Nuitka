@@ -3031,11 +3031,11 @@
       when: 'not use_ipython'
 
 - module-name: 'pythonnet'
-  dlls:
-    - from_filenames:
-        relative_path: 'runtime'
-        prefixes:
-          - 'Python.Runtime'
+  # These is a dotnet assembly, not a platform DLL, esp. not on Linux, macOS,
+  # etc.
+  data-files:
+    patterns:
+      - 'runtime/Python.Runtime.dll'
 
 - module-name: 'pytorch_lightning'
   data-files:
