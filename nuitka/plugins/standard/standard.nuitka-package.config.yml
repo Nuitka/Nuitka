@@ -5387,6 +5387,7 @@
       - 'flax'
       - 'tensorflow'
       - 'tokenizers'
+      - 'sentencepiece'
 
 - module-name: 'transformers.integrations'
   anti-bloat:
@@ -5473,6 +5474,10 @@
     - description: 'workaround for tensorflow checks preventing pytorch usage'
       replacements_plain:
         'importlib.util.find_spec("tensorflow") is not None': 'False'
+    - description: 'more clear missing metadata error message'
+      replacements_plain:
+        'package_exists = False': "sys.exit('''Nuitka: Need to use compile with '--include-package-data=%s'.''' % pkg_name)"
+      when: 'not deployment'
 
 - module-name: 'transformers.utils.versions'
   anti-bloat:
