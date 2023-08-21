@@ -1693,6 +1693,14 @@ void Py_GetArgcArgv(int *argc, char ***argv) {
 }
 #endif
 
+#if defined(__linux__)
+__attribute__((weak))
+__attribute__((visibility("default")))
+#endif
+int Py_Main(int argc, wchar_t **argv) {
+    return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif
