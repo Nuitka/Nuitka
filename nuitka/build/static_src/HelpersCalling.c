@@ -317,12 +317,13 @@ char const *GET_CLASS_NAME(PyObject *klass) {
     }
 }
 
-char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
+char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance) {
+    // TODO: Why not use our own attribute lookup here.
     PyObject *klass = PyObject_GetAttr(instance, const_str_plain___class__);
 
     // Fallback to type as this cannot fail.
     if (klass == NULL) {
-        CLEAR_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
 
         klass = (PyObject *)Py_TYPE(instance);
         Py_INCREF(klass);
@@ -337,6 +338,7 @@ char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
 
 static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type, void *context) {
     PyObject *result = DICT_GET_ITEM_WITH_ERROR(tstate, type->tp_dict, const_str_plain___abstractmethods__);
+
     if (unlikely(result == NULL)) {
         if (!HAS_ERROR_OCCURRED(tstate)) {
             SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, const_str_plain___abstractmethods__);

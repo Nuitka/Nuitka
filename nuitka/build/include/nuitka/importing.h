@@ -68,14 +68,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(void) {
 }
 
 // Replacement for "PyImport_GetModule" working across all versions and less checks.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyObject *module_name) {
-    return DICT_GET_ITEM1(Nuitka_GetSysModules(), module_name);
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyThreadState *tstate, PyObject *module_name) {
+    return DICT_GET_ITEM1(tstate, Nuitka_GetSysModules(), module_name);
 }
 
 // Replacement for PyImport_GetModule working across all versions and less checks.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(char const *module_name) {
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tstate, char const *module_name) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
-    PyObject *result = Nuitka_GetModule(module_name_object);
+    PyObject *result = Nuitka_GetModule(tstate, module_name_object);
     Py_DECREF(module_name_object);
 
     return result;
@@ -105,11 +105,11 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyThreadState *tstate, PyObjec
 
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
 
     bool result = DICT_REMOVE_ITEM(PyImport_GetModuleDict(), module_name);
 
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
 
     return result;
 }
@@ -132,7 +132,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyThreadState *ts
 #endif
 
     if (unlikely(filename == NULL)) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
         filename = PyUnicode_FromString("unknown location");
     }
 

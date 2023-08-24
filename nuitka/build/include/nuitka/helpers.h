@@ -116,13 +116,13 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 #include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);
 
     PyObject *result = PyObject_GetAttr(source, const_str_plain___dict__);
 
     if (unlikely(result == NULL)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "vars() argument must have __dict__ attribute");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "vars() argument must have __dict__ attribute");
 
         return NULL;
     }
@@ -210,10 +210,10 @@ extern PyObject *BUILTIN_ORD(PyObject *value);
 extern PyObject *BUILTIN_BIN(PyObject *value);
 
 // For quicker built-in oct() functionality.
-extern PyObject *BUILTIN_OCT(PyObject *value);
+extern PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value);
 
 // For quicker built-in hex() functionality.
-extern PyObject *BUILTIN_HEX(PyObject *value);
+extern PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value);
 
 // For quicker callable() functionality.
 extern PyObject *BUILTIN_CALLABLE(PyObject *value);
@@ -254,7 +254,7 @@ extern PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyO
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value);
-extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value);
+extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value);
 extern Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value);
 
 // For built-in sum() functionality.
@@ -290,7 +290,7 @@ extern PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *
 
 #if PYTHON_VERSION < 0x300
 // For built-in "long()" functionality with 2 arguments.
-extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
+extern PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base);
 #endif
 
 #include "nuitka/importing.h"
@@ -346,25 +346,25 @@ extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
-extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
+extern PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, PyObject *bases);
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
 extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed);
 #endif
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyThreadState *tstate, PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return DICT_GET_ITEM1(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM1(tstate, module_dict, const_str_plain___name__);
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyThreadState *tstate, PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return DICT_GET_ITEM0(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM0(tstate, module_dict, const_str_plain___name__);
 }
 
 // Get the binary directory as wide characters.
@@ -392,15 +392,15 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 #include <nuitka/threading.h>
 
 // Make a deep copy of an object of general or specific type.
-extern PyObject *DEEP_COPY(PyObject *value);
-extern PyObject *DEEP_COPY_DICT(PyObject *dict_value);
-extern PyObject *DEEP_COPY_LIST(PyObject *value);
-extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
-extern PyObject *DEEP_COPY_SET(PyObject *value);
+extern PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value);
+extern PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value);
 
 // Constants deep copies are guided by value type descriptions.
-extern PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide);
-extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide);
 
 // UnionType, normally not accessible
 extern PyTypeObject *Nuitka_PyUnion_Type;

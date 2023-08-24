@@ -146,7 +146,7 @@ void patchInspectModule(PyThreadState *tstate) {
 
         if (site_module == NULL) {
             // Ignore "ImportError", having a "site" module is not a must.
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
     }
 #endif

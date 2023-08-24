@@ -74,8 +74,9 @@ def _getYieldPreserveCode(
         )
 
     if preserve_exception:
+        # Expands to SAVE_GENERATOR_EXCEPTION,SAVE_COROUTINE_EXCEPTION,SAVE_ASYNCGEN_EXCEPTION
         emit(
-            "SAVE_%s_EXCEPTION(%s);"
+            "SAVE_%s_EXCEPTION(tstate, %s);"
             % (context.getContextObjectName().upper(), context.getContextObjectName())
         )
 
@@ -93,8 +94,9 @@ def _getYieldPreserveCode(
     emit("%(yield_return_label)s:" % {"yield_return_label": yield_return_label})
 
     if preserve_exception:
+        # Expands to RESTORE_GENERATOR_EXCEPTION,RESTORE_COROUTINE_EXCEPTION,RESTORE_ASYNCGEN_EXCEPTION
         emit(
-            "RESTORE_%s_EXCEPTION(%s);"
+            "RESTORE_%s_EXCEPTION(tstate, %s);"
             % (context.getContextObjectName().upper(), context.getContextObjectName())
         )
 

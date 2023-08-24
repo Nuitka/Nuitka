@@ -279,7 +279,6 @@ extern _PyRuntimeState _PyRuntime;
 #ifdef __NUITKA_NO_ASSERT__
 #define Nuitka_TypeLookup(x, y) _PyType_Lookup(x, y)
 #else
-NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void);
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
     return _PyType_Lookup(type, name);
 }

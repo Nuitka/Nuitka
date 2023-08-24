@@ -59,10 +59,14 @@ static PyMemberDef Nuitka_Method_members[] = {
 
 static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
 #if PYTHON_VERSION < 0x300
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle instancemethod objects");
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
 #elif PYTHON_VERSION < 0x340
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle method objects");
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle method objects");
     return NULL;
 #else
     PyObject *result = MAKE_TUPLE_EMPTY(2);
@@ -223,12 +227,14 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
             if (unlikely(result < 0)) {
                 return NULL;
             } else if (unlikely(result == 0)) {
+                PyThreadState *tstate = PyThreadState_GET();
+
                 PyErr_Format(PyExc_TypeError,
                              "unbound compiled_method %s%s must be called with %s instance as first argument (got %s "
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -424,8 +430,8 @@ static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
 
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
 #endif
 
     Nuitka_GC_UnTrack(method);
@@ -459,7 +465,9 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
     } else if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
         return NULL;
     } else if (!PyCallable_Check(func)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "first argument must be callable");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "first argument must be callable");
         return NULL;
     } else {
         if (self == Py_None) {
@@ -467,7 +475,9 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
         }
 
         if (self == NULL && klass == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "unbound methods must have non-NULL im_class");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "unbound methods must have non-NULL im_class");
             return NULL;
         }
     }

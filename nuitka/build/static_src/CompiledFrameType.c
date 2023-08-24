@@ -229,7 +229,9 @@ static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *c
 }
 
 static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace is not writable in Nuitka");
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace is not writable in Nuitka");
     return -1;
 }
 
@@ -241,7 +243,9 @@ static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, vo
 }
 
 static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka");
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka");
     return -1;
 }
 
@@ -252,7 +256,9 @@ static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, 
 }
 
 static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
     return -1;
 }
 #endif
@@ -363,8 +369,8 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
 #endif
 
     Nuitka_GC_UnTrack(nuitka_frame);
@@ -474,7 +480,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     PyThreadState *tstate = PyThreadState_GET();
 
     if (Nuitka_Frame_IsExecuting(frame)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear an executing frame");
 
         return NULL;
     }
@@ -487,7 +493,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     }
 
     if (frame->m_frame_state == FRAME_EXECUTING) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot clear an executing frame");
         return NULL;
     }
 #endif
@@ -731,24 +737,25 @@ struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *modul
     return _MAKE_COMPILED_FRAME(code, module, f_locals, 0);
 }
 
-struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size) {
+struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
+                                               Py_ssize_t locals_size) {
     PyObject *f_locals;
 
     if (likely((code->co_flags & CO_OPTIMIZED) == CO_OPTIMIZED)) {
         f_locals = NULL;
     } else {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, module)};
         f_locals = MAKE_DICT(kw_pairs, 1);
     }
 
     return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size);
 }
 
-struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,
-                                            Py_ssize_t locals_size) {
+struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject *code, PyObject *module,
+                                            PyObject *f_locals, Py_ssize_t locals_size) {
     // The frame template sets f_locals on usage itself, need not create it that way.
     if (f_locals == NULL) {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(tstate, module)};
         f_locals = MAKE_DICT(kw_pairs, 1);
     } else {
         Py_INCREF(f_locals);
@@ -964,7 +971,7 @@ void dumpFrameStack(void) {
     PyObject *saved_exception_type, *saved_exception_value;
     PyTracebackObject *saved_exception_tb;
 
-    FETCH_ERROR_OCCURRED_TSTATE(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
+    FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 
     int total = 0;
 
@@ -1018,7 +1025,7 @@ void dumpFrameStack(void) {
 
     PRINT_STRING(">---------<\n");
 
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, saved_exception_type, saved_exception_value, saved_exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, saved_exception_type, saved_exception_value, saved_exception_tb);
 }
 
 static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {

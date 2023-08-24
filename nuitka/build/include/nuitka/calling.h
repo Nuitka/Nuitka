@@ -27,7 +27,7 @@
 extern char const *GET_CALLABLE_NAME(PyObject *object);
 extern char const *GET_CALLABLE_DESC(PyObject *object);
 extern char const *GET_CLASS_NAME(PyObject *klass);
-extern char const *GET_INSTANCE_CLASS_NAME(PyObject *instance);
+extern char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance);
 
 // Also used in generated helper code.
 NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyThreadState *tstate, PyObject *callable,
@@ -35,7 +35,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyThread
     if (result == NULL) {
         if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
 #if PYTHON_VERSION < 0x3b0
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_SystemError, "NULL result without error from call");
 #else
             PyErr_Format(PyExc_SystemError, "%R returned NULL without setting an exception", callable);
 #endif
@@ -45,13 +45,13 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyThread
     } else {
         // Some buggy C functions do this, and Nuitka inner workings can get
         // upset from it.
-        if (unlikely(DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+        if (unlikely(DROP_ERROR_OCCURRED(tstate))) {
             Py_DECREF(result);
 
 #if PYTHON_VERSION < 0x3a0
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set from call");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_SystemError, "result with error set from call");
 #elif PYTHON_VERSION < 0x3b0
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with exception set from call");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_SystemError, "result with exception set from call");
 #else
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_SystemError, "%s() returned a result with an exception set",
                                                 GET_CALLABLE_NAME(callable));

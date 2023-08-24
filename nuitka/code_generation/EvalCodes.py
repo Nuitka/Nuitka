@@ -40,7 +40,8 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
             if is_dict:
                 emit(
-                    "%s = DICT_GET_ITEM0(%s, %s);" % (value_name, locals_name, key_name)
+                    "%s = DICT_GET_ITEM0(tstate, %s, %s);"
+                    % (value_name, locals_name, key_name)
                 )
             else:
                 emit(
@@ -50,13 +51,13 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
                 getErrorExitBoolCode(
                     condition="""\
-%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED_TSTATE(tstate), PyExc_KeyError)"""
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_KeyError)"""
                     % value_name,
                     emit=emit,
                     context=context,
                 )
 
-                emit("CLEAR_ERROR_OCCURRED_TSTATE(tstate);")
+                emit("CLEAR_ERROR_OCCURRED(tstate);")
 
                 context.addCleanupTempName(value_name)
 

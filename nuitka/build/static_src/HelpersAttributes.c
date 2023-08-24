@@ -208,7 +208,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
             // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
-            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             Py_DECREF(dict);
 
@@ -268,7 +268,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
 #endif
 }
 
-PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
+PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
@@ -327,7 +327,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___dict__);
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, const_str_plain___dict__);
 
             if (result != NULL) {
                 Py_XDECREF(descr);
@@ -385,7 +385,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 #endif
 }
 
-PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
+PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
@@ -445,7 +445,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
             Py_INCREF(dict);
 
-            PyObject *result = DICT_GET_ITEM1(dict, const_str_plain___class__);
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, const_str_plain___class__);
 
             if (result != NULL) {
                 Py_XDECREF(descr);
@@ -517,13 +517,13 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     }
 
     if (unlikely(!PyString_Check(attr_name))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hasattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "hasattr(): attribute name must be string");
 
         return -1;
     }
 #else
     if (unlikely(!PyUnicode_Check(attr_name))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "hasattr(): attribute name must be string");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "hasattr(): attribute name must be string");
 
         return -1;
     }
@@ -535,7 +535,7 @@ int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
-        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
             return -1;
         }
         return 0;
@@ -559,7 +559,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
-                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+                CLEAR_ERROR_OCCURRED(tstate);
 
                 return false;
             }
@@ -585,7 +585,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                         return true;
                     }
 
-                    DROP_ERROR_OCCURRED_TSTATE(tstate);
+                    DROP_ERROR_OCCURRED(tstate);
                     return false;
                 }
             }
@@ -619,8 +619,8 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
-            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
-            DROP_ERROR_OCCURRED_TSTATE(tstate);
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
+            DROP_ERROR_OCCURRED(tstate);
 
             Py_DECREF(dict);
 
@@ -645,7 +645,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 return true;
             }
 
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return false;
             }
             return true;
@@ -665,7 +665,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = LOOKUP_INSTANCE(tstate, source, attr_name);
 
         if (result == NULL) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
 
             return false;
         }
@@ -680,7 +680,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = (*type->tp_getattro)(source, attr_name);
 
         if (result == NULL) {
-            DROP_ERROR_OCCURRED_TSTATE(tstate);
+            DROP_ERROR_OCCURRED(tstate);
 
             return false;
         }
@@ -692,7 +692,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
 
         if (result == NULL) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
 
             return false;
         }
@@ -713,7 +713,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
 #if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
     PyObject *result = PyObject_GetAttr(source, attr_name);
 
-    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
         return -1;
     }
 
@@ -754,7 +754,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                         return 1;
                     }
 
-                    DROP_ERROR_OCCURRED_TSTATE(tstate);
+                    DROP_ERROR_OCCURRED(tstate);
                     return 0;
                 }
             }
@@ -788,9 +788,9 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             // TODO: If this is an exact dict, we don't have to hold a reference, is it?
             Py_INCREF(dict);
 
-            PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *result = DICT_GET_ITEM1(tstate, dict, attr_name);
 
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return -1;
             }
 
@@ -817,7 +817,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
                 return 1;
             }
 
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return -1;
             }
             return 0;
@@ -850,7 +850,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = (*type->tp_getattro)(source, attr_name);
 
         if (result == NULL) {
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return -1;
             }
 
@@ -864,7 +864,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
         PyObject *result = (*type->tp_getattr)(source, (char *)Nuitka_String_AsString_Unchecked(attr_name));
 
         if (result == NULL) {
-            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate) == false) {
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate) == false) {
                 return -1;
             }
 
@@ -928,7 +928,8 @@ static bool SET_INSTANCE(PyThreadState *tstate, PyObject *target, PyObject *attr
 // Classes in Python3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
 
-static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject *attr_name, PyObject *value) {
+static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyObject *target, PyObject *attr_name,
+                                  PyObject *value) {
     // Unfortunately this is required, although of cause rarely necessary.
     if (unlikely(type->tp_dict == NULL)) {
         if (unlikely(PyType_Ready(type) < 0)) {
@@ -979,7 +980,6 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
 
             // TODO: Not possible for set, is it?
             if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
-                PyThreadState *tstate = PyThreadState_GET();
                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
                 return false;
             }
@@ -1035,7 +1035,7 @@ bool SET_ATTRIBUTE(PyThreadState *tstate, PyObject *target, PyObject *attr_name,
 
 #if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
     if (hasTypeGenericSetAttr(type)) {
-        return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
+        return SET_ATTRIBUTE_GENERIC(tstate, type, target, attr_name, value);
     }
 #endif
 #if PYTHON_VERSION < 0x300
@@ -1077,7 +1077,7 @@ bool SET_ATTRIBUTE(PyThreadState *tstate, PyObject *target, PyObject *attr_name,
 #endif
 }
 
-bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
+bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(value);
 
@@ -1087,7 +1087,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
 
         /* Note seems this doesn't have to be an exact dictionary. */
         if (unlikely(!PyDict_Check(value))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__dict__ must be set to a dictionary");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__dict__ must be set to a dictionary");
             return false;
         }
 
@@ -1129,7 +1129,7 @@ bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
     return true;
 }
 
-bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value) {
+bool SET_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(value);
 
@@ -1138,7 +1138,7 @@ bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value) {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
         if (unlikely(!PyClass_Check(value))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__class__ must be set to a class");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__class__ must be set to a class");
             return false;
         }
 
@@ -1252,11 +1252,11 @@ PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyThreadState *tstate, PyObject *va
 
 #if PYTHON_VERSION >= 0x300
         // TODO: FORMAT_NAME_ERROR for Python3 should already produce this normalized and chained.
-        NORMALIZE_EXCEPTION(&exception_type, &exception_value, NULL);
-        CHAIN_EXCEPTION(exception_value);
+        NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, NULL);
+        CHAIN_EXCEPTION(tstate, exception_value);
 #endif
 
-        RESTORE_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, NULL);
+        RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, NULL);
     }
 
     return result;
@@ -1272,7 +1272,7 @@ PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyThreadState *tstate, 
 
         FORMAT_GLOBAL_NAME_ERROR(&exception_type, &exception_value, variable_name);
 
-        RESTORE_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, NULL);
+        RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, NULL);
     }
 
     return result;

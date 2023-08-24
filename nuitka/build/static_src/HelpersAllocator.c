@@ -478,7 +478,7 @@ static void Nuitka_handle_legacy_finalizers(PyThreadState *tstate, GCState *gcst
 
         if (Nuitka_has_legacy_finalizer(op)) {
             if (PyList_Append(gcstate->garbage, op) < 0) {
-                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+                CLEAR_ERROR_OCCURRED(tstate);
                 break;
             }
         }

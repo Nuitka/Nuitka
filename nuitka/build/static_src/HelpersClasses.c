@@ -29,7 +29,7 @@
 #endif
 
 #if PYTHON_VERSION >= 0x300
-PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
+PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, PyObject *bases) {
     CHECK_OBJECT(metaclass);
     CHECK_OBJECT(bases);
 
@@ -57,7 +57,7 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
                 winner = base_type;
                 continue;
             } else {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                                 "metaclass conflict: the metaclass of a derived class must be a "
                                                 "(non-strict) subclass of the metaclasses of all its bases");
 

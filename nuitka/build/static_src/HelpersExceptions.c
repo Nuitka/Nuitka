@@ -194,7 +194,7 @@ error:
     Py_DECREF(value);
     PyTracebackObject *initial_tb = *tb;
 
-    FETCH_ERROR_OCCURRED_TSTATE(tstate, exc, val, tb);
+    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
 
     if (initial_tb != NULL) {
         if (*tb == NULL) {

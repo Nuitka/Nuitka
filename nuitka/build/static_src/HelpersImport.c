@@ -124,12 +124,10 @@ PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject 
 // be compatible.
 #if PYTHON_VERSION >= 0x3a0 && 0
     // Fast path for default "__import__" avoids function call.
-    PyThreadState *thread_state = _PyThreadState_GET();
-
-    if (import_function == thread_state->interp->import_func) {
+    if (import_function == tstate->interp->import_func) {
         int level_int = _PyLong_AsInt(level);
 
-        if (level_int == -1 && HAS_ERROR_OCCURRED(thread_state)) {
+        if (level_int == -1 && HAS_ERROR_OCCURRED(tstate)) {
             return NULL;
         }
 
@@ -160,8 +158,8 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
         }
 
         all_case = true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED_TSTATE(tstate), PyExc_AttributeError)) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+        CLEAR_ERROR_OCCURRED(tstate);
 
         iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
         CHECK_OBJECT(iter);
@@ -206,7 +204,7 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
         if (is_module) {
             SET_ATTRIBUTE(tstate, target, item, value);
         } else {
-            SET_SUBSCRIPT(target, item, value);
+            SET_SUBSCRIPT(tstate, target, item, value);
         }
 
         Py_DECREF(value);
@@ -215,7 +213,7 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
 
     Py_DECREF(iter);
 
-    return !ERROR_OCCURRED();
+    return !HAS_ERROR_OCCURRED(tstate);
 }
 
 PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObject *import_name) {
@@ -225,7 +223,7 @@ PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObj
     PyObject *result = PyObject_GetAttr(module, import_name);
 
     if (unlikely(result == NULL)) {
-        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate)) {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
 #if PYTHON_VERSION >= 0x370
             PyObject *filename = Nuitka_GetFilenameObject(tstate, module);
 
@@ -260,11 +258,11 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
     CHECK_OBJECT(globals);
 
     if (unlikely(!PyDict_Check(globals))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "globals must be a dict");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "globals must be a dict");
         return NULL;
     }
 
-    PyObject *package = DICT_GET_ITEM0(globals, const_str_plain___package__);
+    PyObject *package = DICT_GET_ITEM0(tstate, globals, const_str_plain___package__);
 
     if (unlikely(package == NULL && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
@@ -274,7 +272,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         package = NULL;
     }
 
-    PyObject *spec = DICT_GET_ITEM0(globals, const_str_plain___spec__);
+    PyObject *spec = DICT_GET_ITEM0(tstate, globals, const_str_plain___spec__);
 
     if (unlikely(spec == NULL && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
@@ -282,7 +280,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
 
     if (package != NULL) {
         if (!PyUnicode_Check(package)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "package must be a string");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "package must be a string");
             return NULL;
         }
 
@@ -318,7 +316,7 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
         }
 
         if (unlikely(!PyUnicode_Check(package))) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__spec__.parent must be a string");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__spec__.parent must be a string");
             return NULL;
         }
     } else {
@@ -329,15 +327,15 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         }
 
-        package = DICT_GET_ITEM0(globals, const_str_plain___name__);
+        package = DICT_GET_ITEM0(tstate, globals, const_str_plain___name__);
 
-        if (unlikely(package == NULL && !ERROR_OCCURRED())) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_KeyError, "'__name__' not in globals");
+        if (unlikely(package == NULL && !HAS_ERROR_OCCURRED(tstate))) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_KeyError, "'__name__' not in globals");
             return NULL;
         }
 
         if (!PyUnicode_Check(package)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be a string");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__name__ must be a string");
             return NULL;
         }
 
@@ -381,7 +379,8 @@ static PyObject *resolveParentModuleName(PyThreadState *tstate, PyObject *module
             return NULL;
         } else if (last_dot == -1) {
             Py_DECREF(package);
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "attempted relative import beyond top-level package");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
+                                            "attempted relative import beyond top-level package");
             return NULL;
         }
     }
@@ -408,8 +407,8 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
     PyObject *result = PyObject_GetAttr(module, import_name);
 
     if (unlikely(result == NULL)) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED_TSTATE(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+            CLEAR_ERROR_OCCURRED(tstate);
 
             long level_int = PyLong_AsLong(level);
 
@@ -418,7 +417,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
             }
 
             if (unlikely(level_int < 0)) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "level must be >= 0");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "level must be >= 0");
                 return NULL;
             }
 
@@ -436,7 +435,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                 if (result != NULL) {
                     Py_DECREF(result);
 
-                    result = Nuitka_GetModule(name);
+                    result = Nuitka_GetModule(tstate, name);
                 }
 
                 Py_DECREF(name);
@@ -454,14 +453,14 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
                         Py_DECREF(result);
 
                         // Look up in "sys.modules", because we will have returned the
-                        result = Nuitka_GetModule(name);
+                        result = Nuitka_GetModule(tstate, name);
                         Py_DECREF(name);
                     }
                 }
             }
 
             if (result == NULL) {
-                CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+                CLEAR_ERROR_OCCURRED(tstate);
 
                 result = IMPORT_NAME_FROM_MODULE(tstate, module, import_name);
             }

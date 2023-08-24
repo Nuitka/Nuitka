@@ -156,7 +156,7 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
             getReleaseCode(value_name, emit, context)
 
             emit(
-                """%s = Nuitka_GetModule(%s);"""
+                """%s = Nuitka_GetModule(tstate, %s);"""
                 % (value_name, context.getConstantCode(module_name.asString()))
             )
 

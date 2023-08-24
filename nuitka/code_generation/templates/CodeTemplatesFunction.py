@@ -61,7 +61,7 @@ template_function_body = """\
 static PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(parameter_objects_decl)s) {
     // Preserve error status for checks
 #ifndef __NUITKA_NO_ASSERT__
-    NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
+    NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
 #endif
 
     // Local variable declarations.
@@ -78,7 +78,7 @@ template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s
     assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    RESTORE_ERROR_OCCURRED(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """
@@ -91,13 +91,13 @@ function_return_exit:
    // Actual function exit with return value, making sure we did not make
    // the error status worse despite non-NULL return.
    CHECK_OBJECT(tmp_return_value);
-   assert(had_error || !ERROR_OCCURRED());
+   assert(had_error || !HAS_ERROR_OCCURRED(tstate));
    return tmp_return_value;"""
 
 function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s(PyThreadState *tstate, %(direct_call_arg_spec)s) {
 #ifndef __NUITKA_NO_ASSERT__
-    NUITKA_MAY_BE_UNUSED bool had_error = ERROR_OCCURRED();
+    NUITKA_MAY_BE_UNUSED bool had_error = HAS_ERROR_OCCURRED(tstate);
     assert(!had_error); // Do not enter inlined functions with error set.
 #endif
 

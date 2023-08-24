@@ -64,7 +64,7 @@ extern PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *it
 extern PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyObject *start, PyObject *stop);
 
 // Like list.index
-extern bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item);
+extern bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObject *item);
 // Like PyList_Insert
 extern void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item);
 

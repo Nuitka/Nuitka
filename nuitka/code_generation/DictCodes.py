@@ -279,11 +279,11 @@ def generateDictOperationGet2Code(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {% if expression.known_hashable_key %}
-%(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM0(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
 {% else %}
 %(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(tstate, %(dict_name)s, %(key_name)s);
-if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = Py_None;
 }
@@ -321,11 +321,11 @@ def generateDictOperationGet3Code(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {% if expression.known_hashable_key %}
-%(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM1(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
 {% else %}
 %(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, %(dict_name)s, %(key_name)s);
-if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = %(default_name)s;
     Py_INCREF(%(value_name)s);

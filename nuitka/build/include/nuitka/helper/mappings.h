@@ -24,7 +24,7 @@ NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyThreadState *tstate, PyObject
     PyObject *result = PyObject_GetItem(mapping, key);
 
     if (result == NULL) {
-        bool had_key_error = CHECK_AND_CLEAR_KEY_ERROR_OCCURRED_TSTATE(tstate);
+        bool had_key_error = CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate);
 
         if (had_key_error) {
             return 0;

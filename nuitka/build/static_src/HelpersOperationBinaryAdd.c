@@ -4098,7 +4098,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(PyObject *operand1
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = UNICODE_CONCAT(operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
 
     obj_result = x;
     goto exit_result_object;
@@ -4230,7 +4233,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_UNICODE(PyObject *operand1,
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = UNICODE_CONCAT(operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
 
         obj_result = x;
         goto exit_result_object;
@@ -4361,7 +4367,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_UNICODE_OBJECT(PyObject *operand1,
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = UNICODE_CONCAT(operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = UNICODE_CONCAT(tstate, operand1, operand2);
 
         obj_result = x;
         goto exit_result_object;

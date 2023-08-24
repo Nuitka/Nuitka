@@ -23,8 +23,8 @@
 #if PYTHON_VERSION >= 0x3b0
 
 NUITKA_MAY_BE_UNUSED static void FORMAT_CLASS_CATCH_ERROR(PyThreadState *tstate) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(tstate, PyExc_TypeError,
-                                           "catching classes that do not inherit from BaseException is not allowed");
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                    "catching classes that do not inherit from BaseException is not allowed");
 }
 
 NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_TYPE_VALID(PyThreadState *tstate, PyObject *right) {
@@ -82,8 +82,8 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
     }
 
     if (is_subclass) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(
-            tstate, PyExc_TypeError, "catching ExceptionGroup with except* is not allowed. Use except instead.");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "catching ExceptionGroup with except* is not allowed. Use except instead.");
         return -1;
     }
 

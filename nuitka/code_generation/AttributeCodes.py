@@ -109,9 +109,9 @@ def getAttributeLookupCode(
     to_name, source_name, attribute_name, needs_check, emit, context
 ):
     if attribute_name == "__dict__":
-        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(%s);" % (to_name, source_name))
+        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);" % (to_name, source_name))
     elif attribute_name == "__class__":
-        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(%s);" % (to_name, source_name))
+        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);" % (to_name, source_name))
     else:
         emit(
             "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
@@ -174,7 +174,10 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("%s = SET_ATTRIBUTE_DICT_SLOT(%s, %s);" % (res_name, target_name, value_name))
+    emit(
+        "%s = SET_ATTRIBUTE_DICT_SLOT(tstate, %s, %s);"
+        % (res_name, target_name, value_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,
@@ -189,7 +192,10 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("%s = SET_ATTRIBUTE_CLASS_SLOT(%s, %s);" % (res_name, target_name, value_name))
+    emit(
+        "%s = SET_ATTRIBUTE_CLASS_SLOT(tstate, %s, %s);"
+        % (res_name, target_name, value_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,

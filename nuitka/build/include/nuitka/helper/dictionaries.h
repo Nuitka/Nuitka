@@ -274,8 +274,8 @@ extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject 
 extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
-extern PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key);
-extern PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key);
 
 // Get dict lookup for a key, similar to PyDict_Contains
 extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);

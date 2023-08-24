@@ -447,8 +447,9 @@ static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReade
 }
 
 static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_ResourceReaderFilesObject *files, PyObject *value) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "readonly attribute");
+    PyThreadState *tstate = PyThreadState_GET();
 
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_AttributeError, "readonly attribute");
     return -1;
 }
 
@@ -521,13 +522,13 @@ static void registerResourceReaderFiles(PyThreadState *tstate, PyObject *resourc
 
         PyObject *register_result = CALL_METHOD_WITH_ARGS2(tstate, as_file, const_str_plain_register, args);
         if (unlikely(register_result == NULL)) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
 
         Py_DECREF(as_file);
         Py_DECREF(our_as_file);
     } else {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
     }
 }
 #endif
@@ -555,7 +556,7 @@ static PyObject *Nuitka_ResourceReaderFiles_New(PyThreadState *tstate,
         if (importlib_resources_backport_module != NULL) {
             registerResourceReaderFiles(tstate, importlib_resources_backport_module);
         } else {
-            DROP_ERROR_OCCURRED_TSTATE(tstate);
+            DROP_ERROR_OCCURRED(tstate);
         }
 #endif
 

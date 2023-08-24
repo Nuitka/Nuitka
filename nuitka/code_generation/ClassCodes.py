@@ -45,7 +45,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         to_name, "metaclass_result", expression, emit, context
     ) as value_name:
         emit(
-            "%s = SELECT_METACLASS(%s);"
+            "%s = SELECT_METACLASS(tstate, %s);"
             % (value_name, ", ".join(str(arg_name) for arg_name in arg_names))
         )
 

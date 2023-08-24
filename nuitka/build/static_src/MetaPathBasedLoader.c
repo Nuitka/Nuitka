@@ -396,7 +396,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
         PyObject *filenames_list = _getFileList(tstate, path_element);
 
         if (filenames_list == NULL) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
             continue;
         }
 
@@ -603,7 +603,7 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, char con
     PyObject *existing_file_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
 
     if (existing_file_value == NULL) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
         needs_update = true;
     } else {
         if (existing_file_value == Py_None) {
@@ -621,7 +621,7 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, char con
 #endif
         if (unlikely(res < 0)) {
             // Might be refuted, which wouldn't be harmful.
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
     }
 }
@@ -715,7 +715,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
         }
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ImportError, buffer);
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, buffer);
         return NULL;
     }
 
@@ -742,7 +742,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             error = "unknown dlopen() error";
         }
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ImportError, error);
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, error);
         return NULL;
     }
 
@@ -780,13 +780,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     _Py_PackageContext = old_context;
 
 #if PYTHON_VERSION < 0x300
-    PyObject *module = Nuitka_GetModuleString(full_name);
+    PyObject *module = Nuitka_GetModuleString(tstate, full_name);
 #endif
 
     PGO_onModuleExit(name, module == NULL);
 
     if (unlikely(module == NULL)) {
-        if (unlikely(!ERROR_OCCURRED())) {
+        if (unlikely(!HAS_ERROR_OCCURRED(tstate))) {
             PyErr_Format(PyExc_SystemError, "dynamic module '%s' not initialized properly", full_name);
         }
 
@@ -946,7 +946,7 @@ static void loadTriggeredModule(PyThreadState *tstate, char const *name, char co
 
         IMPORT_EMBEDDED_MODULE(tstate, trigger_module_name);
 
-        if (unlikely(ERROR_OCCURRED())) {
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             if ((entry->flags & NUITKA_ABORT_MODULE_FLAG) != 0) {
                 printf("Critical error loading %s.\n", trigger_module_name);
                 abort();
@@ -1049,7 +1049,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         PySys_WriteStderr("Loaded %s\n", entry->name);
     }
 
-    return Nuitka_GetModule(module_name);
+    return Nuitka_GetModule(tstate, module_name);
 }
 
 static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module, PyObject *module_name,
@@ -1088,7 +1088,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
         }
 
         if (res == 1) {
-            result = Nuitka_GetModule(module_name);
+            result = Nuitka_GetModule(tstate, module_name);
         }
     }
 
@@ -1112,7 +1112,7 @@ PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name) {
     PyObject *module_name = Nuitka_String_FromString(name);
 
     // Check if it's already loaded, and don't do it again otherwise.
-    PyObject *module = Nuitka_GetModule(module_name);
+    PyObject *module = Nuitka_GetModule(tstate, module_name);
 
     if (module != NULL) {
         Py_DECREF(module_name);
@@ -1171,7 +1171,7 @@ static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyOb
 
 #ifndef _NUITKA_STANDALONE
     if (installed_extension_modules != NULL) {
-        PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
+        PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
             // TODO: Should we not set __file__ for the module here, but there is no object.
@@ -1585,7 +1585,7 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
     // for extension modules that were found installed in the system and below our package.
 #ifndef _NUITKA_STANDALONE
     if (installed_extension_modules != NULL) {
-        PyObject *extension_module_filename = DICT_GET_ITEM0(installed_extension_modules, module_name);
+        PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
 
         if (extension_module_filename != NULL) {
             // Set filename attribute
@@ -1593,7 +1593,7 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
 
             if (unlikely(res < 0)) {
                 // Might be refuted, which wouldn't be harmful.
-                CLEAR_ERROR_OCCURRED();
+                CLEAR_ERROR_OCCURRED(tstate);
             }
 
             return callIntoInstalledExtensionModule(tstate, module_name, extension_module_filename);

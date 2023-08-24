@@ -161,7 +161,7 @@ PyObject *BUILTIN_RANGE(PyThreadState *tstate, PyObject *boundary) {
 
     long start = PyInt_AsLong(boundary_temp);
 
-    if (start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate)) {
+    if (start == -1 && DROP_ERROR_OCCURRED(tstate)) {
         NUITKA_ASSIGN_BUILTIN(range);
 
         PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, NUITKA_ACCESS_BUILTIN(range), boundary_temp);
@@ -193,13 +193,13 @@ PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 
     long start = PyInt_AsLong(low_temp);
 
-    if (unlikely(start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(start == -1 && DROP_ERROR_OCCURRED(tstate))) {
         fallback = true;
     }
 
     long end = PyInt_AsLong(high_temp);
 
-    if (unlikely(end == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(end == -1 && DROP_ERROR_OCCURRED(tstate))) {
         fallback = true;
     }
 
@@ -247,19 +247,19 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
 
     long start = PyInt_AsLong(low_temp);
 
-    if (unlikely(start == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(start == -1 && DROP_ERROR_OCCURRED(tstate))) {
         fallback = true;
     }
 
     long end = PyInt_AsLong(high_temp);
 
-    if (unlikely(end == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(end == -1 && DROP_ERROR_OCCURRED(tstate))) {
         fallback = true;
     }
 
     long step_long = PyInt_AsLong(step_temp);
 
-    if (unlikely(step_long == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(step_long == -1 && DROP_ERROR_OCCURRED(tstate))) {
         fallback = true;
     }
 
@@ -279,7 +279,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
         Py_DECREF(step_temp);
 
         if (unlikely(step_long == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() step argument must not be zero");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "range() step argument must not be zero");
             return NULL;
         }
 
@@ -292,7 +292,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
 #if PYTHON_VERSION < 0x300
 
 /* Same as CPython2: */
-static unsigned long getLengthOfRange(long lo, long hi, long step) {
+static unsigned long getLengthOfRange(PyThreadState *tstate, long lo, long hi, long step) {
     assert(step != 0);
 
     if (step > 0 && lo < hi) {
@@ -305,12 +305,12 @@ static unsigned long getLengthOfRange(long lo, long hi, long step) {
 }
 
 /* Create a "xrange" object from C long values. Used for constant ranges. */
-PyObject *MAKE_XRANGE(long start, long stop, long step) {
+PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
     /* TODO: It would be sweet to calculate that on user side already. */
-    unsigned long n = getLengthOfRange(start, stop, step);
+    unsigned long n = getLengthOfRange(tstate, start, stop, step);
 
     if (n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "xrange() result has too many items");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "xrange() result has too many items");
 
         return NULL;
     }
@@ -328,7 +328,7 @@ PyObject *MAKE_XRANGE(long start, long stop, long step) {
 #else
 
 /* Same as CPython3: */
-static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *step) {
+static PyObject *getLengthOfRange(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step) {
     nuitka_bool nbool_res = RICH_COMPARE_GT_NBOOL_OBJECT_LONG(step, const_int_0);
 
     if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
@@ -361,7 +361,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
         }
 
         if (unlikely(nbool_res == NUITKA_BOOL_TRUE)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "range() arg 3 must not be zero");
             Py_DECREF(step);
 
             return NULL;
@@ -415,7 +415,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
     return result;
 }
 
-static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
+static PyObject *MAKE_XRANGE(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step) {
     start = Nuitka_Number_IndexAsLong(start);
     if (unlikely(start == NULL)) {
         return NULL;
@@ -429,7 +429,7 @@ static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
         return NULL;
     }
 
-    PyObject *length = getLengthOfRange(start, stop, step);
+    PyObject *length = getLengthOfRange(tstate, start, stop, step);
     if (unlikely(length == NULL)) {
         return NULL;
     }
@@ -450,18 +450,18 @@ static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
 PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(high))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
 
     long int_high = PyInt_AsLong(high);
 
-    if (unlikely(int_high == -1 && ERROR_OCCURRED())) {
+    if (unlikely(int_high == -1 && HAS_ERROR_OCCURRED(tstate))) {
         return NULL;
     }
 
-    return MAKE_XRANGE(0, int_high, 1);
+    return MAKE_XRANGE(tstate, 0, int_high, 1);
 #else
     PyObject *stop = Nuitka_Number_IndexAsLong(high);
 
@@ -469,7 +469,7 @@ PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
         return NULL;
     }
 
-    PyObject *length = getLengthOfRange(const_int_0, stop, const_int_pos_1);
+    PyObject *length = getLengthOfRange(tstate, const_int_0, stop, const_int_pos_1);
     if (unlikely(length == NULL)) {
         Py_DECREF(stop);
 
@@ -495,7 +495,7 @@ PyObject *BUILTIN_XRANGE1(PyThreadState *tstate, PyObject *high) {
 PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -507,7 +507,7 @@ PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) 
     }
 
     if (unlikely(PyFloat_Check(high))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -518,9 +518,9 @@ PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) 
         return NULL;
     }
 
-    return MAKE_XRANGE(int_low, int_high, 1);
+    return MAKE_XRANGE(tstate, int_low, int_high, 1);
 #else
-    return MAKE_XRANGE(low, high, const_int_pos_1);
+    return MAKE_XRANGE(tstate, low, high, const_int_pos_1);
 #endif
 }
 
@@ -528,7 +528,7 @@ PyObject *BUILTIN_XRANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) 
 PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, PyObject *step) {
 #if PYTHON_VERSION < 0x300
     if (unlikely(PyFloat_Check(low))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -540,7 +540,7 @@ PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, 
     }
 
     if (unlikely(PyFloat_Check(high))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -552,7 +552,7 @@ PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, 
     }
 
     if (unlikely(PyFloat_Check(step))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "integer argument expected, got float");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "integer argument expected, got float");
 
         return NULL;
     }
@@ -564,14 +564,14 @@ PyObject *BUILTIN_XRANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, 
     }
 
     if (unlikely(int_step == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "range() arg 3 must not be zero");
 
         return NULL;
     }
 
-    return MAKE_XRANGE(int_low, int_high, int_step);
+    return MAKE_XRANGE(tstate, int_low, int_high, int_step);
 #else
-    return MAKE_XRANGE(low, high, step);
+    return MAKE_XRANGE(tstate, low, high, step);
 #endif
 }
 
@@ -606,7 +606,7 @@ PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
 
     Py_DECREF(it);
 
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -655,7 +655,7 @@ PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
     }
 
     Py_DECREF(it);
-    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate))) {
         return NULL;
     }
 
@@ -695,12 +695,14 @@ NUITKA_DEFINE_BUILTIN(print);
 #endif
 
 bool PRINT_NEW_LINE_TO(PyObject *file) {
+    PyThreadState *tstate = PyThreadState_GET();
+
 #if PYTHON_VERSION < 0x300
     if (file == NULL || file == Py_None) {
         file = GET_STDOUT();
 
         if (unlikely(file == NULL)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "lost sys.stdout");
             return false;
         }
     }
@@ -724,8 +726,6 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
@@ -753,6 +753,8 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 }
 
 bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
+    PyThreadState *tstate = PyThreadState_GET();
+
 // The print built-in function cannot replace "softspace" behavior of CPython
 // print statement, so this code is really necessary.
 #if PYTHON_VERSION < 0x300
@@ -760,7 +762,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         file = GET_STDOUT();
 
         if (unlikely(file == NULL)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "lost sys.stdout");
             return false;
         }
     }
@@ -818,8 +820,6 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
@@ -991,7 +991,9 @@ PyObject *GET_STDOUT(void) {
     PyObject *result = Nuitka_SysGetObject("stdout");
 
     if (unlikely(result == NULL)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "lost sys.stdout");
         return NULL;
     }
 
@@ -1002,7 +1004,9 @@ PyObject *GET_STDERR(void) {
     PyObject *result = Nuitka_SysGetObject("stderr");
 
     if (unlikely(result == NULL)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stderr");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "lost sys.stderr");
         return NULL;
     }
 
@@ -1036,7 +1040,8 @@ static void set_attr_slots(PyClassObject *klass) {
 
 static bool set_dict(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__dict__ must be a dictionary object");
+        PyThreadState *tstate = PyThreadState_GET();
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__dict__ must be a dictionary object");
         return false;
     } else {
         set_slot(&klass->cl_dict, value);
@@ -1048,7 +1053,10 @@ static bool set_dict(PyClassObject *klass, PyObject *value) {
 
 static bool set_bases(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyTuple_Check(value)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ must be a tuple object");
+
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__bases__ must be a tuple object");
         return false;
     } else {
         Py_ssize_t n = PyTuple_GET_SIZE(value);
@@ -1057,12 +1065,17 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
             PyObject *base = PyTuple_GET_ITEM(value, i);
 
             if (unlikely(!PyClass_Check(base))) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__bases__ items must be classes");
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__bases__ items must be classes");
                 return false;
             }
 
             if (unlikely(PyClass_IsSubclass(base, (PyObject *)klass))) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "a __bases__ item causes an inheritance cycle");
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                                "a __bases__ item causes an inheritance cycle");
                 return false;
             }
         }
@@ -1076,12 +1089,16 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
 
 static bool set_name(PyClassObject *klass, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must be a string object");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__name__ must be a string object");
         return false;
     }
 
     if (strlen(PyString_AS_STRING(value)) != (size_t)PyString_GET_SIZE(value)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__name__ must not contain null bytes");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__name__ must not contain null bytes");
         return false;
     }
 
@@ -1257,7 +1274,7 @@ static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickI
         if (result == NULL) {
             Py_DECREF(qiter->iterator_data.iter);
 
-            if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate))) {
+            if (unlikely(!CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate))) {
                 *finished = false;
                 return NULL;
             }

@@ -99,7 +99,7 @@ template_generator_exception_exit = """\
     function_exception_exit:
 %(function_cleanup)s
     assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    RESTORE_ERROR_OCCURRED(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
     return NULL;
 """
