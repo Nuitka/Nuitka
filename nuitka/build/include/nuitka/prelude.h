@@ -137,7 +137,7 @@ extern _PyRuntimeState _PyRuntime;
 #undef CALL_FUNCTION
 #endif
 
-#ifndef PY_NOGIL
+#if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
@@ -465,17 +465,17 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka_file_tracer.h"
 #else
 #if PYTHON_VERSION < 0x300
-#define TRACE_FILE_OPEN(x, y, z, r) (false)
+#define TRACE_FILE_OPEN(tstate, x, y, z, r) (false)
 #else
-#define TRACE_FILE_OPEN(x, y, z, a, b, c, d, e, r) (false)
+#define TRACE_FILE_OPEN(tstate, x, y, z, a, b, c, d, e, r) (false)
 #endif
-#define TRACE_FILE_READ(x, y) (false)
+#define TRACE_FILE_READ(tstate, x, y) (false)
 
-#define TRACE_FILE_EXISTS(x, y) (false)
-#define TRACE_FILE_ISFILE(x, y) (false)
-#define TRACE_FILE_ISDIR(x, y) (false)
+#define TRACE_FILE_EXISTS(tstate, x, y) (false)
+#define TRACE_FILE_ISFILE(tstate, x, y) (false)
+#define TRACE_FILE_ISDIR(tstate, x, y) (false)
 
-#define TRACE_FILE_LISTDIR(x, y) (false)
+#define TRACE_FILE_LISTDIR(tstate, x, y) (false)
 
 #endif
 

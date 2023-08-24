@@ -185,6 +185,7 @@ def generateBuiltinDir1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyObject_Dir",
+        tstate=False,
         arg_desc=(("dir_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -198,6 +199,7 @@ def generateBuiltinVarsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LOOKUP_VARS",
+        tstate=False,
         arg_desc=(("vars_arg", expression.subnode_source),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

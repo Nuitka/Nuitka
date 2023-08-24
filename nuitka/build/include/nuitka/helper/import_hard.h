@@ -68,6 +68,9 @@ extern PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void);
 /* C helper for hard import of module "importlib_metadata" import. */
 extern PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void);
 
+/* C helper for hard import of module "importlib_resources" import. */
+extern PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void);
+
 /* C helper for hard import of module "io" import. */
 extern PyObject *IMPORT_HARD_IO(void);
 

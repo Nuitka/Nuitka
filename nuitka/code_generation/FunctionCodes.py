@@ -443,7 +443,7 @@ def getDirectFunctionCallCode(
             """
 {
     PyObject *dir_call_args[] = {%s};
-    %s = %s(dir_call_args%s%s);
+    %s = %s(tstate, dir_call_args%s%s);
 }"""
             % (
                 ", ".join(str(arg_name) for arg_name in arg_names),
@@ -455,7 +455,7 @@ def getDirectFunctionCallCode(
         )
     else:
         emit(
-            "%s = %s(NULL%s%s);"
+            "%s = %s(tstate, NULL%s%s);"
             % (
                 to_name,
                 function_identifier,
@@ -848,7 +848,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 def generateFunctionErrorStrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
+        # TODO: Should be inline this for
         capi="_PyObject_FunctionStr",
+        tstate=False,
         arg_desc=(("func_arg", expression.subnode_value),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),

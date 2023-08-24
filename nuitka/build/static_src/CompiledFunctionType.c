@@ -494,7 +494,8 @@ static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *func
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
-    return LOOKUP_SUBSCRIPT(PyModule_GetDict(function->m_module), const_str_plain___builtins__);
+    PyThreadState *tstate = PyThreadState_GET();
+    return LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
 }
 #endif
 
@@ -625,11 +626,13 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     assert(_PyObject_GC_IS_TRACKED(function));
 
 #ifndef __NUITKA_NO_ASSERT__
+    PyThreadState *tstate = PyThreadState_GET();
+
     // Save the current exception, if any, we must to not corrupt it.
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+    FETCH_ERROR_OCCURRED_TSTATE(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    RESTORE_ERROR_OCCURRED_TSTATE(tstate, save_exception_type, save_exception_value, save_exception_tb);
 #endif
     assert(_PyObject_GC_IS_TRACKED(function));
     Nuitka_GC_UnTrack(function);
@@ -666,11 +669,9 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     releaseToFreeList(free_list_functions, function, MAX_FUNCTION_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    PyThreadState *thread_state = PyThreadState_GET();
-
-    assert(thread_state->curexc_type == save_exception_type);
-    assert(thread_state->curexc_value == save_exception_value);
-    assert((PyTracebackObject *)thread_state->curexc_traceback == save_exception_tb);
+    assert(tstate->curexc_type == save_exception_type);
+    assert(tstate->curexc_value == save_exception_value);
+    assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
 #endif
 }
 
@@ -891,7 +892,7 @@ void _initCompiledFunctionType(void) {
 // Shared implementations for empty functions. When a function body is empty, but
 // still needs to exist, e.g. overloaded functions, this is saving the effort to
 // produce one.
-static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(struct Nuitka_FunctionObject const *function,
+static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                                    PyObject **python_pars) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
@@ -909,7 +910,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(struct Nuitka_FunctionObject 
     return result;
 }
 
-static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(struct Nuitka_FunctionObject const *function,
+static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                                    PyObject **python_pars) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
@@ -927,7 +928,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(struct Nuitka_FunctionObject 
     return result;
 }
 
-static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(struct Nuitka_FunctionObject const *function,
+static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                                     PyObject **python_pars) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
@@ -945,7 +946,8 @@ static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(struct Nuitka_FunctionObject
     return result;
 }
 
-static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(struct Nuitka_FunctionObject const *function,
+static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(PyThreadState *tstate,
+                                                      struct Nuitka_FunctionObject const *function,
                                                       PyObject **python_pars) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
@@ -1425,7 +1427,9 @@ static inline bool RICH_COMPARE_EQ_CBOOL_ARG_NAMES(PyObject *operand1, PyObject 
 
     // Should be close to impossible, we will have to ignore it though.
     if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
-        DROP_ERROR_OCCURRED();
+        PyThreadState *tstate = PyThreadState_GET();
+
+        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
         return false;
     }
 
@@ -2442,7 +2446,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
     return true;
 }
 
-PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function) {
+PyObject *Nuitka_CallFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2450,11 +2454,11 @@ PyObject *Nuitka_CallFunctionNoArgs(struct Nuitka_FunctionObject const *function
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                     Py_ssize_t args_size) {
+PyObject *Nuitka_CallFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                     PyObject *const *args, Py_ssize_t args_size) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2462,11 +2466,11 @@ PyObject *Nuitka_CallFunctionPosArgs(struct Nuitka_FunctionObject const *functio
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                           Py_ssize_t args_size, PyObject *kw) {
+PyObject *Nuitka_CallFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                           PyObject *const *args, Py_ssize_t args_size, PyObject *kw) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2474,11 +2478,12 @@ PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *f
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallFunctionPosArgsKwSplit(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                            Py_ssize_t args_size, PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *Nuitka_CallFunctionPosArgsKwSplit(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                            PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_values,
+                                            PyObject *kw_names) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2486,10 +2491,11 @@ PyObject *Nuitka_CallFunctionPosArgsKwSplit(struct Nuitka_FunctionObject const *
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *function, PyObject *object) {
+PyObject *Nuitka_CallMethodFunctionNoArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                          PyObject *object) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2497,11 +2503,11 @@ PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *fu
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                           PyObject *const *args, Py_ssize_t args_size) {
+PyObject *Nuitka_CallMethodFunctionPosArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                           PyObject *object, PyObject *const *args, Py_ssize_t args_size) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
@@ -2509,18 +2515,19 @@ PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *f
         return NULL;
     }
 
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
-PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
-                                                 PyObject *const *args, Py_ssize_t args_size, PyObject *kw) {
+PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                                 PyObject *object, PyObject *const *args, Py_ssize_t args_size,
+                                                 PyObject *kw) {
     NUITKA_DYNAMIC_ARRAY_DECL(new_args, PyObject *, args_size + 1);
 
     new_args[0] = object;
     memcpy(new_args + 1, args, args_size * sizeof(PyObject *));
 
     // TODO: Specialize implementation for massive gains.
-    return Nuitka_CallFunctionPosArgsKwArgs(function, new_args, args_size + 1, kw);
+    return Nuitka_CallFunctionPosArgsKwArgs(tstate, function, new_args, args_size + 1, kw);
 }
 
 static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
@@ -2787,20 +2794,23 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     return true;
 }
 
-PyObject *Nuitka_CallFunctionVectorcall(struct Nuitka_FunctionObject const *function, PyObject *const *args,
-                                        Py_ssize_t args_size, PyObject *const *kw_names, Py_ssize_t kw_size) {
+PyObject *Nuitka_CallFunctionVectorcall(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                        PyObject *const *args, Py_ssize_t args_size, PyObject *const *kw_names,
+                                        Py_ssize_t kw_size) {
     NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
     memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
     if (unlikely(!parseArgumentsVectorcall(function, python_pars, args, args_size, kw_names, kw_size))) {
         return NULL;
     }
-    return function->m_c_code(function, python_pars);
+    return function->m_c_code(tstate, function, python_pars);
 }
 
 static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw) {
     CHECK_OBJECT(tuple_args);
     assert(PyTuple_CheckExact(tuple_args));
+
+    PyThreadState *tstate = PyThreadState_GET();
 
     if (kw == NULL) {
         PyObject **args = &PyTuple_GET_ITEM(tuple_args, 0);
@@ -2811,7 +2821,7 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
                 Py_INCREF(args[i]);
             }
 
-            return function->m_c_code(function, args);
+            return function->m_c_code(tstate, function, args);
         } else if (function->m_args_simple &&
                    args_size + function->m_defaults_given == function->m_args_positional_count) {
             NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
@@ -2823,19 +2833,19 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
                 Py_INCREF(python_pars[i]);
             }
 
-            return function->m_c_code(function, python_pars);
+            return function->m_c_code(tstate, function, python_pars);
         } else {
             NUITKA_DYNAMIC_ARRAY_DECL(python_pars, PyObject *, function->m_args_overall_count);
             memset(python_pars, 0, function->m_args_overall_count * sizeof(PyObject *));
 
             if (parseArgumentsPos(function, python_pars, args, args_size)) {
-                return function->m_c_code(function, python_pars);
+                return function->m_c_code(tstate, function, python_pars);
             } else {
                 return NULL;
             }
         }
     } else {
-        return Nuitka_CallFunctionPosArgsKwArgs(function, &PyTuple_GET_ITEM(tuple_args, 0),
+        return Nuitka_CallFunctionPosArgsKwArgs(tstate, function, &PyTuple_GET_ITEM(tuple_args, 0),
                                                 PyTuple_GET_SIZE(tuple_args), kw);
     }
 }
@@ -2850,8 +2860,9 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
     assert(nargs >= 0);
     assert((nargs == 0 && nkwargs == 0) || stack != NULL);
 
-    return Nuitka_CallFunctionVectorcall(function, stack, nargs, kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL,
-                                         nkwargs);
+    PyThreadState *tstate = PyThreadState_GET();
+    return Nuitka_CallFunctionVectorcall(tstate, function, stack, nargs,
+                                         kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, nkwargs);
 }
 #endif
 

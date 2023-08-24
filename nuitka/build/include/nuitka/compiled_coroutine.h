@@ -96,7 +96,7 @@ struct Nuitka_CoroutineObject {
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
-typedef PyObject *(*coroutine_code)(struct Nuitka_CoroutineObject *, PyObject *);
+typedef PyObject *(*coroutine_code)(PyThreadState *tstate, struct Nuitka_CoroutineObject *, PyObject *);
 
 extern PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *name, PyObject *qualname,
                                       PyCodeObject *code_object, struct Nuitka_CellObject **closure,

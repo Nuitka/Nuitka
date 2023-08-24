@@ -85,7 +85,7 @@ static struct _frozen *old_frozen = NULL;
 static struct _frozen const *old_frozen = NULL;
 #endif
 
-static void prepareFrozenModules(void) {
+static void prepareFrozenModules() {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
@@ -181,7 +181,8 @@ static void unsetEnvironmentVariable(char const *name) { unsetenv(name); }
 
 #endif
 
-static void undoEnvironmentVariable(char const *variable_name, environment_char_t const *old_value) {
+static void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name,
+                                    environment_char_t const *old_value) {
     PyObject *os_module = IMPORT_HARD_OS();
     CHECK_OBJECT(os_module);
 
@@ -215,7 +216,7 @@ static void undoEnvironmentVariable(char const *variable_name, environment_char_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
         }
     }
 
@@ -415,6 +416,8 @@ static int HANDLE_PROGRAM_EXIT(void) {
 static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
     NUITKA_INIT_PROGRAM_LATE(module_name);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #if NUITKA_MAIN_PACKAGE_MODE
     {
         char const *w = module_name;
@@ -432,16 +435,16 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
             memset(buffer, 0, sizeof(buffer));
             memcpy(buffer, module_name, s - module_name);
 
-            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
+            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer);
 
-            if (ERROR_OCCURRED()) {
+            if (HAS_ERROR_OCCURRED(tstate)) {
                 return result;
             }
         }
     }
 #endif
 
-    return IMPORT_EMBEDDED_MODULE(module_name);
+    return IMPORT_EMBEDDED_MODULE(tstate, module_name);
 }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -786,11 +789,11 @@ int _dowildcard = 0;
 #endif
 
 #ifdef _WIN32
-static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
-    PyObject *file_no_value = CALL_METHOD_NO_ARGS(file_handle, const_str_plain_fileno);
+static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, PyObject *file_handle) {
+    PyObject *file_no_value = CALL_METHOD_NO_ARGS(tstate, file_handle, const_str_plain_fileno);
 
     if (unlikely(file_no_value == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
         return;
     }
 
@@ -798,8 +801,7 @@ static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
 
     Py_DECREF(file_no_value);
 
-    if (unlikely(file_number == -1 && ERROR_OCCURRED())) {
-        DROP_ERROR_OCCURRED();
+    if (unlikely(file_number == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
         return;
     }
 
@@ -832,32 +834,32 @@ static bool shallSetOutputHandleToNull(char const *name) {
     return false;
 }
 
-static void setStdinHandle(PyObject *stdin_file) {
+static void setStdinHandle(PyThreadState *tstate, PyObject *stdin_file) {
 
     CHECK_OBJECT(stdin_file);
     Nuitka_SysSetObject("stdin", stdin_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_INPUT_HANDLE, stdin_file);
+    setStdFileHandleNumber(tstate, STD_INPUT_HANDLE, stdin_file);
 #endif
 }
 
-static void setStdoutHandle(PyObject *stdout_file) {
+static void setStdoutHandle(PyThreadState *tstate, PyObject *stdout_file) {
     CHECK_OBJECT(stdout_file);
     Nuitka_SysSetObject("stdout", stdout_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
+    setStdFileHandleNumber(tstate, STD_OUTPUT_HANDLE, stdout_file);
 #endif
 }
 
-static void setStderrHandle(PyObject *stderr_file) {
+static void setStderrHandle(PyThreadState *tstate, PyObject *stderr_file) {
     CHECK_OBJECT(stderr_file);
 
     Nuitka_SysSetObject("stderr", stderr_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
+    setStdFileHandleNumber(tstate, STD_ERROR_HANDLE, stderr_file);
 #endif
 }
 
@@ -891,7 +893,7 @@ static PyObject *getExpandedTemplatePath(char const *template_path) {
 #endif
 #endif
 
-static void setInputOutputHandles(void) {
+static void setInputOutputHandles(PyThreadState *tstate) {
     // We support disabling the stdout/stderr through options as well as
     // building for GUI on Windows, which has inputs disabled by default, this
     // code repairs that by setting or forcing them to "os.devnull"
@@ -915,10 +917,10 @@ static void setInputOutputHandles(void) {
     {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
-        PyObject *method = LOOKUP_ATTRIBUTE(sys_stdout, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
         CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
         CHECK_OBJECT(result);
     }
 #endif
@@ -927,10 +929,10 @@ static void setInputOutputHandles(void) {
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
 
-        PyObject *method = LOOKUP_ATTRIBUTE(sys_stderr, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
         CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
         CHECK_OBJECT(result);
     }
 #endif
@@ -947,7 +949,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
 #endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -964,7 +966,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", false, encoding);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -985,21 +987,21 @@ static void setInputOutputHandles(void) {
         if (shallSetOutputHandleToNull("stdin")) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "r", true, encoding);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding);
 
-            setStdinHandle(stdin_file);
+            setStdinHandle(tstate, stdin_file);
         }
 
         if (shallSetOutputHandleToNull("stdout")) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
-            setStdoutHandle(stdout_file);
+            setStdoutHandle(tstate, stdout_file);
         }
 
         if (shallSetOutputHandleToNull("stderr")) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
-            setStderrHandle(stderr_file);
+            setStderrHandle(tstate, stderr_file);
         }
 
         Py_DECREF(devnull_filename);
@@ -1388,6 +1390,8 @@ orig_argv = argv;
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
@@ -1416,14 +1420,14 @@ orig_argv = argv;
      * "sys.executable" while at it.
      */
     NUITKA_PRINT_TIMING("main(): Calling createGlobalConstants().");
-    createGlobalConstants();
+    createGlobalConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createGlobalConstants().");
 
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
     NUITKA_PRINT_TIMING("main(): Calling createMainModuleConstants().");
-    createMainModuleConstants();
+    createMainModuleConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
@@ -1472,7 +1476,7 @@ orig_argv = argv;
 #endif
 
     NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
-    setInputOutputHandles();
+    setInputOutputHandles(tstate);
 
 #ifdef _NUITKA_STANDALONE
 
@@ -1485,7 +1489,7 @@ orig_argv = argv;
 
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
-    setEarlyFrozenModulesFileAttribute();
+    setEarlyFrozenModulesFileAttribute(tstate);
 #endif
 
 #if _NUITKA_FROZEN > 0
@@ -1495,7 +1499,7 @@ orig_argv = argv;
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
     /* Enable meta path based loader. */
-    setupMetaPathBasedLoader();
+    setupMetaPathBasedLoader(tstate);
 
     /* Initialize warnings module. */
     _PyWarnings_Init();
@@ -1506,33 +1510,33 @@ orig_argv = argv;
     PyObject *warnings_module = PyImport_ImportModule("warnings");
     PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
 
-    CALL_FUNCTION_NO_ARGS(meth);
+    CALL_FUNCTION_NO_ARGS(tstate, meth);
 #if PYTHON_VERSION < 0x380
     // Two times, so "__warningregistry__" version matches.
-    CALL_FUNCTION_NO_ARGS(meth);
+    CALL_FUNCTION_NO_ARGS(tstate, meth);
 #endif
 #endif
 
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
-    patchInspectModule();
+    patchInspectModule(tstate);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONHASHSEED' value.");
-    undoEnvironmentVariable("PYTHONHASHSEED", old_env_hash_seed);
+    undoEnvironmentVariable(tstate, "PYTHONHASHSEED", old_env_hash_seed);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONUNBUFFERED' value.");
-    undoEnvironmentVariable("PYTHONUNBUFFERED", old_env_unbuffered);
+    undoEnvironmentVariable(tstate, "PYTHONUNBUFFERED", old_env_unbuffered);
 #endif
 
 #ifdef _NUITKA_STANDALONE
     // Restore the PATH, so the program can use it.
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
-    undoEnvironmentVariable("PATH", old_env_path);
-    undoEnvironmentVariable("PYTHONHOME", old_env_pythonhome);
+    undoEnvironmentVariable(tstate, "PATH", old_env_path);
+    undoEnvironmentVariable(tstate, "PYTHONHOME", old_env_pythonhome);
 #endif
 
 #if _NUITKA_PROFILE
@@ -1570,7 +1574,7 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_NO_ARGS(main_function);
+        CALL_FUNCTION_NO_ARGS(tstate, main_function);
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
@@ -1583,7 +1587,7 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
@@ -1596,7 +1600,7 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(loky_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
@@ -1646,7 +1650,7 @@ orig_argv = argv;
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
 #if !NUITKA_MAIN_PACKAGE_MODE
-    checkModuleConstants___main__();
+    checkModuleConstants___main__(tstate);
 #endif
 
 #endif

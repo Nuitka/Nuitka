@@ -19,7 +19,7 @@
 #define __NUITKA_HELPER_ATTRIBUTES_H__
 
 // Attribute lookup except special slots below.
-extern PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name);
+extern PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Attribute lookup of attribute slot "__dict__".
 extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source);
@@ -28,16 +28,16 @@ extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source);
 extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source);
 
 // For built-in "hasattr" functionality.
-extern int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name);
+extern int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Check for an attribute, cannot raise an exception.
-extern bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name);
+extern bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Check for an attribute, can raise an exception.
-extern int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name);
+extern int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Set an attribute except for attribute slots below.
-extern bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value);
+extern bool SET_ATTRIBUTE(PyThreadState *tstate, PyObject *target, PyObject *attr_name, PyObject *value);
 
 // Set the "__dict__" special attribute slot.
 extern bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value);
@@ -46,7 +46,7 @@ extern bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value);
 extern bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value);
 
 // Special attribute lookups, e.g. "__enter__".
-extern PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name);
+extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Find an attribute in a class, Python2 only.
 #if PYTHON_VERSION < 0x300
@@ -54,9 +54,9 @@ extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_na
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
-extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name);
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyThreadState *tstate, PyObject *variable_name);
 #if PYTHON_VERSION < 0x340
-extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name);
+extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyThreadState *tstate, PyObject *variable_name);
 #endif
 
 // In case of DLL usage, this avoids looking up the symbol from it.

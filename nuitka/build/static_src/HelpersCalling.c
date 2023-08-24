@@ -160,7 +160,8 @@ static PyObject *callPythonFunctionNoArgs(PyObject *func) {
 }
 #endif
 
-PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObject *positional_args) {
+PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
+                                   PyObject *positional_args) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(positional_args);
@@ -181,7 +182,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
         // Note: The "called_object" was found without taking a reference,
         // so we need not release it in this branch.
         if (called_object != NULL) {
-            return CALL_FUNCTION_WITH_POSARGS(called_object, positional_args);
+            return CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
         }
         // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
@@ -192,8 +193,8 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
             descrgetfunc descr_get = Py_TYPE(called_object)->tp_descr_get;
 
             if (descr_get == Nuitka_Function_Type.tp_descr_get) {
-                return Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)called_object, source,
-                                                        &PyTuple_GET_ITEM(positional_args, 0),
+                return Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)called_object,
+                                                        source, &PyTuple_GET_ITEM(positional_args, 0),
                                                         PyTuple_GET_SIZE(positional_args));
             } else if (descr_get != NULL) {
                 PyObject *method = descr_get(called_object, source, (PyObject *)source_instance->in_class);
@@ -202,11 +203,11 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
                     return NULL;
                 }
 
-                PyObject *result = CALL_FUNCTION_WITH_POSARGS(method, positional_args);
+                PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, method, positional_args);
                 Py_DECREF(method);
                 return result;
             } else {
-                return CALL_FUNCTION_WITH_POSARGS(called_object, positional_args);
+                return CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
             }
         } else if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
             PyErr_Format(PyExc_AttributeError, "%s instance has no attribute '%s'",
@@ -219,13 +220,13 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
 
             PyObject *args[] = {source, attr_name};
 
-            called_object = CALL_FUNCTION_WITH_ARGS2(source_instance->in_class->cl_getattr, args);
+            called_object = CALL_FUNCTION_WITH_ARGS2(tstate, source_instance->in_class->cl_getattr, args);
 
             if (unlikely(called_object == NULL)) {
                 return NULL;
             }
 
-            PyObject *result = CALL_FUNCTION_WITH_POSARGS(called_object, positional_args);
+            PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
             Py_DECREF(called_object);
             return result;
         }
@@ -251,7 +252,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObje
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(called_object, positional_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
         Py_DECREF(called_object);
         return result;
     }
@@ -334,11 +335,11 @@ char const *GET_INSTANCE_CLASS_NAME(PyObject *instance) {
     return result;
 }
 
-static PyObject *getTypeAbstractMethods(PyTypeObject *type, void *context) {
-    PyObject *result = DICT_GET_ITEM_WITH_ERROR(type->tp_dict, const_str_plain___abstractmethods__);
+static PyObject *_getTypeAbstractMethods(PyThreadState *tstate, PyTypeObject *type, void *context) {
+    PyObject *result = DICT_GET_ITEM_WITH_ERROR(tstate, type->tp_dict, const_str_plain___abstractmethods__);
     if (unlikely(result == NULL)) {
-        if (!ERROR_OCCURRED()) {
-            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, const_str_plain___abstractmethods__);
+        if (!HAS_ERROR_OCCURRED(tstate)) {
+            SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, const_str_plain___abstractmethods__);
         }
         return NULL;
     }
@@ -346,8 +347,8 @@ static PyObject *getTypeAbstractMethods(PyTypeObject *type, void *context) {
     return result;
 }
 
-void formatCannotInstantiateAbstractClass(PyTypeObject *type) {
-    PyObject *abstract_methods = getTypeAbstractMethods(type, NULL);
+void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type) {
+    PyObject *abstract_methods = _getTypeAbstractMethods(tstate, type, NULL);
     if (unlikely(abstract_methods == NULL)) {
         return;
     }
@@ -364,7 +365,7 @@ void formatCannotInstantiateAbstractClass(PyTypeObject *type) {
     PyObject *comma = Nuitka_String_FromString(", ");
     CHECK_OBJECT(comma);
 #if PYTHON_VERSION < 0x300
-    PyObject *joined = CALL_METHOD_WITH_SINGLE_ARG(comma, const_str_plain_join, sorted_methods);
+    PyObject *joined = CALL_METHOD_WITH_SINGLE_ARG(tstate, comma, const_str_plain_join, sorted_methods);
 
     char const *joined_str = Nuitka_String_AsString(joined);
     if (unlikely(joined_str == NULL)) {

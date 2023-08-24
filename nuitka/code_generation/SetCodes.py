@@ -170,6 +170,7 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySet_New",
+        tstate=False,
         arg_desc=(("set_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -183,6 +184,7 @@ def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyFrozenSet_New",
+        tstate=False,
         arg_desc=(("frozenset_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

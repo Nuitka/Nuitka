@@ -150,17 +150,16 @@ def _createMainModule():
 
     # First, build the raw node tree from the source code.
     if len(main_filenames) > 1:
+        assert not Options.shallMakeModule()
+
         main_module = buildMainModuleTree(
             # TODO: Should not be given.
             filename=main_filenames[0],
-            is_main=True,
             source_code=createMultidistMainSourceCode(main_filenames),
         )
-
     else:
         main_module = buildMainModuleTree(
             filename=main_filenames[0],
-            is_main=not Options.shallMakeModule(),
             source_code=None,
         )
 
@@ -1094,10 +1093,10 @@ not use compiled code while it exists."""
 def main():
     try:
         _main()
-    except BaseException as orig_exception:
+    except BaseException:
         try:
             writeCompilationReports(aborted=True)
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
             general.warning("Report writing was prevented by exception %s" % e)
 
-        raise orig_exception
+        raise

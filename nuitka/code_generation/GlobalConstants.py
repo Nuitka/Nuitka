@@ -190,7 +190,7 @@ def getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result.append("__main__")
 
-    # Resource reader files interface
+    # Resource reader files interface, including for backport
     if python_version >= 0x390:
         result.append("as_file")
         result.append("register")

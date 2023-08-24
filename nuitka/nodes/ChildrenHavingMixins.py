@@ -12053,6 +12053,8 @@ class ChildHavingPackageMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionImportlibResourcesBackportFiles
+    #   ExpressionImportlibResourcesBackportFilesCall
     #   ExpressionImportlibResourcesFiles
     #   ExpressionImportlibResourcesFilesCall
 
@@ -12137,6 +12139,8 @@ class ChildHavingPackageMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesBackportFilesMixin = ChildHavingPackageMixin
+ChildrenExpressionImportlibResourcesBackportFilesCallMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesMixin = ChildHavingPackageMixin
 ChildrenExpressionImportlibResourcesFilesCallMixin = ChildHavingPackageMixin
 
@@ -12146,6 +12150,8 @@ class ChildrenHavingPackageResourceMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionImportlibResourcesBackportReadBinary
+    #   ExpressionImportlibResourcesBackportReadBinaryCall
     #   ExpressionImportlibResourcesReadBinary
     #   ExpressionImportlibResourcesReadBinaryCall
     #   ExpressionPkgutilGetData
@@ -12265,6 +12271,12 @@ class ChildrenHavingPackageResourceMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesBackportReadBinaryMixin = (
+    ChildrenHavingPackageResourceMixin
+)
+ChildrenExpressionImportlibResourcesBackportReadBinaryCallMixin = (
+    ChildrenHavingPackageResourceMixin
+)
 ChildrenExpressionImportlibResourcesReadBinaryMixin = ChildrenHavingPackageResourceMixin
 ChildrenExpressionImportlibResourcesReadBinaryCallMixin = (
     ChildrenHavingPackageResourceMixin
@@ -12278,6 +12290,8 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionImportlibResourcesBackportReadText
+    #   ExpressionImportlibResourcesBackportReadTextCall
     #   ExpressionImportlibResourcesReadText
     #   ExpressionImportlibResourcesReadTextCall
 
@@ -12457,6 +12471,12 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesBackportReadTextMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
+ChildrenExpressionImportlibResourcesBackportReadTextCallMixin = (
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
 ChildrenExpressionImportlibResourcesReadTextMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )

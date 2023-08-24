@@ -105,15 +105,15 @@ void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exceptio
     CHECK_OBJECT(*exception_value);
 }
 
-static PyObject *_Nuitka_Err_CreateException(PyObject *exception_type, PyObject *value) {
+static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
     PyObject *exc;
 
     if (value == NULL || value == Py_None) {
-        exc = CALL_FUNCTION_NO_ARGS(exception_type);
+        exc = CALL_FUNCTION_NO_ARGS(tstate, exception_type);
     } else if (PyTuple_Check(value)) {
-        exc = CALL_FUNCTION_WITH_POSARGS(exception_type, value);
+        exc = CALL_FUNCTION_WITH_POSARGS(tstate, exception_type, value);
     } else {
-        exc = CALL_FUNCTION_WITH_SINGLE_ARG(exception_type, value);
+        exc = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, exception_type, value);
     }
 
     if (exc != NULL && !PyExceptionInstance_Check(exc)) {
@@ -129,6 +129,7 @@ static PyObject *_Nuitka_Err_CreateException(PyObject *exception_type, PyObject 
     return exc;
 }
 
+#if PYTHON_VERSION < 0x3c0
 // Our replacement for PyErr_NormalizeException, that however does not attempt
 // to deal with recursion, i.e. exception during normalization, we just avoid
 // the API call overhead in the normal case.
@@ -165,7 +166,7 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
         // If the value was not an instance, or is not an instance of derived
         // type, then call it
         if (!is_subclass) {
-            PyObject *fixed_value = _Nuitka_Err_CreateException(type, value);
+            PyObject *fixed_value = _Nuitka_Err_CreateException(tstate, type, value);
 
             if (unlikely(fixed_value == NULL)) {
                 goto error;
@@ -209,3 +210,4 @@ error:
     PyErr_NormalizeException(exc, val, (PyObject **)tb);
 #endif
 }
+#endif

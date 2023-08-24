@@ -45,12 +45,12 @@ extern void setDistributionsMetadata(PyObject *metadata_values);
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
-static void _createGlobalConstants(void) {
+static void _createGlobalConstants(PyThreadState *tstate) {
     // We provide the sys.version info shortcut as a global value here for ease of use.
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
     // The empty name means global.
-    loadConstantsBlob(&global_constants[0], "");
+    loadConstantsBlob(tstate, &global_constants[0], "");
 
 #if _NUITKA_EXE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the
@@ -181,7 +181,7 @@ void checkGlobalConstants(void) {
 }
 #endif
 
-void createGlobalConstants(void) {
+void createGlobalConstants(PyThreadState *tstate) {
     if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 0x300
         _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
@@ -191,7 +191,7 @@ void createGlobalConstants(void) {
 #endif
         assert(_sentinel_value);
 
-        _createGlobalConstants();
+        _createGlobalConstants(tstate);
     }
 }
 """

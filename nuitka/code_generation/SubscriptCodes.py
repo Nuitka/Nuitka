@@ -168,12 +168,13 @@ def generateSubscriptCheckCode(to_name, expression, emit, context):
 
     if integer_subscript:
         emit(
-            "%s = HAS_SUBSCRIPT_CONST(%s, %s, %s);"
+            "%s = HAS_SUBSCRIPT_CONST(tstate, %s, %s, %s);"
             % (res_name, subscribed_name, subscript_name, subscript_constant)
         )
     else:
         emit(
-            "%s = HAS_SUBSCRIPT(%s, %s);" % (res_name, subscribed_name, subscript_name)
+            "%s = HAS_SUBSCRIPT(tstate, %s, %s);"
+            % (res_name, subscribed_name, subscript_name)
         )
 
     getReleaseCodes((subscript_name, subscribed_name), emit, context)
@@ -189,7 +190,7 @@ def _getIntegerSubscriptLookupCode(
     to_name, subscribed_name, subscript_name, subscript_value, emit, context
 ):
     emit(
-        "%s = LOOKUP_SUBSCRIPT_CONST(%s, %s, %s);"
+        "%s = LOOKUP_SUBSCRIPT_CONST(tstate, %s, %s, %s);"
         % (to_name, subscribed_name, subscript_name, subscript_value)
     )
 
@@ -204,7 +205,10 @@ def _getIntegerSubscriptLookupCode(
 
 
 def _getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit, context):
-    emit("%s = LOOKUP_SUBSCRIPT(%s, %s);" % (to_name, subscribed_name, subscript_name))
+    emit(
+        "%s = LOOKUP_SUBSCRIPT(tstate, %s, %s);"
+        % (to_name, subscribed_name, subscript_name)
+    )
 
     getErrorExitCode(
         check_name=to_name,
