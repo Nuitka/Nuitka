@@ -412,7 +412,15 @@ else:
         ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
         default_count=3,
     )
-if python_version >= 0x300:
+
+if python_version >= 0x3B0:
+    builtin_exec_spec = BuiltinParameterSpec(
+        "exec",
+        ("source", "globals", "locals"),
+        default_count=3,
+        kw_only_args=("closure",),
+    )
+elif python_version >= 0x300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords(
         "exec", ("source", "globals", "locals"), default_count=2
     )

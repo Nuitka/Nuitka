@@ -512,7 +512,7 @@ def matchCall(
 
     # Fill in any missing values with the None to indicate "default".
     if num_defaults > 0:
-        for arg in (kw_only_args + args)[-num_defaults:]:
+        for arg in (args + kw_only_args)[-num_defaults:]:
             if not isAssigned(arg):
                 assign(arg, None)
 
@@ -591,8 +591,7 @@ def matchCall(
                     unassigned,
                     "s" if unassigned > 1 else "",
                     " and ".join(
-                        "'%s'"
-                        % [arg.getName() for arg in kw_only_args if not isAssigned(arg)]
+                        "'%s'" % [arg for arg in kw_only_args if not isAssigned(arg)]
                     ),
                 )
             )

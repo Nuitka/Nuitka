@@ -60,14 +60,15 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
 
     python_version_spec = ">= 0x300"
 
-    named_children = ("source_code", "globals_arg", "locals_arg")
+    named_children = ("source_code", "globals_arg", "locals_arg", "closure|optional")
 
-    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
+    def __init__(self, source_code, globals_arg, locals_arg, closure, source_ref):
         ChildrenExpressionBuiltinExecMixin.__init__(
             self,
             source_code=source_code,
             globals_arg=globals_arg,
             locals_arg=locals_arg,
+            closure=closure,
         )
 
         ExpressionBase.__init__(self, source_ref)
