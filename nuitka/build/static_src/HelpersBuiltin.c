@@ -186,6 +186,12 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         }
     }
 
+    if (isFakeCodeObject((PyCodeObject *)code)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                        "compiled function code objects do not work with exec/eval");
+        return NULL;
+    }
+
 #if PYTHON_VERSION < 0x300
     PyObject *result = PyEval_EvalCode((PyCodeObject *)code, globals, locals);
 #else

@@ -90,6 +90,16 @@ extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyO
                                     int kw_only_count, int pos_only_count);
 #endif
 
+NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
+#if PYTHON_VERSION < 0x300
+    return code->co_code == const_str_empty;
+#elif PYTHON_VERSION < 0x3B0
+    return code->co_code == const_str_empty;
+#else
+    return _PyCode_CODE(code)[0] == 0;
+#endif
+}
+
 extern PyTypeObject Nuitka_Frame_Type;
 
 static inline bool Nuitka_Frame_Check(PyObject *object) {
