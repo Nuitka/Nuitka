@@ -207,6 +207,7 @@ def getBuiltinEvalCode(
     globals_name,
     locals_name,
     mode_name,
+    closure_name,
     emit,
     context,
 ):
@@ -225,13 +226,13 @@ def getBuiltinEvalCode(
     )
 
     emit(
-        "%s = EVAL_CODE(tstate, %s, %s, %s);"
-        % (to_name, compiled_name, globals_name, locals_name)
+        "%s = EVAL_CODE(tstate, %s, %s, %s, %s);"
+        % (to_name, compiled_name, globals_name, locals_name, closure_name or "NULL")
     )
 
     getErrorExitCode(
         check_name=to_name,
-        release_names=(compiled_name, globals_name, locals_name),
+        release_names=(compiled_name, globals_name, locals_name, closure_name),
         emit=emit,
         context=context,
     )
@@ -314,7 +315,7 @@ def generateExecCode(statement, emit, context):
         to_name = context.allocateTempName("exec_result")
 
         emit(
-            "%s = EVAL_CODE(tstate, %s, %s, %s);"
+            "%s = EVAL_CODE(tstate, %s, %s, %s, NULL);"
             % (to_name, compiled_name, globals_name, locals_name)
         )
 
@@ -370,6 +371,22 @@ def _generateEvalCode(to_name, node, emit, context):
     else:
         filename = "<execfile>"
 
+    if (
+        python_version >= 0x31B
+        and node.isExpressionBuiltinExec()
+        and node.subnode_closure is not None
+    ):
+        closure_name = context.allocateTempName("eval_closure")
+
+        generateExpressionCode(
+            to_name=closure_name,
+            expression=node.subnode_closure,
+            emit=emit,
+            context=context,
+        )
+    else:
+        closure_name = None
+
     getBuiltinEvalCode(
         to_name=to_name,
         source_name=source_name,
@@ -379,6 +396,7 @@ def _generateEvalCode(to_name, node, emit, context):
         mode_name=context.getConstantCode(
             constant="eval" if node.isExpressionBuiltinEval() else "exec"
         ),
+        closure_name=closure_name,
         emit=emit,
         context=context,
     )

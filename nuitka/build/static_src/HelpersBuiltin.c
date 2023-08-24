@@ -159,7 +159,7 @@ bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **n
  *  The "eval" implementation, used for "exec" too.
  */
 
-PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals) {
+PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals, PyObject *closure) {
     CHECK_OBJECT(code);
     CHECK_OBJECT(globals);
     CHECK_OBJECT(locals);
@@ -194,8 +194,10 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
 
 #if PYTHON_VERSION < 0x300
     PyObject *result = PyEval_EvalCode((PyCodeObject *)code, globals, locals);
-#else
+#elif PYTHON_VERSION < 0x3b0
     PyObject *result = PyEval_EvalCode(code, globals, locals);
+#else
+    PyObject *result = PyEval_EvalCodeEx(code, globals, locals, NULL, 0, NULL, 0, NULL, 0, NULL, closure);
 #endif
 
     if (unlikely(result == NULL)) {
