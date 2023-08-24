@@ -198,6 +198,8 @@ def _namifyString(string):
 
     if string in ("", b""):
         return "empty"
+    elif string in ("\0", b"\0"):
+        return "null"
     elif string == " ":
         return "space"
     elif string == ".":
