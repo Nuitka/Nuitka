@@ -764,7 +764,7 @@ struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCodeObject 
     return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size);
 }
 
-// This is the backend of MAKE_CODEOBJ macro.
+// This is the backend of MAKE_CODE_OBJECT macro.
 PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
 #if PYTHON_VERSION >= 0x3b0
                              PyObject *function_qualname,
@@ -810,10 +810,17 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     PyObject *code = const_str_empty;
     PyObject *lnotab = const_str_empty;
 #else
-    PyObject *code = const_bytes_empty;
 #if PYTHON_VERSION < 0x3b0
+    PyObject *code = const_bytes_empty;
     PyObject *lnotab = const_bytes_empty;
 #else
+    // Our code object needs to be recognizable, and Python doesn't store the
+    // length anymore, so we need a non-empty one.
+    static PyObject *empty_code = NULL;
+    if (empty_code == NULL) {
+        empty_code = PyBytes_FromString("\0\0");
+    }
+    PyObject *code = empty_code;
     static PyObject *lnotab = NULL;
     if (lnotab == NULL) {
         lnotab = PyBytes_FromStringAndSize("\x80\x00\xd8\x04\x08\x80"
