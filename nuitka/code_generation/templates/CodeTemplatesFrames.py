@@ -19,6 +19,8 @@
 
 """
 
+# This uses STORE_ASYNCGEN_EXCEPTION
+
 template_frame_guard_normal_main_block = """\
 {% if frame_cache_identifier %}
 if (isFrameUnusable({{frame_cache_identifier}})) {
@@ -64,16 +66,16 @@ assert({{context_identifier}}->m_frame->m_frame.f_back == NULL);
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
 {% if context_identifier %}
-pushFrameStackGeneratorCompiledFrame({{frame_identifier}});
+pushFrameStackGeneratorCompiledFrame(tstate, {{frame_identifier}});
 {% else %}
-pushFrameStackCompiledFrame({{frame_identifier}});
+pushFrameStackCompiledFrame(tstate, {{frame_identifier}});
 {% endif %}
 assert(Py_REFCNT({{frame_identifier}}) == 2);
 
 {% if context_identifier and is_python3 %}
 // Store currently existing exception as the one to publish again when we
 // yield or yield from.
-STORE_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
+STORE_{{context_identifier.upper()}}_EXCEPTION(tstate, {{context_identifier}});
 
 {% endif %}
 // Framed code:
@@ -86,12 +88,12 @@ DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
 {% endif %}
 {% if needs_preserve %}
 // Restore frame exception if necessary.
-RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
 {% if not context_identifier %}
 // Put the previous frame back on top.
-popFrameStack();
+popFrameStack(tstate);
 {% endif %}
 {% if frame_exit_code %}
 {{frame_exit_code}}
@@ -103,11 +105,11 @@ goto {{no_exception_exit}};
 template_frame_guard_normal_return_handler = """\
 {{frame_return_exit}}:
 {% if needs_preserve %}
-RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
 // Put the previous frame back on top.
-popFrameStack();
+popFrameStack(tstate);
 {% if frame_exit_code %}
 {{frame_exit_code}}s
 {% endif %}
@@ -126,7 +128,7 @@ template_frame_guard_normal_exception_handler = """\
 {{frame_exception_exit}}:
 
 {% if needs_preserve %}
-RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
 if ({{exception_tb}} == NULL) {
@@ -155,7 +157,7 @@ if ({{frame_identifier}} == {{frame_cache_identifier}}) {
 assertFrameObject({{frame_identifier}});
 
 // Put the previous frame back on top.
-popFrameStack();
+popFrameStack(tstate);
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}

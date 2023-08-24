@@ -59,7 +59,7 @@ struct _rangeobject2 {
     long len;
 };
 
-extern PyObject *MAKE_XRANGE(long start, long stop, long step);
+extern PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step);
 
 #endif
 

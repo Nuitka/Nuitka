@@ -83,7 +83,7 @@ class nuitka_distribution(Distribution):\n\
         }
     }
 
-    PyObject *metadata_value_item = DICT_GET_ITEM0(metadata_values_dict, name);
+    PyObject *metadata_value_item = DICT_GET_ITEM0(tstate, metadata_values_dict, name);
     if (metadata_value_item == NULL) {
         PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, importlib_metadata_distribution, name);
 

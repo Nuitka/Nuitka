@@ -385,7 +385,7 @@ def generateBuiltinOctCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_OCT",
-        tstate=False,
+        tstate=True,
         arg_desc=(("oct_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -399,7 +399,7 @@ def generateBuiltinHexCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_HEX",
-        tstate=False,
+        tstate=True,
         arg_desc=(("hex_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

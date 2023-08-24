@@ -128,7 +128,7 @@ extern PyTypeObject Nuitka_Loader_Type;
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
 // Provide a way to create find a function via its C code and create it back
 // in another process, useful for multiprocessing extensions like dill
-extern void registerDillPluginTables(char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function);
+extern void registerDillPluginTables(PyThreadState *tstate, char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function);
 
 function_impl_code functable_%(module_identifier)s[] = {
 %(module_function_table_entries)s
@@ -148,7 +148,9 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     }
 
     if (Nuitka_Function_Check(func) == false) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "not a compiled function");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
@@ -167,7 +169,9 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     }
 
     if (*current == NULL) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Cannot find compiled function in module.");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
         return NULL;
     }
 
@@ -218,12 +222,12 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
 
     int offset = PyLong_AsLong(func);
 
-    if (offset == -1 && ERROR_OCCURRED()) {
+    if (offset == -1 && HAS_ERROR_OCCURRED(tstate)) {
         return NULL;
     }
 
     if (offset > sizeof(functable_%(module_identifier)s) || offset < 0) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Wrong offset for compiled function.");
+        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
         return NULL;
     }
 
@@ -231,15 +235,15 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *function_name = PyTuple_GET_ITEM(code_object_desc, 1);
     PyObject *line = PyTuple_GET_ITEM(code_object_desc, 2);
     int line_int = PyLong_AsLong(line);
-    assert(!ERROR_OCCURRED());
+    assert(!HAS_ERROR_OCCURRED(tstate));
 
     PyObject *argnames = PyTuple_GET_ITEM(code_object_desc, 3);
     PyObject *arg_count = PyTuple_GET_ITEM(code_object_desc, 4);
     int arg_count_int = PyLong_AsLong(arg_count);
-    assert(!ERROR_OCCURRED());
+    assert(!HAS_ERROR_OCCURRED(tstate));
     PyObject *flags = PyTuple_GET_ITEM(code_object_desc, 5);
     int flags_int = PyLong_AsLong(flags);
-    assert(!ERROR_OCCURRED());
+    assert(!HAS_ERROR_OCCURRED(tstate));
 
     PyCodeObject *code_object = MAKE_CODE_OBJECT(
         filename,
@@ -345,7 +349,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    registerDillPluginTables(loader_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
+    registerDillPluginTables(tstate, loader_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
 #endif
 
     // Set "__compiled__" to what version information we have.
@@ -622,7 +626,7 @@ template_module_exception_exit = """\
 #endif
     PGO_onModuleExit("%(module_identifier)s", false);
 
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
     return NULL;
 }"""
 

@@ -22,10 +22,10 @@
 extern PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
 
 // Attribute lookup of attribute slot "__dict__".
-extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source);
+extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source);
 
 // Attribute lookup of attribute slot "__class__".
-extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source);
+extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source);
 
 // For built-in "hasattr" functionality.
 extern int BUILTIN_HASATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);
@@ -40,10 +40,10 @@ extern int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *att
 extern bool SET_ATTRIBUTE(PyThreadState *tstate, PyObject *target, PyObject *attr_name, PyObject *value);
 
 // Set the "__dict__" special attribute slot.
-extern bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value);
+extern bool SET_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value);
 
 // Set the "__class__" special attribute slot.
-extern bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value);
+extern bool SET_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *target, PyObject *value);
 
 // Special attribute lookups, e.g. "__enter__".
 extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr_name);

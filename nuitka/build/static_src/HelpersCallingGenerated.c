@@ -302,7 +302,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if ((init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
@@ -430,7 +430,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -704,14 +704,14 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -842,7 +842,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -1097,14 +1097,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -1230,7 +1230,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -1483,14 +1483,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -1623,7 +1623,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -1857,14 +1857,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -1990,7 +1990,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -2243,14 +2243,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -2383,7 +2383,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -2617,14 +2617,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -2750,7 +2750,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -3003,14 +3003,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -3143,7 +3143,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -3377,14 +3377,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -3510,7 +3510,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -3763,14 +3763,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -3903,7 +3903,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -4137,14 +4137,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -4270,7 +4270,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -4523,14 +4523,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -4663,7 +4663,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -4897,14 +4897,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -5030,7 +5030,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -5283,14 +5283,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -5423,7 +5423,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -5657,14 +5657,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -5790,7 +5790,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -6043,14 +6043,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -6183,7 +6183,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -6417,14 +6417,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -6550,7 +6550,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -6803,14 +6803,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -6943,7 +6943,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -7177,14 +7177,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -7310,7 +7310,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -7563,14 +7563,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -7703,7 +7703,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
                              "instance instead)",
                              GET_CALLABLE_NAME((PyObject *)method->m_function),
                              GET_CALLABLE_DESC((PyObject *)method->m_function), GET_CLASS_NAME(method->m_class),
-                             GET_INSTANCE_CLASS_NAME((PyObject *)self));
+                             GET_INSTANCE_CLASS_NAME(tstate, (PyObject *)self));
 
                 return NULL;
             }
@@ -7937,14 +7937,14 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
         PyObject *init_method = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)called, const_str_plain___init__);
 
         if (unlikely(init_method == NULL)) {
-            if (unlikely(ERROR_OCCURRED())) {
+            if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
                 Py_DECREF(obj);
                 return NULL;
             }
 
             Py_DECREF(obj);
 
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "this constructor takes no arguments");
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "this constructor takes no arguments");
             return NULL;
         }
 
@@ -11137,7 +11137,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -11363,7 +11363,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -11588,7 +11588,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -11813,7 +11813,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -12038,7 +12038,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -12263,7 +12263,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -12488,7 +12488,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -12713,7 +12713,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -12938,7 +12938,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -13163,7 +13163,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);
@@ -13388,7 +13388,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
 
             Py_INCREF(dict);
 
-            PyObject *called_object = DICT_GET_ITEM1(dict, attr_name);
+            PyObject *called_object = DICT_GET_ITEM1(tstate, dict, attr_name);
 
             if (called_object != NULL) {
                 Py_XDECREF(descr);

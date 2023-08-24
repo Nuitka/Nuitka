@@ -216,7 +216,7 @@ static void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
     }
 
@@ -381,19 +381,19 @@ static int HANDLE_PROGRAM_EXIT(void) {
 
     int exit_code;
 
-    PyThreadState *thread_state = PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (HAS_ERROR_OCCURRED(thread_state)) {
+    if (HAS_ERROR_OCCURRED(tstate)) {
 #if PYTHON_VERSION >= 0x300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
 
-        while (thread_state->curexc_traceback) {
-            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
+        while (tstate->curexc_traceback) {
+            PyTracebackObject *tb = (PyTracebackObject *)tstate->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
             if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
                             "<frozen importlib._bootstrap>")) {
-                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
+                tstate->curexc_traceback = (PyObject *)tb->tb_next;
                 Py_INCREF(tb->tb_next);
 
                 continue;
@@ -454,7 +454,9 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
 bool SvcStartPython(void) {
     EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
 
-    if (ERROR_OCCURRED()) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (HAS_ERROR_OCCURRED(tstate)) {
         return true;
     } else {
         return false;
@@ -793,7 +795,7 @@ static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, P
     PyObject *file_no_value = CALL_METHOD_NO_ARGS(tstate, file_handle, const_str_plain_fileno);
 
     if (unlikely(file_no_value == NULL)) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
         return;
     }
 
@@ -801,7 +803,7 @@ static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, P
 
     Py_DECREF(file_no_value);
 
-    if (unlikely(file_number == -1 && DROP_ERROR_OCCURRED_TSTATE(tstate))) {
+    if (unlikely(file_number == -1 && DROP_ERROR_OCCURRED(tstate))) {
         return;
     }
 
@@ -1697,10 +1699,13 @@ void Py_GetArgcArgv(int *argc, char ***argv) {
 __attribute__((weak))
 __attribute__((visibility("default")))
 #endif
+#if PYTHON_VERSION >= 0x300
 int Py_Main(int argc, wchar_t **argv) {
     return 0;
 }
-
+#else
+int Py_Main(int argc, char **argv) { return 0; }
+#endif
 #ifdef __cplusplus
 }
 #endif

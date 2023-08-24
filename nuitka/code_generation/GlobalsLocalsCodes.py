@@ -199,7 +199,7 @@ def generateBuiltinVarsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LOOKUP_VARS",
-        tstate=False,
+        tstate=True,
         arg_desc=(("vars_arg", expression.subnode_source),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

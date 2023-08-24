@@ -228,7 +228,7 @@ def _getIntegerSubscriptAssignmentCode(
     res_name = context.allocateTempName("ass_subscript_res", "int")
 
     emit(
-        "%s = SET_SUBSCRIPT_CONST(%s, %s, %s, %s);"
+        "%s = SET_SUBSCRIPT_CONST(tstate, %s, %s, %s, %s);"
         % (res_name, subscribed_name, subscript_name, subscript_value, value_name)
     )
 
@@ -244,7 +244,7 @@ def _getSubscriptAssignmentCode(target_name, subscript_name, value_name, emit, c
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_SUBSCRIPT(%s, %s, %s);"
+        "%s = SET_SUBSCRIPT(tstate, %s, %s, %s);"
         % (res_name, target_name, subscript_name, value_name)
     )
 

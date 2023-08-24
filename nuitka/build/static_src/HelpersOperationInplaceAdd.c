@@ -2580,7 +2580,11 @@ static inline bool _INPLACE_OPERATION_ADD_STR_STR(PyObject **operand1, PyObject 
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (1 && 1) {
         PyString_Concat(operand1, operand2);
-        return !ERROR_OCCURRED();
+
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        return !HAS_ERROR_OCCURRED(tstate);
     }
 #endif
 
@@ -2968,7 +2972,10 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_UNICODE(PyObject **operand1, P
 
 #if PYTHON_VERSION >= 0x300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+            // TODO: Push outward.
+            PyThreadState *tstate = PyThreadState_GET();
+
+            return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
         }
 #endif
     }
@@ -2976,7 +2983,10 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_UNICODE(PyObject **operand1, P
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = UNICODE_CONCAT(*operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = UNICODE_CONCAT(tstate, *operand1, operand2);
 
     obj_result = x;
     goto exit_result_object;
@@ -3138,7 +3148,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_UNICODE(PyObject **operand1, Py
 
 #if PYTHON_VERSION >= 0x300
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && 1) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+            // TODO: Push outward.
+            PyThreadState *tstate = PyThreadState_GET();
+
+            return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
         }
 #endif
     }
@@ -3151,7 +3164,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_UNICODE(PyObject **operand1, Py
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = UNICODE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = UNICODE_CONCAT(tstate, *operand1, operand2);
 
         obj_result = x;
         goto exit_result_object;
@@ -3297,7 +3313,10 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_OBJECT(PyObject **operand1, Py
 
 #if PYTHON_VERSION >= 0x300
         if (1 && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+            // TODO: Push outward.
+            PyThreadState *tstate = PyThreadState_GET();
+
+            return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
         }
 #endif
     }
@@ -3310,7 +3329,10 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_OBJECT(PyObject **operand1, Py
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = UNICODE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = UNICODE_CONCAT(tstate, *operand1, operand2);
 
         obj_result = x;
         goto exit_result_object;
@@ -4703,7 +4725,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
 
 #if PYTHON_VERSION >= 0x300
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+            // TODO: Push outward.
+            PyThreadState *tstate = PyThreadState_GET();
+
+            return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
         }
 #endif
     }
@@ -4723,13 +4748,20 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
     // Python2 strings are to be treated differently, fall back to Python API here.
     if (PyString_CheckExact(*operand1) && PyString_CheckExact(operand2)) {
         PyString_Concat(operand1, operand2);
-        return !ERROR_OCCURRED();
+
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        return !HAS_ERROR_OCCURRED(tstate);
     }
 #endif
 #if PYTHON_VERSION >= 0x300
     // Python3 Strings are to be treated differently.
     if (PyUnicode_CheckExact(*operand1) && PyUnicode_CheckExact(operand2)) {
-        PyObject *result = UNICODE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *result = UNICODE_CONCAT(tstate, *operand1, operand2);
 
         if (unlikely(result == NULL)) {
             return false;

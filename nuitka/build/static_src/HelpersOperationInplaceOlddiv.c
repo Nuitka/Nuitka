@@ -56,7 +56,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_INT_INT(PyObject **operand1, PyObje
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         goto exit_result_exception;
     }
 
@@ -316,7 +318,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_INT(PyObject **operand1, PyO
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
 
@@ -581,7 +585,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_INT_OBJECT(PyObject **operand1, PyO
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
 
@@ -1166,7 +1172,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_FLOAT(PyObject **operand1, Py
     const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
         goto exit_result_exception;
     }
 
@@ -1394,7 +1402,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_FLOAT(PyObject **operand1, P
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
             goto exit_result_exception;
         }
 
@@ -1627,7 +1637,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_OBJECT(PyObject **operand1, P
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
             goto exit_result_exception;
         }
 
@@ -2114,7 +2126,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_INT_CLONG(PyObject **operand1, long
     const long b = operand2;
 
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         goto exit_result_exception;
     }
 
@@ -2208,7 +2222,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_CFLOAT(PyObject **operand1, d
     const double b = operand2;
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
         goto exit_result_exception;
     }
 
@@ -2275,7 +2291,9 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_OBJECT(PyObject **operand1, 
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b == 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
             goto exit_result_exception;
         }
 

@@ -100,7 +100,10 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError,
+                                            "0.0 cannot be raised to a negative power");
             goto exit_result_exception;
         }
 
@@ -116,7 +119,9 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
 
         if (a < 0.0) {
             if (unlikely(b != floor(b))) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                 "negative number cannot be raised to a fractional power");
                 goto exit_result_exception;
             }
@@ -399,7 +404,10 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError,
+                                                "0.0 cannot be raised to a negative power");
                 goto exit_result_exception;
             }
 
@@ -415,7 +423,9 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                    PyThreadState *tstate = PyThreadState_GET();
+
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
                     goto exit_result_exception;
                 }
@@ -714,7 +724,10 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 
         if (a == 0.0) {
             if (unlikely(b < 0.0)) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError,
+                                                "0.0 cannot be raised to a negative power");
                 goto exit_result_exception;
             }
 
@@ -730,7 +743,9 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
 
             if (a < 0.0) {
                 if (unlikely(b != floor(b))) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError,
+                    PyThreadState *tstate = PyThreadState_GET();
+
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError,
                                                     "negative number cannot be raised to a fractional power");
                     goto exit_result_exception;
                 }
