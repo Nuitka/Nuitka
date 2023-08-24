@@ -214,6 +214,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
                         source_code=source,
                         globals_arg=globals_ref,
                         locals_arg=locals_ref,
+                        closure=None,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,

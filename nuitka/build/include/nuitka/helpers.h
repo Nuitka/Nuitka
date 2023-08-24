@@ -271,7 +271,8 @@ extern PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject
 #endif
 
 // For built-in eval() functionality, works on byte compiled code already.
-extern PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals);
+extern PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals,
+                           PyObject *closure);
 
 // For built-in format() functionality.
 extern PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *format_spec);

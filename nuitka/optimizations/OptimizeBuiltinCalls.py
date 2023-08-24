@@ -1012,7 +1012,7 @@ if python_version >= 0x300:
 
     def exec_extractor(node):
         def wrapExpressionBuiltinExecCreation(
-            source, globals_arg, locals_arg, source_ref
+            source, globals_arg, locals_arg, closure=None, source_ref=None
         ):
             provider = node.getParentVariableProvider()
 
@@ -1036,6 +1036,7 @@ if python_version >= 0x300:
                             source_code=source,
                             globals_arg=globals_ref,
                             locals_arg=locals_ref,
+                            closure=closure,
                             source_ref=source_ref,
                         ),
                         source_ref=source_ref,
@@ -1064,7 +1065,7 @@ if python_version >= 0x300:
         return BuiltinParameterSpecs.extractBuiltinArgs(
             node=node,
             builtin_class=wrapExpressionBuiltinExecCreation,
-            builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
+            builtin_spec=BuiltinParameterSpecs.builtin_exec_spec,
         )
 
 
