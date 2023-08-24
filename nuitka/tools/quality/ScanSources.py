@@ -55,6 +55,9 @@ def _addFromDirectory(path, suffixes, ignore_list):
             # Skip bytecode files
             if filename.endswith((".pyc", ".pyo")):
                 continue
+            # Skip executables
+            if filename.endswith((".exe", ".bin")):
+                continue
 
             # Python files only.
             if ".py" in suffixes and not filename.endswith(suffixes):
