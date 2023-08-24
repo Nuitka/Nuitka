@@ -35,7 +35,7 @@ if (%(condition)s) {
         %(exception_value)s = NULL;
         %(exception_tb)s = NULL;
     } else {
-        FETCH_ERROR_OCCURRED_TSTATE(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+        FETCH_ERROR_OCCURRED(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
     }
 %(release_temps)s
 
@@ -48,7 +48,7 @@ template_error_catch_exception = """\
 if (%(condition)s) {
     assert(HAS_ERROR_OCCURRED(tstate));
 
-    FETCH_ERROR_OCCURRED_TSTATE(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+    FETCH_ERROR_OCCURRED(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
 %(release_temps)s
 
 %(line_number_code)s

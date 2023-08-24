@@ -56,9 +56,12 @@ from .VariableCodes import (
 
 
 def getFunctionCreationArgs(
-    defaults_name, kw_defaults_name, annotations_name, closure_variables
+    defaults_name, kw_defaults_name, annotations_name, closure_variables, tstate
 ):
     result = []
+
+    if tstate:
+        result.append("PyThreadState *tstate")
 
     if defaults_name is not None:
         result.append("PyObject *defaults")
@@ -87,6 +90,7 @@ def getFunctionMakerDecl(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_function_make_declaration % {
@@ -146,6 +150,7 @@ def getFunctionMakerCode(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     if function_doc is None:

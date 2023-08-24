@@ -34,7 +34,9 @@
     const double b = {{ right.getAsDoubleValueExpression(operand2) }};
 
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -65,7 +67,9 @@
     const double b = {{ right.getAsDoubleValueExpression(operand2) }};
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float division by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -79,7 +83,9 @@
     const double b = {{ right.getAsDoubleValueExpression(operand2) }};
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -100,7 +106,9 @@
     const double b = {{ right.getAsDoubleValueExpression(operand2) }};
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -180,7 +188,9 @@
 
     if (a == 0.0) {
         if (unlikely(b < 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
             {{ goto_exit(props, exit_result_exception) }}
         }
 
@@ -195,7 +205,9 @@
 
         if (a < 0.0) {
             if (unlikely(b != floor(b))) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+                PyThreadState *tstate = PyThreadState_GET();
+
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative number cannot be raised to a fractional power");
                 {{ goto_exit(props, exit_result_exception) }}
             }
 

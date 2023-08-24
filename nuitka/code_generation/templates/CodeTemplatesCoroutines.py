@@ -54,6 +54,7 @@ static PyObject *%(function_identifier)s_context(PyThreadState *tstate, struct N
 
 static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s) {
     return Nuitka_Coroutine_New(
+        tstate,
         %(function_identifier)s_context,
         %(coroutine_module)s,
         %(coroutine_name_obj)s,
@@ -82,7 +83,7 @@ template_coroutine_exception_exit = """\
     function_exception_exit:
 %(function_cleanup)s
     assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED_TSTATE(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    RESTORE_ERROR_OCCURRED(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
     return NULL;
 """
 

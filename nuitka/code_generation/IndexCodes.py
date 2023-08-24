@@ -35,10 +35,12 @@ def getMinIndexCode(to_name, emit):
 
 
 def getIndexCode(to_name, value_name, emit, context):
-    emit("%s = CONVERT_TO_INDEX(%s);" % (to_name, value_name))
+    emit("%s = CONVERT_TO_INDEX(tstate, %s);" % (to_name, value_name))
 
     getErrorExitBoolCode(
-        condition="%s == -1 && ERROR_OCCURRED()" % to_name, emit=emit, context=context
+        condition="%s == -1 && HAS_ERROR_OCCURRED(tstate)" % to_name,
+        emit=emit,
+        context=context,
     )
 
 

@@ -159,7 +159,7 @@ def generateExceptionPublishCode(statement, emit, context):
     # TODO: Make this one thing for performance with thread state shared, also for less code,
     # then we should not make it in header anymore. Might be more scalable too.
     emit(
-        "PUBLISH_CURRENT_EXCEPTION(&%s, &%s, &%s);"
+        "PUBLISH_CURRENT_EXCEPTION(tstate, &%s, &%s, &%s);"
         % (keeper_type, keeper_value, keeper_tb)
     )
 

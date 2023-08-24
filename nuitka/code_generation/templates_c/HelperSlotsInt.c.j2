@@ -58,7 +58,9 @@
     }
 {% elif operator == "//" or nb_slot == "nb_divide" %}
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -81,7 +83,9 @@
     }
 {% elif operator=="/" and "true_div" in nb_slot %}
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "division by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -134,7 +138,9 @@
     {% set fall_through_needed = 0 %}
 {% elif operator == "<<" %}
     if (unlikely(b < 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         {{ goto_exit(props, exit_result_exception) }}
     }
     /* Short cut for zero shift or shifting zero. */
@@ -172,7 +178,9 @@
     {% set fall_through_needed = 0 %}
 {% elif operator == ">>" %}
     if (unlikely(b < 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         {{ goto_exit(props, exit_result_exception) }}
     }
 
@@ -252,7 +260,9 @@
     {% set fall_through_needed = 0 %}
 {% elif operator == "divmod" %}
     if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "integer division or modulo by zero");
         {{ goto_exit(props, exit_result_exception) }}
     }
 

@@ -251,7 +251,7 @@ def getFrameGuardHeavyCode(
         )
 
         make_frame_code = (
-            """MAKE_CLASS_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_dict_name)s, %(locals_size)s)"""
+            """MAKE_CLASS_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_dict_name)s, %(locals_size)s)"""
             % {
                 "code_identifier": code_identifier,
                 "module_identifier": getModuleAccessCode(context),
@@ -284,7 +284,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
         attach_locals_code = getFrameAttachLocalsCode(context, frame_identifier)
 
         make_frame_code = (
-            """MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
+            """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
             % {
                 "code_identifier": code_identifier,
                 "module_identifier": getModuleAccessCode(context),
@@ -395,7 +395,7 @@ def getFrameGuardGeneratorCode(
     )
 
     make_frame_code = (
-        """MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
+        """MAKE_FUNCTION_FRAME(tstate, %(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
         % {
             "code_identifier": code_identifier,
             "module_identifier": getModuleAccessCode(context),
@@ -466,7 +466,7 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         emit("// Preserve existing published exception.")
 
         emit(
-            "PRESERVE_FRAME_EXCEPTION(%(frame_identifier)s);"
+            "PRESERVE_FRAME_EXCEPTION(tstate, %(frame_identifier)s);"
             % {"frame_identifier": context.getFrameHandle()}
         )
     else:
@@ -478,7 +478,7 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         emit(
             """\
 // Preserve existing published exception id %(preserver_id)d.
-%(exception_preserved)s = GET_CURRENT_EXCEPTION();
+%(exception_preserved)s = GET_CURRENT_EXCEPTION(tstate);
 """
             % {
                 "exception_preserved": exception_preserved,
@@ -503,7 +503,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"""
         emit(
             """\
 // Restore previous exception id %(preserver_id)d.
-SET_CURRENT_EXCEPTION(&%(exception_preserved)s);
+SET_CURRENT_EXCEPTION(tstate, &%(exception_preserved)s);
 """
             % {
                 "exception_preserved": exception_preserved,

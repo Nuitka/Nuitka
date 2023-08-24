@@ -317,7 +317,7 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE(&%s, &%s, &%s);"
+        "RAISE_EXCEPTION_WITH_TYPE(tstate, &%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 
@@ -345,8 +345,10 @@ def _getRaiseExceptionWithValueCode(
     getReferenceExportCode(raise_value_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
+
+    # Using RAISE_EXCEPTION_WITH_VALUE (user driven) or RAISE_EXCEPTION_IMPLICIT as needed.
     emit(
-        "RAISE_EXCEPTION_%s(&%s, &%s, &%s);"
+        "RAISE_EXCEPTION_%s(tstate, &%s, &%s, &%s);"
         % (
             ("IMPLICIT" if implicit else "WITH_VALUE"),
             exception_type,
@@ -384,7 +386,7 @@ def _getRaiseExceptionWithTracebackCode(
     getReferenceExportCode(raise_tb_name, emit, context)
 
     emit(
-        "RAISE_EXCEPTION_WITH_TRACEBACK( &%s, &%s, &%s);"
+        "RAISE_EXCEPTION_WITH_TRACEBACK(tstate, &%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 

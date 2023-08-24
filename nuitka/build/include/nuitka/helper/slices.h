@@ -57,7 +57,7 @@ static inline bool IS_INDEXABLE(PyObject *value) {
            PyLong_Check(value) || Nuitka_Index_Check(value);
 }
 
-static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
+static Py_ssize_t CONVERT_TO_INDEX(PyThreadState *tstate, PyObject *value) {
     CHECK_OBJECT(value);
 
     if (PyInt_Check(value)) {
@@ -65,13 +65,14 @@ static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
     } else if (Nuitka_Index_Check(value)) {
         return PyNumber_AsSsize_t(value, NULL);
     } else {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                         "slice indices must be integers or None or have an __index__ method");
         return -1;
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE(PyObject *source, PyObject *lower, PyObject *upper) {
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE(PyThreadState *tstate, PyObject *source, PyObject *lower,
+                                                   PyObject *upper) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(lower);
     CHECK_OBJECT(upper);
@@ -82,9 +83,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE(PyObject *source, PyObject *l
         Py_ssize_t ilow = 0;
 
         if (lower != Py_None) {
-            ilow = CONVERT_TO_INDEX(lower);
+            ilow = CONVERT_TO_INDEX(tstate, lower);
 
-            if (ilow == -1 && ERROR_OCCURRED()) {
+            if (ilow == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return NULL;
             }
         }
@@ -92,9 +93,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE(PyObject *source, PyObject *l
         Py_ssize_t ihigh = PY_SSIZE_T_MAX;
 
         if (upper != Py_None) {
-            ihigh = CONVERT_TO_INDEX(upper);
+            ihigh = CONVERT_TO_INDEX(tstate, upper);
 
-            if (ihigh == -1 && ERROR_OCCURRED()) {
+            if (ihigh == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return NULL;
             }
         }
@@ -136,7 +137,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE(PyObject *source, Py_ss
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyObject *target, PyObject *lower, PyObject *upper, PyObject *value) {
+NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyThreadState *tstate, PyObject *target, PyObject *lower, PyObject *upper,
+                                           PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(lower);
     CHECK_OBJECT(upper);
@@ -148,9 +150,9 @@ NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyObject *target, PyObject *lower, Py
         Py_ssize_t lower_int = 0;
 
         if (lower != Py_None) {
-            lower_int = CONVERT_TO_INDEX(lower);
+            lower_int = CONVERT_TO_INDEX(tstate, lower);
 
-            if (lower_int == -1 && ERROR_OCCURRED()) {
+            if (lower_int == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return false;
             }
         }
@@ -158,9 +160,9 @@ NUITKA_MAY_BE_UNUSED static bool SET_SLICE(PyObject *target, PyObject *lower, Py
         Py_ssize_t upper_int = PY_SSIZE_T_MAX;
 
         if (upper != Py_None) {
-            upper_int = CONVERT_TO_INDEX(upper);
+            upper_int = CONVERT_TO_INDEX(tstate, upper);
 
-            if (upper_int == -1 && ERROR_OCCURRED()) {
+            if (upper_int == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return false;
             }
         }
@@ -220,7 +222,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_INDEX_SLICE(PyObject *target, Py_ssize_t lo
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool DEL_SLICE(PyObject *target, PyObject *lower, PyObject *upper) {
+NUITKA_MAY_BE_UNUSED static bool DEL_SLICE(PyThreadState *tstate, PyObject *target, PyObject *lower, PyObject *upper) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(lower);
     CHECK_OBJECT(upper);
@@ -231,9 +233,9 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE(PyObject *target, PyObject *lower, Py
         Py_ssize_t lower_int = 0;
 
         if (lower != Py_None) {
-            lower_int = CONVERT_TO_INDEX(lower);
+            lower_int = CONVERT_TO_INDEX(tstate, lower);
 
-            if (lower_int == -1 && ERROR_OCCURRED()) {
+            if (lower_int == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return false;
             }
         }
@@ -241,9 +243,9 @@ NUITKA_MAY_BE_UNUSED static bool DEL_SLICE(PyObject *target, PyObject *lower, Py
         Py_ssize_t upper_int = PY_SSIZE_T_MAX;
 
         if (upper != Py_None) {
-            upper_int = CONVERT_TO_INDEX(upper);
+            upper_int = CONVERT_TO_INDEX(tstate, upper);
 
-            if (upper_int == -1 && ERROR_OCCURRED()) {
+            if (upper_int == -1 && HAS_ERROR_OCCURRED(tstate)) {
                 return false;
             }
         }

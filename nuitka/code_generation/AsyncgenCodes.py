@@ -51,6 +51,7 @@ def getAsyncgenObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_asyncgen_object_maker_template % {
@@ -133,6 +134,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_asyncgen_object_body % {

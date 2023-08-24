@@ -209,40 +209,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1(PyObject *iterator) {
-    CHECK_OBJECT(iterator);
-
-    iternextfunc iternext = Py_TYPE(iterator)->tp_iternext;
-
-    if (unlikely(iternext == NULL)) {
-        PyErr_Format(PyExc_TypeError,
-#if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
-                     "%s object is not an iterator",
-#else
-                     "'%s' object is not an iterator",
-#endif
-                     Py_TYPE(iterator)->tp_name);
-
-        return NULL;
-    }
-
-    PyObject *result = (*iternext)(iterator);
-
-    if (unlikely(result == NULL)) {
-        // The iteration can return NULL with no error, which means
-        // StopIteration.
-        if (!ERROR_OCCURRED()) {
-            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
-        }
-
-        return NULL;
-    } else {
-        CHECK_OBJECT(result);
-    }
-
-    return result;
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObject *iterator,
                                                     PyObject *default_value) {
     CHECK_OBJECT(iterator);
@@ -251,7 +217,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2(PyThreadState *tstate, PyObj
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {
-        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate);
+        bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
 
         if (unlikely(stop_iteration_error == false)) {
             return NULL;
@@ -288,7 +254,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyThreadState *tstate, PyObjec
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {
-        PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
+        PyObject *error = GET_ERROR_OCCURRED(tstate);
 
 #if PYTHON_VERSION < 0x300
         if (unlikely(error == NULL))
@@ -298,7 +264,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT(PyThreadState *tstate, PyObjec
         {
 #if PYTHON_VERSION < 0x350
             if (seq_size_so_far == 1) {
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "need more than 1 value to unpack");
+                SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "need more than 1 value to unpack");
             } else {
                 PyErr_Format(PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far);
             }
@@ -326,7 +292,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_STARRED(PyThreadState *tstate,
     PyObject *result = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (unlikely(result == NULL)) {
-        PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
+        PyObject *error = GET_ERROR_OCCURRED(tstate);
 
         if (unlikely((error == NULL) || EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration))) {
             PyErr_Format(PyExc_ValueError, "not enough values to unpack (expected at least %d, got %d)", expected,
@@ -350,11 +316,11 @@ NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK(PyThreadState *tstate, Py
     PyObject *attempt = (*Py_TYPE(iterator)->tp_iternext)(iterator);
 
     if (likely(attempt == NULL)) {
-        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate);
+        return CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
     } else {
         Py_DECREF(attempt);
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "too many values to unpack");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "too many values to unpack");
         return false;
     }
 }

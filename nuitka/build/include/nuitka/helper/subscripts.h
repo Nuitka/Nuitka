@@ -96,14 +96,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
             if (int_subscript < 0) {
                 if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
                     return NULL;
                 }
 
                 int_subscript += list_size;
             } else {
                 if (int_subscript >= list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list index out of range");
                     return NULL;
                 }
             }
@@ -119,14 +119,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyThreadState *tsta
 
             if (int_subscript < 0) {
                 if (-int_subscript > string_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "string index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "string index out of range");
                     return NULL;
                 }
 
                 int_subscript += string_size;
             } else {
                 if (int_subscript >= string_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "string index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "string index out of range");
                     return NULL;
                 }
             }
@@ -315,7 +315,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
 
             PyObject *result = type->tp_as_sequence->sq_item(source, int_subscript);
 
-            bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+            bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
             Py_XDECREF(result);
             return bool_result;
@@ -324,7 +324,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
         else {
             PyObject *result = tp_as_mapping->mp_subscript(source, const_subscript);
 
-            bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+            bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
             Py_XDECREF(result);
 
@@ -333,7 +333,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
     } else if (type->tp_as_sequence) {
         PyObject *result = SEQUENCE_GET_ITEM_CONST(source, int_subscript);
 
-        bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+        bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
         Py_XDECREF(result);
         return bool_result;
@@ -354,7 +354,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyThreadState *tstate, PyOb
                 Py_DECREF(meth);
                 Py_DECREF(subscript);
 
-                bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+                bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
                 Py_XDECREF(result);
                 return bool_result;
@@ -389,7 +389,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyThreadState *tstate, PyObject *
 
     if (tp_as_mapping != NULL && tp_as_mapping->mp_subscript != NULL) {
         PyObject *result = tp_as_mapping->mp_subscript(source, subscript);
-        bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+        bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
         Py_XDECREF(result);
         return bool_result;
@@ -402,7 +402,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyThreadState *tstate, PyObject *
             }
 
             PyObject *result = SEQUENCE_GET_ITEM_CONST(source, index);
-            bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+            bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
             Py_XDECREF(result);
             return bool_result;
@@ -426,7 +426,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyThreadState *tstate, PyObject *
 
         if (meth) {
             PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, meth, subscript);
-            bool bool_result = !DROP_ERROR_OCCURRED_TSTATE(tstate);
+            bool bool_result = !DROP_ERROR_OCCURRED(tstate);
 
             Py_XDECREF(result);
             return bool_result;
@@ -438,8 +438,8 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyThreadState *tstate, PyObject *
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject *subscript, Py_ssize_t int_subscript,
-                                                     PyObject *value) {
+NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyThreadState *tstate, PyObject *target, PyObject *subscript,
+                                                     Py_ssize_t int_subscript, PyObject *value) {
     CHECK_OBJECT(value);
     CHECK_OBJECT(target);
     CHECK_OBJECT(subscript);
@@ -456,7 +456,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
 
             if (int_subscript < 0) {
                 if (-int_subscript > list_size) {
-                    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_IndexError, "list assignment index out of range");
+                    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_IndexError, "list assignment index out of range");
 
                     return false;
                 }
@@ -486,7 +486,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
             Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {
-                if (ERROR_OCCURRED()) {
+                if (HAS_ERROR_OCCURRED(tstate)) {
                     return false;
                 }
             }
@@ -509,7 +509,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
 #endif
 }
 
-NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subscript, PyObject *value) {
+NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyThreadState *tstate, PyObject *target, PyObject *subscript,
+                                               PyObject *value) {
     CHECK_OBJECT(value);
     CHECK_OBJECT(target);
     CHECK_OBJECT(subscript);
@@ -531,7 +532,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
             Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {
-                if (ERROR_OCCURRED()) {
+                if (HAS_ERROR_OCCURRED(tstate)) {
                     return false;
                 }
             }

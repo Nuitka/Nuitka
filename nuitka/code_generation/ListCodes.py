@@ -350,7 +350,7 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = LIST_INSERT(%s, %s, %s);"
+            "%s = LIST_INSERT(tstate, %s, %s, %s);"
             % (
                 res_name,
                 list_arg_name,

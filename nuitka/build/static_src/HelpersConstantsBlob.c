@@ -933,7 +933,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
             long stop = unpackValueLong(&data);
             long step = unpackValueLong(&data);
 
-            PyObject *s = MAKE_XRANGE(start, stop, step);
+            PyObject *s = MAKE_XRANGE(tstate, start, stop, step);
 #else
             PyObject *items[3];
             data = _unpackBlobConstants(tstate, &items[0], data, 3);

@@ -270,7 +270,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
         getNameReferenceErrorCode(
             variable_name=variable_name,
-            condition="%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED_TSTATE(tstate)"
+            condition="%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)"
             % value_name,
             emit=emit,
             context=context,

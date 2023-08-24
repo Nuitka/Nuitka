@@ -262,7 +262,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
         PyObject *item = iternext(iter);
 
         if (item == NULL) {
-            bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED_TSTATE(tstate);
+            bool stop_iteration_error = CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED(tstate);
 
             Py_DECREF(iter);
 
@@ -320,11 +320,11 @@ bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *oth
         return true;
     }
 
-    PyObject *error = GET_ERROR_OCCURRED_TSTATE(tstate);
+    PyObject *error = GET_ERROR_OCCURRED(tstate);
 
     if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_TypeError) &&
         (Py_TYPE(other)->tp_iter == NULL && !PySequence_Check(other))) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
         PyErr_Format(PyExc_TypeError, "Value after * must be an iterable, not %s", Py_TYPE(other)->tp_name);
     }
 
@@ -502,7 +502,7 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
         return NULL;
     }
 
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1_TSTATE(tstate, PyExc_ValueError, err_string);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_ValueError, err_string);
     return NULL;
 #else
     PyErr_Format(PyExc_ValueError, "%R is not in list", item);
@@ -524,9 +524,11 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     PyObject *start_index = Nuitka_Number_IndexAsLong(start);
 
     if (unlikely(start_index == NULL)) {
-        CLEAR_ERROR_OCCURRED();
+        // TODO: Clearing should be useless here.
+        CLEAR_ERROR_OCCURRED(tstate);
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
@@ -542,10 +544,10 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     PyObject *start_index = Nuitka_Number_IndexAsLong(start);
 
     if (unlikely(start_index == NULL)) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(tstate, PyExc_TypeError,
-                                               "slice indices must be integers or have an __index__ method");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
@@ -554,10 +556,10 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
     if (unlikely(stop_index == NULL)) {
-        CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+        CLEAR_ERROR_OCCURRED(tstate);
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR_TSTATE(tstate, PyExc_TypeError,
-                                               "slice indices must be integers or have an __index__ method");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
+                                        "slice indices must be integers or have an __index__ method");
         return NULL;
     }
 
@@ -566,15 +568,17 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
 }
 
-bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item) {
+bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     CHECK_OBJECT(item);
 
+    // TODO: Avoid the clear, by having this as a variant that doesn't set the
+    // exception to begin with
     PyObject *index_long = Nuitka_Number_IndexAsLong(index);
 
     if (unlikely(index_long == NULL)) {
-        CLEAR_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
 
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' cannot be interpreted as an integer", index);
         return false;
@@ -690,7 +694,7 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
                 return NULL;
             }
 
-            CLEAR_ERROR_OCCURRED_TSTATE(tstate);
+            CLEAR_ERROR_OCCURRED(tstate);
         }
 
         if (iter_len > 0) {

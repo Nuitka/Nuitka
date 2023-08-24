@@ -50,7 +50,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
         }
 
         actual = PyTuple_GET_SIZE(match_args);
-    } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED_TSTATE(tstate)) {
+    } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
         if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
             if (max_allowed > 1) {
                 FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, 1);
