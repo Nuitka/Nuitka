@@ -2580,6 +2580,23 @@
         - 'plotly.graph_objs.layout.*'
         - 'plotly.graph_objs.layout.*.*'
 
+- module-name: 'plumbum.cli.progress'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '__IPYTHON__': 'raise NameError'
+      no-auto-follow:
+        'IPython': 'ignore'
+        'ipywidgets': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'plumbum.colorlib'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'plumbum.colorlib._ipython_ext': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'polars.lazyframe.frame'
   anti-bloat:
     - description: 'remove IPython reference'
