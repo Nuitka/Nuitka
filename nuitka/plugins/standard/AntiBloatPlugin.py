@@ -129,6 +129,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["ipykernel"] = noinclude_ipython_mode, "IPython"
             self.handled_modules["matplotlib_inline.backend_inline"] = (
                 noinclude_ipython_mode,
                 "IPython",
