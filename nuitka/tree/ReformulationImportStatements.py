@@ -22,6 +22,8 @@ source code comments with Developer Manual sections.
 
 """
 
+# spell-checker: ignore fromlist,asname
+
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.FutureSpecs import FutureSpec
@@ -314,7 +316,7 @@ def buildImportModulesNode(provider, node, source_ref):
     for import_desc in import_names:
         module_name, local_name = import_desc
 
-        module_topname = module_name.split(".")[0]
+        module_top_name = module_name.split(".")[0]
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
@@ -358,7 +360,7 @@ def buildImportModulesNode(provider, node, source_ref):
             StatementAssignmentVariableName(
                 provider=provider,
                 variable_name=mangleName(
-                    local_name if local_name is not None else module_topname, provider
+                    local_name if local_name is not None else module_top_name, provider
                 ),
                 source=import_node,
                 source_ref=source_ref,
