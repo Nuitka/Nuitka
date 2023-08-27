@@ -109,7 +109,7 @@ Requirements
       we can safely do an overwrite without destroying the original
       source file.
 
-   .. admonition:: It **has to** be CPython, Anaconda Python.
+   .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
 
       You need the standard Python implementation, called "CPython", to
       execute Nuitka, because it is closely tied to implementation
@@ -118,8 +118,14 @@ Requirements
    .. admonition:: It **cannot be** from Windows app store
 
       It is known that Windows app store Python definitely does not
-      work, it's checked against. And on macOS "pyenv" likely does
-      **not** work.
+      work, it's checked against.
+
+   .. admonition:: It **cannot be** pyenv on macOS
+
+      It is know that macOS "pyenv" does **not** work. Use Homebrew
+      instead for self compiled Python installations. But note that
+      standalone mode will be worse on these platforms and not be as
+      backward compatible with older macOS versions.
 
 -  Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows
    (32bits/64 bits/ARM).
