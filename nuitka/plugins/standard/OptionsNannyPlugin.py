@@ -54,13 +54,22 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
             % (full_name, option, value)
         )
 
-    def _checkSupportedVersion(self, full_name, support_info, description):
+    def _checkSupportedVersion(self, full_name, support_info, description, condition):
+        # Configured to not report, default value.
         if support_info == "ignore":
             return
 
-        message = "Using module ('%s' version %s) with no full support: %s" % (
-            full_name.asString(),
+        if condition != "True":
+            problem_desc = (
+                "incomplete support due to not passing condition %s" % condition
+            )
+        else:
+            problem_desc = "incomplete support"
+
+        message = "Using module '%s' (version %s) with %s: %s" % (
+            full_name,
             ".".join(str(d) for d in self.getPackageVersion(full_name)),
+            problem_desc,
             description,
         )
 
@@ -144,13 +153,14 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
 
         for options_config in self.config.get(full_name, section="options"):
             for check in options_config.get("checks", ()):
-                if self.evaluateCondition(
-                    full_name=full_name, condition=check.get("when", "True")
-                ):
+                condition = check.get("when", "True")
+
+                if self.evaluateCondition(full_name=full_name, condition=condition):
                     self._checkSupportedVersion(
                         full_name=full_name,
                         support_info=check.get("support_info", "ignore"),
                         description=check.get("description", "not given"),
+                        condition=condition,
                     )
 
                     if mayDisableConsoleWindow():
