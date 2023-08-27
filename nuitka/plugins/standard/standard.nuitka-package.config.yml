@@ -1890,6 +1890,21 @@
     dirs:
       - 'resources/schemas'
 
+- module-name: 'opencc'
+  data-files:
+    dirs:
+      - 'clib/share/opencc'
+    patterns:
+      - '*.json'
+      - '*.ocd2'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'clib/bin'
+        prefixes:
+          - 'opencc'
+      when: 'win32'
+
 - module-name: 'opentele.exception'
   anti-bloat:
     - description: 'workaround compiled functions not updating locals'
