@@ -1926,3 +1926,12 @@ def getLocalWebServerDir(base_dir):
 
 def traceExecutedCommand(description, command):
     my_print(description, ":", *command, style="pink")
+
+
+def extractNuitkaVersionFromFilePath(version_filename):
+    with openTextFile(version_filename, "r") as f:
+        option_lines = f.readlines()
+
+    (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
+
+    return version_line[8:].rstrip()
