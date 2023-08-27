@@ -72,7 +72,7 @@ Bug Fixes
 -  Standalone: Added missing DLL for ``wx.html2`` to work well on
    Windows. Fixed in 1.7.6 already.
 
--  Fix, the ``@qtqtSlot`` decoration could crash the compilation and was
+-  Fix, the ``@pyqtSlot`` decoration could crash the compilation and was
    effective even if no pyqt plugin was active. Fixed in 1.7.6 already.
 
 New Features
