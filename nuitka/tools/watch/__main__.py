@@ -108,6 +108,7 @@ def getPlatformRequirements(installed_python, case_data):
 
     # Nuitka house keeping, these are from setup.py but we ignore onefile needs
     # as that is not currently covered in watches.
+    # spell-checker: ignore orderedset,imageio
     needs_onefile = False
 
     if installed_python.getHexVersion() >= 0x370:
@@ -132,13 +133,209 @@ def getPlatformRequirements(installed_python, case_data):
     return requirements
 
 
+def _updatePipenvFile(installed_python, case_data, dry_run, result_path):
+    pipenv_filename = os.path.join(result_path, "Pipfile")
+    pipenv_package_requirements = []
+
+    for requirement in getPlatformRequirements(
+        installed_python=installed_python, case_data=case_data
+    ):
+        # Ignore spaces in requirements.
+        requirement = requirement.replace(" ", "")
+
+        if all(char not in requirement for char in "=><"):
+            pipenv_package_requirements.append('%s = "*"' % requirement)
+        else:
+            operator_index = min(
+                requirement.find(char) for char in "=><" if char in requirement
+            )
+
+            pipenv_package_requirements.append(
+                '%s = "%s"'
+                % (requirement[:operator_index], requirement[operator_index:])
+            )
+
+    # TODO: Other indexes, e.g. nvidia might be needed too
+    changed_pipenv_file = changeTextFileContents(
+        pipenv_filename,
+        """\
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[requires]
+python_version = "%(python_version)s"
+
+[packages]
+%(pipenv_package_requirements)s
+"""
+        % {
+            "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
+            "python_version": installed_python.getPythonVersion(),
+        },
+        compare_only=dry_run,
+    )
+
+    return changed_pipenv_file, pipenv_filename
+
+
+def _updatePipenvLockFile(
+    installed_python, dry_run, pipenv_filename_full, no_pipenv_update
+):
+    if os.path.exists("Pipfile.lock"):
+        if no_pipenv_update:
+            watch_logger.info(
+                "Keeping existing lock file with pipenv file '%s'."
+                % pipenv_filename_full
+            )
+
+        elif not dry_run:
+            watch_logger.info(
+                "Working with pipenv file '%s' to update virtualenv, may take a while."
+                % pipenv_filename_full
+            )
+
+            check_call(
+                [
+                    installed_python.getPythonExe(),
+                    "-m",
+                    "pipenv",
+                    "update",
+                    "--python",
+                    installed_python.getPythonExe(),
+                ]
+            )
+    else:
+        watch_logger.info(
+            "Working with pipenv file '%s' to install virtualenv, may take a while."
+            % pipenv_filename_full
+        )
+
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                "install",
+                "--python",
+                installed_python.getPythonExe(),
+            ]
+        )
+
+
+def _updateCase(
+    case_dir, case_data, dry_run, no_pipenv_update, installed_python, result_path
+):
+    # Not good for dry run, but tough life.
+    makePath(result_path)
+
+    # Update the pipenv file in any case, ought to be stable but we follow
+    # global changes this way.
+    changed_pipenv_file, pipenv_filename = _updatePipenvFile(
+        installed_python=installed_python,
+        case_data=case_data,
+        dry_run=dry_run,
+        result_path=result_path,
+    )
+
+    pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
+
+    if dry_run and changed_pipenv_file:
+        watch_logger.info("Would create pipenv file '%s'." % pipenv_filename_full)
+        return
+
+    with withDirectoryChange(result_path):
+        # Update or create lockfile of pipenv.
+        _updatePipenvLockFile(
+            installed_python=installed_python,
+            dry_run=dry_run,
+            pipenv_filename_full=pipenv_filename_full,
+            no_pipenv_update=no_pipenv_update,
+        )
+
+        # Check if compilation is required.
+        if os.path.exists("compilation-report.xml"):
+            old_report_root = fromFile("compilation-report.xml")
+
+            existing_hash = getFileContentsHash("Pipfile.lock")
+            old_report_root_hash = (
+                old_report_root.find("user-data").find("pipenv_hash").text
+            )
+
+            old_nuitka_version = old_report_root.attrib["nuitka_version"]
+
+            if nuitka_update_mode == "force":
+                need_compile = True
+            elif nuitka_update_mode == "newer":
+                if _compareNuitkaVersions(old_nuitka_version, nuitka_version):
+                    need_compile = True
+                else:
+                    if existing_hash != old_report_root_hash:
+                        watch_logger.info(
+                            "Recompilation with identical Nuitka for '%s' due to changed pipfile."
+                            % pipenv_filename_full
+                        )
+
+                        need_compile = True
+                    elif old_nuitka_version == nuitka_version:
+                        watch_logger.info(
+                            "Skipping compilation with identical Nuitka for '%s'."
+                            % pipenv_filename_full
+                        )
+
+                        need_compile = False
+                    else:
+                        watch_logger.info(
+                            "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
+                            % (
+                                old_nuitka_version,
+                                nuitka_version,
+                                pipenv_filename_full,
+                            )
+                        )
+
+                        need_compile = False
+            else:
+                need_compile = False
+        else:
+            need_compile = True
+
+        if need_compile:
+            check_call(
+                [
+                    installed_python.getPythonExe(),
+                    "-m",
+                    "pipenv",
+                    "run",
+                    "python",
+                    nuitka_binary,
+                    os.path.join(case_dir, case_data["filename"]),
+                    "--report=compilation-report.xml",
+                    "--report-diffable",
+                    "--report-user-provided=pipenv_hash=%s"
+                    % getFileContentsHash("Pipfile.lock"),
+                ]
+            )
+
+
 def updateCase(case_dir, case_data, dry_run, no_pipenv_update):
     case_name = case_data["case"]
 
+    # Wrong OS maybe.
     os_name = selectOS(case_data["os"])
     if os_name is None:
         return
 
+    nuitka_min_version = case_data.get("nuitka")
+
+    # Too old Nuitka version maybe.
+    if nuitka_min_version is not None and _compareNuitkaVersions(
+        nuitka_version, nuitka_min_version
+    ):
+        return
+
+    # For all relevant Pythons applicable to this case.
     for installed_python in selectPythons(
         anaconda=case_data["anaconda"] == "yes",
         python_version_req=case_data.get("python_version_req"),
@@ -151,162 +348,14 @@ def updateCase(case_dir, case_data, dry_run, no_pipenv_update):
             "python_version": installed_python.getPythonVersion(),
         }
 
-        # Not good for dry run, but tough life.
-        makePath(result_path)
-
-        pipenv_filename = os.path.join(result_path, "Pipfile")
-        pipenv_package_requirements = []
-
-        for requirement in getPlatformRequirements(
-            installed_python=installed_python, case_data=case_data
-        ):
-            # Ignore spaces in requirements.
-            requirement = requirement.replace(" ", "")
-
-            if all(char not in requirement for char in "=><"):
-                pipenv_package_requirements.append('%s = "*"' % requirement)
-            else:
-                operator_index = min(
-                    requirement.find(char) for char in "=><" if char in requirement
-                )
-
-                pipenv_package_requirements.append(
-                    '%s = "%s"'
-                    % (requirement[:operator_index], requirement[operator_index:])
-                )
-
-        # TODO: Other indexes, e.g. nvidia might be needed too
-        changed_pipenv_file = changeTextFileContents(
-            pipenv_filename,
-            """\
-[[source]]
-name = "pypi"
-url = "https://pypi.org/simple"
-verify_ssl = true
-
-[requires]
-python_version = "%(python_version)s"
-
-[packages]
-%(pipenv_package_requirements)s
-"""
-            % {
-                "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
-                "python_version": installed_python.getPythonVersion(),
-            },
-            compare_only=dry_run,
+        _updateCase(
+            case_dir=case_dir,
+            case_data=case_data,
+            dry_run=dry_run,
+            no_pipenv_update=no_pipenv_update,
+            installed_python=installed_python,
+            result_path=result_path,
         )
-
-        pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
-
-        if dry_run and changed_pipenv_file:
-            watch_logger.info("Would create pipenv file '%s'." % pipenv_filename_full)
-            return
-
-        with withDirectoryChange(result_path):
-            # Update or create lockfile of pipenv.
-            if os.path.exists("Pipfile.lock"):
-                if no_pipenv_update:
-                    watch_logger.info(
-                        "Keeping existing lock file with pipenv file '%s'."
-                        % pipenv_filename_full
-                    )
-
-                elif not dry_run:
-                    watch_logger.info(
-                        "Working with pipenv file '%s' to update virtualenv, may take a while."
-                        % pipenv_filename_full
-                    )
-
-                    check_call(
-                        [
-                            installed_python.getPythonExe(),
-                            "-m",
-                            "pipenv",
-                            "update",
-                            "--python",
-                            installed_python.getPythonExe(),
-                        ]
-                    )
-            else:
-                watch_logger.info(
-                    "Working with pipenv file '%s' to install virtualenv, may take a while."
-                    % pipenv_filename_full
-                )
-
-                check_call(
-                    [
-                        installed_python.getPythonExe(),
-                        "-m",
-                        "pipenv",
-                        "install",
-                        "--python",
-                        installed_python.getPythonExe(),
-                    ]
-                )
-
-            if os.path.exists("compilation-report.xml"):
-                old_report_root = fromFile("compilation-report.xml")
-
-                existing_hash = getFileContentsHash("Pipfile.lock")
-                old_report_root_hash = (
-                    old_report_root.find("user-data").find("pipenv_hash").text
-                )
-
-                old_nuitka_version = old_report_root.attrib["nuitka_version"]
-
-                if nuitka_update_mode == "force":
-                    need_compile = True
-                elif nuitka_update_mode == "newer":
-                    if _compareNuitkaVersions(old_nuitka_version, nuitka_version):
-                        need_compile = True
-                    else:
-                        if existing_hash != old_report_root_hash:
-                            watch_logger.info(
-                                "Recompilation with identical Nuitka for '%s' due to changed pipfile."
-                                % pipenv_filename_full
-                            )
-
-                            need_compile = True
-                        elif old_nuitka_version == nuitka_version:
-                            watch_logger.info(
-                                "Skipping compilation with identical Nuitka for '%s'."
-                                % pipenv_filename_full
-                            )
-
-                            need_compile = False
-                        else:
-                            watch_logger.info(
-                                "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
-                                % (
-                                    old_nuitka_version,
-                                    nuitka_version,
-                                    pipenv_filename_full,
-                                )
-                            )
-
-                            need_compile = False
-                else:
-                    need_compile = False
-            else:
-                need_compile = True
-
-            if need_compile:
-                check_call(
-                    [
-                        installed_python.getPythonExe(),
-                        "-m",
-                        "pipenv",
-                        "run",
-                        "python",
-                        nuitka_binary,
-                        os.path.join(case_dir, case_data["filename"]),
-                        "--report=compilation-report.xml",
-                        "--report-diffable",
-                        "--report-user-provided=pipenv_hash=%s"
-                        % getFileContentsHash("Pipfile.lock"),
-                    ]
-                )
 
 
 def updateCases(case_dir, dry_run, no_pipenv_update):
@@ -386,7 +435,7 @@ Do not update the pipenv environment. Best to see only effect of Nuitka update. 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
     assert os.path.exists(nuitka_binary)
 
-    global nuitka_version
+    global nuitka_version  # singleton, pylint: disable=global-statement
     nuitka_version = extractNuitkaVersionFromFilePath(
         os.path.join(os.path.dirname(nuitka_binary), "..", "nuitka", "Version.py")
     )
