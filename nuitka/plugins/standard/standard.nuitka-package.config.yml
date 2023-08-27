@@ -3181,6 +3181,8 @@
         - '.Postfix_cpp'
         - '.Prefix_py'
         - '.Prefix_cpp'
+        - '.metrics_cpp'
+        - '.metrics_py'
 
 - module-name: 'rasterio._io'
   implicit-imports:
