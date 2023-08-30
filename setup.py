@@ -246,6 +246,7 @@ import nuitka.__main__
 nuitka.__main__.main()
 """
 
+
 # This is for newer setuptools:
 @classmethod
 def get_args(cls, dist, header=None):
@@ -271,6 +272,7 @@ try:
     easy_install.ScriptWriter.get_args = get_args
 except AttributeError:
     pass
+
 
 # This is for older setuptools:
 def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=False):
@@ -334,6 +336,7 @@ else:
         "nuitka%s = nuitka.__main__:main" % binary_suffix,
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
+
 
 # With this, we can enforce a binary package.
 class BinaryDistribution(Distribution):

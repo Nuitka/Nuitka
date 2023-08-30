@@ -35,9 +35,7 @@ extern volatile int _Py_Ticker;
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
 #endif
 
-NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
-    PyThreadState *tstate = PyThreadState_GET();
-
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
 #if PYTHON_VERSION >= 0x390
     _PyRuntimeState *const runtime = tstate->interp->runtime;
 #else
@@ -52,11 +50,11 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     struct _ceval_runtime_state *ceval2 = ceval;
 #endif
 
-    /* Pending signals or calls to do*/
+    // Pending signals or calls to do
     if (HAS_WORK_TO_DO(ceval, ceval2)) {
         int res = Py_MakePendingCalls();
 
-        if (unlikely(res < 0 && ERROR_OCCURRED())) {
+        if (unlikely(res < 0 && HAS_ERROR_OCCURRED(tstate))) {
             return false;
         }
     }
@@ -82,7 +80,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
 
         Py_INCREF(async_exc);
 
-        RESTORE_ERROR_OCCURRED(async_exc, NULL, NULL);
+        RESTORE_ERROR_OCCURRED(tstate, async_exc, NULL, NULL);
 
         return false;
     }
@@ -92,19 +90,16 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
 
 #else
 
-NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
     // Decrease ticker
     if (--_Py_Ticker < 0) {
         _Py_Ticker = _Py_CheckInterval;
 
         int res = Py_MakePendingCalls();
 
-        if (unlikely(res < 0 && ERROR_OCCURRED())) {
+        if (unlikely(res < 0 && HAS_ERROR_OCCURRED(tstate))) {
             return false;
         }
-
-        PyThreadState *tstate = PyThreadState_GET();
-        assert(tstate);
 
         if (PyEval_ThreadsInitialized()) {
             // Release and acquire the GIL, it's very inefficient, because we
@@ -120,7 +115,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
 
             Py_INCREF(async_exc);
 
-            RESTORE_ERROR_OCCURRED(async_exc, NULL, NULL);
+            RESTORE_ERROR_OCCURRED(tstate, async_exc, NULL, NULL);
 
             return false;
         }

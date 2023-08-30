@@ -15,7 +15,7 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix}}({{builtin_type.getVariableDecl(builtin_arg_name)}} {{formatArgumentDeclaration(arg_types, arg_names, starting=False)}}) {
+PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix}}(PyThreadState *tstate, {{builtin_type.getVariableDecl(builtin_arg_name)}} {{formatArgumentDeclaration(arg_types, arg_names, starting=False)}}) {
     {{builtin_type.getCheckValueCode(builtin_arg_name)}}
 
 {% for arg_type, arg_name in zip(arg_types, arg_names) %}
@@ -36,9 +36,9 @@ PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix
 
 {% if len(arg_names) > 0 %}
     PyObject *args[{{len(arg_names)+1}}] = { {{builtin_arg_name}}, {{",".join(arg_names)}} };
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS{{len(arg_names)+1}}(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS{{len(arg_names)+1}}(tstate, called, args);
 {% else %}
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, {{builtin_arg_name}});
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, {{builtin_arg_name}});
 {% endif %}
 
 {% if method_name == "decode" and builtin_type.type_name == "str" and len(arg_names) == 2 %}

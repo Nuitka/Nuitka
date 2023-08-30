@@ -244,7 +244,6 @@ def executePostProcessingResources(manifest, onefile):
         or Options.getProductVersion()
         or Options.getFileVersion()
     ):
-
         addVersionInfoResource(
             string_values=Options.getWindowsVersionInfoStrings(),
             product_version=Options.getProductVersion(),
@@ -391,7 +390,7 @@ def executePostProcessing():
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
 set PYTHONHOME=%(python_home)s
-%(debugger_call)s"%%~dp0.\\%(exe_filename)s" %%*
+%(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
             "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
             if Options.shallRunInDebugger()

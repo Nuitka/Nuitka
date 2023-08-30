@@ -45,7 +45,6 @@ def generateExceptionRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_name", expression, emit, context
     ) as value_name:
-
         emit("%s = %s;" % (value_name, getExceptionIdentifier(exception_type)))
 
 
@@ -62,7 +61,6 @@ def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_caught_type", expression, emit, context
     ) as value_name:
-
         if keeper_variables[0] is None:
             emit("%s = EXC_TYPE(PyThreadState_GET());" % (value_name,))
         else:
@@ -75,7 +73,6 @@ def generateExceptionCaughtValueCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_caught_value", expression, emit, context
     ) as value_name:
-
         if keeper_variables[1] is None:
             emit("%s = EXC_VALUE(PyThreadState_GET());" % (value_name,))
         else:
@@ -94,7 +91,6 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_caught_tb", expression, emit, context
     ) as value_name:
-
         if keeper_variables[2] is None:
             if python_version < 0x3B0:
                 emit(
@@ -163,7 +159,7 @@ def generateExceptionPublishCode(statement, emit, context):
     # TODO: Make this one thing for performance with thread state shared, also for less code,
     # then we should not make it in header anymore. Might be more scalable too.
     emit(
-        "PUBLISH_CURRENT_EXCEPTION(&%s, &%s, &%s);"
+        "PUBLISH_CURRENT_EXCEPTION(tstate, &%s, &%s, &%s);"
         % (keeper_type, keeper_value, keeper_tb)
     )
 
@@ -192,7 +188,6 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "exception_made", expression, emit, context
     ) as value_name:
-
         if exception_arg_names:
             getCallCodePosArgsQuick(
                 to_name=value_name,

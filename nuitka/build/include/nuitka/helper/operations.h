@@ -19,11 +19,11 @@
 #define __NUITKA_OPERATIONS_H__
 
 #if PYTHON_VERSION >= 0x300
-extern PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right);
-extern bool UNICODE_APPEND(PyObject **p_left, PyObject *right);
+extern PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right);
+extern bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right);
 #else
 // TODO: Specialize for Python2 too.
-NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
+NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
     return PyUnicode_Concat(left, right);
 }
 #endif

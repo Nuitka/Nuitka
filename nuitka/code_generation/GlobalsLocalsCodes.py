@@ -49,7 +49,6 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
-
         emit("%s = %s;" % (value_name, locals_declaration))
 
 
@@ -69,7 +68,6 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
-
         if updated:
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
             is_dict = locals_scope.hasShapeDictionaryExact()
@@ -187,6 +185,7 @@ def generateBuiltinDir1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyObject_Dir",
+        tstate=False,
         arg_desc=(("dir_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -200,6 +199,7 @@ def generateBuiltinVarsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LOOKUP_VARS",
+        tstate=True,
         arg_desc=(("vars_arg", expression.subnode_source),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

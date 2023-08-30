@@ -56,6 +56,7 @@ from nuitka.Options import (
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoDocStrings,
+    isDeploymentMode,
     isStandaloneMode,
     shallCreateAppBundle,
     shallMakeModule,
@@ -299,19 +300,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             None
         """
 
-    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        """Inspect or modify frozen module source code.
-
-        Args:
-            module_name: (str) full name of module
-            is_package: (bool) True indicates a package
-            source_code: (str) its source code
-        Returns:
-            source_code (str)
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return source_code
-
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
         """Inspect or modify frozen module byte code.
 
@@ -444,7 +432,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return None
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module_name, source_ref
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
     ):
         """React to recursion to a module coming up.
 
@@ -1136,8 +1130,7 @@ except ImportError:
                 "debian_python": isDebianPackagePython(),
                 "standalone": isStandaloneMode(),
                 "module_mode": shallMakeModule(),
-                # TODO: Allow to provide this.
-                "deployment": False,
+                "deployment": isDeploymentMode(),
                 # Querying package versions.
                 "version": _getPackageVersion,
                 "plugin": _isPluginActive,
@@ -1205,7 +1198,7 @@ except ImportError:
         # user errors still.
         mnemonic = kwargs.pop("mnemonic", None)
         if kwargs:
-            plugins_logger.sysexit("Illegal arguments for self.warning")
+            plugins_logger.sysexit("Illegal keyword arguments for self.warning")
 
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
@@ -1214,8 +1207,10 @@ except ImportError:
         plugins_logger.info(cls.plugin_name + ": " + message)
 
     @classmethod
-    def sysexit(cls, message):
-        plugins_logger.sysexit(cls.plugin_name + ": " + message)
+    def sysexit(cls, message, mnemonic=None):
+        plugins_logger.sysexit(
+            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=True
+        )
 
 
 def standalone_only(func):

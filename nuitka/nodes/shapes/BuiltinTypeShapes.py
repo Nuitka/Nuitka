@@ -547,7 +547,6 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
 tshape_int = ShapeTypeInt()
 
 if python_version < 0x300:
-
     _the_typical_long_value = long(7)  # pylint: disable=I0021,undefined-variable
 
     class ShapeTypeLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
@@ -1932,6 +1931,7 @@ operation_result_bytearray_formaterror = (
     tshape_bytearray,
     ControlFlowDescriptionFormatError,
 )
+
 
 # Prepared values, reject everything.
 def _rejectEverything(shapes, operation_unsupported):

@@ -568,7 +568,6 @@ def checkReraiseByFunction():
         raise
 
     try:
-
         try:
             raise TypeError("outer")
         except Exception:

@@ -73,7 +73,9 @@ void _initSlotCompare(void) {
 #if PYTHON_VERSION < 0x300
 
 static inline int adjust_tp_compare(int c) {
-    if (ERROR_OCCURRED()) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (HAS_ERROR_OCCURRED(tstate)) {
         return -2;
     } else if (c < -1 || c > 1) {
         return c < -1 ? -1 : 1;

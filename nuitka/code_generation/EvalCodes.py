@@ -40,7 +40,8 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
             if is_dict:
                 emit(
-                    "%s = DICT_GET_ITEM0(%s, %s);" % (value_name, locals_name, key_name)
+                    "%s = DICT_GET_ITEM0(tstate, %s, %s);"
+                    % (value_name, locals_name, key_name)
                 )
             else:
                 emit(
@@ -50,13 +51,13 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
                 getErrorExitBoolCode(
                     condition="""\
-%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_KeyError)"""
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_KeyError)"""
                     % value_name,
                     emit=emit,
                     context=context,
                 )
 
-                emit("CLEAR_ERROR_OCCURRED();")
+                emit("CLEAR_ERROR_OCCURRED(tstate);")
 
                 context.addCleanupTempName(value_name)
 
@@ -141,7 +142,6 @@ def generateBuiltinCompileCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "compile_result", expression, emit, context
     ) as value_name:
-
         _getBuiltinCompileCode(
             to_name=value_name,
             source_name=source_name,
@@ -178,7 +178,10 @@ def _getBuiltinCompileCode(
             optimize_name,
         )
 
-    emit("%s = COMPILE_CODE(%s);" % (to_name, ", ".join(str(arg) for arg in args)))
+    emit(
+        "%s = COMPILE_CODE(tstate, %s);"
+        % (to_name, ", ".join(str(arg) for arg in args))
+    )
 
     getErrorExitCode(
         check_name=to_name,
@@ -204,6 +207,7 @@ def getBuiltinEvalCode(
     globals_name,
     locals_name,
     mode_name,
+    closure_name,
     emit,
     context,
 ):
@@ -222,13 +226,13 @@ def getBuiltinEvalCode(
     )
 
     emit(
-        "%s = EVAL_CODE(%s, %s, %s);"
-        % (to_name, compiled_name, globals_name, locals_name)
+        "%s = EVAL_CODE(tstate, %s, %s, %s, %s);"
+        % (to_name, compiled_name, globals_name, locals_name, closure_name or "NULL")
     )
 
     getErrorExitCode(
         check_name=to_name,
-        release_names=(compiled_name, globals_name, locals_name),
+        release_names=(compiled_name, globals_name, locals_name, closure_name),
         emit=emit,
         context=context,
     )
@@ -283,11 +287,10 @@ def generateExecCode(statement, emit, context):
         if Options.is_full_compat
         else statement.getSourceReference()
     ):
-
         res_name = context.getBoolResName()
 
         emit(
-            "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
+            "%s = EXEC_FILE_ARG_HANDLING(tstate, &%s, &%s);"
             % (res_name, source_name, filename_name)
         )
 
@@ -312,7 +315,7 @@ def generateExecCode(statement, emit, context):
         to_name = context.allocateTempName("exec_result")
 
         emit(
-            "%s = EVAL_CODE(%s, %s, %s);"
+            "%s = EVAL_CODE(tstate, %s, %s, %s, NULL);"
             % (to_name, compiled_name, globals_name, locals_name)
         )
 
@@ -368,6 +371,22 @@ def _generateEvalCode(to_name, node, emit, context):
     else:
         filename = "<execfile>"
 
+    if (
+        python_version >= 0x31B
+        and node.isExpressionBuiltinExec()
+        and node.subnode_closure is not None
+    ):
+        closure_name = context.allocateTempName("eval_closure")
+
+        generateExpressionCode(
+            to_name=closure_name,
+            expression=node.subnode_closure,
+            emit=emit,
+            context=context,
+        )
+    else:
+        closure_name = None
+
     getBuiltinEvalCode(
         to_name=to_name,
         source_name=source_name,
@@ -377,6 +396,7 @@ def _generateEvalCode(to_name, node, emit, context):
         mode_name=context.getConstantCode(
             constant="eval" if node.isExpressionBuiltinEval() else "exec"
         ),
+        closure_name=closure_name,
         emit=emit,
         context=context,
     )

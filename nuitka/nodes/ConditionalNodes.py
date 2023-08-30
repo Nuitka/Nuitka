@@ -54,8 +54,6 @@ class ConditionalValueComputeMixin(object):
             trace_collection
         )
         if replacement is not None:
-            assert replacement.isExpression()
-
             self.replaceChild(condition, replacement)
 
             trace_collection.signalChange(

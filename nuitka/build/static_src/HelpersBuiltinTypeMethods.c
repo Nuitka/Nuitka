@@ -546,7 +546,7 @@ static void _initListBuiltinMethods(void) {
     list_builtin_reverse = PyObject_GetAttrString((PyObject *)&PyList_Type, "reverse");
     list_builtin_sort = PyObject_GetAttrString((PyObject *)&PyList_Type, "sort");
 }
-PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
+PyObject *DICT_POP2(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -556,12 +556,12 @@ PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {dict, key};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
+PyObject *DICT_POP3(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *default_value) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -572,25 +572,25 @@ PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {dict, key, default_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *DICT_POPITEM(PyObject *dict) {
+PyObject *DICT_POPITEM(PyThreadState *tstate, PyObject *dict) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
     PyObject *called = dict_builtin_popitem;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, dict);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, dict);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyTuple_CheckExact(result));
     return result;
 }
-PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
+PyObject *DICT_SETDEFAULT2(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -600,12 +600,12 @@ PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {dict, key};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value) {
+PyObject *DICT_SETDEFAULT3(PyThreadState *tstate, PyObject *dict, PyObject *key, PyObject *default_value) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -616,24 +616,24 @@ PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_valu
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {dict, key, default_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *LIST_POP1(PyObject *list) {
+PyObject *LIST_POP1(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
     PyObject *called = list_builtin_pop;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, list);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, list);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *LIST_POP2(PyObject *list, PyObject *index) {
+PyObject *LIST_POP2(PyThreadState *tstate, PyObject *list, PyObject *index) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
@@ -643,26 +643,26 @@ PyObject *LIST_POP2(PyObject *list, PyObject *index) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {list, index};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
 #if PYTHON_VERSION < 0x300
-PyObject *STR_CAPITALIZE(PyObject *str) {
+PyObject *STR_CAPITALIZE(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_capitalize;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_CENTER2(PyObject *str, PyObject *width) {
+PyObject *STR_CENTER2(PyThreadState *tstate, PyObject *str, PyObject *width) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -672,13 +672,13 @@ PyObject *STR_CENTER2(PyObject *str, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_CENTER3(PyObject *str, PyObject *width, PyObject *fillchar) {
+PyObject *STR_CENTER3(PyThreadState *tstate, PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -689,13 +689,13 @@ PyObject *STR_CENTER3(PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_COUNT2(PyObject *str, PyObject *sub) {
+PyObject *STR_COUNT2(PyThreadState *tstate, PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -705,12 +705,12 @@ PyObject *STR_COUNT2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_COUNT3(PyObject *str, PyObject *sub, PyObject *start) {
+PyObject *STR_COUNT3(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -721,12 +721,12 @@ PyObject *STR_COUNT3(PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_COUNT4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *STR_COUNT4(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -738,24 +738,24 @@ PyObject *STR_COUNT4(PyObject *str, PyObject *sub, PyObject *start, PyObject *en
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_DECODE1(PyObject *str) {
+PyObject *STR_DECODE1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_decode;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_DECODE2(PyObject *str, PyObject *encoding) {
+PyObject *STR_DECODE2(PyThreadState *tstate, PyObject *str, PyObject *encoding) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -765,12 +765,12 @@ PyObject *STR_DECODE2(PyObject *str, PyObject *encoding) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, encoding};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_DECODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
+PyObject *STR_DECODE3(PyThreadState *tstate, PyObject *str, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -785,26 +785,26 @@ PyObject *STR_DECODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, encoding, errors};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     Py_DECREF(encoding);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_ENCODE1(PyObject *str) {
+PyObject *STR_ENCODE1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_encode;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_ENCODE2(PyObject *str, PyObject *encoding) {
+PyObject *STR_ENCODE2(PyThreadState *tstate, PyObject *str, PyObject *encoding) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -814,12 +814,12 @@ PyObject *STR_ENCODE2(PyObject *str, PyObject *encoding) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, encoding};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_ENCODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
+PyObject *STR_ENCODE3(PyThreadState *tstate, PyObject *str, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -830,12 +830,12 @@ PyObject *STR_ENCODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, encoding, errors};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_ENDSWITH2(PyObject *str, PyObject *suffix) {
+PyObject *STR_ENDSWITH2(PyThreadState *tstate, PyObject *str, PyObject *suffix) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -845,13 +845,13 @@ PyObject *STR_ENDSWITH2(PyObject *str, PyObject *suffix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, suffix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ENDSWITH3(PyObject *str, PyObject *suffix, PyObject *start) {
+PyObject *STR_ENDSWITH3(PyThreadState *tstate, PyObject *str, PyObject *suffix, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -862,13 +862,13 @@ PyObject *STR_ENDSWITH3(PyObject *str, PyObject *suffix, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, suffix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ENDSWITH4(PyObject *str, PyObject *suffix, PyObject *start, PyObject *end) {
+PyObject *STR_ENDSWITH4(PyThreadState *tstate, PyObject *str, PyObject *suffix, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -880,26 +880,26 @@ PyObject *STR_ENDSWITH4(PyObject *str, PyObject *suffix, PyObject *start, PyObje
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, suffix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_EXPANDTABS1(PyObject *str) {
+PyObject *STR_EXPANDTABS1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_expandtabs;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_EXPANDTABS2(PyObject *str, PyObject *tabsize) {
+PyObject *STR_EXPANDTABS2(PyThreadState *tstate, PyObject *str, PyObject *tabsize) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -909,13 +909,13 @@ PyObject *STR_EXPANDTABS2(PyObject *str, PyObject *tabsize) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, tabsize};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_FIND2(PyObject *str, PyObject *sub) {
+PyObject *STR_FIND2(PyThreadState *tstate, PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -925,12 +925,12 @@ PyObject *STR_FIND2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_FIND3(PyObject *str, PyObject *sub, PyObject *start) {
+PyObject *STR_FIND3(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -941,12 +941,12 @@ PyObject *STR_FIND3(PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_FIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *STR_FIND4(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -958,12 +958,12 @@ PyObject *STR_FIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_INDEX2(PyObject *str, PyObject *sub) {
+PyObject *STR_INDEX2(PyThreadState *tstate, PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -973,12 +973,12 @@ PyObject *STR_INDEX2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_INDEX3(PyObject *str, PyObject *sub, PyObject *start) {
+PyObject *STR_INDEX3(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -989,12 +989,12 @@ PyObject *STR_INDEX3(PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_INDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *STR_INDEX4(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1006,103 +1006,103 @@ PyObject *STR_INDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *en
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_ISALNUM(PyObject *str) {
+PyObject *STR_ISALNUM(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_isalnum;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISALPHA(PyObject *str) {
+PyObject *STR_ISALPHA(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_isalpha;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISDIGIT(PyObject *str) {
+PyObject *STR_ISDIGIT(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_isdigit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISLOWER(PyObject *str) {
+PyObject *STR_ISLOWER(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_islower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISSPACE(PyObject *str) {
+PyObject *STR_ISSPACE(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_isspace;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISTITLE(PyObject *str) {
+PyObject *STR_ISTITLE(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_istitle;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_ISUPPER(PyObject *str) {
+PyObject *STR_ISUPPER(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_isupper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_LJUST2(PyObject *str, PyObject *width) {
+PyObject *STR_LJUST2(PyThreadState *tstate, PyObject *str, PyObject *width) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1112,13 +1112,13 @@ PyObject *STR_LJUST2(PyObject *str, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_LJUST3(PyObject *str, PyObject *width, PyObject *fillchar) {
+PyObject *STR_LJUST3(PyThreadState *tstate, PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1129,39 +1129,39 @@ PyObject *STR_LJUST3(PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_LOWER(PyObject *str) {
+PyObject *STR_LOWER(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_lower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_LSTRIP1(PyObject *str) {
+PyObject *STR_LSTRIP1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_lstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_LSTRIP2(PyObject *str, PyObject *chars) {
+PyObject *STR_LSTRIP2(PyThreadState *tstate, PyObject *str, PyObject *chars) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1171,13 +1171,13 @@ PyObject *STR_LSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
+PyObject *STR_PARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1187,13 +1187,13 @@ PyObject *STR_PARTITION(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyTuple_CheckExact(result));
     return result;
 }
-PyObject *STR_REPLACE3(PyObject *str, PyObject *old, PyObject *new_value) {
+PyObject *STR_REPLACE3(PyThreadState *tstate, PyObject *str, PyObject *old, PyObject *new_value) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1204,13 +1204,13 @@ PyObject *STR_REPLACE3(PyObject *str, PyObject *old, PyObject *new_value) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, old, new_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_REPLACE4(PyObject *str, PyObject *old, PyObject *new_value, PyObject *count) {
+PyObject *STR_REPLACE4(PyThreadState *tstate, PyObject *str, PyObject *old, PyObject *new_value, PyObject *count) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1222,13 +1222,13 @@ PyObject *STR_REPLACE4(PyObject *str, PyObject *old, PyObject *new_value, PyObje
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, old, new_value, count};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_RFIND2(PyObject *str, PyObject *sub) {
+PyObject *STR_RFIND2(PyThreadState *tstate, PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1238,12 +1238,12 @@ PyObject *STR_RFIND2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RFIND3(PyObject *str, PyObject *sub, PyObject *start) {
+PyObject *STR_RFIND3(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1254,12 +1254,12 @@ PyObject *STR_RFIND3(PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RFIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *STR_RFIND4(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1271,12 +1271,12 @@ PyObject *STR_RFIND4(PyObject *str, PyObject *sub, PyObject *start, PyObject *en
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RINDEX2(PyObject *str, PyObject *sub) {
+PyObject *STR_RINDEX2(PyThreadState *tstate, PyObject *str, PyObject *sub) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1286,12 +1286,12 @@ PyObject *STR_RINDEX2(PyObject *str, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RINDEX3(PyObject *str, PyObject *sub, PyObject *start) {
+PyObject *STR_RINDEX3(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1302,12 +1302,12 @@ PyObject *STR_RINDEX3(PyObject *str, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RINDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *STR_RINDEX4(PyThreadState *tstate, PyObject *str, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1319,12 +1319,12 @@ PyObject *STR_RINDEX4(PyObject *str, PyObject *sub, PyObject *start, PyObject *e
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *STR_RJUST2(PyObject *str, PyObject *width) {
+PyObject *STR_RJUST2(PyThreadState *tstate, PyObject *str, PyObject *width) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1334,13 +1334,13 @@ PyObject *STR_RJUST2(PyObject *str, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_RJUST3(PyObject *str, PyObject *width, PyObject *fillchar) {
+PyObject *STR_RJUST3(PyThreadState *tstate, PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1351,13 +1351,13 @@ PyObject *STR_RJUST3(PyObject *str, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
+PyObject *STR_RPARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1367,26 +1367,26 @@ PyObject *STR_RPARTITION(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyTuple_CheckExact(result));
     return result;
 }
-PyObject *STR_RSPLIT1(PyObject *str) {
+PyObject *STR_RSPLIT1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_rsplit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_RSPLIT2(PyObject *str, PyObject *sep) {
+PyObject *STR_RSPLIT2(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1396,13 +1396,13 @@ PyObject *STR_RSPLIT2(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_RSPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
+PyObject *STR_RSPLIT3(PyThreadState *tstate, PyObject *str, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1413,26 +1413,26 @@ PyObject *STR_RSPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_RSTRIP1(PyObject *str) {
+PyObject *STR_RSTRIP1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_rstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
+PyObject *STR_RSTRIP2(PyThreadState *tstate, PyObject *str, PyObject *chars) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1442,26 +1442,26 @@ PyObject *STR_RSTRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_SPLIT1(PyObject *str) {
+PyObject *STR_SPLIT1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_split;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_SPLIT2(PyObject *str, PyObject *sep) {
+PyObject *STR_SPLIT2(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1471,13 +1471,13 @@ PyObject *STR_SPLIT2(PyObject *str, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_SPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
+PyObject *STR_SPLIT3(PyThreadState *tstate, PyObject *str, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1488,26 +1488,26 @@ PyObject *STR_SPLIT3(PyObject *str, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_SPLITLINES1(PyObject *str) {
+PyObject *STR_SPLITLINES1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_splitlines;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_SPLITLINES2(PyObject *str, PyObject *keepends) {
+PyObject *STR_SPLITLINES2(PyThreadState *tstate, PyObject *str, PyObject *keepends) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1517,13 +1517,13 @@ PyObject *STR_SPLITLINES2(PyObject *str, PyObject *keepends) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, keepends};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *STR_STARTSWITH2(PyObject *str, PyObject *prefix) {
+PyObject *STR_STARTSWITH2(PyThreadState *tstate, PyObject *str, PyObject *prefix) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1533,13 +1533,13 @@ PyObject *STR_STARTSWITH2(PyObject *str, PyObject *prefix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, prefix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_STARTSWITH3(PyObject *str, PyObject *prefix, PyObject *start) {
+PyObject *STR_STARTSWITH3(PyThreadState *tstate, PyObject *str, PyObject *prefix, PyObject *start) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1550,13 +1550,13 @@ PyObject *STR_STARTSWITH3(PyObject *str, PyObject *prefix, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {str, prefix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_STARTSWITH4(PyObject *str, PyObject *prefix, PyObject *start, PyObject *end) {
+PyObject *STR_STARTSWITH4(PyThreadState *tstate, PyObject *str, PyObject *prefix, PyObject *start, PyObject *end) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1568,26 +1568,26 @@ PyObject *STR_STARTSWITH4(PyObject *str, PyObject *prefix, PyObject *start, PyOb
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {str, prefix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *STR_STRIP1(PyObject *str) {
+PyObject *STR_STRIP1(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_strip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
+PyObject *STR_STRIP2(PyThreadState *tstate, PyObject *str, PyObject *chars) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1597,39 +1597,39 @@ PyObject *STR_STRIP2(PyObject *str, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_SWAPCASE(PyObject *str) {
+PyObject *STR_SWAPCASE(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_swapcase;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_TITLE(PyObject *str) {
+PyObject *STR_TITLE(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_title;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_TRANSLATE(PyObject *str, PyObject *table) {
+PyObject *STR_TRANSLATE(PyThreadState *tstate, PyObject *str, PyObject *table) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1639,26 +1639,26 @@ PyObject *STR_TRANSLATE(PyObject *str, PyObject *table) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, table};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_UPPER(PyObject *str) {
+PyObject *STR_UPPER(PyThreadState *tstate, PyObject *str) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
     PyObject *called = str_builtin_upper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, str);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, str);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *STR_ZFILL(PyObject *str, PyObject *width) {
+PyObject *STR_ZFILL(PyThreadState *tstate, PyObject *str, PyObject *width) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
@@ -1668,26 +1668,26 @@ PyObject *STR_ZFILL(PyObject *str, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {str, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
 #endif
-PyObject *UNICODE_CAPITALIZE(PyObject *unicode) {
+PyObject *UNICODE_CAPITALIZE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_capitalize;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_CENTER2(PyObject *unicode, PyObject *width) {
+PyObject *UNICODE_CENTER2(PyThreadState *tstate, PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1697,12 +1697,12 @@ PyObject *UNICODE_CENTER2(PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_CENTER3(PyObject *unicode, PyObject *width, PyObject *fillchar) {
+PyObject *UNICODE_CENTER3(PyThreadState *tstate, PyObject *unicode, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1713,12 +1713,12 @@ PyObject *UNICODE_CENTER3(PyObject *unicode, PyObject *width, PyObject *fillchar
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_COUNT2(PyObject *unicode, PyObject *sub) {
+PyObject *UNICODE_COUNT2(PyThreadState *tstate, PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1728,12 +1728,12 @@ PyObject *UNICODE_COUNT2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_COUNT3(PyObject *unicode, PyObject *sub, PyObject *start) {
+PyObject *UNICODE_COUNT3(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1744,12 +1744,12 @@ PyObject *UNICODE_COUNT3(PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_COUNT4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *UNICODE_COUNT4(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1761,24 +1761,24 @@ PyObject *UNICODE_COUNT4(PyObject *unicode, PyObject *sub, PyObject *start, PyOb
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENCODE1(PyObject *unicode) {
+PyObject *UNICODE_ENCODE1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_encode;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENCODE2(PyObject *unicode, PyObject *encoding) {
+PyObject *UNICODE_ENCODE2(PyThreadState *tstate, PyObject *unicode, PyObject *encoding) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1788,12 +1788,12 @@ PyObject *UNICODE_ENCODE2(PyObject *unicode, PyObject *encoding) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, encoding};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENCODE3(PyObject *unicode, PyObject *encoding, PyObject *errors) {
+PyObject *UNICODE_ENCODE3(PyThreadState *tstate, PyObject *unicode, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1804,12 +1804,12 @@ PyObject *UNICODE_ENCODE3(PyObject *unicode, PyObject *encoding, PyObject *error
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, encoding, errors};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENDSWITH2(PyObject *unicode, PyObject *suffix) {
+PyObject *UNICODE_ENDSWITH2(PyThreadState *tstate, PyObject *unicode, PyObject *suffix) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1819,12 +1819,12 @@ PyObject *UNICODE_ENDSWITH2(PyObject *unicode, PyObject *suffix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, suffix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENDSWITH3(PyObject *unicode, PyObject *suffix, PyObject *start) {
+PyObject *UNICODE_ENDSWITH3(PyThreadState *tstate, PyObject *unicode, PyObject *suffix, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1835,12 +1835,13 @@ PyObject *UNICODE_ENDSWITH3(PyObject *unicode, PyObject *suffix, PyObject *start
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, suffix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ENDSWITH4(PyObject *unicode, PyObject *suffix, PyObject *start, PyObject *end) {
+PyObject *UNICODE_ENDSWITH4(PyThreadState *tstate, PyObject *unicode, PyObject *suffix, PyObject *start,
+                            PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1852,24 +1853,24 @@ PyObject *UNICODE_ENDSWITH4(PyObject *unicode, PyObject *suffix, PyObject *start
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, suffix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_EXPANDTABS1(PyObject *unicode) {
+PyObject *UNICODE_EXPANDTABS1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_expandtabs;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_EXPANDTABS2(PyObject *unicode, PyObject *tabsize) {
+PyObject *UNICODE_EXPANDTABS2(PyThreadState *tstate, PyObject *unicode, PyObject *tabsize) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1879,12 +1880,12 @@ PyObject *UNICODE_EXPANDTABS2(PyObject *unicode, PyObject *tabsize) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, tabsize};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_FIND2(PyObject *unicode, PyObject *sub) {
+PyObject *UNICODE_FIND2(PyThreadState *tstate, PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1894,12 +1895,12 @@ PyObject *UNICODE_FIND2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_FIND3(PyObject *unicode, PyObject *sub, PyObject *start) {
+PyObject *UNICODE_FIND3(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1910,12 +1911,12 @@ PyObject *UNICODE_FIND3(PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_FIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *UNICODE_FIND4(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1927,12 +1928,12 @@ PyObject *UNICODE_FIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyObj
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_INDEX2(PyObject *unicode, PyObject *sub) {
+PyObject *UNICODE_INDEX2(PyThreadState *tstate, PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1942,12 +1943,12 @@ PyObject *UNICODE_INDEX2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_INDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
+PyObject *UNICODE_INDEX3(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1958,12 +1959,12 @@ PyObject *UNICODE_INDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_INDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *UNICODE_INDEX4(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -1975,96 +1976,96 @@ PyObject *UNICODE_INDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyOb
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISALNUM(PyObject *unicode) {
+PyObject *UNICODE_ISALNUM(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_isalnum;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISALPHA(PyObject *unicode) {
+PyObject *UNICODE_ISALPHA(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_isalpha;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISDIGIT(PyObject *unicode) {
+PyObject *UNICODE_ISDIGIT(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_isdigit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISLOWER(PyObject *unicode) {
+PyObject *UNICODE_ISLOWER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_islower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISSPACE(PyObject *unicode) {
+PyObject *UNICODE_ISSPACE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_isspace;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISTITLE(PyObject *unicode) {
+PyObject *UNICODE_ISTITLE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_istitle;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ISUPPER(PyObject *unicode) {
+PyObject *UNICODE_ISUPPER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_isupper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_LJUST2(PyObject *unicode, PyObject *width) {
+PyObject *UNICODE_LJUST2(PyThreadState *tstate, PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2074,12 +2075,12 @@ PyObject *UNICODE_LJUST2(PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_LJUST3(PyObject *unicode, PyObject *width, PyObject *fillchar) {
+PyObject *UNICODE_LJUST3(PyThreadState *tstate, PyObject *unicode, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2090,36 +2091,36 @@ PyObject *UNICODE_LJUST3(PyObject *unicode, PyObject *width, PyObject *fillchar)
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_LOWER(PyObject *unicode) {
+PyObject *UNICODE_LOWER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_lower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_LSTRIP1(PyObject *unicode) {
+PyObject *UNICODE_LSTRIP1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_lstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_LSTRIP2(PyObject *unicode, PyObject *chars) {
+PyObject *UNICODE_LSTRIP2(PyThreadState *tstate, PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2129,12 +2130,12 @@ PyObject *UNICODE_LSTRIP2(PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_REPLACE3(PyObject *unicode, PyObject *old, PyObject *new_value) {
+PyObject *UNICODE_REPLACE3(PyThreadState *tstate, PyObject *unicode, PyObject *old, PyObject *new_value) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2145,12 +2146,13 @@ PyObject *UNICODE_REPLACE3(PyObject *unicode, PyObject *old, PyObject *new_value
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, old, new_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_REPLACE4(PyObject *unicode, PyObject *old, PyObject *new_value, PyObject *count) {
+PyObject *UNICODE_REPLACE4(PyThreadState *tstate, PyObject *unicode, PyObject *old, PyObject *new_value,
+                           PyObject *count) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2162,12 +2164,12 @@ PyObject *UNICODE_REPLACE4(PyObject *unicode, PyObject *old, PyObject *new_value
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, old, new_value, count};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RFIND2(PyObject *unicode, PyObject *sub) {
+PyObject *UNICODE_RFIND2(PyThreadState *tstate, PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2177,12 +2179,12 @@ PyObject *UNICODE_RFIND2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RFIND3(PyObject *unicode, PyObject *sub, PyObject *start) {
+PyObject *UNICODE_RFIND3(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2193,12 +2195,12 @@ PyObject *UNICODE_RFIND3(PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RFIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *UNICODE_RFIND4(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2210,12 +2212,12 @@ PyObject *UNICODE_RFIND4(PyObject *unicode, PyObject *sub, PyObject *start, PyOb
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RINDEX2(PyObject *unicode, PyObject *sub) {
+PyObject *UNICODE_RINDEX2(PyThreadState *tstate, PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2225,12 +2227,12 @@ PyObject *UNICODE_RINDEX2(PyObject *unicode, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RINDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
+PyObject *UNICODE_RINDEX3(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2241,12 +2243,12 @@ PyObject *UNICODE_RINDEX3(PyObject *unicode, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RINDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *UNICODE_RINDEX4(PyThreadState *tstate, PyObject *unicode, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2258,12 +2260,12 @@ PyObject *UNICODE_RINDEX4(PyObject *unicode, PyObject *sub, PyObject *start, PyO
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RJUST2(PyObject *unicode, PyObject *width) {
+PyObject *UNICODE_RJUST2(PyThreadState *tstate, PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2273,12 +2275,12 @@ PyObject *UNICODE_RJUST2(PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RJUST3(PyObject *unicode, PyObject *width, PyObject *fillchar) {
+PyObject *UNICODE_RJUST3(PyThreadState *tstate, PyObject *unicode, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2289,24 +2291,24 @@ PyObject *UNICODE_RJUST3(PyObject *unicode, PyObject *width, PyObject *fillchar)
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RSPLIT1(PyObject *unicode) {
+PyObject *UNICODE_RSPLIT1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_rsplit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RSPLIT2(PyObject *unicode, PyObject *sep) {
+PyObject *UNICODE_RSPLIT2(PyThreadState *tstate, PyObject *unicode, PyObject *sep) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2316,12 +2318,12 @@ PyObject *UNICODE_RSPLIT2(PyObject *unicode, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RSPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
+PyObject *UNICODE_RSPLIT3(PyThreadState *tstate, PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2332,24 +2334,24 @@ PyObject *UNICODE_RSPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) 
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RSTRIP1(PyObject *unicode) {
+PyObject *UNICODE_RSTRIP1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_rstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_RSTRIP2(PyObject *unicode, PyObject *chars) {
+PyObject *UNICODE_RSTRIP2(PyThreadState *tstate, PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2359,24 +2361,24 @@ PyObject *UNICODE_RSTRIP2(PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SPLIT1(PyObject *unicode) {
+PyObject *UNICODE_SPLIT1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_split;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SPLIT2(PyObject *unicode, PyObject *sep) {
+PyObject *UNICODE_SPLIT2(PyThreadState *tstate, PyObject *unicode, PyObject *sep) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2386,12 +2388,12 @@ PyObject *UNICODE_SPLIT2(PyObject *unicode, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
+PyObject *UNICODE_SPLIT3(PyThreadState *tstate, PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2402,24 +2404,24 @@ PyObject *UNICODE_SPLIT3(PyObject *unicode, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SPLITLINES1(PyObject *unicode) {
+PyObject *UNICODE_SPLITLINES1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_splitlines;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SPLITLINES2(PyObject *unicode, PyObject *keepends) {
+PyObject *UNICODE_SPLITLINES2(PyThreadState *tstate, PyObject *unicode, PyObject *keepends) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2429,12 +2431,12 @@ PyObject *UNICODE_SPLITLINES2(PyObject *unicode, PyObject *keepends) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, keepends};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_STARTSWITH2(PyObject *unicode, PyObject *prefix) {
+PyObject *UNICODE_STARTSWITH2(PyThreadState *tstate, PyObject *unicode, PyObject *prefix) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2444,12 +2446,12 @@ PyObject *UNICODE_STARTSWITH2(PyObject *unicode, PyObject *prefix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, prefix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_STARTSWITH3(PyObject *unicode, PyObject *prefix, PyObject *start) {
+PyObject *UNICODE_STARTSWITH3(PyThreadState *tstate, PyObject *unicode, PyObject *prefix, PyObject *start) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2460,12 +2462,13 @@ PyObject *UNICODE_STARTSWITH3(PyObject *unicode, PyObject *prefix, PyObject *sta
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {unicode, prefix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_STARTSWITH4(PyObject *unicode, PyObject *prefix, PyObject *start, PyObject *end) {
+PyObject *UNICODE_STARTSWITH4(PyThreadState *tstate, PyObject *unicode, PyObject *prefix, PyObject *start,
+                              PyObject *end) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2477,24 +2480,24 @@ PyObject *UNICODE_STARTSWITH4(PyObject *unicode, PyObject *prefix, PyObject *sta
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {unicode, prefix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_STRIP1(PyObject *unicode) {
+PyObject *UNICODE_STRIP1(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_strip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_STRIP2(PyObject *unicode, PyObject *chars) {
+PyObject *UNICODE_STRIP2(PyThreadState *tstate, PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2504,36 +2507,36 @@ PyObject *UNICODE_STRIP2(PyObject *unicode, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_SWAPCASE(PyObject *unicode) {
+PyObject *UNICODE_SWAPCASE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_swapcase;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_TITLE(PyObject *unicode) {
+PyObject *UNICODE_TITLE(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_title;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_TRANSLATE(PyObject *unicode, PyObject *table) {
+PyObject *UNICODE_TRANSLATE(PyThreadState *tstate, PyObject *unicode, PyObject *table) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2543,24 +2546,24 @@ PyObject *UNICODE_TRANSLATE(PyObject *unicode, PyObject *table) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, table};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_UPPER(PyObject *unicode) {
+PyObject *UNICODE_UPPER(PyThreadState *tstate, PyObject *unicode) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
     PyObject *called = unicode_builtin_upper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, unicode);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, unicode);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *UNICODE_ZFILL(PyObject *unicode, PyObject *width) {
+PyObject *UNICODE_ZFILL(PyThreadState *tstate, PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(unicode);
     assert(PyUnicode_CheckExact(unicode));
 
@@ -2570,26 +2573,26 @@ PyObject *UNICODE_ZFILL(PyObject *unicode, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {unicode, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
 #if PYTHON_VERSION >= 0x300
-PyObject *BYTES_CAPITALIZE(PyObject *bytes) {
+PyObject *BYTES_CAPITALIZE(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_capitalize;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_CENTER2(PyObject *bytes, PyObject *width) {
+PyObject *BYTES_CENTER2(PyThreadState *tstate, PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2599,13 +2602,13 @@ PyObject *BYTES_CENTER2(PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_CENTER3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
+PyObject *BYTES_CENTER3(PyThreadState *tstate, PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2616,13 +2619,13 @@ PyObject *BYTES_CENTER3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_COUNT2(PyObject *bytes, PyObject *sub) {
+PyObject *BYTES_COUNT2(PyThreadState *tstate, PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2632,12 +2635,12 @@ PyObject *BYTES_COUNT2(PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_COUNT3(PyObject *bytes, PyObject *sub, PyObject *start) {
+PyObject *BYTES_COUNT3(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2648,12 +2651,12 @@ PyObject *BYTES_COUNT3(PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_COUNT4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *BYTES_COUNT4(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2665,25 +2668,25 @@ PyObject *BYTES_COUNT4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_DECODE1(PyObject *bytes) {
+PyObject *BYTES_DECODE1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_decode;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *BYTES_DECODE2(PyObject *bytes, PyObject *encoding) {
+PyObject *BYTES_DECODE2(PyThreadState *tstate, PyObject *bytes, PyObject *encoding) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2693,13 +2696,13 @@ PyObject *BYTES_DECODE2(PyObject *bytes, PyObject *encoding) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, encoding};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *BYTES_DECODE3(PyObject *bytes, PyObject *encoding, PyObject *errors) {
+PyObject *BYTES_DECODE3(PyThreadState *tstate, PyObject *bytes, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2710,13 +2713,13 @@ PyObject *BYTES_DECODE3(PyObject *bytes, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, encoding, errors};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || Nuitka_String_CheckExact(result));
     return result;
 }
-PyObject *BYTES_ENDSWITH2(PyObject *bytes, PyObject *suffix) {
+PyObject *BYTES_ENDSWITH2(PyThreadState *tstate, PyObject *bytes, PyObject *suffix) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2726,13 +2729,13 @@ PyObject *BYTES_ENDSWITH2(PyObject *bytes, PyObject *suffix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, suffix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ENDSWITH3(PyObject *bytes, PyObject *suffix, PyObject *start) {
+PyObject *BYTES_ENDSWITH3(PyThreadState *tstate, PyObject *bytes, PyObject *suffix, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2743,13 +2746,13 @@ PyObject *BYTES_ENDSWITH3(PyObject *bytes, PyObject *suffix, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, suffix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ENDSWITH4(PyObject *bytes, PyObject *suffix, PyObject *start, PyObject *end) {
+PyObject *BYTES_ENDSWITH4(PyThreadState *tstate, PyObject *bytes, PyObject *suffix, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2761,26 +2764,26 @@ PyObject *BYTES_ENDSWITH4(PyObject *bytes, PyObject *suffix, PyObject *start, Py
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, suffix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_EXPANDTABS1(PyObject *bytes) {
+PyObject *BYTES_EXPANDTABS1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_expandtabs;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_EXPANDTABS2(PyObject *bytes, PyObject *tabsize) {
+PyObject *BYTES_EXPANDTABS2(PyThreadState *tstate, PyObject *bytes, PyObject *tabsize) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2790,13 +2793,13 @@ PyObject *BYTES_EXPANDTABS2(PyObject *bytes, PyObject *tabsize) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, tabsize};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_FIND2(PyObject *bytes, PyObject *sub) {
+PyObject *BYTES_FIND2(PyThreadState *tstate, PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2806,12 +2809,12 @@ PyObject *BYTES_FIND2(PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_FIND3(PyObject *bytes, PyObject *sub, PyObject *start) {
+PyObject *BYTES_FIND3(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2822,12 +2825,12 @@ PyObject *BYTES_FIND3(PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_FIND4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *BYTES_FIND4(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2839,12 +2842,12 @@ PyObject *BYTES_FIND4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject 
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_INDEX2(PyObject *bytes, PyObject *sub) {
+PyObject *BYTES_INDEX2(PyThreadState *tstate, PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2854,12 +2857,12 @@ PyObject *BYTES_INDEX2(PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_INDEX3(PyObject *bytes, PyObject *sub, PyObject *start) {
+PyObject *BYTES_INDEX3(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2870,12 +2873,12 @@ PyObject *BYTES_INDEX3(PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_INDEX4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *BYTES_INDEX4(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2887,103 +2890,103 @@ PyObject *BYTES_INDEX4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_ISALNUM(PyObject *bytes) {
+PyObject *BYTES_ISALNUM(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_isalnum;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISALPHA(PyObject *bytes) {
+PyObject *BYTES_ISALPHA(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_isalpha;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISDIGIT(PyObject *bytes) {
+PyObject *BYTES_ISDIGIT(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_isdigit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISLOWER(PyObject *bytes) {
+PyObject *BYTES_ISLOWER(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_islower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISSPACE(PyObject *bytes) {
+PyObject *BYTES_ISSPACE(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_isspace;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISTITLE(PyObject *bytes) {
+PyObject *BYTES_ISTITLE(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_istitle;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_ISUPPER(PyObject *bytes) {
+PyObject *BYTES_ISUPPER(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_isupper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_JOIN(PyObject *bytes, PyObject *iterable) {
+PyObject *BYTES_JOIN(PyThreadState *tstate, PyObject *bytes, PyObject *iterable) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -2993,13 +2996,13 @@ PyObject *BYTES_JOIN(PyObject *bytes, PyObject *iterable) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, iterable};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_LJUST2(PyObject *bytes, PyObject *width) {
+PyObject *BYTES_LJUST2(PyThreadState *tstate, PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3009,13 +3012,13 @@ PyObject *BYTES_LJUST2(PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_LJUST3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
+PyObject *BYTES_LJUST3(PyThreadState *tstate, PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3026,39 +3029,39 @@ PyObject *BYTES_LJUST3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_LOWER(PyObject *bytes) {
+PyObject *BYTES_LOWER(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_lower;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_LSTRIP1(PyObject *bytes) {
+PyObject *BYTES_LSTRIP1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_lstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_LSTRIP2(PyObject *bytes, PyObject *chars) {
+PyObject *BYTES_LSTRIP2(PyThreadState *tstate, PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3068,13 +3071,13 @@ PyObject *BYTES_LSTRIP2(PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_PARTITION(PyObject *bytes, PyObject *sep) {
+PyObject *BYTES_PARTITION(PyThreadState *tstate, PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3084,13 +3087,13 @@ PyObject *BYTES_PARTITION(PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyTuple_CheckExact(result));
     return result;
 }
-PyObject *BYTES_REPLACE3(PyObject *bytes, PyObject *old, PyObject *new_value) {
+PyObject *BYTES_REPLACE3(PyThreadState *tstate, PyObject *bytes, PyObject *old, PyObject *new_value) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3101,13 +3104,13 @@ PyObject *BYTES_REPLACE3(PyObject *bytes, PyObject *old, PyObject *new_value) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, old, new_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_REPLACE4(PyObject *bytes, PyObject *old, PyObject *new_value, PyObject *count) {
+PyObject *BYTES_REPLACE4(PyThreadState *tstate, PyObject *bytes, PyObject *old, PyObject *new_value, PyObject *count) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3119,13 +3122,13 @@ PyObject *BYTES_REPLACE4(PyObject *bytes, PyObject *old, PyObject *new_value, Py
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, old, new_value, count};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RFIND2(PyObject *bytes, PyObject *sub) {
+PyObject *BYTES_RFIND2(PyThreadState *tstate, PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3135,12 +3138,12 @@ PyObject *BYTES_RFIND2(PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RFIND3(PyObject *bytes, PyObject *sub, PyObject *start) {
+PyObject *BYTES_RFIND3(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3151,12 +3154,12 @@ PyObject *BYTES_RFIND3(PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RFIND4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *BYTES_RFIND4(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3168,12 +3171,12 @@ PyObject *BYTES_RFIND4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RINDEX2(PyObject *bytes, PyObject *sub) {
+PyObject *BYTES_RINDEX2(PyThreadState *tstate, PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3183,12 +3186,12 @@ PyObject *BYTES_RINDEX2(PyObject *bytes, PyObject *sub) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sub};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RINDEX3(PyObject *bytes, PyObject *sub, PyObject *start) {
+PyObject *BYTES_RINDEX3(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3199,12 +3202,12 @@ PyObject *BYTES_RINDEX3(PyObject *bytes, PyObject *sub, PyObject *start) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sub, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RINDEX4(PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
+PyObject *BYTES_RINDEX4(PyThreadState *tstate, PyObject *bytes, PyObject *sub, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3216,12 +3219,12 @@ PyObject *BYTES_RINDEX4(PyObject *bytes, PyObject *sub, PyObject *start, PyObjec
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, sub, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     return result;
 }
-PyObject *BYTES_RJUST2(PyObject *bytes, PyObject *width) {
+PyObject *BYTES_RJUST2(PyThreadState *tstate, PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3231,13 +3234,13 @@ PyObject *BYTES_RJUST2(PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RJUST3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
+PyObject *BYTES_RJUST3(PyThreadState *tstate, PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3248,13 +3251,13 @@ PyObject *BYTES_RJUST3(PyObject *bytes, PyObject *width, PyObject *fillchar) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, width, fillchar};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RPARTITION(PyObject *bytes, PyObject *sep) {
+PyObject *BYTES_RPARTITION(PyThreadState *tstate, PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3264,26 +3267,26 @@ PyObject *BYTES_RPARTITION(PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyTuple_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RSPLIT1(PyObject *bytes) {
+PyObject *BYTES_RSPLIT1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_rsplit;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RSPLIT2(PyObject *bytes, PyObject *sep) {
+PyObject *BYTES_RSPLIT2(PyThreadState *tstate, PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3293,13 +3296,13 @@ PyObject *BYTES_RSPLIT2(PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RSPLIT3(PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
+PyObject *BYTES_RSPLIT3(PyThreadState *tstate, PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3310,26 +3313,26 @@ PyObject *BYTES_RSPLIT3(PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RSTRIP1(PyObject *bytes) {
+PyObject *BYTES_RSTRIP1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_rstrip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_RSTRIP2(PyObject *bytes, PyObject *chars) {
+PyObject *BYTES_RSTRIP2(PyThreadState *tstate, PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3339,26 +3342,26 @@ PyObject *BYTES_RSTRIP2(PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SPLIT1(PyObject *bytes) {
+PyObject *BYTES_SPLIT1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_split;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SPLIT2(PyObject *bytes, PyObject *sep) {
+PyObject *BYTES_SPLIT2(PyThreadState *tstate, PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3368,13 +3371,13 @@ PyObject *BYTES_SPLIT2(PyObject *bytes, PyObject *sep) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, sep};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SPLIT3(PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
+PyObject *BYTES_SPLIT3(PyThreadState *tstate, PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3385,26 +3388,26 @@ PyObject *BYTES_SPLIT3(PyObject *bytes, PyObject *sep, PyObject *maxsplit) {
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, sep, maxsplit};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SPLITLINES1(PyObject *bytes) {
+PyObject *BYTES_SPLITLINES1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_splitlines;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SPLITLINES2(PyObject *bytes, PyObject *keepends) {
+PyObject *BYTES_SPLITLINES2(PyThreadState *tstate, PyObject *bytes, PyObject *keepends) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3414,13 +3417,13 @@ PyObject *BYTES_SPLITLINES2(PyObject *bytes, PyObject *keepends) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, keepends};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyList_CheckExact(result));
     return result;
 }
-PyObject *BYTES_STARTSWITH2(PyObject *bytes, PyObject *prefix) {
+PyObject *BYTES_STARTSWITH2(PyThreadState *tstate, PyObject *bytes, PyObject *prefix) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3430,13 +3433,13 @@ PyObject *BYTES_STARTSWITH2(PyObject *bytes, PyObject *prefix) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, prefix};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_STARTSWITH3(PyObject *bytes, PyObject *prefix, PyObject *start) {
+PyObject *BYTES_STARTSWITH3(PyThreadState *tstate, PyObject *bytes, PyObject *prefix, PyObject *start) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3447,13 +3450,13 @@ PyObject *BYTES_STARTSWITH3(PyObject *bytes, PyObject *prefix, PyObject *start) 
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, prefix, start};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_STARTSWITH4(PyObject *bytes, PyObject *prefix, PyObject *start, PyObject *end) {
+PyObject *BYTES_STARTSWITH4(PyThreadState *tstate, PyObject *bytes, PyObject *prefix, PyObject *start, PyObject *end) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3465,26 +3468,26 @@ PyObject *BYTES_STARTSWITH4(PyObject *bytes, PyObject *prefix, PyObject *start, 
     CHECK_OBJECT(called);
 
     PyObject *args[4] = {bytes, prefix, start, end};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS4(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBool_Check(result));
     return result;
 }
-PyObject *BYTES_STRIP1(PyObject *bytes) {
+PyObject *BYTES_STRIP1(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_strip;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_STRIP2(PyObject *bytes, PyObject *chars) {
+PyObject *BYTES_STRIP2(PyThreadState *tstate, PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3494,39 +3497,39 @@ PyObject *BYTES_STRIP2(PyObject *bytes, PyObject *chars) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, chars};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_SWAPCASE(PyObject *bytes) {
+PyObject *BYTES_SWAPCASE(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_swapcase;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_TITLE(PyObject *bytes) {
+PyObject *BYTES_TITLE(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_title;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_TRANSLATE2(PyObject *bytes, PyObject *table) {
+PyObject *BYTES_TRANSLATE2(PyThreadState *tstate, PyObject *bytes, PyObject *table) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3536,13 +3539,13 @@ PyObject *BYTES_TRANSLATE2(PyObject *bytes, PyObject *table) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, table};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_TRANSLATE3(PyObject *bytes, PyObject *table, PyObject *delete_value) {
+PyObject *BYTES_TRANSLATE3(PyThreadState *tstate, PyObject *bytes, PyObject *table, PyObject *delete_value) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3553,26 +3556,26 @@ PyObject *BYTES_TRANSLATE3(PyObject *bytes, PyObject *table, PyObject *delete_va
     CHECK_OBJECT(called);
 
     PyObject *args[3] = {bytes, table, delete_value};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_UPPER(PyObject *bytes) {
+PyObject *BYTES_UPPER(PyThreadState *tstate, PyObject *bytes) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
     PyObject *called = bytes_builtin_upper;
     CHECK_OBJECT(called);
 
-    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, bytes);
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(tstate, called, bytes);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));
     return result;
 }
-PyObject *BYTES_ZFILL(PyObject *bytes, PyObject *width) {
+PyObject *BYTES_ZFILL(PyThreadState *tstate, PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(bytes);
     assert(PyBytes_CheckExact(bytes));
 
@@ -3582,7 +3585,7 @@ PyObject *BYTES_ZFILL(PyObject *bytes, PyObject *width) {
     CHECK_OBJECT(called);
 
     PyObject *args[2] = {bytes, width};
-    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(tstate, called, args);
 
     CHECK_OBJECT_X(result);
     assert(result == NULL || PyBytes_CheckExact(result));

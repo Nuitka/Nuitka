@@ -214,6 +214,7 @@ def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref)
                         source_code=source,
                         globals_arg=globals_ref,
                         locals_arg=locals_ref,
+                        closure=None,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
@@ -587,8 +588,8 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # The ast uses funny names a bunch.
-    # spellchecker: ignore varnames,elts,posonlyargs,kwonlyargs,varargannotation,vararg
-    # spellchecker: ignore kwargannotation
+    # spell-checker: ignore varnames,elts,posonlyargs,kwonlyargs,varargannotation,vararg
+    # spell-checker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 0x300 or hasPythonFlagNoAnnotations():

@@ -27,6 +27,7 @@ from math import copysign, isinf, isnan
 from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import (
     isPythonValidCLongLongValue,
     isPythonValidCLongValue,
@@ -42,7 +43,8 @@ from nuitka.Serialization import (
     ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import getFileSize, listDir, syncFileOutput
+from nuitka.utils.Json import writeJsonToFilename
 
 
 def scanConstFiles(build_dir):
@@ -373,8 +375,12 @@ def _writeConstantsBlob(output_filename, desc):
         )
         data_composer_logger.info("Total constants blob CRC32 is %d." % crc32)
 
+        syncFileOutput(output)
+
 
 def main():
+    # many details, mostly needed for reporting: pylint: disable=too-many-locals
+
     data_composer_logger.is_quiet = (
         os.environ.get("NUITKA_DATA_COMPOSER_VERBOSE", "0") != "1"
     )
@@ -383,7 +389,9 @@ def main():
     # where main Nuitka put the .const files.
     build_dir = sys.argv[1]
     output_filename = sys.argv[2]
+    stats_filename = sys.argv[3]
 
+    # Scan file ".const" files from the build directory.
     const_files = scanConstFiles(build_dir)
 
     total = 0
@@ -391,6 +399,8 @@ def main():
     desc = []
 
     names = set()
+
+    stats = OrderedDict()
 
     for fullpath, filename in const_files:
         data_composer_logger.info("Working on constant file '%s'." % filename)
@@ -413,15 +423,27 @@ def main():
 
             if str is not bytes:
                 # Encoding needs to match generated source code output.
-                name = name.encode("latin1")
+                encoded_name = name.encode("latin1")
+            else:
+                encoded_name = name
 
-            desc.append((name, part))
+            desc.append((encoded_name, part))
         except Exception:
             data_composer_logger.warning("Problem with constant file '%s'." % filename)
             raise
 
+        stats[filename] = {
+            "input_size": getFileSize(fullpath),
+            "blob_name": name,
+            "blob_size": len(part),
+        }
+
+    stats["total"] = total
+
     data_composer_logger.info("Total amount of constants is %d." % total)
 
     _writeConstantsBlob(output_filename=output_filename, desc=desc)
+
+    writeJsonToFilename(stats_filename, contents=stats)
 
     sys.exit(0)

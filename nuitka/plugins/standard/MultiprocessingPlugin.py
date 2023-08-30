@@ -15,13 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Standard plug-in to make multiprocessing work well on Windows.
+""" Standard plug-in to make multiprocessing and joblib work well.
 
 On Windows, the multiprocessing modules forks new processes which then have
 to start from scratch. This won't work if there is no "sys.executable" to
 point to a "Python.exe" and won't use compiled code by default.
 
 The issue applies to accelerated and standalone mode alike.
+
+spell-checker: ignore joblib
 """
 
 from nuitka import Options
@@ -134,16 +136,39 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         source_code = readSourceCodeFromFilename(module_name, root_module.getFilename())
 
-        # For the call stack, this may look bad or different to what
-        # CPython does. Using the "__import__" built-in to not spoil
-        # or use the module namespace. The forking module was split up
-        # into multiple modules in Python 3.4.
+        # For the call stack, this may look bad or different to what CPython
+        # does, but such is life. The forking module was split up into multiple
+        # modules in Python 3.4 so this is doubled. TODO: Move the version check
+        # into the code and let Nuitka compile time optimize it, which will also
+        # make sure joblib support is there for Python2 as well.
         if python_version >= 0x340:
             source_code += """
-__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
-# Not needed, and can crash from minor __file__ differences, depending on invocation
-__import__("multiprocessing.spawn").spawn._fixup_main_from_path = lambda mod_name : None
-__import__("multiprocessing.spawn").spawn.freeze_support()"""
+def __nuitka_freeze_support():
+    import sys
+
+    # Not needed, and can crash from minor __file__ differences, depending on invocation
+    import multiprocessing.spawn
+    multiprocessing.spawn._fixup_main_from_path = lambda mod_name : None
+
+    # This is a variant of freeze_support that will work for multiprocessing and
+    # joblib equally well.
+    kwds = {}
+    args = []
+    for arg in sys.argv[2:]:
+        try:
+            name, value = arg.split('=')
+        except ValueError:
+            name = "pipe_handle"
+            value = arg
+
+        if value == 'None':
+            kwds[name] = None
+        else:
+            kwds[name] = int(value)
+
+    multiprocessing.spawn.spawn_main(*args, **kwds)
+__nuitka_freeze_support()
+"""
         else:
             source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]

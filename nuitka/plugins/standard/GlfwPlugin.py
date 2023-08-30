@@ -20,10 +20,11 @@
 """
 
 import os
+import re
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.FileOperations import getFileContents
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
@@ -41,7 +42,9 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
     # TODO: Maybe rename to opengl maybe
     plugin_name = "glfw"  # Nuitka knows us by this name
-    plugin_desc = "Required for OpenGL and 'glfw' package in standalone mode."
+    plugin_desc = (
+        "Required for 'OpenGL' (PyOpenGL) and 'glfw' package in standalone mode."
+    )
 
     @staticmethod
     def isAlwaysEnabled():
@@ -57,7 +60,6 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def getImplicitImports(self, module):
-        # Dealing with OpenGL is a bit detailed, pylint: disable=too-many-branches
         if module.getFullName() == "OpenGL":
             opengl_infos = self.queryRuntimeInformationSingle(
                 setup_codes="import OpenGL.plugins",
@@ -68,34 +70,33 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
             for _name, import_path in opengl_infos:
                 yield ModuleName(import_path).getPackageName()
 
-            for line in getFileContentByLine(module.getCompileTimeFilename()):
-                line = line.partition("#")[0]
+            code = getFileContents(module.getCompileTimeFilename())
 
-                if line.startswith("PlatformPlugin("):
-                    os_part, plugin_name_part = line[15:-1].split(",")
-                    os_part = os_part.strip("' ")
-                    plugin_name_part = plugin_name_part.strip(") '")
-                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
+            for os_part, plugin_name_part in re.findall(
+                r"""PlatformPlugin\(\s*['"](\w+)['"]\s*,\s*['"]([\w\.]+)['"]\s*\)""",
+                code,
+            ):
+                plugin_name_part = ModuleName(plugin_name_part).getPackageName()
 
-                    if os_part == "nt":
-                        if isWin32Windows():
-                            yield plugin_name_part
-                    elif os_part.startswith("linux"):
-                        if isLinux():
-                            yield plugin_name_part
-                    elif os_part.startswith("darwin"):
-                        if isMacOS():
-                            yield plugin_name_part
-                    elif os_part.startswith(
-                        ("posix", "osmesa", "egl", "x11", "wayland", "xwayland")
-                    ):
-                        if not isWin32Windows() and not isMacOS():
-                            yield plugin_name_part
-                    else:
-                        self.sysexit(
-                            "Undetected OS specific glfw plugin '%s', please report bug for."
-                            % os_part
-                        )
+                if os_part == "nt":
+                    if isWin32Windows():
+                        yield plugin_name_part
+                elif os_part.startswith("linux"):
+                    if isLinux():
+                        yield plugin_name_part
+                elif os_part.startswith("darwin"):
+                    if isMacOS():
+                        yield plugin_name_part
+                elif os_part.startswith(
+                    ("posix", "osmesa", "egl", "x11", "wayland", "xwayland", "glx")
+                ):
+                    if not isWin32Windows() and not isMacOS():
+                        yield plugin_name_part
+                else:
+                    self.sysexit(
+                        "Undetected OS specific PyOpenGL plugin '%s', please report bug for."
+                        % os_part
+                    )
 
     def _getDLLFilename(self):
         glfw_info = self.queryRuntimeInformationMultiple(

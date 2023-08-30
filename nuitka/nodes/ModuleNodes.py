@@ -25,7 +25,7 @@ import os
 
 from nuitka import Options, Variables
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import locateModule
+from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
@@ -53,14 +53,15 @@ from .NodeBases import (
 class PythonModuleBase(NodeBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("module_name",)
+    __slots__ = ("module_name", "reason")
 
-    def __init__(self, module_name, source_ref):
+    def __init__(self, module_name, reason, source_ref):
         assert type(module_name) is ModuleName, module_name
 
         NodeBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
+        self.reason = reason
 
     def getDetails(self):
         return {"module_name": self.module_name}
@@ -108,7 +109,11 @@ class PythonModuleBase(NodeBase):
 
             assert package_filename is not None, (package_name, finding)
 
-            # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
+            assert _package_name == package_name, (
+                package_filename,
+                _package_name,
+                package_name,
+            )
 
             decision, _reason = decideRecursion(
                 using_module_name=self.getFullName(),
@@ -119,15 +124,12 @@ class PythonModuleBase(NodeBase):
 
             if decision is not None:
                 package = recurseTo(
-                    signal_change=self.trace_collection.signalChange
-                    if hasattr(self, "trace_collection")
-                    else None,
                     module_name=package_name,
                     module_filename=package_filename,
                     module_kind=package_module_kind,
-                    using_module_name=self.module_name,
                     source_ref=self.source_ref,
-                    reason="Containing package of '%s'." % self.getFullName(),
+                    reason="parent package",
+                    using_module_name=self.module_name,
                 )
 
         if package:
@@ -202,14 +204,6 @@ class PythonModuleBase(NodeBase):
 
             return result
 
-    @staticmethod
-    def isStatement():
-        return False
-
-    @staticmethod
-    def isExpression():
-        return False
-
 
 class CompiledPythonModule(
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
@@ -249,8 +243,13 @@ class CompiledPythonModule(
 
     named_children = ("body|statements_or_none+setter", "functions|tuple+setter")
 
-    def __init__(self, module_name, is_top, mode, future_spec, source_ref):
-        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
+    def __init__(self, module_name, reason, is_top, mode, future_spec, source_ref):
+        PythonModuleBase.__init__(
+            self,
+            module_name=module_name,
+            reason=reason,
+            source_ref=source_ref,
+        )
 
         ClosureGiverNodeMixin.__init__(
             self, name=module_name.getBasename(), code_prefix="module"
@@ -477,6 +476,9 @@ class CompiledPythonModule(
     def getUsedModules(self):
         return self.trace_collection.getModuleUsageAttempts()
 
+    def getUsedDistributions(self):
+        return self.trace_collection.getUsedDistributions()
+
     def addUsedFunction(self, function_body):
         assert function_body in self.subnode_functions, function_body
 
@@ -536,7 +538,7 @@ class CompiledPythonModule(
 
         self.trace_collection = TraceCollectionModule(
             self,
-            old_collection.getVeryTrustedModuleVariables()
+            very_trusted_module_variables=old_collection.getVeryTrustedModuleVariables()
             if old_collection is not None
             else {},
         )
@@ -694,10 +696,11 @@ class CompiledPythonModule(
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, module_name, is_top, mode, future_spec, source_ref):
+    def __init__(self, module_name, reason, is_top, mode, future_spec, source_ref):
         CompiledPythonModule.__init__(
             self,
             module_name=module_name,
+            reason=reason,
             is_top=is_top,
             mode=mode,
             future_spec=future_spec,
@@ -718,49 +721,66 @@ class CompiledPythonPackage(CompiledPythonModule):
 
 
 def makeUncompiledPythonModule(
-    module_name, filename, bytecode, is_package, user_provided, technical
+    module_name, reason, filename, bytecode, is_package, technical
 ):
     source_ref = fromFilename(filename)
 
     if is_package:
         return UncompiledPythonPackage(
             module_name=module_name,
+            reason=reason,
             bytecode=bytecode,
             filename=filename,
-            user_provided=user_provided,
             technical=technical,
             source_ref=source_ref,
         )
     else:
         return UncompiledPythonModule(
             module_name=module_name,
+            reason=reason,
             bytecode=bytecode,
             filename=filename,
-            user_provided=user_provided,
             technical=technical,
             source_ref=source_ref,
         )
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """Compiled Python Module"""
+    """Uncompiled Python Module"""
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
-    __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
+    __slots__ = (
+        "bytecode",
+        "filename",
+        "technical",
+        "used_modules",
+        "distribution_names",
+    )
 
     def __init__(
-        self, module_name, bytecode, filename, user_provided, technical, source_ref
+        self,
+        module_name,
+        reason,
+        bytecode,
+        filename,
+        technical,
+        source_ref,
     ):
-        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
+        PythonModuleBase.__init__(
+            self,
+            module_name=module_name,
+            reason=reason,
+            source_ref=source_ref,
+        )
 
         self.bytecode = bytecode
         self.filename = filename
 
-        self.user_provided = user_provided
         self.technical = technical
 
         self.used_modules = ()
+        self.distribution_names = ()
 
     def finalize(self):
         del self.used_modules
@@ -769,9 +789,6 @@ class UncompiledPythonModule(PythonModuleBase):
     @staticmethod
     def isUncompiledPythonModule():
         return True
-
-    def isUserProvided(self):
-        return self.user_provided
 
     def isTechnical(self):
         """Must be bytecode as it's used in CPython library initialization."""
@@ -789,6 +806,12 @@ class UncompiledPythonModule(PythonModuleBase):
     def setUsedModules(self, used_modules):
         self.used_modules = used_modules
 
+    def getUsedDistributions(self):
+        return self.distribution_names
+
+    def setUsedDistributions(self, distribution_names):
+        self.distribution_names = distribution_names
+
     @staticmethod
     def startTraversal():
         pass
@@ -803,7 +826,7 @@ class PythonMainModule(CompiledPythonModule):
 
     kind = "PYTHON_MAIN_MODULE"
 
-    __slots__ = ("main_added", "early_modules")
+    __slots__ = ("main_added", "standard_library_modules")
 
     def __init__(self, module_name, main_added, mode, future_spec, source_ref):
         assert not Options.shallMakeModule()
@@ -814,13 +837,14 @@ class PythonMainModule(CompiledPythonModule):
         CompiledPythonModule.__init__(
             self,
             module_name=module_name,
+            reason="main",
             is_top=True,
             mode=mode,
             future_spec=future_spec,
             source_ref=source_ref,
         )
 
-        self.early_modules = ()
+        self.standard_library_modules = ()
 
     def getDetails(self):
         return {
@@ -892,31 +916,36 @@ class PythonMainModule(CompiledPythonModule):
         else:
             return CompiledPythonModule.getOutputFilename(self)
 
-    def setEarlyModules(self, early_modules):
-        self.early_modules = early_modules
+    def getUsedModules(self):
+        for used_module in CompiledPythonModule.getUsedModules(self):
+            yield used_module
 
-    def getEarlyModules(self):
-        return self.early_modules
+        for used_module in self.standard_library_modules:
+            yield used_module
 
-    def computeModule(self):
-        CompiledPythonModule.computeModule(self)
+    def setStandardLibraryModules(self, early_module_names, stdlib_modules_names):
+        self.standard_library_modules = OrderedSet()
 
-        from nuitka.ModuleRegistry import addUsedModule
+        for early_module_name in early_module_names + stdlib_modules_names:
+            _early_module_name, module_filename, module_kind, finding = locateModule(
+                module_name=early_module_name,
+                parent_package=None,
+                level=0,
+            )
 
-        for early_module in self.early_modules:
-            if early_module.isTechnical():
-                usage_tag = "technical"
-                reason = "Module needed for initializing Python"
-            else:
-                usage_tag = "stdlib"
-                reason = "Part of standard library"
+            # Technically required, but not found must not happen
+            assert finding != "not-found"
 
-            addUsedModule(
-                module=early_module,
-                using_module=self,
-                usage_tag=usage_tag,
-                reason=reason,
-                source_ref=self.source_ref,
+            self.standard_library_modules.add(
+                makeModuleUsageAttempt(
+                    module_name=early_module_name,
+                    filename=module_filename,
+                    module_kind=module_kind,
+                    finding=finding,
+                    level=0,
+                    source_ref=self.source_ref,
+                    reason="stdlib",
+                )
             )
 
 
@@ -927,8 +956,19 @@ class PythonExtensionModule(PythonModuleBase):
 
     avoid_duplicates = set()
 
-    def __init__(self, module_name, technical, source_ref):
-        PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
+    def __init__(
+        self,
+        module_name,
+        reason,
+        technical,
+        source_ref,
+    ):
+        PythonModuleBase.__init__(
+            self,
+            module_name=module_name,
+            reason=reason,
+            source_ref=source_ref,
+        )
 
         # That would be a mistake we just made.
         assert os.path.basename(source_ref.getFilename()) != "<frozen>"
@@ -1010,6 +1050,10 @@ class PythonExtensionModule(PythonModuleBase):
         # The PyI contents is currently delivered via implicit imports
         # plugin.
         return ()
+
+    @staticmethod
+    def getUsedDistributions():
+        return {}
 
     def getParentModule(self):
         return self

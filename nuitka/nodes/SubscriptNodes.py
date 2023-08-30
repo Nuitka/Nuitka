@@ -45,15 +45,9 @@ class StatementAssignmentSubscript(StatementAssignmentSubscriptBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ("source", "subscribed", "subscript")
+    auto_compute_handling = "operation"
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         return self.subnode_subscribed.computeExpressionSetSubscript(
             set_node=self,
             subscript=self.subnode_subscript,
@@ -70,15 +64,9 @@ class StatementDelSubscript(StatementDelSubscriptBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ("subscribed", "subscript")
+    auto_compute_handling = "operation"
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         return self.subnode_subscribed.computeExpressionDelSubscript(
             del_node=self,
             subscript=self.subnode_subscript,

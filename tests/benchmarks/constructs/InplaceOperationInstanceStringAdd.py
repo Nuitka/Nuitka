@@ -24,7 +24,6 @@ module_value1 = 5
 
 class C:
     def __init__(self):
-
         self.s = "2" * 100000
 
     def increment(self):

@@ -51,7 +51,7 @@ from nuitka.Tracing import (
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from .Utils import isLinux, isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -864,7 +864,6 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
             path=dist_dir,
             filename=os.path.join(os.path.dirname(dest_path), link_target_rel),
         ):
-
             os.symlink(link_target_rel, dest_path)
             return
 
@@ -1161,6 +1160,8 @@ def _getReportPath(filename, prefixes):
 
     if isWin32Windows():
         try:
+            old_filename = filename
+
             filename = getWindowsLongPathName(filename)
         except FileNotFoundError:
             dirname = os.path.dirname(filename)
@@ -1172,6 +1173,9 @@ def _getReportPath(filename, prefixes):
                     pass
                 else:
                     filename = os.path.join(dirname, os.path.basename(filename))
+        else:
+            if old_filename != filename:
+                return _getReportPath(filename, prefixes)
 
     return filename
 
@@ -1251,7 +1255,7 @@ def resolveShellPatternToFilenames(pattern):
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context."""
 
-    # spellchecker: ignore chdir
+    # spell-checker: ignore chdir
 
     if path is not None or not allow_none:
         old_cwd = os.getcwd()
@@ -1272,3 +1276,30 @@ def containsPathElements(path, elements):
     parts = os.path.normpath(path).split(os.path.sep)
 
     return any(element in parts for element in elements)
+
+
+def syncFileOutput(file_handle):
+    """Synchronize a file contents to disk
+
+    On this, this not only flushes, but calls "syncfs" to make sure things work
+    properly.
+
+    # spell-checker: ignore syncfs
+    """
+
+    file_handle.flush()
+
+    if isLinux():
+        import ctypes
+
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+        except OSError:
+            # We cannot do it easily for this Linux apparently.
+            return
+
+        try:
+            libc.syncfs(file_handle.fileno())
+        except AttributeError:
+            # Too old to have "syncfs" available.
+            return

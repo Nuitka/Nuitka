@@ -57,6 +57,7 @@ def getCoroutineObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=True,
     )
 
     return template_coroutine_object_maker % {
@@ -141,6 +142,7 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=True,
     )
 
     return template_coroutine_object_body % {
@@ -178,7 +180,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
         closure_variables=closure_variables, context=context
     )
 
-    args = []
+    args = ["tstate"]
     if closure_name:
         args.append(closure_name)
 
@@ -211,7 +213,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     else:
         wait_kind = "await_normal"
 
-    emit("%s = ASYNC_AWAIT(%s, %s);" % (to_name, value_name, wait_kind))
+    emit("%s = ASYNC_AWAIT(tstate, %s, %s);" % (to_name, value_name, wait_kind))
 
     getErrorExitCode(
         check_name=to_name, release_name=value_name, emit=emit, context=context
@@ -228,8 +230,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "aiter_result", expression, emit, context
     ) as result_name:
-
-        emit("%s = ASYNC_MAKE_ITERATOR(%s);" % (result_name, value_name))
+        emit("%s = ASYNC_MAKE_ITERATOR(tstate, %s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context
@@ -246,8 +247,7 @@ def generateAsyncNextCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "anext_result", expression, emit, context
     ) as result_name:
-
-        emit("%s = ASYNC_ITERATOR_NEXT(%s);" % (result_name, value_name))
+        emit("%s = ASYNC_ITERATOR_NEXT(tstate, %s);" % (result_name, value_name))
 
         getErrorExitCode(
             check_name=result_name, release_name=value_name, emit=emit, context=context

@@ -184,9 +184,27 @@ def isUninstalledPython():
     return isAnacondaPython() or "WinPython" in sys.version
 
 
+_is_win_python = None
+
+
 def isWinPython():
     """Is this Python from WinPython."""
-    return "WinPython" in sys.version
+    if "WinPython" in sys.version:
+        return True
+
+    # singleton, pylint: disable=global-statement
+    global _is_win_python
+
+    if _is_win_python is None:
+        for element in sys.path:
+            if os.path.basename(element) == "site-packages":
+                if os.path.exists(os.path.join(element, "winpython")):
+                    _is_win_python = True
+                    break
+        else:
+            _is_win_python = False
+
+    return _is_win_python
 
 
 def isDebianPackagePython():

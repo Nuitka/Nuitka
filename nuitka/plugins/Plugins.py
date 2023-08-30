@@ -42,6 +42,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -295,7 +296,10 @@ def _loadPluginClassesFromPackage(scan_package):
         if item.ispkg:  # spell-checker: ignore ispkg
             continue
 
-        module_loader = item.module_finder.find_module(item.name)
+        if python_version < 0x3C0:
+            module_loader = item.module_finder.find_module(item.name)
+        else:
+            module_loader = item.module_finder.find_spec(item.name).loader
 
         # Ignore bytecode only left overs.
         try:
@@ -460,7 +464,7 @@ class Plugins(object):
         return result
 
     @staticmethod
-    def _reportImplicitImports(plugin, module, implicit_imports, signal_change):
+    def _reportImplicitImports(plugin, module, implicit_imports):
         from nuitka.importing import Recursion
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
@@ -471,7 +475,7 @@ class Plugins(object):
             )
 
             # This will get back to all other plugins allowing them to inhibit it though.
-            decision, reason = Recursion.decideRecursion(
+            decision, decision_reason = Recursion.decideRecursion(
                 using_module_name=module.getFullName(),
                 module_filename=module_filename,
                 module_name=full_name,
@@ -480,20 +484,19 @@ class Plugins(object):
 
             if decision:
                 imported_module = Recursion.recurseTo(
-                    signal_change=signal_change,
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
-                    using_module_name=module.module_name,
                     source_ref=module.getSourceReference(),
-                    reason=reason,
+                    reason="implicit import",
+                    using_module_name=module.module_name,
                 )
 
                 addUsedModule(
                     module=imported_module,
                     using_module=module,
                     usage_tag="plugin:" + plugin.plugin_name,
-                    reason=reason,
+                    reason=decision_reason,
                     source_ref=module.source_ref,
                 )
 
@@ -523,7 +526,7 @@ class Plugins(object):
         return cls.extra_scan_paths_cache[key]
 
     @classmethod
-    def considerImplicitImports(cls, module, signal_change):
+    def considerImplicitImports(cls, module):
         for plugin in getActivePlugins():
             key = (module.getFullName(), plugin)
 
@@ -537,7 +540,6 @@ class Plugins(object):
                 plugin=plugin,
                 module=module,
                 implicit_imports=cls.implicit_imports_cache[key],
-                signal_change=signal_change,
             )
 
         # Pre and post load code may have been created, if so indicate it's used.
@@ -796,16 +798,17 @@ class Plugins(object):
             putTextFileContents(filename=source_path, contents=code)
 
         try:
-            trigger_module, _added = buildModule(
+            trigger_module = buildModule(
                 module_filename=os.path.join(
                     os.path.dirname(module.getCompileTimeFilename()),
                     module_name.asPath() + ".py",
                 ),
                 module_name=module_name,
+                reason="trigger",
                 source_code=code,
                 is_top=False,
                 is_main=False,
-                is_extension=False,
+                module_kind="py",
                 is_fake=module_name,
                 hide_syntax_error=False,
             )
@@ -843,7 +846,10 @@ class Plugins(object):
                         flags = ()
                     else:
                         code, reason, flags = desc
-                        if type(flags) is str:
+
+                        if flags is None:
+                            flags = ()
+                        elif type(flags) is str:
                             flags = (flags,)
 
                     yield plugin, code, reason, flags
@@ -881,21 +887,14 @@ class Plugins(object):
                 _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
 
-        def combineLoadCodes(module_load_descriptions, mode):
+        def combineLoadCodes(module_load_descriptions):
             future_imports_code = []
             normal_code_code = []
             total_flags = OrderedSet()
             reasons = []
 
-            for plugin, code, reason, flags in module_load_descriptions:
+            for _plugin, code, reason, flags in module_load_descriptions:
                 if code:
-                    plugin.info(
-                        "Injecting %s-module load code for module '%s':"
-                        % (mode, full_name)
-                    )
-                    for line in reason.split("\n"):
-                        plugin.info("    " + line)
-
                     for line in code.splitlines():
                         line = line + "\n"
 
@@ -913,7 +912,7 @@ class Plugins(object):
 
         if pre_module_load_descriptions:
             total_code, reasons, total_flags = combineLoadCodes(
-                module_load_descriptions=pre_module_load_descriptions, mode="pre"
+                module_load_descriptions=pre_module_load_descriptions
             )
 
             if total_code:
@@ -929,7 +928,7 @@ class Plugins(object):
 
         if post_module_load_descriptions:
             total_code, reasons, total_flags = combineLoadCodes(
-                module_load_descriptions=post_module_load_descriptions, mode="post"
+                module_load_descriptions=post_module_load_descriptions
             )
 
             if total_code:
@@ -955,13 +954,14 @@ class Plugins(object):
                 fake_filename,
                 reason,
             ) in fake_module_descriptions:
-                fake_module, _added = buildModule(
+                fake_module = buildModule(
                     module_filename=fake_filename,
                     module_name=fake_module_name,
+                    reason="fake",
                     source_code=source_code,
                     is_top=False,
                     is_main=False,
-                    is_extension=False,
+                    module_kind="py",
                     is_fake=fake_module_name,
                     hide_syntax_error=False,
                 )
@@ -988,19 +988,6 @@ class Plugins(object):
                 assert type(source_code) is str
 
         return source_code, contributing_plugins
-
-    @staticmethod
-    def onFrozenModuleSourceCode(module_name, is_package, source_code):
-        assert type(module_name) is ModuleName
-        assert type(source_code) is str
-
-        for plugin in getActivePlugins():
-            source_code = plugin.onFrozenModuleSourceCode(
-                module_name, is_package, source_code
-            )
-            assert type(source_code) is str
-
-        return source_code
 
     @staticmethod
     def onFrozenModuleBytecode(module_name, is_package, bytecode):
@@ -1038,17 +1025,23 @@ class Plugins(object):
                 if result[0] != must_recurse[0]:
                     plugin.sysexit(
                         "Error, decision %s does not match other plugin '%s' decision."
-                        % (must_recurse[0], ".".join(deciding_plugins))
+                        % (
+                            must_recurse[0],
+                            ".".join(
+                                deciding_plugin.plugin_name
+                                for deciding_plugin in deciding_plugins
+                            ),
+                        )
                     )
 
-            deciding_plugins.append(plugin.plugin_name)
+            deciding_plugins.append(plugin)
             result = must_recurse
 
-        return result
+        return result, deciding_plugins
 
     @staticmethod
     def onModuleRecursion(
-        module_name, module_filename, module_kind, using_module_name, source_ref
+        module_name, module_filename, module_kind, using_module_name, source_ref, reason
     ):
         for plugin in getActivePlugins():
             plugin.onModuleRecursion(
@@ -1057,6 +1050,7 @@ class Plugins(object):
                 module_kind=module_kind,
                 using_module_name=using_module_name,
                 source_ref=source_ref,
+                reason=reason,
             )
 
     @staticmethod

@@ -87,8 +87,6 @@ class ExpressionOperationUnaryRepr(  # TODO: Not exact
     __slots__ = ("escape_desc",)
 
     def __init__(self, operand, source_ref):
-        assert operand.isExpression(), operand
-
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )
@@ -128,8 +126,6 @@ class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
     simulator = PythonOperators.unary_operator_functions[operator]
 
     def __init__(self, operand, source_ref):
-        assert operand.isExpression(), operand
-
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )
@@ -144,8 +140,6 @@ class ExpressionOperationUnaryAdd(ExpressionOperationUnaryBase):
     simulator = PythonOperators.unary_operator_functions[operator]
 
     def __init__(self, operand, source_ref):
-        assert operand.isExpression(), operand
-
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )
@@ -160,8 +154,6 @@ class ExpressionOperationUnaryInvert(ExpressionOperationUnaryBase):
     simulator = PythonOperators.unary_operator_functions[operator]
 
     def __init__(self, operand, source_ref):
-        assert operand.isExpression(), operand
-
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )

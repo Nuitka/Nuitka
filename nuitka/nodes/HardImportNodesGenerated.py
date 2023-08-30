@@ -47,6 +47,9 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_entry_points_since_310_spec,
     importlib_metadata_metadata_spec,
     importlib_metadata_version_spec,
+    importlib_resources_backport_files_spec,
+    importlib_resources_backport_read_binary_spec,
+    importlib_resources_backport_read_text_spec,
     importlib_resources_files_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
@@ -175,7 +178,6 @@ class ExpressionCtypesCdllSince38CallBase(
     def __init__(
         self, name, mode, handle, use_errno, use_lasterror, winmode, source_ref
     ):
-
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin.__init__(
             self,
             name=name,
@@ -244,7 +246,6 @@ class ExpressionCtypesCdllBefore38CallBase(
     spec = ctypes_cdll_before_38_spec
 
     def __init__(self, name, mode, handle, use_errno, use_lasterror, source_ref):
-
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin.__init__(
             self,
             name=name,
@@ -345,7 +346,6 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
     spec = importlib_metadata_backport_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -439,7 +439,6 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
     spec = importlib_metadata_backport_entry_points_spec
 
     def __init__(self, params, source_ref):
-
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -533,7 +532,6 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
     spec = importlib_metadata_backport_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -627,7 +625,6 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
     spec = importlib_metadata_backport_version_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -721,7 +718,6 @@ class ExpressionImportlibMetadataDistributionCallBase(
     spec = importlib_metadata_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -835,7 +831,6 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     spec = importlib_metadata_entry_points_since_310_spec
 
     def __init__(self, params, source_ref):
-
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -886,7 +881,6 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     spec = importlib_metadata_entry_points_before_310_spec
 
     def __init__(self, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
@@ -973,7 +967,6 @@ class ExpressionImportlibMetadataMetadataCallBase(
     spec = importlib_metadata_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1067,7 +1060,6 @@ class ExpressionImportlibMetadataVersionCallBase(
     spec = importlib_metadata_version_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1083,6 +1075,307 @@ class ExpressionImportlibMetadataVersionCallBase(
             self.attempted
             or not importlib_metadata_version_spec.isCompileTimeComputable(
                 (self.subnode_distribution_name,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportFilesRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.files"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="files",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportFilesCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportFilesCall,
+            builtin_spec=importlib_resources_backport_files_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.files' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportFilesRef
+] = importlib_resources_backport_files_spec
+
+
+class ExpressionImportlibResourcesBackportFilesCallBase(
+    ChildHavingPackageMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportFilesCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("package",)
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_files_spec
+
+    def __init__(self, package, source_ref):
+        ChildHavingPackageMixin.__init__(
+            self,
+            package=package,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_files_spec.isCompileTimeComputable(
+                (self.subnode_package,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportReadBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.read_binary"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="read_binary",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            ExpressionImportlibResourcesBackportReadBinaryCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesBackportReadBinaryCall,
+            builtin_spec=importlib_resources_backport_read_binary_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.read_binary' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportReadBinaryRef
+] = importlib_resources_backport_read_binary_spec
+
+
+class ExpressionImportlibResourcesBackportReadBinaryCallBase(
+    ExpressionBytesShapeExactMixin, ChildrenHavingPackageResourceMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesBackportReadBinaryCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_read_binary_spec
+
+    def __init__(self, package, resource, source_ref):
+        ChildrenHavingPackageResourceMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_read_binary_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                )
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesBackportReadTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_resources.read_text"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_resources",
+            import_name="read_text",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import (
+            makeExpressionImportlibResourcesBackportReadTextCall,
+        )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionImportlibResourcesBackportReadTextCall,
+            builtin_spec=importlib_resources_backport_read_text_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_resources.read_text' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesBackportReadTextRef
+] = importlib_resources_backport_read_text_spec
+
+
+class ExpressionImportlibResourcesBackportReadTextCallBase(
+    ExpressionStrShapeExactMixin,
+    ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for ImportlibResourcesBackportReadTextCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "package",
+        "resource",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_backport_read_text_spec
+
+    def __init__(self, package, resource, encoding, errors, source_ref):
+        ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resource=resource,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_backport_read_text_spec.isCompileTimeComputable(
+                (
+                    self.subnode_package,
+                    self.subnode_resource,
+                    self.subnode_encoding,
+                    self.subnode_errors,
+                )
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -1159,7 +1452,6 @@ class ExpressionImportlibResourcesFilesCallBase(
     spec = importlib_resources_files_spec
 
     def __init__(self, package, source_ref):
-
         ChildHavingPackageMixin.__init__(
             self,
             package=package,
@@ -1256,7 +1548,6 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
     spec = importlib_resources_read_binary_spec
 
     def __init__(self, package, resource, source_ref):
-
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,
@@ -1361,7 +1652,6 @@ class ExpressionImportlibResourcesReadTextCallBase(
     spec = importlib_resources_read_text_spec
 
     def __init__(self, package, resource, encoding, errors, source_ref):
-
         ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
             self,
             package=package,
@@ -1455,7 +1745,6 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
     spec = os_listdir_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathOptionalMixin.__init__(
             self,
             path=path,
@@ -1538,7 +1827,6 @@ class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_abspath_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1621,7 +1909,6 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
     spec = os_path_basename_spec
 
     def __init__(self, p, source_ref):
-
         ChildHavingPMixin.__init__(
             self,
             p=p,
@@ -1704,7 +1991,6 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_exists_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1789,7 +2075,6 @@ class ExpressionOsPathIsabsCallBase(
     spec = os_path_isabs_spec
 
     def __init__(self, s, source_ref):
-
         ChildHavingSMixin.__init__(
             self,
             s=s,
@@ -1872,7 +2157,6 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isdir_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1955,7 +2239,6 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isfile_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2036,7 +2319,6 @@ class ExpressionOsUnameCallBase(ExpressionBase):
     spec = os_uname_spec
 
     def __init__(self, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
@@ -2123,7 +2405,6 @@ class ExpressionPkgResourcesGetDistributionCallBase(
     spec = pkg_resources_get_distribution_spec
 
     def __init__(self, dist, source_ref):
-
         ChildHavingDistMixin.__init__(
             self,
             dist=dist,
@@ -2220,7 +2501,6 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
     spec = pkg_resources_iter_entry_points_spec
 
     def __init__(self, group, name, source_ref):
-
         ChildrenHavingGroupNameOptionalMixin.__init__(
             self,
             group=group,
@@ -2314,7 +2594,6 @@ class ExpressionPkgResourcesRequireCallBase(
     spec = pkg_resources_require_spec
 
     def __init__(self, requirements, source_ref):
-
         ChildHavingRequirementsTupleMixin.__init__(
             self,
             requirements=requirements,
@@ -2408,7 +2687,6 @@ class ExpressionPkgResourcesResourceStreamCallBase(
     spec = pkg_resources_resource_stream_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
-
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -2509,7 +2787,6 @@ class ExpressionPkgResourcesResourceStringCallBase(
     spec = pkg_resources_resource_string_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
-
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -2604,7 +2881,6 @@ class ExpressionPkgutilGetDataCallBase(
     spec = pkgutil_get_data_spec
 
     def __init__(self, package, resource, source_ref):
-
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,

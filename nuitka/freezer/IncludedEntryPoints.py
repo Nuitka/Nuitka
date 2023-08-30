@@ -168,7 +168,25 @@ def _makeIgnoredEntryPoint(entry_point):
 standalone_entry_points = []
 
 
+def _getTopLevelPackageName(package_name):
+    if package_name is None:
+        return None
+    else:
+        return package_name.getTopLevelPackageName()
+
+
 def _warnNonIdenticalEntryPoints(entry_point1, entry_point2):
+    # Well know case, where they duplicate all the DLLs, seems to work well
+    # enough to not report this. TODO: When we are adding to the report, it
+    # ought to be still added. spell-checker: ignore scipy
+    if frozenset(
+        (
+            _getTopLevelPackageName(entry_point1.package_name),
+            _getTopLevelPackageName(entry_point2.package_name),
+        )
+    ) == frozenset(("numpy", "scipy")):
+        return
+
     inclusion_logger.warning(
         """\
 Ignoring non-identical DLLs for '%s', '%s' different from '%s'. Using first one and hoping for the best."""
@@ -274,8 +292,9 @@ def addExtensionModuleEntryPoint(module):
             dest_path=module.getFullName().asPath()
             + getSharedLibrarySuffix(preferred=False),
             package_name=module.getFullName().getPackageName(),
-            # TODO: Which module(s) us it?
-            reason="used extension module",
+            reason="required extension module for CPython library startup"
+            if module.isTechnical()
+            else "used extension module",
         )
     )
 

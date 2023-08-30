@@ -28,7 +28,6 @@ class NuitkaErrorBase(Exception):
 
 
 class NuitkaNodeError(NuitkaErrorBase):
-
     # Try to output more information about nodes passed.
     def __str__(self):
         try:

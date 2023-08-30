@@ -205,6 +205,7 @@ default_ignored_suffixes += getSharedLibrarySuffixes()
 default_ignored_dirs = (
     "__pycache__",
     "site-packages",
+    "vendor-packages",
 )
 
 default_ignored_filenames = ("py.typed",)

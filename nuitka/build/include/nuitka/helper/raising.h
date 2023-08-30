@@ -19,16 +19,15 @@
 #define __NUITKA_HELPER_RAISING_H__
 
 #if PYTHON_VERSION >= 0x300
-NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
+NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject *exception_value) {
     // Implicit chain of exception already existing.
-    PyThreadState *thread_state = PyThreadState_GET();
 
     // Normalize existing exception first.
 #if PYTHON_VERSION < 0x3b0
-    NORMALIZE_EXCEPTION(&EXC_TYPE(thread_state), &EXC_VALUE(thread_state), EXC_TRACEBACK_PTR(thread_state));
+    NORMALIZE_EXCEPTION(tstate, &EXC_TYPE(tstate), &EXC_VALUE(tstate), EXC_TRACEBACK_PTR(tstate));
 #endif
 
-    PyObject *old_exc_value = EXC_VALUE(thread_state);
+    PyObject *old_exc_value = EXC_VALUE(tstate);
 
     if (old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value) {
         PyObject *current = old_exc_value;
@@ -55,28 +54,28 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
         PyException_SetContext(exception_value, old_exc_value);
 
 #if PYTHON_VERSION < 0x3b0
-        CHECK_OBJECT(EXC_TRACEBACK(thread_state));
-        ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, (PyTracebackObject *)EXC_TRACEBACK(thread_state));
+        CHECK_OBJECT(EXC_TRACEBACK(tstate));
+        ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, (PyTracebackObject *)EXC_TRACEBACK(tstate));
 #endif
     }
 }
 #endif
 
-extern void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_WITH_TYPE(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                       PyTracebackObject **exception_tb);
 
 #if PYTHON_VERSION >= 0x300
-extern void RAISE_EXCEPTION_WITH_CAUSE(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                        PyTracebackObject **exception_tb, PyObject *exception_cause);
 #endif
 
-extern void RAISE_EXCEPTION_WITH_VALUE(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                        PyTracebackObject **exception_tb);
 
-extern void RAISE_EXCEPTION_IMPLICIT(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_IMPLICIT(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                      PyTracebackObject **exception_tb);
 
-extern void RAISE_EXCEPTION_WITH_TRACEBACK(PyObject **exception_type, PyObject **exception_value,
+extern void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                            PyTracebackObject **exception_tb);
 
 extern bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb);

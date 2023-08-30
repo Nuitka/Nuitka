@@ -162,7 +162,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = %s(%s, %s);"
+        "%s = %s(tstate, %s, %s);"
         % (
             res_name,
             "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND_FROM_ITERABLE",
@@ -234,7 +234,10 @@ def generateListOperationIndex2Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
-        emit("%s = LIST_INDEX2(%s, %s);" % (result_name, list_arg_name, value_arg_name))
+        emit(
+            "%s = LIST_INDEX2(tstate, %s, %s);"
+            % (result_name, list_arg_name, value_arg_name)
+        )
 
         getErrorExitCode(
             check_name=result_name,
@@ -256,7 +259,7 @@ def generateListOperationIndex3Code(to_name, expression, emit, context):
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
         emit(
-            "%s = LIST_INDEX3(%s, %s, %s);"
+            "%s = LIST_INDEX3(tstate, %s, %s, %s);"
             % (result_name, list_arg_name, value_arg_name, start_arg_name)
         )
 
@@ -283,7 +286,7 @@ def generateListOperationIndex4Code(to_name, expression, emit, context):
         to_name, "list_index_result", expression, emit, context
     ) as result_name:
         emit(
-            "%s = LIST_INDEX4(%s, %s, %s, %s);"
+            "%s = LIST_INDEX4(tstate, %s, %s, %s, %s);"
             % (
                 result_name,
                 list_arg_name,
@@ -347,7 +350,7 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = LIST_INSERT(%s, %s, %s);"
+            "%s = LIST_INSERT(tstate, %s, %s, %s);"
             % (
                 res_name,
                 list_arg_name,
@@ -396,6 +399,7 @@ def generateListOperationPop1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_POP1",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -409,6 +413,7 @@ def generateListOperationPop2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_POP2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -426,7 +431,6 @@ def generateListOperationRemoveCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "list_remove_result", expression, emit, context
     ) as result_name:
-
         # TODO: Have a dedicated list helper instead, this could be more efficient,
         # this call is also very bad.
         emit("assert(PyList_CheckExact(%s));" % list_arg_name)
@@ -449,6 +453,7 @@ def generateListOperationSort1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_SORT1",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -462,6 +467,7 @@ def generateListOperationSort2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="LIST_SORT2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -475,6 +481,7 @@ def generateListOperationSort3Code(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=to_name,
         capi="LIST_SORT3",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseExceptionOperation(),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -489,6 +496,7 @@ def generateBuiltinListCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="MAKE_LIST",
+        tstate=True,
         arg_desc=(("list_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

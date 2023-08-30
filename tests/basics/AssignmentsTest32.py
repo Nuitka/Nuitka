@@ -44,7 +44,10 @@ except Exception as e:
 print(a, b, c)
 
 print("More complex right hand side, consisting of multiple values:")
-(a, b), c, = [
+(
+    (a, b),
+    c,
+) = [
     1,
     2,
 ], "this"  # a = '1', b = '2', c = 'this'

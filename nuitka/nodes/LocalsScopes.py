@@ -34,7 +34,6 @@ locals_dict_handles = {}
 
 
 def getLocalsDictType(kind):
-
     if kind == "python2_function_exec":
         locals_scope = LocalsDictExecHandle
     elif kind == "python_function":

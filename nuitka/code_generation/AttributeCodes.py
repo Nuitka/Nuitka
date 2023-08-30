@@ -109,12 +109,12 @@ def getAttributeLookupCode(
     to_name, source_name, attribute_name, needs_check, emit, context
 ):
     if attribute_name == "__dict__":
-        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(%s);" % (to_name, source_name))
+        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(tstate, %s);" % (to_name, source_name))
     elif attribute_name == "__class__":
-        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(%s);" % (to_name, source_name))
+        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(tstate, %s);" % (to_name, source_name))
     else:
         emit(
-            "%s = LOOKUP_ATTRIBUTE(%s, %s);"
+            "%s = LOOKUP_ATTRIBUTE(tstate, %s, %s);"
             % (to_name, source_name, context.getConstantCode(attribute_name))
         )
 
@@ -157,7 +157,7 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, co
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_ATTRIBUTE(%s, %s, %s);"
+        "%s = SET_ATTRIBUTE(tstate, %s, %s, %s);"
         % (res_name, target_name, attribute_name, value_name)
     )
 
@@ -174,7 +174,10 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("%s = SET_ATTRIBUTE_DICT_SLOT(%s, %s);" % (res_name, target_name, value_name))
+    emit(
+        "%s = SET_ATTRIBUTE_DICT_SLOT(tstate, %s, %s);"
+        % (res_name, target_name, value_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,
@@ -189,7 +192,10 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("%s = SET_ATTRIBUTE_CLASS_SLOT(%s, %s);" % (res_name, target_name, value_name))
+    emit(
+        "%s = SET_ATTRIBUTE_CLASS_SLOT(tstate, %s, %s);"
+        % (res_name, target_name, value_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == false" % res_name,
@@ -234,7 +240,7 @@ def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
 def getAttributeLookupSpecialCode(
     to_name, source_name, attr_name, needs_check, emit, context
 ):
-    emit("%s = LOOKUP_SPECIAL(%s, %s);" % (to_name, source_name, attr_name))
+    emit("%s = LOOKUP_SPECIAL(tstate, %s, %s);" % (to_name, source_name, attr_name))
 
     getErrorExitCode(
         check_name=to_name,
@@ -254,7 +260,10 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = BUILTIN_HASATTR_BOOL(%s, %s);" % (res_name, source_name, attr_name))
+    emit(
+        "%s = BUILTIN_HASATTR_BOOL(tstate, %s, %s);"
+        % (res_name, source_name, attr_name)
+    )
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
@@ -278,7 +287,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         res_name = context.getIntResName()
 
         emit(
-            "%s = HAS_ATTR_BOOL2(%s, %s);"
+            "%s = HAS_ATTR_BOOL2(tstate, %s, %s);"
             % (
                 res_name,
                 source_name,
@@ -300,7 +309,7 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         res_name = context.getBoolResName()
 
         emit(
-            "%s = HAS_ATTR_BOOL(%s, %s);"
+            "%s = HAS_ATTR_BOOL(tstate, %s, %s);"
             % (
                 res_name,
                 source_name,
@@ -319,6 +328,7 @@ def generateBuiltinGetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_GETATTR",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -333,6 +343,7 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=to_name,
         capi="BUILTIN_SETATTR",
+        tstate=False,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

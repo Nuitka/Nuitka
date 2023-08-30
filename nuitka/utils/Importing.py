@@ -225,3 +225,29 @@ def isBuiltinModuleName(module_name):
         import _imp
 
     return _imp.is_builtin(module_name)
+
+
+def getModuleFilenameSuffixes():
+    if python_version < 0x3C0:
+        import imp
+
+        for suffix, _mode, module_type in imp.get_suffixes():
+            if module_type == imp.C_EXTENSION:
+                module_type = "C_EXTENSION"
+            elif module_type == imp.PY_SOURCE:
+                module_type = "PY_SOURCE"
+            elif module_type == imp.PY_COMPILED:
+                module_type = "PY_COMPILED"
+            else:
+                assert False, module_type
+
+            yield suffix, module_type
+    else:
+        import importlib.machinery
+
+        for suffix in importlib.machinery.EXTENSION_SUFFIXES:
+            yield suffix, "C_EXTENSION"
+        for suffix in importlib.machinery.SOURCE_SUFFIXES:
+            yield suffix, "PY_SOURCE"
+        for suffix in importlib.machinery.BYTECODE_SUFFIXES:
+            yield suffix, "PY_COMPILED"

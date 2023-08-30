@@ -57,7 +57,6 @@ def getErrorExitReleaseCode(context):
 
 
 def getFrameVariableTypeDescriptionCode(context):
-
     type_description = context.getFrameVariableTypeDescription()
 
     if type_description:
@@ -172,12 +171,15 @@ def _getExceptionChainingCode(context):
     keeper_vars = context.getExceptionKeeperVariables()
 
     if keeper_vars[0] is not None:
-        return ("ADD_EXCEPTION_CONTEXT(&%s, &%s);" % (keeper_vars[0], keeper_vars[1]),)
+        return (
+            "ADD_EXCEPTION_CONTEXT(tstate, &%s, &%s);"
+            % (keeper_vars[0], keeper_vars[1]),
+        )
     else:
         return (
-            "NORMALIZE_EXCEPTION(&%s, &%s, &%s);"
+            "NORMALIZE_EXCEPTION(tstate, &%s, &%s, &%s);"
             % (exception_type, exception_value, exception_tb),
-            "CHAIN_EXCEPTION(%s);" % exception_value,
+            "CHAIN_EXCEPTION(tstate, %s);" % exception_value,
         )
 
 
