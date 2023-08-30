@@ -846,7 +846,10 @@ class Plugins(object):
                         flags = ()
                     else:
                         code, reason, flags = desc
-                        if type(flags) is str:
+
+                        if flags is None:
+                            flags = ()
+                        elif type(flags) is str:
                             flags = (flags,)
 
                     yield plugin, code, reason, flags
