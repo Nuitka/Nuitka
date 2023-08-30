@@ -110,6 +110,31 @@ Bug Fixes
    Could e.g. crash when encountering folders like ``.idea`` which
    cannot be module names. Fixed in 1.7.9 already.
 
+-  Standalone: Added data files for ``langchain`` package. Fixed in
+   1.7.10 already.
+
+-  Fix, forced output paths didn't work without C11 mode. This mainly
+   affected older MSVC users, with newer MSVC and good enough Windows
+   SDK, it's not using C++ anymore. Fixed in 1.7.10 already.
+
+-  Fix, was using int values for boolean returns, something that was
+   giving warnings with at least older MSVC not in C11 mode. Fixed in
+   1.7.10 already.
+
+-  Fix, failed hard name imports could crash with segfault trying to
+   release their value. Fixed in 1.7.10 already.
+
+-  Standalone: Added missing implicit dependency for ``xml.sax`` in
+   stdlib. Fixed in 1.7.10 already.
+
+-  Windows: Fix, ``--mingw64`` mode was not working if MSVC was
+   installed, but not acceptable for use. Fixed in 1.7.10 already.
+
+-  Standalone: Fix, ``onnxruntime`` had too few DLLs included. Fixed in
+   1.7.10 already.
+
+-  Standalone: Added support for ``moviepy``. Fixed in 1.7.10 already.
+
 -  Python3.10+: Fix, matching empty sequences was not considering
    length, leading to incorrect code execution for that case.
 
@@ -251,6 +276,19 @@ Optimization
    exclusion from standard library when they trigger dependencies on
    other things, or are an extension themselves.
 
+-  Anti-Bloat: Avoid using ``sqlalchmy.testing`` and therefore
+   ``pytest`` in ``sqlalchemy`` package. Also added that testing package
+   to be treated as using ``pytest``. Added in 1.7.10 already.
+
+-  Anti-Bloat: Avoid IPython in ``distributed`` package. Added in 1.7.10
+   already.
+
+-  Anti-Bloat: Avoid ``dask`` usage in ``skimage``. Added in 1.7.10
+   already.
+
+-  Anti-Bloat: More changes needed for newer ``sympy`` to avoid
+   ``IPython``. Added in 1.7.10 already.
+
 Organisational
 ==============
 
@@ -288,6 +326,9 @@ Organisational
    but rather extending it. That makes it easier to handle and catches a
    common trap, where users would only specify the missing plugin, but
    remove required plugins like ``platform`` making it stop to work.
+
+-  Quality: Unified spell checker markers to same form in all files
+   through auto-format for more consistency.
 
 Cleanups
 ========
