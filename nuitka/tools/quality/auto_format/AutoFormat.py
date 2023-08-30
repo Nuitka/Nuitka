@@ -105,6 +105,7 @@ def cleanupWindowsNewlines(filename, effective_filename):
     if "AutoFormat.py" not in effective_filename:
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
+        updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
 
     if updated_code != source_code:
         with open(filename, "wb") as out_file:

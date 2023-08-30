@@ -1255,7 +1255,7 @@ def resolveShellPatternToFilenames(pattern):
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context."""
 
-    # spellchecker: ignore chdir
+    # spell-checker: ignore chdir
 
     if path is not None or not allow_none:
         old_cwd = os.getcwd()
