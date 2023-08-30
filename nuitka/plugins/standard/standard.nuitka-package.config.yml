@@ -2637,6 +2637,13 @@
         'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'polyfactory.fields'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'polyfactory.pytest_plugin': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'psutil'
   anti-bloat:
     - description: 'resolve platform specific imports at compile time'
