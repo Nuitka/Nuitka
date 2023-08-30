@@ -65,11 +65,11 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         # Avoid regular expression match if possible.
-        if "_delvewheel_init_patch" not in source_code:
+        if "_delvewheel_" not in source_code:
             return None
 
         match = re.search(
-            r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
+            r"(def _delvewheel_(?:init_)?patch_(.*?)\(\):\n.*?_delvewheel_(?:init_)?patch_\2\(\))",
             source_code,
             re.S,
         )
