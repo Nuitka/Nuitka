@@ -23,7 +23,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
-# spellchecker: ignore pywebview,mshtml
+# spell-checker: ignore pywebview,mshtml
 
 
 class NuitkaPluginPywebview(NuitkaPluginBase):
