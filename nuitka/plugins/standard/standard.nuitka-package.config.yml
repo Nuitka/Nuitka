@@ -5469,6 +5469,13 @@
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
 
+- module-name: 'transformers.tools.agent_types'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'transformers.trainer'
   anti-bloat:
     - description: 'remove IPython reference'
