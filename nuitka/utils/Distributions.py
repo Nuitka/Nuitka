@@ -49,6 +49,9 @@ def getDistributionTopLevelPackageNames(distribution):
 
             result.add(filename.split("/")[0])
 
+    if not result:
+        result = (distribution.metadata["Name"],)
+
     return tuple(result)
 
 
