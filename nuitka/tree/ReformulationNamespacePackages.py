@@ -31,23 +31,15 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
     ExpressionImportName,
     makeExpressionImportModuleFixed,
     makeExpressionImportModuleNameHard,
 )
-from nuitka.nodes.ModuleAttributeNodes import (
-    ExpressionModuleAttributeFileRef,
-    ExpressionNuitkaLoaderCreation,
-)
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
 from nuitka.nodes.ModuleNodes import CompiledPythonPackage
-from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
-from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableNameRef,
-    StatementAssignmentVariableName,
-)
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import makeStatementsSequenceFromStatement
@@ -214,23 +206,3 @@ def createNamespacePackage(module_name, reason, is_top, source_ref):
     completeVariableClosures(package)
 
     return package
-
-
-def createImporterCacheAssignment(package, source_ref):
-    return StatementDictOperationSet(
-        dict_arg=makeExpressionImportModuleNameHard(
-            module_name="sys",
-            import_name="path_importer_cache",
-            module_guaranteed=True,
-            source_ref=source_ref,
-        ),
-        key=makeExpressionIndexLookup(
-            expression=ExpressionVariableNameRef(
-                provider=package, variable_name="__path__", source_ref=source_ref
-            ),
-            index_value=0,
-            source_ref=source_ref,
-        ),
-        value=ExpressionNuitkaLoaderCreation(provider=package, source_ref=source_ref),
-        source_ref=source_ref,
-    )

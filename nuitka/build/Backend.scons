@@ -278,6 +278,8 @@ python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
 # python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
+# file reference mode
+file_reference_mode = getArgumentRequired("file_reference_mode")
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -962,6 +964,10 @@ def createBuildDefinitionsFile():
 
 if forced_stderr_path and not forced_stdout_path:
     env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
+
+if file_reference_mode == "original":
+    env.Append(CPPDEFINES=["NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
+
 
 createBuildDefinitionsFile()
 

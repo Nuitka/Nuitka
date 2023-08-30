@@ -232,3 +232,20 @@ PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename) {
     Py_DECREF(isabs_func);
     return result;
 }
+
+nuitka_bool compareFilePaths(PyThreadState *tstate, PyObject *filename_a, PyObject *filename_b) {
+    filename_a = OS_PATH_ABSPATH(tstate, filename_a);
+
+    if (unlikely(filename_a == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    filename_b = OS_PATH_ABSPATH(tstate, filename_b);
+
+    if (unlikely(filename_b == NULL)) {
+        Py_DECREF(filename_a);
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    return RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(filename_a, filename_b);
+}

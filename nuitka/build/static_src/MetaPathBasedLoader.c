@@ -1324,8 +1324,11 @@ static PyObject *getModuleDirectory(PyThreadState *tstate, struct Nuitka_MetaPat
         module_name = Nuitka_String_FromString(buffer);
     }
 
+#if PYTHON_VERSION < 0x300
+    PyObject *module_path = STR_REPLACE3(tstate, module_name, const_str_dot, getPathSeparatorStringObject());
+#else
     PyObject *module_path = UNICODE_REPLACE3(tstate, module_name, const_str_dot, getPathSeparatorStringObject());
-
+#endif
     Py_DECREF(module_name);
 
     if (unlikely(module_path == NULL)) {
@@ -1695,6 +1698,63 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     return result;
 }
 
+static char const *_kw_list_sys_path_hook[] = {"context", NULL};
+
+static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *path;
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:sys_path_hook", (char **)_kw_list_sys_path_hook, &path);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+#if 0
+    PRINT_STRING("CONSIDER PATH:");
+    PRINT_ITEM(path);
+    PRINT_NEW_LINE();
+#endif
+
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = loader_entries;
+    assert(entry);
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    while (entry->name != NULL) {
+        if ((entry->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+            entry->name = UNTRANSLATE(entry->name);
+            entry->flags -= NUITKA_TRANSLATED_FLAG;
+        }
+
+        if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
+            PyObject *module_directory = getModuleDirectory(tstate, entry);
+
+#if 0
+            PRINT_STRING(entry->name);
+            PRINT_STRING(" ");
+            PRINT_ITEM(module_directory);
+            PRINT_NEW_LINE();
+#endif
+
+            nuitka_bool cmp_res = compareFilePaths(tstate, module_directory, path);
+
+            if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
+                return NULL;
+            }
+
+            // Create the loader for the module.
+            if (cmp_res == NUITKA_BOOL_TRUE) {
+                return Nuitka_Loader_New(entry);
+            }
+        }
+
+        entry++;
+    }
+
+    SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_ImportError);
+    return NULL;
+}
+
 static PyMethodDef Nuitka_Loader_methods[] = {
     {"iter_modules", (PyCFunction)_nuitka_loader_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
     {"get_data", (PyCFunction)_nuitka_loader_get_data, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
@@ -1716,6 +1776,8 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 
     {"find_distributions", (PyCFunction)_nuitka_loader_find_distributions, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
      NULL},
+
+    {"sys_path_hook", (PyCFunction)_nuitka_loader_sys_path_hook, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
     {NULL, NULL}
 };
@@ -1865,6 +1927,8 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
     // Register it as a meta path loader.
+    PyObject *global_loader = Nuitka_Loader_New(NULL);
+
     LIST_INSERT_CONST(Nuitka_SysGetObject("meta_path"),
 #if PYTHON_VERSION < 0x300
                       0,
@@ -1872,7 +1936,10 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
                       2,
 #endif
 
-                      Nuitka_Loader_New(NULL));
+                      global_loader);
+
+    // Register it as a sys.path_hook
+    LIST_APPEND1(Nuitka_SysGetObject("path_hooks"), PyObject_GetAttrString(global_loader, "sys_path_hook"));
 }
 
 #if defined(_NUITKA_STANDALONE)

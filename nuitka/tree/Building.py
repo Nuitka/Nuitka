@@ -182,7 +182,6 @@ from .ReformulationImportStatements import (
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationMatchStatements import buildMatchNode
 from .ReformulationNamespacePackages import (
-    createImporterCacheAssignment,
     createNamespacePackage,
     createPathAssignment,
 )
@@ -870,9 +869,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         if provider.isCompiledPythonPackage():
             # This assigns "__path__" value.
             statements.append(createPathAssignment(provider, internal_source_ref))
-            statements.append(
-                createImporterCacheAssignment(provider, internal_source_ref)
-            )
 
         if python_version >= 0x340 and not is_main:
             statements += (
