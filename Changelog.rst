@@ -168,6 +168,13 @@ Bug Fixes
 -  Enhanced non-commercial PySide2 support by adding yet another class
    to be hooked. This was ironically contributed by a commercial user.
 
+-  Standalone: Added support for newer ``delvewheel`` version as used in
+   newest ``scipy`` and probably more packages in the future.
+
+-  Compatibility: The ``pkgutil.iter_modules`` function now works
+   without importing the module first. The makes ``Faker`` work on
+   Windows as well.
+
 New Features
 ============
 
