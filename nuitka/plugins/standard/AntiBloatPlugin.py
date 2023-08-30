@@ -34,7 +34,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy
+# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -130,6 +130,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
             self.handled_modules["ipykernel"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["jupyter_client"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
             self.handled_modules["matplotlib_inline.backend_inline"] = (
                 noinclude_ipython_mode,
                 "IPython",
