@@ -66,7 +66,7 @@ from .SearchModes import (
     SearchModeResume,
 )
 
-# spellchecker: ignore popenargs,pathsep,killpg
+# spell-checker: ignore popenargs,pathsep,killpg
 
 test_logger = OurLogger("", base_style="blue")
 
