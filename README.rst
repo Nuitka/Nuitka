@@ -391,10 +391,19 @@ this:
 The resulting file ``some_module.so`` can then be used instead of
 ``some_module.py``.
 
+.. important::
+
+   The filename of the produced extension module must not be changed as
+   Python insists on a module name derived function as an entry point,
+   in this case ``PyInit_some_module`` and renaming the file will not
+   change that. Match the filename of the source code what the binary
+   name should be.
+
 .. note::
 
-   It's left as an exercise to the reader, to find out what happens if
-   both are present.
+   If both the extension module and the source code of it are in the
+   same directory, the extension module is loaded. Changes to the source
+   code only have effect once you recompile.
 
 .. note::
 
