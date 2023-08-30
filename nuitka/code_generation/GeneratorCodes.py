@@ -54,6 +54,7 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_genfunc_yielder_maker_decl % {
@@ -140,6 +141,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_genfunc_yielder_body_template % {

@@ -53,7 +53,7 @@
     },
     "python.linting.pylintArgs": [
         "--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
-        "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
+        "--method-rgx=[a-z_][a-zA-Z0-9_]{2,55}$",
         "--module-rgx=.*",
         "--function-rgx=.*",
         "--variable-rgx=.*",
@@ -86,7 +86,7 @@
         "nuitka/build/inline_copy/lib/scons-3.1.2",
         "nuitka/build/inline_copy/clcache"
     ],
-    "python.formatting.provider": "black",
+    "python.formatting.provider": "none",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
@@ -114,6 +114,7 @@
         "binaryfunc",
         "bitor",
         "Buildbot",
+        "bytearray",
         "bytecode",
         "bytecodes",
         "CAPI",
@@ -161,11 +162,13 @@
         "DYLD",
         "dylib",
         "elif",
+        "embeddable",
         "EPEL",
         "finalizer",
         "FLUFL",
         "frozenset",
         "fstrings",
+        "genericalias",
         "getpreferredencoding",
         "gettotalrefcount",
         "girepository",
@@ -296,6 +299,7 @@
         "subclasscheck",
         "sysexit",
         "sysflag",
+        "Termux",
         "ternaryfunc",
         "Themida",
         "Tkinter",
@@ -349,5 +353,8 @@
             "*.nuitka-package.config.yml",
         ]
     },
-    "yaml.maxItemsComputed": 10000
+    "yaml.maxItemsComputed": 10000,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    }
 }

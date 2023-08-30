@@ -513,6 +513,95 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
 ExpressionBuiltinIter2Base = ChildrenHavingCallableArgSentinelFinalMixin
 
 
+class ChildHavingDistributionNameFinalChildrenMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionImportlibMetadataBackportDistributionFailedCall
+    #   ExpressionImportlibMetadataDistributionFailedCall
+
+    def __init__(self, distribution_name, source_ref):
+        distribution_name.parent = self
+
+        self.subnode_distribution_name = distribution_name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_distribution_name,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("distribution_name", self.subnode_distribution_name),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_distribution_name
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_distribution_name = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "distribution_name": self.subnode_distribution_name.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_distribution_name.finalize()
+        del self.subnode_distribution_name
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_distribution_name.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionImportlibMetadataBackportDistributionFailedCallBase = (
+    ChildHavingDistributionNameFinalChildrenMixin
+)
+ExpressionImportlibMetadataDistributionFailedCallBase = (
+    ChildHavingDistributionNameFinalChildrenMixin
+)
+
+
 class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

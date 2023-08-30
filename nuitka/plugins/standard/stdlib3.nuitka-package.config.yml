@@ -19,21 +19,6 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'asyncio.base_events'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
-- module-name: 'asyncio.futures'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
-- module-name: 'asyncio.tasks'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
 - module-name: 'base64'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -47,11 +32,18 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'concurrent.futures.process'
-  implicit-imports:
-    - depends:
-        - 'multiprocessing'
-        - 'multiprocessing.connection'
+- module-name: 'bisect'
+  anti-bloat:
+    - description: 'avoid _bisect module usage'
+      no-auto-follow:
+        '_bisect': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_bisect")'
+
+- module-name: 'calendar'
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
 
 - module-name: 'copy'
   anti-bloat:
@@ -59,16 +51,25 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'ctypes'
-  implicit-imports:
-    - depends:
-        - '_ctypes'
+- module-name: 'crypt'
+  anti-bloat:
+    - description: 'avoid _crypt module usage'
+      replacements_plain:
+        '_crypt module was not built as part of CPython': '_crypt module was not included, used --include-module=_crypt'
+      when: 'not has_builtin_module("_crypt")'
 
 - module-name: 'ctypes.util'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
+
+- module-name: 'datetime'
+  anti-bloat:
+    - description: 'avoid _datetime module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_datetime")'
 
 - module-name: 'difflib'
   anti-bloat:
@@ -95,16 +96,8 @@
         'import socket': ''
         'socket.': '__import__("socket").'
       no-auto-follow:
-        - 'socket'
+        'socket': "can break calls of 'email.utils.make_msgid()'"
       when: 'not has_builtin_module("_socket")'
-
-- module-name: 'encodings'
-  implicit-imports:
-    - depends:
-        - '.idna'
-        - '.base64_codec'
-        - '.hex_codec'
-        - '.rot_13'
 
 - module-name: 'ensurepip'
   anti-bloat:
@@ -137,22 +130,45 @@
         '_test': "'(lambda: None)'"
         'main': "'(lambda: None)'"
 
+- module-name: 'heapq'
+  anti-bloat:
+    - description: 'avoid _heapq module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_heapq")'
+
 - module-name: 'imghdr'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'importlib.metadata'
-  implicit-imports:
-    - depends:
-        - 'email'
-
 - module-name: 'inspect'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_main': "'(lambda: None)'"
+
+- module-name: 'json.decoder'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
+
+- module-name: 'json.encoder'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
+
+- module-name: 'json.scanner'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
 
 - module-name: 'keyword'
   anti-bloat:
@@ -183,6 +199,13 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'mailbox'
+  anti-bloat:
+    - description: 'avoid fcntl module usage'
+      no-auto-follow:
+        'fcntl': 'may not lock mailbox files properly using fallback implementation'
+      when: 'not has_builtin_module("fcntl")'
+
 - module-name: 'mailcap'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -201,12 +224,6 @@
       replacements_plain:
         "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
       when: 'not module_mode'
-
-- module-name: 'pathlib'
-  implicit-imports:
-    - depends:
-        - 'ntpath'
-        - 'posixpath'
 
 - module-name: 'pdb'
   anti-bloat:
@@ -228,12 +245,11 @@
         '_test': "'(lambda: None)'"
 
 - module-name: 'platform'
-  implicit-imports:
-    - depends:
-        - 'subprocess'
-    - depends:
-        - 'plistlib'
-      when: 'macos'
+  anti-bloat:
+    - description: 'avoid using plistlib dependency on non-macOS'
+      replacements_plain:
+        'import plistlib': 'return None'
+      when: 'not macos'
 
 - module-name: 'pyclbr'
   anti-bloat:
@@ -254,30 +270,12 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'main': "'(lambda: None)'"
-  implicit-imports:
-    - depends:
-        - 'py_compile'
 
 - module-name: 'random'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
-  implicit-imports:
-    # TODO: The version criterion here is weak and could be tightend
-    # and with anti-bloat we could make sure it is always not using
-    # full hashlib for no reason.
-    - depends:
-        - '_sha512'
-      when: 'python310_or_higher'
-    - depends:
-        - 'hashlib'
-      when: 'before_python310'
-
-- module-name: 'shelve'
-  implicit-imports:
-    - depends:
-        - 'dbm.dumb'
 
 - module-name: 'site'
   data-files:
@@ -289,11 +287,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
-
-- module-name: 'socket'
-  implicit-imports:
-    - depends:
-        - '_socket'
 
 - module-name: 'tabnanny'
   anti-bloat:
@@ -335,9 +328,6 @@
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
       when: 'not deployment'
-  implicit-imports:
-    - depends:
-        - '_tkinter'
   options:
     checks:
       - console: 'recommend'
@@ -355,22 +345,17 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'urllib.request'
-  implicit-imports:
-    - depends:
-        - 'http.client'
-        - 'http.cookiejar'
-
 - module-name: 'uu'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'wsgiref.simple_server'
-  implicit-imports:
-    - depends:
-        - 'http.server'
+- module-name: 'zipapp'
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
 
 - module-name: 'xml.sax'
   implicit-imports:
@@ -389,7 +374,8 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'zoneinfo._common'
+- module-name: 'zoneinfo'
+  # This tries to find non-stdlib module when being used.
   implicit-imports:
     - depends:
         - 'tzdata.zoneinfo'

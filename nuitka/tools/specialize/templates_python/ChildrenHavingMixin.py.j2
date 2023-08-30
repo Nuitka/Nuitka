@@ -40,7 +40,7 @@
 {% if is_statement %}
 {% set base_class = "StatementBase" %}
 from nuitka.nodes.NodeBases import StatementBase
-{% elif is_compute_final or node_attributes or raise_mode in ("no_raise", "raise") or awaited_constant_attributes %}
+{% elif is_compute_final or is_compute_final_children or node_attributes or raise_mode in ("no_raise", "raise") or awaited_constant_attributes %}
 {% set base_class = "ExpressionBase" %}
 from nuitka.nodes.ExpressionBases import ExpressionBase
 {% else %}
@@ -272,7 +272,7 @@ class {{mixin_name}}({{base_class}}):
         be overloaded, e.g. conditional expressions.
         """
 
-{% if named_children %}
+{% if named_children and not is_compute_final_children %}
 {% if len(named_children) == 1 %}
 {% if named_children_types.get(named_children[0]) == "tuple" %}
         # First apply the sub-expressions, as they are evaluated before

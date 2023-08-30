@@ -92,6 +92,49 @@
     dirs:
       - 'resources'
 
+- module-name: 'astropy'
+  data-files:
+    patterns:
+      - 'CITATION'
+
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'from .tests.runner import TestRunner': ''
+        'test = TestRunner.make_test_runner_in(__path__[0])': 'test = None'
+      when: 'not use_pytest'
+
+- module-name: 'astropy.constants.config'
+  implicit-imports:
+    - depends:
+        # TODO: These should probably be compile time computed
+        - 'astropy.constants.codata2018'
+        - 'astropy.constants.iau2015'
+
+- module-name: 'astropy.table.table'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'show_in_notebook': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'astropy.utils.console'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+        'from IPython.utils import io': 'raise ImportError'
+        'from IPython import version_info': 'raise ImportError'
+        'from IPython.display import display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'astropy.visualization.wcsaxes'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'import pytest': 'raise ImportError'
+      when: 'not use_pytest'
+
 - module-name: 'asyncpg.pgproto.pgproto'
   implicit-imports:
     - depends:
@@ -402,6 +445,29 @@
         - 'chromadb.telemetry.posthog'
         - 'chromadb.api.local'
         - 'chromadb.db.duckdb'
+        - 'chromadb.db.impl.sqlite'
+        - 'chromadb.api.segment'
+        - 'chromadb.api.fastapi'
+        - 'chromadb.segment.impl.manager.local'
+        - 'chromadb.segment.impl.metadata.sqlite'
+        - 'chromadb.migrations.embeddings_queue'
+        - 'chromadb.migrations.sysdb'
+        - 'chromadb.migrations.metadb'
+
+- module-name: 'chromadb.migrations.embeddings_queue'
+  data-files:
+    patterns:
+      - '*.sql'
+
+- module-name: 'chromadb.migrations.metadb'
+  data-files:
+    patterns:
+      - '*.sql'
+
+- module-name: 'chromadb.migrations.sysdb'
+  data-files:
+    patterns:
+      - '*.sql'
 
 - module-name: 'clr'
   dlls:
@@ -442,6 +508,12 @@
   data-files:
     empty_dirs:
       - '.'
+
+- module-name: 'ctypes'
+  anti-bloat:
+    - description: 'remove comtypes dependency'
+      no-auto-follow:
+        'comtypes': 'ignore'
 
 - module-name: 'curses'
   implicit-imports:
@@ -1079,16 +1151,11 @@
         '__version__ = version(__name__)': 'repr(version("importlib_metadata"))'
       when: 'standalone'
 
-- module-name: 'importlib_resources'
-  data-files:
-    patterns:
-      - 'version.txt'
-
 - module-name: 'importlib_resources._compat'
   anti-bloat:
-    - description: 'workaround file reader check'
+    - description: 'workaround for file reader not used'
       replacements_plain:
-        'path.exists()': 'True'
+        '_file_reader(self.spec)': '_native_reader(self.spec) or _file_reader(self.spec)'
 
 - module-name: 'ipcqueue'
   implicit-imports:
@@ -1118,12 +1185,38 @@
         'import dask': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'joblib._memmapping_reducer'
+  anti-bloat:
+    - description: 'workaround incorrect warning'
+      replacements_plain:
+        'warnings.warn': ''
+
 - module-name: 'joblib._parallel_backends'
   anti-bloat:
     - description: 'remove optional dask usage'
       replacements_plain:
         'from distributed import get_worker': 'raise ImportError'
       when: 'not use_dask'
+
+- module-name: 'joblib.externals.cloudpickle.cloudpickle'
+  anti-bloat:
+    - no-auto-follow:
+        'tornado': 'can break tornado integration of joblib'
+
+- module-name: 'joblib.externals.loky.backend.popen_loky_posix'
+  anti-bloat:
+    - description: 'workaround for forking itself'
+      replacements_plain:
+        'if __name__ == "__main__":': 'def main():'
+      append_plain: |
+        if __name__ == "__main__": main()
+      when: 'not win32'
+
+- module-name: 'joblib.externals.loky.backend.resource_tracker'
+  anti-bloat:
+    - description: 'workaround incorrect warning'
+      replacements_plain:
+        'warnings.warn': ''
 
 - module-name: 'jpype'
   data-files:
@@ -1152,6 +1245,13 @@
     - description: 'remove keras testing tools reference'
       replacements_plain:
         'from keras.testing_infra.test_utils import layer_test': ''
+
+- module-name: 'keras.src.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'keras.utils.vis_utils'
   anti-bloat:
@@ -1598,6 +1698,13 @@
             pass
 
 - module-name: 'numpy.core'
+  anti-bloat:
+    - description: 'remove misleading numpy message'
+      replacements_plain:
+        'except ImportError as exc:': |
+          except ImportError as exc:
+              raise
+
   implicit-imports:
     - depends:
         - 'numpy.core._dtype_ctypes'
@@ -1782,6 +1889,21 @@
   data-files:
     dirs:
       - 'resources/schemas'
+
+- module-name: 'opencc'
+  data-files:
+    dirs:
+      - 'clib/share/opencc'
+    patterns:
+      - '*.json'
+      - '*.ocd2'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'clib/bin'
+        prefixes:
+          - 'opencc'
+      when: 'win32'
 
 - module-name: 'opentele.exception'
   anti-bloat:
@@ -2046,6 +2168,21 @@
         'maybe_use_numba(engine)': 'False'
       when: 'not use_numba'
 
+- module-name: 'pandas.io.clipboard'
+  anti-bloat:
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'qtpy': 'pandas will not be able to use Qt for clipboard interaction'
+        'PyQt5': 'pandas will not be able to use Qt for clipboard interaction'
+        'PyQt4': 'pandas will not be able to use Qt for clipboard interaction'
+      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6")'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'qtpy': 'ignore'
+        'PyQt5': 'ignore'
+        'PyQt4': 'ignore'
+      when: 'plugin("no-qt")'
+
 - module-name: 'pandas.io.excel._base'
   anti-bloat:
     - description: 'remove useless distutils usage'
@@ -2280,9 +2417,13 @@
 
 - module-name: 'PIL.Image'
   anti-bloat:
-    - description: 'avoid qt usage for plugin no-qt'
-      replacements_plain:
-        'from . import ImageQt': 'raise ImportError'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'PIL.ImageQt': 'PIL will not be able to create Qt image objects'
+      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6") and not plugin("no-qt")'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'PIL.ImageQt': 'ignore'
       when: 'plugin("no-qt")'
 
   implicit-imports:
@@ -2454,6 +2595,23 @@
         - 'plotly.graph_objs.layout.*'
         - 'plotly.graph_objs.layout.*.*'
 
+- module-name: 'plumbum.cli.progress'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '__IPYTHON__': 'raise NameError'
+      no-auto-follow:
+        'IPython': 'ignore'
+        'ipywidgets': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'plumbum.colorlib'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'plumbum.colorlib._ipython_ext': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'polars.lazyframe.frame'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2478,6 +2636,13 @@
       replacements_plain:
         'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'polyfactory.fields'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'polyfactory.pytest_plugin': 'ignore'
+      when: 'not use_pytest'
 
 - module-name: 'psutil'
   anti-bloat:
@@ -2574,6 +2739,12 @@
   data-files:
     dirs:
       - '.'
+
+- module-name: 'pygame'
+  options:
+    checks:
+      - description: 'PyGame is a GUI framework'
+        console: 'recommend'
 
 - module-name: 'pygeos._geometry'
   implicit-imports:
@@ -2812,17 +2983,21 @@
   implicit-imports:
     - post-import-code:
         - |
-          def myconnect(self, func):
-              if hasattr(func, "im_func"):
-                  if hasattr(func.im_func, "__compiled__"):
-                      myconnect._protected = getattr(myconnect, "_protected", set())
-                      myconnect._protected.add(func)
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", set())
+                      patched_connect._protected.add(receiver)
 
-              return orig_connect(self, func)
+                  if not receiver.im_func.__name__.startswith("_pyside2_workaround_"):
+                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+
+              return orig_connect(self, receiver, type)
 
           from PySide2 import QtCore
           orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = myconnect
+          QtCore.SignalInstance.connect = patched_connect
 
   options:
     checks:
@@ -2860,17 +3035,21 @@
         - 'PySide6.support.deprecated'
     - post-import-code:
         - |
-          def myconnect(self, func):
-              if hasattr(func, "im_func"):
-                  if hasattr(func.im_func, "__compiled__"):
-                      myconnect._protected = getattr(myconnect, "_protected", set())
-                      myconnect._protected.add(func)
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", set())
+                      patched_connect._protected.add(receiver)
 
-              return orig_connect(self, func)
+                  if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
+                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+
+              return orig_connect(self, receiver, type)
 
           from PySide6 import QtCore
           orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = myconnect
+          QtCore.SignalInstance.connect = patched_connect
 
 - module-name: 'pysnmp.smi'
   data-files:
@@ -2891,11 +3070,11 @@
       when: 'not use_ipython'
 
 - module-name: 'pythonnet'
-  dlls:
-    - from_filenames:
-        relative_path: 'runtime'
-        prefixes:
-          - 'Python.Runtime'
+  # These is a dotnet assembly, not a platform DLL, esp. not on Linux, macOS,
+  # etc.
+  data-files:
+    patterns:
+      - 'runtime/Python.Runtime.dll'
 
 - module-name: 'pytorch_lightning'
   data-files:
@@ -3047,6 +3226,8 @@
         - '.Postfix_cpp'
         - '.Prefix_py'
         - '.Prefix_cpp'
+        - '.metrics_cpp'
+        - '.metrics_py'
 
 - module-name: 'rasterio._io'
   implicit-imports:
@@ -3231,6 +3412,11 @@
 
               wrapped_callback = eval("lambda x: wrapped_callback2(x)", locals())
 
+- module-name: 'scipy.optimize._shgo_lib.triangulation'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.sparse.csgraph'
   implicit-imports:
     - depends:
@@ -3262,6 +3448,11 @@
     - depends:
         - 'scipy.spatial.transform'
 
+- module-name: 'scipy.spatial._plotutils'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.spatial.transform'
   implicit-imports:
     - depends:
@@ -3272,10 +3463,20 @@
     - depends:
         - 'scipy.special._ufuncs_cxx'
 
+- module-name: 'scipy.stats._fit'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.stats._stats'
   implicit-imports:
     - depends:
         - 'scipy.special.cython_special'
+
+- module-name: 'scipy.stats._survival'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
 
 - module-name: 'scipy.stats.morestats'
   anti-bloat:
@@ -3843,6 +4044,11 @@
         - 'sklearn.neighbors._quad_tree'
 
 - module-name: 'sklearn.utils'
+  anti-bloat:
+    - description: 'pandas check should not cause pandas usage'
+      no-auto-follow:
+        'pandas': 'ignore'
+        'matplotlib': 'ignore'
   implicit-imports:
     - depends:
         - 'sklearn.utils.arrayfuncs'
@@ -4849,8 +5055,8 @@
 - module-name: 'tensorflow.python.keras.utils.vis_utils'
   anti-bloat:
     - description: 'remove IPython reference'
-      replacements_plain:
-        'from IPython import display': 'raise ImportError'
+      no-auto-follow:
+        'IPython': 'ignore'
       when: 'not use_ipython'
 
 - module-name: 'tensorflow.python.ops.distributions.distribution'
@@ -5211,7 +5417,7 @@
 - module-name: 'tqdm.std'
   anti-bloat:
     - no-auto-follow:
-        - 'pandas'
+        'pandas': 'ignore'
 
 - module-name: 'transformers'
   data-files:
@@ -5220,6 +5426,7 @@
       - 'flax'
       - 'tensorflow'
       - 'tokenizers'
+      - 'sentencepiece'
 
 - module-name: 'transformers.integrations'
   anti-bloat:
@@ -5261,6 +5468,13 @@
     - description: 'workaround manual import issue'
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
+
+- module-name: 'transformers.tools.agent_types'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'transformers.trainer'
   anti-bloat:
@@ -5306,6 +5520,10 @@
     - description: 'workaround for tensorflow checks preventing pytorch usage'
       replacements_plain:
         'importlib.util.find_spec("tensorflow") is not None': 'False'
+    - description: 'more clear missing metadata error message'
+      replacements_plain:
+        'package_exists = False': "sys.exit('''Nuitka: Need to use compile with '--include-package-data=%s'.''' % pkg_name)"
+      when: 'not deployment'
 
 - module-name: 'transformers.utils.versions'
   anti-bloat:

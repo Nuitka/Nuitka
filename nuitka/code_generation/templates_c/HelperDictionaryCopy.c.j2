@@ -350,7 +350,7 @@ PyObject *DICT_COPY(PyObject *dict_value) {
 #endif
 }
 
-PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
+PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
     PyObject *result;
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
@@ -363,14 +363,14 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
     PyObject *key, *value;
 
     while (Nuitka_DictNext(dict_value, &pos, &key, &value)) {
-        PyObject *dict_value_copy = DEEP_COPY(value);
+        PyObject *dict_value_copy = DEEP_COPY(tstate, value);
 
         if (dict_value_copy != value) {
             DICT_SET_ITEM(result, key, value);
         }
     }
 #else
-    {{ dict_copy_iteration("result", "dict_value", "", "value = DEEP_COPY(value);", 1) }}
+    {{ dict_copy_iteration("result", "dict_value", "", "value = DEEP_COPY(tstate, value);", 1) }}
 #endif
 
     return result;

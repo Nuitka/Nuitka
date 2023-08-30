@@ -158,16 +158,24 @@ def resolveModuleName(module_name):
         # six moves replicated
         return ModuleName(_six_moves[module_name])
     elif (
-        module_name == "importlib_metadata"
+        module_name.hasNamespace("importlib_metadata")
         and python_version >= 0x380
         and isExperimental("eliminate-backports")
     ):
-        return ModuleName("importlib.metadata")
+        return module_name.relocateModuleNamespace(
+            "importlib_metadata", "importlib.metadata"
+        )
     elif (
-        module_name == "importlib_resources"
+        module_name.hasNamespace("importlib_resources")
         and python_version >= 0x390
         and isExperimental("eliminate-backports")
     ):
-        return ModuleName("importlib.resources")
+        # The backport has this, and we have no replacement.
+        if module_name == "importlib_resources.abc":
+            return module_name
+
+        return module_name.relocateModuleNamespace(
+            "importlib_resources", "importlib.resources"
+        )
     else:
         return module_name

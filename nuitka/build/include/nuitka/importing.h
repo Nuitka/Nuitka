@@ -24,29 +24,32 @@
  * calls using default values, the _KW helper is used.
  *
  */
-extern PyObject *IMPORT_MODULE1(PyObject *module_name);
-extern PyObject *IMPORT_MODULE2(PyObject *module_name, PyObject *globals);
-extern PyObject *IMPORT_MODULE3(PyObject *module_name, PyObject *globals, PyObject *locals);
-extern PyObject *IMPORT_MODULE4(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items);
-extern PyObject *IMPORT_MODULE5(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
-                                PyObject *level);
-extern PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
-                                  PyObject *level);
+extern PyObject *IMPORT_MODULE1(PyThreadState *tstate, PyObject *module_name);
+extern PyObject *IMPORT_MODULE2(PyThreadState *tstate, PyObject *module_name, PyObject *globals);
+extern PyObject *IMPORT_MODULE3(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals);
+extern PyObject *IMPORT_MODULE4(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
+                                PyObject *import_items);
+extern PyObject *IMPORT_MODULE5(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
+                                PyObject *import_items, PyObject *level);
 
-extern bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module);
+extern PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObject *globals, PyObject *locals,
+                                  PyObject *import_items, PyObject *level);
+
+extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module, PyObject *module);
 
 // Import an embedded module directly.
-extern PyObject *IMPORT_EMBEDDED_MODULE(char const *name);
+extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name);
 
 // Execute a module, the module object is prepared empty, but with __name__.
-extern PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module);
+extern PyObject *EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module);
 
 // Import a name from a module.
-extern PyObject *IMPORT_NAME_FROM_MODULE(PyObject *module, PyObject *import_name);
+extern PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObject *import_name);
 
 // import a name from a module, potentially making an import of it if necessary.
 #if PYTHON_VERSION >= 0x350
-extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level);
+extern PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObject *globals,
+                                       PyObject *import_name, PyObject *level);
 #endif
 
 #if PYTHON_VERSION >= 0x300
@@ -57,20 +60,22 @@ extern PyObject *getImportLibBootstrapModule(void);
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(void) {
 #if PYTHON_VERSION < 0x390
     return PyThreadState_GET()->interp->modules;
-#else
+#elif PYTHON_VERSION < 0x3c0
     return _PyInterpreterState_GET()->modules;
+#else
+    return _PyInterpreterState_GET()->imports.modules;
 #endif
 }
 
 // Replacement for "PyImport_GetModule" working across all versions and less checks.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyObject *module_name) {
-    return DICT_GET_ITEM1(Nuitka_GetSysModules(), module_name);
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyThreadState *tstate, PyObject *module_name) {
+    return DICT_GET_ITEM1(tstate, Nuitka_GetSysModules(), module_name);
 }
 
 // Replacement for PyImport_GetModule working across all versions and less checks.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(char const *module_name) {
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tstate, char const *module_name) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
-    PyObject *result = Nuitka_GetModule(module_name_object);
+    PyObject *result = Nuitka_GetModule(tstate, module_name_object);
     Py_DECREF(module_name_object);
 
     return result;
@@ -95,39 +100,39 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(char const *module_name,
 }
 
 // Remove a module to the modules dictionary from name object
-NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyObject *module_name) {
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyThreadState *tstate, PyObject *module_name) {
     CHECK_OBJECT(module_name);
 
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
 
     bool result = DICT_REMOVE_ITEM(PyImport_GetModuleDict(), module_name);
 
-    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
 
     return result;
 }
 
 // Remove a module to the modules dictionary from name C string
-NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModuleString(char const *module_name) {
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModuleString(PyThreadState *tstate, char const *module_name) {
     PyObject *module_name_object = Nuitka_String_FromString(module_name);
-    bool result = Nuitka_DelModule(module_name_object);
+    bool result = Nuitka_DelModule(tstate, module_name_object);
     Py_DECREF(module_name_object);
 
     return result;
 }
 
 // Wrapper for PyModule_GetFilenameObject that has no error.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyThreadState *tstate, PyObject *module) {
 #if PYTHON_VERSION < 0x300
-    PyObject *filename = LOOKUP_ATTRIBUTE(module, const_str_plain___file__);
+    PyObject *filename = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
 #else
     PyObject *filename = PyModule_GetFilenameObject(module);
 #endif
 
     if (unlikely(filename == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
         filename = PyUnicode_FromString("unknown location");
     }
 

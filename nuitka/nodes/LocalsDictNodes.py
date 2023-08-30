@@ -231,7 +231,6 @@ class ExpressionLocalsVariableRef(ExpressionBase):
     __slots__ = "variable", "locals_scope", "variable_trace"
 
     def __init__(self, locals_scope, variable_name, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         self.locals_scope = locals_scope
@@ -358,14 +357,13 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
 
     named_children = ("source",)
     node_attributes = ("locals_scope", "variable_name")
-    auto_compute_handling = "post_init"
+    auto_compute_handling = "operation,post_init"
 
     __slots__ = ("variable", "variable_version", "variable_trace")
 
-    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     def postInitNode(self):
-
         self.variable = self.locals_scope.getLocalsDictVariable(
             variable_name=self.variable_name
         )
@@ -398,6 +396,7 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     def getTypeShape(self):
         return self.locals_scope.getMappingValueShape(self.variable)
 
+    # TODO: This is ugly to overload, to be sure we work on not-yet visited expressions.
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             variable = self.locals_scope.allocateTempReplacementVariable(
@@ -423,13 +422,11 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
                 "Replaced dictionary assignment with temporary variable assignment.",
             )
 
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
+        return StatementLocalsDictOperationSetBase.computeStatement(
+            self, trace_collection
         )
 
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         self.variable_trace = trace_collection.onVariableSet(
             variable=self.variable, version=self.variable_version, assign_node=self
         )

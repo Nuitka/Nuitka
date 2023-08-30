@@ -41,14 +41,6 @@ class StatementsSequenceMixin(object):
     def isStatementsSequence():
         return True
 
-    @staticmethod
-    def isStatement():
-        return False
-
-    @staticmethod
-    def isExpression():
-        return False
-
     def trimStatements(self, statement):
         assert statement.parent is self
 

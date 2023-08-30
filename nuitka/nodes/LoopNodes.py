@@ -54,7 +54,7 @@ class StatementLoop(StatementLoopBase):
         "incomplete_count",
     )
 
-    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     def postInitNode(self):
         # Variables used inside the loop.
@@ -232,7 +232,6 @@ class StatementLoop(StatementLoopBase):
             self.loop_variables = []
 
             for loop_variable, loop_entry_trace in loop_entry_traces:
-
                 # Giving up
                 if self.incomplete_count >= 20:
                     self.loop_previous_resume[loop_variable] = self.loop_resume[

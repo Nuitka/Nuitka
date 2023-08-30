@@ -18,7 +18,7 @@
 #ifndef __NUITKA_HELPER_BYTEARRAYS_H__
 #define __NUITKA_HELPER_BYTEARRAYS_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *BYTEARRAY_COPY(PyObject *bytearray) {
+NUITKA_MAY_BE_UNUSED static PyObject *BYTEARRAY_COPY(PyThreadState *tstate, PyObject *bytearray) {
     CHECK_OBJECT(bytearray);
     assert(PyByteArray_CheckExact(bytearray));
 

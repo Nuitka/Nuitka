@@ -24,7 +24,6 @@ import sys
 
 
 def main():
-
     # Set the stage.
     os.chdir(os.path.dirname(__file__))
     shutil.rmtree("coverage", ignore_errors=True)

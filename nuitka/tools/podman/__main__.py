@@ -15,8 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Launcher for running a script inside a container
+""" Launcher for running a script inside a container.
 
+Podman and Docker should both work, but the first one is recommended.
 """
 
 import os
@@ -24,9 +25,23 @@ import shutil
 import sys
 from optparse import OptionParser
 
-from nuitka.tools.release.Release import getBranchName
+from nuitka.tools.release.Release import (
+    getBranchName,
+    getBranchRemoteIdentifier,
+)
 from nuitka.Tracing import OurLogger
-from nuitka.utils.Execution import callProcess
+from nuitka.utils.Download import getCachedDownloadedMinGW64
+from nuitka.utils.Execution import (
+    callProcess,
+    check_output,
+    getExecutablePath,
+    withEnvironmentPathAdded,
+)
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    putTextFileContents,
+)
+from nuitka.utils.Utils import getArchitecture, isWin32Windows
 
 from .Podman import getPodmanExecutablePath
 
@@ -96,6 +111,26 @@ This container run should be allowed to use network.
     )
 
     parser.add_option(
+        "--isolated",
+        action="store_true",
+        dest="isolated",
+        default=None,
+        help="""
+This container run should not be provided host access of any kind.
+""",
+    )
+
+    parser.add_option(
+        "--no-isolated",
+        action="store_false",
+        dest="isolated",
+        default=None,
+        help="""
+This container run should be provided host access even if the name suggests otherwise.
+""",
+    )
+
+    parser.add_option(
         "--pbuilder",
         action="store_true",
         dest="pbuilder",
@@ -118,6 +153,10 @@ This container run should be allowed to use pbuilder.
         assert options.podman_path is not None
 
     return options
+
+
+def isPodman(podman_path):
+    return "podman" in os.path.normcase(os.path.basename(podman_path))
 
 
 def updateContainer(podman_path, container_tag_name, container_file_path):
@@ -144,18 +183,25 @@ def updateContainer(podman_path, container_tag_name, container_file_path):
             "build",
             # Tolerate errors checking for image download, and use old one
             "--quiet",
-            "--pull=newer",
             "--tag",
             container_tag_name,
             "-f",
             container_file_path,
         ]
 
+        if isPodman(podman_path):
+            # Podman only.
+            command.append("--pull=newer")
+        else:
+            # Context directory needed for Docker.
+            command.append(".")
+
         exit_code = callProcess(command)
 
         if exit_code:
             containers_logger.sysexit(
-                "Failed to update container with exit code '%d'." % exit_code,
+                "Failed to update container with exit code '%d'. Command used was: %s"
+                % (exit_code, " ".join(command)),
                 exit_code=exit_code,
             )
 
@@ -167,6 +213,85 @@ def updateContainer(podman_path, container_tag_name, container_file_path):
         os.unlink(requirements_tmp_file)
 
 
+def getCppPath():
+    cpp_path = getExecutablePath("cpp_path")
+
+    # Windows extra ball, attempt the downloaded one.
+    if isWin32Windows() and cpp_path is None:
+        from nuitka.Options import assumeYesForDownloads
+
+        mingw64_gcc_path = getCachedDownloadedMinGW64(
+            target_arch=getArchitecture(),
+            assume_yes_for_downloads=assumeYesForDownloads(),
+        )
+
+        with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
+            cpp_path = getExecutablePath("cpp")
+
+            os.environ["CPP_PATH"] = cpp_path
+
+    if cpp_path is None:
+        containers_logger.sysexit(
+            "Error, need 'cpp' binary to execute this container file using.'"
+        )
+
+    return cpp_path
+
+
+def _makeMountDesc(options, src_path, dst_path, flags):
+    src_path = os.path.expanduser(src_path)
+
+    mount_desc = "type=bind,source=%s,dst=%s" % (src_path, dst_path)
+
+    if isPodman(options.podman_path):
+        mount_desc += ",relabel=shared"
+
+    if flags:
+        mount_desc += ",%s" % flags
+
+    if options.isolated:
+        mount_desc += ",ro"
+
+    return mount_desc
+
+
+def _checkIsolated(options, container_tag_name):
+    if options.isolated:
+        containers_logger.info("Running isolated as per user choice.")
+    # Auto-isolate by container name.
+    elif "isolated" in container_tag_name.lower() and options.isolated is None:
+        containers_logger.info("Running isolated as per container name default.")
+        options.isolated = True
+    elif options.isolated is False:
+        containers_logger.info("Running NOT isolated as per user choice.")
+    else:
+        containers_logger.info("Running NOT isolated as per default.")
+
+
+def _checkContainerArgument(options, default_container_directory):
+    if ("/" in options.container_id or "\\" in options.container_id) and os.path.exists(
+        options.container_id
+    ):
+        container_file_path = options.container_id
+
+        if container_file_path.endswith(".in"):
+            container_file_path_template = container_file_path
+            container_file_path = container_file_path[:-3]
+        else:
+            assert False
+
+        options.container_id = changeFilenameExtension(
+            os.path.basename(container_file_path), ""
+        )
+    else:
+        container_file_path = os.path.join(
+            default_container_directory, options.container_id + ".containerfile"
+        )
+        container_file_path_template = container_file_path + ".in"
+
+    return container_file_path_template, container_file_path
+
+
 def main():
     options = parseOptions()
 
@@ -175,19 +300,42 @@ def main():
         % (options.container_id, options.command)
     )
 
-    container_file_path = os.path.join(
-        os.path.dirname(__file__), "containers", options.container_id + ".containerfile"
+    default_container_directory = os.path.join(os.path.dirname(__file__), "containers")
+
+    container_file_path_template, container_file_path = _checkContainerArgument(
+        options=options, default_container_directory=default_container_directory
     )
+
+    if os.path.isfile(container_file_path_template):
+        # Check requirement.
+        cpp_path = getCppPath()
+        command = [
+            cpp_path,
+            "-E",
+            "-I",
+            default_container_directory,
+            container_file_path_template,
+        ]
+
+        output = check_output(command, shell=False)
+        if str is not bytes:
+            output = output.decode("utf8")
+
+        putTextFileContents(container_file_path, output, encoding="utf8")
 
     if not os.path.isfile(container_file_path):
         containers_logger.sysexit(
             "Error, no container ID '%s' found" % options.container_id
         )
 
+    getBranchRemoteIdentifier()
+
     container_tag_name = "nuitka-build-%s-%s:latest" % (
         options.container_id.lower(),
-        getBranchName(),
+        getBranchRemoteIdentifier() + "-" + getBranchName(),
     )
+
+    _checkIsolated(options, container_tag_name)
 
     if not options.no_build_container:
         updateContainer(
@@ -196,12 +344,14 @@ def main():
             container_file_path=container_file_path,
         )
 
-    command = [
-        options.podman_path,
-        "run",
-        "--mount",
-        "type=bind,source=.,dst=/src,relabel=shared",
-    ]
+    command = [options.podman_path, "run"]
+
+    command.extend(
+        (
+            "--mount",
+            _makeMountDesc(options=options, src_path=".", dst_path="/src", flags=""),
+        )
+    )
 
     if options.network:
         command.append("--add-host=ssh.nuitka.net:116.202.30.188")
@@ -213,24 +363,23 @@ def main():
     if options.pbuilder:
         command += ["--privileged"]
 
-    dst_paths = []
-
     for path_desc in options.shared_paths:
         if path_desc.count("=") == 1:
             src_path, dst_path = path_desc.split("=")
             flags = ""
         else:
             src_path, dst_path, flags = path_desc.split("=", 2)
-            flags = "," + flags
 
         src_path = os.path.expanduser(src_path)
 
-        dst_paths.append(dst_path)
-
-        command += [
-            "--mount",
-            "type=bind,source=%s,dst=%s,relabel=shared%s" % (src_path, dst_path, flags),
-        ]
+        command.extend(
+            (
+                "--mount",
+                _makeMountDesc(
+                    options=options, src_path=src_path, dst_path=dst_path, flags=flags
+                ),
+            )
+        )
 
     # Interactive if possible only.
     if sys.stdout.isatty():

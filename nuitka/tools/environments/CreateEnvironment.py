@@ -31,7 +31,6 @@ from .Virtualenv import withVirtualenv
 
 
 def createEnvironmentFromReport(environment_folder, report_filename):
-
     if os.path.exists(environment_folder):
         tools_logger.sysexit("Error, environment folder must not exist already.")
     containing_folder = os.path.dirname(environment_folder)

@@ -43,7 +43,6 @@ def generateTupleCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "tuple_value", expression, emit, context
     ) as value_name:
-
         getTupleCreationCode(
             to_name=value_name,
             elements=expression.subnode_elements,
@@ -104,6 +103,7 @@ def generateBuiltinTupleCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySequence_Tuple",
+        tstate=False,
         arg_desc=(("tuple_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

@@ -46,7 +46,9 @@ from nuitka.importing import Importing, Recursion
 from nuitka.Options import (
     getPythonPgoInput,
     hasPythonFlagIsolated,
+    hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
 )
@@ -148,17 +150,16 @@ def _createMainModule():
 
     # First, build the raw node tree from the source code.
     if len(main_filenames) > 1:
+        assert not Options.shallMakeModule()
+
         main_module = buildMainModuleTree(
             # TODO: Should not be given.
             filename=main_filenames[0],
-            is_main=True,
             source_code=createMultidistMainSourceCode(main_filenames),
         )
-
     else:
         main_module = buildMainModuleTree(
             filename=main_filenames[0],
-            is_main=not Options.shallMakeModule(),
             source_code=None,
         )
 
@@ -365,32 +366,6 @@ def makeSourceDirectory():
     # no sense, pylint: disable=too-many-branches
 
     # assert main_module in ModuleRegistry.getDoneModules()
-
-    # We might have chosen to include it as bytecode, and only compiled it for
-    # fun, and to find its imports. In this case, now we just can drop it. Or
-    # a module may shadow a frozen module, but be a different one, then we can
-    # drop the frozen one.
-    # TODO: This really should be done when the compiled module comes into
-    # existence.
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            uncompiled_module = ModuleRegistry.getUncompiledModule(
-                module_name=module.getFullName(),
-                module_filename=module.getCompileTimeFilename(),
-            )
-
-            if uncompiled_module is not None:
-                # We now need to decide which one to keep, compiled or uncompiled
-                # module. Some uncompiled modules may have been asked by the user
-                # or technically required. By default, frozen code if it exists
-                # is preferred, as it will be from standalone mode adding it.
-                if (
-                    uncompiled_module.isUserProvided()
-                    or uncompiled_module.isTechnical()
-                ):
-                    ModuleRegistry.removeDoneModule(module)
-                else:
-                    ModuleRegistry.removeUncompiledModule(uncompiled_module)
 
     # Lets check if the asked modules are actually present, and warn the
     # user if one of those was not found.
@@ -605,6 +580,7 @@ def runSconsBackend():
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "nuitka_src": getSconsDataPath(),
+        "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
 
@@ -666,7 +642,17 @@ def runSconsBackend():
         options["no_python_warnings"] = asBoolStr(True)
 
     if hasPythonFlagNoAsserts():
-        options["python_sysflag_optimize"] = asBoolStr(True)
+        options["python_sysflag_optimize"] = str(
+            2 if hasPythonFlagNoDocStrings() else 1
+        )
+
+        options["python_flag_no_asserts"] = asBoolStr(True)
+
+    if hasPythonFlagNoDocStrings():
+        options["python_flag_no_docstrings"] = asBoolStr(True)
+
+    if hasPythonFlagNoAnnotations():
+        options["python_flag_no_annotations"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = asBoolStr(True)
@@ -904,10 +890,7 @@ def handleSyntaxError(e):
     error_message = SyntaxErrors.formatOutput(e)
 
     if not Options.is_full_compat:
-        if python_version < 0x300:
-            suggested_python_version_str = getSupportedPythonVersions()[-1]
-        else:
-            suggested_python_version_str = "2.7"
+        suggested_python_version_str = getSupportedPythonVersions()[-1]
 
         error_message += """
 
@@ -920,6 +903,7 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
             suggested_python_version_str,
         )
 
+    # Important to have the same error
     sys.exit(error_message)
 
 
@@ -979,7 +963,7 @@ def _main():
 
     # Exit if compilation failed.
     if not result:
-        sys.exit(1)
+        general.sysexit(exit_code=1, reporting=True)
 
     # Relaunch in case of Python PGO input to be produced.
     if Options.shallCreatePgoInput():
@@ -1107,9 +1091,10 @@ not use compiled code while it exists."""
 def main():
     try:
         _main()
-    finally:
-        if sys.exc_info() != (None, None, None):
-            try:
-                writeCompilationReports(aborted=True)
-            except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-                general.warning("Report writing prevented by exception %s" % e)
+    except BaseException:
+        try:
+            writeCompilationReports(aborted=True)
+        except BaseException as e:  # Catch all the things, pylint: disable=broad-except
+            general.warning("Report writing was prevented by exception %s" % e)
+
+        raise

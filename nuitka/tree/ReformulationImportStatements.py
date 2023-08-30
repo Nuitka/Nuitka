@@ -22,6 +22,9 @@ source code comments with Developer Manual sections.
 
 """
 
+# spell-checker: ignore fromlist,asname
+
+from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
@@ -38,6 +41,7 @@ from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
+from nuitka.utils.ModuleNames import ModuleName
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
@@ -128,6 +132,13 @@ def _enableFutureFeature(node, object_name, source_ref):
         )
 
 
+def _resolveImportModuleName(module_name):
+    if module_name:
+        module_name = resolveModuleName(ModuleName(module_name)).asString()
+
+    return module_name
+
+
 def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
@@ -135,6 +146,9 @@ def buildImportFromNode(provider, node, source_ref):
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     module_name = node.module if node.module is not None else ""
+
+    module_name = _resolveImportModuleName(module_name)
+
     level = node.level
 
     # Use default level under some circumstances.
@@ -302,7 +316,7 @@ def buildImportModulesNode(provider, node, source_ref):
     for import_desc in import_names:
         module_name, local_name = import_desc
 
-        module_topname = module_name.split(".")[0]
+        module_top_name = module_name.split(".")[0]
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
@@ -311,6 +325,8 @@ def buildImportModulesNode(provider, node, source_ref):
             if _future_specs[-1].isAbsoluteImport()
             else None
         )
+
+        module_name = _resolveImportModuleName(module_name)
 
         # TODO: Go to fixed node directly, avoiding the optimization for the
         # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
@@ -344,7 +360,7 @@ def buildImportModulesNode(provider, node, source_ref):
             StatementAssignmentVariableName(
                 provider=provider,
                 variable_name=mangleName(
-                    local_name if local_name is not None else module_topname, provider
+                    local_name if local_name is not None else module_top_name, provider
                 ),
                 source=import_node,
                 source_ref=source_ref,

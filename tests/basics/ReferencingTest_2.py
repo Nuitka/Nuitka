@@ -45,6 +45,7 @@ from nuitka.tools.testing.Common import executeReferenceChecked
 
 x = 17
 
+
 # Python2 only syntax things are here.
 def simpleFunction1():
     try:

@@ -17,10 +17,10 @@
 {#                                                                              #}
 {% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
 {% if args_count == 1 %}
-PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
+PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg) {
     PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
-PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *const *args) {
+PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *const *args) {
 {% endif %}
     CHECK_OBJECT(called);
     {{ CHECK_OBJECTS(args, args_count) }}
@@ -35,7 +35,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
     PyObject *result = func(called, args, {{args_count}}, NULL);
 {% endif %}
 
-    return Nuitka_CheckFunctionResult(called, result);
+#ifndef __NUITKA_NO_ASSERT__
+    return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
+    return result;
+#endif
 #else
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
@@ -49,7 +53,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
 
         PyObject *result = (*method)(self, NULL);
 
-        return Nuitka_CheckFunctionResult(called, result);
+#ifndef __NUITKA_NO_ASSERT__
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
+        return result;
+#endif
     } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
 {% if args_count == 2 %}
         PyCFunction method = method_def->ml_meth;
@@ -57,7 +65,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
 
         PyObject *result = (*method)(self, args[1]);
 
-        return Nuitka_CheckFunctionResult(called, result);
+#ifndef __NUITKA_NO_ASSERT__
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
+        return result;
+#endif
 {% else %}
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
             "%s() takes exactly one argument ({{args_count}} given)",
@@ -100,7 +112,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
             Py_DECREF(pos_args);
         }
 #endif
-        return Nuitka_CheckFunctionResult(called, result);
+#ifndef __NUITKA_NO_ASSERT__
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
+        return result;
+#endif
     }
 
 
@@ -115,11 +131,11 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
    be doable. #}
 
 {% if args_count == 0 %}
-    PyObject *result = CALL_FUNCTION(called, const_tuple_empty, NULL);
+    PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);
 {% else %}
     PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
 
-    PyObject *result = CALL_FUNCTION(called, pos_args, NULL);
+    PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
     Py_DECREF(pos_args);
 {% endif %}

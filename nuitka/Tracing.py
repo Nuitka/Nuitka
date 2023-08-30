@@ -67,7 +67,7 @@ def printLine(*what, **kwargs):
 
 
 def printError(message):
-    print(message, file=sys.stderr)
+    my_print(message, file=sys.stderr)
 
 
 def flushStandardOutputs():
@@ -105,7 +105,6 @@ def _enableAnsi():
     # singleton, pylint: disable=global-statement
     global _enabled_ansi
     if not _enabled_ansi:
-
         # Only necessary on Windows, as a side effect of this, ANSI colors get enabled
         # for the terminal and never deactivated, so we are free to use them after
         # this.
@@ -253,6 +252,15 @@ def my_print(*args, **kwargs):
         _my_print(file_output, is_atty, args, kwargs)
 
 
+class ReportingSystemExit(SystemExit):
+    """Our own system exit, after which a report should be written."""
+
+    def __init__(self, exit_code, exit_message):
+        SystemExit.__init__(self, exit_code)
+
+        self.exit_message = exit_message
+
+
 class OurLogger(object):
     def __init__(self, name, quiet=False, base_style=None):
         self.name = name
@@ -301,23 +309,39 @@ class OurLogger(object):
                 style=style,
             )
 
-    def sysexit(self, message="", exit_code=1):
+    def sysexit(
+        self, message="", style=None, mnemonic=None, exit_code=1, reporting=False
+    ):
         from nuitka.Progress import closeProgressBar
 
         closeProgressBar()
+
+        if exit_code != 0 and style is None:
+            style = "red"
 
         if message:
             if exit_code != 0:
                 self.my_print(
                     "FATAL: %s" % message,
-                    style="red",
+                    style=style,
                     file=sys.stderr,
                 )
             else:
                 self.my_print(
                     message,
+                    style=style,
                     file=sys.stderr,
                 )
+
+        if mnemonic is not None:
+            self.warning(
+                """    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
+                % (_getEnableStyleCode("link"), mnemonic),
+                style=style,
+            )
+
+        if reporting:
+            raise ReportingSystemExit(exit_code=exit_code, exit_message=message)
 
         sys.exit(exit_code)
 
@@ -325,7 +349,7 @@ class OurLogger(object):
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         traceback.print_exc()
-        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code)
+        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code, reporting=True)
 
     def isQuiet(self):
         return is_quiet or self.is_quiet
@@ -372,7 +396,11 @@ class FileLogger(OurLogger):
             style = style or self.base_style
             self.my_print(message, style=style)
 
-    def info_fileoutput(self, message, other_logger, style=None):
+    def info_to_file_only(self, message, style=None):
+        if self.file_handle:
+            self.info(message, style=style)
+
+    def info_if_file(self, message, other_logger, style=None):
         if self.file_handle:
             self.info(message, style=style)
         else:

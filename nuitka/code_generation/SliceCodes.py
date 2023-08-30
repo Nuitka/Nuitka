@@ -118,7 +118,6 @@ def generateSliceLookupCode(to_name, expression, emit, context):
         with withObjectCodeTemporaryAssignment(
             to_name, "slice_result", expression, emit, context
         ) as result_name:
-
             _getSliceLookupIndexesCode(
                 to_name=result_name,
                 source_name=source_name,
@@ -351,7 +350,7 @@ def generateBuiltinSlice1Code(to_name, expression, emit, context):
 
 def _getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit, context):
     emit(
-        "%s = LOOKUP_SLICE(%s, %s, %s);"
+        "%s = LOOKUP_SLICE(tstate, %s, %s, %s);"
         % (
             to_name,
             source_name,
@@ -409,7 +408,7 @@ def _getSliceAssignmentCode(
     res_name = context.getBoolResName()
 
     emit(
-        "%s = SET_SLICE(%s, %s, %s, %s);"
+        "%s = SET_SLICE(tstate, %s, %s, %s, %s);"
         % (
             res_name,
             target_name,
@@ -447,7 +446,7 @@ def _getSliceDelCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
-        "%s = DEL_SLICE(%s, %s, %s);"
+        "%s = DEL_SLICE(tstate, %s, %s, %s);"
         % (
             res_name,
             target_name,

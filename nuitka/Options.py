@@ -44,6 +44,7 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
+    isTermuxPython,
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
@@ -268,7 +269,9 @@ def parseArgs():
                 pass
         except OSError:
             Tracing.general.sysexit(
-                "Error, the Python from Windows store is not supported, check the User Manual of Nuitka ."
+                """\
+Error, the Python from Windows app store is not supported.""",
+                mnemonic="unsupported-python",
             )
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
@@ -547,14 +550,16 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     try:
         file_version = getFileVersion()
-    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+    # Catch all the things, don't want any interface, pylint: disable=broad-except
+    except Exception:
         Tracing.options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     try:
         product_version = getProductVersion()
-    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+    # Catch all the things, don't want any interface, pylint: disable=broad-except
+    except Exception:
         Tracing.options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
@@ -724,6 +729,17 @@ download. With that, your program will work on macOS 10.9 or higher."""
             % pgo_executable
         )
 
+    if (
+        isOnefileMode()
+        and isTermuxPython()
+        and getExecutablePath("termux-elf-cleaner") is None
+    ):
+        Tracing.options_logger.sysexit(
+            """\
+Error, onefile mode on Termux requires 'termux-elf-cleaner' to be installed, \
+use 'pkg install termux-elf-cleaner' to use it."""
+        )
+
     # This triggers checks inside that code
     getCompilationReportUserData()
 
@@ -865,10 +881,15 @@ to work. You need to instead selectively add them with \
             % standalone_mode
         )
 
-    if options.follow_stdlib and not standalone_mode:
-        Tracing.options_logger.warning(
-            "Following imports to stdlib is unlikely to work without --standalone/--onefile and should not be specified."
-        )
+    if options.follow_stdlib:
+        if standalone_mode:
+            Tracing.options_logger.warning(
+                "Following imports to stdlib is the default in standalone mode.."
+            )
+        else:
+            Tracing.options_logger.warning(
+                "Following imports to stdlib not well tested and should not be specified."
+            )
 
     if (
         not standalone_mode
@@ -1438,6 +1459,7 @@ def isClang():
         or isMacOS()
         or isOpenBSD()
         or (isFreeBSD() and getArchitecture() != "powerpc")
+        or isTermuxPython()
     )
 
 
@@ -1524,6 +1546,16 @@ def isShowInclusion():
 def isRemoveBuildDir():
     """:returns: bool derived from ``--remove-output``"""
     return options.remove_build and not options.generate_c_only
+
+
+def isDeploymentMode():
+    """:returns: bool derived from ``--deployment``"""
+    return options.is_deployment
+
+
+def getNoDeploymentIndications():
+    """:returns: list derived from ``--no-deployment-flag``"""
+    return options.no_deployment_flags
 
 
 _experimental = set()
@@ -1939,11 +1971,6 @@ def hasPythonFlagPackageMode():
     """*bool* = "package_mode", "-m" in python flags given"""
 
     return "package_mode" in _getPythonFlags()
-
-
-def shallFreezeAllStdlib():
-    """*bool* = **not** shallFollowStandardLibrary"""
-    return not shallFollowStandardLibrary()
 
 
 def shallNotUseDependsExeCachedResults():

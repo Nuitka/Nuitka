@@ -19,6 +19,8 @@
 
 """ Tool to automatically format source code in Nuitka style.
 
+spell-checker: ignore mdformat,rstfmt,thirdparty,cpptools,pybench
+spell-checker: ignore containerfile,rpmlintrc,gitmodules
 """
 
 import contextlib
@@ -103,6 +105,7 @@ def cleanupWindowsNewlines(filename, effective_filename):
     if "AutoFormat.py" not in effective_filename:
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
+        updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
 
     if updated_code != source_code:
         with open(filename, "wb") as out_file:
@@ -146,7 +149,9 @@ def _checkRequiredVersion(tool, tool_call):
             required_version = line.split()[2]
             break
     else:
-        tools_logger.sysexit("Error, cannot find %r in requirements-devel.txt" % tool)
+        tools_logger.sysexit(
+            "Error, cannot find %r in 'requirements-devel.txt' file." % tool
+        )
 
     tool_call = list(tool_call) + ["--version"]
 
@@ -161,7 +166,9 @@ def _checkRequiredVersion(tool, tool_call):
     for line in version_output.splitlines():
         line = line.strip()
 
-        if line.startswith(("black, ", "python -m black,", "__main__.py, ")):
+        if line.startswith(
+            ("black, ", "python -m black,", "__main__.py, ", "mdformat ")
+        ):
             if "(" in line:
                 line = line[: line.rfind("(")].strip()
 
@@ -337,6 +344,12 @@ def _cleanupImportSortOrder(filename, effective_filename):
         contents = "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
 
         putTextFileContents(filename, contents=contents, encoding="utf8")
+
+
+def _cleanupMarkdownFmt(filename):
+    mdformat_call = _getPythonBinaryCall("mdformat")
+
+    check_call(mdformat_call + ["--number", "--wrap=100", filename])
 
 
 def _cleanupRstFmt(filename, effective_filename):
@@ -560,9 +573,10 @@ def autoFormatFile(
     limit_python=False,
     limit_c=False,
     limit_rst=False,
+    limit_md=False,
     ignore_errors=False,
     ignore_yaml_diff=True,
-):
+):  # a bit many knobs but that's fine, pylint: disable=too-many-arguments
     """Format source code with external tools
 
     Args:
@@ -618,7 +632,9 @@ def autoFormatFile(
             ".spec",
             "-rpmlintrc",
             "Containerfile",
+            "Containerfile",
             ".containerfile",
+            ".containerfile.in",
         )
     ) or os.path.basename(filename) in (
         "changelog",
@@ -629,6 +645,7 @@ def autoFormatFile(
     )
 
     is_rst = effective_filename.endswith(".rst")
+    is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
@@ -637,7 +654,7 @@ def autoFormatFile(
         my_print("Ignored file type.")
         return
 
-    if limit_yaml or limit_python or limit_c or limit_rst:
+    if limit_yaml or limit_python or limit_c or limit_rst or limit_md:
         if is_package_config_yaml and not limit_yaml:
             return
 
@@ -648,6 +665,9 @@ def autoFormatFile(
             return
 
         if is_rst and not limit_rst:
+            return
+
+        if is_md and not limit_md:
             return
 
     # Work on a temporary copy
@@ -675,7 +695,8 @@ def autoFormatFile(
 
                     try:
                         check_call(black_call + ["-q", "--fast", tmp_filename])
-                    except Exception:  # Catch all the things, pylint: disable=broad-except
+                    # Catch all the things, pylint: disable=broad-except
+                    except Exception:
                         tools_logger.warning(
                             "Problem formatting for '%s'." % effective_filename
                         )
@@ -698,6 +719,9 @@ def autoFormatFile(
 
                 if is_rst:
                     _cleanupRstFmt(tmp_filename, effective_filename)
+
+                if is_md:
+                    _cleanupMarkdownFmt(tmp_filename)
 
                 if is_package_config_yaml:
                     formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)

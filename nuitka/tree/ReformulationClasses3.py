@@ -838,7 +838,6 @@ def makeExpressionSelectMetaclass(metaclass, bases, source_ref):
         )
 
     else:
-
         return ExpressionSelectMetaclass(
             metaclass=metaclass, bases=bases, source_ref=source_ref
         )

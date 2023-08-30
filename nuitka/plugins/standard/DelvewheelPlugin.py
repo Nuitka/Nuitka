@@ -25,7 +25,7 @@ import re
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isAnacondaPython
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import listDllFilesFromDirectory
 
 # spell-checker: ignore delvewheel
 
@@ -65,11 +65,11 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         # Avoid regular expression match if possible.
-        if "_delvewheel_init_patch" not in source_code:
+        if "_delvewheel_" not in source_code:
             return None
 
         match = re.search(
-            r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
+            r"(def _delvewheel_(?:init_)?patch_(.*?)\(\):\n.*?_delvewheel_(?:init_)?patch_\2\(\))",
             source_code,
             re.S,
         )
@@ -103,6 +103,19 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         if not isAnacondaPython():
             assert self.dll_directory is not None, module_name
 
+        # At least the "scs" package puts the top level package folder there
+        # even with there being no DLLs anywhere, maybe a wrong usage of
+        # delvewheel SCS, maybe only on Windows.
+        if self.dll_directory is not None:
+            self.dll_directory = os.path.normpath(self.dll_directory)
+
+            if os.path.basename(self.dll_directory) in (
+                "site-packages",
+                "dist-packages",
+                "vendor-packages",
+            ):
+                self.dll_directory = None
+
         self.dll_directories[module_name] = self.dll_directory
 
         if self.dll_directories[module_name]:
@@ -117,11 +130,11 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         dll_directory = self.dll_directories.get(full_name)
 
         if dll_directory is not None:
-            for dll_filename in getFileList(dll_directory):
+            for dll_filename, dll_basename in listDllFilesFromDirectory(dll_directory):
                 yield self.makeDllEntryPoint(
                     source_path=dll_filename,
                     dest_path=os.path.join(
-                        os.path.basename(dll_directory), os.path.basename(dll_filename)
+                        os.path.basename(dll_directory), dll_basename
                     ),
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),

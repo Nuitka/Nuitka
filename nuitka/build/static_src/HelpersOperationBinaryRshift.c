@@ -941,7 +941,9 @@ static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b < 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         goto exit_result_exception;
     }
 
@@ -1161,7 +1163,9 @@ static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 
@@ -1397,7 +1401,9 @@ static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 
@@ -1483,7 +1489,9 @@ static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b < 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         goto exit_result_exception;
     }
 
@@ -1708,7 +1716,9 @@ static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 
@@ -1949,7 +1959,9 @@ static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 
@@ -2255,7 +2267,9 @@ static PyObject *_BINARY_OPERATION_RSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 
@@ -2485,7 +2499,9 @@ static nuitka_bool _BINARY_OPERATION_RSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
 

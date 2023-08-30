@@ -30,7 +30,7 @@ struct %(function_identifier)s_locals {
 };
 #endif
 
-static PyObject *%(function_identifier)s_context(struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value) {
+static PyObject *%(function_identifier)s_context(PyThreadState *tstate, struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value) {
     CHECK_OBJECT(coroutine);
     assert(Nuitka_Coroutine_Check((PyObject *)coroutine));
     CHECK_OBJECT_X(yield_return_value);
@@ -54,6 +54,7 @@ static PyObject *%(function_identifier)s_context(struct Nuitka_CoroutineObject *
 
 static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s) {
     return Nuitka_Coroutine_New(
+        tstate,
         %(function_identifier)s_context,
         %(coroutine_module)s,
         %(coroutine_name_obj)s,
@@ -82,7 +83,7 @@ template_coroutine_exception_exit = """\
     function_exception_exit:
 %(function_cleanup)s
     assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    RESTORE_ERROR_OCCURRED(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
     return NULL;
 """
 

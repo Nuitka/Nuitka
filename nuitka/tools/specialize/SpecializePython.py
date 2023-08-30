@@ -376,7 +376,6 @@ def makeAttributeNodes():
         emit("attribute_typed_classes = set()")
 
         for attribute_name, shape_names in sorted(attribute_information.items()):
-
             code = template.render(
                 attribute_name=attribute_name,
                 python3_operation_name=_getPython3OperationName(attribute_name),
@@ -679,8 +678,9 @@ def _addFromNode(node_class):
     ) = _parseNamedChildrenSpec(named_children)
 
     mixin_name = makeMixinName(
-        node_class.isExpression(),
-        node_class.isStatement() or node_class.isStatementsSequence(),
+        # TODO: Subject to dying, we now make this up on the fly.
+        node_class.kind.startswith("EXPRESSION"),
+        node_class.kind.startswith("STATEMENT"),
         tuple(new_named_children),
         named_children_types,
         named_children_checkers,
@@ -700,8 +700,9 @@ def _addFromNode(node_class):
         print("Not done", node_class.__name__, named_children, mixin_name)
 
     addChildrenMixin(
-        node_class.isExpression(),
-        node_class.isStatement() or node_class.isStatementsSequence(),
+        # TODO: Subject to dying, we now make this up on the fly.
+        node_class.kind.startswith("EXPRESSION"),
+        node_class.kind.startswith("STATEMENT"),
         node_class.__name__,
         tuple(new_named_children),
         named_children_types,
@@ -844,6 +845,8 @@ from nuitka.nodes.Checkers import (
 
             is_compute_final = pop("final")
 
+            is_compute_final_children = pop("final_children")
+
             is_compute_no_raise = pop("no_raise")
             is_compute_raise = pop("raise")
             is_compute_raise_operation = pop("raise_operation")
@@ -888,6 +891,7 @@ from nuitka.nodes.Checkers import (
                 ),
                 intended_for=intended_for,
                 is_compute_final=is_compute_final,
+                is_compute_final_children=is_compute_final_children,
                 raise_mode=raise_mode,
                 is_compute_statement=is_compute_statement,
                 awaited_constant_attributes=awaited_constant_attributes,
@@ -915,7 +919,7 @@ def getSpecVersions(spec_module):
     result = {}
 
     for spec_name, spec in getSpecs(spec_module):
-        for (version, str_version) in (
+        for version, str_version in (
             (0x370, "37"),
             (0x380, "38"),
             (0x390, "39"),

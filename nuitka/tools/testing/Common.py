@@ -66,7 +66,7 @@ from .SearchModes import (
     SearchModeResume,
 )
 
-# spellchecker: ignore popenargs,pathsep,killpg
+# spell-checker: ignore popenargs,pathsep,killpg
 
 test_logger = OurLogger("", base_style="blue")
 
@@ -165,7 +165,6 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         and os.environ["PYTHON"].isdigit()
         and not isWin32Windows()
     ):
-
         os.environ["PYTHON"] = "python%s.%s" % (
             os.environ["PYTHON"][0],
             os.environ["PYTHON"][1],
@@ -1752,7 +1751,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith(("site-packages", "dist-packages")):
+        if loaded_filename.endswith(
+            ("site-packages", "dist-packages", "vendor-packages")
+        ):
             continue
 
         # QtNetwork insist on doing this it seems.
@@ -1925,3 +1926,12 @@ def getLocalWebServerDir(base_dir):
 
 def traceExecutedCommand(description, command):
     my_print(description, ":", *command, style="pink")
+
+
+def extractNuitkaVersionFromFilePath(version_filename):
+    with openTextFile(version_filename, "r") as f:
+        option_lines = f.readlines()
+
+    (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
+
+    return version_line[8:].rstrip()

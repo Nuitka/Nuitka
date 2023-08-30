@@ -36,7 +36,7 @@ def generateMatchArgsCode(to_name, expression, emit, context):
         to_name, "match_args_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = MATCH_CLASS_ARGS(%s, %d);"
+            "%s = MATCH_CLASS_ARGS(tstate, %s, %d);"
             % (value_name, matched_name, expression.max_allowed)
         )
 

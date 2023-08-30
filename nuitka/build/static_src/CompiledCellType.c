@@ -151,8 +151,10 @@ static int Nuitka_Cell_tp_clear(struct Nuitka_CellObject *cell) {
 }
 
 static PyObject *Nuitka_Cell_get_contents(struct Nuitka_CellObject *cell, void *closure) {
-    if (cell->ob_ref == NULL) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "Cell is empty");
+    if (unlikely(cell->ob_ref == NULL)) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "Cell is empty");
         return NULL;
     }
 
@@ -165,7 +167,10 @@ static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *va
     PyObject *old = cell->ob_ref;
 
     if (old != NULL && value == NULL) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cell_contents cannot be used to delete values Nuitka");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError,
+                                        "cell_contents cannot be used to delete values Nuitka");
         return -1;
     }
 

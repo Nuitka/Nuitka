@@ -74,18 +74,12 @@ class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
 
     named_children = ("source", "expression")
     node_attributes = ("attribute_name",)
+    auto_compute_handling = "operation"
 
     def getAttributeName(self):
         return self.attribute_name
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         return self.subnode_expression.computeExpressionSetAttribute(
             set_node=self,
             attribute_name=self.attribute_name,
@@ -112,18 +106,12 @@ class StatementDelAttribute(StatementDelAttributeBase):
 
     named_children = ("expression",)
     node_attributes = ("attribute_name",)
+    auto_compute_handling = "operation"
 
     def getAttributeName(self):
         return self.attribute_name
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         return self.subnode_expression.computeExpressionDelAttribute(
             set_node=self,
             attribute_name=self.attribute_name,
@@ -268,7 +256,6 @@ class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
 
             # TODO: Something needs to be done if it has no string value.
             if attribute_name is not None:
-
                 # If source or attribute have side effects, they must be
                 # evaluated, before the lookup.
                 (

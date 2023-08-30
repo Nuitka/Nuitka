@@ -536,7 +536,9 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_INT(PyObject **operand1, PyObje
     const long b = PyInt_AS_LONG(operand2);
 
     if (unlikely(b < 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
         goto exit_result_exception;
     }
     /* Short cut for zero shift or shifting zero. */
@@ -805,7 +807,9 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_INT(PyObject **operand1, PyO
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
         /* Short cut for zero shift or shifting zero. */
@@ -1079,7 +1083,9 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_OBJECT(PyObject **operand1, PyO
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
         /* Short cut for zero shift or shifting zero. */
@@ -1326,7 +1332,9 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_OBJECT(PyObject **operand1, 
         const long b = PyInt_AS_LONG(operand2);
 
         if (unlikely(b < 0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "negative shift count");
             goto exit_result_exception;
         }
         /* Short cut for zero shift or shifting zero. */

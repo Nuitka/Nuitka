@@ -129,7 +129,10 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 {% if operator == "+" and left.mayBothHaveType(right, "unicode") %}
 #if PYTHON_VERSION >= 0x300
         if ({{ left.getUnicodeCheckExpression("*operand1")}} && !PyUnicode_CHECK_INTERNED(*operand1) && {{right.getUnicodeCheckExpression("operand2") }}) {
-            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+            // TODO: Push outward.
+            PyThreadState *tstate = PyThreadState_GET();
+
+            return UNICODE_ADD_INCREMENTAL(tstate, operand1, operand2);
         }
 #endif
 {% endif %}
@@ -169,7 +172,11 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
     if ({{ left.getStringCheckExpression("*operand1")}} && {{right.getStringCheckExpression("operand2") }}) {
         {# This could be inlined too, but it has some detail behind it. #}
         PyString_Concat(operand1, operand2);
-        return !ERROR_OCCURRED();
+
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        return !HAS_ERROR_OCCURRED(tstate);
     }
 #endif
 {% endif %}
@@ -178,7 +185,10 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 #if PYTHON_VERSION >= 0x300
     // Python3 Strings are to be treated differently.
     if ({{ left.getUnicodeCheckExpression("*operand1")}} && {{right.getUnicodeCheckExpression("operand2") }}) {
-        PyObject *result = UNICODE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *result = UNICODE_CONCAT(tstate, *operand1, operand2);
 
         if (unlikely(result == NULL)) {
             return false;

@@ -21,7 +21,7 @@
 
 
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isStandaloneMode
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning
@@ -38,6 +38,7 @@ from .ExpressionBasesGenerated import (
     ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
     ExpressionImportlibMetadataBackportEntryPointValueRefBase,
     ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase,
+    ExpressionImportlibMetadataDistributionFailedCallBase,
     ExpressionImportlibMetadataEntryPointsValueRefBase,
     ExpressionImportlibMetadataEntryPointValueRefBase,
     ExpressionImportlibMetadataSelectableGroupsValueRefBase,
@@ -142,9 +143,8 @@ class ExpressionPkgResourcesGetDistributionCall(
         try:
             distribution = get_distribution(arg)
         except DistributionNotFound:
-            inclusion_logger.info(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
-                % (arg, self.source_ref.getAsString())
+            trace_collection.onDistributionUsed(
+                distribution_name=arg, node=self, success=False
             )
 
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -156,6 +156,10 @@ class ExpressionPkgResourcesGetDistributionCall(
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
+            trace_collection.onDistributionUsed(
+                distribution_name=arg, node=self, success=True
+            )
+
             result = ExpressionPkgResourcesDistributionValueRef(
                 distribution=distribution, source_ref=self.source_ref
             )
@@ -182,9 +186,8 @@ class ImportlibMetadataVersionCallMixin(object):
         try:
             distribution = version(arg)
         except PackageNotFoundError:
-            inclusion_logger.info(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
-                % (arg, self.source_ref.getAsString())
+            trace_collection.onDistributionUsed(
+                distribution_name=arg, node=self, success=False
             )
 
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -196,6 +199,10 @@ class ImportlibMetadataVersionCallMixin(object):
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
+            trace_collection.onDistributionUsed(
+                distribution_name=arg, node=self, success=True
+            )
+
             from .ConstantRefNodes import makeConstantRefNode
 
             result = makeConstantRefNode(
@@ -369,9 +376,8 @@ class ExpressionPkgResourcesIterEntryPointsCall(
             # Get entry point from generator, we cannot delay.
             entry_points = tuple(iter_entry_points(group=group, name=name))
         except DistributionNotFound:
-            inclusion_logger.info(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
-                % (group, self.source_ref.getAsString())
+            trace_collection.onDistributionUsed(
+                distribution_name=name or group, node=self, success=False
             )
 
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -380,9 +386,13 @@ class ExpressionPkgResourcesIterEntryPointsCall(
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
             inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
-                % (group, self.source_ref.getAsString(), repr(e))
+                % (name, self.source_ref.getAsString(), repr(e))
             )
         else:
+            trace_collection.onDistributionUsed(
+                distribution_name=name or group, node=self, success=True
+            )
+
             result = makeExpressionMakeList(
                 elements=tuple(
                     ExpressionPkgResourcesEntryPointValueRef(
@@ -474,6 +484,11 @@ class ImportlibMetadataDistributionCallMixin(object):
         return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
     def replaceWithCompileTimeValue(self, trace_collection):
+        # In module mode, we cannot predict if the distribution is the same or not
+        # so lets not optimize this further and treat it as an unknown.
+        if shallMakeModule():
+            return
+
         distribution_func = self._getImportlibMetadataModule().distribution
         PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError
 
@@ -482,20 +497,25 @@ class ImportlibMetadataDistributionCallMixin(object):
         try:
             distribution = distribution_func(arg)
         except PackageNotFoundError:
-            inclusion_logger.info(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
-                % (arg, self.source_ref.getAsString())
+            # TODO: In isolated standalone mode, we could go to the actual exception
+            # instead.
+
+            return trace_collection.computedExpressionResult(
+                expression=self.makeExpressionImportlibMetadataDistributionFailedCall(),
+                change_tags="new_expression",
+                change_desc="Call to '%s.distribution' failed to resolve."
+                % self.importlib_metadata_name,
             )
-
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
             inclusion_logger.sysexit(
                 "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
+            trace_collection.onDistributionUsed(
+                distribution_name=arg, node=self, success=False
+            )
+
             # Remember the original name, distributions can other names.
             result = ExpressionImportlibMetadataDistributionValueRef(
                 distribution=distribution, original_name=arg, source_ref=self.source_ref
@@ -521,6 +541,65 @@ class ExpressionImportlibMetadataDistributionCall(
 
     importlib_metadata_name = "importlib.metadata"
 
+    def makeExpressionImportlibMetadataDistributionFailedCall(self):
+        return ExpressionImportlibMetadataDistributionFailedCall(
+            distribution_name=self.subnode_distribution_name, source_ref=self.source_ref
+        )
+
+
+class ExpressionImportlibMetadataDistributionFailedCallMixin(object):
+    __slots__ = ()
+
+    def computeExpression(self, trace_collection):
+        distribution_name = self.subnode_distribution_name.getCompileTimeConstant()
+
+        trace_collection.onDistributionUsed(
+            distribution_name=distribution_name, node=self, success=False
+        )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # We are kind of final, but we need to call "onDistributionUsed" still.
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibMetadataDistributionFailedCall(
+    ExpressionImportlibMetadataDistributionFailedCallMixin,
+    ExpressionImportlibMetadataDistributionFailedCallBase,
+):
+    """Represents compile time failed call to importlib.metadata.distribution(distribution_name)"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_FAILED_CALL"
+
+    named_children = ("distribution_name",)
+
+    # We know it's a constant, no need to visit it anymore.
+    auto_compute_handling = "final_children"
+
+    python_version_spec = ">= 0x380"
+
+    importlib_metadata_name = "importlib.metadata"
+
+
+class ExpressionImportlibMetadataBackportDistributionFailedCall(
+    ExpressionImportlibMetadataDistributionFailedCallMixin,
+    ExpressionImportlibMetadataDistributionFailedCallBase,
+):
+    """Represents compile time failed call to importlib_metadata.distribution(distribution_name)"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_FAILED_CALL"
+
+    named_children = ("distribution_name",)
+
+    # We know it's a constant, no need to visit it anymore.
+    auto_compute_handling = "final_children"
+
+    importlib_metadata_name = "importlib_metadata"
+
 
 class ExpressionImportlibMetadataBackportDistributionCall(
     ImportlibMetadataDistributionCallMixin,
@@ -530,6 +609,11 @@ class ExpressionImportlibMetadataBackportDistributionCall(
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib_metadata"
+
+    def makeExpressionImportlibMetadataDistributionFailedCall(self):
+        return ExpressionImportlibMetadataBackportDistributionFailedCall(
+            distribution_name=self.subnode_distribution_name, source_ref=self.source_ref
+        )
 
 
 def makeExpressionImportlibMetadataMetadataCall(distribution_name, source_ref):

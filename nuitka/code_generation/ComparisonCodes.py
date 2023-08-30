@@ -332,7 +332,10 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         res_name = context.getIntResName()
 
-        emit("%s = EXCEPTION_MATCH_BOOL(%s, %s);" % (res_name, left_name, right_name))
+        emit(
+            "%s = EXCEPTION_MATCH_BOOL(tstate, %s, %s);"
+            % (res_name, left_name, right_name)
+        )
 
         getErrorExitBoolCode(
             condition="%s == -1" % res_name,
