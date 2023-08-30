@@ -30,10 +30,11 @@ from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
 from nuitka.Tracing import OurLogger
 from nuitka.TreeXML import fromFile
-from nuitka.utils.Execution import check_call
+from nuitka.utils.Execution import check_call, executeProcess
 from nuitka.utils.FileOperations import (
     changeTextFileContents,
     getFileContents,
+    getFileList,
     listDir,
     makePath,
     relpath,
@@ -224,6 +225,46 @@ def _updatePipenvLockFile(
         )
 
 
+def _compileCase(case_data, case_dir, installed_python):
+    check_call(
+        [
+            installed_python.getPythonExe(),
+            "-m",
+            "pipenv",
+            "run",
+            "python",
+            nuitka_binary,
+            os.path.join(case_dir, case_data["filename"]),
+            "--report=compilation-report.xml",
+            "--report-diffable",
+            "--report-user-provided=pipenv_hash=%s"
+            % getFileContentsHash("Pipfile.lock"),
+        ]
+    )
+
+    if case_data["interactive"] == "no":
+        binaries = getFileList(
+            ".",
+            ignore_filenames=("__constants.bin",),
+            only_suffixes=(".exe" if os.name == "nt" else ".bin"),
+        )
+
+        if len(binaries) != 1:
+            sys.exit("Error, failed to identify created binary.")
+
+        stdout, stderr, exit_nuitka = executeProcess([binaries[0]])
+
+        if exit_nuitka != 0:
+            sys.exit(
+                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
+            )
+
+        with open("compiled-stdout.txt", "wb") as output:
+            output.write(stdout)
+        with open("compiled-stderr.txt", "wb") as output:
+            output.write(stderr)
+
+
 def _updateCase(
     case_dir, case_data, dry_run, no_pipenv_update, installed_python, result_path
 ):
@@ -302,20 +343,10 @@ def _updateCase(
             need_compile = True
 
         if need_compile:
-            check_call(
-                [
-                    installed_python.getPythonExe(),
-                    "-m",
-                    "pipenv",
-                    "run",
-                    "python",
-                    nuitka_binary,
-                    os.path.join(case_dir, case_data["filename"]),
-                    "--report=compilation-report.xml",
-                    "--report-diffable",
-                    "--report-user-provided=pipenv_hash=%s"
-                    % getFileContentsHash("Pipfile.lock"),
-                ]
+            _compileCase(
+                case_data=case_data,
+                case_dir=case_dir,
+                installed_python=installed_python,
             )
 
 
