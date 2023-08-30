@@ -36,7 +36,8 @@ struct Nuitka_MetaPathBasedLoaderEntry;
 typedef PyObject *(*module_initfunc)(PyThreadState *tstate, PyObject *module,
                                      struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
-#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
+#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE) &&                                 \
+    defined(NUITKA_FILE_REFERENCE_ORIGINAL_MODE)
 #define _NUITKA_FREEZER_HAS_FILE_PATH
 #endif
 

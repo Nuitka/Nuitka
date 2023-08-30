@@ -195,10 +195,13 @@ extern PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path);
 #define const_platform_sep const_str_slash
 #endif
 
-// Small helpers to work with filenames.
+// Small helpers to work with filenames from "os.path" module
 extern PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename);
+
+// Compare two paths if they are the same.
+nuitka_bool compareFilePaths(PyThreadState *tstate, PyObject *filename_a, PyObject *filename_b);
 
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value);

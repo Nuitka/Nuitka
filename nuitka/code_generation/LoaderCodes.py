@@ -63,6 +63,7 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
     if (
         not Options.isStandaloneMode()
         and not Options.shallMakeModule()
+        and Options.getFileReferenceMode() == "original"
         and python_version >= 0x370
     ):
         # File system paths that will hopefully work, spell-checker: ignore getfilesystemencoding
