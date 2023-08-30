@@ -171,7 +171,7 @@ template_read_mvar_unclear = """\
 """
 
 template_read_locals_dict_with_fallback = """\
-%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(tstate, %(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
 %(fallback)s
@@ -179,7 +179,7 @@ if (%(to_name)s == NULL) {
 """
 
 template_read_locals_dict_without_fallback = """\
-%(to_name)s = DICT_GET_ITEM0(%(locals_dict)s, %(var_name)s);
+%(to_name)s = DICT_GET_ITEM0(tstate, %(locals_dict)s, %(var_name)s);
 """
 
 
@@ -187,7 +187,7 @@ template_read_locals_mapping_with_fallback = """\
 %(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
-    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()) {
+    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
     } else {
@@ -200,14 +200,15 @@ template_read_locals_mapping_without_fallback = """\
 %(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
 """
 
+# TODO: Have DICT_REMOVE_ITEM_WITHOUT_ERROR and use that instead.
 template_del_global_unclear = """\
 %(result)s = DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-if (%(result)s == false) CLEAR_ERROR_OCCURRED();
+if (%(result)s == false) CLEAR_ERROR_OCCURRED(tstate);
 """
 
 template_del_global_known = """\
 if (DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s) == false) {
-    CLEAR_ERROR_OCCURRED();
+    CLEAR_ERROR_OCCURRED(tstate);
 }
 """
 
@@ -219,7 +220,7 @@ if (%(test_code)s) {
     UPDATE_STRING_DICT0((PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
 } else {
     if (DICT_REMOVE_ITEM(%(dict_name)s, %(var_name)s) == false) {
-        CLEAR_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
     }
 }
 """
@@ -267,7 +268,7 @@ if (%(test_code)s) {
 
         %(tmp_name)s = res == 0;
     } else {
-        CLEAR_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
         %(tmp_name)s = true;
     }
 }
@@ -279,6 +280,7 @@ if (%(test_code)s) {
 %(access_code)s
 
     %(tmp_name)s = SET_SUBSCRIPT(
+        tstate,
         %(mapping_name)s,
         %(var_name)s,
         value

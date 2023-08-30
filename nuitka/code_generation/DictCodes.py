@@ -58,7 +58,6 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
     ) as value_name:
-
         if expression.subnode_pairs:
             # If there is no sequence to mix in, then directly generate
             # into to_name.
@@ -86,7 +85,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
 
         if seq_name is not None:
             emit(
-                "%s = TO_DICT(%s, %s);"
+                "%s = TO_DICT(tstate, %s, %s);"
                 % (value_name, seq_name, "NULL" if dict_name is None else dict_name)
             )
 
@@ -253,7 +252,8 @@ def generateDictOperationItemCode(to_name, expression, emit, context):
         to_name, "dict_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = DICT_GET_ITEM_WITH_ERROR(%s, %s);" % (value_name, dict_name, key_name)
+            "%s = DICT_GET_ITEM_WITH_ERROR(tstate, %s, %s);"
+            % (value_name, dict_name, key_name)
         )
 
         getErrorExitCode(
@@ -279,11 +279,11 @@ def generateDictOperationGet2Code(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {% if expression.known_hashable_key %}
-%(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM0(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
 {% else %}
-%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(%(dict_name)s, %(key_name)s);
-if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(tstate, %(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = Py_None;
 }
@@ -321,11 +321,11 @@ def generateDictOperationGet3Code(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {% if expression.known_hashable_key %}
-%(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM1(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
 {% else %}
-%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(%(dict_name)s, %(key_name)s);
-if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, %(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = %(default_name)s;
     Py_INCREF(%(value_name)s);
@@ -357,6 +357,7 @@ def generateDictOperationSetdefault2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_SETDEFAULT2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=not expression.known_hashable_key,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -370,6 +371,7 @@ def generateDictOperationSetdefault3Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_SETDEFAULT3",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=not expression.known_hashable_key,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -383,6 +385,7 @@ def generateDictOperationPop2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_POP2",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -396,6 +399,7 @@ def generateDictOperationPop3Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_POP3",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=not expression.known_hashable_key,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -409,6 +413,7 @@ def generateDictOperationPopitemCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_POPITEM",
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -429,7 +434,7 @@ def _generateDictOperationUpdateCommonCode(
         renderTemplateFromString(
             r"""
 {% if has_keys_attribute == None %}
-if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
+if (HAS_ATTR_BOOL(tstate, %(iterable_name)s, const_str_plain_keys)){
     %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
 } else {
     %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
@@ -550,6 +555,7 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_COPY",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -563,6 +569,7 @@ def generateDictOperationClearCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=None,
         capi="DICT_CLEAR",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -579,6 +586,7 @@ def generateDictOperationItemsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITEMS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -592,6 +600,7 @@ def generateDictOperationIteritemsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERITEMS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -605,6 +614,7 @@ def generateDictOperationViewitemsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_VIEWITEMS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -618,6 +628,7 @@ def generateDictOperationKeysCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_KEYS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -631,6 +642,7 @@ def generateDictOperationIterkeysCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERKEYS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -644,6 +656,7 @@ def generateDictOperationViewkeysCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_VIEWKEYS",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -657,6 +670,7 @@ def generateDictOperationValuesCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_VALUES",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -715,6 +729,7 @@ def generateDictOperationItervaluesCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERVALUES",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -728,6 +743,7 @@ def generateDictOperationViewvaluesCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_VIEWVALUES",
+        tstate=False,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -750,7 +766,14 @@ def generateDictOperationInCode(to_name, expression, emit, context):
 
     res_name = context.getIntResName()
 
-    emit("%s = DICT_HAS_ITEM(%s, %s);" % (res_name, key_name, dict_name))
+    emit(
+        "%s = DICT_HAS_ITEM(tstate, %s, %s);"
+        % (
+            res_name,
+            key_name,
+            dict_name,
+        )
+    )
 
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,

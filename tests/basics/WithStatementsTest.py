@@ -21,6 +21,7 @@ import sys
 
 x = 0
 
+
 # This is used to trace the exact interaction with the context manager to
 # uncover and decide ordering and correctness of calls.
 class MyContextManager(object):
@@ -92,6 +93,7 @@ with MyContextManager() as x:
 
 if sys.version_info >= (3,):
     assert sys.exc_info() == (None, None, None)
+
 
 # Use context manager and fail to assign.
 def returnFromContextBlock():

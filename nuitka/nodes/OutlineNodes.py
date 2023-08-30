@@ -88,7 +88,6 @@ class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
         )
 
     def allocateTempScope(self, name):
-
         # Let's scope the temporary scopes by the outline they come from.
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 
@@ -321,7 +320,6 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         )
 
     def allocateTempScope(self, name):
-
         # Let's scope the temporary scopes by the outline they come from.
         return self.provider.allocateTempScope(name=self.name + "$" + name)
 

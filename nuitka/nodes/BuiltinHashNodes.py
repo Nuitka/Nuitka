@@ -25,9 +25,12 @@ slightly.
 
 from .ChildrenHavingMixins import ChildHavingValueMixin
 from .ExpressionBases import ExpressionBase
+from .ExpressionShapeMixins import ExpressionIntShapeExactMixin
 
 
-class ExpressionBuiltinHash(ChildHavingValueMixin, ExpressionBase):
+class ExpressionBuiltinHash(
+    ExpressionIntShapeExactMixin, ChildHavingValueMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_HASH"
 
     named_children = ("value",)

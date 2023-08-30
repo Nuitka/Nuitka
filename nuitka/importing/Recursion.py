@@ -24,6 +24,10 @@ import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.freezer.ImportDetection import (
+    detectEarlyImports,
+    detectStdlibAutoInclusionModules,
+)
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
 from nuitka.pgo.PGO import decideInclusionFromPGO
@@ -35,33 +39,33 @@ from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
 
-def _recurseTo(module_name, module_filename, module_kind):
+def _recurseTo(module_name, module_filename, module_kind, reason):
     from nuitka.tree import Building
 
-    module, is_added = Building.buildModule(
-        module_filename=module_filename,
+    module = Building.buildModule(
         module_name=module_name,
+        module_kind=module_kind,
+        module_filename=module_filename,
+        reason=reason,
         source_code=None,
         is_top=False,
         is_main=False,
-        is_extension=module_kind == "extension",
         is_fake=False,
         hide_syntax_error=True,
     )
 
     ImportCache.addImportedModule(module)
 
-    return module, is_added
+    return module
 
 
 def recurseTo(
-    signal_change,
     module_name,
     module_filename,
     module_kind,
-    using_module_name,
     source_ref,
     reason,
+    using_module_name,
 ):
     try:
         module = ImportCache.getImportedModuleByNameAndPath(
@@ -77,16 +81,15 @@ def recurseTo(
             module_kind=module_kind,
             using_module_name=using_module_name,
             source_ref=source_ref,
+            reason=reason,
         )
 
-        module, added_flag = _recurseTo(
+        module = _recurseTo(
             module_name=module_name,
             module_filename=module_filename,
             module_kind=module_kind,
+            reason=reason,
         )
-
-        if added_flag and signal_change is not None:
-            signal_change("new_code", module.getSourceReference(), reason)
 
     return module
 
@@ -119,7 +122,16 @@ def _decideRecursion(
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
 
-    # In -m mode, when including the package, do not duplicate main program.
+    if module_kind == "extension" and not Options.isStandaloneMode():
+        return False, "Extension modules cannot be inspected."
+
+    if module_name in detectEarlyImports():
+        return True, "Technically required for CPython library startup."
+
+    if module_name in detectStdlibAutoInclusionModules():
+        return True, "Including as part of the non-excluded parts of standard library."
+
+    # In '-m' mode, when including the package, do not duplicate main program.
     if (
         Options.hasPythonFlagPackageMode()
         and not Options.shallMakeModule()
@@ -128,21 +140,56 @@ def _decideRecursion(
         if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
             return False, "Main program is already included in package mode."
 
-    plugin_decision = Plugins.onModuleEncounter(
+    plugin_decision, deciding_plugins = Plugins.onModuleEncounter(
         using_module_name=using_module_name,
         module_filename=module_filename,
         module_name=module_name,
         module_kind=module_kind,
     )
 
+    # For checks, we do not consider anti-bloat plugin to be as important, to
+    # cause a conflict with the user choices. We could make an extra attribute
+    # out of that, but it seems overkill for now.
+    deciding_plugins = [
+        deciding_plugin
+        for deciding_plugin in deciding_plugins
+        if deciding_plugin.plugin_name != "anti-bloat"
+    ]
+
+    no_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowInNoCase()
+    )
+
+    if no_case:
+        if plugin_decision and plugin_decision[0]:
+            deciding_plugins[0].sysexit(
+                "Conflict between user and plugin decision for module '%s'."
+                % module_filename
+            )
+
+        return False, "Module %s instructed by user to not follow to." % reason
+
+    any_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowModules()
+    )
+
+    if any_case:
+        if plugin_decision and not plugin_decision[0] and deciding_plugins:
+            deciding_plugins[0].sysexit(
+                "Conflict between user and plugin decision for module '%s'."
+                % module_filename
+            )
+
+        return True, "Module %s instructed by user to follow to." % reason
+
     if plugin_decision is not None:
         return plugin_decision
 
-    if module_kind == "extension":
-        if Options.isStandaloneMode():
-            return True, "Extension module needed for standalone mode."
-        else:
-            return False, "Extension module cannot be inspected."
+    if extra_recursion:
+        return True, "Lives in user provided directory."
+
+    if module_kind == "extension" and Options.isStandaloneMode():
+        return True, "Extension module needed for standalone mode."
 
     # PGO decisions are not overruling plugins, but all command line options, they are
     # supposed to be applied already.
@@ -165,38 +212,21 @@ def _decideRecursion(
             if pgo_decision is not None:
                 return pgo_decision, "PGO based decision"
 
-    no_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowInNoCase()
-    )
-
-    if no_case:
-        return (False, "Module %s instructed by user to not follow to." % reason)
-
-    any_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowModules()
-    )
-
-    if any_case:
-        return (True, "Module %s instructed by user to follow to." % reason)
-
-    if extra_recursion:
-        return (True, "Lives in plug-in directory.")
-
-    if is_stdlib and Options.shallFollowStandardLibrary():
-        return (True, "Instructed by user to follow to standard library.")
+    if (
+        is_stdlib
+        and not Options.isStandaloneMode()
+        and not Options.shallFollowStandardLibrary()
+    ):
+        return (
+            False,
+            "Not following into stdlib unless standalone or requested to follow into stdlib.",
+        )
 
     if Options.shallFollowAllImports():
-        if is_stdlib:
-            if StandardLibrary.isStandardLibraryNoAutoInclusionModule(module_name):
-                return (
-                    True,
-                    "Instructed by user to follow all modules, including non-automatic standard library modules.",
-                )
-        else:
-            return (
-                True,
-                "Instructed by user to follow to all non-standard library modules.",
-            )
+        return (
+            True,
+            "Instructed by user to follow to all modules.",
+        )
 
     if Options.shallFollowNoImports():
         return (None, "Instructed by user to not follow at all.")
@@ -298,7 +328,7 @@ the compiled result, and therefore asking to include them makes no sense.
         )
 
     if module_kind is not None:
-        decision, reason = decideRecursion(
+        decision, decision_reason = decideRecursion(
             using_module_name=None,
             module_filename=plugin_filename,
             module_name=module_name,
@@ -308,13 +338,12 @@ the compiled result, and therefore asking to include them makes no sense.
 
         if decision:
             module = recurseTo(
-                signal_change=None,
                 module_filename=plugin_filename,
                 module_name=module_name,
                 module_kind=module_kind,
-                using_module_name=None,
                 source_ref=None,
-                reason=reason,
+                reason="command line",
+                using_module_name=None,
             )
 
             if module:
@@ -326,7 +355,7 @@ the compiled result, and therefore asking to include them makes no sense.
         else:
             recursion_logger.warning(
                 "Not allowed to include module '%s' due to '%s'."
-                % (module_name, reason)
+                % (module_name, decision_reason)
             )
 
 
@@ -384,8 +413,22 @@ def checkPluginFilenamePattern(pattern):
         )
 
 
-def considerUsedModules(module, signal_change):
+def considerUsedModules(module, pass_count):
+    # Modules that are only there because they are in standard library are not
+    # supposed to have dependencies included at all.
+    if module.reason == "stdlib":
+        return
+
     for used_module in module.getUsedModules():
+        # The pass number is used to indicate if stdlib modules yet, or only them
+
+        if used_module.reason == "stdlib":
+            if pass_count == 1:
+                continue
+        else:
+            if pass_count == -1:
+                continue
+
         if used_module.finding == "not-found":
             Importing.warnAbout(
                 importing=module,
@@ -399,7 +442,7 @@ def considerUsedModules(module, signal_change):
             continue
 
         try:
-            decision, reason = decideRecursion(
+            decision, decision_reason = decideRecursion(
                 using_module_name=module.getFullName(),
                 module_filename=used_module.filename,
                 module_name=used_module.module_name,
@@ -408,20 +451,20 @@ def considerUsedModules(module, signal_change):
 
             if decision:
                 new_module = recurseTo(
-                    signal_change=signal_change,
                     module_name=used_module.module_name,
                     module_filename=used_module.filename,
                     module_kind=used_module.module_kind,
                     source_ref=used_module.source_ref,
+                    reason=used_module.reason,
                     using_module_name=module.module_name,
-                    reason=reason,
                 )
 
                 addUsedModule(
                     module=new_module,
                     using_module=module,
-                    usage_tag="import",
-                    reason=reason,
+                    # TODO: Cleanup argument names here.
+                    usage_tag=used_module.reason,
+                    reason=decision_reason,
                     source_ref=used_module.source_ref,
                 )
         except NuitkaForbiddenImportEncounter as e:
@@ -436,7 +479,7 @@ def considerUsedModules(module, signal_change):
             )
 
     try:
-        Plugins.considerImplicitImports(module=module, signal_change=signal_change)
+        Plugins.considerImplicitImports(module=module)
     except NuitkaForbiddenImportEncounter as e:
         recursion_logger.sysexit(
             "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."

@@ -21,11 +21,13 @@
 
 import os
 
+from nuitka.tools.Basics import getHomePath
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileFirstLine,
     openTextFile,
+    withDirectoryChange,
 )
 from nuitka.Version import getNuitkaVersion
 
@@ -45,17 +47,62 @@ def checkAtHome(expected="Nuitka Staging"):
     assert description == expected, (expected, description)
 
 
-def getBranchName():
-    # Using a fallback for old git, hopefully not necessary as much anymore.
-    try:
-        branch_name = check_output("git branch --show-current".split()).strip()
-    except NuitkaCalledProcessError:
-        branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
+def _getGitCommandOutput(command):
+    if type(command) is str:
+        command = command.split()
+
+    home_path = getHomePath()
+
+    with withDirectoryChange(home_path):
+        output = check_output(command).strip()
 
     if str is not bytes:
-        branch_name = branch_name.decode()
+        output = output.decode()
 
-    return branch_name
+    return output
+
+
+def getBranchName():
+    """Get the git branch name currently running from."""
+    # Using a fallback for old git, hopefully not necessary as much anymore.
+    try:
+        return _getGitCommandOutput("git branch --show-current")
+    except NuitkaCalledProcessError:
+        return _getGitCommandOutput("git symbolic-ref --short HEAD")
+
+
+def getBranchRemoteName():
+    """Get the git remote name of the branch currently running from."""
+    return _getGitCommandOutput("git config branch.%s.remote" % getBranchName())
+
+
+def getBranchRemoteUrl():
+    """Get the git remote url of the branch currently running from."""
+    return _getGitCommandOutput("git config remote.%s.url" % getBranchRemoteName())
+
+
+def getBranchRemoteIdentifier():
+    """Get the git remote identifier of the branch currently running from.
+
+    This identifier is used to classify git origins, they might be github,
+    private git, or unknown.
+    """
+
+    branch_remote_url = getBranchRemoteUrl()
+
+    branch_remote_host = branch_remote_url.split(":", 1)[0].split("@")[-1]
+
+    if branch_remote_host.endswith(".home"):
+        branch_remote_host = branch_remote_host.rsplit(".", 1)[0]
+
+    if branch_remote_host == "mastermind":
+        return "private"
+    elif branch_remote_host.endswith("nuitka.net"):
+        return "private"
+    elif branch_remote_host == "github":
+        return "public"
+    else:
+        return "unknown"
 
 
 def checkBranchName():

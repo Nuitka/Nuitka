@@ -74,7 +74,6 @@ print("Check if lambda can have expression chains:", end="")
 
 
 def function_lambda_with_chain():
-
     a = (1, 2, 3)
 
     x = lambda x: x[0] < x[1] < x[2]

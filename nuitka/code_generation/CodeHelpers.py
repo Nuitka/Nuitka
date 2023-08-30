@@ -39,7 +39,6 @@ _ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
 def addExpressionDispatchDict(dispatch_dict):
     for key, value in dispatch_dict.items():
-
         if key in expression_dispatch_dict:
             if key not in _ignore_list_overrides:
                 assert False, key
@@ -81,12 +80,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     # where nodes are shared in the tree, which is not allowed.
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
-
-    if not expression.isExpression():
-        printError("No expression %r" % expression)
-
-        expression.dump()
-        assert False, expression
 
     try:
         code_generator = expression_dispatch_dict[expression.kind]
@@ -424,7 +417,6 @@ class HelperCallHandle(object):
 
 @contextmanager
 def withCleanupFinally(name, release_name, needs_exception, emit, context):
-
     assert not context.needsCleanup(release_name)
 
     if needs_exception:

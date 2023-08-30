@@ -187,7 +187,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False
 
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
-
     if python_version < 0x300:
         # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")

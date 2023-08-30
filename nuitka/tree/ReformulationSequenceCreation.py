@@ -359,7 +359,6 @@ def buildListUnpacking(provider, elements, source_ref):
     helper_args = []
 
     for element in elements:
-
         # We could be a lot cleverer about the tuples for non-starred
         # arguments, but lets get this to work first. And then rely on
         # future optimization to inline the list unpacking helper in a
@@ -404,7 +403,6 @@ def _buildSetUnpacking(provider, elements, source_ref):
     helper_args = []
 
     for element in elements:
-
         # We could be a lot cleverer about the tuples for non-starred
         # arguments, but lets get this to work first. And then rely on
         # future optimization to inline the list unpacking helper in a

@@ -1649,7 +1649,6 @@ def getFunctionCallHelperPosKeywordsStarDict():
 def getDoubleStarArgsConversion(
     result, called_variable, kw_variable, star_arg_list_variable, star_arg_dict_variable
 ):
-
     statements = []
 
     if kw_variable is not None:

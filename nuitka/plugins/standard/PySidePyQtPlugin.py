@@ -59,18 +59,30 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
     warned_about = set()
 
-    def __init__(self, qt_plugins, no_qt_translations):
-        if not qt_plugins:
-            qt_plugins = ["sensible"]
+    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+        # Qt plugin directories found.
+        self.qt_plugins_dirs = None
 
-        qt_plugins = sum([value.split(",") for value in qt_plugins], [])
+        sensible_qt_plugins = self._getSensiblePlugins()
 
-        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins)
+        include_qt_plugins = OrderedSet(
+            sum([value.split(",") for value in include_qt_plugins], [])
+        )
+
+        # Useless, but nice for old option usage, where expanding it meant to repeat it.
+        if "sensible" in include_qt_plugins:
+            include_qt_plugins.remove("sensible")
+
+        self.qt_plugins = sensible_qt_plugins
+        self.qt_plugins.update(include_qt_plugins)
+
+        for noinclude_qt_plugin in noinclude_qt_plugins:
+            self.qt_plugins.discard(noinclude_qt_plugin)
+
         self.no_qt_translations = no_qt_translations
 
         self.web_engine_done_binaries = False
         self.web_engine_done_data = False
-        self.qt_plugins_dirs = None
 
         self.binding_package_name = ModuleName(self.binding_name)
 
@@ -97,13 +109,24 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         group.add_option(
             "--include-qt-plugins",
             action="append",
-            dest="qt_plugins",
+            dest="include_qt_plugins",
             default=[],
             help="""\
 Which Qt plugins to include. These can be big with dependencies, so
-by default only the sensible ones are included, but you can also put
+by default only the "sensible" ones are included, but you can also put
 "all" or list them individually. If you specify something that does
 not exist, a list of all available will be given.""",
+        )
+
+        group.add_option(
+            "--noinclude-qt-plugins",
+            action="append",
+            dest="noinclude_qt_plugins",
+            default=[],
+            help="""\
+Which Qt plugins to not include. This removes things, so you can
+ask to include "all" and selectively remove from there, or even
+from the default sensible list.""",
         )
 
         group.add_option(
@@ -175,41 +198,33 @@ of files that you may not want to be included.""",
         """Where does the Qt bindings package expect the web process executable."""
         return "."
 
-    def getQtPluginsSelected(self):
-        # Resolve "sensible on first use"
-        if "sensible" in self.qt_plugins:
-            # Most used ones with low dependencies.
-            self.qt_plugins.update(
-                tuple(
-                    family
-                    for family in (
-                        "imageformats",
-                        "iconengines",
-                        "mediaservice",
-                        "printsupport",
-                        "platforms",
-                        "platformthemes",
-                        "styles",
-                        # Wayland on Linux needs these
-                        "wayland-shell-integration",
-                        "wayland-decoration-client",
-                        "wayland-graphics-integration-client",
-                        "egldeviceintegrations",
-                        # OpenGL rendering, maybe should be something separate.
-                        "xcbglintegrations",
-                        # SSL network needs those
-                        "tls",
-                    )
-                    if self.hasPluginFamily(family)
+    def _getSensiblePlugins(self):
+        return OrderedSet(
+            tuple(
+                family
+                for family in (
+                    "imageformats",
+                    "iconengines",
+                    "mediaservice",
+                    "printsupport",
+                    "platforms",
+                    "platformthemes",
+                    "styles",
+                    # Wayland on Linux needs these
+                    "wayland-shell-integration",
+                    "wayland-decoration-client",
+                    "wayland-graphics-integration-client",
+                    "egldeviceintegrations",
+                    # OpenGL rendering, maybe should be something separate.
+                    "xcbglintegrations",
+                    # SSL network needs those
+                    "tls",
                 )
+                if self.hasPluginFamily(family)
             )
+        )
 
-            self.qt_plugins.remove("sensible")
-
-            # Make sure the above didn't detect nothing, which would be
-            # indicating the check to be bad.
-            assert self.qt_plugins
-
+    def getQtPluginsSelected(self):
         return self.qt_plugins
 
     def hasQtPluginSelected(self, plugin_name):
@@ -1115,6 +1130,17 @@ behavior with the uncompiled code."""
 
         return source_code
 
+    def onDataFileTags(self, included_datafile):
+        if included_datafile.dest_path.endswith(
+            ".qml"
+        ) and not self.hasQtPluginSelected("qml"):
+            self.warning(
+                """Including QML file %s, but not having Qt qml plugins is unlikely \
+to work. Consider using '--include-qt-plugins=qml' to include the \
+necessary files to use it."""
+                % included_datafile.dest_path
+            )
+
 
 class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     """This is for plugins of PyQt5.
@@ -1128,11 +1154,15 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt5"
 
-    def __init__(self, qt_plugins, no_qt_translations):
+    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         NuitkaPluginQtBindingsPluginBase.__init__(
-            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+            self,
+            include_qt_plugins=include_qt_plugins,
+            noinclude_qt_plugins=noinclude_qt_plugins,
+            no_qt_translations=no_qt_translations,
         )
 
+        # TODO: make this into yaml instead, so we do not pollute this constructor.
         self.warning(
             """\
 For the obsolete PyQt5 the Nuitka support is incomplete. Threading, callbacks \
@@ -1209,7 +1239,7 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide2"
 
-    def __init__(self, qt_plugins, no_qt_translations):
+    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
@@ -1225,7 +1255,10 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
                 )
 
         NuitkaPluginQtBindingsPluginBase.__init__(
-            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+            self,
+            include_qt_plugins=include_qt_plugins,
+            noinclude_qt_plugins=noinclude_qt_plugins,
+            no_qt_translations=no_qt_translations,
         )
 
     def onModuleEncounter(
@@ -1332,6 +1365,7 @@ def my_init_subclass(cls, *args):
 
 import PySide2.QtCore
 PySide2.QtCore.QAbstractItemModel.__init_subclass__ = my_init_subclass
+PySide2.QtCore.QAbstractTableModel.__init_subclass__ = my_init_subclass
 PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 """
             yield (
@@ -1364,9 +1398,12 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide6"
 
-    def __init__(self, qt_plugins, no_qt_translations):
+    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         NuitkaPluginQtBindingsPluginBase.__init__(
-            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+            self,
+            include_qt_plugins=include_qt_plugins,
+            noinclude_qt_plugins=noinclude_qt_plugins,
+            no_qt_translations=no_qt_translations,
         )
 
         if self._getBindingVersion() < (6, 5, 0):
@@ -1402,17 +1439,18 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PyQt6"
 
-    def __init__(self, qt_plugins, no_qt_translations):
+    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         NuitkaPluginQtBindingsPluginBase.__init__(
-            self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
+            self,
+            include_qt_plugins=include_qt_plugins,
+            noinclude_qt_plugins=noinclude_qt_plugins,
+            no_qt_translations=no_qt_translations,
         )
 
         self.info(
             """\
 Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
-
-        return None
 
 
 class NuitkaPluginNoQt(NuitkaPluginBase):

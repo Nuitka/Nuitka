@@ -32,7 +32,6 @@ def getLdLibraryPath(package_name, python_rpaths, original_dir):
     key = package_name, tuple(python_rpaths), original_dir
 
     if key not in _ld_library_cache:
-
         ld_library_path = OrderedSet()
         if python_rpaths:
             ld_library_path.update(python_rpaths)

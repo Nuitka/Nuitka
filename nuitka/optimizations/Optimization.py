@@ -66,7 +66,7 @@ def signalChange(tags, source_ref, message):
 
 
 def optimizeCompiledPythonModule(module):
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         "Doing module local optimizations for '{module_name}'.".format(
             module_name=module.getFullName()
         ),
@@ -101,29 +101,25 @@ def optimizeCompiledPythonModule(module):
 
         Graphs.onModuleOptimizationStep(module)
 
-        # Ignore other modules brought into the game.
-        if "new_code" in tag_set:
-            tag_set.remove("new_code")
-
         # Search for local change tags.
         if not tag_set:
             unchanged_count += 1
 
             if unchanged_count == 1 and pass_count == 1:
-                optimization_logger.info_fileoutput(
+                optimization_logger.info_if_file(
                     "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
                 )
                 continue
 
-            optimization_logger.info_fileoutput(
+            optimization_logger.info_if_file(
                 "Finished with the module.", other_logger=progress_logger
             )
             break
 
         unchanged_count = 0
 
-        optimization_logger.info_fileoutput(
+        optimization_logger.info_if_file(
             "Not finished with the module due to following change kinds: %s"
             % ",".join(sorted(tag_set)),
             other_logger=progress_logger,
@@ -137,7 +133,7 @@ def optimizeCompiledPythonModule(module):
             "Memory usage changed during optimization of '%s'" % (module.getFullName())
         )
 
-    considerUsedModules(module=module, signal_change=signalChange)
+    considerUsedModules(module=module, pass_count=pass_count)
 
     return touched
 
@@ -153,16 +149,16 @@ def optimizeUncompiledPythonModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
-    considerUsedModules(module=module, signal_change=signalChange)
+    considerUsedModules(module=module, pass_count=pass_count)
 
-    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
+    Plugins.considerImplicitImports(module=module)
 
 
 def optimizeExtensionModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
-    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
+    Plugins.considerImplicitImports(module=module)
 
 
 def optimizeModule(module):
@@ -195,7 +191,7 @@ def _restartProgress():
     closeProgressBar()
     pass_count += 1
 
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
@@ -210,7 +206,7 @@ def _restartProgress():
 
 
 def _traceProgressModuleStart(current_module):
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
@@ -275,13 +271,24 @@ def makeOptimizationPass():
 
     _restartProgress()
 
+    main_module = None
+    stdlib_phase_done = False
+
     while True:
         current_module = ModuleRegistry.nextModule()
 
         if current_module is None:
-            # TODO: Internal module seems to cause extra passes.
-            # optimizeModule(getInternalModule())
+            if main_module is not None and pass_count == 1:
+                considerUsedModules(module=main_module, pass_count=-1)
+
+                stdlib_phase_done = True
+                main_module = None
+                continue
+
             break
+
+        if current_module.isMainModule() and not stdlib_phase_done:
+            main_module = current_module
 
         _traceProgressModuleStart(current_module)
 

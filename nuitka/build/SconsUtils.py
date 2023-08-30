@@ -120,26 +120,27 @@ def getArgumentList(option_name, default=None):
         return []
 
 
-def _enableExperimentalSettings(env, experimental_flags):
-    for experimental_flag in experimental_flags:
-        if experimental_flag:
-            if "=" in experimental_flag:
-                experiment, value = experimental_flag.split("=", 1)
-            else:
-                experiment = experimental_flag
-                value = None
+def _enableFlagSettings(env, name, experimental_flags):
+    for flag_name in experimental_flags:
+        if not flag_name:
+            continue
 
-            # Allowing for nice names on command line, but using identifiers for C.
-            experiment = experiment.upper().replace("-", "_").replace(".", "_")
+        flag_name = "%s-%s" % (name, flag_name)
 
-            # Experimental without a value is done as mere define, otherwise
-            # the value is passed. spell-checker: ignore cppdefines
-            if value:
-                env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
-            else:
-                env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
+        if "=" in flag_name:
+            flag_name, value = flag_name.split("=", 1)
+        else:
+            value = None
 
-    env.experimental_flags = experimental_flags
+        # Allowing for nice names on command line, but using identifiers for C.
+        flag_name = flag_name.upper().replace("-", "_").replace(".", "_")
+
+        # Experimental without a value is done as mere define, otherwise
+        # the value is passed. spell-checker: ignore cppdefines
+        if value:
+            env.Append(CPPDEFINES=[("_NUITKA_%s" % flag_name, value)])
+        else:
+            env.Append(CPPDEFINES=["_NUITKA_%s" % flag_name])
 
 
 def prepareEnvironment(mingw_mode):
@@ -174,7 +175,9 @@ def prepareEnvironment(mingw_mode):
     return mingw_mode
 
 
-def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
+def createEnvironment(
+    mingw_mode, msvc_version, target_arch, experimental, no_deployment
+):
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -261,7 +264,11 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     # Target arch for some decisions
     env.target_arch = target_arch
 
-    _enableExperimentalSettings(env, experimental)
+    _enableFlagSettings(env, "no_deployment", no_deployment)
+    env.no_deployment_flags = no_deployment
+
+    _enableFlagSettings(env, "experimental", experimental)
+    env.experimental_flags = experimental
 
     return env
 

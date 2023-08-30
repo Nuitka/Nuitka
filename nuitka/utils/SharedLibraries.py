@@ -758,8 +758,8 @@ def cleanupHeaderForAndroid(filename):
         executeToolChecked(
             logger=postprocessing_logger,
             command=("patchelf", "--shrink-rpath", filename),
-            absence_message=_patchelf_usage,
             stderr_filter=_filterPatchelfErrorOutput,
+            absence_message=_patchelf_usage,
         )
 
         executeToolChecked(

@@ -920,7 +920,6 @@ Py_INCREF(%(result)s);""" % {
                 else:
                     assert False, left.type_name
             elif cls.type_name == "nbool":
-
                 if left.type_name == "int":
                     return "%s = %s;" % (
                         result,

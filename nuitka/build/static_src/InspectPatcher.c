@@ -128,7 +128,7 @@ static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", (PyCF
 #endif
 
 /* Replace inspect functions with ones that handle compiles types too. */
-void patchInspectModule(void) {
+void patchInspectModule(PyThreadState *tstate) {
     static bool is_done = false;
     if (is_done) {
         return;
@@ -141,17 +141,18 @@ void patchInspectModule(void) {
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it (yet)
     if (Py_NoSiteFlag == 0) {
-        PyObject *site_module = IMPORT_MODULE5(const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
+        PyObject *site_module =
+            IMPORT_MODULE5(tstate, const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0);
 
         if (site_module == NULL) {
             // Ignore "ImportError", having a "site" module is not a must.
-            CLEAR_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED(tstate);
         }
     }
 #endif
 
     // TODO: Change this into an import hook that is executed after it is imported.
-    module_inspect = IMPORT_MODULE5(const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0);
+    module_inspect = IMPORT_MODULE5(tstate, const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0);
 
     if (module_inspect == NULL) {
         PyErr_PrintEx(0);
@@ -184,7 +185,7 @@ void patchInspectModule(void) {
         PyObject_SetAttrString(module_inspect, "getcoroutinestate", inspect_getcoroutinestate_replacement);
     }
 
-    module_types = IMPORT_MODULE5(const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0);
+    module_types = IMPORT_MODULE5(tstate, const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0);
 
     if (module_types == NULL) {
         PyErr_PrintEx(0);
@@ -224,7 +225,7 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
         PyObject *module = PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
         CHECK_OBJECT(module);
 
-        bool bool_res = Nuitka_DelModuleString("nuitka_types_patch");
+        bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_types_patch");
         assert(bool_res != false);
     }
 

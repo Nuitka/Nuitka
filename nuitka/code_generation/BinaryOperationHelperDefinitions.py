@@ -130,7 +130,6 @@ def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
     )
 
     for type_name1 in type_names:
-
         for type_name2 in type_names[type_names.index(type_name1) + 1 :]:
             # These should be used with reversed arguments, and only have the
             # dominant type as the first argument.
@@ -186,7 +185,6 @@ def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
 
 
 def _makeDefaultOps(op_code, include_nbool, in_place=False):
-
     if in_place:
         yield "INPLACE_OPERATION_%s_OBJECT_OBJECT" % op_code
     else:
@@ -337,7 +335,6 @@ def _makeModOps(in_place):
             "DICT",
             "OBJECT",
         ):
-
             if str_type_name == "STR" and formatted_type_name == "BYTES":
                 continue
             if str_type_name == "BYTES" and formatted_type_name in ("STR", "INT"):

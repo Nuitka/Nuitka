@@ -20,6 +20,11 @@
  * It needs to prepare the interpreter and then loads and executes
  * the "__main__" module.
  *
+ * For multiprocessing, joblib, loky there is things here that will
+ * allow them to fork properly with their intended entry points.
+ *
+ * spell-checker: ignore joblib loky
+ *
  */
 
 #if defined(_WIN32)
@@ -80,7 +85,7 @@ static struct _frozen *old_frozen = NULL;
 static struct _frozen const *old_frozen = NULL;
 #endif
 
-static void prepareFrozenModules(void) {
+static void prepareFrozenModules() {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
@@ -176,7 +181,8 @@ static void unsetEnvironmentVariable(char const *name) { unsetenv(name); }
 
 #endif
 
-static void undoEnvironmentVariable(char const *variable_name, environment_char_t const *old_value) {
+static void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name,
+                                    environment_char_t const *old_value) {
     PyObject *os_module = IMPORT_HARD_OS();
     CHECK_OBJECT(os_module);
 
@@ -210,7 +216,7 @@ static void undoEnvironmentVariable(char const *variable_name, environment_char_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-            DROP_ERROR_OCCURRED();
+            CLEAR_ERROR_OCCURRED(tstate);
         }
     }
 
@@ -375,19 +381,19 @@ static int HANDLE_PROGRAM_EXIT(void) {
 
     int exit_code;
 
-    PyThreadState *thread_state = PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (HAS_ERROR_OCCURRED(thread_state)) {
+    if (HAS_ERROR_OCCURRED(tstate)) {
 #if PYTHON_VERSION >= 0x300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
 
-        while (thread_state->curexc_traceback) {
-            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
+        while (tstate->curexc_traceback) {
+            PyTracebackObject *tb = (PyTracebackObject *)tstate->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
             if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
                             "<frozen importlib._bootstrap>")) {
-                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
+                tstate->curexc_traceback = (PyObject *)tb->tb_next;
                 Py_INCREF(tb->tb_next);
 
                 continue;
@@ -410,6 +416,8 @@ static int HANDLE_PROGRAM_EXIT(void) {
 static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
     NUITKA_INIT_PROGRAM_LATE(module_name);
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #if NUITKA_MAIN_PACKAGE_MODE
     {
         char const *w = module_name;
@@ -427,16 +435,16 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
             memset(buffer, 0, sizeof(buffer));
             memcpy(buffer, module_name, s - module_name);
 
-            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
+            PyObject *result = IMPORT_EMBEDDED_MODULE(tstate, buffer);
 
-            if (ERROR_OCCURRED()) {
+            if (HAS_ERROR_OCCURRED(tstate)) {
                 return result;
             }
         }
     }
 #endif
 
-    return IMPORT_EMBEDDED_MODULE(module_name);
+    return IMPORT_EMBEDDED_MODULE(tstate, module_name);
 }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
@@ -446,7 +454,9 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
 bool SvcStartPython(void) {
     EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
 
-    if (ERROR_OCCURRED()) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (HAS_ERROR_OCCURRED(tstate)) {
         return true;
     } else {
         return false;
@@ -462,6 +472,11 @@ static bool is_multiprocessing_fork = false;
 // This is a multiprocessing resource tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 
+// This is a joblib loky fork
+static bool is_joblib_popen_loky_posix = false;
+// This is a joblib resource tracker if not -1
+static int loky_resource_tracker_arg = -1;
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
@@ -470,29 +485,36 @@ static void setCommandLineParameters(int argc, char **argv, bool initial) {
 static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 #endif
     if (initial) {
-        /* We might need to handle special parameters from plugins that are
-           very deeply woven into command line handling. These are right now
-           multiprocessing, which indicates that it's forking via extra
-           command line argument. And Windows Service indicates need to
-           install and exit here too.
-         */
-        for (int i = 1; i < argc; i++) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-            if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
+        printf("Commandline: ");
+        for (int i = 0; i < argc; i++) {
+            if (i != 0) {
+                printf(" ");
+            }
+            printf("'%s'", argv[i]);
+        }
+        printf("\n");
 #else
-            if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
+        wprintf(L"Commandline: '%lS' %d\n", GetCommandLineW(), argc);
 #endif
-            {
+#endif
+
+        // We might need to handle special parameters from plugins that are
+        // very deeply woven into command line handling. These are right now
+        // multiprocessing, which indicates that it's forking via extra
+
+        // command line argument. And Windows Service indicates need to
+        //   install and exit here too.
+
+        for (int i = 1; i < argc; i++) {
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-fork")) == 0) {
                 is_multiprocessing_fork = true;
                 break;
             }
 
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-            if ((strcmp(argv[i], "--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
-#else
-            if ((wcscmp(argv[i], L"--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
-#endif
-            {
+            if ((i + 1 < argc) &&
+                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-resource-tracker")) == 0) {
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
                 multiprocessing_resource_tracker_arg = atoi(argv[i + 1]);
 #else
@@ -501,22 +523,58 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
                 break;
             }
 
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
             if (i == 1) {
-#if PYTHON_VERSION < 0x300
-                if (strcmp(argv[i], "install") == 0)
-#else
-                if (wcscmp(argv[i], L"install") == 0)
-#endif
-                {
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+                if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                     NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
                     SvcInstall();
                     NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
                 }
+#endif
+            }
+
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+                // The joblib loky resource tracker is launched like this.
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+                int res = sscanf(argv[i + 1],
+                                 "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
+                                 &loky_resource_tracker_arg);
+#else
+                int res = swscanf(argv[i + 1],
+                                  L"from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
+                                  &loky_resource_tracker_arg);
+#endif
+                if (res == 1) {
+                    break;
+                }
+            }
+
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+                // The joblib loky posix popen is launching like this.
+                if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") ==
+                    0) {
+                    is_joblib_popen_loky_posix = true;
+                    break;
+                }
+            }
+
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
+            if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
+                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+                fprintf(stderr,
+                        "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
+                        "'--no-deployment-flag=self-execution'.\n",
+                        argv[i]);
+                exit(2);
             }
 #endif
         }
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
+        assert(argc == 1 || is_multiprocessing_fork || is_joblib_popen_loky_posix || loky_resource_tracker_arg != -1 ||
+               multiprocessing_resource_tracker_arg != -1);
+#endif
     }
 }
 
@@ -733,11 +791,11 @@ int _dowildcard = 0;
 #endif
 
 #ifdef _WIN32
-static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
-    PyObject *file_no_value = CALL_METHOD_NO_ARGS(file_handle, const_str_plain_fileno);
+static void setStdFileHandleNumber(PyThreadState *tstate, DWORD std_handle_id, PyObject *file_handle) {
+    PyObject *file_no_value = CALL_METHOD_NO_ARGS(tstate, file_handle, const_str_plain_fileno);
 
     if (unlikely(file_no_value == NULL)) {
-        DROP_ERROR_OCCURRED();
+        CLEAR_ERROR_OCCURRED(tstate);
         return;
     }
 
@@ -745,8 +803,7 @@ static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
 
     Py_DECREF(file_no_value);
 
-    if (unlikely(file_number == -1 && ERROR_OCCURRED())) {
-        DROP_ERROR_OCCURRED();
+    if (unlikely(file_number == -1 && DROP_ERROR_OCCURRED(tstate))) {
         return;
     }
 
@@ -779,32 +836,32 @@ static bool shallSetOutputHandleToNull(char const *name) {
     return false;
 }
 
-static void setStdinHandle(PyObject *stdin_file) {
+static void setStdinHandle(PyThreadState *tstate, PyObject *stdin_file) {
 
     CHECK_OBJECT(stdin_file);
     Nuitka_SysSetObject("stdin", stdin_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_INPUT_HANDLE, stdin_file);
+    setStdFileHandleNumber(tstate, STD_INPUT_HANDLE, stdin_file);
 #endif
 }
 
-static void setStdoutHandle(PyObject *stdout_file) {
+static void setStdoutHandle(PyThreadState *tstate, PyObject *stdout_file) {
     CHECK_OBJECT(stdout_file);
     Nuitka_SysSetObject("stdout", stdout_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
+    setStdFileHandleNumber(tstate, STD_OUTPUT_HANDLE, stdout_file);
 #endif
 }
 
-static void setStderrHandle(PyObject *stderr_file) {
+static void setStderrHandle(PyThreadState *tstate, PyObject *stderr_file) {
     CHECK_OBJECT(stderr_file);
 
     Nuitka_SysSetObject("stderr", stderr_file);
 
 #ifdef _WIN32
-    setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
+    setStdFileHandleNumber(tstate, STD_ERROR_HANDLE, stderr_file);
 #endif
 }
 
@@ -838,7 +895,7 @@ static PyObject *getExpandedTemplatePath(char const *template_path) {
 #endif
 #endif
 
-static void setInputOutputHandles(void) {
+static void setInputOutputHandles(PyThreadState *tstate) {
     // We support disabling the stdout/stderr through options as well as
     // building for GUI on Windows, which has inputs disabled by default, this
     // code repairs that by setting or forcing them to "os.devnull"
@@ -862,10 +919,10 @@ static void setInputOutputHandles(void) {
     {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
-        PyObject *method = LOOKUP_ATTRIBUTE(sys_stdout, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
         CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
         CHECK_OBJECT(result);
     }
 #endif
@@ -874,10 +931,10 @@ static void setInputOutputHandles(void) {
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
 
-        PyObject *method = LOOKUP_ATTRIBUTE(sys_stderr, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
         CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
         CHECK_OBJECT(result);
     }
 #endif
@@ -894,7 +951,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
 #endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -911,7 +968,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", false, encoding);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -932,21 +989,21 @@ static void setInputOutputHandles(void) {
         if (shallSetOutputHandleToNull("stdin")) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "r", true, encoding);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding);
 
-            setStdinHandle(stdin_file);
+            setStdinHandle(tstate, stdin_file);
         }
 
         if (shallSetOutputHandleToNull("stdout")) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
-            setStdoutHandle(stdout_file);
+            setStdoutHandle(tstate, stdout_file);
         }
 
         if (shallSetOutputHandleToNull("stderr")) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
-            setStderrHandle(stderr_file);
+            setStderrHandle(tstate, stderr_file);
         }
 
         Py_DECREF(devnull_filename);
@@ -1335,6 +1392,8 @@ orig_argv = argv;
     NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
     Nuitka_Py_Initialize();
 
+    PyThreadState *tstate = PyThreadState_GET();
+
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
@@ -1347,7 +1406,6 @@ orig_argv = argv;
 
     /* Set the command line parameters for run time usage. */
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
-
     setCommandLineParameters(argc, argv, false);
 
     PySys_SetArgv(argc, orig_argv);
@@ -1364,14 +1422,14 @@ orig_argv = argv;
      * "sys.executable" while at it.
      */
     NUITKA_PRINT_TIMING("main(): Calling createGlobalConstants().");
-    createGlobalConstants();
+    createGlobalConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createGlobalConstants().");
 
     /* Complex call helpers need "__main__" constants, even if we only
      * go into "__parents__main__" module as a start point.
      */
     NUITKA_PRINT_TIMING("main(): Calling createMainModuleConstants().");
-    createMainModuleConstants();
+    createMainModuleConstants(tstate);
     NUITKA_PRINT_TIMING("main(): Returned createMainModuleConstants().");
 
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
@@ -1420,7 +1478,7 @@ orig_argv = argv;
 #endif
 
     NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
-    setInputOutputHandles();
+    setInputOutputHandles(tstate);
 
 #ifdef _NUITKA_STANDALONE
 
@@ -1433,7 +1491,7 @@ orig_argv = argv;
 
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
 
-    setEarlyFrozenModulesFileAttribute();
+    setEarlyFrozenModulesFileAttribute(tstate);
 #endif
 
 #if _NUITKA_FROZEN > 0
@@ -1443,7 +1501,7 @@ orig_argv = argv;
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
     /* Enable meta path based loader. */
-    setupMetaPathBasedLoader();
+    setupMetaPathBasedLoader(tstate);
 
     /* Initialize warnings module. */
     _PyWarnings_Init();
@@ -1454,33 +1512,33 @@ orig_argv = argv;
     PyObject *warnings_module = PyImport_ImportModule("warnings");
     PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
 
-    CALL_FUNCTION_NO_ARGS(meth);
+    CALL_FUNCTION_NO_ARGS(tstate, meth);
 #if PYTHON_VERSION < 0x380
     // Two times, so "__warningregistry__" version matches.
-    CALL_FUNCTION_NO_ARGS(meth);
+    CALL_FUNCTION_NO_ARGS(tstate, meth);
 #endif
 #endif
 
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
-    patchInspectModule();
+    patchInspectModule(tstate);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONHASHSEED' value.");
-    undoEnvironmentVariable("PYTHONHASHSEED", old_env_hash_seed);
+    undoEnvironmentVariable(tstate, "PYTHONHASHSEED", old_env_hash_seed);
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONUNBUFFERED' value.");
-    undoEnvironmentVariable("PYTHONUNBUFFERED", old_env_unbuffered);
+    undoEnvironmentVariable(tstate, "PYTHONUNBUFFERED", old_env_unbuffered);
 #endif
 
 #ifdef _NUITKA_STANDALONE
     // Restore the PATH, so the program can use it.
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
-    undoEnvironmentVariable("PATH", old_env_path);
-    undoEnvironmentVariable("PYTHONHOME", old_env_pythonhome);
+    undoEnvironmentVariable(tstate, "PATH", old_env_path);
+    undoEnvironmentVariable(tstate, "PYTHONHOME", old_env_pythonhome);
 #endif
 
 #if _NUITKA_PROFILE
@@ -1493,10 +1551,10 @@ orig_argv = argv;
     PGO_Initialize();
 #endif
 
-    /* Execute the main module unless plugins want to do something else. In case of
-       multiprocessing making a fork on Windows, we should execute "__parents_main__"
-       instead. And for Windows Service we call the plugin C code to call us back
-       to launch main code in a callback. */
+    // Execute the main module unless plugins want to do something else. In case
+    // of multiprocessing making a fork on Windows, we should execute
+    // "__parents_main__" instead. And for Windows Service we call the plugin C
+    // code to call us back to launch main code in a callback.
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
@@ -1505,22 +1563,51 @@ orig_argv = argv;
         int exit_code = HANDLE_PROGRAM_EXIT();
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
+        Py_Exit(exit_code);
+    } else if (unlikely(is_joblib_popen_loky_posix)) {
+        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
+        PyObject *joblib_popen_loky_posix_module =
+            EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.popen_loky_posix");
 
-        // TODO: Should maybe call Py_Exit here, but there were issues with that.
-        exit(exit_code);
+        // Remove the "-m" like CPython would do as well.
+        int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
+        assert(res == 0);
+
+        PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_NO_ARGS(tstate, main_function);
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix Py_Exit.");
+        Py_Exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
-        NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
+        NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
         PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+        CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
-        // TODO: Should maybe call Py_Exit here, but there were issues with that.
-        exit(exit_code);
+        Py_Exit(exit_code);
+    } else if (unlikely(loky_resource_tracker_arg != -1)) {
+        NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.resource_tracker");
+
+        PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        Py_Exit(exit_code);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
@@ -1565,7 +1652,7 @@ orig_argv = argv;
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
 #if !NUITKA_MAIN_PACKAGE_MODE
-    checkModuleConstants___main__();
+    checkModuleConstants___main__(tstate);
 #endif
 
 #endif
@@ -1608,6 +1695,17 @@ void Py_GetArgcArgv(int *argc, char ***argv) {
 }
 #endif
 
+#if defined(__linux__)
+__attribute__((weak))
+__attribute__((visibility("default")))
+#endif
+#if PYTHON_VERSION >= 0x300
+int Py_Main(int argc, wchar_t **argv) {
+    return 0;
+}
+#else
+int Py_Main(int argc, char **argv) { return 0; }
+#endif
 #ifdef __cplusplus
 }
 #endif

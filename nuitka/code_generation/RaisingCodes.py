@@ -189,7 +189,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "raise_exception_result", expression, emit, context
     ) as value_name:
-
         # That's how we indicate exception to the surrounding world.
         emit("%s = NULL;" % value_name)
 
@@ -291,7 +290,7 @@ def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit, con
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_CAUSE(&%s, &%s, &%s, %s);"
+        "RAISE_EXCEPTION_WITH_CAUSE(tstate, &%s, &%s, &%s, %s);"
         % (exception_type, exception_value, exception_tb, raise_cause_name)
     )
 
@@ -318,7 +317,7 @@ def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE(&%s, &%s, &%s);"
+        "RAISE_EXCEPTION_WITH_TYPE(tstate, &%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 
@@ -346,8 +345,10 @@ def _getRaiseExceptionWithValueCode(
     getReferenceExportCode(raise_value_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
+
+    # Using RAISE_EXCEPTION_WITH_VALUE (user driven) or RAISE_EXCEPTION_IMPLICIT as needed.
     emit(
-        "RAISE_EXCEPTION_%s(&%s, &%s, &%s);"
+        "RAISE_EXCEPTION_%s(tstate, &%s, &%s, &%s);"
         % (
             ("IMPLICIT" if implicit else "WITH_VALUE"),
             exception_type,
@@ -385,7 +386,7 @@ def _getRaiseExceptionWithTracebackCode(
     getReferenceExportCode(raise_tb_name, emit, context)
 
     emit(
-        "RAISE_EXCEPTION_WITH_TRACEBACK( &%s, &%s, &%s);"
+        "RAISE_EXCEPTION_WITH_TRACEBACK(tstate, &%s, &%s, &%s);"
         % (exception_type, exception_value, exception_tb)
     )
 

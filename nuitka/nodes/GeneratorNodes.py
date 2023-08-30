@@ -34,7 +34,6 @@ from .ReturnNodes import StatementReturn, StatementReturnNone
 class ExpressionMakeGeneratorObject(
     ExpressionNoSideEffectsMixin, ChildHavingGeneratorRefMixin, ExpressionBase
 ):
-
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
     named_children = ("generator_ref",)

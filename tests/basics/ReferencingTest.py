@@ -47,6 +47,7 @@ from nuitka.tools.testing.Common import executeReferenceChecked
 
 x = 17
 
+
 # Just a function return a constant. Functions don't become any smaller. Let's
 # get that right.
 def simpleFunction1():

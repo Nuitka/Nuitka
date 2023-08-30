@@ -92,7 +92,6 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
     lines = output.split(b"\n")
     if syntax_errors:
-
         for line in lines:
             if line.startswith(b"SyntaxError:"):
                 lines = [line]
@@ -218,6 +217,10 @@ exceeded while calling a Python object' in \
 
         # Ignore spurious clcache warning.
         if "clcache: persistent json file" in line or "clcache: manifest file" in line:
+            continue
+
+        # Some tests do malloc too large things on purpose
+        if "WARNING: AddressSanitizer failed to allocate" in line:
             continue
 
         # Ignore manual error message of CPython 3.11 that is different from the generic one for super

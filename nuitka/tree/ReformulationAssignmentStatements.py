@@ -933,7 +933,6 @@ def _buildInplaceAssignSliceNode(
     expression,
     source_ref,
 ):
-
     # Due to the 3 inputs, which we need to also put into temporary variables,
     # there are too many variables here, but they are needed.
     # pylint: disable=too-many-locals

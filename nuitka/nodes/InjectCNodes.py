@@ -22,7 +22,6 @@ from .NodeBases import StatementBase
 
 
 class StatementInjectCBase(StatementBase):
-
     __slots__ = ("c_code",)
 
     def __init__(self, c_code, source_ref):

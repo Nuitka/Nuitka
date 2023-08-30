@@ -28,7 +28,7 @@
 // spell-checker: ignore ob_shash dictiterobject dictiteritems_type dictiterkeys_type
 // spell-checker: ignore dictitervalues_type dictviewobject dictvaluesview_type dictkeysview_type
 
-PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
+PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
 
@@ -42,14 +42,14 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return NULL;
         }
     } else {
-        hash = HASH_VALUE_WITHOUT_ERROR(key);
+        hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -67,7 +67,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
     return entry->me_value;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITHOUT_ERROR(key);
+        hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -113,7 +113,7 @@ PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
 #endif
 }
 
-PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
+PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
 
@@ -127,14 +127,14 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return NULL;
         }
     } else {
-        hash = HASH_VALUE_WITHOUT_ERROR(key);
+        hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -153,7 +153,7 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
     return entry->me_value;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITHOUT_ERROR(key);
+        hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -200,7 +200,8 @@ PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key) {
 #endif
 }
 
-static void SET_KEY_ERROR_EXCEPTION(PyObject *key) {
+static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
+#if PYTHON_VERSION < 0x3c0
     /* Wrap all kinds of tuples, because normalization will later unwrap
      * it, but then that changes the key for the KeyError, which is not
      * welcome. The check is inexact, as the unwrapping one is too.
@@ -208,10 +209,13 @@ static void SET_KEY_ERROR_EXCEPTION(PyObject *key) {
     if (PyTuple_Check(key) || key == Py_None) {
         PyObject *tuple = PyTuple_Pack(1, key);
 
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_KeyError, tuple);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_KeyError, tuple);
     } else {
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_KeyError, key);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_KeyError, key);
     }
+#else
+    return _MAKE_EXCEPTION_FROM_TYPE_ARG(PyExc_KeyError, key);
+#endif
 }
 
 // TODO: This gives a reference, where would often be one time immediate users
@@ -221,7 +225,7 @@ static void SET_KEY_ERROR_EXCEPTION(PyObject *key) {
 // also include temporary nature of the key and/or dict releases to be done
 // inside of such helper code, possibly in template generation, where also
 // the hashing check wouldn't be needed anymore.
-PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
+PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -235,14 +239,14 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return NULL;
         }
     } else {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -253,7 +257,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     PyDictEntry *entry = (dict_object->ma_lookup)(dict_object, key, hash);
 
     if (unlikely(entry == NULL || entry->me_value == NULL)) {
-        SET_KEY_ERROR_EXCEPTION(key);
+        SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
 
         return NULL;
     }
@@ -263,7 +267,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     return entry->me_value;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return NULL;
         }
@@ -276,11 +280,11 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             return NULL;
         }
 
-        SET_KEY_ERROR_EXCEPTION(key);
+        SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
 
         return NULL;
     }
@@ -297,11 +301,11 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(ix < 0)) {
-        if (unlikely(ERROR_OCCURRED())) {
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             return NULL;
         }
 
-        SET_KEY_ERROR_EXCEPTION(key);
+        SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
 
         return NULL;
     }
@@ -313,11 +317,11 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(result == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             return NULL;
         }
 
-        SET_KEY_ERROR_EXCEPTION(key);
+        SET_CURRENT_EXCEPTION_KEY_ERROR(tstate, key);
 
         return NULL;
     }
@@ -328,7 +332,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key) {
 #endif
 }
 
-PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
+PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -342,14 +346,14 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return NULL;
         }
     } else {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -367,7 +371,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
     return entry->me_value;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return NULL;
         }
@@ -380,10 +384,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 #else
@@ -399,10 +399,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(ix < 0)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 #endif
@@ -413,10 +409,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(result == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 
@@ -428,7 +420,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key) {
 // TODO: Exact copy of DICT_GET_ITEM_WITH_HASH_ERROR0 with just a Py_INCREF added, we should
 // generate these and all other variants rather than manually maintaining them, so we can
 // also specialize by type and not just result needs.
-PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
+PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
 
@@ -442,14 +434,14 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return NULL;
         }
     } else {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return NULL;
@@ -468,7 +460,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
     return entry->me_value;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return NULL;
         }
@@ -481,10 +473,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
     PyDictKeyEntry *entry = dict_object->ma_keys->dk_lookup(dict_object, key, hash, &value_addr);
 
     if (unlikely(entry == NULL || *value_addr == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 #else
@@ -500,10 +488,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(ix < 0)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 #endif
@@ -514,10 +498,6 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(result == NULL)) {
-        if (unlikely(ERROR_OCCURRED())) {
-            return NULL;
-        }
-
         return NULL;
     }
 
@@ -527,7 +507,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key) {
 #endif
 }
 
-int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
+int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
 
@@ -541,14 +521,14 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
         hash = ((PyStringObject *)key)->ob_shash;
 
         if (unlikely(hash == -1)) {
-            hash = HASH_VALUE_WITHOUT_ERROR(key);
+            hash = HASH_VALUE_WITHOUT_ERROR(tstate, key);
         }
 
         if (unlikely(hash == -1)) {
             return -1;
         }
     } else {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
 
         if (unlikely(hash == -1)) {
             return -1;
@@ -565,7 +545,7 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
     return 1;
 #else
     if (!PyUnicode_CheckExact(key) || (hash = ((PyASCIIObject *)key)->hash) == -1) {
-        hash = HASH_VALUE_WITH_ERROR(key);
+        hash = HASH_VALUE_WITH_ERROR(tstate, key);
         if (unlikely(hash == -1)) {
             return -1;
         }
@@ -595,7 +575,7 @@ int DICT_HAS_ITEM(PyObject *dict, PyObject *key) {
 #endif
 
     if (unlikely(ix < 0)) {
-        if (unlikely(ERROR_OCCURRED())) {
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             return -1;
         }
 
@@ -808,7 +788,9 @@ PyObject *DICT_ITERITEMS(PyObject *dict) {
     static PyTypeObject *dictiteritems_type = NULL;
 
     if (unlikely(dictiteritems_type == NULL)) {
-        dictiteritems_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "iteritems")));
+        PyThreadState *tstate = PyThreadState_GET();
+        dictiteritems_type =
+            Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iteritems")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiteritems_type, true);
@@ -824,7 +806,9 @@ PyObject *DICT_ITERKEYS(PyObject *dict) {
     static PyTypeObject *dictiterkeys_type = NULL;
 
     if (unlikely(dictiterkeys_type == NULL)) {
-        dictiterkeys_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "iterkeys")));
+        PyThreadState *tstate = PyThreadState_GET();
+        dictiterkeys_type =
+            Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iterkeys")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiterkeys_type, false);
@@ -840,7 +824,10 @@ PyObject *DICT_ITERVALUES(PyObject *dict) {
     static PyTypeObject *dictitervalues_type = NULL;
 
     if (unlikely(dictitervalues_type == NULL)) {
-        dictitervalues_type = Py_TYPE(CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(const_dict_empty, "itervalues")));
+        PyThreadState *tstate = PyThreadState_GET();
+
+        dictitervalues_type =
+            Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "itervalues")));
     }
 
     return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictitervalues_type, false);
@@ -1312,27 +1299,55 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 #endif
 }
 
-PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
-    PyObject *result = MAKE_DICT_EMPTY();
+PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) {
+    PyObject *result;
 
     if (seq_obj != NULL) {
-        int res;
+        CHECK_OBJECT(seq_obj);
 
-        if (PyObject_HasAttrString(seq_obj, "keys")) {
-            res = PyDict_Merge(result, seq_obj, 1);
+        // Fast path for dictionaries.
+        if (PyDict_CheckExact(seq_obj)) {
+            result = DICT_COPY(seq_obj);
         } else {
-            res = PyDict_MergeFromSeq2(result, seq_obj, 1);
-        }
+            result = MAKE_DICT_EMPTY();
 
-        if (res == -1) {
-            return NULL;
+            Py_INCREF(seq_obj);
+
+#if PYTHON_VERSION >= 0x300
+            int res = HAS_ATTR_BOOL2(tstate, seq_obj, const_str_plain_keys);
+
+            if (unlikely(res == -1)) {
+                Py_DECREF(seq_obj);
+                return NULL;
+            }
+#else
+            int res = HAS_ATTR_BOOL(tstate, seq_obj, const_str_plain_keys) ? 1 : 0;
+#endif
+
+            if (res) {
+                res = PyDict_Merge(result, seq_obj, 1);
+            } else {
+                res = PyDict_MergeFromSeq2(result, seq_obj, 1);
+            }
+
+            Py_DECREF(seq_obj);
+
+            if (unlikely(res == -1)) {
+                return NULL;
+            }
         }
+    } else {
+        result = MAKE_DICT_EMPTY();
     }
 
+    // TODO: Should specialize for dict_obj/seq_obj presence to save a bit of time
+    // and complexity.
     if (dict_obj != NULL) {
+        CHECK_OBJECT(dict_obj);
+
         int res = PyDict_Merge(result, dict_obj, 1);
 
-        if (res == -1) {
+        if (unlikely(res == -1)) {
             return NULL;
         }
     }

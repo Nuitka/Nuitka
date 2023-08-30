@@ -341,7 +341,6 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
-
             # We cannot intercept "is" tests, but need it to be "isinstance",
             # so we patch it on the file. TODO: This is only temporary, in
             # the future, we may use optimization that understands the right
@@ -350,6 +349,23 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             return source_code.replace(
                 "type(attr) is types.MethodType", "isinstance(attr, types.MethodType)"
             )
+
+        if module_name == "site":
+            if source_code.startswith("def ") or source_code.startswith("class "):
+                source_code = "\n" + source_code
+
+            source_code = """\
+__file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
+                os.path.sep,
+                source_code,
+            )
+
+            # Debian stretch site.py
+            source_code = source_code.replace(
+                "PREFIXES = [sys.prefix, sys.exec_prefix]", "PREFIXES = []"
+            )
+
+            return source_code
 
         # Do nothing by default.
         return source_code

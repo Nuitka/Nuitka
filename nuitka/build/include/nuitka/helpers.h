@@ -71,10 +71,10 @@ typedef struct {
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyObject *const *args);
 
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
@@ -82,7 +82,7 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *arg
 
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
-extern Py_hash_t DEEP_HASH(PyObject *value);
+extern Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value);
 #endif
 
 // For profiling of Nuitka compiled binaries
@@ -116,13 +116,13 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 #include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);
 
     PyObject *result = PyObject_GetAttr(source, const_str_plain___dict__);
 
     if (unlikely(result == NULL)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "vars() argument must have __dict__ attribute");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "vars() argument must have __dict__ attribute");
 
         return NULL;
     }
@@ -145,15 +145,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 
 // Compile source code given, pretending the file name was given.
 #if PYTHON_VERSION < 0x300
-extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
-                              PyObject *dont_inherit);
+extern PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                              PyObject *flags, PyObject *dont_inherit);
 #else
-extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
-                              PyObject *dont_inherit, PyObject *optimize);
+extern PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *file_name, PyObject *mode,
+                              PyObject *flags, PyObject *dont_inherit, PyObject *optimize);
 #endif
 
 #if PYTHON_VERSION < 0x300
-extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
+extern bool EXEC_FILE_ARG_HANDLING(PyThreadState *tstate, PyObject **prog, PyObject **name);
 #endif
 
 // For quicker built-in str() functionality, Python2 str
@@ -165,26 +165,28 @@ extern PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject 
 
 // For quicker built-in open() functionality.
 #if PYTHON_VERSION < 0x300
-extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering);
+extern PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mode, PyObject *buffering);
 #else
-extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding,
-                              PyObject *errors, PyObject *newline, PyObject *closefd, PyObject *opener);
+extern PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mode, PyObject *buffering,
+                              PyObject *encoding, PyObject *errors, PyObject *newline, PyObject *closefd,
+                              PyObject *opener);
 #endif
 
 // Small helper to open files with few arguments in C.
-extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyObject *filename);
-extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering, PyObject *encoding);
+extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filename);
+extern PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
+                                     PyObject *encoding);
 
 // Small helper to read file contents with few arguments in C.
-extern PyObject *GET_FILE_BYTES(PyObject *filename);
+extern PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename);
 
 // Small helpers to check file attributes
-extern PyObject *OS_PATH_FILE_EXISTS(PyObject *filename);
-extern PyObject *OS_PATH_FILE_ISFILE(PyObject *filename);
-extern PyObject *OS_PATH_FILE_ISDIR(PyObject *filename);
+extern PyObject *OS_PATH_FILE_EXISTS(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_FILE_ISFILE(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_FILE_ISDIR(PyThreadState *tstate, PyObject *filename);
 
 // Small helper to list a directory.
-extern PyObject *OS_LISTDIR(PyObject *path);
+extern PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path);
 
 // Platform standard slash for filenames
 #if defined(_WIN32)
@@ -193,13 +195,16 @@ extern PyObject *OS_LISTDIR(PyObject *path);
 #define const_platform_sep const_str_slash
 #endif
 
-// Small helpers to work with filenames.
-extern PyObject *OS_PATH_BASENAME(PyObject *filename);
-extern PyObject *OS_PATH_ABSPATH(PyObject *filename);
-extern PyObject *OS_PATH_ISABS(PyObject *filename);
+// Small helpers to work with filenames from "os.path" module
+extern PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename);
+
+// Compare two paths if they are the same.
+nuitka_bool compareFilePaths(PyThreadState *tstate, PyObject *filename_a, PyObject *filename_b);
 
 // For quicker built-in chr() functionality.
-extern PyObject *BUILTIN_CHR(PyObject *value);
+extern PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value);
 
 // For quicker built-in ord() functionality.
 extern PyObject *BUILTIN_ORD(PyObject *value);
@@ -208,10 +213,10 @@ extern PyObject *BUILTIN_ORD(PyObject *value);
 extern PyObject *BUILTIN_BIN(PyObject *value);
 
 // For quicker built-in oct() functionality.
-extern PyObject *BUILTIN_OCT(PyObject *value);
+extern PyObject *BUILTIN_OCT(PyThreadState *tstate, PyObject *value);
 
 // For quicker built-in hex() functionality.
-extern PyObject *BUILTIN_HEX(PyObject *value);
+extern PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value);
 
 // For quicker callable() functionality.
 extern PyObject *BUILTIN_CALLABLE(PyObject *value);
@@ -224,70 +229,72 @@ extern PyObject *BUILTIN_TYPE1(PyObject *arg);
 
 // For quicker type() functionality if 3 arguments are given (to build a new
 // type).
-extern PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict);
+extern PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *name, PyObject *bases,
+                               PyObject *dict);
 
 // For built-in built-in len() functionality.
-extern PyObject *BUILTIN_LEN(PyObject *boundary);
+extern PyObject *BUILTIN_LEN(PyThreadState *tstate, PyObject *boundary);
 
 // For built-in built-in any() functionality.
-extern PyObject *BUILTIN_ANY(PyObject *value);
+extern PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value);
 
 // For built-in built-in super() no args and 2 user args functionality.
-extern PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *object);
-extern PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER2(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObject *type, PyObject *object);
 
 // For built-in built-in all() functionality.
-extern PyObject *BUILTIN_ALL(PyObject *value);
+extern PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value);
 
 // For built-in getattr() functionality.
-extern PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value);
+extern PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *attribute, PyObject *default_value);
 
 // For built-in setattr() functionality.
 extern PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value);
 
 // For built-in bytearray() functionality.
 extern PyObject *BUILTIN_BYTEARRAY1(PyObject *value);
-extern PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObject *errors);
+extern PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *encoding, PyObject *errors);
 
 // For built-in hash() functionality.
-extern PyObject *BUILTIN_HASH(PyObject *value);
-extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyObject *value);
-extern Py_hash_t HASH_VALUE_WITH_ERROR(PyObject *value);
+extern PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value);
+extern Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value);
+extern Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value);
 
 // For built-in sum() functionality.
-extern PyObject *BUILTIN_SUM1(PyObject *sequence);
-extern PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start);
+extern PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence);
+extern PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *start);
 
 // For built-in built-in abs() functionality.
 extern PyObject *BUILTIN_ABS(PyObject *o);
 
 // For built-in bytes() functionality.
 #if PYTHON_VERSION >= 0x300
-extern PyObject *BUILTIN_BYTES1(PyObject *value);
-extern PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors);
+extern PyObject *BUILTIN_BYTES1(PyThreadState *tstate, PyObject *value);
+extern PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject *encoding, PyObject *errors);
 #endif
 
 // For built-in eval() functionality, works on byte compiled code already.
-extern PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals);
+extern PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, PyObject *locals,
+                           PyObject *closure);
 
 // For built-in format() functionality.
-extern PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec);
+extern PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *format_spec);
 
 // For built-in staticmethod() functionality.
-extern PyObject *BUILTIN_STATICMETHOD(PyObject *function);
+extern PyObject *BUILTIN_STATICMETHOD(PyThreadState *tstate, PyObject *function);
 
 // For built-in classmethod() functionality.
-extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
+extern PyObject *BUILTIN_CLASSMETHOD(PyThreadState *tstate, PyObject *function);
 
 // For built-in input() functionality, prompt can be NULL.
-extern PyObject *BUILTIN_INPUT(PyObject *prompt);
+extern PyObject *BUILTIN_INPUT(PyThreadState *tstate, PyObject *prompt);
 
 // For built-in "int()" functionality with 2 arguments.
-extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
+extern PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base);
 
 #if PYTHON_VERSION < 0x300
 // For built-in "long()" functionality with 2 arguments.
-extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
+extern PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base);
 #endif
 
 #include "nuitka/importing.h"
@@ -298,19 +305,19 @@ extern PyObject *BUILTIN_LONG2(PyObject *value, PyObject *base);
 // For the constant loading:
 
 // Call this to initialize all common constants pre-main.
-extern void createGlobalConstants(void);
+extern void createGlobalConstants(PyThreadState *tstate);
 
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
 #ifdef _NUITKA_EXE
-extern void checkModuleConstants___main__(void);
+extern void checkModuleConstants___main__(PyThreadState *tstate);
 #endif
 #endif
 
-// Call this to initialize __main__ constants in non-standard processes.
+// Call this to initialize "__main__" constants in non-standard processes.
 #ifdef _NUITKA_EXE
-extern void createMainModuleConstants(void);
+extern void createMainModuleConstants(PyThreadState *tstate);
 #endif
 
 // Deserialize constants from a blob.
@@ -320,11 +327,11 @@ extern void createMainModuleConstants(void);
 extern void enhancePythonTypes(void);
 
 // Setup meta path based loader if any.
-extern void setupMetaPathBasedLoader(void);
+extern void setupMetaPathBasedLoader(PyThreadState *tstate);
 
 /* Replace inspect functions with ones that handle compiles types too. */
 #if PYTHON_VERSION >= 0x300
-extern void patchInspectModule(void);
+extern void patchInspectModule(PyThreadState *tstate);
 #endif
 
 // Replace type comparison with one that accepts compiled types too, will work
@@ -343,25 +350,25 @@ extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
-extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
+extern PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, PyObject *bases);
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
-extern PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed);
+extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed);
 #endif
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyThreadState *tstate, PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return DICT_GET_ITEM1(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM1(tstate, module_dict, const_str_plain___name__);
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyThreadState *tstate, PyObject *module) {
     assert(PyModule_Check(module));
     PyObject *module_dict = ((PyModuleObject *)module)->md_dict;
 
-    return DICT_GET_ITEM0(module_dict, const_str_plain___name__);
+    return DICT_GET_ITEM0(tstate, module_dict, const_str_plain___name__);
 }
 
 // Get the binary directory as wide characters.
@@ -371,7 +378,7 @@ extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
 
 #ifdef _NUITKA_STANDALONE
-extern void setEarlyFrozenModulesFileAttribute(void);
+extern void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate);
 #endif
 
 /* For making paths relative to where we got loaded from. Do not provide any
@@ -389,15 +396,15 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 #include <nuitka/threading.h>
 
 // Make a deep copy of an object of general or specific type.
-extern PyObject *DEEP_COPY(PyObject *value);
-extern PyObject *DEEP_COPY_DICT(PyObject *dict_value);
-extern PyObject *DEEP_COPY_LIST(PyObject *value);
-extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
-extern PyObject *DEEP_COPY_SET(PyObject *value);
+extern PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value);
+extern PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value);
+extern PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value);
 
 // Constants deep copies are guided by value type descriptions.
-extern PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide);
-extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide);
 
 // UnionType, normally not accessible
 extern PyTypeObject *Nuitka_PyUnion_Type;
@@ -416,5 +423,9 @@ extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
 extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
                                 bool self_iter, bool await_self_iter, bool self_aiter);
+
+#if PYTHON_VERSION >= 0x3b0
+#include "nuitka/exception_groups.h"
+#endif
 
 #endif

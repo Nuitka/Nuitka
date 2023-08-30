@@ -370,7 +370,6 @@ def _buildContractionBodyNode(
     for_asyncgen,
     source_ref,
 ):
-
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
     # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
@@ -453,7 +452,8 @@ def _buildContractionBodyNode(
             source_ref=source_ref,
         )
 
-    if current_body.isExpression():
+    # TODO: For as long as statement/expression merge are not complete.
+    if current_body.kind.startswith("EXPRESSION"):
         current_body = StatementExpressionOnly(
             expression=current_body, source_ref=source_ref
         )

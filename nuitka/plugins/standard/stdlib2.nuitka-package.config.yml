@@ -27,9 +27,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
-  implicit-imports:
-    - depends:
-        - '_bootlocale'
 
 - module-name: 'fpformat'
   anti-bloat:
@@ -62,9 +59,6 @@
         'test': "'(lambda: None)'"
 
 - module-name: 'Tkinter'
-  implicit-imports:
-    - depends:
-        - '_tkinter'
   options:
     checks:
       - console: 'recommend'

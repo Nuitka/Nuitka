@@ -29,11 +29,12 @@ import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.ModuleRegistry import getModuleByName
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy
+# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -114,11 +115,25 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_unittest_mode != "allow":
             self.handled_modules["unittest"] = noinclude_unittest_mode, "unittest"
             self.handled_modules["doctest"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["test.support"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["test.test_support"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
+            self.handled_modules["future.moves.test.support"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
         else:
             self.control_tags["use_unittest"] = True
 
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["ipykernel"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["jupyter_client"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
             self.handled_modules["matplotlib_inline.backend_inline"] = (
                 noinclude_ipython_mode,
                 "IPython",
@@ -179,6 +194,10 @@ form 'module_name:[%s]'."""
                 )
 
         self.warnings_given = set()
+
+        # Keep track of modules prevented from automatically following and the
+        # information given for that.
+        self.no_auto_follows = {}
 
     def getEvaluationConditionControlTags(self):
         return self.control_tags
@@ -325,8 +344,9 @@ which can and should be a top level package and then one choice, "error",
                         exec(context_code, context)
                     except Exception as e:  # pylint: disable=broad-except
                         self.sysexit(
-                            "Error, cannot execute context code '%s' due to: %s"
-                            % (context_code, e)
+                            """\
+Error, cannot exec module '%s', execute context code '%s' due to: %s"""
+                            % (module_name, context_code, e)
                         )
 
                     context_ready = True
@@ -338,16 +358,18 @@ which can and should be a top level package and then one choice, "error",
                     replace_dst = eval(replace_code, context)
                 except Exception as e:  # pylint: disable=broad-except
                     self.sysexit(
-                        "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                        % (replace_code, context_code, e)
+                        """\
+Error, cannot eval module '%s' replacement expression code '%s' in '%s' due to: %s"""
+                        % (module_name, replace_code, context_code, e)
                     )
             else:
                 replace_dst = ""
 
             if type(replace_dst) is not str:
                 self.sysexit(
-                    "Error, expression code '%s' needs to generate string, not %s"
-                    % (replace_code, type(replace_dst))
+                    """\
+Error, module '%s' replacement expression code for '%s' needs to generate string, not %s"""
+                    % (module_name, replace_code, type(replace_dst))
                 )
 
             old = source_code
@@ -387,8 +409,9 @@ which can and should be a top level package and then one choice, "error",
                 append_result = eval(append_code, context)
             except Exception as e:  # pylint: disable=broad-except
                 self.sysexit(
-                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                    % (append_code, context_code, e)
+                    """\
+Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
+                    % (module_name, append_code, context_code, e)
                 )
 
             source_code += "\n" + append_result
@@ -466,8 +489,9 @@ which can and should be a top level package and then one choice, "error",
             replacement = eval(replace_code, context)
         except Exception as e:  # pylint: disable=broad-except
             self.sysexit(
-                "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                % (replace_code, context_code, e)
+                """\
+Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due to: %s"""
+                % (module_name, function_name, replace_code, context_code, e)
             )
 
         # Single node is required, extract the generated module body with
@@ -510,9 +534,24 @@ which can and should be a top level package and then one choice, "error",
         return result
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module_name, source_ref
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
     ):
-        # This will allow "unittest.mock" to pass these things.
+        # Do not even look at these. It's either included by a module that is in standard
+        # library, or included for a module in standard library.
+        if reason == "stdlib" or (
+            using_module_name is not None
+            and getModuleByName(using_module_name).reason == "stdlib"
+        ):
+            return
+
+        # This will allow "unittest.mock" to pass "unittest". It's kind of a hack and
+        # hopefully unusual.
         if module_name == "unittest.mock" and module_name not in self.handled_modules:
             return
 
@@ -588,21 +627,21 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
             if config:
                 for anti_bloat_config in config:
-                    match, reason = module_name.matchesToShellPatterns(
-                        anti_bloat_config.get("no-auto-follow", ())
-                    )
+                    no_auto_follows = anti_bloat_config.get("no-auto-follow", {})
 
-                    if match:
-                        if self.evaluateCondition(
-                            full_name=module_name,
-                            condition=anti_bloat_config.get("when", "True"),
-                        ):
+                    for no_auto_follow, description in no_auto_follows.items():
+                        if module_name.hasNamespace(no_auto_follow):
+                            if self.evaluateCondition(
+                                full_name=module_name,
+                                condition=anti_bloat_config.get("when", "True"),
+                            ):
+                                self.no_auto_follows[no_auto_follow] = description
 
-                            return (
-                                False,
-                                "according to yaml 'no-auto-follow' configuration of '%s' and '%s'"
-                                % (using_module_name, reason),
-                            )
+                                return (
+                                    False,
+                                    "according to yaml 'no-auto-follow' configuration of '%s'"
+                                    % using_module_name,
+                                )
 
         # Do not provide an opinion about it.
         return None
@@ -617,3 +656,22 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
             if module_name.hasNamespace(handled_module_name):
                 return "bytecode"
+
+    def onModuleCompleteSet(self, module_set):
+        # TODO: Maybe have an entry point that works on the set of names
+        # instead, we are not looking at the modules, and most plugins probably
+        # do not care.
+        module_names = set(module.getFullName() for module in module_set)
+
+        for module_name, description in self.no_auto_follows.items():
+            # Some are irrelevant, e.g. when registering to a module that would have to
+            # be used elsewhere.
+            if description == "ignore":
+                continue
+
+            if module_name not in module_names:
+                self.info(
+                    """\
+Not including '%s' automatically in order to avoid bloat, but this may cause: %s."""
+                    % (module_name, description)
+                )

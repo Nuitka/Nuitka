@@ -27,6 +27,7 @@ import threading
 
 from nuitka.Tracing import my_print, scons_logger
 from nuitka.utils.Execution import executeProcess
+from nuitka.utils.FileOperations import getReportPath
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
@@ -135,6 +136,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
+        """Our own spawn implementation for use on Windows."""
 
         # The "del" appears to not work reliably, but is used with large amounts of
         # files to link. So, lets do this ourselves, plus it avoids a process
@@ -217,7 +219,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
     return spawnWindowsCommand
 
 
-def _unescape(arg):
+def _formatForOutput(arg):
     # Undo the damage that scons did to pass it to "sh"
     arg = arg.strip('"')
 
@@ -228,7 +230,13 @@ def _unescape(arg):
     for c in special:
         arg = arg.replace(slash + c, c)
 
-    return arg
+    if arg.startswith("-I"):
+        prefix = "-I"
+        arg = arg[2:]
+    else:
+        prefix = ""
+
+    return prefix + getReportPath(arg)
 
 
 def isIgnoredError(line):
@@ -322,7 +330,11 @@ class SpawnThread(threading.Thread):
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
-            % (" ".join(_unescape(arg) for arg in self.args[2]).replace("%", "%%"),),
+            % (
+                " ".join(_formatForOutput(arg) for arg in self.args[2]).replace(
+                    "%", "%%"
+                ),
+            ),
             min_report_time=360,
             logger=scons_logger,
         )

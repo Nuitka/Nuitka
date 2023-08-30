@@ -177,16 +177,6 @@ covered. With Python 2.6 these are not run. Default is %default.""",
     )
 
     parser.add_option(
-        "--skip-cpython33-tests",
-        action="store_false",
-        dest="cpython33",
-        default=True,
-        help="""\
-The standard CPython3.3 test suite. Execute this for all corner cases to be
-covered. With Python 2.x these are not run. Default is %default.""",
-    )
-
-    parser.add_option(
         "--skip-cpython34-tests",
         action="store_false",
         dest="cpython34",
@@ -469,8 +459,6 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.cpython27 = False
         if sys.version_info[0:2] != (3, 2):
             options.cpython32 = False
-        if sys.version_info[0:2] != (3, 3):
-            options.cpython33 = False
         if sys.version_info[0:2] != (3, 4):
             options.cpython34 = False
         if sys.version_info[0:2] != (3, 5):
@@ -492,7 +480,6 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
         options.cpython26 = False
         options.cpython27 = False
         options.cpython32 = False
-        options.cpython33 = False
         options.cpython34 = False
         options.cpython35 = False
         options.cpython36 = False
@@ -850,17 +837,6 @@ def main():
                             executeSubTest("./tests/CPython32/run_all.py search")
                     else:
                         my_print("The CPython3.2 tests are not present, not run.")
-
-            # Running the Python 3.3 test suite only with CPython3.x.
-            if not use_python.startswith("python2"):
-                if options.cpython33:
-                    if os.path.exists("./tests/CPython33/run_all.py"):
-                        with withExtendedExtraOptions(
-                            *getExtraFlags(where, "33tests", flags)
-                        ):
-                            executeSubTest("./tests/CPython33/run_all.py search")
-                    else:
-                        my_print("The CPython3.3 tests are not present, not run.")
 
             # Running the Python 3.4 test suite only with CPython3.x.
             if not use_python.startswith("python2"):

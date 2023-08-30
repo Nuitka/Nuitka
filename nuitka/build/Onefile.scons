@@ -60,6 +60,7 @@ from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     addConstantBlobFile,
     checkWindowsCompilerFound,
+    importEnvironmentVariableSettings,
     reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
@@ -111,9 +112,6 @@ static_src = os.path.join(source_dir, "static")
 # The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
 
-# The name of executable that we that copy resources from
-compiled_exe = getArgumentDefaulted("compiled_exe", None)
-
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
 
@@ -125,6 +123,12 @@ module_mode = getArgumentBool("module_mode", False)
 
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
+
+# Deployment mode
+deployment_mode = getArgumentBool("deployment", False)
+
+# Experimental indications. Do things that are not yet safe to do.
+no_deployment = getArgumentList("no_deployment", "")
 
 # Experimental indications. Do things that are not yet safe to do.
 experimental = getArgumentList("experimental", "")
@@ -236,6 +240,7 @@ env = createEnvironment(
     msvc_version=msvc_version,
     target_arch=target_arch,
     experimental=experimental,
+    no_deployment=no_deployment,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -396,6 +401,9 @@ if debug_mode:
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
+if deployment_mode:
+    env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
+
 env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
 
 # The static include files reside in Nuitka installation, which may be where
@@ -475,29 +483,8 @@ source_files = discoverSourceFiles()
 
 target = env.Program(result_exe, source_files)
 
-# Avoid dependency on MinGW libraries.
-if win_target and env.gcc_mode and not env.clang_mode:
-    env.Append(LINKFLAGS=["-static-libgcc"])
-
-# Outside compiler settings are respected.
-if "CPPFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"])
-    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-if "CCFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-    env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-if "CXXFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"])
-    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
-
-# Outside linker flags are respected.
-if "LDFLAGS" in os.environ:
-    if show_scons_mode:
-        my_print("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
-    env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+# Use compiler/linker flags provided via environment variables
+importEnvironmentVariableSettings(env)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
 # and then lingers from previous builds,

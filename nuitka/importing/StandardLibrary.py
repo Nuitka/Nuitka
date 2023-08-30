@@ -128,7 +128,11 @@ def isStandardLibraryPath(filename):
         return True
 
     # These never are in standard library paths.
-    if "dist-packages" in filename or "site-packages" in filename:
+    if (
+        "dist-packages" in filename
+        or "site-packages" in filename
+        or "vendor-packages" in filename
+    ):
         return False
 
     for candidate in getStandardLibraryPaths():
@@ -161,6 +165,8 @@ def scanStandardLibraryPath(stdlib_dir):
                 dirs.remove("site-packages")
             if "dist-packages" in dirs:
                 dirs.remove("dist-packages")
+            if "vendor-packages" in dirs:
+                dirs.remove("vendor-packages")
             if "test" in dirs:
                 dirs.remove("test")
             if "turtledemo" in dirs:
@@ -257,6 +263,7 @@ _stdlib_no_auto_inclusion_list = (
     "_curses_panel",
     "sqlite3",
     "_sqlite3",
+    "shelve",
     "dbm",
     "_dbm",
     "bdb",
@@ -275,12 +282,16 @@ _stdlib_no_auto_inclusion_list = (
     "_pydecimal",
     "_decimal",
     "statistics",
+    "csv",
+    "_csv",
     "lzma",
     "_lzma",
     "bz2",
     "_bz2",
     "logging",
+    "tempfile",
     "subprocess",
+    "_posixsubprocess",
     "socket",
     "selectors",
     "select",
@@ -303,8 +314,31 @@ _stdlib_no_auto_inclusion_list = (
     "runpy",
     "lib2to3",
     "doctest",
-    "email",
+    # Optional dependency of json need not by collect by itself, but usage will
+    # go through "json.encoder/json.decoder/json.scanner" of course.
+    "_json",
+    # Optional dependency of "bisect" need not by collect by itself, but usage will
+    # go through "bisect" of course.
+    "_bisect",
+    # Optional dependency of "heapq" need not by collect by itself, but usage will
+    # go through "heapq" of course.
+    "_heapq",
+    # Dependency of crypt, that may not be used, requiring this to be explicit.
+    "_crypt",
+    # Dependency of contextvars, that may not be used, requiring this to be explicit.
+    "_contextvars",
+    # Dependency of random, that may not be used, requiring this to be explicit.
+    "random",
+    # Avoid this one if not built-in, since it's an extension module.
+    "array",
+    # Runners for programs
+    "json.tool",
+    "zipapp",
     "tabnanny",
+    # Packages that will be imported rarely by extension modules
+    "email",
+    "mailbox",
+    "calendar",
     "argparse",
     "telnetlib",
     "smtplib",
@@ -316,6 +350,14 @@ _stdlib_no_auto_inclusion_list = (
     "select",
     "wsgiref",
     "sunau",
+    "aifc",
+    "wave",
+    "audioop",
+    "getpass",
+    "grp",
+    "pty",
+    "tty",
+    "termios",
     "this",
     # Distribution and bytecode related stuff
     "plistlib",
@@ -324,6 +366,7 @@ _stdlib_no_auto_inclusion_list = (
     "venv",
     "py_compile",
     "msilib",
+    "_opcode",
     # tzdata is not always needed
     "zoneinfo",
     # tkinter under all its names

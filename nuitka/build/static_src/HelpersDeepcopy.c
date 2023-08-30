@@ -33,11 +33,11 @@ typedef struct {
 } GenericAliasObject;
 #endif
 
-typedef PyObject *(*copy_func)(PyObject *);
+typedef PyObject *(*copy_func)(PyThreadState *tstate, PyObject *);
 
-static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function);
+static PyObject *DEEP_COPY_ITEM(PyThreadState *tstate, PyObject *value, PyTypeObject **type, copy_func *copy_function);
 
-PyObject *DEEP_COPY_LIST(PyObject *value) {
+PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value) {
     assert(PyList_CheckExact(value));
 
     Py_ssize_t n = PyList_GET_SIZE(value);
@@ -49,19 +49,19 @@ PyObject *DEEP_COPY_LIST(PyObject *value) {
     for (Py_ssize_t i = 0; i < n; i++) {
         PyObject *item = PyList_GET_ITEM(value, i);
         if (i == 0) {
-            PyList_SET_ITEM(result, i, DEEP_COPY_ITEM(item, &type, &copy_function));
+            PyList_SET_ITEM(result, i, DEEP_COPY_ITEM(tstate, item, &type, &copy_function));
         } else {
             PyObject *new_item;
 
             if (likely(type == Py_TYPE(item))) {
                 if (copy_function) {
-                    new_item = copy_function(item);
+                    new_item = copy_function(tstate, item);
                 } else {
                     new_item = item;
                     Py_INCREF(item);
                 }
             } else {
-                new_item = DEEP_COPY_ITEM(item, &type, &copy_function);
+                new_item = DEEP_COPY_ITEM(tstate, item, &type, &copy_function);
             }
 
             PyList_SET_ITEM(result, i, new_item);
@@ -71,7 +71,7 @@ PyObject *DEEP_COPY_LIST(PyObject *value) {
     return result;
 }
 
-PyObject *DEEP_COPY_TUPLE(PyObject *value) {
+PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value) {
     assert(PyTuple_CheckExact(value));
 
     Py_ssize_t n = PyTuple_GET_SIZE(value);
@@ -79,26 +79,28 @@ PyObject *DEEP_COPY_TUPLE(PyObject *value) {
     PyObject *result = MAKE_TUPLE_EMPTY_VAR(n);
 
     for (Py_ssize_t i = 0; i < n; i++) {
-        PyTuple_SET_ITEM(result, i, DEEP_COPY(PyTuple_GET_ITEM(value, i)));
+        PyTuple_SET_ITEM(result, i, DEEP_COPY(tstate, PyTuple_GET_ITEM(value, i)));
     }
 
     return result;
 }
 
-PyObject *DEEP_COPY_SET(PyObject *value) {
+static PyObject *_DEEP_COPY_SET(PyObject *value) {
     // Sets cannot contain non-hashable types, so these all must be immutable,
     // but the set itself might be changed, so we need to copy it.
     return PySet_New(value);
 }
 
+PyObject *DEEP_COPY_SET(PyThreadState *tstate, PyObject *value) { return _DEEP_COPY_SET(value); }
+
 #if PYTHON_VERSION >= 0x390
-PyObject *DEEP_COPY_GENERICALIAS(PyObject *value) {
+PyObject *DEEP_COPY_GENERICALIAS(PyThreadState *tstate, PyObject *value) {
     assert(Py_TYPE(value) == &Py_GenericAliasType);
 
     GenericAliasObject *generic_alias = (GenericAliasObject *)value;
 
-    PyObject *args = DEEP_COPY(generic_alias->args);
-    PyObject *origin = DEEP_COPY(generic_alias->origin);
+    PyObject *args = DEEP_COPY(tstate, generic_alias->args);
+    PyObject *origin = DEEP_COPY(tstate, generic_alias->origin);
 
     if (generic_alias->args == args && generic_alias->origin == origin) {
         Py_INCREF(value);
@@ -138,21 +140,23 @@ typedef struct {
 PyTypeObject *Nuitka_PyUnion_Type;
 #endif
 
+static PyObject *_makeDeepCopyFunctionCapsule(copy_func func) { return Nuitka_CapsuleNew((void *)func); }
+
 static void _initDeepCopy(void) {
     _deep_copy_dispatch = PyDict_New();
     _deep_noop = Py_None;
 
     CHECK_OBJECT(_deep_noop);
 
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyDict_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_DICT));
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyList_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_LIST));
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyTuple_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_TUPLE));
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySet_Type, Nuitka_CapsuleNew((void *)DEEP_COPY_SET));
-    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyByteArray_Type, Nuitka_CapsuleNew((void *)BYTEARRAY_COPY));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyDict_Type, _makeDeepCopyFunctionCapsule(DEEP_COPY_DICT));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyList_Type, _makeDeepCopyFunctionCapsule(DEEP_COPY_LIST));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyTuple_Type, _makeDeepCopyFunctionCapsule(DEEP_COPY_TUPLE));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PySet_Type, _makeDeepCopyFunctionCapsule(DEEP_COPY_SET));
+    PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyByteArray_Type, _makeDeepCopyFunctionCapsule(BYTEARRAY_COPY));
 
 #if PYTHON_VERSION >= 0x390
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&Py_GenericAliasType,
-                   Nuitka_CapsuleNew((void *)DEEP_COPY_GENERICALIAS));
+                   _makeDeepCopyFunctionCapsule(DEEP_COPY_GENERICALIAS));
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
@@ -190,14 +194,14 @@ static void _initDeepCopy(void) {
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_NotImplemented), _deep_noop);
 
-    // Sets can be changed, but frozensets not.
+    // Sets can be changed, but not a frozenset.
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
 }
 
-static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function) {
+static PyObject *DEEP_COPY_ITEM(PyThreadState *tstate, PyObject *value, PyTypeObject **type, copy_func *copy_function) {
     *type = Py_TYPE(value);
 
-    PyObject *dispatcher = DICT_GET_ITEM0(_deep_copy_dispatch, (PyObject *)*type);
+    PyObject *dispatcher = DICT_GET_ITEM0(tstate, _deep_copy_dispatch, (PyObject *)*type);
 
     if (unlikely(dispatcher == NULL)) {
         NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
@@ -210,13 +214,13 @@ static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func 
         return value;
     } else {
         *copy_function = (copy_func)(Nuitka_CapsuleGetPointer(dispatcher));
-        return (*copy_function)(value);
+        return (*copy_function)(tstate, value);
     }
 }
 
-PyObject *DEEP_COPY(PyObject *value) {
+PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value) {
 #if 1
-    PyObject *dispatcher = DICT_GET_ITEM0(_deep_copy_dispatch, (PyObject *)Py_TYPE(value));
+    PyObject *dispatcher = DICT_GET_ITEM0(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(value));
 
     if (unlikely(dispatcher == NULL)) {
         NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
@@ -227,7 +231,7 @@ PyObject *DEEP_COPY(PyObject *value) {
         return value;
     } else {
         copy_func copy_function = (copy_func)(Nuitka_CapsuleGetPointer(dispatcher));
-        return copy_function(value);
+        return copy_function(tstate, value);
     }
 
 #else
@@ -241,7 +245,7 @@ PyObject *DEEP_COPY(PyObject *value) {
     } else if (PySet_CheckExact(value)) {
         return DEEP_COPY_SET(value);
     } else if (PyFrozenSet_CheckExact(value)) {
-        // Sets cannot contain unhashable types, so they must be immutable and
+        // Sets cannot contain non-hashable types, so they must be immutable and
         // the frozenset itself is immutable.
         return value;
     } else if (
@@ -282,14 +286,14 @@ PyObject *DEEP_COPY(PyObject *value) {
 
 #ifndef __NUITKA_NO_ASSERT__
 
-static Py_hash_t DEEP_HASH_INIT(PyObject *value) {
+static Py_hash_t DEEP_HASH_INIT(PyThreadState *tstate, PyObject *value) {
     // To avoid warnings about reduced sizes, we put an intermediate value
     // that is size_t.
     size_t value2 = (size_t)value;
     Py_hash_t result = (Py_hash_t)(value2);
 
     if (Py_TYPE(value) != &PyType_Type) {
-        result ^= DEEP_HASH((PyObject *)Py_TYPE(value));
+        result ^= DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
     }
 
     return result;
@@ -306,50 +310,50 @@ static void DEEP_HASH_CSTR(Py_hash_t *hash, char const *s) { DEEP_HASH_BLOB(hash
 
 // Hash function that actually verifies things done to the bit level. Can be
 // used to detect corruption.
-Py_hash_t DEEP_HASH(PyObject *value) {
+Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
     assert(value != NULL);
 
     if (PyType_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         DEEP_HASH_CSTR(&result, ((PyTypeObject *)value)->tp_name);
         return result;
     } else if (PyDict_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t pos = 0;
         PyObject *key, *dict_value;
 
         while (Nuitka_DictNext(value, &pos, &key, &dict_value)) {
             if (key != NULL && value != NULL) {
-                result ^= DEEP_HASH(key);
-                result ^= DEEP_HASH(dict_value);
+                result ^= DEEP_HASH(tstate, key);
+                result ^= DEEP_HASH(tstate, dict_value);
             }
         }
 
         return result;
     } else if (PyTuple_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t n = PyTuple_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
-            result ^= DEEP_HASH(PyTuple_GET_ITEM(value, i));
+            result ^= DEEP_HASH(tstate, PyTuple_GET_ITEM(value, i));
         }
 
         return result;
     } else if (PyList_CheckExact(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t n = PyList_GET_SIZE(value);
 
         for (Py_ssize_t i = 0; i < n; i++) {
-            result ^= DEEP_HASH(PyList_GET_ITEM(value, i));
+            result ^= DEEP_HASH(tstate, PyList_GET_ITEM(value, i));
         }
 
         return result;
     } else if (PySet_Check(value) || PyFrozenSet_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         PyObject *iterator = PyObject_GetIter(value);
         CHECK_OBJECT(iterator);
@@ -361,7 +365,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
             CHECK_OBJECT(item);
 
-            result ^= DEEP_HASH(item);
+            result ^= DEEP_HASH(tstate, item);
 
             Py_DECREF(item);
         }
@@ -370,29 +374,29 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     } else if (PyLong_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
         PyObject *str = PyObject_Str(value);
-        result ^= DEEP_HASH(str);
+        result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);
 
-        RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
         return result;
     } else if (PyUnicode_Check(value)) {
-        Py_hash_t result = DEEP_HASH((PyObject *)Py_TYPE(value));
+        Py_hash_t result = DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
 
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
 
 #if PYTHON_VERSION >= 0x300
         char const *s = (char const *)PyUnicode_DATA(value);
@@ -403,18 +407,18 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         PyObject *str = PyUnicode_AsUTF8String(value);
 
         if (str) {
-            result ^= DEEP_HASH(str);
+            result ^= DEEP_HASH(tstate, str);
         }
 
         Py_DECREF(str);
 #endif
-        RESTORE_ERROR_OCCURRED_UNTRACED(exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
 
         return result;
     }
 #if PYTHON_VERSION < 0x300
     else if (PyString_Check(value)) {
-        Py_hash_t result = DEEP_HASH((PyObject *)Py_TYPE(value));
+        Py_hash_t result = DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
 
         Py_ssize_t size;
         char *s;
@@ -428,7 +432,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 #else
     else if (PyBytes_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size;
         char *s;
@@ -442,7 +446,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     }
 #endif
     else if (PyByteArray_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = PyByteArray_Size(value);
         assert(size >= 0);
@@ -453,11 +457,11 @@ Py_hash_t DEEP_HASH(PyObject *value) {
 
         return result;
     } else if (value == Py_None || value == Py_Ellipsis || value == Py_NotImplemented) {
-        return DEEP_HASH_INIT(value);
+        return DEEP_HASH_INIT(tstate, value);
     } else if (PyComplex_Check(value)) {
         Py_complex c = PyComplex_AsCComplex(value);
 
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = sizeof(c);
         char *s = (char *)&c;
@@ -468,7 +472,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
     } else if (PyFloat_Check(value)) {
         double f = PyFloat_AsDouble(value);
 
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         Py_ssize_t size = sizeof(f);
         char *s = (char *)&f;
@@ -481,7 +485,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         PyInt_Check(value) ||
 #endif
         PyBool_Check(value) || PyRange_Check(value) || PySlice_Check(value) || PyCFunction_Check(value)) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
 #if 0
         printf("Too simple deep hash: %s\n", Py_TYPE(value)->tp_name);
@@ -490,20 +494,20 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         return result;
 #if PYTHON_VERSION >= 0x390
     } else if (Py_TYPE(value) == &Py_GenericAliasType) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
         GenericAliasObject *generic_alias = (GenericAliasObject *)value;
 
-        result ^= DEEP_HASH(generic_alias->args);
-        result ^= DEEP_HASH(generic_alias->origin);
+        result ^= DEEP_HASH(tstate, generic_alias->args);
+        result ^= DEEP_HASH(tstate, generic_alias->origin);
 
         return result;
 #endif
 #if PYTHON_VERSION >= 0x3a0
     } else if (Py_TYPE(value) == Nuitka_PyUnion_Type) {
-        Py_hash_t result = DEEP_HASH_INIT(value);
+        Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
-        result ^= DEEP_HASH(LOOKUP_ATTRIBUTE(value, const_str_plain___args__));
+        result ^= DEEP_HASH(tstate, LOOKUP_ATTRIBUTE(tstate, value, const_str_plain___args__));
 
         return result;
 #endif
@@ -548,10 +552,10 @@ void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
     }
 }
 
-static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide);
-static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide);
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide);
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide);
 
-static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyObject *value, char const **guide) {
+static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
     char code = **guide;
     *guide += 1;
 
@@ -560,30 +564,30 @@ static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyObject *value, char const **guide) 
         Py_INCREF(value);
         return value;
     case 'L':
-        return _DEEP_COPY_LIST_GUIDED(value, guide);
+        return _DEEP_COPY_LIST_GUIDED(tstate, value, guide);
     case 'l':
         return LIST_COPY(value);
     case 'T':
-        return _DEEP_COPY_TUPLE_GUIDED(value, guide);
+        return _DEEP_COPY_TUPLE_GUIDED(tstate, value, guide);
     case 't':
         return TUPLE_COPY(value);
     case 'D':
-        return DEEP_COPY_DICT(value);
+        return DEEP_COPY_DICT(tstate, value);
     case 'd':
         return DICT_COPY(value);
     case 'S':
-        return DEEP_COPY_SET(value);
+        return DEEP_COPY_SET(tstate, value);
     case 'B':
-        return BYTEARRAY_COPY(value);
+        return BYTEARRAY_COPY(tstate, value);
     case '?':
-        return DEEP_COPY(value);
+        return DEEP_COPY(tstate, value);
     default:
         NUITKA_CANNOT_GET_HERE("Illegal type guide");
         abort();
     }
 }
 
-static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide) {
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
     assert(PyList_CheckExact(value));
 
     Py_ssize_t size = PyList_GET_SIZE(value);
@@ -591,7 +595,7 @@ static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide) {
     PyObject *result = MAKE_LIST_EMPTY(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyList_GET_ITEM(value, i), guide);
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(tstate, PyList_GET_ITEM(value, i), guide);
 
         PyList_SET_ITEM(result, i, item);
     }
@@ -599,7 +603,7 @@ static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide) {
     return result;
 }
 
-static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const **guide) {
     assert(PyTuple_CheckExact(value));
 
     Py_ssize_t size = PyTuple_GET_SIZE(value);
@@ -608,7 +612,7 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
     PyObject *result = MAKE_TUPLE_EMPTY(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyTuple_GET_ITEM(value, i), guide);
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(tstate, PyTuple_GET_ITEM(value, i), guide);
 
         PyTuple_SET_ITEM(result, i, item);
     }
@@ -616,14 +620,14 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
     return result;
 }
 
-PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide) {
-    PyObject *result = _DEEP_COPY_LIST_GUIDED(value, &guide);
+PyObject *DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_LIST_GUIDED(tstate, value, &guide);
     assert(*guide == 0);
     return result;
 }
 
-PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide) {
-    PyObject *result = _DEEP_COPY_TUPLE_GUIDED(value, &guide);
+PyObject *DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_TUPLE_GUIDED(tstate, value, &guide);
     assert(*guide == 0);
     return result;
 }

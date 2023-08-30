@@ -299,7 +299,7 @@ PyObject *DICT_COPY(PyObject *dict_value) {
 #endif
 }
 
-PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
+PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
     PyObject *result;
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
@@ -312,7 +312,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
     PyObject *key, *value;
 
     while (Nuitka_DictNext(dict_value, &pos, &key, &value)) {
-        PyObject *dict_value_copy = DEEP_COPY(value);
+        PyObject *dict_value_copy = DEEP_COPY(tstate, value);
 
         if (dict_value_copy != value) {
             DICT_SET_ITEM(result, key, value);
@@ -339,7 +339,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
                 PyObject *key = entry->me_key;
 
                 PyObject *value = entry->me_value;
-                value = DEEP_COPY(value);
+                value = DEEP_COPY(tstate, value);
 
                 int res = PyDict_SetItem(result, key, value);
                 assert(res == 0);
@@ -379,7 +379,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
             for (Py_ssize_t i = 0; i < size; i++) {
                 if (DK_VALUE(dict_mp, i)) {
                     PyObject *value = DK_VALUE(dict_mp, i);
-                    value = DEEP_COPY(value);
+                    value = DEEP_COPY(tstate, value);
 
                     DK_VALUE(result_mp, i) = value;
 
@@ -425,7 +425,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
 
                         Py_INCREF(key);
 
-                        value = DEEP_COPY(value);
+                        value = DEEP_COPY(tstate, value);
 
                         entry->me_value = value;
                     }
@@ -456,7 +456,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
                     PyObject *value = *value_ptr;
 
                     if (value != NULL) {
-                        value = DEEP_COPY(value);
+                        value = DEEP_COPY(tstate, value);
                         *value_ptr = value;
                         PyObject *key = *key_ptr;
                         Py_INCREF(key);
@@ -487,7 +487,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
                         PyObject *key = entry->me_key;
 
                         PyObject *value = entry->me_value;
-                        value = DEEP_COPY(value);
+                        value = DEEP_COPY(tstate, value);
 
                         int res = PyDict_SetItem(result, key, value);
                         assert(res == 0);

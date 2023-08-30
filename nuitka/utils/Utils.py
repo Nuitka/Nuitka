@@ -214,7 +214,6 @@ _is_alpine = None
 
 def isAlpineLinux():
     if os.name == "posix":
-
         # Avoid repeated file system lookup, pylint: disable=global-statement
         global _is_alpine
         if _is_alpine is None:

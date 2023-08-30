@@ -164,7 +164,8 @@ def main():
                 my_print(getFileContents(filename))
 
                 test_logger.sysexit("Error with compilation: %s" % e)
-            except Exception:  # only trying to check for no exception, pylint: disable=try-except-raise
+            # only trying to check for no exception, pylint: disable=try-except-raise
+            except Exception:
                 raise
             else:
                 assert os.path.exists(filename[:-3] + ".dist")

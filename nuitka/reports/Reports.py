@@ -21,11 +21,14 @@ These reports are in XML form, and with Jinja2 templates in any form you like.
 
 """
 
+import atexit
 import os
 import sys
 import traceback
 
 from nuitka import TreeXML
+from nuitka.__past__ import unicode
+from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -45,7 +48,7 @@ from nuitka.Options import (
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
-from nuitka.Tracing import reports_logger
+from nuitka.Tracing import ReportingSystemExit, reports_logger
 from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
@@ -64,6 +67,10 @@ def _getReportInputData(aborted):
 
     module_kinds = dict(
         (module.getFullName(), module.__class__.__name__) for module in getDoneModules()
+    )
+
+    module_sources = dict(
+        (module.getFullName(), module.source_ref) for module in getDoneModules()
     )
 
     module_inclusion_infos = dict(
@@ -97,6 +104,11 @@ def _getReportInputData(aborted):
         (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
     )
 
+    module_distribution_names = dict(
+        (module.getFullName(), module.getUsedDistributions())
+        for module in getDoneModules()
+    )
+
     all_distributions = tuple(
         sorted(
             set(sum(module_distributions.values(), ())),
@@ -121,6 +133,8 @@ def _getReportInputData(aborted):
     nuitka_exception = sys.exc_info()
 
     user_data = getCompilationReportUserData()
+
+    data_composer = getDataComposerReportValues()
 
     return dict(
         (var_name, var_value)
@@ -167,7 +181,11 @@ def _addModulesToReport(root, report_input_data, diffable):
             "module",
             name=module_name,
             kind=report_input_data["module_kinds"][module_name],
+            usage=active_module_info.usage_tag,
             reason=active_module_info.reason,
+            source_path=_getCompilationReportPath(
+                report_input_data["module_sources"][module_name].getFilename()
+            ),
         )
 
         for plugin_name, influence, detail in report_input_data[
@@ -212,8 +230,26 @@ def _addModulesToReport(root, report_input_data, diffable):
             for distribution in distributions:
                 TreeXML.appendTreeElement(
                     distributions_xml_node,
-                    "distribution",
+                    "distribution-used",
                     name=distribution.metadata["Name"],
+                )
+
+        module_distribution_names = report_input_data["module_distribution_names"][
+            module_name
+        ]
+
+        if module_distribution_names:
+            module_distribution_names_xml_node = TreeXML.appendTreeElement(
+                module_xml_node,
+                "distribution-lookups",
+            )
+
+            for distribution_name, found in module_distribution_names.items():
+                TreeXML.appendTreeElement(
+                    module_distribution_names_xml_node,
+                    "distribution",
+                    name=distribution_name,
+                    found="yes" if found else "no",
                 )
 
         used_modules_xml_node = TreeXML.appendTreeElement(
@@ -263,14 +299,24 @@ def _addUserDataToReport(root, user_data):
 
 def writeCompilationReport(report_filename, report_input_data, diffable):
     """Write the compilation report in XML format."""
-    # Many details, pylint: disable=too-many-branches,too-many-locals
+    # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
+    # When failing to write the crash report, we need to indicate that it was
+    # not done to the atexit handler, pylint: disable=global-statement
+    global _crash_report_filename
+
+    exit_message = None
     if not report_input_data["nuitka_aborted"]:
         completion = "yes"
     elif report_input_data["nuitka_exception"][0] is KeyboardInterrupt:
         completion = "interrupted"
     elif report_input_data["nuitka_exception"][0] is SystemExit:
-        completion = "error (%s)" % report_input_data["nuitka_exception"][1].code
+        completion = "error exit (%s)" % report_input_data["nuitka_exception"][1].code
+    elif report_input_data["nuitka_exception"][0] is ReportingSystemExit:
+        completion = (
+            "error exit message (%s)" % report_input_data["nuitka_exception"][1].code
+        )
+        exit_message = report_input_data["nuitka_exception"][1].exit_message
     else:
         completion = "exception"
 
@@ -280,6 +326,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
         completion=completion,
     )
+
+    if exit_message is not None:
+        root.attrib["exit_message"] = exit_message
 
     if completion == "exception":
         exception_xml_node = TreeXML.appendTreeElement(
@@ -352,6 +401,32 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             # TODO: No reason yet.
         )
 
+    if not diffable:
+        data_composer_values = getDataComposerReportValues()
+
+        data_composer_xml_node = TreeXML.appendTreeElement(
+            root,
+            "data_composer",
+            blob_size=str(data_composer_values["blob_size"]),
+        )
+
+        data_composer_stats = data_composer_values["stats"]
+        if data_composer_stats:
+            for item, item_value in data_composer_stats.items():
+                assert type(item) in (str, unicode)
+                if type(item_value) is int:
+                    data_composer_xml_node.attrib[item] = str(item_value)
+                else:
+                    for key in item_value:
+                        item_value[key] = str(item_value[key])
+
+                    TreeXML.appendTreeElement(
+                        data_composer_xml_node,
+                        "module_data",
+                        filename=item,
+                        **item_value
+                    )
+
     options_xml_node = TreeXML.appendTreeElement(
         root,
         "command_line",
@@ -420,6 +495,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "Compilation report write to file '%s' failed due to: %s."
             % (report_filename, e)
         )
+
+        if _crash_report_filename == report_filename:
+            _crash_report_filename = None
     else:
         reports_logger.info(
             "Compilation report written to file '%s'." % report_filename
@@ -484,10 +562,33 @@ def writeCompilationReportFromTemplate(
         )
 
 
+_crash_report_filename = "nuitka-crash-report.xml"
+
+
+def _informAboutCrashReport():
+    if _crash_report_filename is not None:
+        reports_logger.info(
+            """\
+Compilation crash report written to file '%s'. Please include it in \
+your bug report."""
+            % _crash_report_filename,
+            style="red",
+        )
+
+
 def writeCompilationReports(aborted):
     report_filename = getCompilationReportFilename()
     template_specs = getCompilationReportTemplates()
     diffable = shallCreateDiffableCompilationReport()
+
+    if (
+        report_filename is None
+        and aborted
+        and sys.exc_info()[0] not in (KeyboardInterrupt, SystemExit)
+    ):
+        report_filename = _crash_report_filename
+
+        atexit.register(_informAboutCrashReport)
 
     if report_filename or template_specs:
         report_input_data = _getReportInputData(aborted)

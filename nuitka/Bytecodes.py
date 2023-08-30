@@ -94,3 +94,12 @@ def compileSourceToBytecode(source_code, filename):
         )
 
     return bytecode
+
+
+def loadCodeObjectData(bytecode_filename):
+    """Load bytecode from a file."""
+
+    # Ignoring magic numbers, etc. which we don't have to care for much as
+    # CPython already checked them (would have rejected it otherwise).
+    with open(bytecode_filename, "rb") as f:
+        return f.read()[8 if str is bytes else 16 :]

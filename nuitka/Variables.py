@@ -39,7 +39,6 @@ complete = False
 
 
 class Variable(getMetaClassBase("Variable")):
-
     # We will need all of these attributes, since we track the global
     # state and cache some decisions as attributes. TODO: But in some
     # cases, part of the these might be moved to the outside.

@@ -83,6 +83,25 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
 }
 #endif
 
+/* C helper for hard import of module "_io" import. */
+PyObject *IMPORT_HARD__IO(void) {
+    static PyObject *module_import_hard__io = NULL;
+
+    if (module_import_hard__io == NULL) {
+        module_import_hard__io = PyImport_ImportModule("_io");
+
+        if (unlikely(module_import_hard__io == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of '_io'");
+            abort();
+        }
+    }
+
+    return module_import_hard__io;
+}
+
 /* C helper for hard import of module "ctypes" import. */
 PyObject *IMPORT_HARD_CTYPES(void) {
     static PyObject *module_import_hard_ctypes = NULL;
@@ -235,6 +254,21 @@ PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void) {
     }
 
     return module_import_hard_importlib_metadata;
+}
+
+/* C helper for hard import of module "importlib_resources" import. */
+PyObject *IMPORT_HARD_IMPORTLIB_RESOURCES(void) {
+    static PyObject *module_import_hard_importlib_resources = NULL;
+
+    if (module_import_hard_importlib_resources == NULL) {
+        module_import_hard_importlib_resources = PyImport_ImportModule("importlib_resources");
+
+        if (unlikely(module_import_hard_importlib_resources == NULL)) {
+            return NULL;
+        }
+    }
+
+    return module_import_hard_importlib_resources;
 }
 
 /* C helper for hard import of module "io" import. */

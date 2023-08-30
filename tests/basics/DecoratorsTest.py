@@ -64,6 +64,7 @@ def function2():
 
 print(function2())
 
+
 # Same as function2, but without decorator syntax.
 def function3():
     return 3

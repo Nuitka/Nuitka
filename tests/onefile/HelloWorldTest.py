@@ -21,6 +21,9 @@ from __future__ import print_function
 
 # nuitka-project: --onefile
 
+# Sometimes we disable with --no-onefile to only do standalone.
+# nuitka-project: --standalone
+
 # Lets have some version information to coverage purposes in here too.
 
 # nuitka-project: --company-name="Nuitka Test Company"

@@ -207,10 +207,23 @@ class ModuleName(str):
         return str(self).startswith(package_name + ".")
 
     def getChildNamed(self, *args):
+        """Get a child package with these names added."""
         return ModuleName(".".join([self] + list(args)))
 
     def getSiblingNamed(self, *args):
+        """Get a sub-package relative to this child package."""
         return self.getPackageName().getChildNamed(*args)
+
+    def relocateModuleNamespace(self, parent_old, parent_new):
+        """Get a module name, where the top level part is translated from old to new."""
+        assert self.hasNamespace(parent_old)
+
+        submodule_name_str = str(self)[len(str(parent_old)) + 1 :]
+
+        if submodule_name_str:
+            return ModuleName(parent_new).getChildNamed(submodule_name_str)
+        else:
+            return ModuleName(parent_new)
 
     def matchesToShellPattern(self, pattern):
         """Match a module name to a list of patterns

@@ -232,7 +232,6 @@ def withEnvironmentVarsOverridden(mapping):
     old_values = {}
 
     for env_var_name, value in mapping.items():
-
         if env_var_name in os.environ:
             old_values[env_var_name] = os.environ[env_var_name]
         else:

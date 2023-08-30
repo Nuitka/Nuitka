@@ -27,12 +27,19 @@ import contextlib
 from collections import defaultdict
 from contextlib import contextmanager
 
-from nuitka import Tracing, Variables
+from nuitka import Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
+from nuitka.Tracing import (
+    inclusion_logger,
+    printError,
+    printLine,
+    printSeparator,
+)
 from nuitka.tree.SourceHandling import readSourceLine
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -366,15 +373,15 @@ class TraceCollectionBase(object):
         return self.owner
 
     def dumpActiveTraces(self, indent=""):
-        Tracing.printSeparator()
-        Tracing.printLine("Active are:")
+        printSeparator()
+        printLine("Active are:")
         for variable, version in sorted(
             self.variable_actives.items(), key=lambda var: var[0].variable_name
         ):
-            Tracing.my_print(variable, version, ":")
+            printLine("%s %s:" % (variable, version))
             self.getVariableCurrentTrace(variable).dump(indent)
 
-        Tracing.printSeparator()
+        printSeparator()
 
     def getVariableCurrentTrace(self, variable):
         """Get the current value trace associated to this variable
@@ -606,8 +613,6 @@ class TraceCollectionBase(object):
         if expression is None and allow_none:
             return None
 
-        # assert expression.isExpression(), expression
-
         parent = expression.parent
         assert parent, expression
 
@@ -627,8 +632,6 @@ class TraceCollectionBase(object):
 
     def onStatement(self, statement):
         try:
-            assert statement.isStatement(), statement
-
             new_statement, change_tags, change_desc = statement.computeStatement(self)
 
             # print new_statement, change_tags, change_desc
@@ -639,7 +642,7 @@ class TraceCollectionBase(object):
 
             return new_statement
         except Exception:
-            Tracing.printError(
+            printError(
                 "Problem with statement at %s:\n-> %s"
                 % (
                     statement.source_ref.getAsString(),
@@ -941,6 +944,11 @@ class TraceCollectionBase(object):
     def onModuleUsageAttempt(self, module_usage_attempt):
         self.parent.onModuleUsageAttempt(module_usage_attempt)
 
+    def onDistributionUsed(self, distribution_name, node, success):
+        self.parent.onDistributionUsed(
+            distribution_name=distribution_name, node=node, success=success
+        )
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = ("variable_traces",)
@@ -1084,6 +1092,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         "outline_functions",
         "very_trusted_module_variables",
         "module_usage_attempts",
+        "distribution_names",
     )
 
     def __init__(self, module, very_trusted_module_variables):
@@ -1097,7 +1106,11 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
         self.very_trusted_module_variables = very_trusted_module_variables
 
+        # Attempts to use a module in this module.
         self.module_usage_attempts = OrderedSet()
+
+        # Attempts to use a distribution in this module.
+        self.distribution_names = OrderedDict()
 
     def getVeryTrustedModuleVariables(self):
         return self.very_trusted_module_variables
@@ -1114,6 +1127,17 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
     def onModuleUsageAttempt(self, module_usage_attempt):
         self.module_usage_attempts.add(module_usage_attempt)
+
+    def getUsedDistributions(self):
+        return self.distribution_names
+
+    def onDistributionUsed(self, distribution_name, node, success):
+        inclusion_logger.info_to_file_only(
+            "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
+            % (distribution_name, node.source_ref.getAsString())
+        )
+
+        self.distribution_names[distribution_name] = success
 
 
 # TODO: This should not exist, but be part of decision at the time these are collected.

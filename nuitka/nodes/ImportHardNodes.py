@@ -59,6 +59,7 @@ class ExpressionImportHardBase(ExpressionBase):
             finding=self.finding,
             level=0,
             source_ref=self.source_ref,
+            reason="import",
         )
 
 

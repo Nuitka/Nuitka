@@ -205,11 +205,13 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
-def buildTryExceptionNode(provider, node, source_ref):
-    # Try/except nodes. Re-formulated as described in the developer
-    # manual. Exception handlers made the assignment to variables explicit. Same
-    # for the "del" as done for Python3. Also catches always work a tuple of
-    # exception types and hides away that they may be built or not.
+def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
+    # Try/except nodes. Re-formulated as described in the Developer Manual.
+    # Exception handlers made the assignment to variables explicit. Same for the
+    # "del" as done for Python3. Also catches always work a tuple of exception
+    # types and hides away that they may be built or not.
+
+    # For Python3.11, the is_star_try indicates "except*" usage.
 
     # Many variables and branches, due to the re-formulation that is going on
     # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
@@ -234,6 +236,8 @@ def buildTryExceptionNode(provider, node, source_ref):
                 )
             ]
         elif python_version < 0x300:
+            assert not is_star_try
+
             statements = [
                 buildAssignmentStatements(
                     provider=provider,
@@ -404,3 +408,9 @@ def buildTryExceptionNode(provider, node, source_ref):
             no_raise=no_raise,
             source_ref=source_ref,
         )
+
+
+def buildTryStarExceptionNode(provider, node, source_ref):
+    return buildTryExceptionNode(
+        provider=provider, node=node, source_ref=source_ref, is_star_try=True
+    )

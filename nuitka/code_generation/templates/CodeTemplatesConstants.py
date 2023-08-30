@@ -23,6 +23,8 @@ template_constants_reading = r"""
 #include "nuitka/prelude.h"
 #include "structseq.h"
 
+#include "build_definitions.h"
+
 // Global constants storage
 PyObject *global_constants[%(global_constants_count)d];
 
@@ -43,12 +45,12 @@ extern void setDistributionsMetadata(PyObject *metadata_values);
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
-static void _createGlobalConstants(void) {
+static void _createGlobalConstants(PyThreadState *tstate) {
     // We provide the sys.version info shortcut as a global value here for ease of use.
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
     // The empty name means global.
-    loadConstantsBlob(&global_constants[0], "");
+    loadConstantsBlob(tstate, &global_constants[0], "");
 
 #if _NUITKA_EXE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the
@@ -103,6 +105,9 @@ static void _createGlobalConstants(void) {
         {(char *)"releaselevel", (char *)"'alpha', 'beta', 'candidate', or 'release'"},
         {(char *)"standalone", (char *)"boolean indicating standalone mode usage"},
         {(char *)"onefile", (char *)"boolean indicating standalone mode usage"},
+        {(char *)"no_asserts", (char *)"boolean indicating --python-flag=no_asserts usage"},
+        {(char *)"no_docstrings", (char *)"boolean indicating --python-flag=no_docstrings usage"},
+        {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
         {0}
     };
 
@@ -110,7 +115,7 @@ static void _createGlobalConstants(void) {
         (char *)"__nuitka_version__",                                    /* name */
         (char *)"__compiled__\\n\\nVersion information as a named tuple.", /* doc */
         Nuitka_VersionInfoFields,                                        /* fields */
-        6
+        9
     };
 
     PyStructSequence_InitType(&Nuitka_VersionInfoType, &Nuitka_VersionInfoDesc);
@@ -129,14 +134,35 @@ static void _createGlobalConstants(void) {
 #else
     PyObject *is_standalone_mode = Py_False;
 #endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, is_standalone_mode);
 #ifdef _NUITKA_ONEFILE_MODE
     PyObject *is_onefile_mode = Py_True;
 #else
     PyObject *is_onefile_mode = Py_False;
 #endif
-
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, is_standalone_mode);
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_onefile_mode);
+
+#if _NUITKA_NO_ASSERTS == 1
+    PyObject *is_no_asserts = Py_True;
+#else
+    PyObject *is_no_asserts = Py_False;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_no_asserts);
+
+#if _NUITKA_NO_DOCSTRINGS == 1
+    PyObject *is_no_docstrings = Py_True;
+#else
+    PyObject *is_no_docstrings = Py_False;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 7, is_no_docstrings);
+
+
+#if _NUITKA_NO_ANNOTATIONS == 1
+    PyObject *is_no_annotations = Py_True;
+#else
+    PyObject *is_no_annotations = Py_False;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 8, is_no_annotations);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
@@ -155,7 +181,7 @@ void checkGlobalConstants(void) {
 }
 #endif
 
-void createGlobalConstants(void) {
+void createGlobalConstants(PyThreadState *tstate) {
     if (_sentinel_value == NULL) {
 #if PYTHON_VERSION < 0x300
         _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
@@ -165,7 +191,7 @@ void createGlobalConstants(void) {
 #endif
         assert(_sentinel_value);
 
-        _createGlobalConstants();
+        _createGlobalConstants(tstate);
     }
 }
 """

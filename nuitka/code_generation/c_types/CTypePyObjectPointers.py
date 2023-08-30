@@ -190,7 +190,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY_DICT(%s)" % context.getConstantCode(
+                    code = "DEEP_COPY_DICT(tstate, %s)" % context.getConstantCode(
                         constant, deep_check=False
                     )
                     ref_count = 1
@@ -225,7 +225,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = 'DEEP_COPY_LIST_GUIDED(%s, "%s")' % (
+                    code = 'DEEP_COPY_LIST_GUIDED(tstate, %s, "%s")' % (
                         context.getConstantCode(constant, deep_check=False),
                         getConstantValueGuide(constant, elements_only=True),
                     )
@@ -272,7 +272,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                         needs_deep = True
                         break
             if needs_deep:
-                code = 'DEEP_COPY_TUPLE_GUIDED(%s, "%s")' % (
+                code = 'DEEP_COPY_TUPLE_GUIDED(tstate, %s, "%s")' % (
                     context.getConstantCode(constant, deep_check=False),
                     getConstantValueGuide(constant, elements_only=True),
                 )
@@ -282,7 +282,7 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 ref_count = 0
         elif type(constant) is bytearray:
             if may_escape:
-                code = "BYTEARRAY_COPY(%s)" % context.getConstantCode(constant)
+                code = "BYTEARRAY_COPY(tstate, %s)" % context.getConstantCode(constant)
                 ref_count = 1
             else:
                 code = context.getConstantCode(constant)

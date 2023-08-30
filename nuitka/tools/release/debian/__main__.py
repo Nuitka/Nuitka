@@ -123,7 +123,7 @@ def main():
     # Build the source distribution as per our setup, however that's not going
     # to be good enough for Debian packages. We may want to avoid inline copies
     # being added to sdist for the Debian that do not need it.
-    # spellchecker: ignore gztar
+    # spell-checker: ignore gztar
     with withEnvironmentVarOverridden(
         "NUITKA_NO_INLINE_COPY", "1" if shallNotIncludeInlineCopy(codename) else "0"
     ):

@@ -36,6 +36,7 @@ def generateBuiltinBytes1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BYTES1",
+        tstate=True,
         arg_desc=(("bytes_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -53,6 +54,7 @@ def generateBuiltinBytes3Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_BYTES3",
+        tstate=True,
         arg_desc=(
             ("bytes_arg", expression.subnode_value),
             ("bytes_encoding", encoding),
@@ -75,6 +77,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
         generateCAPIObjectCode(
             to_name=to_name,
             capi="BUILTIN_UNICODE1",
+            tstate=False,
             arg_desc=(
                 (
                     "str_arg" if python_version < 0x300 else "unicode_arg",
@@ -91,6 +94,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
         generateCAPIObjectCode(
             to_name=to_name,
             capi="BUILTIN_UNICODE3",
+            tstate=False,
             arg_desc=(
                 ("unicode_arg", expression.subnode_value),
                 ("unicode_encoding", encoding),
@@ -110,6 +114,7 @@ def generateBuiltinStrCode(to_name, expression, emit, context):
         generateCAPIObjectCode(
             to_name=to_name,
             capi="BUILTIN_STR",
+            tstate=False,
             arg_desc=(("str_arg", expression.subnode_value),),
             may_raise=expression.mayRaiseException(BaseException),
             conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -127,6 +132,7 @@ def generateBuiltinChrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_CHR",
+        tstate=True,
         arg_desc=(("chr_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -140,6 +146,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_ORD",
+        tstate=False,
         arg_desc=(("ord_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -155,7 +162,6 @@ def generateStringConcatenationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "string_concat_result", expression, emit, context
     ) as value_name:
-
         tuple_temp_name = context.allocateTempName("string_concat_values")
 
         # TODO: Consider using _PyUnicode_JoinArray which avoids the tuple,
@@ -203,9 +209,9 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "format_result", expression, emit, context
     ) as result_name:
-
         emit(
-            "%s = BUILTIN_FORMAT(%s, %s);" % (result_name, value_name, format_spec_name)
+            "%s = BUILTIN_FORMAT(tstate, %s, %s);"
+            % (result_name, value_name, format_spec_name)
         )
 
         getErrorExitCode(
@@ -222,6 +228,7 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyObject_ASCII",
+        tstate=False,
         arg_desc=(("ascii_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -245,6 +252,7 @@ def generateStrOperationCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi=api_name,
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -263,6 +271,7 @@ def generateBytesOperationCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi=api_name,
+        tstate=True,
         arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

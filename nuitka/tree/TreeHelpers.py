@@ -396,7 +396,6 @@ def buildAnnotationNode(provider, node, source_ref):
         python_version >= 0x370
         and provider.getParentModule().getFutureSpec().isFutureAnnotations()
     ):
-
         # Using global value for cache, to avoid creating it over and over,
         # avoiding the pylint: disable=global-statement
         global _host_node

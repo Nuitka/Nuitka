@@ -53,9 +53,7 @@ print("-", -b)
 print("+", +b)
 
 l = {("a", "c"): "a,c", "b": 2, "c": 3, "d": 4}
-l[
-    "l",
-] = "6"
+l["l",] = "6"
 
 
 print("Extended slicing:")
@@ -65,9 +63,7 @@ print("Short form of extended slicing:")
 
 d = {}
 # d[1] = 1
-d[
-    1,
-] = 2
+d[1,] = 2
 d[1, 2] = 3
 d[1, 2, 3] = 4
 L = list(d)

@@ -45,7 +45,6 @@ def generateSetCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "set_result", expression, emit, context
     ) as result_name:
-
         for count, element in enumerate(elements):
             generateExpressionCode(
                 to_name=element_name, expression=element, emit=emit, context=context
@@ -80,7 +79,6 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "set_result", expression, emit, context
     ) as result_name:
-
         emit("%s = PySet_New(NULL);" % (result_name,))
 
         context.addCleanupTempName(result_name)
@@ -117,7 +115,6 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
 
 
 def generateSetOperationAddCode(statement, emit, context):
-
     set_arg_name = context.allocateTempName("add_set")
     generateExpressionCode(
         to_name=set_arg_name,
@@ -173,6 +170,7 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PySet_New",
+        tstate=False,
         arg_desc=(("set_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -186,6 +184,7 @@ def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="PyFrozenSet_New",
+        tstate=False,
         arg_desc=(("frozenset_arg", expression.subnode_value),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),

@@ -42,6 +42,7 @@ from nuitka.tools.testing.Common import executeReferenceChecked
 
 x = 17
 
+
 # Python2.7 or higher syntax things are here.
 def simpleFunction1():
     return {i: x for i in range(x)}

@@ -42,12 +42,12 @@ PyObject *STRING_FROM_CHAR(unsigned char c) {
    faster on Python2. For Python3 no such table is reasonable.
 */
 
-PyObject *BUILTIN_CHR(PyObject *value) {
+PyObject *BUILTIN_CHR(PyThreadState *tstate, PyObject *value) {
     long x = PyInt_AsLong(value);
 
-    if (unlikely(x == -1 && ERROR_OCCURRED())) {
+    if (unlikely(x == -1 && HAS_ERROR_OCCURRED(tstate))) {
 #if PYTHON_VERSION < 0x300 && defined(_NUITKA_FULL_COMPAT)
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "an integer is required");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "an integer is required");
 #else
         PyErr_Format(PyExc_TypeError, "an integer is required (got type %s)", Py_TYPE(value)->tp_name);
 #endif
@@ -56,7 +56,7 @@ PyObject *BUILTIN_CHR(PyObject *value) {
 
 #if PYTHON_VERSION < 0x300
     if (unlikely(x < 0 || x >= 256)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "chr() arg not in range(256)");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
     }
 
@@ -449,9 +449,12 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
     PyObject *unicode = *p_unicode;
     Py_ssize_t old_length;
 
+#if PYTHON_VERSION < 0x3c0
     if (_PyUnicode_KIND(unicode) == PyUnicode_WCHAR_KIND) {
         old_length = PyUnicode_WSTR_LENGTH(unicode);
-    } else {
+    } else
+#endif
+    {
         old_length = PyUnicode_GET_LENGTH(unicode);
     }
 
@@ -485,7 +488,7 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
     return _NuitkaUnicode_resize_inplace(unicode, length);
 }
 
-PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
+PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
     if (left == const_str_empty) {
         Py_INCREF(right);
         return right;
@@ -502,7 +505,7 @@ PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
     Py_ssize_t left_len = PyUnicode_GET_LENGTH(left);
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
         return NULL;
     }
     Py_ssize_t new_len = left_len + right_len;
@@ -522,7 +525,7 @@ PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
     return result;
 }
 
-bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
+bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right) {
     assert(p_left);
 
     PyObject *left = *p_left;
@@ -545,7 +548,7 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
     Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
 
     if (left_len > PY_SSIZE_T_MAX - right_len) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_OverflowError, "strings are too large to concat");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_OverflowError, "strings are too large to concat");
         return false;
     }
     Py_ssize_t new_len = left_len + right_len;
@@ -579,7 +582,7 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
 }
 #endif
 
-PyObject *UNICODE_JOIN(PyObject *str, PyObject *iterable) {
+PyObject *UNICODE_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(iterable);
     assert(PyUnicode_CheckExact(str));
@@ -587,7 +590,7 @@ PyObject *UNICODE_JOIN(PyObject *str, PyObject *iterable) {
     return PyUnicode_Join(str, iterable);
 }
 
-PyObject *UNICODE_PARTITION(PyObject *str, PyObject *sep) {
+PyObject *UNICODE_PARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(sep);
     assert(PyUnicode_CheckExact(str));
@@ -595,7 +598,7 @@ PyObject *UNICODE_PARTITION(PyObject *str, PyObject *sep) {
     return PyUnicode_Partition(str, sep);
 }
 
-PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep) {
+PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObject *sep) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(sep);
     assert(PyUnicode_CheckExact(str));
@@ -604,7 +607,7 @@ PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep) {
 }
 #if PYTHON_VERSION < 0x300
 
-PyObject *STR_JOIN(PyObject *str, PyObject *iterable) {
+PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable) {
     CHECK_OBJECT(str);
     CHECK_OBJECT(iterable);
     assert(PyString_CheckExact(str));
@@ -741,6 +744,8 @@ PyObject *_BUILTIN_STR(PyObject *value) {
         return value;
     }
 
+    /* It is possible for a type to have a tp_str representation that loops
+       infinitely. */
     if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }

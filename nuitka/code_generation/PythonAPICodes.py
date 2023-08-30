@@ -46,6 +46,7 @@ def makeArgDescFromExpression(expression):
 def generateCAPIObjectCodeCommon(
     to_name,
     capi,
+    tstate,
     arg_desc,
     may_raise,
     conversion_check,
@@ -56,6 +57,9 @@ def generateCAPIObjectCodeCommon(
     none_null=False,
 ):
     arg_names = []
+
+    if tstate:
+        arg_names.append("tstate")
 
     for arg_name, arg_expression in arg_desc:
         if arg_expression is None and none_null:
@@ -89,6 +93,7 @@ def generateCAPIObjectCodeCommon(
 def generateCAPIObjectCode(
     to_name,
     capi,
+    tstate,
     arg_desc,
     may_raise,
     conversion_check,
@@ -100,6 +105,7 @@ def generateCAPIObjectCode(
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
+        tstate=tstate,
         arg_desc=arg_desc,
         may_raise=may_raise,
         conversion_check=conversion_check,
@@ -114,6 +120,7 @@ def generateCAPIObjectCode(
 def generateCAPIObjectCode0(
     to_name,
     capi,
+    tstate,
     arg_desc,
     may_raise,
     conversion_check,
@@ -125,6 +132,7 @@ def generateCAPIObjectCode0(
     generateCAPIObjectCodeCommon(
         to_name=to_name,
         capi=capi,
+        tstate=tstate,
         arg_desc=arg_desc,
         may_raise=may_raise,
         conversion_check=conversion_check,
@@ -139,7 +147,9 @@ def generateCAPIObjectCode0(
 def getCAPIObjectCode(
     to_name, capi, arg_names, may_raise, conversion_check, ref_count, emit, context
 ):
-    release_names = tuple(arg_name for arg_name in arg_names if arg_name != "NULL")
+    release_names = tuple(
+        arg_name for arg_name in arg_names if arg_name not in ("NULL", "tstate")
+    )
 
     if to_name is not None:
         # TODO: Use context manager here too.

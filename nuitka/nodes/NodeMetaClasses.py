@@ -47,7 +47,7 @@ def _checkBases(name, bases):
         last_mixin = is_mixin
 
         if base is not object and "__slots__" not in base.__dict__:
-            raise NuitkaNodeDesignError(name, "All bases must have __slots__.", base)
+            raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 
 
 class NodeCheckMetaClass(ABCMeta):
@@ -106,7 +106,6 @@ class NodeCheckMetaClass(ABCMeta):
         return ABCMeta.__new__(mcs, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):
-
         if not name.endswith(("Base", "Mixin")):
             if "kind" not in dictionary:
                 raise NuitkaNodeDesignError(name, "Must provide class variable 'kind'")

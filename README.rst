@@ -109,7 +109,7 @@ Requirements
       we can safely do an overwrite without destroying the original
       source file.
 
-   .. admonition:: It **has to** be CPython, Anaconda Python.
+   .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
 
       You need the standard Python implementation, called "CPython", to
       execute Nuitka, because it is closely tied to implementation
@@ -118,8 +118,14 @@ Requirements
    .. admonition:: It **cannot be** from Windows app store
 
       It is known that Windows app store Python definitely does not
-      work, it's checked against. And on macOS "pyenv" likely does
-      **not** work.
+      work, it's checked against.
+
+   .. admonition:: It **cannot be** pyenv on macOS
+
+      It is know that macOS "pyenv" does **not** work. Use Homebrew
+      instead for self compiled Python installations. But note that
+      standalone mode will be worse on these platforms and not be as
+      backward compatible with older macOS versions.
 
 -  Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows
    (32bits/64 bits/ARM).
@@ -385,10 +391,19 @@ this:
 The resulting file ``some_module.so`` can then be used instead of
 ``some_module.py``.
 
+.. important::
+
+   The filename of the produced extension module must not be changed as
+   Python insists on a module name derived function as an entry point,
+   in this case ``PyInit_some_module`` and renaming the file will not
+   change that. Match the filename of the source code what the binary
+   name should be.
+
 .. note::
 
-   It's left as an exercise to the reader, to find out what happens if
-   both are present.
+   If both the extension module and the source code of it are in the
+   same directory, the extension module is loaded. Changes to the source
+   code only have effect once you recompile.
 
 .. note::
 
@@ -1218,6 +1233,20 @@ in CI systems where things might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
+
+On macOS and Intel, there is an automatic download of a ``ccache``
+binary from our site, for arm64 arches, it's recommended to use this
+setup, which installs Homebrew and ccache in there. Nuitka picks that
+one up automatically if it on that kind of machine. You need and should
+not use Homebrew with Nuitka otherwise, it's not the best for standalone
+deployments, but we can take ``ccache`` from there.
+
+.. code:: bash
+
+   export HOMEBREW_INSTALL_FROM_API=1
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+   eval $(/opt/homebrew/bin/brew shellenv)
+   brew install ccache
 
 Control where Caches live
 =========================

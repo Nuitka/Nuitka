@@ -69,6 +69,7 @@ from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     decideConstantsBlobResourceMode,
     enableWindowsStackSize,
+    importEnvironmentVariableSettings,
     reportCCompiler,
     setupCCompiler,
     switchFromGccToGpp,
@@ -100,8 +101,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
-# spell-checker: ignore cxxflags,ldflags
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -160,6 +160,12 @@ full_compat_mode = getArgumentBool("full_compat", False)
 
 # Experimental indications. Do things that are not yet safe to do.
 experimental = getArgumentList("experimental", "")
+
+# Deployment mode
+deployment_mode = getArgumentBool("deployment", False)
+
+# Experimental indications. Do things that are not yet safe to do.
+no_deployment = getArgumentList("no_deployment", "")
 
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
@@ -254,7 +260,13 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 # python_sysflag_utf8
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
-python_sysflag_optimize = getArgumentBool("python_sysflag_optimize", False)
+python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
+# python_flag_no_asserts
+python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
+# python_flag_no_docstrings
+python_flag_no_docstrings = getArgumentBool("python_flag_no_docstrings", False)
+# python_flag_no_annotations
+python_flag_no_annotations = getArgumentBool("python_flag_no_annotations", False)
 # python_sysflag_no_randomization
 python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
@@ -266,6 +278,8 @@ python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
 # python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
 
+# file reference mode
+file_reference_mode = getArgumentRequired("file_reference_mode")
 
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
@@ -304,6 +318,7 @@ env = createEnvironment(
     msvc_version=msvc_version,
     target_arch=target_arch,
     experimental=experimental,
+    no_deployment=no_deployment,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -442,7 +457,6 @@ if env.msvc_mode:
 if not module_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
 if env.debug_mode:
-
     if env.gcc_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
@@ -506,6 +520,9 @@ if onefile_mode:
 
 if onefile_temp_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
+
+if deployment_mode:
+    env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:
@@ -763,11 +780,6 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 # that is located inside Nuitka installation.
 env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
 
-
-# MinGW64 for 64 bits needs this due to CPython bugs.
-if env.mingw_mode and target_arch == "x86_64":
-    env.Append(CPPDEFINES=["MS_WIN64"])
-
 # Set load libpython from binary directory default
 if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
     if env.standalone_mode:
@@ -869,35 +881,13 @@ if module_mode:
 else:
     target = env.Program(result_exe, source_files)
 
-# Avoid dependency on MinGW libraries.
-if win_target and env.gcc_mode and not env.clang_mode:
-    env.Append(LINKFLAGS=["-static-libgcc"])
-
-# Outside compiler settings are respected.
-if "CPPFLAGS" in os.environ:
-    scons_logger.info(
-        "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
-    )
-    env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-if "CCFLAGS" in os.environ:
-    scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-    env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-if "CXXFLAGS" in os.environ:
-    scons_logger.info(
-        "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
-    )
-    env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
-
-# Outside linker flags are respected.
-if "LDFLAGS" in os.environ:
-    scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"])
-    env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+# Use compiler/linker flags provided via environment variables
+importEnvironmentVariableSettings(env)
 
 # Remove the target file to avoid cases where it falsely doesn't get rebuild
 # and then lingers from previous builds,
 if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
-
 
 if job_count:
     scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
@@ -932,7 +922,13 @@ def createBuildDefinitionsFile():
 
     build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
-    build_definitions["SYSFLAG_OPTIMIZE"] = 1 if python_sysflag_optimize else 0
+    build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
+
+    build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
+
+    build_definitions["_NUITKA_NO_DOCSTRINGS"] = 1 if python_flag_no_docstrings else 0
+
+    build_definitions["_NUITKA_NO_ANNOTATIONS"] = 1 if python_flag_no_annotations else 0
 
     build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
         1 if python_sysflag_no_randomization else 0
@@ -968,6 +964,10 @@ def createBuildDefinitionsFile():
 
 if forced_stderr_path and not forced_stdout_path:
     env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
+
+if file_reference_mode == "original":
+    env.Append(CPPDEFINES=["NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
+
 
 createBuildDefinitionsFile()
 

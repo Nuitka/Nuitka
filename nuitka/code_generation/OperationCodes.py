@@ -348,7 +348,6 @@ def _getUnaryOperationCode(
     with withObjectCodeTemporaryAssignment(
         to_name, "op_%s_res" % operator.lower(), expression, emit, context
     ) as value_name:
-
         emit(
             "%s = %s(%s);"
             % (

@@ -47,7 +47,6 @@ def _makeComparisonNode(left, right, comparator, source_ref):
 
 
 def buildComparisonNode(provider, node, source_ref):
-
     assert len(node.comparators) == len(node.ops)
 
     # Comparisons are re-formulated as described in the Developer Manual. When
@@ -76,7 +75,6 @@ def buildComparisonNode(provider, node, source_ref):
 
 
 def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
-
     # This is a bit complex, due to the many details, pylint: disable=too-many-locals
 
     outline_body = ExpressionOutlineBody(

@@ -2034,7 +2034,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
     const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 
@@ -2234,7 +2236,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
             goto exit_result_exception;
         }
 
@@ -2451,7 +2455,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
             goto exit_result_exception;
         }
 
@@ -2517,7 +2523,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
     const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 
@@ -2725,7 +2733,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
             goto exit_result_exception;
         }
 
@@ -2950,7 +2960,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
         const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
-            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+            PyThreadState *tstate = PyThreadState_GET();
+
+            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
             goto exit_result_exception;
         }
 
@@ -4016,7 +4028,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, d
     const double b = operand2;
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 
@@ -4076,7 +4090,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CFLOAT_FLOAT(double operand1, PyOb
     const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 
@@ -4135,7 +4151,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_CFLOAT(PyObject *operand1, 
     const double b = operand2;
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 
@@ -4195,7 +4213,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CFLOAT_FLOAT(double operand1, PyO
     const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ZeroDivisionError, "float modulo");
         goto exit_result_exception;
     }
 

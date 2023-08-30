@@ -38,15 +38,11 @@ from .StatementNodes import StatementsSequence
 def checkFrameStatements(value):
     """Check that frames statements list value proper.
 
-    Must not be None, must not contain None, and of course only statements
-    sequences, or statements, may be empty.
+    Must not be None, must not contain None, may be empty though.
     """
 
     assert value is not None
     assert None not in value
-
-    for statement in value:
-        assert statement.isStatement() or statement.isStatementsFrame(), statement
 
     return tuple(value)
 

@@ -56,9 +56,12 @@ from .VariableCodes import (
 
 
 def getFunctionCreationArgs(
-    defaults_name, kw_defaults_name, annotations_name, closure_variables
+    defaults_name, kw_defaults_name, annotations_name, closure_variables, tstate
 ):
     result = []
+
+    if tstate:
+        result.append("PyThreadState *tstate")
 
     if defaults_name is not None:
         result.append("PyObject *defaults")
@@ -82,12 +85,12 @@ def getFunctionMakerDecl(
     kw_defaults_name,
     annotations_name,
 ):
-
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     return template_function_make_declaration % {
@@ -147,6 +150,7 @@ def getFunctionMakerCode(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
+        tstate=False,
     )
 
     if function_doc is None:
@@ -444,7 +448,7 @@ def getDirectFunctionCallCode(
             """
 {
     PyObject *dir_call_args[] = {%s};
-    %s = %s(dir_call_args%s%s);
+    %s = %s(tstate, dir_call_args%s%s);
 }"""
             % (
                 ", ".join(str(arg_name) for arg_name in arg_names),
@@ -456,7 +460,7 @@ def getDirectFunctionCallCode(
         )
     else:
         emit(
-            "%s = %s(NULL%s%s);"
+            "%s = %s(tstate, NULL%s%s);"
             % (
                 to_name,
                 function_identifier,
@@ -505,7 +509,6 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
 def setupFunctionLocalVariables(
     context, parameters, closure_variables, user_variables, temp_variables
 ):
-
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
@@ -633,7 +636,6 @@ def _getFunctionCode(
     file_scope,
     needs_exception_exit,
 ):
-
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=too-many-locals
 
@@ -762,7 +764,6 @@ def generateFunctionCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "call_result", expression, emit, context
     ) as value_name:
-
         getDirectFunctionCallCode(
             to_name=value_name,
             function_identifier=function_identifier,
@@ -852,7 +853,9 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 def generateFunctionErrorStrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
+        # TODO: Should be inline this for
         capi="_PyObject_FunctionStr",
+        tstate=False,
         arg_desc=(("func_arg", expression.subnode_value),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),

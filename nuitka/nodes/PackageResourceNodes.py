@@ -19,6 +19,7 @@
 
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.ImportResolving import resolveModuleName
+from nuitka.utils.Importing import importFromCompileTime
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
@@ -27,6 +28,9 @@ from .ExpressionShapeMixins import (
     ExpressionStrShapeExactMixin,
 )
 from .HardImportNodesGenerated import (
+    ExpressionImportlibResourcesBackportFilesCallBase,
+    ExpressionImportlibResourcesBackportReadBinaryCallBase,
+    ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
     ExpressionImportlibResourcesReadTextCallBase,
@@ -61,7 +65,6 @@ class ExpressionPkgResourcesResourceStringCall(
     SideEffectsFromChildrenMixin,
     ExpressionPkgResourcesResourceStringCallBase,
 ):
-
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
@@ -93,12 +96,36 @@ class ExpressionImportlibResourcesReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadBinaryCallBase,
 ):
+    """Call to "importlib.resources.read_binary" """
+
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL"
 
     python_version_spec = ">= 0x370"
 
     def __init__(self, package, resource, source_ref):
         ExpressionImportlibResourcesReadBinaryCallBase.__init__(
+            self,
+            package=package,
+            resource=resource,
+            source_ref=source_ref,
+        )
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesBackportReadBinaryCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportReadBinaryCallBase,
+):
+    """Call to "importlib.resources.read_binary" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_BINARY_CALL"
+
+    def __init__(self, package, resource, source_ref):
+        ExpressionImportlibResourcesBackportReadBinaryCallBase.__init__(
             self,
             package=package,
             resource=resource,
@@ -133,6 +160,8 @@ class ExpressionImportlibResourcesReadTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextCallBase,
 ):
+    """Call to "importlib.resources.read_text" """
+
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL"
 
     python_version_spec = ">= 0x370"
@@ -143,8 +172,43 @@ class ExpressionImportlibResourcesReadTextCall(
         return self, None, None
 
 
+def makeExpressionImportlibResourcesBackportReadTextCall(
+    package, resource, encoding, errors, source_ref
+):
+    # Avoid making things optional.
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesBackportReadTextCall(
+        package=package,
+        resource=resource,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesBackportReadTextCall(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesBackportReadTextCallBase,
+):
+    """Call to "importlib_resources.read_text" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_READ_TEXT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
 class ExpressionImportlibResourcesFilesCallMixin:
     __slots__ = ()
+
+    def _getImportlibResourcesModule(self):
+        return importFromCompileTime(self.importlib_resources_name, must_exist=True)
 
     # TODO: Looks as if this could be a convenience function of more general use.
     def makeModuleUsageAttempt(self, package_name):
@@ -161,6 +225,7 @@ class ExpressionImportlibResourcesFilesCallMixin:
             finding=finding,
             level=0,
             source_ref=self.source_ref,
+            reason="%s.files call" % self.importlib_resources_name,
         )
 
     # TODO: In standalone mode we could know a lot better.
@@ -168,13 +233,74 @@ class ExpressionImportlibResourcesFilesCallMixin:
     def mayRaiseExceptionOperation():
         return True
 
+    # Only for the not fixed ones.
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        package_name = self.subnode_package.getCompileTimeConstant()
+
+        if type(package_name) is str:
+            package_name = resolveModuleName(package_name)
+            trace_collection.onModuleUsageAttempt(
+                self.makeModuleUsageAttempt(package_name)
+            )
+
+            result = self.makeImportlibResourcesFilesCallFixedExpression(
+                package_name=package_name, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Detected '%s.files' with constant package name '%s'."
+                % (self.importlib_resources_name, package_name),
+            )
+
+        return self, None, None
+
 
 class ExpressionImportlibResourcesFilesCallFixed(
     ExpressionImportlibResourcesFilesCallMixin, ExpressionBase
 ):
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED"
-
     python_version_spec = ">= 0x370"
+    importlib_resources_name = "importlib.resources"
+
+    __slots__ = (
+        "package_name",
+        "module_usage_attempt",
+    )
+
+    def __init__(self, package_name, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.package_name = resolveModuleName(package_name)
+
+        self.module_usage_attempt = self.makeModuleUsageAttempt(
+            package_name=package_name
+        )
+
+    def finalize(self):
+        del self.module_usage_attempt
+
+    def getPackageNameUsed(self):
+        return makeConstantRefNode(
+            constant=self.package_name.asString(), source_ref=self.source_ref
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        trace_collection.onModuleUsageAttempt(self.module_usage_attempt)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesBackportFilesCallFixed(
+    ExpressionImportlibResourcesFilesCallMixin, ExpressionBase
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL_FIXED"
+    importlib_resources_name = "importlib_resources"
 
     __slots__ = (
         "package_name",
@@ -211,8 +337,11 @@ class ExpressionImportlibResourcesFilesCall(
     ExpressionImportlibResourcesFilesCallBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL"
-
     python_version_spec = ">= 0x370"
+    importlib_resources_name = "importlib.resources"
+    makeImportlibResourcesFilesCallFixedExpression = (
+        ExpressionImportlibResourcesFilesCallFixed
+    )
 
     named_children = ("package",)
 
@@ -228,26 +357,27 @@ class ExpressionImportlibResourcesFilesCall(
     def getPackageNameUsed(self):
         return self.subnode_package
 
-    def replaceWithCompileTimeValue(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
 
-        package_name = self.subnode_package.getCompileTimeConstant()
+class ExpressionImportlibResourcesBackportFilesCall(
+    ExpressionImportlibResourcesFilesCallMixin,
+    ExpressionImportlibResourcesBackportFilesCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_BACKPORT_FILES_CALL"
+    importlib_resources_name = "importlib_resources"
+    makeImportlibResourcesFilesCallFixedExpression = (
+        ExpressionImportlibResourcesBackportFilesCallFixed
+    )
 
-        if type(package_name) is str:
-            package_name = resolveModuleName(package_name)
-            trace_collection.onModuleUsageAttempt(
-                self.makeModuleUsageAttempt(package_name)
-            )
+    named_children = ("package",)
 
-            result = ExpressionImportlibResourcesFilesCallFixed(
-                package_name=package_name, source_ref=self.source_ref
-            )
+    __slots__ = ("module_usage_attempt",)
 
-            return (
-                result,
-                "new_expression",
-                "Detected 'importlib.resources.files' with constant package name '%s'."
-                % package_name,
-            )
+    def __init__(self, package, source_ref):
+        ExpressionImportlibResourcesBackportFilesCallBase.__init__(
+            self, package=package, source_ref=source_ref
+        )
 
-        return self, None, None
+        self.module_usage_attempt = None
+
+    def getPackageNameUsed(self):
+        return self.subnode_package

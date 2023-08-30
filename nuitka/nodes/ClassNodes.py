@@ -251,7 +251,6 @@ class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase
         return True
 
     def computeExpression(self, trace_collection):
-
         # TODO: Can use this to specialize to the correct metaclass at compile
         # time.
         # metacls = self._calculateMetaClass()

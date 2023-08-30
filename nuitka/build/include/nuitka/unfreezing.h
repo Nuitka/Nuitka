@@ -33,9 +33,11 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
+typedef PyObject *(*module_initfunc)(PyThreadState *tstate, PyObject *module,
+                                     struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
-#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
+#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE) &&                                 \
+    defined(NUITKA_FILE_REFERENCE_ORIGINAL_MODE)
 #define _NUITKA_FREEZER_HAS_FILE_PATH
 #endif
 
@@ -75,7 +77,7 @@ extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntr
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
 // Create a distribution object from the given metadata.
-extern PyObject *Nuitka_Distribution_New(PyObject *name);
+extern PyObject *Nuitka_Distribution_New(PyThreadState *tstate, PyObject *name);
 
 // Check if we provide a distribution object ourselves.
 extern bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr);
