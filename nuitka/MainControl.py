@@ -580,6 +580,7 @@ def runSconsBackend():
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "nuitka_src": getSconsDataPath(),
+        "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
 
