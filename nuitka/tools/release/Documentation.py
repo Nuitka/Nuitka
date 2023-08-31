@@ -30,7 +30,6 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
-from nuitka.utils.Rest import createPDF
 
 
 def _optimizePNGs(pngList):
@@ -168,9 +167,6 @@ def makeManPages():
 
 def createReleaseDocumentation():
     checkReleaseDocumentation()
-
-    for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
-        createPDF(document)
 
     if os.name != "nt":
         makeManPages()
