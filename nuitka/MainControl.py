@@ -103,7 +103,6 @@ from . import ModuleRegistry, Options, OutputDirectories
 from .build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
-    getSconsDataPath,
     runScons,
     setCommonSconsOptions,
 )
@@ -579,7 +578,6 @@ def runSconsBackend():
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
-        "nuitka_src": getSconsDataPath(),
         "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }

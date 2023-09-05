@@ -52,7 +52,7 @@ from .SconsUtils import (
     setEnvironmentVariable,
 )
 
-# spell-checker: ignore CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
+# spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
 # spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
 # spell-checker: ignore -feliminate,noexecstack,implib
@@ -782,6 +782,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
     # Since Fedora 36, the system Python will not link otherwise.
     if isFedoraBasedLinux():
         env.Append(CCFLAGS=["-fPIC"])
+
+    # We use zlib for crc32 functionality
+    env.Append(
+        CPPPATH=[
+            os.path.join(env.nuitka_src, "inline_copy", "zlib"),
+        ],
+    )
 
 
 def _enablePgoSettings(env, pgo_mode):
