@@ -27,7 +27,6 @@ from nuitka import Options, OutputDirectories
 from nuitka.build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
-    getSconsDataPath,
     runScons,
     setCommonSconsOptions,
 )
@@ -81,7 +80,6 @@ def _runOnefileScons(onefile_compression):
         "source_dir": source_dir,
         "debug_mode": asBoolStr(Options.is_debug),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
-        "nuitka_src": getSconsDataPath(),
         "onefile_splash_screen": asBoolStr(
             Options.getWindowsSplashScreen() is not None
         ),

@@ -359,6 +359,7 @@ env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
+env.nuitka_src = nuitka_src
 env.low_memory = low_memory
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
@@ -422,8 +423,8 @@ if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
                 "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
                 "--file-prefix-map=%s=%s"
                 % (
-                    os.path.normpath(os.path.join(source_dir, "static_src")),
-                    os.path.normpath(os.path.join(nuitka_src, "static_src")),
+                    os.path.normpath(os.path.join(env.source_dir, "static_src")),
+                    os.path.normpath(os.path.join(env.nuitka_src, "static_src")),
                 ),
             ]
         )
@@ -768,7 +769,7 @@ if isMacOS():
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
-nuitka_include = os.path.join(nuitka_src, "include")
+nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
     scons_logger.sysexit(
@@ -778,7 +779,9 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
-env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
+env.Append(
+    CPPPATH=[source_dir, nuitka_include, os.path.join(env.nuitka_src, "static_src")]
+)
 
 # Set load libpython from binary directory default
 if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
@@ -857,9 +860,8 @@ def discoverSourceFiles():
 
     result += [
         provideStaticSourceFile(
+            env=env,
             sub_path=filename,
-            nuitka_src=nuitka_src,
-            source_dir=source_dir,
             c11_mode=env.c11_mode,
         )
         for filename in static_src_filenames

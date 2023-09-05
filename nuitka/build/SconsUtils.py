@@ -524,9 +524,11 @@ def cheapCopyFile(src, dst):
             shutil.copy(src, dst)
 
 
-def provideStaticSourceFile(sub_path, nuitka_src, source_dir, c11_mode):
-    source_filename = os.path.join(nuitka_src, "static_src", sub_path)
-    target_filename = os.path.join(source_dir, "static_src", os.path.basename(sub_path))
+def provideStaticSourceFile(env, sub_path, c11_mode):
+    source_filename = os.path.join(env.nuitka_src, "static_src", sub_path)
+    target_filename = os.path.join(
+        env.source_dir, "static_src", os.path.basename(sub_path)
+    )
 
     if target_filename.endswith(".c") and not c11_mode:
         target_filename += "pp"  # .cpp suffix then.

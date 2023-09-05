@@ -69,6 +69,7 @@ from .SconsUtils import (
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
+    getArgumentRequired,
     getExecutablePath,
     initScons,
     isClangName,
@@ -85,6 +86,8 @@ setArguments(ARGUMENTS)
 
 # Set up the basic stuff.
 initScons()
+
+nuitka_src = getArgumentRequired("nuitka_src")
 
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
@@ -221,6 +224,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
+env.nuitka_src = nuitka_src
 env.low_memory = False
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
