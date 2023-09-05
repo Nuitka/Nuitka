@@ -85,7 +85,7 @@ static struct _frozen *old_frozen = NULL;
 static struct _frozen const *old_frozen = NULL;
 #endif
 
-static void prepareFrozenModules() {
+static void prepareFrozenModules(void) {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
@@ -1264,6 +1264,7 @@ int main(int argc, char **argv) {
 #endif
 
 #if _NUITKA_FROZEN > 0
+    NUITKA_PRINT_TIMING("main(): Preparing frozen modules.");
     prepareFrozenModules();
 #endif
 
@@ -1305,6 +1306,7 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef NUITKA_PYTHON_STATIC
+    NUITKA_PRINT_TIMING("main(): Preparing static modules.");
     Py_InitStaticModules();
 #endif
 
