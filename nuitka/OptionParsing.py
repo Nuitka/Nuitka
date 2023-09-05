@@ -1884,7 +1884,7 @@ def _considerGithubWorkflowOptions(phase):
             options_added.append("%s=%s" % (option_name, value))
 
     sys.argv = (
-        sys.argv[: github_option_index + (0 if phase == "early" else 1)]
+        sys.argv[: github_option_index + (1 if phase == "early" else 0)]
         + options_added
         + sys.argv[github_option_index + 1 :]
     )
