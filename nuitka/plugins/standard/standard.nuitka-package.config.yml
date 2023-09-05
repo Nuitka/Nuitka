@@ -2654,6 +2654,13 @@
         'polyfactory.pytest_plugin': 'ignore'
       when: 'not use_pytest'
 
+- module-name: 'pooch'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'psutil'
   anti-bloat:
     - description: 'resolve platform specific imports at compile time'
