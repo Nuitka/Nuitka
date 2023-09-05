@@ -21,10 +21,9 @@ Offers support for hashing incrementally and files esp. without having
 to read their contents.
 """
 
-import hashlib
 from binascii import crc32
 
-from nuitka.__past__ import unicode
+from nuitka.__past__ import md5, unicode
 
 from .FileOperations import openTextFile
 
@@ -64,7 +63,7 @@ class HashBase(object):
 
 class Hash(HashBase):
     def __init__(self):
-        self.hash = hashlib.md5()
+        self.hash = md5()
 
     def updateFromBytes(self, value):
         self.hash.update(value)
