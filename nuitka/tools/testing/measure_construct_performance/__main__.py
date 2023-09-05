@@ -25,11 +25,11 @@ in comparisons.
 
 """
 
-import hashlib
 import os
 import sys
 from optparse import OptionParser
 
+from nuitka.__past__ import md5
 from nuitka.tools.testing.Common import (
     check_output,
     convertUsing2to3,
@@ -111,10 +111,7 @@ def main():
 
     my_print("PYTHON='%s'" % getPythonVersionString())
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
-    my_print(
-        "TEST_CASE_HASH='%s'"
-        % hashlib.md5(getFileContents(test_case, "rb")).hexdigest()
-    )
+    my_print("TEST_CASE_HASH='%s'" % md5(getFileContents(test_case, "rb")).hexdigest())
 
     needs_2to3 = decideNeeds2to3(test_case)
 

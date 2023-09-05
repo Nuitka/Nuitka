@@ -37,13 +37,12 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 
 import collections
-import hashlib
 import os
 import sys
 import zipfile
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import iter_modules
+from nuitka.__past__ import iter_modules, md5
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing import StandardLibrary
@@ -585,7 +584,7 @@ def _unpackPathElement(path_entry):
     if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
         if path_entry not in _egg_files:
             with open(path_entry, "rb") as f:
-                checksum = hashlib.md5(f.read()).hexdigest()
+                checksum = md5(f.read()).hexdigest()
 
             target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 

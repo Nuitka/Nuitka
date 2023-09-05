@@ -28,6 +28,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 import pkgutil
 import sys
 from abc import ABCMeta
+from hashlib import md5 as _md5
 
 # pylint: disable=invalid-name,self-assigning-variable
 
@@ -189,6 +190,17 @@ try:
     BaseExceptionGroup = BaseExceptionGroup
 except NameError:
     BaseExceptionGroup = None
+
+try:
+    _md5()
+except ValueError:
+    # On FIPS compliant systems, checks might be enabled that require
+    # this parameter to be set.
+    def md5(value=b""):
+        return _md5(value, usedforsecurity=False)
+
+else:
+    md5 = _md5
 
 # For PyLint to be happy.
 assert long

@@ -21,13 +21,13 @@
 
 """
 
-import hashlib
 import os
 import pickle
 import re
 import sys
 import time
 
+from nuitka.__past__ import md5
 from nuitka.OptionParsing import getNuitkaProjectOptions
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
@@ -137,7 +137,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         if str is not bytes:
             hash_input = hash_input.encode("utf8")
 
-        command_hash = hashlib.md5(hash_input)
+        command_hash = md5(hash_input)
 
         for element in cpython_cmd:
             if os.path.exists(element):

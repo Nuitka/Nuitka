@@ -9,6 +9,7 @@ to add another one.
 """
 
 if __name__ == "__main__":
+    import hashlib
     import os
     import sys
 
@@ -36,6 +37,19 @@ if __name__ == "__main__":
 
     # On Windows this Scons variable must be set by us.
     os.environ["SCONS_LIB_DIR"] = sys.path[0]
+
+    # Workaround for FIPS enabled systems.
+    try:
+        hashlib.md5()
+    except ValueError:
+        # On FIPS compliant systems, checks might be enabled that require this
+        # parameter to be set.
+        _md5 = hashlib.md5
+
+        def md5(value=b""):
+            return _md5(value, usedforsecurity=False)
+
+        hashlib.md5 = md5
 
     import SCons.Script  # pylint: disable=import-error
 
