@@ -56,6 +56,7 @@ template_metapath_loader_body = r"""
 
 #include "nuitka/constants_blob.h"
 
+#include "nuitka/tracing.h"
 #include "nuitka/unfreezing.h"
 
 /* Type bool */
@@ -124,7 +125,10 @@ static struct frozen_desc _frozen_modules[] = {
 
 
 void copyFrozenModulesTo(struct _frozen *destination) {
+    NUITKA_PRINT_TIMING("copyFrozenModulesTo(): Calling _loadBytesCodesBlob.");
     _loadBytesCodesBlob(NULL);
+
+    NUITKA_PRINT_TIMING("copyFrozenModulesTo(): Updating frozen module table sizes.");
 
     struct frozen_desc *current = _frozen_modules;
 
