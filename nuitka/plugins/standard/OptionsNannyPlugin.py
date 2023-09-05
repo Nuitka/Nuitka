@@ -60,9 +60,7 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
             return
 
         if condition != "True":
-            problem_desc = (
-                "incomplete support due to not passing condition %s" % condition
-            )
+            problem_desc = "incomplete support due untrue condition '%s'" % condition
         else:
             problem_desc = "incomplete support"
 
