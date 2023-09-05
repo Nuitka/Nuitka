@@ -280,6 +280,7 @@ env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
+env.nuitka_src = nuitka_src
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
@@ -423,8 +424,8 @@ env.Append(
     CPPPATH=[
         source_dir,
         nuitka_include,
-        os.path.join(nuitka_src, "static_src"),
-        os.path.join(nuitka_src, "inline_copy", "zstd"),
+        os.path.join(env.nuitka_src, "static_src"),
+        os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
 )
 
@@ -459,9 +460,8 @@ def discoverSourceFiles():
     # Main onefile bootstrap program
     result.append(
         provideStaticSourceFile(
+            env=env,
             sub_path="OnefileBootstrap.c",
-            nuitka_src=nuitka_src,
-            source_dir=source_dir,
             c11_mode=env.c11_mode,
         )
     )
@@ -469,9 +469,8 @@ def discoverSourceFiles():
     if onefile_splash_screen:
         result.append(
             provideStaticSourceFile(
+                env=env,
                 sub_path="OnefileSplashScreen.cpp",
-                nuitka_src=nuitka_src,
-                source_dir=source_dir,
                 c11_mode=False,
             )
         )

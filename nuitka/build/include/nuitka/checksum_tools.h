@@ -24,10 +24,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-extern uint32_t initCRC32(void);
-extern uint32_t updateCRC32(uint32_t crc, unsigned char const *message, uint32_t size);
-extern uint32_t finalizeCRC32(uint32_t crc);
-
 extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);
 
 #endif
