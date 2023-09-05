@@ -1636,7 +1636,7 @@
         'test': 'un-callable'
   options:
     checks:
-      - description: "Numba is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+      - description: "Numba is not yet working with Nuitka standalone, try to use '--noinclude-numba-mode', but it may fail."
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
@@ -4204,7 +4204,7 @@
 - module-name: 'sparse'
   options:
     checks:
-      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'."
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
