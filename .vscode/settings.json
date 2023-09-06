@@ -140,6 +140,7 @@
         "compactify",
         "conda",
         "condition-evals-to-constant",
+        "containerfile",
         "CORO_CLOSED",
         "CORO_CREATED",
         "CORO_RUNNING",
