@@ -400,10 +400,6 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
-    def isExpressionImportModuleNameHard():
-        return False
-
-    @staticmethod
     def isExpressionFunctionCreation():
         return False
 
