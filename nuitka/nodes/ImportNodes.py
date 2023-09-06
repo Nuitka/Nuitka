@@ -26,11 +26,26 @@ deeper that what it normally could. The import expression node can lead to
 modules being added. After optimization it will be asked about used modules.
 """
 
-import os
 import sys
 
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
+from nuitka.HardImportRegistry import (
+    addModuleSingleAttributeNodeFactory,
+    hard_modules_aliases,
+    hard_modules_limited,
+    hard_modules_non_stdlib,
+    hard_modules_stdlib,
+    hard_modules_trust,
+    isHardModule,
+    isHardModuleWithoutSideEffect,
+    trust_constant,
+    trust_importable,
+    trust_may_exist,
+    trust_node,
+    trust_node_factory,
+    trust_undefined,
+)
 from nuitka.importing.Importing import (
     isPackageDir,
     locateModule,
@@ -40,29 +55,24 @@ from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.Options import (
+    isExperimental,
     isStandaloneMode,
     shallMakeModule,
     shallWarnUnusualCode,
 )
-from nuitka.PythonVersions import (
-    getFutureModuleKeys,
-    getImportlibSubPackages,
-    python_version,
-)
+from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import (
     BuiltinParameterSpec,
     extractBuiltinArgs,
 )
 from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import isWin32Windows
 
 from .ChildrenHavingMixins import (
     ChildHavingModuleMixin,
     ChildrenExpressionBuiltinImportMixin,
     ChildrenExpressionImportlibImportModuleCallMixin,
 )
-from .ConstantRefNodes import ExpressionConstantSysVersionInfoRef
 from .ExpressionBases import ExpressionBase
 from .ImportHardNodes import (
     ExpressionImportHardBase,
@@ -78,270 +88,6 @@ from .NodeMakingHelpers import (
 )
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 from .StatementBasesGenerated import StatementImportStarBase
-
-# These module are supported in code generation to be imported the hard way.
-hard_modules = frozenset(
-    (
-        "os",
-        "ntpath",
-        "posixpath",
-        # TODO: Add mac path package too
-        "sys",
-        "types",
-        "typing",
-        "__future__",
-        "importlib",
-        "importlib.resources",
-        "importlib.metadata",
-        "_frozen_importlib",
-        "_frozen_importlib_external",
-        "pkgutil",
-        "functools",
-        "sysconfig",
-        "unittest",
-        "unittest.mock",
-        # "cStringIO",
-        "io",
-        "_io",
-        "ctypes",
-        "ctypes.wintypes",
-        "ctypes.macholib",
-        # TODO: Once generation of nodes for functions exists.
-        # "platform",
-    )
-)
-
-hard_modules_aliases = {
-    "os.path": os.path.__name__,
-}
-
-# Lets put here, hard modules that are kind of backports only.
-hard_modules_stdlib = hard_modules
-hard_modules_non_stdlib = frozenset(
-    (
-        "site",
-        "pkg_resources",
-        "importlib_metadata",
-        "importlib_resources",
-    )
-)
-
-hard_modules = hard_modules | hard_modules_non_stdlib
-
-hard_modules_version = {
-    "cStringIO": (None, 0x300, None),
-    "typing": (0x350, None, None),
-    "_frozen_importlib": (0x300, None, None),
-    "_frozen_importlib_external": (0x350, None, None),
-    "importlib.resources": (0x370, None, None),
-    "importlib.metadata": (0x380, None, None),
-    "ctypes.wintypes": (None, None, "win32"),
-}
-
-hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
-
-
-def isHardModule(module_name):
-    if module_name not in hard_modules:
-        return False
-
-    min_version, max_version, os_limit = hard_modules_version.get(
-        module_name, (None, None, None)
-    )
-
-    if min_version is not None and python_version < min_version:
-        return False
-
-    if max_version is not None and python_version >= max_version:
-        return False
-
-    if os_limit is not None:
-        if os_limit == "win32":
-            return isWin32Windows()
-
-    return True
-
-
-trust_undefined = 0
-trust_constant = 1
-trust_exist = 2
-trust_future = trust_exist
-trust_importable = 3
-trust_node = 4
-trust_may_exist = 5
-trust_not_exist = 6
-trust_node_factory = {}
-
-module_importlib_trust = dict(
-    (key, trust_importable) for key in getImportlibSubPackages()
-)
-
-if "metadata" not in module_importlib_trust:
-    module_importlib_trust["metadata"] = trust_undefined
-if "resources" not in module_importlib_trust:
-    module_importlib_trust["resources"] = trust_undefined
-
-module_sys_trust = {
-    "version": trust_constant,
-    "hexversion": trust_constant,
-    "platform": trust_constant,
-    "maxsize": trust_constant,
-    "byteorder": trust_constant,
-    "builtin_module_names": trust_constant,
-    "stdout": trust_exist,
-    "stderr": trust_exist,
-}
-
-if python_version < 0x270:
-    module_sys_trust["version_info"] = trust_constant
-else:
-    module_sys_trust["version_info"] = trust_node
-    trust_node_factory[("sys", "version_info")] = ExpressionConstantSysVersionInfoRef
-
-if python_version < 0x300:
-    module_sys_trust["exc_type"] = trust_may_exist
-    module_sys_trust["exc_value"] = trust_may_exist
-    module_sys_trust["exc_traceback"] = trust_may_exist
-
-    module_sys_trust["maxint"] = trust_constant
-    module_sys_trust["subversion"] = trust_constant
-else:
-    module_sys_trust["exc_type"] = trust_not_exist
-    module_sys_trust["exc_value"] = trust_not_exist
-    module_sys_trust["exc_traceback"] = trust_not_exist
-
-module_typing_trust = {
-    "TYPE_CHECKING": trust_constant,
-}
-
-module_os_trust = {
-    "name": trust_constant,
-    "listdir": trust_node,
-    "curdir": trust_constant,
-    "pardir": trust_constant,
-    "sep": trust_constant,
-    "extsep": trust_constant,
-    "altsep": trust_constant,
-    "pathsep": trust_constant,
-    "linesep": trust_constant,
-}
-
-module_os_path_trust = {
-    "exists": trust_node,
-    "isfile": trust_node,
-    "isdir": trust_node,
-    "basename": trust_node,
-}
-
-
-module_ctypes_trust = {
-    "CDLL": trust_node,
-}
-
-# module_platform_trust = {"python_implementation": trust_function}
-
-hard_modules_trust = {
-    "os": module_os_trust,
-    "ntpath": module_os_path_trust if os.path.__name__ == "ntpath" else {},
-    "posixpath": module_os_path_trust if os.path.__name__ == "posixpath" else {},
-    "sys": module_sys_trust,
-    #     "platform": module_platform_trust,
-    "types": {},
-    "typing": module_typing_trust,
-    "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
-    "importlib": module_importlib_trust,
-    "importlib.metadata": {
-        "version": trust_node,
-        "distribution": trust_node,
-        "metadata": trust_node,
-        "entry_points": trust_node,
-        "PackageNotFoundError": trust_exist,
-    },
-    "importlib_metadata": {
-        "version": trust_node,
-        "distribution": trust_node,
-        "metadata": trust_node,
-        "entry_points": trust_node,
-        "PackageNotFoundError": trust_exist,
-    },
-    "_frozen_importlib": {},
-    "_frozen_importlib_external": {},
-    "pkgutil": {"get_data": trust_node},
-    "functools": {"partial": trust_exist},
-    "sysconfig": {},
-    # TODO: We should have trust_module too.
-    "unittest": {"mock": trust_exist},
-    "unittest.mock": {},
-    "io": {"BytesIO": trust_exist, "StringIO": trust_exist},
-    "_io": {"BytesIO": trust_exist, "StringIO": trust_exist},
-    # "cStringIO": {"StringIO": trust_exist},
-    "pkg_resources": {
-        "require": trust_node,
-        "get_distribution": trust_node,
-        "iter_entry_points": trust_node,
-        "resource_string": trust_node,
-        "resource_stream": trust_node,
-    },
-    "importlib.resources": {
-        "read_binary": trust_node,
-        "read_text": trust_node,
-        "files": trust_node,
-    },
-    "importlib_resources": {
-        "read_binary": trust_node,
-        "read_text": trust_node,
-        "files": trust_node,
-    },
-    "ctypes": module_ctypes_trust,
-    "site": {},
-    "ctypes.wintypes": {},
-    "ctypes.macholib": {},
-}
-
-
-def _addHardImportNodeClasses():
-    from .HardImportNodesGenerated import hard_import_node_classes
-
-    for hard_import_node_class, spec in hard_import_node_classes.items():
-        module_name, function_name = spec.name.rsplit(".", 1)
-
-        if module_name in hard_modules_aliases:
-            module_name = hard_modules_aliases.get(module_name)
-
-        trust_node_factory[(module_name, function_name)] = hard_import_node_class
-
-        # hard_modules_trust[module_name][function_name] = trust_node
-
-
-_addHardImportNodeClasses()
-
-# Remove this one again, not available on Windows, but the node generation does
-# not know that.
-if isWin32Windows():
-    module_os_trust["uname"] = trust_not_exist
-
-
-def _checkHardModules():
-    for module_name in hard_modules:
-        assert module_name in hard_modules_trust, module_name
-
-    for module_name, trust in hard_modules_trust.items():
-        assert module_name in hard_modules, module_name
-
-        for attribute_name, trust_value in trust.items():
-            if trust_value is trust_node:
-                assert (
-                    module_name,
-                    attribute_name,
-                ) in trust_node_factory or os.path.basename(sys.argv[0]).startswith(
-                    "generate-"
-                ), (
-                    module_name,
-                    attribute_name,
-                )
-
-
-_checkHardModules()
 
 
 def makeExpressionImportModuleNameHard(
@@ -361,20 +107,6 @@ def makeExpressionImportModuleNameHard(
             module_guaranteed=module_guaranteed,
             source_ref=source_ref,
         )
-
-
-# These modules can cause issues if imported during compile time.
-hard_modules_trust_with_side_effects = set(["site"])
-if not isWin32Windows():
-    # Crashing on anything but Windows.
-    hard_modules_trust_with_side_effects.add("ctypes.wintypes")
-
-
-def isHardModuleWithoutSideEffect(module_name):
-    return (
-        module_name in hard_modules
-        and module_name not in hard_modules_trust_with_side_effects
-    )
 
 
 class ExpressionImportAllowanceMixin(object):
@@ -413,17 +145,18 @@ class ExpressionImportModuleFixed(ExpressionBase):
 
     __slots__ = (
         "module_name",
+        "value_name",
         "found_module_name",
         "found_module_filename",
         "module_kind",
         "finding",
-        "allowance",
     )
 
-    def __init__(self, module_name, source_ref):
+    def __init__(self, module_name, value_name, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
         self.module_name = ModuleName(module_name)
+        self.value_name = ModuleName(value_name)
 
         self.finding = None
 
@@ -470,10 +203,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
         del self.parent
 
     def getDetails(self):
-        return {"module_name": self.module_name}
+        return {"module_name": self.module_name, "value_name": self.value_name}
 
     def getModuleName(self):
         return self.module_name
+
+    def getValueName(self):
+        return self.value_name
 
     @staticmethod
     def mayHaveSideEffects():
@@ -497,6 +233,100 @@ class ExpressionImportModuleFixed(ExpressionBase):
             filename=self.found_module_filename,
             finding=self.finding,
             module_kind=self.module_kind,
+            level=0,
+            source_ref=self.source_ref,
+            reason="import",
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        if self.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+
+        # Nothing to do about it.
+        return self, None, None
+
+    def computeExpressionImportName(self, import_node, import_name, trace_collection):
+        # TODO: For include modules, something might be possible here, consider self.allowance
+        # when that is implemented.
+        return self.computeExpressionAttribute(
+            lookup_node=import_node,
+            attribute_name=import_name,
+            trace_collection=trace_collection,
+        )
+
+
+class ExpressionImportModuleBuiltin(ExpressionBase):
+    """Hard coded import names, that we know to exist."
+
+    These created as result of builtin imports and "importlib.import_module" calls
+    that were compile time resolved, and for known module names.
+    """
+
+    kind = "EXPRESSION_IMPORT_MODULE_BUILTIN"
+
+    __slots__ = (
+        "module_name",
+        "value_name",
+        "module_kind",
+        "builtin_module",
+    )
+
+    def __init__(self, module_name, value_name, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.module_name = ModuleName(module_name)
+        self.value_name = ModuleName(value_name)
+
+        self.builtin_module = __import__(module_name.asString())
+
+        # If not found, we import the package at least
+        _module_name, _module_filename, _module_kind, _finding = locateModule(
+            module_name=self.module_name,
+            parent_package=None,
+            level=0,
+        )
+
+        assert _module_name == self.module_name, _module_name
+        assert _finding == "built-in", _finding
+        assert _module_kind is None, _module_kind
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_module_builtin
+
+    def mayRaiseExceptionImportName(self, exception_type, import_name):
+        return not hasattr(self.builtin_module, import_name)
+
+    def finalize(self):
+        del self.parent
+
+    def getDetails(self):
+        return {"module_name": self.module_name, "value_name": self.value_name}
+
+    def getModuleName(self):
+        return self.module_name
+
+    def getValueName(self):
+        return self.value_name
+
+    @staticmethod
+    def mayHaveSideEffects():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        # TODO: For built-in modules that must be rare, but still true.
+        return True
+
+    def getModuleUsageAttempt(self):
+        return makeModuleUsageAttempt(
+            module_name=self.module_name,
+            filename=None,
+            finding="built-in",
+            module_kind=None,
             level=0,
             source_ref=self.source_ref,
             reason="import",
@@ -714,6 +544,7 @@ class ExpressionImportModuleHard(
                         if finding != "not-found":
                             result = makeExpressionImportModuleFixed(
                                 module_name=full_name,
+                                value_name=full_name,
                                 source_ref=lookup_node.getSourceReference(),
                             )
 
@@ -919,7 +750,9 @@ class ExpressionImportlibImportModuleCall(
                     trace_collection.onExceptionRaiseExit(BaseException)
 
                     result = makeExpressionImportModuleFixed(
-                        module_name=resolved_module_name, source_ref=self.source_ref
+                        module_name=resolved_module_name,
+                        value_name=resolved_module_name,
+                        source_ref=self.source_ref,
                     )
 
                     return (
@@ -943,8 +776,9 @@ class ExpressionImportlibImportModuleCall(
         return self, None, None
 
 
-module_importlib_trust["import_module"] = trust_node
-trust_node_factory[("importlib", "import_module")] = ExpressionImportlibImportModuleRef
+addModuleSingleAttributeNodeFactory(
+    "importlib", "import_module", ExpressionImportlibImportModuleRef
+)
 
 
 class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBase):
@@ -952,8 +786,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         "follow_attempted",
         "finding",
         "used_modules",
-        "type_shape",
-        "builtin_module",
     )
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
@@ -983,10 +815,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         # The modules actually referenced in that import if it can be detected. Name
         # imports are considered too.
         self.used_modules = []
-
-        self.type_shape = tshape_module
-
-        self.builtin_module = None
 
         self.finding = None
 
@@ -1122,9 +950,19 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
             return None
 
+    def _getImportedValueName(self, imported_module_name):
+        from_list_truth = (
+            self.subnode_fromlist is not None and self.subnode_fromlist.getTruthValue()
+        )
+
+        if from_list_truth is True:
+            return imported_module_name
+        else:
+            return imported_module_name.getTopLevelPackageName()
+
     def computeExpression(self, trace_collection):
-        # Attempt to recurse if not already done, many cases to consider
-        # pylint: disable=too-many-branches
+        # Attempt to recurse if not already done, many cases to consider and its
+        # return driven, pylint: disable=too-many-branches,too-many-return-statements
         if self.follow_attempted:
             if self.finding == "not-found":
                 # Importing and not finding, may raise an exception obviously.
@@ -1165,19 +1003,9 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         imported_module_name in hard_modules_non_stdlib
                         or isStandardLibraryPath(module_filename)
                     ):
-                        from_list_truth = (
-                            self.subnode_fromlist is not None
-                            and self.subnode_fromlist.getTruthValue()
-                        )
-
-                        if from_list_truth is True:
-                            value_name = imported_module_name
-                        else:
-                            value_name = imported_module_name.getTopLevelPackageName()
-
                         result = ExpressionImportModuleHard(
                             module_name=imported_module_name,
-                            value_name=value_name,
+                            value_name=self._getImportedValueName(imported_module_name),
                             source_ref=self.source_ref,
                         )
 
@@ -1197,23 +1025,23 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             )
                         )
 
+                # Built-in module imports can be specialized right away.
+
                 if self.finding == "built-in":
-                    if isHardModule(imported_module_name):
-                        result = ExpressionImportModuleHard(
-                            module_name=imported_module_name,
-                            value_name=imported_module_name.getTopLevelPackageName(),
-                            source_ref=self.source_ref,
-                        )
+                    result = makeExpressionImportModuleBuiltin(
+                        module_name=imported_module_name,
+                        value_name=self._getImportedValueName(imported_module_name),
+                        source_ref=self.source_ref,
+                    )
 
-                        return (
-                            result,
-                            "new_expression",
-                            "Lowered import of built-in module '%s' to hard import."
-                            % imported_module_name.asString(),
-                        )
-
-                    self.type_shape = tshape_module_builtin
-                    self.builtin_module = __import__(imported_module_name.asString())
+                    # TODO: This ought to preserve side effects from arguments
+                    # for full compatibility with strange uses of __import__
+                    return (
+                        result,
+                        "new_expression",
+                        "Lowered import of built-in module '%s' to hard import."
+                        % imported_module_name.asString(),
+                    )
 
                 if self.finding == "not-found":
                     if imported_module_name in hard_modules_limited:
@@ -1228,6 +1056,25 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             % imported_module_name.asString(),
                         )
 
+                elif (
+                    isStandaloneMode()
+                    and self.used_modules
+                    and isExperimental("standalone-imports")
+                ):
+                    result = makeExpressionImportModuleFixed(
+                        module_name=self.used_modules[0].module_name,
+                        value_name=self._getImportedValueName(
+                            self.used_modules[0].module_name
+                        ),
+                        source_ref=self.source_ref,
+                    )
+
+                    return (
+                        result,
+                        "new_expression",
+                        "Lowered import of module '%s' to fixed import."
+                        % imported_module_name.asString(),
+                    )
             else:
                 # TODO: This doesn't preserve side effects.
 
@@ -1262,15 +1109,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
     def mayRaiseException(self, exception_type):
         return self.finding != "built-in"
-
-    def mayRaiseExceptionImportName(self, exception_type, import_name):
-        if self.finding == "built-in":
-            return not hasattr(self.builtin_module, import_name)
-        else:
-            return True
-
-    def getTypeShape(self):
-        return self.type_shape
 
 
 class StatementImportStar(StatementImportStarBase):
@@ -1354,16 +1192,37 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         )
 
 
-def makeExpressionImportModuleFixed(module_name, source_ref):
+def makeExpressionImportModuleFixed(module_name, value_name, source_ref):
     module_name = resolveModuleName(module_name)
+    value_name = resolveModuleName(value_name)
 
     if isHardModule(module_name):
         return ExpressionImportModuleHard(
             module_name=module_name,
-            value_name=module_name.getTopLevelPackageName(),
+            value_name=value_name,
             source_ref=source_ref,
         )
     else:
         return ExpressionImportModuleFixed(
-            module_name=module_name, source_ref=source_ref
+            module_name=module_name,
+            value_name=value_name,
+            source_ref=source_ref,
+        )
+
+
+def makeExpressionImportModuleBuiltin(module_name, value_name, source_ref):
+    module_name = resolveModuleName(module_name)
+    value_name = resolveModuleName(value_name)
+
+    if isHardModule(module_name):
+        return ExpressionImportModuleHard(
+            module_name=module_name,
+            value_name=value_name,
+            source_ref=source_ref,
+        )
+    else:
+        return ExpressionImportModuleBuiltin(
+            module_name=module_name,
+            value_name=value_name,
+            source_ref=source_ref,
         )

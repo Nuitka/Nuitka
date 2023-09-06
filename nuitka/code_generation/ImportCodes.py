@@ -22,7 +22,7 @@ That is import as expression, and star import.
 
 import os
 
-from nuitka.nodes.ImportNodes import hard_modules
+from nuitka.HardImportRegistry import isHardModule, isHardModuleDynamic
 from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
@@ -33,7 +33,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 
@@ -131,7 +131,6 @@ def _getBuiltinImportCode(
 
 
 def generateImportModuleFixedCode(to_name, expression, emit, context):
-    module_name = expression.getModuleName()
     needs_check = expression.mayRaiseException(BaseException)
 
     if needs_check:
@@ -141,8 +140,12 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
         to_name, "imported_value", expression, emit, context
     ) as value_name:
         emit(
-            """%s = IMPORT_MODULE1(tstate, %s);"""
-            % (value_name, context.getConstantCode(module_name.asString()))
+            """%s = IMPORT_MODULE_FIXED(tstate, %s, %s);"""
+            % (
+                value_name,
+                context.getConstantCode(expression.getModuleName().asString()),
+                context.getConstantCode(expression.getValueName().asString()),
+            )
         )
 
         getErrorExitCode(
@@ -150,24 +153,6 @@ def generateImportModuleFixedCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(value_name)
-
-        # IMPORT_MODULE1 doesn't give the child module if one is imported.
-        if "." in module_name:
-            getReleaseCode(value_name, emit, context)
-
-            emit(
-                """%s = Nuitka_GetModule(tstate, %s);"""
-                % (value_name, context.getConstantCode(module_name.asString()))
-            )
-
-            getErrorExitCode(
-                check_name=value_name,
-                needs_check=needs_check,
-                emit=emit,
-                context=context,
-            )
-
-            context.addCleanupTempName(value_name)
 
 
 def getImportModuleHardCodeName(module_name):
@@ -190,21 +175,41 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
+        import_gives_ref, module_getter_code = getImportHardModuleGetterCode(
+            module_name=imported_module_name, context=context
+        )
+
         if imported_module_name == module_value_name:
-            emit(
-                """%s = %s();"""
-                % (value_name, getImportModuleHardCodeName(imported_module_name))
-            )
+            emit("""%s = %s;""" % (value_name, module_getter_code))
         else:
-            emit("""%s();""" % getImportModuleHardCodeName(imported_module_name))
+            import_gives_ref, module_getter_code2 = getImportHardModuleGetterCode(
+                module_name=module_value_name, context=context
+            )
+
             emit(
-                """%s = %s();"""
-                % (value_name, getImportModuleHardCodeName(module_value_name))
+                renderTemplateFromString(
+                    r"""
+{
+    PyObject *hard_module = {{module_getter_code1}};
+{% if import_gives_ref %}
+    Py_DECREF(hard_module);
+{% endif %}
+}
+{{value_name}} = {{module_getter_code2}};
+""",
+                    value_name=value_name,
+                    module_getter_code1=module_getter_code,
+                    module_getter_code2=module_getter_code2,
+                    import_gives_ref=import_gives_ref,
+                )
             )
 
         getErrorExitCode(
             check_name=value_name, needs_check=needs_check, emit=emit, context=context
         )
+
+        if import_gives_ref:
+            context.addCleanupTempName(value_name)
 
 
 def generateConstantSysVersionInfoCode(to_name, expression, emit, context):
@@ -218,37 +223,66 @@ def generateConstantSysVersionInfoCode(to_name, expression, emit, context):
     )
 
 
+def getImportHardModuleGetterCode(module_name, context):
+    if isHardModuleDynamic(module_name):
+        module_name_code = context.getConstantCode(module_name.asString())
+
+        module_getter_code = "IMPORT_MODULE_FIXED(tstate, %s, %s)" % (
+            module_name_code,
+            module_name_code,
+        )
+        gives_ref = True
+    else:
+        module_getter_code = "%s()" % getImportModuleHardCodeName(module_name)
+        gives_ref = False
+
+    return gives_ref, module_getter_code
+
+
 def getImportModuleNameHardCode(
     to_name, module_name, import_name, needs_check, emit, context
 ):
     if module_name == "sys":
         emit("""%s = Nuitka_SysGetObject("%s");""" % (to_name, import_name))
         needs_release = False
-    elif module_name in hard_modules:
+    elif isHardModule(module_name):
         if needs_check:
             emitLineNumberUpdateCode(expression=None, emit=emit, context=context)
+
+        import_gives_ref, module_getter_code = getImportHardModuleGetterCode(
+            module_name=module_name, context=context
+        )
 
         emit(
             renderTemplateFromString(
                 r"""
 {
-    PyObject *hard_module = {{module_code_name}}();
+    PyObject *hard_module = {{module_getter_code}};
 {% if needs_check %}
     if (likely(hard_module != NULL)) {
         {{to_name}} = LOOKUP_ATTRIBUTE(tstate, hard_module, {{import_name}});
+
+{% if import_gives_ref %}
+        Py_DECREF(hard_module);
+{% endif %}
+
     } else {
         {{to_name}} = NULL;
     }
 {% else %}
     {{to_name}} = LOOKUP_ATTRIBUTE(tstate, hard_module, {{import_name}});
+{% if import_gives_ref %}
+    Py_DECREF(hard_module);
+{% endif %}
 {% endif %}
 }
 """,
                 to_name=to_name,
                 module_name=str(module_name),
-                module_code_name=getImportModuleHardCodeName(module_name),
+                module_getter_code=module_getter_code,
                 import_name=context.getConstantCode(import_name),
                 needs_check=needs_check,
+                import_gives_ref=import_gives_ref,
             )
         )
 

@@ -63,7 +63,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
     def _add_dll_directory(self, arg):
         self.dll_directory = arg
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         # Avoid regular expression match if possible.
         if "_delvewheel_" not in source_code:
             return None

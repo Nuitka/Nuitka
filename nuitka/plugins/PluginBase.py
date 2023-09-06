@@ -273,7 +273,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Inspect or modify source code.
 
         Args:
@@ -286,6 +286,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             going to allow simply checking the source code without the need to
             pass it back.
         """
+        # Virtual method, pylint: disable=unused-argument
         self.checkModuleSourceCode(module_name, source_code)
 
         return source_code
@@ -431,6 +432,25 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onModuleUsageLookAhead(
+        self, module_name, module_filename, module_kind, get_module_source
+    ):
+        """React to tentative recursion of a module coming up.
+
+        For definite usage, use onModuleRecursion where it's a fact and
+        happening next. This may be a usage that is later optimized away
+        and doesn't impact anything. The main usage is to setup e.g.
+        hard imports as a factory, e.g. with detectable lazy loaders.
+
+        Args:
+            module_name: full module name
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
+            get_module_source: callable to get module source code if any
+        Returns:
+            None
+        """
+
     def onModuleRecursion(
         self,
         module_name,
@@ -440,7 +460,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         source_ref,
         reason,
     ):
-        """React to recursion to a module coming up.
+        """React to recursion of a module coming up.
 
         Args:
             module_name: full module name
