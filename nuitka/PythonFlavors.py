@@ -141,7 +141,7 @@ def isMSYS2MingwPython():
 
     import sysconfig
 
-    if python_version < 0x3B0:
+    if python_version >= 0x3B0:
         return "-mingw_" in sysconfig.get_config_var("EXT_SUFFIX")
     else:
         return "-mingw_" in sysconfig.get_config_var("SO")
