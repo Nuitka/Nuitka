@@ -472,3 +472,17 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
     return result;
 }
 #endif
+
+PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name) {
+    PyObject *import_result = IMPORT_MODULE1(tstate, module_name);
+
+    if (unlikely(import_result == NULL)) {
+        return import_result;
+    }
+
+    PyObject *result = Nuitka_GetModule(tstate, value_name);
+
+    Py_DECREF(import_result);
+
+    return result;
+}

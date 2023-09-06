@@ -111,6 +111,16 @@ def decideRecursion(
             extra_recursion,
         )
 
+        # If decided true, give the plugins a chance to e.g. add more hard
+        # module information, this indicates tentatively, that a module might
+        # get used, but it may also not happen at all.
+        if _recursion_decision_cache[key][0]:
+            Plugins.onModuleUsageLookAhead(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+            )
+
     return _recursion_decision_cache[key]
 
 

@@ -31,6 +31,7 @@ from nuitka import Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Recursion import decideRecursion
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
@@ -1126,6 +1127,14 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         return self.module_usage_attempts
 
     def onModuleUsageAttempt(self, module_usage_attempt):
+        if module_usage_attempt.finding not in ("not-found", "built-in"):
+            decideRecursion(
+                using_module_name=self.owner.getFullName(),
+                module_name=module_usage_attempt.module_name,
+                module_filename=module_usage_attempt.filename,
+                module_kind=module_usage_attempt.module_kind,
+            )
+
         self.module_usage_attempts.add(module_usage_attempt)
 
     def getUsedDistributions(self):

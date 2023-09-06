@@ -83,7 +83,7 @@ if False:
     class NuitkaPluginDetectorPylintEclipseAnnotations(NuitkaPluginBase):
         detector_for = NuitkaPluginPylintEclipseAnnotations
 
-        def onModuleSourceCode(self, module_name, source_code):
+        def onModuleSourceCode(self, module_name, source_filename, source_code):
             if re.search(r"#\s*pylint:\s*disable=\s*(\w+)", source_code):
                 self.warnUnusedPlugin(
                     "Understand PyLint/PyDev annotations for warnings."
