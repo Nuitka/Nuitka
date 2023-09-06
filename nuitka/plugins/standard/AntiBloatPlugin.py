@@ -446,7 +446,7 @@ Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
 
         return source_code
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
             if self.evaluateCondition(
                 full_name=module_name, condition=anti_bloat_config.get("when", "True")

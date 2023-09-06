@@ -1116,7 +1116,7 @@ behavior with the uncompiled code."""
             module_set=module_set, plugin_binding_name=self.binding_name
         )
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Third party packages that make binding selections."""
         if module_name.hasNamespace("pyqtgraph"):
             # TODO: Add a mechanism to force all variable references of a name to something

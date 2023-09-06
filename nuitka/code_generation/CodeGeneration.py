@@ -776,6 +776,7 @@ addExpressionDispatchDict(
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
+        "EXPRESSION_IMPORT_MODULE_BUILTIN": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_FIXED": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,

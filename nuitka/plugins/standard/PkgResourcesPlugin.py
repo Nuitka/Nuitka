@@ -90,7 +90,7 @@ sys.exit(%(module_name)s.%(main_name)s)
             "main_name": main_name,
         }
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         if module_name == "__main__":
             match = re.search(
                 "\n# EASY-INSTALL-ENTRY-SCRIPT: '(.*?)','(.*?)','(.*?)'", source_code

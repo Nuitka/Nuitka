@@ -37,6 +37,9 @@ extern PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, 
 
 extern bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module, PyObject *module);
 
+// Fixed import name to be imported and used by value name.
+extern PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name);
+
 // Import an embedded module directly.
 extern PyObject *IMPORT_EMBEDDED_MODULE(PyThreadState *tstate, char const *name);
 

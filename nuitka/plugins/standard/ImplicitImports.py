@@ -22,10 +22,13 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
+import ast
 import fnmatch
 import os
 
 from nuitka.__past__ import iter_modules
+from nuitka.importing.Importing import locateModule
+from nuitka.importing.Recursion import decideRecursion
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
@@ -41,6 +44,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
     def __init__(self):
         self.config = getYamlPackageConfiguration()
+
+        self.lazy_loader_usages = {}
 
     @staticmethod
     def isAlwaysEnabled():
@@ -339,14 +344,14 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 ):
                     yield item
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         if module_name == "numexpr.cpuinfo":
             # We cannot intercept "is" tests, but need it to be "isinstance",
             # so we patch it on the file. TODO: This is only temporary, in
             # the future, we may use optimization that understands the right
             # hand size of the "is" argument well enough to allow for our
             # type too.
-            return source_code.replace(
+            source_code = source_code.replace(
                 "type(attr) is types.MethodType", "isinstance(attr, types.MethodType)"
             )
 
@@ -365,10 +370,59 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 "PREFIXES = [sys.prefix, sys.exec_prefix]", "PREFIXES = []"
             )
 
-            return source_code
+        # Source code should use lazy_loader, this may not be good enough
+        # for all things yet.
+        attach_call_replacements = (
+            (
+                "lazy.attach_stub(__name__, __file__)",
+                "lazy.attach('%(module_name)s', %(submodules)s, %(attrs)s)",
+            ),
+        )
 
-        # Do nothing by default.
+        for attach_call, attach_call_replacement in attach_call_replacements:
+            if attach_call in source_code:
+                result = self._handleLazyLoad(
+                    module_name=module_name,
+                    source_filename=source_filename,
+                )
+
+                # Inline the values, to avoid the data files.
+                if result is not None:
+                    source_code = source_code.replace(
+                        attach_call,
+                        attach_call_replacement
+                        % {
+                            "module_name": module_name.asString(),
+                            "submodules": result[0],
+                            "attrs": result[1],
+                        },
+                    )
+
         return source_code
+
+    def _handleLazyLoad(self, module_name, source_filename):
+        pyi_filename = source_filename + "i"
+
+        if os.path.exists(pyi_filename):
+            try:
+                import lazy_loader
+            except ImportError:
+                pass
+            else:
+                with open(pyi_filename, "rb") as f:
+                    stub_node = ast.parse(f.read())
+
+                # We are using private code here, to avoid use duplicating,
+                # pylint: disable=protected-access
+                visitor = lazy_loader._StubVisitor()
+                visitor.visit(stub_node)
+
+                self.lazy_loader_usages[module_name] = (
+                    visitor._submodules,
+                    visitor._submod_attrs,
+                )
+
+                return self.lazy_loader_usages[module_name]
 
     def createPreModuleLoadCode(self, module):
         full_name = module.getFullName()
@@ -442,3 +496,96 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
     def decideCompilation(self, module_name):
         if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
             return "bytecode"
+
+    def onModuleUsageLookAhead(
+        self, module_name, module_filename, module_kind, get_module_source
+    ):
+        # Getting the source code will also trigger our modification
+        # and potentially tell us if any lazy loading applies.
+        if get_module_source() is None:
+            return
+
+        if module_name in self.lazy_loader_usages:
+            from nuitka.HardImportRegistry import (
+                addModuleAttributeFactory,
+                addModuleDynamicHard,
+                addModuleTrust,
+                trust_module,
+                trust_node,
+            )
+
+            addModuleDynamicHard(module_name)
+
+            sub_module_names, sub_module_attr = self.lazy_loader_usages[module_name]
+
+            for sub_module_name in sub_module_names:
+                addModuleTrust(module_name, sub_module_name, trust_module)
+
+                sub_module_name = module_name.getChildNamed(sub_module_name)
+                addModuleDynamicHard(sub_module_name)
+
+                _lookAhead(using_module_name=module_name, module_name=sub_module_name)
+
+            for (
+                sub_module_name,
+                attribute_names,
+            ) in sub_module_attr.items():
+                sub_module_name = module_name.getChildNamed(sub_module_name)
+                addModuleDynamicHard(sub_module_name)
+
+                _lookAhead(using_module_name=module_name, module_name=sub_module_name)
+
+                for attribute_name in attribute_names:
+                    addModuleTrust(module_name, attribute_name, trust_node)
+                    addModuleAttributeFactory(
+                        module_name,
+                        attribute_name,
+                        makeExpressionImportModuleNameHardExistsAfterImportFactory(
+                            sub_module_name=sub_module_name,
+                            attribute_name=attribute_name,
+                        ),
+                    )
+
+
+def makeExpressionImportModuleNameHardExistsAfterImportFactory(
+    sub_module_name,
+    attribute_name,
+):
+    from nuitka.HardImportRegistry import trust_node_factory
+    from nuitka.nodes.ImportHardNodes import (
+        ExpressionImportModuleNameHardExists,
+    )
+
+    key = (sub_module_name, attribute_name)
+    if key in trust_node_factory:
+        return lambda source_ref: trust_node_factory[key](source_ref=source_ref)
+
+    return lambda source_ref: ExpressionImportModuleNameHardExists(
+        module_name=sub_module_name,
+        import_name=attribute_name,
+        module_guaranteed=False,
+        source_ref=source_ref,
+    )
+
+
+def _lookAhead(using_module_name, module_name):
+    (
+        _module_name,
+        package_filename,
+        package_module_kind,
+        finding,
+    ) = locateModule(
+        module_name=module_name,
+        parent_package=None,
+        level=0,
+    )
+
+    assert module_name == _module_name
+
+    if finding != "not-found":
+        decideRecursion(
+            using_module_name=using_module_name,
+            module_filename=package_filename,
+            module_name=module_name,
+            module_kind=package_module_kind,
+        )

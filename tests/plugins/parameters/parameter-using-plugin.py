@@ -50,7 +50,7 @@ class NuitkaPluginForTesting(NuitkaPluginBase):
             help="This is show in help output.",
         )
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         # if this is the main script and tracing should be done ...
         if module_name == "__main__" and self.check:
             self.info("")
