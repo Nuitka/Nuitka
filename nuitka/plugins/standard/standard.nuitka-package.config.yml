@@ -4174,12 +4174,12 @@
     - from_filenames:
         relative_path: '_soundfile_data'
         prefixes:
-          - 'libsndfile64bit'
+          - 'libsndfile*64bit'
       when: 'win32 and arch_amd64'
     - from_filenames:
         relative_path: '_soundfile_data'
         prefixes:
-          - 'libsndfile32bit'
+          - 'libsndfile*32bit'
       when: 'win32 and arch_x86'
     - from_filenames:
         relative_path: '_soundfile_data'
