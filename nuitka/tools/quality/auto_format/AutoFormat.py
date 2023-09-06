@@ -599,6 +599,7 @@ def autoFormatFile(
     if effective_filename is None:
         effective_filename = filename
 
+    # From git, we sometimes get directories.
     if os.path.isdir(effective_filename):
         return
 
