@@ -402,8 +402,8 @@ it or using '--clang' option."""
     return spawnCommand
 
 
-def enableSpawnMonitoring(env, win_target, module_mode, source_files):
-    if win_target:
+def enableSpawnMonitoring(env, module_mode, source_files):
+    if os.name == "nt":
         env["SPAWN"] = _getWindowsSpawnFunction(
             env=env, module_mode=module_mode, source_files=source_files
         )

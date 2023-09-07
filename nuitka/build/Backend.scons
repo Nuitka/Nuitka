@@ -177,10 +177,6 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
-# Windows target mode: Compile for Windows. Used to be an option, but we
-# no longer cross compile this way.
-win_target = os.name == "nt"
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -203,7 +199,7 @@ clang_mode = getArgumentBool("clang_mode", False)
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not mingw_mode and clang_mode:
+if os.name == "nt" and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -375,8 +371,8 @@ env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 env.clang_mode = clang_mode
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = win_target and not env.gcc_mode
-env.mingw_mode = win_target and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
@@ -393,7 +389,7 @@ if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
     my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
 
-    if win_target and env.msvc_mode:
+    if os.name == "nt" and env.msvc_mode:
         my_print("(MSVC %s)" % getMsvcVersionString(env))
 
     my_print()
@@ -569,7 +565,7 @@ if env.gcc_mode and env.debian_python:
 
 
 def _detectPythonHeaderPath():
-    if win_target:
+    if os.name == "nt":
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
         # compiled for mingw64, it's more standard.
 
@@ -605,7 +601,7 @@ def _detectPythonHeaderPath():
         if os.path.exists(os.path.join(candidate, "Python.h")):
             return candidate
 
-    if win_target:
+    if os.name == "nt":
         scons_logger.sysexit(
             """Error, you seem to be using the unsupported embeddable CPython distribution."""
         )
@@ -639,10 +635,10 @@ if env.nuitka_python:
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if env.static_libpython and (not win_target or env.nuitka_python):
+if env.static_libpython and (not os.name == "nt" or env.nuitka_python):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
-if win_target:
+if os.name == "nt":
     if env.nuitka_python:
         env.Append(
             LINKFLAGS=[
@@ -784,7 +780,7 @@ env.Append(
 )
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
+if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -1000,7 +996,6 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    win_target=win_target,
     module_mode=module_mode,
     source_files=source_files,
 )
