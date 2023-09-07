@@ -310,7 +310,10 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-            result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+            try:
+                result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+            except KeyboardInterrupt:
+                Tracing.scons_logger.sysexit("User interrupted scons build.")
 
         # TODO: Actually this should only flush one of these, namely the one for
         # current source_dir.
