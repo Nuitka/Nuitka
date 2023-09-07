@@ -24,6 +24,7 @@ import os
 
 from nuitka import Tracing
 from nuitka.__past__ import urlretrieve
+from nuitka.Progress import withNuitkaDownloadProgressBar
 
 from .AppDirs import getCacheDir
 from .FileOperations import (
@@ -34,11 +35,23 @@ from .FileOperations import (
 )
 
 
-def getDownload(url, download_path):
-    try:
-        urlretrieve(url, download_path)
-    except Exception:  # Any kind of error, pylint: disable=broad-except
-        urlretrieve(url.replace("https://", "http://"), download_path)
+def getDownload(name, url, download_path):
+    # requests api, spell-checker: ignore reporthook
+
+    with withNuitkaDownloadProgressBar(desc="download %s" % name) as reporthook:
+        try:
+            try:
+                urlretrieve(url, download_path, reporthook=reporthook)
+            except Exception:  # Any kind of error, pylint: disable=broad-except
+                urlretrieve(
+                    url.replace("https://", "http://"),
+                    download_path,
+                    reporthook=reporthook,
+                )
+        except KeyboardInterrupt:
+            deleteFile(download_path, must_exist=False)
+
+            raise
 
 
 def getDownloadCacheDir():
@@ -46,6 +59,7 @@ def getDownloadCacheDir():
 
 
 def getCachedDownload(
+    name,
     url,
     binary,
     flatten,
@@ -99,7 +113,11 @@ Fully automatic, cached. Proceed and download"""
             Tracing.general.info("Downloading '%s'." % url)
 
             try:
-                getDownload(url=url, download_path=download_path)
+                getDownload(
+                    name=name,
+                    url=url,
+                    download_path=download_path,
+                )
             except Exception as e:  # Any kind of error, pylint: disable=broad-except
                 Tracing.general.sysexit(
                     "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
@@ -164,6 +182,7 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
         return None
 
     gcc_binary = getCachedDownload(
+        name="mingw64",
         url=url,
         is_arch_specific=target_arch,
         specificity=url.rsplit("/", 2)[1],
