@@ -202,3 +202,20 @@ def wrapWithProgressBar(iterable, stage, unit):
         Tracing.progress = result
 
         return result
+
+
+@contextmanager
+def withNuitkaDownloadProgressBar(*args, **kwargs):
+    if not use_progress_bar or _getTqdmModule() is None:
+        yield
+    else:
+
+        class NuitkaDownloadProgressBar(tqdm):
+            # spell-checker: ignore bsize, tsize
+            def onProgress(self, b=1, bsize=1, tsize=None):
+                if tsize is not None:
+                    self.total = tsize
+                self.update(b * bsize - self.n)
+
+        with NuitkaDownloadProgressBar(*args, **kwargs) as progress_bar:
+            yield progress_bar.onProgress
