@@ -210,18 +210,21 @@ version for lto mode (>= 4.6). Disabled."""
         reason = "gcc 4.6 is doesn't have good enough LTO support"
 
     if env.gcc_mode and lto_mode:
-        env.Append(CCFLAGS=["-flto"])
-
         if env.clang_mode:
+            env.Append(CCFLAGS=["-flto"])
             env.Append(LINKFLAGS=["-flto"])
         else:
+            env.Append(CCFLAGS=["-flto=%d" % job_count])
+            env.Append(LINKFLAGS=["-flto=%d" % job_count])
+
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
             env.Append(LINKFLAGS=["-fuse-linker-plugin"])
 
-            env.Append(LINKFLAGS=["-flto=%d" % job_count])
-
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
+
+            if env.mingw_mode and "MAKE" not in os.environ:
+                setEnvironmentVariable(env, "MAKE", "mingw32-make.exe")
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
