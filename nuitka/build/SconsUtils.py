@@ -160,7 +160,7 @@ def prepareEnvironment(mingw_mode):
             if os.path.isdir(cc_dirname):
                 addToPATH(None, cc_dirname, prefix=True)
 
-        if win_target and isGccName(os.path.basename(os.environ["CC"])):
+        if os.name == "nt" and isGccName(os.path.basename(os.environ["CC"])):
             scons_details_logger.info(
                 "Environment CC seems to be a gcc, enabling mingw_mode."
             )
@@ -286,11 +286,6 @@ def decodeData(data):
             return data.decode("utf8", "backslashreplace")
 
 
-# Windows target mode: Compile for Windows. Used to be an option, but we
-# no longer cross compile this way.
-win_target = os.name == "nt"
-
-
 def getExecutablePath(filename, env):
     """Find an execute in either normal PATH, or Scons detected PATH."""
 
@@ -303,7 +298,7 @@ def getExecutablePath(filename, env):
         filename = env[filename[1:]]
 
     # Append ".exe" suffix  on Windows if not already present.
-    if win_target and not filename.lower().endswith(".exe"):
+    if os.name == "nt" and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
     # Either look at the initial "PATH" as given from the outside or look at the
@@ -491,7 +486,7 @@ def cheapCopyFile(src, dst):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
-    if win_target:
+    if os.name == "nt":
         # Windows has symlinks these days, but they do not integrate well
         # with Python2 at least. So make a copy in any case.
         if os.path.exists(dst):
@@ -667,7 +662,7 @@ def getLinkerArch(target_arch, mingw_mode):
     global _linker_arch_determined, _linker_arch
 
     if not _linker_arch_determined:
-        if win_target:
+        if os.name == "nt":
             if target_arch == "x86_64":
                 _linker_arch = "pei-x86-64"
             elif target_arch == "arm64":
