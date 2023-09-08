@@ -1069,6 +1069,11 @@
       - 'languages'
       - 'images'
 
+- module-name: 'grpc'
+  data-files:
+    patterns:
+      - '_cython/_credentials/roots.pem'
+
 - module-name: 'gtk._gtk'
   implicit-imports:
     - depends:
