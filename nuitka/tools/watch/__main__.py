@@ -232,6 +232,8 @@ def _compileCase(case_data, case_dir, installed_python):
             "-m",
             "pipenv",
             "run",
+            "--python",
+            installed_python.getPythonExe(),
             "python",
             nuitka_binary,
             os.path.join(case_dir, case_data["filename"]),
