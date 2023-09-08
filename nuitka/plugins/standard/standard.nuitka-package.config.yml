@@ -5644,6 +5644,11 @@
     - depends:
         - '.*'
 
+- module-name: 'unstructured'
+  data-files:
+    patterns:
+      - 'nlp/english-words.txt'
+
 - module-name: 'urllib3'
   implicit-imports:
     - depends:
