@@ -45,9 +45,6 @@ from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
 
-# TODO: Command line interface
-nuitka_update_mode = "newer"
-
 watch_logger = OurLogger("", base_style="blue")
 
 
@@ -268,7 +265,13 @@ def _compileCase(case_data, case_dir, installed_python):
 
 
 def _updateCase(
-    case_dir, case_data, dry_run, no_pipenv_update, installed_python, result_path
+    case_dir,
+    case_data,
+    dry_run,
+    no_pipenv_update,
+    nuitka_update_mode,
+    installed_python,
+    result_path,
 ):
     # Not good for dry run, but tough life.
     makePath(result_path)
@@ -352,7 +355,7 @@ def _updateCase(
             )
 
 
-def updateCase(case_dir, case_data, dry_run, no_pipenv_update):
+def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mode):
     case_name = case_data["case"]
 
     # Wrong OS maybe.
@@ -386,18 +389,20 @@ def updateCase(case_dir, case_data, dry_run, no_pipenv_update):
             case_data=case_data,
             dry_run=dry_run,
             no_pipenv_update=no_pipenv_update,
+            nuitka_update_mode=nuitka_update_mode,
             installed_python=installed_python,
             result_path=result_path,
         )
 
 
-def updateCases(case_dir, dry_run, no_pipenv_update):
+def updateCases(case_dir, dry_run, no_pipenv_update, nuitka_update_mode):
     for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
         updateCase(
             case_dir=case_dir,
             case_data=case_data,
             dry_run=dry_run,
             no_pipenv_update=no_pipenv_update,
+            nuitka_update_mode=nuitka_update_mode,
         )
 
 
@@ -414,15 +419,6 @@ def main():
     )
 
     parser = OptionParser()
-
-    parser.add_option(
-        "--dry-run",
-        action="store_false",
-        dest="dry_run",
-        default=False,
-        help="""\
-Do not change anything, just report what would be done. Default %default.""",
-    )
 
     parser.add_option(
         "--python-version",
@@ -449,6 +445,25 @@ Nuitka binary to compile with. Defaults to one near the nuitka-watch usage.""",
         default=False,
         help="""\
 Do not update the pipenv environment. Best to see only effect of Nuitka update. Default %default.""",
+    )
+
+    parser.add_option(
+        "--dry-run",
+        action="store_false",
+        dest="dry_run",
+        default=False,
+        help="""\
+Do not change anything, just report what would be done. Not yet perfectly true. Default %default.""",
+    )
+
+    parser.add_option(
+        "--nuitka-update-mode",
+        action="store",
+        choices=("newer", "force", "never"),
+        dest="nuitka_update_mode",
+        default="newer",
+        help="""\
+Recompile even if the versions seems not changed. Default %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -490,6 +505,7 @@ Do not update the pipenv environment. Best to see only effect of Nuitka update. 
                     os.path.dirname(case_filename),
                     dry_run=options.dry_run,
                     no_pipenv_update=options.no_pipenv_update,
+                    nuitka_update_mode=options.nuitka_update_mode,
                 )
 
 
