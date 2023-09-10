@@ -953,9 +953,7 @@ def createBuildDefinitionsFile():
             build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
 
     build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
-
-    if main_module_name != "__main__":
-        build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
+    build_definitions["NUITKA_MAIN_IS_PACKAGE_BOOL"] = main_module_name != "__main__"
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
