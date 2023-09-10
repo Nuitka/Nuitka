@@ -47,10 +47,8 @@
 #define SYSFLAG_BYTES_WARNING 0
 #define SYSFLAG_UTF8 0
 #define SYSFLAG_UNBUFFERED 0
-#endif
-
-#ifndef NUITKA_MAIN_MODULE_NAME
 #define NUITKA_MAIN_MODULE_NAME "__main__"
+#define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #endif
 
 // It doesn't work for MinGW64 to update the standard output handles early on,
@@ -374,14 +372,12 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
-static int HANDLE_PROGRAM_EXIT(void) {
+static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 #if _DEBUG_REFCOUNTS
     PRINT_REFCOUNTS();
 #endif
 
     int exit_code;
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     if (HAS_ERROR_OCCURRED(tstate)) {
 #if PYTHON_VERSION >= 0x300
@@ -413,13 +409,10 @@ static int HANDLE_PROGRAM_EXIT(void) {
     return exit_code;
 }
 
-static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
+static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_name, bool is_package) {
     NUITKA_INIT_PROGRAM_LATE(module_name);
 
-    PyThreadState *tstate = PyThreadState_GET();
-
-#if NUITKA_MAIN_PACKAGE_MODE
-    {
+    if (is_package) {
         char const *w = module_name;
 
         for (;;) {
@@ -442,7 +435,6 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
             }
         }
     }
-#endif
 
     return IMPORT_EMBEDDED_MODULE(tstate, module_name);
 }
@@ -452,9 +444,9 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
 
 // Callback from Windows Service logic.
 bool SvcStartPython(void) {
-    EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
-
     PyThreadState *tstate = PyThreadState_GET();
+
+    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
 
     if (HAS_ERROR_OCCURRED(tstate)) {
         return true;
@@ -1560,16 +1552,16 @@ orig_argv = argv;
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
-        EXECUTE_MAIN_MODULE("__parents_main__");
+        EXECUTE_MAIN_MODULE(tstate, "__parents_main__", false);
 
-        int exit_code = HANDLE_PROGRAM_EXIT();
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(is_joblib_popen_loky_posix)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
         PyObject *joblib_popen_loky_posix_module =
-            EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.popen_loky_posix");
+            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_posix", true);
 
         // Remove the "-m" like CPython would do as well.
         int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
@@ -1580,33 +1572,35 @@ orig_argv = argv;
 
         CALL_FUNCTION_NO_ARGS(tstate, main_function);
 
-        int exit_code = HANDLE_PROGRAM_EXIT();
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.resource_tracker", true);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
         CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
-        int exit_code = HANDLE_PROGRAM_EXIT();
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
-        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.resource_tracker");
+        PyObject *resource_tracker_module =
+            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.resource_tracker", true);
+        CHECK_OBJECT(resource_tracker_module);
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
         CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
-
-        int exit_code = HANDLE_PROGRAM_EXIT();
+        assert(!HAS_ERROR_OCCURRED(tstate));
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
         Py_Exit(exit_code);
@@ -1632,7 +1626,7 @@ orig_argv = argv;
 #else
     /* Execute the "__main__" module. */
     NUITKA_PRINT_TIMING("main(): Calling " NUITKA_MAIN_MODULE_NAME ".");
-    EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
+    EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
     NUITKA_PRINT_TIMING("main(): Exited from " NUITKA_MAIN_MODULE_NAME ".");
 
 #endif
@@ -1653,13 +1647,13 @@ orig_argv = argv;
     checkGlobalConstants();
 
     /* TODO: Walk over all loaded compiled modules, and make this kind of checks. */
-#if !NUITKA_MAIN_PACKAGE_MODE
+#if !NUITKA_MAIN_IS_PACKAGE_BOOL
     checkModuleConstants___main__(tstate);
 #endif
 
 #endif
 
-    int exit_code = HANDLE_PROGRAM_EXIT();
+    int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
     NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);
