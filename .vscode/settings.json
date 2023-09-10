@@ -172,6 +172,7 @@
         "frozenset",
         "fstrings",
         "genericalias",
+        "genexpr",
         "getpreferredencoding",
         "gettotalrefcount",
         "girepository",

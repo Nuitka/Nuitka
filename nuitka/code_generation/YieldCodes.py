@@ -195,7 +195,7 @@ return NULL;
         )
 
 
-def generateYieldFromWaitableCode(to_name, expression, emit, context):
+def generateYieldFromAwaitableCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 

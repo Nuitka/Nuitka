@@ -364,8 +364,8 @@ from .VariableCodes import (
 )
 from .YieldCodes import (
     generateYieldCode,
+    generateYieldFromAwaitableCode,
     generateYieldFromCode,
-    generateYieldFromWaitableCode,
 )
 
 _generated_functions = {}
@@ -866,7 +866,7 @@ addExpressionDispatchDict(
         "EXPRESSION_VARIABLE_OR_BUILTIN_REF": generateVariableReferenceCode,
         "EXPRESSION_YIELD": generateYieldCode,
         "EXPRESSION_YIELD_FROM": generateYieldFromCode,
-        "EXPRESSION_YIELD_FROM_WAITABLE": generateYieldFromWaitableCode,
+        "EXPRESSION_YIELD_FROM_AWAITABLE": generateYieldFromAwaitableCode,
         "EXPRESSION_ASYNC_WAIT": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_ENTER": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_EXIT": generateAsyncWaitCode,
