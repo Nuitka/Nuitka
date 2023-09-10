@@ -29,7 +29,7 @@ from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFrom,
-    ExpressionYieldFromWaitable,
+    ExpressionYieldFromAwaitable,
 )
 from nuitka.PythonVersions import python_version
 
@@ -104,7 +104,7 @@ def buildYieldFromNode(provider, node, source_ref):
 def buildAwaitNode(provider, node, source_ref):
     _checkInsideGenerator("await", provider, node, source_ref)
 
-    return ExpressionYieldFromWaitable(
+    return ExpressionYieldFromAwaitable(
         expression=ExpressionAsyncWait(
             expression=buildNode(provider, node.value, source_ref),
             source_ref=source_ref,

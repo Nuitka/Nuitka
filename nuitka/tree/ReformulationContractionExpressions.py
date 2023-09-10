@@ -73,7 +73,7 @@ from nuitka.nodes.VariableReleaseNodes import (
 )
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
-    ExpressionYieldFromWaitable,
+    ExpressionYieldFromAwaitable,
 )
 from nuitka.PythonVersions import python_version
 
@@ -100,7 +100,7 @@ def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
         )
 
         if not for_asyncgen or python_version < 0x370:
-            result = ExpressionYieldFromWaitable(
+            result = ExpressionYieldFromAwaitable(
                 expression=result, source_ref=source_ref
             )
 
@@ -114,7 +114,7 @@ def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
 
 def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
-        return ExpressionYieldFromWaitable(
+        return ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncNext(value=iterator_ref, source_ref=source_ref),
             source_ref=source_ref,
         )
@@ -473,7 +473,7 @@ def _buildContractionBodyNode(
             iterator_ref = makeVariableRefNode(variable=iter_tmp, source_ref=source_ref)
 
             if for_asyncgen and python_version >= 0x370:
-                iterator_ref = ExpressionYieldFromWaitable(
+                iterator_ref = ExpressionYieldFromAwaitable(
                     expression=iterator_ref, source_ref=source_ref
                 )
 

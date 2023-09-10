@@ -6387,7 +6387,7 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionMatchArgs
     #   ExpressionYield
     #   ExpressionYieldFrom
-    #   ExpressionYieldFromWaitable
+    #   ExpressionYieldFromAwaitable
 
     def __init__(
         self,
@@ -6660,7 +6660,7 @@ ChildrenExpressionAttributeLookupTypePrepareMixin = ChildHavingExpressionMixin
 ChildrenExpressionMatchArgsMixin = ChildHavingExpressionMixin
 ChildrenExpressionYieldMixin = ChildHavingExpressionMixin
 ChildrenExpressionYieldFromMixin = ChildHavingExpressionMixin
-ChildrenExpressionYieldFromWaitableMixin = ChildHavingExpressionMixin
+ChildrenExpressionYieldFromAwaitableMixin = ChildHavingExpressionMixin
 
 
 class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
