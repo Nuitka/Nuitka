@@ -352,6 +352,11 @@
     "esbonio.server.enabled": true,
     "esbonio.sphinx.confDir": "",
     "cSpell.spellCheckOnlyWorkspaceFiles": true,
+    "cSpell.ignorePaths": [
+        ".git",
+        ".vscode",
+        "Mini*.py",
+    ],
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
             "*.nuitka-package.config.yml",
