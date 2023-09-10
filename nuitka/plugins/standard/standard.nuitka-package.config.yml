@@ -3704,8 +3704,8 @@
   data-files:
     dirs:
       - 'data'
-    include-pyi-file: 'yes'
 
+# TODO: Our lazy loader support may mean these are not really necessary anymore.
 - module-name: 'skimage._shared'
   implicit-imports:
     - depends:
@@ -3721,13 +3721,7 @@
           def __init__(self, name):
             pass
 
-- module-name: 'skimage.color'
-  data-files:
-    include-pyi-file: 'yes'
-
 - module-name: 'skimage.data'
-  data-files:
-    include-pyi-file: 'yes'
   implicit-imports:
     - depends:
         - '._fetchers'
@@ -3740,15 +3734,9 @@
       when: 'not use_pytest'
 
 - module-name: 'skimage.draw'
-  data-files:
-    include-pyi-file: 'yes'
   implicit-imports:
     - depends:
         - 'skimage.draw._draw'
-
-- module-name: 'skimage.exposure'
-  data-files:
-    include-pyi-file: 'yes'
 
 - module-name: 'skimage.external.tifffile'
   implicit-imports:
@@ -3778,10 +3766,6 @@
     - depends:
         - 'skimage.feature._orb_descriptor_positions'
 
-- module-name: 'skimage.filters'
-  data-files:
-    include-pyi-file: 'yes'
-
 - module-name: 'skimage.filters.rank'
   implicit-imports:
     - depends:
@@ -3790,10 +3774,6 @@
         - 'skimage.filters.rank.core_cy_3d'
         - 'skimage.filters.rank.generic_cy'
         - 'skimage.filters.rank.percentile_cy'
-
-- module-name: 'skimage.future'
-  data-files:
-    include-pyi-file: 'yes'
 
 - module-name: 'skimage.future.graph'
   implicit-imports:
