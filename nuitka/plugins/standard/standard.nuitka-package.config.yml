@@ -3859,6 +3859,11 @@
         - 'skimage.transform._radon_transform'
         - 'skimage.transform._warps_cy'
 
+- module-name: 'skimage.transform._hough_transform'
+  implicit-imports:
+    - depends:
+        - 'skimage.draw.draw'
+
 - module-name: 'skimage.util.apply_parallel'
   anti-bloat:
     - description: 'remove optional dask usage'
