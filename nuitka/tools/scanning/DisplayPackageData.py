@@ -53,9 +53,19 @@ def displayPackageData(module_name):
 
     tools_logger.info("Checking package directory '%s' .. " % package_directory)
 
-    tools_logger.my_print(package_directory)
+    count = 0
+
+    first = True
 
     for pkg_filename in scanIncludedPackageDataFiles(
         package_directory=package_directory, pattern=None
     ):
+        if first:
+            tools_logger.my_print(package_directory)
+            first = False
+
         tools_logger.my_print(pkg_filename)
+
+        count += 1
+
+    tools_logger.info("Found %s data files." % count)

@@ -30,7 +30,7 @@ from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows
 
-# spell-checker: ignore tqdm
+# spell-checker: ignore tqdm,ncols
 
 # Late import and optional to be there.
 use_progress_bar = False
@@ -60,6 +60,7 @@ class NuitkaProgressBar(object):
             unit=unit,
             disable=None,
             leave=False,
+            dynamic_ncols=True,
             bar_format="{desc}{percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
         )
 
