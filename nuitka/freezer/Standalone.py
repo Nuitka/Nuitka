@@ -56,7 +56,7 @@ from .DllDependenciesMacOS import (
     fixupBinaryDLLPathsMacOS,
 )
 from .DllDependenciesPosix import detectBinaryPathDLLsPosix
-from .DllDependenciesWin32 import detectBinaryPathDLLsWindowsDependencyWalker
+from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
 from .IncludedEntryPoints import addIncludedEntryPoint, makeDllEntryPoint
 
 
@@ -135,7 +135,7 @@ def _detectBinaryDLLs(
             message="Running 'depends.exe' for %s took %%.2f seconds" % binary_filename,
             decider=isShowProgress,
         ):
-            return detectBinaryPathDLLsWindowsDependencyWalker(
+            return detectBinaryPathDLLsWin32(
                 is_main_executable=is_main_executable,
                 source_dir=source_dir,
                 original_dir=os.path.dirname(original_filename),
