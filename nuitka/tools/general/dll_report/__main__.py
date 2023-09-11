@@ -26,9 +26,7 @@ import sys
 import tempfile
 from optparse import OptionParser
 
-from nuitka.freezer.DllDependenciesWin32 import (
-    detectBinaryPathDLLsWindowsDependencyWalker,
-)
+from nuitka.freezer.DllDependenciesWin32 import detectBinaryPathDLLsWin32
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
@@ -56,7 +54,7 @@ def main():
         with TimerReport(
             message="Finding dependencies for %s took %%.2f seconds" % filename
         ):
-            r = detectBinaryPathDLLsWindowsDependencyWalker(
+            r = detectBinaryPathDLLsWin32(
                 is_main_executable=False,
                 source_dir=tempfile.gettempdir(),
                 original_dir=os.path.dirname(filename),

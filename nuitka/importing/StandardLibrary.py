@@ -338,7 +338,6 @@ _stdlib_no_auto_inclusion_list = (
     # Packages that will be imported rarely by extension modules
     "email",
     "mailbox",
-    "calendar",
     "argparse",
     "telnetlib",
     "smtplib",
