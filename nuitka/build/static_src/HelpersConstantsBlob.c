@@ -1219,6 +1219,8 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
     static bool init_done = false;
 
     if (init_done == false) {
+        NUITKA_PRINT_TIMING("loadConstantsBlob(): One time init.");
+
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
         printf("loadConstantsBlob '%s' one time init\n", name);
 #endif
@@ -1242,9 +1244,10 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
 
         assert(constant_bin);
 #endif
-
+        NUITKA_PRINT_TIMING("loadConstantsBlob(): Found blob, decoding now.");
         DECODE(constant_bin);
 
+        NUITKA_PRINT_TIMING("loadConstantsBlob(): CRC32 that blob for correctness.");
         uint32_t hash = unpackValueUint32(&constant_bin);
         uint32_t size = unpackValueUint32(&constant_bin);
 
@@ -1260,6 +1263,8 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
         printf("Checked CRC32 to match hash %u size %u\n", hash, size);
 #endif
+
+        NUITKA_PRINT_TIMING("loadConstantsBlob(): One time init complete.");
 
         init_done = true;
     }
