@@ -251,7 +251,7 @@ def _compileCase(case_data, case_dir, installed_python):
         if len(binaries) != 1:
             sys.exit("Error, failed to identify created binary.")
 
-        stdout, stderr, exit_nuitka = executeProcess([binaries[0]])
+        stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
 
         if exit_nuitka != 0:
             sys.exit(
