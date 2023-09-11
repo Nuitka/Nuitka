@@ -1182,6 +1182,13 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'joblib'
+  options:
+    checks:
+      - description: 'joblib beyond 1.2 is not yet supported, downgrade to "joblib==1.2.0"'
+        support_info: 'error'
+        when: 'version("joblib") >= (1,3) and win32'
+
 - module-name: 'joblib._dask'
   anti-bloat:
     - description: 'remove optional dask usage'
