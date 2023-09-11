@@ -30,7 +30,11 @@ from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.testing.Common import extractNuitkaVersionFromFilePath
 from nuitka.Tracing import OurLogger
 from nuitka.TreeXML import fromFile
-from nuitka.utils.Execution import check_call, executeProcess
+from nuitka.utils.Execution import (
+    check_call,
+    executeProcess,
+    withEnvironmentVarOverridden,
+)
 from nuitka.utils.FileOperations import (
     changeTextFileContents,
     getFileContents,
@@ -223,23 +227,24 @@ def _updatePipenvLockFile(
 
 
 def _compileCase(case_data, case_dir, installed_python):
-    check_call(
-        [
-            installed_python.getPythonExe(),
-            "-m",
-            "pipenv",
-            "run",
-            "--python",
-            installed_python.getPythonExe(),
-            "python",
-            nuitka_binary,
-            os.path.join(case_dir, case_data["filename"]),
-            "--report=compilation-report.xml",
-            "--report-diffable",
-            "--report-user-provided=pipenv_hash=%s"
-            % getFileContentsHash("Pipfile.lock"),
-        ]
-    )
+    with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", 1):
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                "run",
+                "--python",
+                installed_python.getPythonExe(),
+                "python",
+                nuitka_binary,
+                os.path.join(case_dir, case_data["filename"]),
+                "--report=compilation-report.xml",
+                "--report-diffable",
+                "--report-user-provided=pipenv_hash=%s"
+                % getFileContentsHash("Pipfile.lock"),
+            ]
+        )
 
     if case_data["interactive"] == "no":
         binaries = getFileList(
