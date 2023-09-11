@@ -1069,6 +1069,11 @@
       - 'languages'
       - 'images'
 
+- module-name: 'grpc'
+  data-files:
+    patterns:
+      - '_cython/_credentials/roots.pem'
+
 - module-name: 'gtk._gtk'
   implicit-imports:
     - depends:
@@ -1176,6 +1181,13 @@
   implicit-imports:
     - depends:
         - 'jarowinkler._initialize_cpp'
+
+- module-name: 'joblib'
+  options:
+    checks:
+      - description: 'joblib beyond 1.2 is not yet supported, downgrade to "joblib==1.2.0"'
+        support_info: 'error'
+        when: 'version("joblib") >= (1,3) and win32'
 
 - module-name: 'joblib._dask'
   anti-bloat:
@@ -1315,6 +1327,11 @@
   data-files:
     dirs:
       - 'grammars'
+
+- module-name: 'librosa.core.intervals'
+  data-files:
+    patterns:
+      - 'intervals.msgpack'
 
 - module-name: 'lightgbm.libpath'
   dlls:
@@ -2644,6 +2661,13 @@
         'polyfactory.pytest_plugin': 'ignore'
       when: 'not use_pytest'
 
+- module-name: 'pooch'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'psutil'
   anti-bloat:
     - description: 'resolve platform specific imports at compile time'
@@ -3859,6 +3883,11 @@
         - 'skimage.transform._radon_transform'
         - 'skimage.transform._warps_cy'
 
+- module-name: 'skimage.transform._hough_transform'
+  implicit-imports:
+    - depends:
+        - 'skimage.draw.draw'
+
 - module-name: 'skimage.util.apply_parallel'
   anti-bloat:
     - description: 'remove optional dask usage'
@@ -4159,12 +4188,12 @@
     - from_filenames:
         relative_path: '_soundfile_data'
         prefixes:
-          - 'libsndfile64bit'
+          - 'libsndfile*64bit'
       when: 'win32 and arch_amd64'
     - from_filenames:
         relative_path: '_soundfile_data'
         prefixes:
-          - 'libsndfile32bit'
+          - 'libsndfile*32bit'
       when: 'win32 and arch_x86'
     - from_filenames:
         relative_path: '_soundfile_data'
@@ -5633,6 +5662,11 @@
   implicit-imports:
     - depends:
         - '.*'
+
+- module-name: 'unstructured'
+  data-files:
+    patterns:
+      - 'nlp/english-words.txt'
 
 - module-name: 'urllib3'
   implicit-imports:

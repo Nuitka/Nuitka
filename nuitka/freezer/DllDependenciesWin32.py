@@ -50,7 +50,7 @@ from .DllDependenciesCommon import getPackageSpecificDLLDirectories
 _scan_dir_cache = {}
 
 
-def detectBinaryPathDLLsWindowsDependencyWalker(
+def detectBinaryPathDLLsWin32(
     is_main_executable,
     source_dir,
     original_dir,

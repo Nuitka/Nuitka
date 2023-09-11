@@ -53,7 +53,17 @@ static void inline PRINT_TIME_STAMP(void) {
     printf("%02d:%02d:%02d.%03d:", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
 }
 #else
-static void inline PRINT_TIME_STAMP(void) {}
+static void inline PRINT_TIME_STAMP(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    time_t now_time = tv.tv_sec;
+    struct tm *now_tm = localtime(&now_time);
+
+    char tm_buf[64];
+    strftime(tm_buf, sizeof(tm_buf), "%Y-%m-%d %H:%M:%S", now_tm);
+    printf("%s.%03ld ", tm_buf, tv.tv_usec / 1000);
+}
 #endif
 
 #define NUITKA_PRINT_TIMING(value)                                                                                     \
