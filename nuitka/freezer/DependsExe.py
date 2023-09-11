@@ -145,6 +145,11 @@ def _parseDependsExeOutput2(lines):
         if dll_name in ("msvcr90.dll",):
             continue
 
+        # Ignore API DLLs, they can come in from PATH, but we do not want to
+        # include them.
+        if dll_name.startswith("api-ms-win-"):
+            continue
+
         # The executable itself is of course exempted. We cannot check its path
         # because depends.exe mistreats unicode paths.
         if first:
