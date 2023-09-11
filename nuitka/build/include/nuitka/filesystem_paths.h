@@ -33,6 +33,7 @@
 #define strlenFilename wcslen
 #define strcmpFilename wcscmp
 #define strdupFilename wcsdup
+#define scanFilename swscanf
 #else
 #define filename_char_t char
 #define FILENAME_EMPTY_STR ""
@@ -47,6 +48,7 @@
 #define strlenFilename strlen
 #define strcmpFilename strcmp
 #define strdupFilename strdup
+#define scanFilename sscanf
 #endif
 
 #if defined(_WIN32)

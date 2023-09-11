@@ -465,7 +465,11 @@ static bool is_multiprocessing_fork = false;
 static int multiprocessing_resource_tracker_arg = -1;
 
 // This is a joblib loky fork
+#ifdef _WIN32
+static bool is_joblib_popen_loky_win32 = false;
+#else
 static bool is_joblib_popen_loky_posix = false;
+#endif
 // This is a joblib resource tracker if not -1
 static int loky_resource_tracker_arg = -1;
 
@@ -528,20 +532,23 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 
             if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
                 // The joblib loky resource tracker is launched like this.
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-                int res = sscanf(argv[i + 1],
+                if (scanFilename(argv[i + 1],
+                                 FILENAME_EMPTY_STR
                                  "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
-                                 &loky_resource_tracker_arg);
-#else
-                int res = swscanf(argv[i + 1],
-                                  L"from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
-                                  &loky_resource_tracker_arg);
-#endif
-                if (res == 1) {
+                                 &loky_resource_tracker_arg)) {
                     break;
                 }
+
+#if defined(_WIN32)
+                if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
+                                   "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
+                    is_joblib_popen_loky_win32 = true;
+                    break;
+                }
+#endif
             }
 
+#if !defined(_WIN32)
             if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
                 // The joblib loky posix popen is launching like this.
                 if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") ==
@@ -550,6 +557,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
                     break;
                 }
             }
+#endif
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
             if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
@@ -562,11 +570,6 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
             }
 #endif
         }
-
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
-        assert(argc == 1 || is_multiprocessing_fork || is_joblib_popen_loky_posix || loky_resource_tracker_arg != -1 ||
-               multiprocessing_resource_tracker_arg != -1);
-#endif
     }
 }
 
@@ -1558,6 +1561,22 @@ orig_argv = argv;
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
         Py_Exit(exit_code);
+#if defined(_WIN32)
+    } else if (unlikely(is_joblib_popen_loky_win32)) {
+        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
+        PyObject *joblib_popen_loky_win32_module =
+            EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_win32", true);
+
+        PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_NO_ARGS(tstate, main_function);
+
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+        NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.popen_loky_posix' Py_Exit.");
+        Py_Exit(exit_code);
+#else
     } else if (unlikely(is_joblib_popen_loky_posix)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
         PyObject *joblib_popen_loky_posix_module =
@@ -1574,8 +1593,9 @@ orig_argv = argv;
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
-        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix Py_Exit.");
+        NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.popen_loky_posix' Py_Exit.");
         Py_Exit(exit_code);
+#endif
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
         PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.resource_tracker", true);
@@ -1587,7 +1607,7 @@ orig_argv = argv;
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
-        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        NUITKA_PRINT_TRACE("main(): Calling 'multiprocessing.resource_tracker' Py_Exit.");
         Py_Exit(exit_code);
     } else if (unlikely(loky_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
@@ -1599,10 +1619,10 @@ orig_argv = argv;
         CHECK_OBJECT(main_function);
 
         CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
-        assert(!HAS_ERROR_OCCURRED(tstate));
+
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
-        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.resource_tracker' Py_Exit.");
         Py_Exit(exit_code);
     } else {
 #endif
