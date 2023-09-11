@@ -2841,6 +2841,12 @@
   anti-bloat:
     - description: 'remove doctest usage'
 
+- module-name: 'pyproj'
+  data-files:
+    dirs:
+      # this is PROJ's data directory, sometimes pointed to by the PROJ_LIB environment variable
+      - 'proj_dir'
+
 - module-name: 'PyQt5'
   data-files:
     empty_dirs:
