@@ -2834,6 +2834,12 @@
       change_function:
         'setBreak': "'(lambda self: None)'"
 
+- module-name: 'pyparsing.core'
+  anti-bloat:
+    - description: 'remove pdb reference'
+      change_function:
+        'set_break': 'un-callable'
+
 - module-name: 'pyphen'
   data-files:
     dirs:
