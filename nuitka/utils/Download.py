@@ -38,7 +38,7 @@ from .FileOperations import (
 def getDownload(name, url, download_path):
     # requests api, spell-checker: ignore reporthook
 
-    with withNuitkaDownloadProgressBar(desc="download %s" % name) as reporthook:
+    with withNuitkaDownloadProgressBar(desc="Download %s" % name) as reporthook:
         try:
             try:
                 urlretrieve(url, download_path, reporthook=reporthook)
