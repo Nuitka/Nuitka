@@ -217,5 +217,12 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
                     self.total = tsize
                 self.update(b * bsize - self.n)
 
+        kwargs.update(
+            disable=None,
+            leave=False,
+            dynamic_ncols=True,
+            bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
+        )
+
         with NuitkaDownloadProgressBar(*args, **kwargs) as progress_bar:
             yield progress_bar.onProgress
