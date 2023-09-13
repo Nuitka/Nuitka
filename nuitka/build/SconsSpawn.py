@@ -128,6 +128,12 @@ surely happen again."""
     )
 
 
+def _getNoSuchCommandErrorMessage():
+    import ctypes
+
+    return ctypes.WinError(3).args[1]
+
+
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def _getWindowsSpawnFunction(env, module_mode, source_files):
@@ -202,7 +208,14 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
                 err = decodeData(err)
 
             err = "\r\n".join(
-                line for line in err.split("\r\n") if not isIgnoredError(line)
+                line
+                for line in err.split("\r\n")
+                if not isIgnoredError(line)
+                if not (
+                    env.mingw_mode
+                    and env.lto_mode
+                    and line == _getNoSuchCommandErrorMessage()
+                )
             )
 
             if err:
