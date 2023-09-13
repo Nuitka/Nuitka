@@ -517,7 +517,7 @@ def writeCompilationReportFromTemplate(
     def get_distribution_license(distribution):
         license_name = distribution.metadata["License"]
 
-        if license_name == "UNKNOWN":
+        if not license_name or license_name == "UNKNOWN":
             for classifier in (
                 value
                 for (key, value) in distribution.metadata.items()
