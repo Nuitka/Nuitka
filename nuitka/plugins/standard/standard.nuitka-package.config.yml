@@ -749,6 +749,11 @@
         - 'engineio.async_drivers.threading'
         - 'engineio.async_drivers.tornado'
 
+- module-name: 'ens._normalization'
+  data-files:
+    patterns:
+      - 'specs/*.json'
+
 - module-name: 'Equation'
   anti-bloat:
     - description: 'workaround for standalone mode'
