@@ -4,7 +4,9 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
                 "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "C:\\Python311\\Include"
             ],
             "defines": [
@@ -24,7 +26,9 @@
             "name": "Win32-Py310",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
                 "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "C:\\Python310\\Include"
             ],
             "defines": [
@@ -44,7 +48,9 @@
             "name": "Win32-Py27",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
                 "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "C:\\Python27\\Include"
             ],
             "defines": [
@@ -65,6 +71,9 @@
             "includePath": [
                 "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "/usr/include/python3.9"
             ],
             "defines": [
@@ -84,6 +93,9 @@
             "includePath": [
                 "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "/usr/include/python3.10"
             ],
             "defines": [
@@ -103,6 +115,9 @@
             "includePath": [
                 "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "/usr/include/python3.11"
             ],
             "defines": [
@@ -122,6 +137,9 @@
             "includePath": [
                 "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/static_src",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
                 "/usr/include/python2.7"
             ],
             "defines": [
