@@ -1,12 +1,17 @@
 {
+    "env": {
+        "myDefaultIncludePath": [
+            "${workspaceFolder}/nuitka/build/include",
+            "${workspaceFolder}/nuitka/build/static_src",
+            "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+            "${workspaceFolder}/nuitka/build/inline_copy/zlib"
+        ]
+    },
     "configurations": [
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "C:\\Python311\\Include"
             ],
             "defines": [
@@ -25,10 +30,7 @@
         {
             "name": "Win32-Py310",
             "includePath": [
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "C:\\Python310\\Include"
             ],
             "defines": [
@@ -47,10 +49,7 @@
         {
             "name": "Win32-Py27",
             "includePath": [
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "C:\\Python27\\Include"
             ],
             "defines": [
@@ -70,10 +69,7 @@
             "name": "Linux-Python3.9",
             "includePath": [
                 "/usr/include",
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "/usr/include/python3.9"
             ],
             "defines": [
@@ -92,10 +88,7 @@
             "name": "Linux-Python3.10",
             "includePath": [
                 "/usr/include",
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "/usr/include/python3.10"
             ],
             "defines": [
@@ -114,10 +107,7 @@
             "name": "Linux-Python3.11",
             "includePath": [
                 "/usr/include",
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "/usr/include/python3.11"
             ],
             "defines": [
@@ -136,10 +126,7 @@
             "name": "Linux-Python2.7",
             "includePath": [
                 "/usr/include",
-                "${workspaceFolder}/nuitka/build/include",
-                "${workspaceFolder}/nuitka/build/static_src",
-                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
-                "${workspaceFolder}/nuitka/build/inline_copy/zlib",
+                "${myDefaultIncludePath}",
                 "/usr/include/python2.7"
             ],
             "defines": [
@@ -153,7 +140,25 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "${default}"
-        }
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "${myDefaultIncludePath}",
+                "/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3B0"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
     ],
     "version": 4
 }
