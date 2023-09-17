@@ -473,103 +473,99 @@ static bool is_joblib_popen_loky_posix = false;
 // This is a joblib resource tracker if not -1
 static int loky_resource_tracker_arg = -1;
 
-// Parse the command line parameters and provide it to "sys" built-in module,
-// as well as decide if it's a multiprocessing usage.
+// Parse the command line parameters to decide if it's a multiprocessing usage
+// or something else special.
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-static void setCommandLineParameters(int argc, char **argv, bool initial) {
+static void setCommandLineParameters(int argc, char **argv) {
 #else
-static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
+static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
-    if (initial) {
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-        printf("Commandline: ");
-        for (int i = 0; i < argc; i++) {
-            if (i != 0) {
-                printf(" ");
-            }
-            printf("'%s'", argv[i]);
+    printf("Commandline: ");
+    for (int i = 0; i < argc; i++) {
+        if (i != 0) {
+            printf(" ");
         }
-        printf("\n");
+        printf("'%s'", argv[i]);
+    }
+    printf("\n");
 #else
-        wprintf(L"Commandline: '%lS' %d\n", GetCommandLineW(), argc);
+    wprintf(L"Commandline: '%lS' %d\n", GetCommandLineW(), argc);
 #endif
 #endif
 
-        // We might need to handle special parameters from plugins that are
-        // very deeply woven into command line handling. These are right now
-        // multiprocessing, which indicates that it's forking via extra
+    // We might need to handle special parameters from plugins that are
+    // very deeply woven into command line handling. These are right now
+    // multiprocessing, which indicates that it's forking via extra
 
-        // command line argument. And Windows Service indicates need to
-        //   install and exit here too.
+    // command line argument. And Windows Service indicates need to
+    //   install and exit here too.
 
-        for (int i = 1; i < argc; i++) {
-            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-fork")) == 0) {
-                is_multiprocessing_fork = true;
-                break;
-            }
+    for (int i = 1; i < argc; i++) {
+        if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-fork")) == 0) {
+            is_multiprocessing_fork = true;
+            break;
+        }
 
-            if ((i + 1 < argc) &&
-                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-resource-tracker")) == 0) {
+        if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-resource-tracker")) == 0) {
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-                multiprocessing_resource_tracker_arg = atoi(argv[i + 1]);
+            multiprocessing_resource_tracker_arg = atoi(argv[i + 1]);
 #else
-                multiprocessing_resource_tracker_arg = _wtoi(argv[i + 1]);
+            multiprocessing_resource_tracker_arg = _wtoi(argv[i + 1]);
 #endif
+            break;
+        }
+
+        if (i == 1) {
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+            if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
+                NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
+
+                SvcInstall();
+                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+            }
+#endif
+        }
+
+        if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+            // The joblib loky resource tracker is launched like this.
+            if (scanFilename(argv[i + 1],
+                             FILENAME_EMPTY_STR
+                             "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
+                             &loky_resource_tracker_arg)) {
                 break;
             }
-
-            if (i == 1) {
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
-                if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
-                    NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
-
-                    SvcInstall();
-                    NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
-                }
-#endif
-            }
-
-            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
-                // The joblib loky resource tracker is launched like this.
-                if (scanFilename(argv[i + 1],
-                                 FILENAME_EMPTY_STR
-                                 "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
-                                 &loky_resource_tracker_arg)) {
-                    break;
-                }
 
 #if defined(_WIN32)
-                if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
-                                   "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
-                    is_joblib_popen_loky_win32 = true;
-                    break;
-                }
-#endif
+            if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
+                               "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
+                is_joblib_popen_loky_win32 = true;
+                break;
             }
+#endif
+        }
 
 #if !defined(_WIN32)
-            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
-                // The joblib loky posix popen is launching like this.
-                if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") ==
-                    0) {
-                    is_joblib_popen_loky_posix = true;
-                    break;
-                }
+        if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+            // The joblib loky posix popen is launching like this.
+            if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") == 0) {
+                is_joblib_popen_loky_posix = true;
+                break;
             }
+        }
 #endif
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
-            if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
-                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
-                fprintf(stderr,
-                        "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
-                        "'--no-deployment-flag=self-execution'.\n",
-                        argv[i]);
-                exit(2);
-            }
-#endif
+        if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
+            (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+            fprintf(stderr,
+                    "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
+                    "'--no-deployment-flag=self-execution'.\n",
+                    argv[i]);
+            exit(2);
         }
+#endif
     }
 }
 
@@ -1331,8 +1327,8 @@ orig_argv = argv;
     orig_argc = argc;
 
     // Early command line parsing.
-    NUITKA_PRINT_TRACE("main(): Calling initial setCommandLineParameters.");
-    setCommandLineParameters(argc, argv, true);
+    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
+    setCommandLineParameters(argc, argv);
 
     /* For Python installations that need the home set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
@@ -1402,9 +1398,6 @@ orig_argv = argv;
     Py_NoSiteFlag = SYSFLAG_NO_SITE;
 
     /* Set the command line parameters for run time usage. */
-    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
-    setCommandLineParameters(argc, argv, false);
-
     PySys_SetArgv(argc, orig_argv);
 // Empty "sys.path" again, the above adds program directory to it.
 #if SYSFLAG_ISOLATED
@@ -1566,6 +1559,14 @@ orig_argv = argv;
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
         PyObject *joblib_popen_loky_win32_module =
             EXECUTE_MAIN_MODULE(tstate, "joblib.externals.loky.backend.popen_loky_win32", true);
+
+        // Remove the "-c" and options part like CPython would do as well.
+        PyObject *argv_list = Nuitka_SysGetObject("argv");
+        Py_ssize_t size = PyList_Size(argv_list);
+
+        // Negative indexes are not supported by this function.
+        int res = PyList_SetSlice(argv_list, 1, size - 2, const_tuple_empty);
+        assert(res == 0);
 
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
         CHECK_OBJECT(main_function);
