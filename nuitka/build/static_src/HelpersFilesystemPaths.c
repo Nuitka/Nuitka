@@ -110,7 +110,7 @@ bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
 #endif
 }
 
-bool writeFileChunk(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
+bool writeFileChunk(FILE_HANDLE target_file, void const *chunk, size_t chunk_size) {
 #if defined(_WIN32)
     DWORD write_size = 0;
     return WriteFile(target_file, chunk, (DWORD)chunk_size, &write_size, NULL);
@@ -288,6 +288,14 @@ bool renameFile(filename_char_t const *source, filename_char_t const *dest) {
 }
 
 #include "nuitka/checksum_tools.h"
+
+extern error_code_t getLastErrorCode(void) {
+#if defined(_WIN32)
+    return GetLastError();
+#else
+    return errno;
+#endif
+}
 
 #if defined(_WIN32)
 struct MapFileToMemoryInfo {

@@ -358,6 +358,16 @@ When creating the onefile, disable compression of the payload. This is
 mostly for debug purposes, or to save time. Default is off.""",
 )
 
+onefile_group.add_option(
+    "--onefile-as-archive",
+    action="store_true",
+    dest="onefile_as_archive",
+    default=False,
+    help="""\
+When creating the onefile, use an archive format, that can be unpacked
+with "nuitka-onefile-unpack" rather than a stream that only the onefile
+program itself unpacks. Default is off.""",
+)
 
 del onefile_group
 
@@ -947,7 +957,7 @@ del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
 
-_cache_names = ("all", "ccache", "bytecode")
+_cache_names = ("all", "ccache", "bytecode", "compression")
 
 if isWin32Windows():
     _cache_names += ("dll-dependencies",)
