@@ -84,10 +84,6 @@
 #define _NUITKA_AUTO_UPDATE_BOOL 1
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
 
-#if __APPLE__
-#define _NUITKA_PAYLOAD_FROM_MACOS_SECTION
-#endif
-
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -134,7 +130,9 @@ static void fatalIOError(char const *message, error_code_t error_code) {
 }
 
 // Failure to expand the template for where to extract to.
-static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand target path."); }
+static void fatalErrorTempFiles(void) {
+    fatalIOError("Error, couldn't unpack file to target path.", getLastErrorCode());
+}
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
@@ -142,11 +140,10 @@ static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode at
 
 static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
 
-// Left over data in attached payload should not happen.
-static void fatalErrorReadAttachedData(void) { fatalError("Error, couldn't read attached data."); }
-
 // Out of memory error.
+#if !defined(_WIN32) || _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
+#endif
 
 // Could not launch child process.
 static void fatalErrorChild(char const *message, error_code_t error_code) { fatalIOError(message, error_code); }
@@ -205,27 +202,21 @@ static void setEnvironVar(char const *var_name, char const *value) {
 
 static unsigned char const *payload_data = NULL;
 static unsigned char const *payload_current = NULL;
-static size_t stream_end_pos;
+static unsigned long long payload_size = 0;
 
-#ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
+#ifdef __APPLE__
 
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
-static unsigned char *findMacOSBinarySection(void) {
+static void initPayloadData(void) {
     const struct mach_header *header = &_mh_execute_header;
 
     unsigned long section_size;
 
-    unsigned char *result = getsectiondata(header, "payload", "payload", &section_size);
-    stream_end_pos = (size_t)section_size;
-
-    return result;
-}
-
-static void initPayloadData(void) {
-    payload_data = findMacOSBinarySection();
+    payload_data = getsectiondata(header, "payload", "payload", &section_size);
     payload_current = payload_data;
+    payload_size = section_size;
 }
 
 static void closePayloadData(void) {}
@@ -233,9 +224,12 @@ static void closePayloadData(void) {}
 #elif defined(_WIN32)
 
 static void initPayloadData(void) {
-    payload_data =
-        (const unsigned char *)LockResource(LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA)));
+    HRSRC windows_resource = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
+
+    payload_data = (const unsigned char *)LockResource(LoadResource(NULL, windows_resource));
     payload_current = payload_data;
+
+    payload_size = SizeofResource(NULL, windows_resource);
 }
 
 // Note: it appears unlocking the resource is not actually foreseen.
@@ -296,10 +290,6 @@ static void releaseZSTD(void) {
 
 #endif
 
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-static size_t getPosition(void) { return payload_current - payload_data; }
-#endif
-
 static void readChunk(void *buffer, size_t size) {
     // printf("Reading %d\n", size);
 
@@ -307,21 +297,8 @@ static void readChunk(void *buffer, size_t size) {
     payload_current += size;
 }
 
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-static void const *readChunkPointer(size_t size) {
-    // printf("Reading %d\n", size);
-
-    void const *result = payload_current;
-    payload_current += size;
-
-    return result;
-}
-#endif
-
 static void readPayloadChunk(void *buffer, size_t size) {
-#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-
-    // bool no_payload = false;
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1 && _NUITKA_ONEFILE_ARCHIVE_BOOL == 0
     bool end_of_buffer = false;
 
     // Loop until finished with asked chunk.
@@ -372,28 +349,7 @@ static void readPayloadChunk(void *buffer, size_t size) {
         if (input.size != input.pos) {
             fatalErrorAttachedData();
         }
-
-        // No input available, make it available from stream respecting end.
-        size_t to_read = ZSTD_DStreamInSize();
-        size_t payload_available = stream_end_pos - getPosition();
-
-        static size_t payload_so_far = 0;
-
-        if (payload_available == 0) {
-            continue;
-        }
-
-        if (to_read > payload_available) {
-            to_read = payload_available;
-        }
-
-        input.src = readChunkPointer(to_read);
-        input.pos = 0;
-        input.size = to_read;
-
-        payload_so_far += to_read;
     }
-
 #else
     readChunk(buffer, size);
 #endif
@@ -424,6 +380,15 @@ static unsigned long long readPayloadSizeValue(void) {
     return result;
 }
 
+#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1 && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+static unsigned long long readArchiveFileSizeValue(void) {
+    unsigned long long result;
+    readPayloadChunk(&result, sizeof(unsigned int));
+
+    return result;
+}
+#endif
+
 static filename_char_t readPayloadFilenameCharacter(void) {
     filename_char_t result;
 
@@ -448,6 +413,74 @@ static filename_char_t *readPayloadFilename(void) {
     }
 
     return buffer;
+}
+
+static void writeContainedFile(FILE_HANDLE target_file, unsigned long long file_size) {
+#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1
+
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 0
+    if (target_file != FILE_HANDLE_NULL) {
+        if (writeFileChunk(target_file, payload_current, file_size) == false) {
+            fatalErrorTempFiles();
+        }
+    }
+
+    payload_current += file_size;
+#else
+    if (target_file != FILE_HANDLE_NULL) {
+
+        // Nothing available, make sure to make it available from existing input.
+        while (input.pos < input.size) {
+            // printf("available input %ld %ld\n", input.pos, input.size);
+
+            output.pos = 0;
+            output.size = ZSTD_DStreamOutSize();
+
+            size_t const ret = ZSTD_decompressStream(dest_ctx, &output, &input);
+            if (ZSTD_isError(ret)) {
+                fatalErrorAttachedData();
+            }
+
+            // printf("available output %ld %ld\n", output.pos, output.size);
+
+            if (writeFileChunk(target_file, (char const *)output.dst, output.pos) == false) {
+                fatalErrorTempFiles();
+            }
+
+            // printf("made output %ld %lld\n", output.pos, file_size);
+            file_size -= output.pos;
+            assert(file_size >= 0);
+        }
+
+        assert(file_size == 0);
+    }
+#endif
+#else
+    while (file_size > 0) {
+        static char chunk[32768];
+
+        long chunk_size;
+
+        // Doing min manually, as otherwise the compiler is confused from types.
+        if (file_size <= sizeof(chunk)) {
+            chunk_size = (long)file_size;
+        } else {
+            chunk_size = sizeof(chunk);
+        }
+
+        readPayloadChunk(chunk, chunk_size);
+
+        if (target_file != FILE_HANDLE_NULL) {
+            if (writeFileChunk(target_file, chunk, chunk_size) == false) {
+                fatalErrorTempFiles();
+            }
+        }
+
+        file_size -= chunk_size;
+    }
+
+    assert(file_size == 0);
+#endif
 }
 
 // Zero means, not yet created, created unsuccessfully, terminated already.
@@ -858,20 +891,18 @@ int main(int argc, char **argv) {
 
     initPayloadData();
 
-#if !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION) && !defined(_WIN32)
+#if !defined(__APPLE__) && !defined(_WIN32)
     const off_t size_end_offset = exe_file_mapped.file_size;
 
     NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
 
-    unsigned long long payload_size;
+    assert(sizeof(payload_size) == sizeof(unsigned long long));
     memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
 
     unsigned long long start_pos = size_end_offset - sizeof(payload_size) - payload_size;
 
     payload_current += start_pos;
     payload_data += start_pos;
-
-    stream_end_pos = size_end_offset - sizeof(payload_size) - start_pos;
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
@@ -883,12 +914,20 @@ int main(int argc, char **argv) {
         fatalErrorHeaderAttachedData();
     }
 
+    NUITKA_PRINT_TIMING("ONEFILE: Header is OK.");
+
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     if (header[2] != 'Y') {
         fatalErrorHeaderAttachedData();
     }
     initZSTD();
+
+    input.src = payload_current;
+    input.pos = 0;
+    input.size = payload_size;
+
+    assert(payload_size > 0);
 #else
     if (header[2] != 'X') {
         fatalErrorHeaderAttachedData();
@@ -973,6 +1012,20 @@ int main(int argc, char **argv) {
         }
 #endif
 
+#if _NUITKA_ONEFILE_ARCHIVE_BOOL == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+        uint32_t contained_archive_file_size = readArchiveFileSizeValue();
+
+        input.src = payload_current;
+        input.pos = 0;
+        input.size = contained_archive_file_size;
+
+        output.pos = 0;
+        output.size = 0;
+
+        payload_current += contained_archive_file_size;
+#endif
+#endif
         FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
         if (needs_write) {
@@ -980,34 +1033,7 @@ int main(int argc, char **argv) {
             target_file = createFileForWritingChecked(target_path);
         }
 
-        while (file_size > 0) {
-            static char chunk[32768];
-
-            long chunk_size;
-
-            // Doing min manually, as otherwise the compiler is confused from types.
-            if (file_size <= sizeof(chunk)) {
-                chunk_size = (long)file_size;
-            } else {
-                chunk_size = sizeof(chunk);
-            }
-
-            // TODO: Does zstd support skipping data as well, such that we
-            // do not have to fully decode.
-            readPayloadChunk(chunk, chunk_size);
-
-            if (target_file != FILE_HANDLE_NULL) {
-                if (writeFileChunk(target_file, chunk, chunk_size) == false) {
-                    fatalErrorTempFiles();
-                }
-            }
-
-            file_size -= chunk_size;
-        }
-
-        if (file_size != 0) {
-            fatalErrorReadAttachedData();
-        }
+        writeContainedFile(target_file, file_size);
 
 #if !defined(_WIN32) && !defined(__MSYS__)
         if ((file_flags & 1) && (target_file != FILE_HANDLE_NULL)) {

@@ -18,6 +18,8 @@
 #ifndef __NUITKA_FILESYSTEM_PATH_OPS_H__
 #define __NUITKA_FILESYSTEM_PATH_OPS_H__
 
+#include "nuitka/safe_string_ops.h"
+
 // Have a type for filename type different on Linux and Win32.
 #if defined(_WIN32)
 #define filename_char_t wchar_t
@@ -81,8 +83,9 @@ extern FILE_HANDLE openFileForReading(filename_char_t const *filename);
 extern FILE_HANDLE createFileForWriting(filename_char_t const *filename);
 extern int64_t getFileSize(FILE_HANDLE file_handle);
 extern bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size);
-extern bool writeFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size);
+extern bool writeFileChunk(FILE_HANDLE file_handle, void const *buffer, size_t size);
 extern bool closeFile(FILE_HANDLE target_file);
+extern error_code_t getLastErrorCode(void);
 
 extern int getFileMode(filename_char_t const *filename);
 extern bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mode);
