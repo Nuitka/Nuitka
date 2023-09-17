@@ -430,8 +430,6 @@ if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if isMacOS():
-    env.Append(CPPDEFINES=["_NUITKA_PAYLOAD_FROM_MACOS_SECTION"])
-
     addConstantBlobFile(
         env=env,
         blob_filename=os.path.join(source_dir, "__payload.bin"),

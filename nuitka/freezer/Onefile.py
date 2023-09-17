@@ -68,7 +68,7 @@ def packDistFolderToOnefile(dist_dir):
     Plugins.onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(onefile_compression):
+def _runOnefileScons(onefile_compression, onefile_archive):
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
 
     # Let plugins do their thing for onefile mode too.
@@ -91,6 +91,7 @@ def _runOnefileScons(onefile_compression):
     env_values["_NUITKA_ONEFILE_TEMP_BOOL"] = "1" if isOnefileTempDirMode() else "0"
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_BUILD_BOOL"] = "1" if onefile_compression else "0"
+    env_values["_NUITKA_ONEFILE_ARCHIVE_BOOL"] = "1" if onefile_archive else "0"
 
     # Allow plugins to build definitions.
     env_values.update(Plugins.getBuildDefinitions())
@@ -157,6 +158,8 @@ def runOnefileCompressor(
             onefile_output_filename=onefile_output_filename,
             start_binary=start_binary,
             expect_compression=compressor_python is not None,
+            as_archive=Options.shallOnefileAsArchive(),
+            use_compression_cache=not Options.shallDisableCompressionCacheUsage(),
             file_checksums=file_checksums,
             win_path_sep=win_path_sep,
             low_memory=Options.isLowMemory(),
@@ -190,6 +193,8 @@ def runOnefileCompressor(
                     str(file_checksums),
                     str(win_path_sep),
                     str(Options.isLowMemory()),
+                    str(Options.shallOnefileAsArchive()),
+                    str(not Options.shallDisableCompressionCacheUsage()),
                 ],
                 shell=False,
             )
@@ -227,6 +232,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         onefile_compression=compressor_python is not None,
+        onefile_archive=Options.shallOnefileAsArchive(),
     )
 
     if isWin32Windows():

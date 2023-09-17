@@ -1506,6 +1506,11 @@ def shallDisableBytecodeCacheUsage():
     return shallDisableCacheUsage("bytecode")
 
 
+def shallDisableCompressionCacheUsage():
+    """:returns: bool derived from ``--disable-cache=compression``"""
+    return shallDisableCacheUsage("compression")
+
+
 def shallDisableConsoleWindow():
     """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
     return options.disable_console
@@ -1692,6 +1697,11 @@ def getOnefileChildGraceTime():
 def shallNotCompressOnefile():
     """*bool* = ``--onefile-no-compression``"""
     return options.onefile_no_compression
+
+
+def shallOnefileAsArchive():
+    """*bool* = ``--onefile-as-archive``"""
+    return options.onefile_as_archive
 
 
 def getIconPaths():
