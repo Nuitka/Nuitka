@@ -261,6 +261,12 @@
     - depends:
         - '._common'
 
+- module-name: 'bitarray'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test': 'un-callable'
+
 - module-name: 'boto3'
   data-files:
     dirs:
