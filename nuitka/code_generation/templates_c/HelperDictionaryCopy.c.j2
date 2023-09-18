@@ -53,13 +53,14 @@ else
     /* Python 3 */
 #ifndef PY_NOGIL
     if (_PyDict_HasSplitTable(dict_mp)) {
-        Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
-
         PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
         assert(result_mp != NULL);
         {{ result }} = (PyObject *)result_mp;
 
+        Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+
 {% if per_key_code %}
+#if PYTHON_VERSION < 0x3b0
         for (Py_ssize_t i = 0; i < size; i++) {
             PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
 
@@ -67,6 +68,16 @@ else
                 PyObject *key = entry->me_key;
                 {{ per_key_code }}
             }
+#else
+        Py_ssize_t pos = 0;
+        PyObject *key, *_value;
+
+        while(Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &_value)) {
+            CHECK_OBJECT(key);
+            CHECK_OBJECT(_value);
+
+            {{ per_key_code }}
+#endif
         }
 {% endif %}
 
@@ -213,17 +224,22 @@ else
     {
         {{ result }} = _PyDict_NewPresized(dict_mp->ma_used);
 
+#if PYTHON_VERSION < 0x3b0
         Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
         for (Py_ssize_t i = 0; i < size; i++) {
             PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
+            PyObject *value = entry->me_value;
 
-            if (entry->me_value != NULL) {
+            if (value != NULL) {
                 PyObject *key = entry->me_key;
+                CHECK_OBJECT(key);
+
                 {{ per_key_code }}
 
-                PyObject *value = entry->me_value;
-                {{per_value_code}}
+                CHECK_OBJECT(value);
+
+                {{ per_value_code }}
 
                 int res = PyDict_SetItem({{ result }}, key, value);
                 assert(res == 0);
@@ -231,9 +247,30 @@ else
 {% if value_ref == 1 %}
                 Py_DECREF(value);
 {% endif %}
-
             }
         }
+#else
+        Py_ssize_t pos = 0;
+        PyObject *key, *value;
+
+        while(Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &value)) {
+            CHECK_OBJECT(key);
+            CHECK_OBJECT(value);
+
+            {{ per_key_code }}
+
+            CHECK_OBJECT(value);
+
+            {{ per_value_code }}
+
+            int res = PyDict_SetItem({{ result }}, key, value);
+            assert(res == 0);
+
+{% if value_ref == 1 %}
+            Py_DECREF(value);
+{% endif %}
+        }
+#endif
     }
 #endif
 }
