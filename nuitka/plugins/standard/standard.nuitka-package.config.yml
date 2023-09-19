@@ -261,6 +261,12 @@
     - depends:
         - '._common'
 
+- module-name: 'bitarray'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test': 'un-callable'
+
 - module-name: 'boto3'
   data-files:
     dirs:
@@ -748,6 +754,11 @@
         - 'engineio.async_drivers.sanic'
         - 'engineio.async_drivers.threading'
         - 'engineio.async_drivers.tornado'
+
+- module-name: 'ens._normalization'
+  data-files:
+    patterns:
+      - 'specs/*.json'
 
 - module-name: 'Equation'
   anti-bloat:
@@ -2833,6 +2844,12 @@
     - description: 'remove pdb usage'
       change_function:
         'setBreak': "'(lambda self: None)'"
+
+- module-name: 'pyparsing.core'
+  anti-bloat:
+    - description: 'remove pdb reference'
+      change_function:
+        'set_break': 'un-callable'
 
 - module-name: 'pyphen'
   data-files:

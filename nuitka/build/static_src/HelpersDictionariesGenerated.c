@@ -152,11 +152,11 @@ PyObject *DICT_COPY(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
-
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
+
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
@@ -277,20 +277,37 @@ PyObject *DICT_COPY(PyObject *dict_value) {
             {
                 result = _PyDict_NewPresized(dict_mp->ma_used);
 
+#if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
                 for (Py_ssize_t i = 0; i < size; i++) {
                     PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
+                    PyObject *value = entry->me_value;
 
-                    if (entry->me_value != NULL) {
+                    if (value != NULL) {
                         PyObject *key = entry->me_key;
+                        CHECK_OBJECT(key);
 
-                        PyObject *value = entry->me_value;
+                        CHECK_OBJECT(value);
 
                         int res = PyDict_SetItem(result, key, value);
                         assert(res == 0);
                     }
                 }
+#else
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            while (Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &value)) {
+                CHECK_OBJECT(key);
+                CHECK_OBJECT(value);
+
+                CHECK_OBJECT(value);
+
+                int res = PyDict_SetItem(result, key, value);
+                assert(res == 0);
+            }
+#endif
             }
 #endif
     }
@@ -351,11 +368,11 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
-
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
+
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
@@ -478,15 +495,19 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             {
                 result = _PyDict_NewPresized(dict_mp->ma_used);
 
+#if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
                 for (Py_ssize_t i = 0; i < size; i++) {
                     PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
+                    PyObject *value = entry->me_value;
 
-                    if (entry->me_value != NULL) {
+                    if (value != NULL) {
                         PyObject *key = entry->me_key;
+                        CHECK_OBJECT(key);
 
-                        PyObject *value = entry->me_value;
+                        CHECK_OBJECT(value);
+
                         value = DEEP_COPY(tstate, value);
 
                         int res = PyDict_SetItem(result, key, value);
@@ -495,6 +516,24 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
                         Py_DECREF(value);
                     }
                 }
+#else
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            while (Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &value)) {
+                CHECK_OBJECT(key);
+                CHECK_OBJECT(value);
+
+                CHECK_OBJECT(value);
+
+                value = DEEP_COPY(tstate, value);
+
+                int res = PyDict_SetItem(result, key, value);
+                assert(res == 0);
+
+                Py_DECREF(value);
+            }
+#endif
             }
 #endif
     }
@@ -556,12 +595,13 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
-
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+
+#if PYTHON_VERSION < 0x3b0
             for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
 
@@ -571,6 +611,18 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
                         had_kw_error = true;
                     }
                 }
+#else
+            Py_ssize_t pos = 0;
+            PyObject *key, *_value;
+
+            while (Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &_value)) {
+                CHECK_OBJECT(key);
+                CHECK_OBJECT(_value);
+
+                if (unlikely(!checkKeywordType(key))) {
+                    had_kw_error = true;
+                }
+#endif
             }
 
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
@@ -699,23 +751,45 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
             {
                 result = _PyDict_NewPresized(dict_mp->ma_used);
 
+#if PYTHON_VERSION < 0x3b0
                 Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
                 for (Py_ssize_t i = 0; i < size; i++) {
                     PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
+                    PyObject *value = entry->me_value;
 
-                    if (entry->me_value != NULL) {
+                    if (value != NULL) {
                         PyObject *key = entry->me_key;
+                        CHECK_OBJECT(key);
+
                         if (unlikely(!checkKeywordType(key))) {
                             had_kw_error = true;
                         }
 
-                        PyObject *value = entry->me_value;
+                        CHECK_OBJECT(value);
 
                         int res = PyDict_SetItem(result, key, value);
                         assert(res == 0);
                     }
                 }
+#else
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            while (Nuitka_DictNext((PyObject *)dict_mp, &pos, &key, &value)) {
+                CHECK_OBJECT(key);
+                CHECK_OBJECT(value);
+
+                if (unlikely(!checkKeywordType(key))) {
+                    had_kw_error = true;
+                }
+
+                CHECK_OBJECT(value);
+
+                int res = PyDict_SetItem(result, key, value);
+                assert(res == 0);
+            }
+#endif
             }
 #endif
     }
