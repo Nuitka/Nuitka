@@ -166,6 +166,9 @@ def __nuitka_freeze_support():
         else:
             kwds[name] = int(value)
 
+    # Otherwise main module names will not work.
+    sys.modules["__main__"] = sys.modules["__parents_main__"]
+
     multiprocessing.spawn.spawn_main(*args, **kwds)
 __nuitka_freeze_support()
 """
