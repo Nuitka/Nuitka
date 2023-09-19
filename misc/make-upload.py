@@ -60,9 +60,6 @@ assert (
     == 0
 )
 
-for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
-    assert os.system("rsync %s root@ssh.nuitka.net:/var/www/doc/" % filename) == 0
-
 # Upload only stable and develop releases to OpenSUSE Build Service:
 if branch_name.startswith("release") or branch_name == "main":
     pass
