@@ -10,6 +10,81 @@ Nuitka blog.
  Nuitka Release 1.9 (Draft)
 ****************************
 
+This release has had a focus on improved startup time and compatibility
+with lazy loaders which has resulted in some optimization. There are
+also the usual amounts of bug fixes.
+
+Bug Fixes
+=========
+
+-  Nuitka Action: Fix, the parsing code intended for the github action
+   was not working as advertised. Fixed in 1.8.1 already.
+
+-  Standalone: Follow ``soundfile`` change for their DLL names. Fixed in
+   1.8.1 already.
+
+-  MSYS: Fix, the recent change to detect their Python flavor with 3.11
+   was done wrong. Fixed in 1.8.1 already.
+
+-  Windows: Ignore MS API DLLs found from ``%PATH%``. We only ignored
+   them because they come from the Windows system folder, but if any
+   program has them, then we did include them. Fixed in 1.8.1 already.
+
+-  Standalone: Fix, ``calendar`` is used by ``time`` built-in module
+   actually and therefore must be included. Fixed in 1.8.1 already.
+
+-  Standalone: Added data file for ``unstructured`` package. Fixed in
+   1.8.1 already.
+
+-  Standalone: Added data file for ``grpc`` package. Fixed in 1.8.1
+   already.
+
+-  Standalone: Added missing dependency for ``skimage``. Fixed in 1.8.1
+   already.
+
+-  Python3.11: The dictionary copy code could crash on special kinds of
+   dictionaries. Fixed in 1.8.2 already.
+
+-  Standalone: Added data file required by ``ens`` of ``web3`` package.
+   Fixed in 1.8.2 already.
+
+-  Fix, ``multiprocessing`` could not access attributes living in
+   ``__main__`` module, but only things elsewhere, breaking minimal
+   examples. Fixed in 1.8.2 already.
+
+-  Reports: Fix, the license of some packages in case it is ``UNKNOWN``
+   was not handling all the cases that wheels expose. Fixed in 1.8.2
+   already.
+
+Optimization
+============
+
+-  Anti-Bloat: Avoid ``pytest`` usage in ``pooch`` package. Added in
+   1.8.1 already.
+
+-  Anti-Bloat: Remove ``pdb`` usage from ``pyparsing`` package. Added in
+   1.8.2 already.
+
+-  Anti-Bloat: Remove ``unittest`` usage in ``bitarray``. module. Added
+   in 1.8.2 already.
+
+Organisational
+==============
+
+-  UI: When interrupting during Scons build with CTRL-C do not give a
+   Nuitka call stack, there is no point in that one, rather just exit
+   with a message saying the user interrupted the scons build.
+
+-  UI: Make package data output from ``--list-package-data`` more
+   understandable.
+
+   We already has a count for DLLs too, and should not list directory
+   name in case it's empty and has no data files, otherwise this can
+   confuse people.
+
+-  UI: Make the progress bar react to terminal resizes. This avoids many
+   of the distortions seen in Visual Code that seems to do it a lot.
+
 This release is not done yet.
 
 ********************
@@ -304,6 +379,9 @@ Optimization
 
 Organisational
 ==============
+
+-  Stop creating PDFs for release. They are not really needed, but cause
+   extra effort that makes no sense.
 
 -  Debugging: Catch errors during data composer phase cleaner. Added in
    1.7.1 already.
