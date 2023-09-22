@@ -578,6 +578,9 @@ class ExpressionImportModuleHard(
                         % (self.value_name, attribute_name),
                     )
                 elif trust is trust_node:
+                    # TODO: Unify with other branches.
+                    trace_collection.onExceptionRaiseExit(ImportError)
+
                     result = trust_node_factory[self.value_name, attribute_name](
                         source_ref=lookup_node.source_ref
                     )
@@ -1012,8 +1015,15 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         return (
                             result,
                             "new_expression",
-                            "Lowered import of standard library module '%s' to hard import."
-                            % imported_module_name.asString(),
+                            "Lowered import %s module '%s' to hard import."
+                            % (
+                                (
+                                    "hard import"
+                                    if imported_module_name in hard_modules_non_stdlib
+                                    else "standard library"
+                                ),
+                                imported_module_name.asString(),
+                            ),
                         )
                     elif shallWarnUnusualCode():
                         unusual_logger.warning(
