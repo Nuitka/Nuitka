@@ -78,7 +78,7 @@ Organisational
 -  UI: Make package data output from ``--list-package-data`` more
    understandable.
 
-   We already has a count for DLLs too, and should not list directory
+   We already had a count for DLLs too, and should not list directory
    name in case it's empty and has no data files, otherwise this can
    confuse people.
 
@@ -256,6 +256,46 @@ Bug Fixes
    without importing the module first. The makes ``Faker`` work on
    Windows as well.
 
+-  Reports: Detect top level packages even with broken packaging. Some
+   packages will not reveal through installed files or top level what
+   package they are for, and as a result, they cannot be uninstalled,
+   but we need to still be able guess what package they are responsible
+   for, so we go by their PyPI name, which works for ``tensorflow``.
+
+-  Compatibility: More robust way of allowing iteration of compiled
+   packages via file path.
+
+   Rather than pre-populating the cache, we should provide the hook
+   function to check if we are responsible for a given path. With this,
+   the ``Faker`` package works on Windows as well now, and probably
+   other packages benefit too. This then works on paths rather than
+   strings, which due to short paths, etc. can be non-unique on Windows
+   easily.
+
+-  Standalone: Added support for the ``opencc`` package.
+
+-  Compatibility: Fix, import name resolving done for things like
+   ``six`` and others should be done as soon as possible, and not just
+   during optimization, or else some imports can become just wrong as a
+   result.
+
+-  Python3.11: Added support for the new ``closure`` keyword only
+   argument in ``exec`` built-in.
+
+-  Standalone: Added support for ``pythonnet`` on Linux as well.
+
+-  Debian: Fix, do not give false alarms for root pip installed
+   packages, they get a similar path component, but are not actually
+   Debian packages of course, this was mostly affecting builds inside
+   containers of course.
+
+-  Compatibility: Added support for comparing results from our resource
+   reader file interfaces. This is needed for when people want to e.g.
+   sort the the file list.
+
+-  Python3.6+: Fix, didn't catch ``await`` on module level as a syntax
+   error.
+
 New Features
 ============
 
@@ -290,6 +330,15 @@ New Features
    ``nuitka-watch`` so we can use enhanced ``nuitka-watch`` from develop
    branch with older versions of Nuitka with no issues.
 
+-  Watch: Now evaluates the minimum version needed for Nuitka, and skips
+   test cases, allowing ``nuitka-watch`` to be run with versions that do
+   not yet handle cases that e.g. develop already can, i.e. next Nuitka
+   version.
+
+-  Watch: Now evaluates if a compilation with Nuitka needs to be done at
+   all, as it's only necessary if the PyPI config changed, or if Nuitka
+   version changed.
+
 -  Reports: In case of a crash, always write report file for use in bug
    reporting. This is now done even if no report was asked for.
 
@@ -306,6 +355,15 @@ New Features
    exception exits pointing to compilation issues with helpful more
    annotations.
 
+-  Catch attempts to exec compiled function bytecodes.
+
+   This segfaults otherwise with at least Python3.11 and is probably a
+   good idea to catch for all versions, as it doesn't do anything.
+
+-  Windows: Remove unnecessary ``.\`` in CMD files generated, these will
+   otherwise show up in ``sys.argv[0]`` too, making them more ugly than
+   necessary.
+
 Optimization
 ============
 
@@ -317,13 +375,23 @@ Optimization
 
 -  Anti-Bloat: Avoid ``IPython`` in ``streamlit`` package.
 
--  Standalone: Make transformers work with ``no_docstrings`` mode. Added
-   in 1.7.7 already.
+-  Standalone: Make ``transformers`` work with ``no_docstrings`` mode.
+   Added in 1.7.7 already.
+
+-  Anti-Bloat: Avoid more ``IPython`` usage in ``transformers`` package.
+
+-  Anti-Bloat: Avoid using ``pytest`` in ``polyfactory`` package.
 
 -  Anti-Bloat: Expand the list of modules that are in the ``unittest``
    group by the ones Python provides itself, ``test.support``,
    ``test.test_support`` and ``future.moves.test.support``, so the
    culprits are more easily recognizable.
+
+-  Anti-Bloat: Treat ``ipykernel`` and ``jupyter_client`` as equal to
+   IPython for usage, so the bloat warning about IPython becomes more
+   meaningful in that case too.
+
+-  Anti-Bloat: Avoid using ``IPython`` in ``plumbum`` package.
 
 -  Statically optimize the value of ``sys.byteorder`` as well.
 
@@ -380,6 +448,13 @@ Optimization
 Organisational
 ==============
 
+-  User Manual: Make it clear in the example that renaming created
+   extension modules to change their name does not work, such that the
+   user has to first rename the Python module properly.
+
+-  macOS: Pronounce Homebrew as somewhat support but not recommended due
+   to its limited results for portability.
+
 -  Stop creating PDFs for release. They are not really needed, but cause
    extra effort that makes no sense.
 
@@ -390,6 +465,10 @@ Organisational
    1.7.5 already.
 
 -  Release: Avoid DNS lookup by container, these sometimes failed.
+
+-  UI: In case of ``SyntaxError`` in main file, always suggest latest
+   supported version. Previous it was toggling between Python2 and
+   Python3, but that's no longer the main reason this happens.
 
 -  UI: Fix typo in help output for ``--trademarks`` option. Added in
    1.7.8 already.
@@ -418,8 +497,22 @@ Organisational
    common trap, where users would only specify the missing plugin, but
    remove required plugins like ``platform`` making it stop to work.
 
+-  Plugins: Allow plugins provide ``None`` for flags not just by return
+   value length, but also an explicit value, so plugin code can make a
+   difference in a consistent way.
+
+-  UI: Lets have the ``options-nanny`` output the failed condition, so
+   it's more clear what the issue is.
+
 -  Quality: Unified spell checker markers to same form in all files
    through auto-format for more consistency.
+
+-  Quality: Always avoid attempting to format executables, much like we
+   already do for bytecode, otherwise some attempts on them can crash.
+
+-  Windows: Only change directory to short path during execution of
+   Scons, we are otherwise leaking it to ``--run`` execution in tests,
+   giving their output comparison a harder time than necessary.
 
 Cleanups
 ========
