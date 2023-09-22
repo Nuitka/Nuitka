@@ -398,6 +398,24 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                         },
                     )
 
+            if module_name == "huggingface_hub":
+                if (
+                    "__getattr__, __dir__, __all__ = _attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
+                    in source_code
+                ):
+                    huggingface_hub_lazy_loader_info = (
+                        self.queryRuntimeInformationSingle(
+                            setup_codes="import huggingface_hub",
+                            value="huggingface_hub._SUBMOD_ATTRS",
+                            info_name="huggingface_hub_lazy_loader",
+                        )
+                    )
+
+                    self.lazy_loader_usages[module_name] = (
+                        [],
+                        huggingface_hub_lazy_loader_info,
+                    )
+
         return source_code
 
     def _handleLazyLoad(self, module_name, source_filename):
