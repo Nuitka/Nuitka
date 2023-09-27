@@ -1357,11 +1357,11 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
     char const *function_name = Nuitka_String_AsString(function->m_qualname);
 #endif
 
-    Py_ssize_t kwonlyargcount = function->m_code_object->co_kwonlyargcount;
+    Py_ssize_t co_kwonlyargcount = function->m_code_object->co_kwonlyargcount;
 
     Py_ssize_t max_missing = 0;
 
-    for (Py_ssize_t i = kwonlyargcount - 1; i >= 0; --i) {
+    for (Py_ssize_t i = co_kwonlyargcount - 1; i >= 0; --i) {
         if (kw_vars[i] == NULL) {
             max_missing += 1;
         }
@@ -1373,7 +1373,7 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
     PyObject *and_str = PyUnicode_FromString(max_missing == 2 ? " and " : ", and ");
 
     Py_ssize_t missing = 0;
-    for (Py_ssize_t i = kwonlyargcount - 1; i >= 0; --i) {
+    for (Py_ssize_t i = co_kwonlyargcount - 1; i >= 0; --i) {
         if (kw_vars[i] == NULL) {
             PyObject *current_str = function->m_varnames[function->m_args_positional_count + i];
 
@@ -1519,10 +1519,10 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
         }
 
         if (found == false) {
-            PyObject **varnames = function->m_varnames;
+            PyObject **var_names = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1542,9 +1542,9 @@ static Py_ssize_t handleKeywordArgs(PyThreadState *tstate, struct Nuitka_Functio
             bool pos_only_error = false;
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
-                PyObject **varnames = function->m_varnames;
+                PyObject **var_names = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -1633,11 +1633,11 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
         }
 
         if (found == false) {
-            PyObject **varnames = function->m_varnames;
+            PyObject **var_names = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 // TODO: Could do better here, STR/UNICODE key knowledge being there.
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1657,9 +1657,9 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
             bool pos_only_error = false;
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
-                PyObject **varnames = function->m_varnames;
+                PyObject **var_names = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -1735,7 +1735,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
 
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
 
-    PyObject **varnames = function->m_varnames;
+    PyObject **var_names = function->m_varnames;
 
 #if PYTHON_VERSION < 0x380
     Py_ssize_t kw_arg_start = 0;
@@ -1744,7 +1744,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(PyThreadState *tstate, struct Nu
 #endif
 
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = varnames[i];
+        PyObject *arg_name = var_names[i];
 
         PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
 
@@ -1800,7 +1800,7 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
     Py_ssize_t keyword_after_index = function->m_args_positional_count;
 #endif
 
-    PyObject **varnames = function->m_varnames;
+    PyObject **var_names = function->m_varnames;
 
 #if PYTHON_VERSION < 0x380
     Py_ssize_t kw_arg_start = 0;
@@ -1809,7 +1809,7 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
 #endif
 
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = varnames[i];
+        PyObject *arg_name = var_names[i];
 
         PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
 
@@ -2611,10 +2611,10 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
         }
 
         if (found == false) {
-            PyObject **varnames = function->m_varnames;
+            PyObject **var_names = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[pos];
                     Py_INCREF(python_pars[i]);
@@ -2633,9 +2633,9 @@ static Py_ssize_t _handleVectorcallKeywordArgs(PyThreadState *tstate, struct Nui
             bool pos_only_error = false;
 
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
-                PyObject **varnames = function->m_varnames;
+                PyObject **var_names = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(var_names[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -2710,7 +2710,7 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
 
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
 
-    PyObject **varnames = function->m_varnames;
+    PyObject **var_names = function->m_varnames;
 
 #if PYTHON_VERSION < 0x380
     Py_ssize_t kw_arg_start = 0;
@@ -2719,7 +2719,7 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(PyThreadState *tstate,
 #endif
 
     for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-        PyObject *arg_name = varnames[i];
+        PyObject *arg_name = var_names[i];
 
         PyObject *kw_arg_value = DICT_GET_ITEM1(tstate, python_pars[star_dict_index], arg_name);
 
@@ -2894,15 +2894,15 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names) {
     assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
-    Py_ssize_t nkwargs = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t kwargs_count = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
 
     Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
     assert(nargs >= 0);
-    assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+    assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
     PyThreadState *tstate = PyThreadState_GET();
     return Nuitka_CallFunctionVectorcall(tstate, function, stack, nargs,
-                                         kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, nkwargs);
+                                         kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 }
 #endif
 
