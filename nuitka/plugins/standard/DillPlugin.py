@@ -136,7 +136,7 @@ def save_compiled_function(pickler, obj):
             return (
                 code,
                 """\
-Extending "dill" for compiled types to be pickable as well.""",
+Extending "dill" for compiled types to be pickle-able as well.""",
             )
 
     @staticmethod

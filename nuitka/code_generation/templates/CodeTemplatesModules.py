@@ -150,7 +150,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     if (Nuitka_Function_Check(func) == false) {
         PyThreadState *tstate = PyThreadState_GET();
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "not a compiled function");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
@@ -199,7 +199,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 static PyMethodDef _method_def_reduce_compiled_function = {"reduce_compiled_function", (PyCFunction)_reduce_compiled_function,
                                                            METH_VARARGS | METH_KEYWORDS, NULL};
 
-static char const *_create_compiled_function_argnames[] = {
+static char const *_create_compiled_function_arg_names[] = {
     "func",
     "code_object_desc",
     "defaults",
@@ -216,18 +216,20 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *defaults;
     PyObject *doc;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOO:create_compiled_function", (char **)_create_compiled_function_argnames, &func, &code_object_desc, &defaults, &doc, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOO:create_compiled_function", (char **)_create_compiled_function_arg_names, &func, &code_object_desc, &defaults, &doc, NULL)) {
         return NULL;
     }
 
     int offset = PyLong_AsLong(func);
+
+    PyThreadState *tstate = PyThreadState_GET();
 
     if (offset == -1 && HAS_ERROR_OCCURRED(tstate)) {
         return NULL;
     }
 
     if (offset > sizeof(functable_%(module_identifier)s) || offset < 0) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
         return NULL;
     }
 
