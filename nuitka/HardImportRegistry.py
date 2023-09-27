@@ -61,6 +61,7 @@ hard_modules = set(
         "ctypes.macholib",
         # TODO: Once generation of nodes for functions exists.
         # "platform",
+        "builtins",
     )
 )
 
@@ -89,6 +90,7 @@ hard_modules_version = {
     "importlib.resources": (0x370, None, None),
     "importlib.metadata": (0x380, None, None),
     "ctypes.wintypes": (None, None, "win32"),
+    "builtin": (0x300, None, None),
 }
 
 hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
@@ -169,6 +171,10 @@ if python_version < 0x270:
 else:
     module_sys_trust["version_info"] = trust_node
     trust_node_factory[("sys", "version_info")] = ExpressionConstantSysVersionInfoRef
+
+module_builtins_trust = {}
+if python_version >= 0x300:
+    module_builtins_trust["open"] = trust_node
 
 if python_version < 0x300:
     module_sys_trust["exc_type"] = trust_may_exist
@@ -267,6 +273,7 @@ hard_modules_trust = {
     "site": {},
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
+    "builtins": module_builtins_trust,
 }
 
 
