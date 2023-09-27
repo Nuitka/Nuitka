@@ -649,6 +649,15 @@
         'import IPython.display as display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'datasets.packaged_modules'
+  anti-bloat:
+    - description: 'workaround dependency source code usages'
+      context:
+        - 'import datasets.packaged_modules'
+      replacements_re:
+        'inspect\.getsource\((.*?)\)': '""'
+      append_result: '"_PACKAGED_DATASETS_MODULES = %r" % datasets.packaged_modules._PACKAGED_DATASETS_MODULES'
+
 - module-name: 'datatree'
   anti-bloat:
     - description: 'remove useless metadata usage'
