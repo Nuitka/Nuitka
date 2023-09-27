@@ -588,7 +588,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # The ast uses funny names a bunch.
-    # spell-checker: ignore varnames,elts,posonlyargs,kwonlyargs,varargannotation,vararg
+    # spell-checker: ignore elts,posonlyargs,kwonlyargs,varargannotation,vararg
     # spell-checker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.

@@ -153,7 +153,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
         return locals_owner->f_locals;
     } else {
         PyObject *result = MAKE_DICT_EMPTY();
-        PyObject **varnames = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
+        PyObject **var_names = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
         char const *w = nuitka_frame->m_type_description;
         char const *t = nuitka_frame->m_locals_storage;
@@ -166,7 +166,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 CHECK_OBJECT_X(value);
 
                 if (value != NULL) {
-                    DICT_SET_ITEM(result, *varnames, value);
+                    DICT_SET_ITEM(result, *var_names, value);
                 }
 
                 t += sizeof(PyObject *);
@@ -179,7 +179,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 CHECK_OBJECT(value);
 
                 if (value->ob_ref != NULL) {
-                    DICT_SET_ITEM(result, *varnames, value->ob_ref);
+                    DICT_SET_ITEM(result, *var_names, value->ob_ref);
                 }
 
                 t += sizeof(struct Nuitka_CellObject *);
@@ -194,11 +194,11 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 t += sizeof(int);
                 switch ((nuitka_bool)value) {
                 case NUITKA_BOOL_TRUE: {
-                    DICT_SET_ITEM(result, *varnames, Py_True);
+                    DICT_SET_ITEM(result, *var_names, Py_True);
                     break;
                 }
                 case NUITKA_BOOL_FALSE: {
-                    DICT_SET_ITEM(result, *varnames, Py_False);
+                    DICT_SET_ITEM(result, *var_names, Py_False);
                     break;
                 }
                 default:
@@ -211,7 +211,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
             }
 
             w += 1;
-            varnames += 1;
+            var_names += 1;
         }
 
         return result;
