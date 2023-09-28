@@ -1055,6 +1055,10 @@ except ImportError:
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
                 return None
+
+            if Options.is_debug:
+                self.info(cmd)
+
             raise
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
