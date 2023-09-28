@@ -24,6 +24,7 @@ from nuitka.plugins.Plugins import (
     getActiveQtPluginBindingName,
     hasActivePlugin,
 )
+from nuitka.utils.Execution import NuitkaCalledProcessError
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
@@ -68,9 +69,10 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
             There might exist a local version outside 'matplotlib/mpl-data' which
             we then must use instead. Determine its name by asking matplotlib.
         """
-        info = self.queryRuntimeInformationMultiple(
-            info_name="matplotlib_info",
-            setup_codes="""
+        try:
+            info = self.queryRuntimeInformationMultiple(
+                info_name="matplotlib_info",
+                setup_codes="""
 from matplotlib import matplotlib_fname, get_backend, __version__
 try:
     from matplotlib import get_data_path
@@ -78,17 +80,24 @@ except ImportError:
     from matplotlib import _get_data_path as get_data_path
 from inspect import getsource
 """,
-            values=(
-                ("matplotlibrc_filename", "matplotlib_fname()"),
-                ("backend", "get_backend()"),
-                ("data_path", "get_data_path()"),
-                ("matplotlib_version", "__version__"),
-                (
-                    "needs_matplotlibdata_env",
-                    "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
+                values=(
+                    ("matplotlibrc_filename", "matplotlib_fname()"),
+                    ("backend", "get_backend()"),
+                    ("data_path", "get_data_path()"),
+                    ("matplotlib_version", "__version__"),
+                    (
+                        "needs_matplotlibdata_env",
+                        "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
+                    ),
                 ),
-            ),
-        )
+            )
+        except NuitkaCalledProcessError:
+            if "MPLBACKEND" not in os.environ:
+                self.sysexit(
+                    "Error, failed to detect matplotlib backend. Please set 'MPLBACKEND' during compilation."
+                )
+
+            raise
 
         if info is None:
             self.sysexit("Error, it seems 'matplotlib' is not installed or broken.")
@@ -105,6 +114,18 @@ from inspect import getsource
             self.sysexit(
                 "mpl-data missing, matplotlib installation appears to be broken"
             )
+
+        self.info(
+            "Using %s backend '%s'."
+            % (
+                (
+                    "configuration file or default"
+                    if "MPLBACKEND" not in os.environ
+                    else "as per 'MPLBACKEND' environment variable"
+                ),
+                matplotlib_info.backend,
+            )
+        )
 
         # Include the "mpl-data" files.
         yield self.makeIncludedDataDirectory(
