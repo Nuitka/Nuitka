@@ -1132,7 +1132,7 @@ def getShallFollowInNoCase():
 
 
 def getShallFollowModules():
-    """*list*, items of ``--follow-import-to=``"""
+    """*list*, items of ``--follow-import-to=`` amended with what ``--include-module`` and ``--include-package`` got"""
     return sum(
         [
             _splitShellPattern(x)
