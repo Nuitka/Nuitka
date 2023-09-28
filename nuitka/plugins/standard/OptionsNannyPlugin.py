@@ -103,10 +103,11 @@ Otherwise a terminal window will open"""
 
                 self.info(
                     """\
-Note, when using '%s', consider using '--disable-console' option. %s. However for \
-debugging, terminal output is the easiest way to see informative traceback \
+Note, when using '%s', consider using '--disable-console' option. %s. However\
+for debugging, terminal output is the easiest way to see informative traceback \
 and error information, so delay this until your program working and remove \
-once you find it non-working."""
+once you find it non-working, and use --enable-console to make it explicit \
+and not see this message."""
                     % (full_name, downside_message)
                 )
 
