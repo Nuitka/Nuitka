@@ -1350,6 +1350,11 @@
         prefixes:
           - 'lib_lightgbm'
 
+- module-name: 'lightning'
+  data-files:
+    patterns:
+      - 'version.info'
+
 - module-name: 'lightning_fabric'
   data-files:
     patterns:
