@@ -122,7 +122,7 @@ Requirements
 
    .. admonition:: It **cannot be** pyenv on macOS
 
-      It is know that macOS "pyenv" does **not** work. Use Homebrew
+      It is known that macOS "pyenv" does **not** work. Use Homebrew
       instead for self compiled Python installations. But note that
       standalone mode will be worse on these platforms and not be as
       backward compatible with older macOS versions.
@@ -145,7 +145,7 @@ Requirements
 
 .. [#]
 
-   Support for this C11 is a given with gcc 5.x or higher or any clang
+   Support for this C11 is given with gcc 5.x or higher or any clang
    version.
 
    The MSVC compiler doesn't do it yet. But as a workaround, as the C++03
@@ -370,7 +370,7 @@ executable:
 
 .. note::
 
-   The resulting binary still depend on CPython and used C extension
+   The resulting binary still depends on CPython and used C extension
    modules being installed.
 
    If you want to be able to copy it to another machine, use
@@ -396,7 +396,7 @@ The resulting file ``some_module.so`` can then be used instead of
    The filename of the produced extension module must not be changed as
    Python insists on a module name derived function as an entry point,
    in this case ``PyInit_some_module`` and renaming the file will not
-   change that. Match the filename of the source code what the binary
+   change that. Match the filename of the source code to what the binary
    name should be.
 
 .. note::
@@ -644,7 +644,7 @@ Nuitka.
       },
    )
 
-If for some reason, you cannot or do not what to change the target, you
+If for some reason, you cannot or do not want to change the target, you
 can add this to your ``setup.py``.
 
 .. code:: python
@@ -817,7 +817,7 @@ itself is not slow, but your program may be, and you cannot really know
 how fast the computer used will be, so it might be a good idea to have
 them. Luckily with Nuitka, they are easy to add for Windows.
 
-For splash screen, you need to specify it as an PNG file, and then make
+For splash screen, you need to specify it as a PNG file, and then make
 sure to disable the splash screen when your program is ready, e.g. has
 complete the imports, prepared the window, connected to the database,
 and wants the splash screen to go away. Here we are using the project
@@ -864,7 +864,7 @@ Version Information
 You can attach copyright and trademark information, company name,
 product name, and so on to your compilation. This is then used in
 version information for the created binary on Windows, or application
-bundle on macOS. If you find something that it's lacking, let us know.
+bundle on macOS. If you find something that is lacking, let us know.
 
 ******************
  Typical Problems
@@ -919,7 +919,7 @@ Use LTO compilation or not
 With ``--lto=yes`` or ``--lto=no`` you can switch the C compilation to
 only produce bytecode, and not assembler code and machine code directly,
 but make a whole program optimization at the end. This will change the
-memory usage pretty dramatically, and if you error is coming from the
+memory usage pretty dramatically, and if your error is coming from the
 assembler, using LTO will most definitely avoid that.
 
 Switch the C compiler to clang
@@ -994,7 +994,7 @@ icon files or help texts, may raise strange errors.
 Often the error paths for files not being present are even buggy and
 will reveal programming errors like unbound local variables. Please look
 carefully at these exceptions keeping in mind that this can be the
-cause. If you program works without standalone, chances are data files
+cause. If your program works without standalone, chances are data files
 might be cause.
 
 The most common error indicating file absence is of course an uncaught
@@ -1072,7 +1072,7 @@ Onefile: Finding files
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
 main module for onefile mode, that is caused by using a bootstrap to a
 temporary location. The first one will be the original executable path,
-where as the second one will be the temporary or permanent path the
+whereas the second one will be the temporary or permanent path the
 bootstrap executable unpacks to. Data files will be in the later
 location, your original environment files will be in the former
 location.
@@ -1402,7 +1402,7 @@ for 64 bits, and just ``Arch: x86`` for 32 bits.
 
 The C compiler will be picked to match that more or less automatically.
 If you specify it explicitly and it mismatches, you will get a warning
-about the mismatch and informed that you compiler choice was rejected.
+about the mismatch and informed that your compiler choice was rejected.
 
 ********************
  Compilation Report
@@ -1410,7 +1410,7 @@ about the mismatch and informed that you compiler choice was rejected.
 
 When you use ``--report=compilation-report.xml`` Nuitka will create an
 XML file with detailed information about the compilation and packaging
-process. This is growing in completeness with very release and exposes
+process. This is growing in completeness with every release and exposes
 module usage attempts, timings of the compilation, plugin influences,
 data file paths, DLLs, and reasons why things are included or not.
 
@@ -1990,7 +1990,7 @@ before making the actual call, to avoid a re-ordering of the calls to
 
    Not even started. A re-formulation that avoids the dictionary to call
    the function, and instead uses temporary variables appears to be
-   relatively straight forward once we do that kind of parameter
+   relatively straightforward once we do that kind of parameter
    analysis.
 
 Lowering of iterated Container Types
