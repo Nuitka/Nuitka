@@ -578,7 +578,7 @@ def enableWindowsStackSize(env, target_arch):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
-def setupCCompiler(env, lto_mode, pgo_mode, job_count):
+def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     # This is driven by many branches on purpose and has a lot of things
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
 
@@ -789,11 +789,22 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         env.Append(CCFLAGS=["-fPIC"])
 
     # We use zlib for crc32 functionality
-    env.Append(
-        CPPPATH=[
-            os.path.join(env.nuitka_src, "inline_copy", "zlib"),
-        ],
-    )
+    zlib_inline_copy_dir = os.path.join(env.nuitka_src, "inline_copy", "zlib")
+    if os.path.exists(os.path.join(zlib_inline_copy_dir, "crc32.c")):
+        env.Append(
+            CPPPATH=[
+                zlib_inline_copy_dir,
+            ],
+        )
+    else:
+        # TODO: Should only happen for official Debian packages, and there we
+        # can use the zlib static linking maybe, but for onefile it's not easy
+        # to get it, so just use slow checksum for now.
+        if onefile_compile:
+            env.Append(CPPDEFINES=["_NUITKA_USE_OWN_CRC32"])
+        else:
+            env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
+            env.Append(LIBS="z")
 
 
 def _enablePgoSettings(env, pgo_mode):

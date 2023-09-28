@@ -21,10 +21,11 @@
 #include "nuitka/prelude.h"
 #endif
 
-// Comment out to disable zlib usage.
-#define USE_ZLIB_CRC32
+// Comment in to disable outside zlib usage for code size, very slow though,
+// since it doesn't use assembly to use CPU crc32 instructions.
+// #define _NUITKA_USE_OWN_CRC32
 
-#ifndef USE_ZLIB_CRC32
+#ifdef _NUITKA_USE_OWN_CRC32
 uint32_t _initCRC32(void) { return 0xFFFFFFFF; }
 
 uint32_t _updateCRC32(uint32_t crc, unsigned char const *message, uint32_t size) {
@@ -49,7 +50,11 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
 }
 #else
 
+#ifdef _NUITKA_USE_SYSTEM_CRC32
+#include "zlib.h"
+#else
 #include "crc32.c"
+#endif
 
 uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0, message, size) & 0xFFFFFFFF; }
 #endif
