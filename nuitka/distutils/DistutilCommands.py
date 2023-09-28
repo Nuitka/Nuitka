@@ -379,7 +379,6 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         wheel.bdist_wheel.bdist_wheel.finalize_options(self)
         # Force module to use correct platform in name
         self.root_is_pure = False
-        self.plat_name_supplied = self.plat_name is not None
 
     def write_wheelfile(self, wheelfile_base, generator=None):
         if generator is None:
