@@ -56,7 +56,7 @@ from .SconsUtils import (
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
 # spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
 # spell-checker: ignore -feliminate,noexecstack,implib
-# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,
+# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS
 
 
 def _detectWindowsSDK(env):
@@ -496,6 +496,11 @@ unsigned char const *getConstantsBlobData(void) {
         # Indicate "linker" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
+        # For MinGW the symbol name to be used is more low level.
+        constant_bin_link_name = "constant_bin_data"
+        if env.mingw_mode:
+            constant_bin_link_name = "_" + constant_bin_link_name
+
         env.Append(
             LINKFLAGS=[
                 "-Wl,-b",
@@ -508,9 +513,9 @@ unsigned char const *getConstantsBlobData(void) {
                     mingw_mode=env.mingw_mode or isPosixWindows(),
                 ),
                 "-Wl,-defsym",
-                "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
+                "-Wl,%s=_binary_%s___constants_bin_start"
                 % (
-                    "_" if env.mingw_mode else "",
+                    constant_bin_link_name,
                     "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
                 ),
             ]
@@ -770,7 +775,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    # Avoid dependency on MinGW libraries.
+    # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
     if env.mingw_mode and not env.clang_mode:
         env.Append(LINKFLAGS=["-static-libgcc"])
 
