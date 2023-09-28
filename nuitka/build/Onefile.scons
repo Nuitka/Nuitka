@@ -326,6 +326,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    onefile_compile=True,
 )
 
 # Avoid them as appearing to be different files. TODO: Find out which

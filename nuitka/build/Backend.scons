@@ -406,6 +406,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode=pgo_mode,
     job_count=job_count,
+    onefile_compile=False,
 )
 
 
@@ -962,7 +963,7 @@ if forced_stderr_path and not forced_stdout_path:
     env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
 
 if file_reference_mode == "original":
-    env.Append(CPPDEFINES=["NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
+    env.Append(CPPDEFINES=["_NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
 
 
 createBuildDefinitionsFile()
