@@ -296,6 +296,28 @@ Bug Fixes
 -  Python3.6+: Fix, didn't catch ``await`` on module level as a syntax
    error.
 
+-  Compatibility: Added support for ``joblib`` with ``loky`` backend as
+   well.
+
+-  Standalone: Added support for newer ``chromadb`` adding missing
+   dependencies and data files.
+
+-  Python3.9+: Fix, ``importlib.resources.files()`` was not fully
+   compatible
+
+   Need to provide basename for ``.name`` attribute rather than an
+   absolute path. And in some cases, a leading trailing slashes was
+   produced for the full path, which caused trouble for file iteration
+   of filenames.
+
+-  Standalone: Added support for newer ``importlib_resources`` as well.
+   We now need to expose the ``files`` functionality even before Python
+   3.9 for this to be possible.
+
+-  Standalone: Added support for newer ``rapidfuzz`` package.
+
+-  Added support for newer ``PyOpenGL`` package.
+
 New Features
 ============
 
@@ -317,7 +339,8 @@ New Features
    1.7.8 already.
 
 -  Haiku: Added support for accelerated mode, standalone will need more
-   work.
+   work, also recognize its form of the ``site-packages`` folder, named
+   ``vendor-packages``.
 
 -  Disable misleading initial import exception handling in ``numpy``,
    all what it says detracts only.
@@ -339,8 +362,15 @@ New Features
    all, as it's only necessary if the PyPI config changed, or if Nuitka
    version changed.
 
+-  Reports: Added source path for modules, so it's easier to tell where
+   something came from, and esp. in case of bugs in the import location
+   of Nuitka.
+
 -  Reports: In case of a crash, always write report file for use in bug
    reporting. This is now done even if no report was asked for.
+
+-  Reports: Include error exit message from Nuitka in case of explicit
+   exits.
 
 -  UI: Added new ``--deployment`` and ``--no-deployment-flag`` that
    disables certain debugging helpers.
@@ -364,8 +394,15 @@ New Features
    otherwise show up in ``sys.argv[0]`` too, making them more ugly than
    necessary.
 
+-  Scons: Also respect ``CFLAGS`` setting. It's rarely used, but for
+   completeness sake we should have that too. The effects are the same
+   as ``CCFLAGS`` it seems.
+
 Optimization
 ============
+
+-  Added type shape for built-in hash operation, these must indeed be of
+   ``int`` type either way.
 
 -  Anti-Bloat: Avoid using ``unittest`` in ``future`` and
    ``multiprocessing`` package. Added in 1.7.3 already.
@@ -445,6 +482,25 @@ Optimization
 -  Anti-Bloat: More changes needed for newer ``sympy`` to avoid
    ``IPython``. Added in 1.7.10 already.
 
+-  Anti-Bloat: Enhanced handling of ``PIL.ImageQt`` even without the Qt
+   binding plugins being active.
+
+-  Anti-Bloat: Do not automatically follow ``matplotlib`` from ``scipy``
+   as that is code that will only be used if other code using it exists
+   too.
+
+-  Anti-Bloat: Avoid ``pandas`` and ``matplotlib`` for ``sklearn``
+   package. Availability checks of third party packages should be
+   counted as real usage.
+
+-  Anti-Bloat: Avoid ``IPython`` in newer ``keras`` module too.
+
+-  Anti-Bloat: Updated for newer ``tensorflow`` package, also using more
+   robust new form of ``no-auto-follow`` to achieve that.
+
+-  Anti-Bloat: Avoid using Qt bindings for ``pandas.io.clipboard`` as
+   it's only useful if one of our Qt plugins is active.
+
 Organisational
 ==============
 
@@ -455,8 +511,24 @@ Organisational
 -  macOS: Pronounce Homebrew as somewhat support but not recommended due
    to its limited results for portability.
 
+-  UI: Added mnemonic for unsupported Windows store Python, so we have a
+   place to give more information.
+
+-  UI: Disable warning for ``numpy``/``scipy`` DLL non-identity
+   conflicts. These are very common unfortunately and known to be
+   harmless.
+
 -  Stop creating PDFs for release. They are not really needed, but cause
    extra effort that makes no sense.
+
+-  Quality: Updated to latest black which removes some leading new lines
+   in blocks, changing a bunch of files. Bumped development requirements
+   file Python version to 3.8, since black won't do 3.7 anymore.
+
+-  Quality: Updated to latest PyLint, no changes from that.
+
+-  Quality: Auto-format the markdown files used for GitHub templates as
+   well.
 
 -  Debugging: Catch errors during data composer phase cleaner. Added in
    1.7.1 already.
@@ -465,6 +537,9 @@ Organisational
    1.7.5 already.
 
 -  Release: Avoid DNS lookup by container, these sometimes failed.
+
+-  UI: Catch user error of compiling in module mode with unknown file
+   kinds, it needs to be Python code of course.
 
 -  UI: In case of ``SyntaxError`` in main file, always suggest latest
    supported version. Previous it was toggling between Python2 and
@@ -514,6 +589,12 @@ Organisational
    Scons, we are otherwise leaking it to ``--run`` execution in tests,
    giving their output comparison a harder time than necessary.
 
+-  Scons: Use report paths for outputs of filenames in slow compilation
+   messages as well.
+
+-  WinPython: Adapted detection of this flavor to changes made in that
+   project.
+
 Cleanups
 ========
 
@@ -544,7 +625,23 @@ Cleanups
    robust and had bugs to be fixed that became visible now, and that
    make it unclear how it ever worked as well.
 
+-  Refactor towards unification of statement and expression.
+
+   Make sure Make existing statement operations, i.e. use the function
+   intended for them so they are immediately closer to what expressions
+   do, and don't visit their own children themselves anymore.
+
+   Remove checks for expression or statement, we won't use that anymore,
+   and it's only costing performance until we merge them.
+
+-  The caching (currently only used when demoting to bytecode), was not
+   keeping track of distributions attempted to be used, but then being
+   not found. That could have led to errors when using the cached
+   result.
+
 -  Again some more spelling fixes in code were identified and fixed.
+
+-  Removed now unused user provided flag from uncompiled module nodes.
 
 -  Removed 3.3 support from test runner as well.
 
