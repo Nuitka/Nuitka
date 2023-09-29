@@ -95,10 +95,12 @@ class nuitka_distribution(Distribution):\n\
 
         struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString_Unchecked(package_name));
 
-        if (entry == NULL) {
-            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, importlib_metadata_distribution, name);
+        if (unlikely(entry == NULL)) {
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_RuntimeError,
+                                                "cannot locate package '%s' associated with metadata",
+                                                Nuitka_String_AsString(package_name));
 
-            return result;
+            return NULL;
         }
 
         PyObject *args[3] = {getModuleDirectory(tstate, entry), metadata, entry_points};
