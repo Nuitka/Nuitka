@@ -56,6 +56,10 @@ Bug Fixes
    was not handling all the cases that wheels expose. Fixed in 1.8.2
    already.
 
+-  Fix, using ``--include-module`` and ``--include-package`` was
+   behaving identical for packages. Made the former not include all of
+   the package, but only the top level and what that uses.
+
 Optimization
 ============
 

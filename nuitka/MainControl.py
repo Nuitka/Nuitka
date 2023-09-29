@@ -245,7 +245,9 @@ def _createMainModule():
             )
 
         Recursion.checkPluginSinglePath(
-            plugin_filename=module_filename, module_package=module_name.getPackageName()
+            plugin_filename=module_filename,
+            module_package=module_name.getPackageName(),
+            package_only=True,
         )
 
     # Allow plugins to add more modules based on the initial set being complete.

@@ -257,8 +257,9 @@ def isSameModulePath(path1, path2):
     return os.path.abspath(path1) == os.path.abspath(path2)
 
 
-def _addIncludedModule(module):
-    # Many branches, for the decision is very complex, pylint: disable=too-many-branches
+def _addIncludedModule(module, package_only):
+    # Many branches, for the decision is very complex
+    # pylint: disable=too-many-branches
 
     if Options.isShowInclusion():
         recursion_logger.info(
@@ -291,16 +292,25 @@ def _addIncludedModule(module):
         if Options.isShowInclusion():
             recursion_logger.info("Package directory '%s'." % package_dir)
 
-        for sub_path, sub_filename in listDir(package_dir):
-            if sub_filename in ("__init__.py", "__pycache__"):
-                continue
+        if not package_only:
+            for sub_path, sub_filename in listDir(package_dir):
+                if sub_filename in ("__init__.py", "__pycache__"):
+                    continue
 
-            if Importing.isPackageDir(sub_path) and not os.path.exists(
-                sub_path + ".py"
-            ):
-                checkPluginSinglePath(sub_path, module_package=module.getFullName())
-            elif sub_path.endswith(".py"):
-                checkPluginSinglePath(sub_path, module_package=module.getFullName())
+                if Importing.isPackageDir(sub_path) and not os.path.exists(
+                    sub_path + ".py"
+                ):
+                    checkPluginSinglePath(
+                        sub_path,
+                        module_package=module.getFullName(),
+                        package_only=False,
+                    )
+                elif sub_path.endswith(".py"):
+                    checkPluginSinglePath(
+                        sub_path,
+                        module_package=module.getFullName(),
+                        package_only=False,
+                    )
 
     elif module.isCompiledPythonModule() or module.isUncompiledPythonModule():
         ModuleRegistry.addRootModule(module)
@@ -311,7 +321,7 @@ def _addIncludedModule(module):
         assert False, module
 
 
-def checkPluginSinglePath(plugin_filename, module_package):
+def checkPluginSinglePath(plugin_filename, module_package, package_only):
     # The importing wants these to be unique.
     plugin_filename = os.path.abspath(plugin_filename)
 
@@ -357,7 +367,7 @@ the compiled result, and therefore asking to include them makes no sense.
             )
 
             if module:
-                _addIncludedModule(module)
+                _addIncludedModule(module=module, package_only=package_only)
             else:
                 recursion_logger.warning(
                     "Failed to include module from '%s'." % plugin_filename
@@ -378,7 +388,11 @@ def checkPluginPath(plugin_filename, module_package):
 
     # Files and package directories are handled here.
     if os.path.isfile(plugin_filename) or Importing.isPackageDir(plugin_filename):
-        checkPluginSinglePath(plugin_filename, module_package=module_package)
+        checkPluginSinglePath(
+            plugin_filename,
+            module_package=module_package,
+            package_only=False,
+        )
     # This effectively only covers files known to not be packages due to name
     # or older Python version.
     elif os.path.isdir(plugin_filename):
@@ -386,12 +400,20 @@ def checkPluginPath(plugin_filename, module_package):
             assert sub_filename != "__init__.py"
 
             if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
-                checkPluginSinglePath(sub_path, module_package=None)
+                checkPluginSinglePath(
+                    sub_path,
+                    module_package=None,
+                    package_only=False,
+                )
                 continue
 
             for suffix in getSharedLibrarySuffixes():
                 if sub_path.endswith(suffix):
-                    checkPluginSinglePath(sub_path, module_package=None)
+                    checkPluginSinglePath(
+                        sub_path,
+                        module_package=None,
+                        package_only=False,
+                    )
 
     else:
         recursion_logger.warning(
@@ -415,7 +437,11 @@ def checkPluginFilenamePattern(pattern):
             continue
 
         found = True
-        checkPluginSinglePath(filename, module_package=None)
+        checkPluginSinglePath(
+            filename,
+            module_package=None,
+            package_only=False,
+        )
 
     if not found:
         recursion_logger.warning(
