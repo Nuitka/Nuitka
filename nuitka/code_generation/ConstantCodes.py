@@ -187,3 +187,7 @@ def addDistributionMetadataValue(name, distribution):
     package_name = getDistributionTopLevelPackageNames(distribution)[0]
 
     metadata_values[name] = (package_name, metadata, entry_points)
+
+
+def getDistributionMetadataValues():
+    return sorted(tuple(metadata_values.items()))
