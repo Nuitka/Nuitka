@@ -29,7 +29,10 @@ import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
-from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
+from nuitka.code_generation.ConstantCodes import (
+    addDistributionMetadataValue,
+    getDistributionMetadataValues,
+)
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
@@ -141,7 +144,7 @@ def _createMainModule():
     directory paths.
 
     """
-    # Many cases to deal with, pylint: disable=too-many-branches
+    # Many cases and details to deal with, pylint: disable=too-many-branches,too-many-locals
 
     Plugins.onBeforeCodeParsing()
 
@@ -262,6 +265,18 @@ def _createMainModule():
     # Freezer may have concerns for some modules.
     if Options.isStandaloneMode():
         checkFreezingModuleSet()
+
+    # Check if distribution meta data is included, that cannot be used.
+    for distribution_name, (
+        package_name,
+        _metadata,
+        _entry_points,
+    ) in getDistributionMetadataValues():
+        if not ModuleRegistry.hasDoneModule(package_name):
+            inclusion_logger.sysexit(
+                "Error, including metadata for distribution '%s' without including related package '%s'."
+                % (distribution_name, package_name)
+            )
 
     # Allow plugins to comment on final module set.
     Plugins.onModuleCompleteSet()
