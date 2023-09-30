@@ -358,6 +358,12 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
         # Need to compute the replacement still.
         return replacement.computeExpressionRaw(trace_collection)
 
+    def getTruthValue(self):
+        return self.variable_trace.getTruthValue()
+
+    def getComparisonValue(self):
+        return self.variable_trace.getComparisonValue()
+
 
 _hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
 
@@ -630,18 +636,12 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             self.variable_trace is not None and self.variable_trace.hasShapeBoolExact()
         )
 
-    def getTruthValue(self):
-        return self.variable_trace.getTruthValue()
-
-    def getComparisonValue(self):
-        return self.variable_trace.getComparisonValue()
-
     @staticmethod
     def isKnownToBeIterable(count):
         return None
 
     def mayHaveSideEffects(self):
-        return not self.variable_trace.mustHaveValue()
+        return self.variable_trace is None or not self.variable_trace.mustHaveValue()
 
     def mayRaiseException(self, exception_type):
         return self.variable_trace is None or not self.variable_trace.mustHaveValue()

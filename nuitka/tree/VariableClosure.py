@@ -471,6 +471,16 @@ can not delete variable '%s' referenced in nested scope"""
                     while node != class_var.getOwner():
                         node = node.getParentVariableProvider()
                         node.getLocalsScope().registerClosureVariable(class_var)
+        elif node.isStatementAssignmentVariableGeneric():
+            node.parent.replaceChild(
+                node,
+                makeStatementAssignmentVariable(
+                    source=node.subnode_source,
+                    variable=node.variable,
+                    variable_version=node.variable_version,
+                    source_ref=node.source_ref,
+                ),
+            )
 
 
 def completeVariableClosures(tree):
