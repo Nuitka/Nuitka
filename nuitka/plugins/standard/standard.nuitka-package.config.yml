@@ -3364,6 +3364,18 @@
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'rlottie_python.rlottie_wrapper'
+  dlls:
+    # TODO: The "lib" difference out to be handled automatically.
+    - from_filenames:
+        prefixes:
+          - 'rlottie'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'librlottie'
+      when: 'not win32'
+
 - module-name: 'rtree'
   dlls:
     - from_filenames:
