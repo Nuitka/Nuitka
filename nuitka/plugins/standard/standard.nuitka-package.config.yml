@@ -179,6 +179,12 @@
     - depends:
         - 'av.descriptor'
 
+- module-name: 'av.codec.context'
+  implicit-imports:
+    - depends:
+        - 'av.video.codeccontext'
+        - 'av.audio.codeccontext'
+
 - module-name: 'av.container.core'
   implicit-imports:
     - depends:
@@ -213,6 +219,11 @@
   implicit-imports:
     - depends:
         - 'av.buffer'
+
+- module-name: 'av.logging'
+  implicit-imports:
+    - depends:
+        - 'logging'
 
 - module-name: 'av.option'
   implicit-imports:
