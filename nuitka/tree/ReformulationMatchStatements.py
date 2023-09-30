@@ -625,6 +625,11 @@ def buildMatchNode(provider, node, source_ref):
     return makeStatementsSequence(
         statements=(
             makeStatementAssignmentVariable(
+                variable=tmp_indicator_variable,
+                source=makeConstantRefNode(constant=False, source_ref=source_ref),
+                source_ref=source_ref,
+            ),
+            makeStatementAssignmentVariable(
                 variable=tmp_subject,
                 source=subject_node,
                 source_ref=subject_node.getSourceReference(),
