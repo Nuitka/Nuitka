@@ -527,6 +527,26 @@ class TraceCollectionBase(object):
 
         return variable_trace
 
+    def onVariableSetAliasing(self, variable, version, assign_node, source):
+        other_variable_trace = source.variable_trace
+
+        if other_variable_trace.__class__ is ValueTraceAssignUnescapable:
+            return self.onVariableSetToUnescapableValue(
+                variable=variable, version=version, assign_node=assign_node
+            )
+        elif other_variable_trace.__class__ is ValueTraceAssignVeryTrusted:
+            return self.onVariableSetToVeryTrustedValue(
+                variable=variable, version=version, assign_node=assign_node
+            )
+        else:
+            result = self.onVariableSet(
+                variable=variable, version=version, assign_node=assign_node
+            )
+
+            self.removeKnowledge(source)
+
+            return result
+
     def onVariableSetToUnescapableValue(self, variable, version, assign_node):
         variable_trace = ValueTraceAssignUnescapable(
             owner=self.owner,

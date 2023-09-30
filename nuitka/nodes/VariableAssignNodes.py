@@ -915,6 +915,9 @@ class StatementAssignmentVariableFromVariable(
         old_source = self.subnode_source
         variable = self.variable
 
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with built-in names.
         if not variable.isModuleVariable() and old_source.getVariable() is variable:
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
@@ -924,8 +927,10 @@ class StatementAssignmentVariableFromVariable(
                     expression=old_source, node=self
                 )
 
+                result = trace_collection.onStatement(result)
+
                 return (
-                    result.computeStatementsSequence(trace_collection),
+                    result,
                     "new_statements",
                     """\
 Lowered assignment of %s from itself to mere access of it."""
@@ -943,18 +948,22 @@ Removed assignment of %s from itself which is known to be defined."""
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
+        if source.isExpressionVariableRef():
+            self.variable_trace = trace_collection.onVariableSetAliasing(
+                variable=variable,
+                version=self.variable_version,
+                assign_node=self,
+                source=source,
+            )
+        else:
+            # Set-up the trace to the trace collection, so future references will
+            # find this assignment.
+            self.variable_trace = trace_collection.onVariableSet(
+                variable=variable, version=self.variable_version, assign_node=self
+            )
 
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
-        self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
-        )
-
-        # TODO: Determine from future use of assigned variable, if this is needed at all.
-        trace_collection.removeKnowledge(source)
+            # TODO: Determine from future use of assigned variable, if this is needed at all.
+            trace_collection.removeKnowledge(source)
 
         return self._considerSpecialization(old_source)
 
