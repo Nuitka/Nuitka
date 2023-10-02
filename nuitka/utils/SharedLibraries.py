@@ -258,10 +258,19 @@ def _getSharedLibraryRPATHElf(filename):
 _otool_output_cache = {}
 
 
+def _getMacOSArchOption():
+    macos_target_arch = getMacOSTargetArch()
+
+    if macos_target_arch != "universal":
+        return ("-arch", macos_target_arch)
+    else:
+        return ()
+
+
 def _getOToolCommandOutput(otool_option, filename):
     filename = os.path.abspath(filename)
 
-    command = ("otool", otool_option, filename)
+    command = ("otool",) + _getMacOSArchOption() + (otool_option, filename)
 
     if otool_option == "-L":
         cache_key = command, os.environ.get("DYLD_LIBRARY_PATH")
@@ -782,10 +791,18 @@ Error, needs 'nm' on your system, to detect exported DLL symbols."""
 
 
 def getDllExportedSymbols(logger, filename):
-    if isLinux():
+    if isLinux or isMacOS():
+        if isLinux():
+            command = ("nm", "-D", filename)
+        elif isMacOS():
+            command = ("nm", "-gU", filename) + _getMacOSArchOption()
+        else:
+            # Need to add e.g. FreeBSD here.
+            assert False
+
         output = executeToolChecked(
             logger=logger,
-            command=("nm", "-D", filename),
+            command=command,
             absence_message=_nm_usage,
         )
 
