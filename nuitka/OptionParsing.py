@@ -1902,8 +1902,7 @@ def _considerGithubWorkflowOptions(phase):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes, and dispatching of tool
-    # mode executions, pylint: disable=too-many-branches,too-many-statements
+    # well as integrating with plugins and run modes. pylint: disable=too-many-branches
 
     # First, isolate the first non-option arguments.
     extra_args = []
@@ -1974,6 +1973,19 @@ def parseOptions(logger):
 Error, need filename argument with python module or main program."""
         )
 
+    if not options.immediate_execution and len(positional_args) > 1:
+        parser.print_help()
+
+        logger.sysexit(
+            """
+Error, specify only one positional argument unless "--run" is specified to
+pass them to the compiled program execution."""
+        )
+
+    return is_nuitka_run, options, positional_args, extra_args
+
+
+def runSpecialCommandsFromOptions(options):
     if options.plugin_list:
         from nuitka.plugins.Plugins import listPlugins
 
@@ -2012,14 +2024,3 @@ Error, need filename argument with python module or main program."""
             report_filename=os.path.expanduser(options.compilation_report_filename),
         )
         sys.exit(0)
-
-    if not options.immediate_execution and len(positional_args) > 1:
-        parser.print_help()
-
-        logger.sysexit(
-            """
-Error, specify only one positional argument unless "--run" is specified to
-pass them to the compiled program execution."""
-        )
-
-    return is_nuitka_run, options, positional_args, extra_args

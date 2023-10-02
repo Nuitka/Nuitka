@@ -35,7 +35,7 @@ import sys
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.OptionParsing import parseOptions
+from nuitka.OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
@@ -309,6 +309,9 @@ Error, the Python from Windows app store is not supported.""",
                 return '"%s"' % arg
         else:
             return arg
+
+    # This will not return if a non-compiling command is given.
+    runSpecialCommandsFromOptions(options)
 
     if not options.version:
         Tracing.options_logger.info(
