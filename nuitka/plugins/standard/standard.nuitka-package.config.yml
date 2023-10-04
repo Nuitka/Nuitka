@@ -1157,6 +1157,12 @@
       when: 'not use_ipython'
 
 - module-name: 'imageio.core.imopen'
+  anti-bloat:
+    - replacements_plain:
+        '`pip install imageio[{config.install_name}]` to install it': '`--include-module={config.module_name}` with Nuitka to include it'
+        'err_type = ImportError': 'err_type = RuntimeError'
+      when: 'not deployment'
+
   implicit-imports:
     - depends:
         - 'imageio.plugins.pillow_legacy'
