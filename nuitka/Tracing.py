@@ -271,6 +271,20 @@ class OurLogger(object):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
+    def _warnMnemonic(self, mnemonic, style):
+        if mnemonic.startswith("http"):
+            url = mnemonic
+            extra_prefix = ""
+        else:
+            url = "https://nuitka.net/info/%s.html" % mnemonic
+            extra_prefix = "Complex topic! "
+
+        self.warning(
+            """    %sMore information can be found at %s%s"""
+            % (extra_prefix, _getEnableStyleCode("link"), url),
+            style=style,
+        )
+
     def warning(self, message, style="red", mnemonic=None):
         if mnemonic is not None:
             from .Options import shallDisplayWarningMnemonic
@@ -303,11 +317,7 @@ class OurLogger(object):
         self.my_print(formatted_message, style=style, file=sys.stderr)
 
         if mnemonic is not None:
-            self.warning(
-                """    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
-                % (_getEnableStyleCode("link"), mnemonic),
-                style=style,
-            )
+            self._warnMnemonic(mnemonic, style=style)
 
     def sysexit(
         self, message="", style=None, mnemonic=None, exit_code=1, reporting=False
@@ -334,11 +344,7 @@ class OurLogger(object):
                 )
 
         if mnemonic is not None:
-            self.warning(
-                """    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
-                % (_getEnableStyleCode("link"), mnemonic),
-                style=style,
-            )
+            self._warnMnemonic(mnemonic, style=style)
 
         if reporting:
             raise ReportingSystemExit(exit_code=exit_code, exit_message=message)

@@ -94,7 +94,11 @@ from inspect import getsource
         except NuitkaCalledProcessError:
             if "MPLBACKEND" not in os.environ:
                 self.sysexit(
-                    "Error, failed to detect matplotlib backend. Please set 'MPLBACKEND' during compilation."
+                    """\
+Error, failed to detect matplotlib backend. Please set 'MPLBACKEND' \
+environment variable during compilation.""",
+                    mnemonic="""\
+https://matplotlib.org/stable/users/installing/environment_variables_faq.html#envvar-MPLBACKEND""",
                 )
 
             raise
