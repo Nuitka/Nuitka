@@ -417,3 +417,38 @@ def isPythonValidCLongValue(value):
 
 def isPythonValidCLongLongValue(value):
     return _min_signed_longlong <= value <= _max_signed_longlong
+
+
+def getInstalledPythonRegistryPaths(version):
+    """Yield all Pythons as found in the Windows registry."""
+    # Windows only code,
+    # pylint: disable=I0021,import-error,redefined-builtin
+    from nuitka.__past__ import WindowsError
+
+    if str is bytes:
+        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
+    else:
+        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
+
+    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
+            for suffix in "", "-32", "-arm64":
+                try:
+                    key = winreg.OpenKey(
+                        hkey_branch,
+                        r"SOFTWARE\Python\PythonCore\%s%s\InstallPath"
+                        % (version, suffix),
+                        0,
+                        winreg.KEY_READ | arch_key,
+                    )
+
+                    install_dir = os.path.normpath(winreg.QueryValue(key, ""))
+                except WindowsError:
+                    pass
+                else:
+                    candidate = os.path.normpath(
+                        os.path.join(install_dir, "python.exe")
+                    )
+
+                    if os.path.exists(candidate):
+                        yield candidate

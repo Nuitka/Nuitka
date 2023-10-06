@@ -254,6 +254,7 @@
         "organisation",
         "Organisational",
         "otool",
+        "pacman",
         "patchelf",
         "pathlib",
         "pbuilder",
