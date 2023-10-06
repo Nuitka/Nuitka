@@ -86,7 +86,7 @@ def main():
             "remove_output",
             # Keep the binary, normally "remove_output" includes that.
             "--keep-binary",
-            # Cache the CPython results for re-use, they will normally not change.
+            # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
             "timing",
