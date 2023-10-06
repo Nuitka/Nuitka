@@ -440,7 +440,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
     for variable_name in node.names:
         closure_variable = None
 
-        # Re-use already taken global variables, in order to avoid creating yet
+        # Reuse already taken global variables, in order to avoid creating yet
         # another instance, esp. as the indications could then potentially not
         # be shared.
         if provider.hasTakenVariable(variable_name):
