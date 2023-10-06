@@ -32,7 +32,6 @@ from nuitka.utils.FileOperations import (
     isFilenameBelowPath,
     isFilenameSameAsOrBelowPath,
 )
-from nuitka.utils.InstalledPythons import getInstalledPythonRegistryPaths
 from nuitka.utils.Utils import (
     isAndroidBasedLinux,
     isFedoraBasedLinux,
@@ -44,6 +43,7 @@ from nuitka.utils.Utils import (
 )
 
 from .PythonVersions import (
+    getInstalledPythonRegistryPaths,
     getRunningPythonDLLPath,
     getSystemPrefixPath,
     isStaticallyLinkedPython,
