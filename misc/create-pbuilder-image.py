@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Small tool to creaet a pbuilder image for Nuitka private CI mainly. """
+""" Small tool to create a pbuilder image for Nuitka private CI mainly. """
 
 import os
 import shutil
