@@ -42,7 +42,7 @@ import sys
 import zipfile
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import iter_modules, md5
+from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing import StandardLibrary
@@ -53,6 +53,7 @@ from nuitka.Tracing import my_print, recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
+from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
     getModuleFilenameSuffixes,
     getSharedLibrarySuffixes,
@@ -581,26 +582,26 @@ def _unpackPathElement(path_entry):
     if not path_entry:
         return "."  # empty means current directory
 
-    if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
-        if path_entry not in _egg_files:
-            with open(path_entry, "rb") as f:
-                checksum = md5(f.read()).hexdigest()
+    if os.path.isfile(path_entry):
+        if path_entry.lower().endswith((".egg", ".zip")):
+            if path_entry not in _egg_files:
+                checksum = getFileContentsHash(path_entry)
 
-            target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
+                target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 
-            if not os.path.exists(target_dir):
-                try:
-                    # Not all Python versions allow using with here, pylint: disable=consider-using-with
-                    zip_ref = zipfile.ZipFile(path_entry, "r")
-                    zip_ref.extractall(target_dir)
-                    zip_ref.close()
-                except BaseException:
-                    removeDirectory(target_dir, ignore_errors=True)
-                    raise
+                if not os.path.exists(target_dir):
+                    try:
+                        # Not all Python versions allow using with here, pylint: disable=consider-using-with
+                        zip_ref = zipfile.ZipFile(path_entry, "r")
+                        zip_ref.extractall(target_dir)
+                        zip_ref.close()
+                    except BaseException:
+                        removeDirectory(target_dir, ignore_errors=True)
+                        raise
 
-            _egg_files[path_entry] = target_dir
+                _egg_files[path_entry] = target_dir
 
-        return _egg_files[path_entry]
+            return _egg_files[path_entry]
 
     return path_entry
 
