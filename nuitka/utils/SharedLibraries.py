@@ -207,7 +207,7 @@ def _getDLLVersionWindows(filename):
     # This cannot really fail anymore.
     assert success
 
-    # Look for codepages
+    # Look for code pages
     VerQueryValueA = ctypes.windll.version.VerQueryValueA
     VerQueryValueA.argtypes = (
         ctypes.wintypes.LPCVOID,
@@ -233,6 +233,7 @@ def _getDLLVersionWindows(filename):
     return (ms >> 16) & 0xFFFF, ms & 0xFFFF, (ls >> 16) & 0xFFFF, ls & 0xFFFF
 
 
+# spell-checker: ignore readelf
 _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."
 
 
