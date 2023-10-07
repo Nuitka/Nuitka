@@ -181,7 +181,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
             _to += 4;                                                                                                  \
         }                                                                                                              \
         while (_iter < (_end))                                                                                         \
-            *_to++ = (to_type)*_iter++;                                                                                \
+            *_to++ = (to_type)(*_iter++);                                                                              \
     } while (0)
 
 extern int ucs1lib_find_max_char(const Py_UCS1 *begin, const Py_UCS1 *end);
