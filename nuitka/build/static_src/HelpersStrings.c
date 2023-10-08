@@ -241,7 +241,7 @@ static int _NuitkaUnicode_modifiable(PyObject *unicode) {
         return 0;
     if (_PyUnicode_HASH(unicode) != -1)
         return 0;
-    // TODO: That ought to be impossible with refcnf 1.
+    // TODO: That ought to be impossible with refcnt 1.
     if (PyUnicode_CHECK_INTERNED(unicode))
         return 0;
     return 1;
@@ -512,11 +512,11 @@ PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right)
     }
     Py_ssize_t new_len = left_len + right_len;
 
-    Py_UCS4 maxchar = PyUnicode_MAX_CHAR_VALUE(left);
-    Py_UCS4 maxchar2 = PyUnicode_MAX_CHAR_VALUE(right);
-    maxchar = Py_MAX(maxchar, maxchar2);
+    Py_UCS4 max_char = PyUnicode_MAX_CHAR_VALUE(left);
+    Py_UCS4 max_char2 = PyUnicode_MAX_CHAR_VALUE(right);
+    max_char = Py_MAX(max_char, max_char2);
 
-    PyObject *result = PyUnicode_New(new_len, maxchar);
+    PyObject *result = PyUnicode_New(new_len, max_char);
     if (unlikely(result == NULL)) {
         return NULL;
     }
@@ -563,12 +563,12 @@ bool UNICODE_APPEND(PyThreadState *tstate, PyObject **p_left, PyObject *right) {
 
         _NuitkaUnicode_FastCopyCharacters(*p_left, left_len, right, 0, right_len);
     } else {
-        Py_UCS4 maxchar = PyUnicode_MAX_CHAR_VALUE(left);
-        Py_UCS4 maxchar2 = PyUnicode_MAX_CHAR_VALUE(right);
+        Py_UCS4 max_char = PyUnicode_MAX_CHAR_VALUE(left);
+        Py_UCS4 max_char2 = PyUnicode_MAX_CHAR_VALUE(right);
 
-        maxchar = Py_MAX(maxchar, maxchar2);
+        max_char = Py_MAX(max_char, max_char2);
 
-        PyObject *res = PyUnicode_New(new_len, maxchar);
+        PyObject *res = PyUnicode_New(new_len, max_char);
         if (unlikely(res == NULL)) {
             return false;
         }
