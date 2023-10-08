@@ -3050,11 +3050,8 @@
               type = type or QtCore.Qt.ConnectionType.AutoConnection
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", set())
-                      patched_connect._protected.add(receiver)
-
-                  if not receiver.im_func.__name__.startswith("_pyside2_workaround_"):
-                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
 
               return orig_connect(self, receiver, type)
 
@@ -3102,11 +3099,8 @@
               type = type or QtCore.Qt.ConnectionType.AutoConnection
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", set())
-                      patched_connect._protected.add(receiver)
-
-                  if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
-                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
 
               return orig_connect(self, receiver, type)
 
