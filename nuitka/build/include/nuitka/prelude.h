@@ -126,6 +126,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
+#include <internal/pycore_dict.h>
 #include <internal/pycore_frame.h>
 #include <internal/pycore_gc.h>
 #endif
@@ -135,6 +136,10 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_opcode.h>
 // Clashes with our helper names.
 #undef CALL_FUNCTION
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+#include <cpython/code.h>
 #endif
 
 #if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
