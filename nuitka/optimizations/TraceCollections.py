@@ -31,6 +31,7 @@ from nuitka import Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
@@ -1148,12 +1149,57 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
     def onModuleUsageAttempt(self, module_usage_attempt):
         if module_usage_attempt.finding not in ("not-found", "built-in"):
-            decideRecursion(
+            decision, _reason = decideRecursion(
                 using_module_name=self.owner.getFullName(),
                 module_name=module_usage_attempt.module_name,
                 module_filename=module_usage_attempt.filename,
                 module_kind=module_usage_attempt.module_kind,
             )
+
+            # When sub-package module import is rejected for whatever reason,
+            # still this implies an attempt of the parent, because nothing else
+            # will do it otherwise, it of course may also be rejected, but if it
+            # is not, otherwise it will be missing.
+            #
+            # A common case of this happening are extension modules in
+            # accelerated mode, for standalone this will of course be rare.
+            if decision is False:
+                parent_package_name = module_usage_attempt.module_name.getPackageName()
+
+                if parent_package_name is not None:
+                    (
+                        package_module_name,
+                        module_filename,
+                        module_kind,
+                        finding,
+                    ) = locateModule(
+                        module_name=parent_package_name,
+                        parent_package=None,
+                        level=0,
+                    )
+
+                    # Should not be possible to happen.
+                    assert finding != "not-found", package_module_name
+
+                    decision, _reason = decideRecursion(
+                        using_module_name=self.owner.getFullName(),
+                        module_name=package_module_name,
+                        module_filename=module_filename,
+                        module_kind=module_kind,
+                    )
+
+                    if decision is True:
+                        self.onModuleUsageAttempt(
+                            makeModuleUsageAttempt(
+                                module_name=package_module_name,
+                                filename=module_filename,
+                                finding=finding,
+                                module_kind=module_kind,
+                                level=0,
+                                source_ref=module_usage_attempt.source_ref,
+                                reason="parent import",
+                            )
+                        )
 
         self.module_usage_attempts.add(module_usage_attempt)
 
