@@ -95,8 +95,11 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
     return code->co_code == const_str_empty;
 #elif PYTHON_VERSION < 0x3B0
     return code->co_code == const_str_empty;
-#else
+#elif PYTHON_VERSION < 0x3C0
     return _PyCode_CODE(code)[0] == 0;
+#else
+    _Py_CODEUNIT *code_unit = _PyCode_CODE(code);
+    return code_unit->op.code == 0;
 #endif
 }
 

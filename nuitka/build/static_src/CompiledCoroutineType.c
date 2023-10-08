@@ -1530,9 +1530,18 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     return (PyObject *)result;
 }
 
+static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
+#if PYTHON_VERSION < 0x3c0
+    return (PyCodeObject *)gen->gi_code;
+#else
+    _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
+    return frame->f_code;
+#endif
+}
+
 static int gen_is_coroutine(PyObject *object) {
     if (PyGen_CheckExact(object)) {
-        PyCodeObject *code = (PyCodeObject *)((PyGenObject *)object)->gi_code;
+        PyCodeObject *code = _Nuitka_PyGen_GetCode((PyGenObject *)object);
 
         if (code->co_flags & CO_ITERABLE_COROUTINE) {
             return 1;

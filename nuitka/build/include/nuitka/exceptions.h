@@ -376,9 +376,9 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyThreadStat
 }
 
 // Same as "PyErr_SetObject" CPython API, use this instead.
-#if PYTHON_VERSION < 0x3c0
 NUITKA_MAY_BE_UNUSED inline static void
 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_type, PyObject *exception_value) {
+#if PYTHON_VERSION < 0x3c0
     PyObject *old_exception_type = tstate->curexc_type;
     PyObject *old_exception_value = tstate->curexc_value;
     PyObject *old_exception_traceback = tstate->curexc_traceback;
@@ -397,10 +397,24 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_ty
     Py_XDECREF(old_exception_type);
     Py_XDECREF(old_exception_value);
     Py_XDECREF(old_exception_traceback);
+#else
+    PyObject *old_exception = tstate->current_exception;
+
+    tstate->current_exception = exception_value;
+    Py_INCREF(exception_value);
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE_0VALUE0:\n");
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
+    Py_XDECREF(old_exception);
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED inline static void
 SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyThreadState *tstate, PyObject *exception_type, PyObject *exception_value) {
+#if PYTHON_VERSION < 0x3c0
     PyObject *old_exception_type = tstate->curexc_type;
     PyObject *old_exception_value = tstate->curexc_value;
     PyObject *old_exception_traceback = tstate->curexc_traceback;
@@ -418,9 +432,19 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyThreadState *tstate, PyObject *exception_ty
     Py_XDECREF(old_exception_type);
     Py_XDECREF(old_exception_value);
     Py_XDECREF(old_exception_traceback);
-}
+#else
+    PyObject *old_exception = tstate->current_exception;
 
+    tstate->current_exception = exception_value;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
+    PRINT_CURRENT_EXCEPTION();
 #endif
+
+    Py_XDECREF(old_exception);
+#endif
+}
 
 // Helper that sets the current thread exception, and has no reference passed.
 // Same as CPython API PyErr_SetString
@@ -889,10 +913,14 @@ extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **e
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
-static PyObject *_MAKE_EXCEPTION_FROM_TYPE_ARG0(PyTypeObject *type, PyObject *arg) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyObject *element1);
+
+static PyObject *_MAKE_EXCEPTION_FROM_TYPE_ARG0(PyObject *type, PyObject *arg) {
     PyBaseExceptionObject *self;
 
-    self = (PyBaseExceptionObject *)type->tp_alloc(type, 0);
+    PyTypeObject *type_object = (PyTypeObject *)type;
+
+    self = (PyBaseExceptionObject *)(type_object->tp_alloc(type_object, 0));
 
     self->dict = NULL;
     self->notes = NULL;
