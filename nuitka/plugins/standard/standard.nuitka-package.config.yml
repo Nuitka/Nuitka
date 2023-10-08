@@ -3081,27 +3081,7 @@
         - 'shiboken2'
 
 - module-name: 'PySide6'
-  options:
-    checks:
-      - description: 'PySide6 is a GUI framework'
-        console: 'recommend'
-        when: 'use_pyside6'
-
-  import-hacks:
-    - find-dlls-near-module:
-        - 'shiboken6'
-    - acceptable-missing-dlls:
-        - 'libeffectsplugin'
-        - 'libeffects'
-        - 'libpdfquickplugin'
-        - 'libqpdf'
-        - 'libqtquick3dhelpersimplplugin'
-        - 'libquick3dspatialaudioplugin'
-
-- module-name: 'PySide6.QtCore'
   implicit-imports:
-    - depends:
-        - 'PySide6.support.deprecated'
     - post-import-code:
         - |
           def patched_connect(self, receiver, type=None):
@@ -3116,6 +3096,27 @@
           from PySide6 import QtCore
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = patched_connect
+
+  options:
+    checks:
+      - description: 'PySide6 is a GUI framework'
+        console: 'recommend'
+        when: 'use_pyside6'
+
+- module-name: 'PySide6.QtCore'
+  implicit-imports:
+    - depends:
+        - 'PySide6.support.deprecated'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'shiboken6'
+    - acceptable-missing-dlls:
+        - 'libeffectsplugin'
+        - 'libeffects'
+        - 'libpdfquickplugin'
+        - 'libqpdf'
+        - 'libqtquick3dhelpersimplplugin'
+        - 'libquick3dspatialaudioplugin'
 
 - module-name: 'pysnmp.smi'
   data-files:
