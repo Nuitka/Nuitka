@@ -780,7 +780,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         env.Append(LINKFLAGS=["-static-libgcc"])
 
     # MinGW64 for 64 bits needs this due to CPython bugs.
-    if env.mingw_mode and env.target_arch == "x86_64":
+    if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
         env.Append(CPPDEFINES=["MS_WIN64"])
 
     # For shell API usage to lookup app folders we need this. Note that on Windows ARM
