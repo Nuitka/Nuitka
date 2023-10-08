@@ -3081,6 +3081,22 @@
         - 'shiboken2'
 
 - module-name: 'PySide6'
+  implicit-imports:
+    - post-import-code:
+        - |
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
+
+              return orig_connect(self, receiver, type)
+
+          from PySide6 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = patched_connect
+
   options:
     checks:
       - description: 'PySide6 is a GUI framework'
@@ -3102,20 +3118,6 @@
   implicit-imports:
     - depends:
         - 'PySide6.support.deprecated'
-    - post-import-code:
-        - |
-          def patched_connect(self, receiver, type=None):
-              type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
-
-              return orig_connect(self, receiver, type)
-
-          from PySide6 import QtCore
-          orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = patched_connect
 
 - module-name: 'pysnmp.smi'
   data-files:
