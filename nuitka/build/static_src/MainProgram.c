@@ -380,7 +380,8 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
     int exit_code;
 
     if (HAS_ERROR_OCCURRED(tstate)) {
-#if PYTHON_VERSION >= 0x300
+        // TODO: Clarify which versions this applies to still
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3c0
         /* Remove the frozen importlib traceback part, which would not be compatible. */
 
         while (tstate->curexc_traceback) {

@@ -146,7 +146,9 @@ PyObject *BUILTIN_ORD(PyObject *value) {
     (assert(_PyUnicode_CHECK(op)), assert(PyUnicode_IS_READY(op)),                                                     \
      PyUnicode_IS_COMPACT_ASCII(op) ? ((PyASCIIObject *)(op))->length : _PyUnicode_UTF8_LENGTH(op))
 #define _PyUnicode_WSTR(op) (((PyASCIIObject *)(op))->wstr)
+#if PYTHON_VERSION < 0x3c0
 #define _PyUnicode_WSTR_LENGTH(op) (((PyCompactUnicodeObject *)(op))->wstr_length)
+#endif
 #define _PyUnicode_LENGTH(op) (((PyASCIIObject *)(op))->length)
 #define _PyUnicode_STATE(op) (((PyASCIIObject *)(op))->state)
 #define _PyUnicode_HASH(op) (((PyASCIIObject *)(op))->hash)
