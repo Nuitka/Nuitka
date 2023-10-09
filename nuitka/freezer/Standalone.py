@@ -272,20 +272,22 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         used_dlls = tuple(OrderedSet(used_dlls) - OrderedSet(removed_dlls))
 
         for used_dll in used_dlls:
+            dest_path = os.path.basename(used_dll)
+
             # TODO: If used by a DLL from the same folder, put it there,
-            # otherwise top level, but for now this is limited to the case where
-            # it is required that way only, because it broke other things.
-            if standalone_entry_point.package_name == "openvino" and areInSamePaths(
-                standalone_entry_point.source_path, used_dll
-            ):
+            # otherwise top level, but for now this is limited to a few cases
+            # where required that way (openvino) or known to be good only (av),
+            # because it broke other things.
+            if standalone_entry_point.package_name in (
+                "openvino",
+                "av",
+            ) and areInSamePaths(standalone_entry_point.source_path, used_dll):
                 dest_path = os.path.normpath(
                     os.path.join(
                         os.path.dirname(standalone_entry_point.dest_path),
-                        os.path.basename(used_dll),
+                        dest_path,
                     )
                 )
-            else:
-                dest_path = os.path.basename(used_dll)
 
             dll_entry_point = makeDllEntryPoint(
                 logger=inclusion_logger,

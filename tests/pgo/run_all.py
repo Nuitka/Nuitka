@@ -71,7 +71,7 @@ def main():
                 # Inclusion report is used by the testing of expected things included
                 # or not.
                 "--report=%s.xml" % filename,
-                # Cache the CPython results for re-use, they will normally not change.
+                # Cache the CPython results for reuse, they will normally not change.
                 "cpython_cache",
             ]
 

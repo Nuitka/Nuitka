@@ -32,7 +32,7 @@ bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *
     if (likely(PyUnicode_CheckExact(*operand1))) {
 #if PYTHON_VERSION >= 0x300
         if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
-            // We more or less own the operand, so we might re-use its storage and
+            // We more or less own the operand, so we might reuse its storage and
             // execute stuff in-place.
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -75,7 +75,7 @@ bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *
     if (likely(PyUnicode_CheckExact(operand2))) {
 #if PYTHON_VERSION >= 0x300
         if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
-            // We more or less own the operand, so we might re-use its storage and
+            // We more or less own the operand, so we might reuse its storage and
             // execute stuff in-place.
             return UNICODE_ADD_INCREMENTAL(operand1, operand2);
         }
@@ -118,7 +118,7 @@ bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject 
 
 #if PYTHON_VERSION >= 0x300
     if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
         return UNICODE_ADD_INCREMENTAL(operand1, operand2);
     }
