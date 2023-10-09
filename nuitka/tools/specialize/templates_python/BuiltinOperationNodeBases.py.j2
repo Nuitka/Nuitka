@@ -66,7 +66,7 @@ class {{class_name}}(
                 user_provided=self.subnode_bytes_arg.user_provided,
             )
 
-        {# TODO: For actual implementors, lets use this: return self.computeExpressionOperation(trace_collection) #}
+        {# TODO: For actual implementers, lets use this: return self.computeExpressionOperation(trace_collection) #}
         if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -147,7 +147,7 @@ class {{class_name}}(
                 user_provided=self.subnode_str_arg.user_provided,
             )
 
-        {# TODO: For actual implementors, lets use this: return self.computeExpressionOperation(trace_collection) #}
+        {# TODO: For actual implementers, lets use this: return self.computeExpressionOperation(trace_collection) #}
         if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 

@@ -32,6 +32,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFileContentByLine,
+    getWindowsLongPathName,
     isFilenameBelowPath,
     putTextFileContents,
     withFileLock,
@@ -139,6 +140,7 @@ def _parseDependsExeOutput2(lines):
         assert os.path.basename(dll_filename) != "kernel32.dll"
 
         dll_filename = os.path.abspath(dll_filename)
+        dll_filename = getWindowsLongPathName(dll_filename)
 
         dll_name = os.path.basename(dll_filename)
 

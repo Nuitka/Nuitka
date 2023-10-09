@@ -179,6 +179,12 @@
     - depends:
         - 'av.descriptor'
 
+- module-name: 'av.codec.context'
+  implicit-imports:
+    - depends:
+        - 'av.video.codeccontext'
+        - 'av.audio.codeccontext'
+
 - module-name: 'av.container.core'
   implicit-imports:
     - depends:
@@ -213,6 +219,11 @@
   implicit-imports:
     - depends:
         - 'av.buffer'
+
+- module-name: 'av.logging'
+  implicit-imports:
+    - depends:
+        - 'logging'
 
 - module-name: 'av.option'
   implicit-imports:
@@ -1155,6 +1166,12 @@
       when: 'not use_ipython'
 
 - module-name: 'imageio.core.imopen'
+  anti-bloat:
+    - replacements_plain:
+        '`pip install imageio[{config.install_name}]` to install it': '`--include-module={config.module_name}` with Nuitka to include it'
+        'err_type = ImportError': 'err_type = RuntimeError'
+      when: 'not deployment'
+
   implicit-imports:
     - depends:
         - 'imageio.plugins.pillow_legacy'
@@ -3042,11 +3059,8 @@
               type = type or QtCore.Qt.ConnectionType.AutoConnection
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", set())
-                      patched_connect._protected.add(receiver)
-
-                  if not receiver.im_func.__name__.startswith("_pyside2_workaround_"):
-                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
 
               return orig_connect(self, receiver, type)
 
@@ -3094,11 +3108,8 @@
               type = type or QtCore.Qt.ConnectionType.AutoConnection
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", set())
-                      patched_connect._protected.add(receiver)
-
-                  if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
-                      receiver.im_func.__name__ = "_nuitka_" + receiver.im_func.__name__
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
 
               return orig_connect(self, receiver, type)
 
@@ -3361,6 +3372,18 @@
       replacements_plain:
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'rlottie_python.rlottie_wrapper'
+  dlls:
+    # TODO: The "lib" difference out to be handled automatically.
+    - from_filenames:
+        prefixes:
+          - 'rlottie'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'librlottie'
+      when: 'not win32'
 
 - module-name: 'rtree'
   dlls:

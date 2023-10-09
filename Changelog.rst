@@ -4040,7 +4040,7 @@ Cleanups
 -  Move import hacks to general mechanism in Yaml package configuration
    files. This is for extra paths from package names or from directory
    paths relative to the package. This removes special purpose code from
-   core code paths and allows their re-use.
+   core code paths and allows their reuse.
 
 -  Again more spelling cleanups have been done, to make the code cleaner
    to read and search.
@@ -7996,7 +7996,7 @@ Cleanups
 
 -  Changed the interfacing of plugins with DLL dependency detection,
    cleaning up the interactions considerably with more unified code, and
-   faster executing due to cached plugin decisons.
+   faster executing due to cached plugin decisions.
 
 -  Integrate manually provided slot function for ``unicode`` and ``str``
    into the standard static code generation. Previously parts were
@@ -9381,7 +9381,7 @@ Organisational
 -  Visual Code recommended extensions are now defined as such in the
    project configuration and you will be prompted to install them.
 
--  Visual Code environents for ``Py38`` and ``Py27`` were added for
+-  Visual Code environments for ``Py38`` and ``Py27`` were added for
    easier switch.
 
 -  Catch usage of Python from the Microsoft App Store, it is not
@@ -9717,7 +9717,7 @@ Optimization
 
       raise ImportError(path="lala", name="lele")  # now optimized
 
--  Added manual specialization for single argument calls, sovling a
+-  Added manual specialization for single argument calls, solving a
    TODO, as these will be very frequent.
 
 -  Memory: Use single child form of node class where possible, the
@@ -11052,8 +11052,8 @@ Optimization
    default values with just those, removing more unused code.
 
 -  Put all statement related code and declarations for it in a dedicated
-   C block, making things slightly more easy for the C compiler to
-   re-use the stack space.
+   C block, making things slightly more easy for the C compiler to reuse
+   the stack space.
 
 -  Avoid linking against ``libpython`` in module mode on everything but
    Windows where it is really needed. No longer check for static Python,
@@ -11764,8 +11764,8 @@ Optimization
    time and memory, and this shaved of 0.3% of Nuitka memory usage, as
    these can also become dangling.
 
--  Class dictionaries are now proper dictionarties in optimization,
-   using some dedicated code for name lookups that are transformed to
+-  Class dictionaries are now proper dictionaries in optimization, using
+   some dedicated code for name lookups that are transformed to
    dedicated locals dictionary or mapping (Python3) accesses. This
    currently does not fully optimize, but will in coming releases, and
    saves about 25% of memory compared to the old code.
@@ -12286,7 +12286,7 @@ Cleanups
 -  Valgrind test runners got changed to using proper tool namespace for
    their code and share it.
 
--  Made construct case generation code common testing code for re-use in
+-  Made construct case generation code common testing code for reuse in
    the speedcenter web site. The code also has minor beauty bugs which
    will then become fixable.
 
@@ -12569,7 +12569,7 @@ Cleanups
 -  We now use symbolic identifiers in all PyLint annotations.
 
 -  The release scripts started to move into ``nuitka.tools.release`` so
-   they get PyLint checks, auto-format and proper code re-use.
+   they get PyLint checks, auto-format and proper code reuse.
 
 -  The use of ``INCREASE_REFCOUNT_X`` was removed, it got replaced with
    proper ``Py_XINCREF`` usages.
@@ -13110,7 +13110,7 @@ Also, it seems about time to add dedicated code for specific types to be
 as fast as C code. This opens up vast possibilities for acceleration and
 will lead us to zero overhead C bindings eventually. But initially the
 drive is towards enhanced ``import`` analysis, to become able to know
-the precide module expected to be imported, and derive type information
+the precise module expected to be imported, and derive type information
 from this.
 
 The coming work will attack to start whole program optimization, as well
@@ -19769,7 +19769,7 @@ Cleanups
 New Tests
 =========
 
--  There is now a ``Crasher`` test, for tests that crashed Nuitka
+-  There is now a dedicated test for things that crashed Nuitka
    previously.
 
 -  Added a program test where the imported module does a ``sys.exit()``
