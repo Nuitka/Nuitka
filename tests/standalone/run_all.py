@@ -93,7 +93,7 @@ def main():
             "expect_success",
             "--standalone",
             "remove_output",
-            # Cache the CPython results for re-use, they will normally not change.
+            # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
             "timing",

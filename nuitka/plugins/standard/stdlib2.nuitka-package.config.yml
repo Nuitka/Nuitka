@@ -62,7 +62,6 @@
   options:
     checks:
       - console: 'recommend'
-        macos_bundle_as_onefile: 'yes'
         when: 'plugin("tk-inter")'
 
 - module-name: 'xml.sax.xmlreader'

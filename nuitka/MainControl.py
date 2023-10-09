@@ -96,7 +96,7 @@ from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories
@@ -1040,6 +1040,17 @@ def _main():
             "Created binary that runs on macOS %s (%s) or higher."
             % (options["macos_min_version"], options["macos_target_arch"])
         )
+
+        if options["macos_target_arch"] != getArchitecture():
+            general.warning(
+                "It will only work as well as 'arch -%s %s %s' does."
+                % (
+                    options["macos_target_arch"],
+                    sys.executable,
+                    Options.getMainEntryPointFilenames()[0],
+                ),
+                mnemonic="macos-cross-compile",
+            )
 
     Plugins.onFinalResult(final_filename)
 

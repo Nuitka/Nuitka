@@ -68,7 +68,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
         # TODO: Replace the setting of "sys.frozen" with a change to the source code of the
         # modules we want to affect from this plugin, it's a huge impact on compatibility
         # with other things potentially. We should do it, once the anti-bloat engine is
-        # re-usable or supports conditional replacements based on plugin activity and is
+        # reusable or supports conditional replacements based on plugin activity and is
         # always on.
         if full_name == "multiprocessing":
             code = """\

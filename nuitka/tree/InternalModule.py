@@ -42,7 +42,7 @@ def once_decorator(func):
     Used for all internal function accesses to become a singleton.
 
     Note: This doesn't much specific anymore, but we are not having
-    this often enough to warrant re-use or generalization.
+    this often enough to warrant reuse or generalization.
 
     """
 

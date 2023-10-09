@@ -20,11 +20,11 @@
 import os
 import sys
 
-from nuitka import Options
+from nuitka.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # spell-checker: ignore tkinterdnd,tkdnd,tcltk
 
@@ -78,7 +78,7 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         Returns:
             True if this is a standalone, else False.
         """
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     @staticmethod
     def createPreModuleLoadCode(module):
@@ -253,6 +253,9 @@ that works, report a bug."""
         )
         yield self.makeIncludedDataDirectory(
             source_path=tcl_library_dir,
+            ignore_dirs=("opt0.4", "http1.0")
+            if isMacOS() and shallCreateAppBundle()
+            else (),
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",
             tags="tcl",
@@ -315,7 +318,7 @@ class NuitkaPluginDetectorTkinter(NuitkaPluginBase):
         Returns:
             True if this is a standalone compilation on Windows, else False.
         """
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     def checkModuleSourceCode(self, module_name, source_code):
         """This method checks the source code
