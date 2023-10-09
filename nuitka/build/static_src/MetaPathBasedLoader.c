@@ -1687,6 +1687,12 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         if (include) {
             // Create a distribution object from our data.
             PyObject *distribution = Nuitka_Distribution_New(tstate, distribution_name);
+
+            if (distribution == NULL) {
+                Py_DECREF(temp);
+                return NULL;
+            }
+
             LIST_APPEND1(temp, distribution);
         }
     }

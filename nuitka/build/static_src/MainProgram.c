@@ -957,7 +957,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
             Py_Exit(1);
         }
 
-        setStdoutHandle(stdout_file);
+        setStdoutHandle(tstate, stdout_file);
     }
 #endif
 
@@ -974,7 +974,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
             Py_Exit(1);
         }
 
-        setStderrHandle(stderr_file);
+        setStderrHandle(tstate, stderr_file);
     }
 #endif
 #endif
@@ -1010,11 +1010,11 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     }
 
 #if NUITKA_FORCED_STDOUT_NONE_BOOL
-    setStdoutHandle(Py_None);
+    setStdoutHandle(tstate, Py_None);
 #endif
 
 #if NUITKA_FORCED_STDERR_NONE_BOOL
-    setStderrHandle(Py_None);
+    setStderrHandle(tstate, Py_None);
 #endif
 
     Py_XDECREF(encoding);

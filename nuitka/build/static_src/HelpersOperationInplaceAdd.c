@@ -2567,7 +2567,7 @@ static inline bool _INPLACE_OPERATION_ADD_STR_STR(PyObject **operand1, PyObject 
     assert(PyString_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 #if PYTHON_VERSION < 0x300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && 1) {
@@ -2747,7 +2747,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_STR(PyObject **operand1, PyObje
     assert(PyString_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 #if PYTHON_VERSION < 0x300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && 1) {
@@ -2908,7 +2908,7 @@ static inline bool _INPLACE_OPERATION_ADD_STR_OBJECT(PyObject **operand1, PyObje
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 #if PYTHON_VERSION < 0x300
         if (1 && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
@@ -2967,7 +2967,7 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_UNICODE(PyObject **operand1, P
     assert(PyUnicode_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -3143,7 +3143,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_UNICODE(PyObject **operand1, Py
     assert(PyUnicode_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -3308,7 +3308,7 @@ static inline bool _INPLACE_OPERATION_ADD_UNICODE_OBJECT(PyObject **operand1, Py
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -3372,7 +3372,7 @@ static inline bool _INPLACE_OPERATION_ADD_BYTES_BYTES(PyObject **operand1, PyObj
     assert(PyBytes_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -3541,7 +3541,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_BYTES(PyObject **operand1, PyOb
     assert(PyBytes_CheckExact(operand2));
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -3703,7 +3703,7 @@ static inline bool _INPLACE_OPERATION_ADD_BYTES_OBJECT(PyObject **operand1, PyOb
     CHECK_OBJECT(operand2);
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 
 #if PYTHON_VERSION >= 0x300
@@ -4715,7 +4715,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
 #endif
 
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 #if PYTHON_VERSION < 0x300
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {

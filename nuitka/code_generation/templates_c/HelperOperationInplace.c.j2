@@ -116,7 +116,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 
 {% if operator == "+" and (left.mayBothHaveType(right, "str") or left.mayBothHaveType(right, "unicode") or left.hasOneOrBothType(right, "bytes")) %}
     if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
+        // We more or less own the operand, so we might reuse its storage and
         // execute stuff in-place.
 {% if operator == "+" and left.mayBothHaveType(right, "str") %}
 #if PYTHON_VERSION < 0x300
