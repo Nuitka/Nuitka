@@ -54,6 +54,7 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
+from nuitka.utils.FileOperations import getExternalUsePath
 from nuitka.utils.Utils import isMacOS
 
 from .SconsCaching import enableCcache, enableClcache
@@ -173,6 +174,8 @@ if int(os.environ.get("NUITKA_QUIET", "0")):
 # Home of Python to be compiled against, used to find tools like clcache and
 # ccache, no linking against Python is needed here.
 python_prefix = getArgumentRequired("python_prefix")
+
+python_prefix_external = getExternalUsePath(python_prefix)
 
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
@@ -513,7 +516,7 @@ if env.gcc_mode and not disable_ccache:
     enableCcache(
         env=env,
         source_dir=source_dir,
-        python_prefix=python_prefix,
+        python_prefix=python_prefix_external,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 

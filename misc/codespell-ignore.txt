@@ -1,2 +1,4 @@
 asend
 compiletime
+# Changelog mentions of package names
+connexion

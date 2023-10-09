@@ -652,6 +652,13 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
                 ),
             )
 
+    if isMacOS():
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("xattr", "-c", target_filename),
+            absence_message="needs 'xattr' to remove extended attributes",
+        )
+
     if executable:
         addFileExecutablePermission(target_filename)
 
