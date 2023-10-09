@@ -54,6 +54,7 @@ from nuitka.Tracing import (
     setQuiet,
 )
 from nuitka.utils.Execution import check_output
+from nuitka.utils.FileOperations import getExternalUsePath
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     isDebianBasedLinux,
@@ -233,6 +234,8 @@ if int(os.environ.get("NUITKA_QUIET", "0")):
 # Home of Python to be compiled against, used to find include files and
 # libraries to link against.
 python_prefix = getArgumentRequired("python_prefix")
+
+python_prefix_external = getExternalUsePath(python_prefix)
 
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
@@ -573,9 +576,11 @@ def _detectPythonHeaderPath():
         # compiled for mingw64, it's more standard.
 
         candidates = [
-            os.path.join(python_prefix, "include"),
+            os.path.join(python_prefix_external, "include"),
             # On MSYS2 with MinGW64 Python, it is also the other form.
-            os.path.join(python_prefix, "include", "python" + python_abi_version),
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
         ]
     else:
         # The python header path is a combination of python version and debug
@@ -583,10 +588,12 @@ def _detectPythonHeaderPath():
         # include path.
 
         candidates = [
-            os.path.join(python_prefix, "include", "python" + python_abi_version),
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
             # Haiku specific paths:
             os.path.join(
-                python_prefix, "develop/headers", "python" + python_abi_version
+                python_prefix_external, "develop/headers", "python" + python_abi_version
             ),
         ]
 
@@ -594,7 +601,7 @@ def _detectPythonHeaderPath():
         if python_debug and "d" in python_abi_version:
             candidates.append(
                 os.path.join(
-                    python_prefix,
+                    python_prefix_external,
                     "include",
                     "python" + python_abi_version.replace("d", ""),
                 )
@@ -622,7 +629,7 @@ env.Append(CPPPATH=[_detectPythonHeaderPath()])
 # To support self-built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
 if os.name == "nt":
-    python_header_path = os.path.join(python_prefix, "PC")
+    python_header_path = os.path.join(python_prefix_external, "PC")
 
     if os.path.exists(python_header_path):
         env.Append(CPPPATH=[python_header_path])
@@ -646,11 +653,13 @@ if win_target:
         env.Append(
             LINKFLAGS=[
                 "/LTCG",
-                "/USEPROFILE:PGD=" + os.path.join(python_prefix, "python.pgd"),
+                "/USEPROFILE:PGD=" + os.path.join(python_prefix_external, "python.pgd"),
             ]
         )
 
-        link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
+        link_data = loadJsonFromFilename(
+            os.path.join(python_prefix_external, "link.json")
+        )
         env.Append(LIBS=link_data["libraries"])
         env.Append(LIBPATH=link_data["library_dirs"])
         for define, value in link_data["macros"]:
@@ -683,7 +692,7 @@ if win_target:
                 pc_build_dir = "PCBuild"
 
             for candidate in ("libs", pc_build_dir):
-                win_lib_path = os.path.join(python_prefix, candidate)
+                win_lib_path = os.path.join(python_prefix_external, candidate)
 
                 if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
                     break
@@ -697,11 +706,13 @@ if win_target:
             addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix, "lib")
+    python_lib_path = os.path.join(python_prefix_external, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
     if env.nuitka_python:
-        link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
+        link_data = loadJsonFromFilename(
+            os.path.join(python_prefix_external, "link.json")
+        )
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
             if os.path.isfile(lib):
@@ -726,7 +737,7 @@ elif not module_mode:
 
         # The linker won't succeed in searching for those for system Python of Debian
         # compiled Pythons. Help that. For self-compiled,
-        if python_prefix == "/usr" and isDebianBasedLinux():
+        if python_prefix_external == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
 
             if python_version >= (3,):
@@ -737,7 +748,7 @@ elif not module_mode:
         # Fedora, Debian and Ubuntu distinguish the system libraries like this.
         if (
             python_debug
-            and python_prefix == "/usr"
+            and python_prefix_external == "/usr"
             and python_version < (3,)
             and (isDebianBasedLinux() or isFedoraBasedLinux())
         ):
@@ -745,7 +756,7 @@ elif not module_mode:
         else:
             env.Append(LIBS=["python" + python_abi_version])
 
-    if python_prefix != "/usr" and "linux" in sys.platform:
+    if python_prefix_external != "/usr" and "linux" in sys.platform:
         env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
         if env.gcc_mode:
@@ -897,6 +908,7 @@ def createBuildDefinitionsFile():
     build_definitions = {}
 
     if uninstalled_python and not env.static_libpython:
+        # Use the non-external one, so it's not a short path.
         build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
     build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0
@@ -1012,7 +1024,7 @@ if env.gcc_mode and not disable_ccache:
     enableCcache(
         env=env,
         source_dir=source_dir,
-        python_prefix=python_prefix,
+        python_prefix=python_prefix_external,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
