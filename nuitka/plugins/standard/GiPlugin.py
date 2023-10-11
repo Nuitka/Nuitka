@@ -104,4 +104,4 @@ if not os.environ.get("GI_TYPELIB_PATH"):
 
         if module.getFullName() == "gi._gi":
             # TODO: Get local relevant DLL names from GI
-            for dll in ["gtk-3-0", "soup-2.4-1"] : yield tryLocateAndLoad(dll)
+            for dll in ["gtk-3-0", "soup-2.4-1", "libsecret-1-0"] : yield tryLocateAndLoad(dll)
