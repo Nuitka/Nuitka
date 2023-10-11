@@ -86,37 +86,22 @@ if not os.environ.get("GI_TYPELIB_PATH"):
 
     @standalone_only
     def getExtraDlls(self, module):
+        def tryLocateAndLoad(dll_name):
+            # Support various name forms in MSYS2 over time.
+            dll_path = self.locateDLL(dll_name)
+            if dll_path is None:
+                dll_path = self.locateDLL("%s" % dll_name)
+            if dll_path is None:
+                dll_path = self.locateDLL("lib%s" % dll_name)
+
+            if dll_path is not None:
+                yield self.makeDllEntryPoint(
+                    source_path=dll_path,
+                    dest_path=os.path.basename(dll_path),
+                    package_name=None,
+                    reason="needed by 'gi._gi'",
+                )
+
         if module.getFullName() == "gi._gi":
-            gtk_dll_name = "gtk-3"
-
-            # Support various name forms in MSYS2 over time.
-            gtk_dll_path = self.locateDLL(gtk_dll_name)
-            if gtk_dll_path is None:
-                gtk_dll_path = self.locateDLL("%s-0" % gtk_dll_name)
-            if gtk_dll_path is None:
-                gtk_dll_path = self.locateDLL("lib%s-0" % gtk_dll_name)
-
-            if gtk_dll_path is not None:
-                yield self.makeDllEntryPoint(
-                    source_path=gtk_dll_path,
-                    dest_path=os.path.basename(gtk_dll_path),
-                    package_name=None,
-                    reason="needed by 'gi._gi'",
-                )
-
-            soup_dll_name = "soup-2.4"
-            # libsoup-2.4-1
-            # Support various name forms in MSYS2 over time.
-            soup_dll_path = self.locateDLL(soup_dll_name)
-            if soup_dll_path is None:
-                soup_dll_path = self.locateDLL("%s-1" % soup_dll_name)
-            if soup_dll_path is None:
-                soup_dll_path = self.locateDLL("lib%s-1" % soup_dll_name)
-
-            if soup_dll_path is not None:
-                yield self.makeDllEntryPoint(
-                    source_path=soup_dll_path,
-                    dest_path=os.path.basename(soup_dll_path),
-                    package_name=None,
-                    reason="needed by 'gi._gi'",
-                )
+            # TODO: Get local relevant DLL names from GI
+            for dll in ["gtk-3-0", "soup-2.4-1"] : yield tryLocateAndLoad(dll)
