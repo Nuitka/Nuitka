@@ -103,3 +103,20 @@ if not os.environ.get("GI_TYPELIB_PATH"):
                     package_name=None,
                     reason="needed by 'gi._gi'",
                 )
+
+            soup_dll_name = "soup-2.4"
+            # libsoup-2.4-1
+            # Support various name forms in MSYS2 over time.
+            soup_dll_path = self.locateDLL(soup_dll_name)
+            if soup_dll_path is None:
+                soup_dll_path = self.locateDLL("%s-1" % soup_dll_name)
+            if soup_dll_path is None:
+                soup_dll_path = self.locateDLL("lib%s-1" % soup_dll_name)
+
+            if soup_dll_path is not None:
+                yield self.makeDllEntryPoint(
+                    source_path=soup_dll_path,
+                    dest_path=os.path.basename(soup_dll_path),
+                    package_name=None,
+                    reason="needed by 'gi._gi'",
+                )
