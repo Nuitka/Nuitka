@@ -1202,6 +1202,10 @@ def getLinkTarget(filename):
     return is_link, filename
 
 
+# Late import and optional to be there.
+atomicwrites = None
+
+
 def replaceFileAtomic(source_path, dest_path):
     """
     Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
@@ -1216,9 +1220,12 @@ def replaceFileAtomic(source_path, dest_path):
     if python_version >= 0x300:
         os.replace(source_path, dest_path)
     else:
-        importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
-            source_path, dest_path
-        )
+        global atomicwrites  # singleton, pylint: disable=global-statement
+
+        if atomicwrites is None:
+            atomicwrites = importFromInlineCopy("atomicwrites", must_exist=True)
+
+        atomicwrites.replace_atomic(source_path, dest_path)
 
 
 def resolveShellPatternToFilenames(pattern):

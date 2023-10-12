@@ -35,6 +35,7 @@ from nuitka.utils.Utils import isWin32Windows
 # Late import and optional to be there.
 use_progress_bar = False
 tqdm = None
+colorama = None
 
 
 class NuitkaProgressBar(object):
@@ -108,7 +109,7 @@ def _getTqdmModule():
     elif tqdm is False:
         return None
     else:
-        tqdm = importFromInlineCopy("tqdm", must_exist=False)
+        tqdm = importFromInlineCopy("tqdm", must_exist=False, delete_module=True)
 
         if tqdm is None:
             try:
@@ -135,12 +136,17 @@ def _getTqdmModule():
 
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
+    global colorama  # singleton, pylint: disable=global-statement
 
     if _getTqdmModule() is not None:
         use_progress_bar = True
 
         if isWin32Windows():
-            colorama = importFromInlineCopy("colorama", must_exist=True)
+            if colorama is None:
+                colorama = importFromInlineCopy(
+                    "colorama", must_exist=True, delete_module=True
+                )
+
             colorama.init()
 
 
