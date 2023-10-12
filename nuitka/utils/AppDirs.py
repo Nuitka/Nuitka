@@ -35,7 +35,7 @@ from nuitka.Tracing import general
 from .FileOperations import makePath
 from .Importing import importFromInlineCopy
 
-appdirs = importFromInlineCopy("appdirs", must_exist=False)
+appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
 
 if appdirs is None:
     import appdirs  # pylint: disable=I0021,import-error
