@@ -1114,6 +1114,11 @@ except ImportError:
         # Virtual method, pylint: disable=unused-argument
         return self.plugin_name
 
+    def getExtraConstantDefaultPopulation(self):
+        """Provide extra global constant values to code generation."""
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
     def decideAllowOutsideDependencies(self, module_name):
         """Decide if outside of Python dependencies are allowed.
 
