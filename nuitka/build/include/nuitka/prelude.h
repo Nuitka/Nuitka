@@ -490,6 +490,12 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define NUITKA_INIT_PROGRAM_LATE(module_name)
 #endif
 
+#if _NUITKA_EXPERIMENTAL_EXIT_PROGRAM
+#include "nuitka_exit_program.h"
+#else
+#define NUITKA_FINALIZE_PROGRAM(tstate)
+#endif
+
 // Only Python3.9+ has a more precise check, while making the old one slow.
 #ifndef PyCFunction_CheckExact
 #define PyCFunction_CheckExact PyCFunction_Check

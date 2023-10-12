@@ -1377,6 +1377,12 @@ class Plugins(object):
                 yield value
 
     @classmethod
+    def getExtraConstantDefaultPopulation(cls):
+        for plugin in getActivePlugins():
+            for value in plugin.getExtraConstantDefaultPopulation():
+                yield value
+
+    @classmethod
     def decideAllowOutsideDependencies(cls, module_name):
         if not Options.isExperimental("no-outside-dependencies"):
             return None

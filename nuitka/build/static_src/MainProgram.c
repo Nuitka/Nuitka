@@ -399,6 +399,7 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             break;
         }
 #endif
+        NUITKA_FINALIZE_PROGRAM(tstate);
 
         PyErr_PrintEx(0);
 
