@@ -119,7 +119,7 @@ if str is bytes:
 else:
 
     def to_byte(value):
-        assert type(value) is int and 0 <= value < 256
+        assert type(value) is int and 0 <= value < 256, value
         return bytes((value,))
 
     def from_byte(value):
