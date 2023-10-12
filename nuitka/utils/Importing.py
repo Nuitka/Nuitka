@@ -163,7 +163,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         del sys.path[0]
 
 
-def importFromInlineCopy(module_name, must_exist):
+def importFromInlineCopy(module_name, must_exist, delete_module=False):
     """Import a module from the inline copy stage."""
 
     folder_name = os.path.normpath(
@@ -181,13 +181,18 @@ def importFromInlineCopy(module_name, must_exist):
     elif python_version < 0x360 and os.path.exists(candidate_35):
         folder_name = candidate_35
 
-    return _importFromFolder(
+    module = _importFromFolder(
         module_name=module_name,
         path=folder_name,
         must_exist=must_exist,
         message=None,
         logger=general,
     )
+
+    if delete_module:
+        del sys.modules[module_name]
+
+    return module
 
 
 _compile_time_modules = {}

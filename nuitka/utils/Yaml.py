@@ -107,7 +107,9 @@ def getYamlPackage():
 
             getYamlPackage.yaml = yaml
         except ImportError:
-            getYamlPackage.yaml = importFromInlineCopy("yaml", must_exist=True)
+            getYamlPackage.yaml = importFromInlineCopy(
+                "yaml", must_exist=True, delete_module=True
+            )
 
     return getYamlPackage.yaml
 
