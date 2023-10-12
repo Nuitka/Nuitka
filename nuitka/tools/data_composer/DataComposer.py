@@ -46,6 +46,24 @@ from nuitka.Tracing import data_composer_logger
 from nuitka.utils.FileOperations import getFileSize, listDir, syncFileOutput
 from nuitka.utils.Json import writeJsonToFilename
 
+_max_uint64_t_value = 2**64 - 1
+
+
+def _encodeVariableLength(value):
+    """Get the variable length size encoding of a uint64_t value."""
+
+    assert 0 <= value <= _max_uint64_t_value
+
+    result = b""
+
+    while value >= 128:
+        # Need to take the last seven bits as a byte value
+        result += to_byte((value & 255) | 128)
+        value >>= 7
+
+    # Last byte or whole value small enough.
+    return result + to_byte(value)
+
 
 def scanConstFiles(build_dir):
     result = []
@@ -90,27 +108,24 @@ def _writeConstantValue(output, constant_value):
     elif constant_value is False:
         output.write(b"F")
     elif constant_type is tuple:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
-        output.write(b"T" + struct.pack("i", len(constant_value)))
+        output.write(b"T" + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
 
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is list:
-        # TODO: Optimize for size of list to be < 256 with dedicated value
-        output.write(b"L" + struct.pack("i", len(constant_value)))
+        output.write(b"L" + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
 
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is dict:
-        # TODO: Optimize for size of dict to be < 256 with dedicated value
-        output.write(b"D" + struct.pack("i", len(constant_value)))
+        output.write(b"D" + _encodeVariableLength(len(constant_value)))
 
         # Write keys first, and values second, such that we allow for the
-        # last_writte to have an impact.
+        # last_written to have an impact.
         items = constant_value.items()
 
         _last_written = None
@@ -121,15 +136,13 @@ def _writeConstantValue(output, constant_value):
         for key, value in items:
             _writeConstantValue(output, value)
     elif constant_type is set:
-        # TODO: Optimize for size of set to be < 256 with dedicated value
-        output.write(b"S" + struct.pack("i", len(constant_value)))
+        output.write(b"S" + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is frozenset:
-        # TODO: Optimize for size of set to be < 256 with dedicated value
-        output.write(b"P" + struct.pack("i", len(constant_value)))
+        output.write(b"P" + _encodeVariableLength(len(constant_value)))
 
         _last_written = None
         for element in constant_value:
@@ -191,7 +204,7 @@ def _writeConstantValue(output, constant_value):
             output.write(b"w" + encoded)
         # Zero termination if possible.
         elif b"\0" in encoded:
-            output.write(b"v" + struct.pack("i", len(encoded)))
+            output.write(b"v" + _encodeVariableLength(len(encoded)))
             output.write(encoded)
         else:
             if str is not bytes and _isAttributeName(constant_value):
@@ -205,7 +218,7 @@ def _writeConstantValue(output, constant_value):
             output.write(b"d" + constant_value)
         # Zero termination if possible.
         elif b"\0" in constant_value:
-            output.write(b"b" + struct.pack("i", len(constant_value)))
+            output.write(b"b" + _encodeVariableLength(len(constant_value)))
             output.write(constant_value)
         else:
             if str is bytes and _isAttributeName(constant_value):
@@ -262,7 +275,7 @@ def _writeConstantValue(output, constant_value):
             output.write(struct.pack("dd", constant_value.real, constant_value.imag))
 
     elif constant_type is bytearray:
-        output.write(b"B" + struct.pack("i", len(constant_value)))
+        output.write(b"B" + _encodeVariableLength(len(constant_value)))
 
         if python_version < 0x270:
             constant_value = constant_value.decode("latin1")
