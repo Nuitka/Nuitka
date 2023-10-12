@@ -21,6 +21,7 @@
 
 from nuitka import Options
 from nuitka.__past__ import long
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isWin32Windows
 
@@ -217,5 +218,9 @@ def getConstantDefaultPopulation():
 
     if isWin32Windows():
         result.append("fileno")
+
+    for value in Plugins.getExtraConstantDefaultPopulation():
+        if value not in result:
+            result.append(value)
 
     return result
