@@ -350,6 +350,7 @@
         "virtualenv",
         "visitproc",
         "vmprof",
+        "vshape",
         "wargv",
         "wcsicmp",
         "winlibs",
