@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Support for gi typelib files
+""" Support for gi typelib files and DLLs
 """
 import os
 
@@ -104,5 +104,10 @@ if not os.environ.get("GI_TYPELIB_PATH"):
 
         if module.getFullName() == "gi._gi":
             # TODO: Get local relevant DLL names from GI
-            for dll in ["gtk-3-0", "soup-2.4-1", "soup-gnome-2.4-1", "libsecret-1-0"]:
-                yield tryLocateAndLoad(dll)
+            for dll_name in (
+                "gtk-3-0",
+                "soup-2.4-1",
+                "soup-gnome-2.4-1",
+                "libsecret-1-0",
+            ):
+                yield tryLocateAndLoad(dll_name)
