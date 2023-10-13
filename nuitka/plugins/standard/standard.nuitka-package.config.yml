@@ -3068,18 +3068,17 @@
   implicit-imports:
     - post-import-code:
         - |
-          def patched_connect(self, receiver, type=None):
-              type = type or QtCore.Qt.ConnectionType.AutoConnection
+          def patched_disconnect(self, receiver):
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
+                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
+                      patched_disconnect._protected.append(receiver)
 
-              return orig_connect(self, receiver, type)
+              return orig_disconnect(self, receiver)
 
           from PySide2 import QtCore
-          orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = patched_connect
+          orig_disconnect = QtCore.SignalInstance.disconnect
+          QtCore.SignalInstance.disconnect = patched_disconnect
 
   options:
     checks:
@@ -3097,18 +3096,17 @@
   implicit-imports:
     - post-import-code:
         - |
-          def patched_connect(self, receiver, type=None):
-              type = type or QtCore.Qt.ConnectionType.AutoConnection
+          def patched_disconnect(self, receiver):
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
+                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
+                      patched_disconnect._protected.append(receiver)
 
-              return orig_connect(self, receiver, type)
+              return orig_disconnect(self, receiver)
 
           from PySide6 import QtCore
-          orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = patched_connect
+          orig_disconnect = QtCore.SignalInstance.disconnect
+          QtCore.SignalInstance.disconnect = patched_disconnect
 
   options:
     checks:
