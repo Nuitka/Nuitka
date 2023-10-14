@@ -175,7 +175,7 @@ def generateYieldFromCode(to_name, expression, emit, context):
         context.removeCleanupTempName(value_name)
 
     yield_code = """\
-generator->m_yieldfrom = %(yield_from)s;
+generator->m_yield_from = %(yield_from)s;
 return NULL;
 """ % {
         "yield_from": value_name
@@ -204,7 +204,7 @@ def generateYieldFromAwaitableCode(to_name, expression, emit, context):
     )
 
     yield_code = """\
-%(object_name)s->m_yieldfrom = %(yield_from)s;
+%(object_name)s->m_yield_from = %(yield_from)s;
 %(object_name)s->m_awaiting = true;
 return NULL;
 """ % {

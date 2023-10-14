@@ -27,6 +27,7 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
 #include "nuitka/prelude.h"
+#include <structmember.h>
 #endif
 
 static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {
@@ -40,8 +41,8 @@ static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, vo
     return result;
 }
 
-static PyGetSetDef Nuitka_Method_getsets[] = {{(char *)"__doc__", (getter)Nuitka_Method_get__doc__, NULL, NULL},
-                                              {NULL}};
+static PyGetSetDef Nuitka_Method_tp_getset[] = {{(char *)"__doc__", (getter)Nuitka_Method_get__doc__, NULL, NULL},
+                                                {NULL}};
 
 #define OFF(x) offsetof(struct Nuitka_MethodObject, x)
 
@@ -61,6 +62,7 @@ static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
 #if PYTHON_VERSION < 0x300
     PyThreadState *tstate = PyThreadState_GET();
 
+    // spell-checker: ignore instancemethod
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
 #elif PYTHON_VERSION < 0x340
@@ -531,7 +533,7 @@ PyTypeObject Nuitka_Method_Type = {
     0,                                                // tp_iternext
     Nuitka_Method_methods,                            // tp_methods
     Nuitka_Method_members,                            // tp_members
-    Nuitka_Method_getsets,                            // tp_getset
+    Nuitka_Method_tp_getset,                          // tp_getset
     0,                                                // tp_base
     0,                                                // tp_dict
     (descrgetfunc)Nuitka_Method_tp_descr_get,         // tp_descr_get

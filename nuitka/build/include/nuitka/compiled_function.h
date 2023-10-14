@@ -19,8 +19,8 @@
 #define __NUITKA_COMPILED_FUNCTION_H__
 
 #ifdef __IDE_ONLY__
-#include "Python.h"
-#include "frameobject.h"
+#include <Python.h>
+#include <frameobject.h>
 #endif
 
 // Compiled function type.

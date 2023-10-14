@@ -55,12 +55,12 @@
 #endif
 
 /* Include the relevant Python C-API header files. */
-#include "Python.h"
-#include "frameobject.h"
-#include "marshal.h"
-#include "methodobject.h"
-#include "osdefs.h"
-#include "structseq.h"
+#include <Python.h>
+#include <frameobject.h>
+#include <marshal.h>
+#include <methodobject.h>
+#include <osdefs.h>
+#include <structseq.h>
 
 #if PYTHON_VERSION < 0x3a0
 #include "pydebug.h"

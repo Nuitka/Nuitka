@@ -15,11 +15,11 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#include "nuitka/prelude.h"
-
+#ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
-
-#include "structmember.h"
+#include "nuitka/prelude.h"
+#include <structmember.h>
+#endif
 
 // For reporting about reference counts per type.
 #if _DEBUG_REFCOUNTS
