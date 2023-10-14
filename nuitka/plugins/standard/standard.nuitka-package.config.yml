@@ -5598,7 +5598,7 @@
         'importlib.util.find_spec("tensorflow") is not None': 'False'
     - description: 'more clear missing metadata error message'
       replacements_plain:
-        'package_exists = False': "sys.exit('''Nuitka: Need to use compile with '--include-package-data=%s'.''' % pkg_name)"
+        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile with '--include-distribution-metadata=%s'.''' % pkg_name)"
       when: 'not deployment'
 
 - module-name: 'transformers.utils.versions'
