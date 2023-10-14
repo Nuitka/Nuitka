@@ -870,6 +870,87 @@ bundle on macOS. If you find something that is lacking, let us know.
  Typical Problems
 ******************
 
+Deployment Mode
+===============
+
+By default, Nuitka compiles without ``--deployment`` which leaves a set
+of safe guards and helpers on, that are aimed at debugging wrong uses of
+Nuitka.
+
+This is a new feature, and implements a bunch of protections and
+helpers, that are documented here.
+
+Fork bombs (self-execution)
+---------------------------
+
+So after compilation, ``sys.executable`` is the compiled binary. In case
+of packages like ``multiprocessing``, ``joblib``, or ``loky`` what these
+typically do is to expect to run from a full ``python`` with
+``sys.executable`` and then to be able to use its options like ``-c
+command`` or ``-m module_name`` and then be able to launch other code
+temporarily or permanently as a service daemon.
+
+With Nuitka however, this executes your program again, and puts these
+arguments, in ``sys.argv`` where you maybe ignore them, and then you
+fork yourself again to launch the helper daemons. Sometimes this ends up
+spawning CPU count processes that spawn CPU count processes that... this
+is called a fork bomb, and with almost all systems, that freezes them
+easily to death.
+
+That is why e.g. this happens with default Nuitka:
+
+.. code::
+
+   ./hello.dist/hello.bin -l fooL -m fooM -n fooN -o fooO -p
+   Error, the program tried to call itself with '-m' argument. Disable with '--no-deployment-flag=self-execution'.
+
+Your program may well have its own command line parsing, and not use an
+unsupported package that does attempt to re-execute. In this case, you
+need at *compile time* to use ``--no-deployment-flag=self-execution``
+which disables this specific guard.
+
+Misleading Messages
+-------------------
+
+Some packages output what they think is helpful information about what
+the reason of a failed import might me. With compiled programs there are
+very often just plain wrong. We try and repair those in non-deployment
+mode. Here is an example, where we change a message that asks to pip
+install (which is not the issue) to point the user to the include
+command that makes an ``imageio`` plugin work.
+
+.. code:: yaml
+
+   - module-name: 'imageio.core.imopen'
+     anti-bloat:
+       - replacements_plain:
+           '`pip install imageio[{config.install_name}]` to install it': '`--include-module={config.module_name}` with Nuitka to include it'
+           'err_type = ImportError': 'err_type = RuntimeError'
+         when: 'not deployment'
+
+And much more
+-------------
+
+The deployment mode is relatively new and has constantly more features
+added, e.g. something for ``FileNotFoundError`` should be coming soon.
+
+Disabling All
+-------------
+
+All these helpers can of course be disabled at once with
+``--deployment`` but keep in mind that for debugging, you may want to
+re-enable it. You might want to use Nuitka Project options and an
+environment variable to make this conditional.
+
+Should you disable them all?
+
+We believe, disabling should only happen selectively, but with PyPI
+upgrades, your code changes, all of these issues can sneak back in. The
+space saving of deployment mode is currently negligible, so attempt to
+not do it, but review what exists, and if you know that it cannot affect
+you, or if it does, you will not need it. Some of the future ones, will
+clearly be geared at beginner level usage.
+
 Windows Virus scanners
 ======================
 
@@ -1154,15 +1235,21 @@ variables, this is an example:
 
 .. code:: python
 
-   # Compilation mode, support OS specific.
+   # Compilation mode, support OS specific options
    # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --onefile
-   # nuitka-project-if: {OS} not in ("Windows", "Linux", "Darwin", "FreeBSD"):
+   # nuitka-project-else:
    #    nuitka-project: --standalone
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2
    # nuitka-project: --include-qt-plugins=sensible,qml
+
+   # Debugging toggle
+   # nuitka-project-if: os.environ.get("DEBUG_COMPILATION", "no") == "yes"
+   #    nuitka-project: --debug
+   # nuitka-project-else:
+   #    nuitka-project: --deployment
 
 The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
