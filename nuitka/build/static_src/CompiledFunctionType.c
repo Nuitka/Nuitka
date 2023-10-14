@@ -27,8 +27,8 @@
 #include "nuitka/freelists.h"
 
 // Needed for offsetof
-#include "structmember.h"
 #include <stddef.h>
+#include <structmember.h>
 
 // spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
 
