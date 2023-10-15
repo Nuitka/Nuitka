@@ -199,6 +199,8 @@ of files that you may not want to be included.""",
         return "."
 
     def _getSensiblePlugins(self):
+        # spell-checker: ignore imageformats,iconengines,mediaservice,printsupport
+        # spell-checker: ignore platformthemes,egldeviceintegrations,xcbglintegrations
         return OrderedSet(
             tuple(
                 family
@@ -390,7 +392,8 @@ import %(binding_name)s.QtCore
     def _getQmlFileList(self, dlls):
         qml_plugin_dir = self._getQmlDirectory()
 
-        # List all file types of the QML plugin folder that are data files and not DLLs.
+        # List all file types of the QML plugin folder that are data files and
+        # not DLLs, spell-checker: ignore qmlc,qmltypes,metainfo,qmldir
         datafile_suffixes = (
             ".qml",
             ".qmlc",
@@ -935,6 +938,8 @@ Prefix = .
                 count = 0
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
+                    # spell-checker: ignore libeay32,ssleay32
+
                     if basename in ("libeay32.dll", "ssleay32.dll"):
                         yield self.makeDllEntryPoint(
                             source_path=filename,
@@ -1008,6 +1013,7 @@ Prefix = .
                     )
 
                 # Manually loaded DLLs by Qt5.
+                # spell-checker: ignore libcrypto
                 for dll_basename in ("libssl-1_1", "libcrypto-1_1"):
                     dll_filename = dll_basename + arch_suffix + ".dll"
 
@@ -1118,6 +1124,7 @@ behavior with the uncompiled code."""
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Third party packages that make binding selections."""
+        # spell-checker: ignore pyqtgraph
         if module_name.hasNamespace("pyqtgraph"):
             # TODO: Add a mechanism to force all variable references of a name to something
             # during tree building, that would cover all uses in a nicer way.
