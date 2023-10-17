@@ -70,6 +70,10 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Distributions import isDistributionCondaPackage
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    getFileContents,
+)
 from nuitka.utils.Importing import isBuiltinModuleName
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -923,6 +927,21 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
         # Virtual method, pylint: disable=no-self-use
         return None
+
+    @classmethod
+    def getPluginDataFilesDir(cls):
+        """Helper function that returns path, where data files for the plugin are stored."""
+        plugin_filename = sys.modules[cls.__module__].__file__
+        return changeFilenameExtension(plugin_filename, "")
+
+    def getPluginDataFileContents(self, filename):
+        """Helper function that returns contents of a plugin data file."""
+        return getFileContents(
+            os.path.join(
+                self.getPluginDataFilesDir(),
+                filename,
+            )
+        )
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
