@@ -1374,6 +1374,12 @@
     patterns:
       - 'version.info'
 
+- module-name: 'lightning.app.runners.cloud'
+  anti-bloat:
+    - description: 'remove lightning.app.testing dependency'
+      no-auto-follow:
+        'lightning.app.testing.helpers': 'ignore'
+
 - module-name: 'lightning_fabric'
   data-files:
     patterns:
