@@ -327,7 +327,7 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
-      when: 'not deployment'
+      when: 'not deployment and not plugin("tk-inter")'
   options:
     checks:
       - console: 'recommend'
