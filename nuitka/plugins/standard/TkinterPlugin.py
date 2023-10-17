@@ -22,7 +22,7 @@ import sys
 
 from nuitka.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import getSystemPrefixPath
+from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -68,7 +68,18 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         self.tcl_library_dir = tcl_library_dir
         self.tk_library_dir = tk_library_dir
 
-        self.files_copied = False  # ensure one-time action
+        # ensure one-time action, we deal with two names for the execution, yet we
+        # only want to do it once.
+        self.files_copied = False
+
+        self.tk_inter_version = getTkInterVersion()
+
+        if self.tk_inter_version is None:
+            self.sysexit("Error, it seems tk-inter is not installed.")
+
+        # Only ever saw these 2 in use.
+        assert self.tk_inter_version in ("8.5", "8.6"), self.tk_inter_version
+
         return None
 
     @classmethod
@@ -153,46 +164,44 @@ The Tcl library dir. See comments for Tk library dir.""",
             tags="tcl",
         )
 
-    @staticmethod
-    def _getTclCandidatePaths():
+    def _getTclCandidatePaths(self):
         # Check typical locations of the dirs
         yield os.environ.get("TCL_LIBRARY")
 
+        # Inside the Python install, esp. on Windows.
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
-            yield os.path.join(sys_prefix_path, "tcl", "tcl8.5")
-            yield os.path.join(sys_prefix_path, "tcl", "tcl8.6")
-            yield os.path.join(sys_prefix_path, "lib", "tcl8.5")
-            yield os.path.join(sys_prefix_path, "lib", "tcl8.6")
+            yield os.path.join(sys_prefix_path, "tcl", "tcl%s" % self.tk_inter_version)
+            yield os.path.join(sys_prefix_path, "lib", "tcl%s" % self.tk_inter_version)
+
             # Newer Anaconda.
-            yield os.path.join(sys_prefix_path, "Library", "lib", "tcl8.6")
+            yield os.path.join(
+                sys_prefix_path, "Library", "lib", "tcl%s" % self.tk_inter_version
+            )
 
+        # System installs on non-Windows
         if not isWin32Windows():
-            yield "/usr/share/tcltk/tcl8.6"
-            yield "/usr/share/tcltk/tcl8.5"
-            yield "/usr/share/tcl8.6"
-            yield "/usr/share/tcl8.5"
-            yield "/usr/lib64/tcl/tcl8.5"
-            yield "/usr/lib64/tcl/tcl8.6"
+            yield "/usr/share/tcltk/tcl%s" % self.tk_inter_version
+            yield "/usr/share/tcl%s" % self.tk_inter_version
+            yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
+            yield "/usr/lib/tcl%s" % self.tk_inter_version
 
-    @staticmethod
-    def _getTkCandidatePaths():
+    def _getTkCandidatePaths(self):
         yield os.environ.get("TK_LIBRARY")
 
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
-            yield os.path.join(sys_prefix_path, "tcl", "tk8.5")
-            yield os.path.join(sys_prefix_path, "tcl", "tk8.6")
-            yield os.path.join(sys_prefix_path, "lib", "tk8.5")
-            yield os.path.join(sys_prefix_path, "lib", "tk8.6")
+            yield os.path.join(sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version)
+            yield os.path.join(sys_prefix_path, "lib", "tk%s" % self.tk_inter_version)
+
             # Newer Anaconda.
-            yield os.path.join(sys_prefix_path, "Library", "lib", "tk8.6")
+            yield os.path.join(
+                sys_prefix_path, "Library", "lib", "tk%s" % self.tk_inter_version
+            )
 
         if not isWin32Windows():
-            yield "/usr/share/tcltk/tk8.6"
-            yield "/usr/share/tcltk/tk8.5"
-            yield "/usr/share/tk8.6"
-            yield "/usr/share/tk8.5"
-            yield "/usr/lib64/tcl/tk8.5"
-            yield "/usr/lib64/tcl/tk8.6"
+            yield "/usr/share/tcltk/tk%s" % self.tk_inter_version
+            yield "/usr/share/tk%s" % self.tk_inter_version
+            yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
+            yield "/usr/lib/tk%s" % self.tk_inter_version
 
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.
@@ -220,7 +229,9 @@ The Tcl library dir. See comments for Tk library dir.""",
         tcl_library_dir = self.tcl_library_dir
         if tcl_library_dir is None:
             for tcl_library_dir in self._getTclCandidatePaths():
-                if tcl_library_dir is not None and os.path.exists(tcl_library_dir):
+                if tcl_library_dir is not None and os.path.exists(
+                    os.path.join(tcl_library_dir, "init.tcl")
+                ):
                     break
 
         if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
@@ -233,7 +244,9 @@ that works, report a bug so it can be added to Nuitka."""
         tk_library_dir = self.tk_library_dir
         if tk_library_dir is None:
             for tk_library_dir in self._getTkCandidatePaths():
-                if tk_library_dir is not None and os.path.exists(tk_library_dir):
+                if tk_library_dir is not None and os.path.exists(
+                    os.path.join(tk_library_dir, "dialog.tcl")
+                ):
                     break
 
         if tk_library_dir is None or not os.path.exists(tk_library_dir):

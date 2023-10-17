@@ -452,3 +452,15 @@ def getInstalledPythonRegistryPaths(version):
 
                     if os.path.exists(candidate):
                         yield candidate
+
+
+def getTkInterVersion():
+    """Get the tk-inter version or None if not installed."""
+    try:
+        if str is bytes:
+            return str(__import__("TkInter").TkVersion)
+        else:
+            return str(__import__("tkinter").TkVersion)
+    except ImportError:
+        # This should lead to no action taken ideally.
+        return None
