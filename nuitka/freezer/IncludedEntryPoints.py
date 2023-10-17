@@ -176,7 +176,7 @@ def _getTopLevelPackageName(package_name):
 
 
 def _warnNonIdenticalEntryPoints(entry_point1, entry_point2):
-    # Well know case, where they duplicate all the DLLs, seems to work well
+    # Well know cases, where they duplicate all the DLLs, seems to work well
     # enough to not report this. TODO: When we are adding to the report, it
     # ought to be still added. spell-checker: ignore scipy
     if frozenset(
@@ -187,10 +187,27 @@ def _warnNonIdenticalEntryPoints(entry_point1, entry_point2):
     ) == frozenset(("numpy", "scipy")):
         return
 
+    if frozenset(
+        (
+            _getTopLevelPackageName(entry_point1.package_name),
+            _getTopLevelPackageName(entry_point2.package_name),
+        )
+    ) == frozenset(("av", "cv2")):
+        return
+
+    def _describe(entry_point):
+        if entry_point.package_name:
+            return "'%s' of package '%s'" % (
+                entry_point.source_path,
+                entry_point.package_name,
+            )
+        else:
+            return "'%s'" % entry_point.source_path
+
     inclusion_logger.warning(
         """\
-Ignoring non-identical DLLs for '%s', '%s' different from '%s'. Using first one and hoping for the best."""
-        % (entry_point1.dest_path, entry_point1.source_path, entry_point2.source_path)
+Ignoring non-identical DLLs for %s, %s different from %s. Using first one and hoping for the best."""
+        % (entry_point1.dest_path, _describe(entry_point1), _describe(entry_point2))
     )
 
 
