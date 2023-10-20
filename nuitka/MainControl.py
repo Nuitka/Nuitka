@@ -70,6 +70,7 @@ from nuitka.PythonFlavors import (
     isPyenvPython,
 )
 from nuitka.PythonVersions import (
+    getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
     python_version,
@@ -707,6 +708,10 @@ def runSconsBackend():
 
     if Options.shallMakeModule():
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
+
+    link_module_libs = getModuleLinkerLibs()
+    if link_module_libs:
+        options["link_module_libs"] = ",".join(link_module_libs)
 
     env_values = setCommonSconsOptions(options)
 

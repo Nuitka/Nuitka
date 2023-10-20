@@ -102,7 +102,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,linkflags,libpath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -120,7 +120,7 @@ nuitka_src = getArgumentRequired("nuitka_src")
 static_src = os.path.join(source_dir, "static")
 
 # The name of executable or extension module that we produce.
-result_basepath = getArgumentRequired("result_name")
+result_base_path = getArgumentRequired("result_name")
 
 # The name of executable that we produce (in executable mode).
 result_exe = getArgumentDefaulted("result_exe", None)
@@ -286,6 +286,9 @@ cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
+# From statically compiled modules of the Python
+link_module_libs = getArgumentList("link_module_libs", "")
+
 # Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
@@ -430,7 +433,7 @@ if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
         )
 
 if env.msvc_mode:
-    # With Clang on Windows, there is also an linker to use.
+    # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
     env.Append(
         CCFLAGS=[
             "/EHsc",  # No C++ exception handling code.
@@ -445,7 +448,7 @@ if env.msvc_mode:
 
     if module_mode:
         # Make sure we handle import library on our own and put it into the
-        # build directory.
+        # build directory, spell-checker: ignore IMPLIB
 
         no_import_lib = True
         env.Append(
@@ -707,16 +710,19 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix_external, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
+    # Any module libs that are for self-compiled Python to be static.
+    env.Append(_LIBFLAGS=["-l" + lib_desc for lib_desc in link_module_libs])
+
     if env.nuitka_python:
         link_data = loadJsonFromFilename(
             os.path.join(python_prefix_external, "link.json")
         )
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
-            if os.path.isfile(lib):
-                env.Append(_LIBFLAGS=[lib])
-            elif lib.startswith(":") and lib.endswith(".a"):
+            if lib.startswith(":") and lib.endswith(".a"):
                 env.Append(_LIBFLAGS=["-l" + lib])
+            elif os.path.isfile(lib):
+                env.Append(_LIBFLAGS=[lib])
             else:
                 env.Append(LIBS=[lib])
         env.Append(LIBPATH=link_data["library_dirs"])
@@ -882,11 +888,11 @@ source_files = discoverSourceFiles()
 
 if module_mode:
     # For Python modules, the standard shared library extension is not what
-    # gets used.
+    # gets used. spell-checker: ignore SHLIBSUFFIX
     env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
-        result_basepath, source_files, no_import_lib=no_import_lib
+        result_base_path, source_files, no_import_lib=no_import_lib
     )
 else:
     target = env.Program(result_exe, source_files)

@@ -464,3 +464,17 @@ def getTkInterVersion():
     except ImportError:
         # This should lead to no action taken ideally.
         return None
+
+
+def getModuleLinkerLibs():
+    """Get static link libraries needed."""
+    try:
+        import sysconfig
+    except ImportError:
+        return []
+    else:
+        # static link libraries might be there, spell-checker: ignore modlibs
+        result = sysconfig.get_config_var("MODLIBS") or ""
+        result = [entry[2:] for entry in result.split() if entry.startswith("-l:")]
+
+        return result
