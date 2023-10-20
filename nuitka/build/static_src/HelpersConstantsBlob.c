@@ -196,8 +196,10 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
         // Same sized set, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_Next(set1, &pos1, &key1)) {
-            int res = _PySet_Next(set2, &pos2, &key2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = _PySet_Next(set2, &pos2, &key2);
+                assert(res != 0);
+            }
 
             if (key1 != key2) {
                 result = Py_False;
@@ -210,8 +212,10 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
         // Same sized dictionary, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_NextEntry(set1, &pos1, &key1, &unused1)) {
-            int res = _PySet_NextEntry(set2, &pos2, &key2, &unused2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = _PySet_NextEntry(set2, &pos2, &key2, &unused2);
+                assert(res != 0);
+            }
 
             if (key1 != key2) {
                 result = Py_False;
@@ -273,8 +277,10 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
         // Other reductions should make it identical, or else this won't have the
         // effect intended.
         while (Nuitka_DictNext(a, &pos1, &key1, &value1)) {
-            int res = Nuitka_DictNext(b, &pos2, &key2, &value2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = Nuitka_DictNext(b, &pos2, &key2, &value2);
+                assert(res != 0);
+            }
 
             if (key1 != key2 || value1 != value2) {
                 result = Py_False;

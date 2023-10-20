@@ -1021,8 +1021,7 @@ static void Nuitka_Py_Initialize(void) {
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
     }
-    _PyRuntimeState *runtime = &_PyRuntime;
-
+    NUITKA_MAY_BE_UNUSED _PyRuntimeState *runtime = &_PyRuntime;
     assert(!runtime->initialized);
 
     PyConfig config;
@@ -1477,8 +1476,10 @@ orig_argv = argv;
 #if PYTHON_VERSION >= 0x300
     // Make sure the importlib fully bootstraps as we couldn't load it with the
     // standard loader.
-    PyObject *importlib_module = getImportLibBootstrapModule();
-    CHECK_OBJECT(importlib_module);
+    {
+        NUITKA_MAY_BE_UNUSED PyObject *importlib_module = getImportLibBootstrapModule();
+        CHECK_OBJECT(importlib_module);
+    }
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");

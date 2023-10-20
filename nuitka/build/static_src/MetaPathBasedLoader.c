@@ -184,8 +184,10 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
                                           bool is_package) {
     assert(code_object != NULL);
 
-    bool b_res = Nuitka_SetModuleString(name, module);
-    assert(b_res != false);
+    {
+        NUITKA_MAY_BE_UNUSED bool b_res = Nuitka_SetModuleString(name, module);
+        assert(b_res != false);
+    }
 
     char buffer[MAXPATHLEN + 1] = {0};
 
@@ -1027,15 +1029,20 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         assert((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0);
         assert(entry->python_initfunc);
 
-        bool res = Nuitka_SetModule(module_name, module);
-        assert(res != false);
+        {
+            NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(module_name, module);
+            assert(res != false);
+        }
 
         // Run the compiled module code, we get the module returned.
+#if PYTHON_VERSION < 0x300
+        NUITKA_MAY_BE_UNUSED
+#endif
         PyObject *result = entry->python_initfunc(tstate, module, entry);
         CHECK_OBJECT_X(result);
 
-#if PYTHON_VERSION >= 0x340
-        if (result != NULL) {
+#if PYTHON_VERSION >= 0x300
+        if (likely(result != NULL)) {
             _fixupSpecAttribute(tstate, result);
         }
 #endif
@@ -1924,8 +1931,11 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
     Nuitka_PyType_Ready(&Nuitka_Loader_Type, NULL, true, false, false, false, false);
 
 #ifdef _NUITKA_EXE
-    int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_loader_type", (PyObject *)&Nuitka_Loader_Type);
-    assert(res == 0);
+    {
+        NUITKA_MAY_BE_UNUSED int res =
+            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_loader_type", (PyObject *)&Nuitka_Loader_Type);
+        assert(res == 0);
+    }
 #endif
 
 #if PYTHON_VERSION >= 0x370

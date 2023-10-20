@@ -137,8 +137,10 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
         CHECK_OBJECT(joined);
 
         PyObject *files_object = Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, joined);
-        bool res = LIST_APPEND1(files_objects, files_object);
-        assert(res);
+        {
+            NUITKA_MAY_BE_UNUSED bool res = LIST_APPEND1(files_objects, files_object);
+            assert(res);
+        }
 
         CHECK_OBJECT(files_object);
         Py_DECREF(joined);
