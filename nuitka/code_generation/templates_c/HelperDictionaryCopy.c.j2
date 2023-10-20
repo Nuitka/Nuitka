@@ -41,7 +41,7 @@ else
             PyObject *value = entry->me_value;
             {{ per_value_code }}
 
-            int res = PyDict_SetItem({{ result }}, key, value);
+            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
             assert(res == 0);
 
 {% if value_ref == 1 %}
@@ -241,7 +241,7 @@ else
 
                 {{ per_value_code }}
 
-                int res = PyDict_SetItem({{ result }}, key, value);
+                NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
                 assert(res == 0);
 
 {% if value_ref == 1 %}
@@ -263,7 +263,7 @@ else
 
             {{ per_value_code }}
 
-            int res = PyDict_SetItem({{ result }}, key, value);
+            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItem({{ result }}, key, value);
             assert(res == 0);
 
 {% if value_ref == 1 %}

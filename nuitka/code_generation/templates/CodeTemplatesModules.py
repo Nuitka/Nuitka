@@ -585,8 +585,10 @@ MOD_INIT_DECL(%(module_identifier)s) {
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
-    bool res = Nuitka_SetModuleString(module_full_name, module);
-    assert(res != false);
+    {
+        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(module_full_name, module);
+        assert(res != false);
+    }
 #endif
 
     PyThreadState *tstate = PyThreadState_GET();
