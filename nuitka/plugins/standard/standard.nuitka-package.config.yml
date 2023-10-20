@@ -5098,6 +5098,11 @@
         : "\n"
         'from distutils import version as distutils_version': ''
 
+- module-name: 'tensorflow.python.data.ops.dataset_ops'
+  implicit-imports:
+    - depends:
+        - 'tensorflow.python.data.ops.shuffle_op'
+
 - module-name: 'tensorflow.python.distribute.multi_process_runner'
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
@@ -5126,6 +5131,11 @@
     - depends:
         - 'tensorflow.python.framework.fast_tensor_util'
       when: 'not win32'
+
+- module-name: 'tensorflow.python.framework.dtypes'
+  implicit-imports:
+    - depends:
+        - 'ml_dtypes'
 
 - module-name: 'tensorflow.python.framework.meta_graph'
   anti-bloat:
