@@ -55,7 +55,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
                 kw_dict = MAKE_DICT_EMPTY();
             }
 
-            int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
+            NUITKA_MAY_BE_UNUSED int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
             assert(res == 0);
         }
 

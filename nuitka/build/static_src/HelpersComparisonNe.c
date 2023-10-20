@@ -2134,7 +2134,7 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
     } else {
         int kind1 = PyUnicode_KIND(a);
         if (unlikely(kind1 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)a);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
@@ -2142,7 +2142,7 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
 
         int kind2 = PyUnicode_KIND(b);
         if (unlikely(kind2 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)b);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
@@ -2797,7 +2797,7 @@ static bool COMPARE_NE_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
     } else {
         int kind1 = PyUnicode_KIND(a);
         if (unlikely(kind1 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)a);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
@@ -2805,7 +2805,7 @@ static bool COMPARE_NE_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
 
         int kind2 = PyUnicode_KIND(b);
         if (unlikely(kind2 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)b);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
