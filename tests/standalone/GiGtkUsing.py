@@ -1,3 +1,5 @@
+# nuitka-skip-unless-imports: cairo
+
 import cairo
 import gi
 
