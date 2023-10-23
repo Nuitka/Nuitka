@@ -360,6 +360,8 @@ def _getComparisonEqShapeGeneric(self, right_shape):
 
 
 class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = None
 
     @staticmethod
@@ -440,6 +442,8 @@ tshape_none = ShapeTypeNoneType()
 
 
 class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = True
 
     @staticmethod
@@ -493,6 +497,8 @@ tshape_bool = ShapeTypeBool()
 
 
 class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = 7
 
     @staticmethod
@@ -550,6 +556,8 @@ if python_version < 0x300:
     _the_typical_long_value = long(7)  # pylint: disable=I0021,undefined-variable
 
     class ShapeTypeLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+        __slots__ = ()
+
         typical_value = _the_typical_long_value
 
         @staticmethod
@@ -599,6 +607,8 @@ if python_version < 0x300:
     tshape_long = ShapeTypeLong()
 
     class ShapeTypeLongDerived(ShapeTypeUnknown):
+        __slots__ = ()
+
         @staticmethod
         def getTypeName():
             return None
@@ -606,6 +616,8 @@ if python_version < 0x300:
     tshape_long_derived = ShapeTypeLongDerived()
 
     class ShapeTypeIntOrLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+        __slots__ = ()
+
         if isExperimental("nuitka_ilong"):
 
             @staticmethod
@@ -668,13 +680,15 @@ else:
 
 # TODO: Make this Python2 only, and use ShapeTypeIntDerived for Python3
 class ShapeTypeIntOrLongDerived(ShapeTypeUnknown):
-    pass
+    __slots__ = ()
 
 
 tshape_int_or_long_derived = ShapeTypeIntOrLongDerived()
 
 
 class ShapeTypeFloat(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = 0.1
 
     @staticmethod
@@ -722,13 +736,15 @@ tshape_float = ShapeTypeFloat()
 
 
 class ShapeTypeFloatDerived(ShapeTypeUnknown):
-    pass
+    __slots__ = ()
 
 
 tshape_float_derived = ShapeTypeFloatDerived()
 
 
 class ShapeTypeComplex(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = 0j
 
     @staticmethod
@@ -756,6 +772,8 @@ tshape_complex = ShapeTypeComplex()
 
 
 class ShapeTypeTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = ()
 
     @staticmethod
@@ -797,6 +815,8 @@ tshape_tuple = ShapeTypeTuple()
 
 
 class ShapeTypeNamedTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     @staticmethod
     def getTypeName():
         return "namedtuple"
@@ -837,6 +857,8 @@ tshape_namedtuple = ShapeTypeNamedTuple()
 
 
 class ShapeTypeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_tuple.typical_value)
 
     @staticmethod
@@ -852,6 +874,8 @@ tshape_tuple_iterator = ShapeTypeTupleIterator()
 
 
 class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = []
 
     @staticmethod
@@ -909,6 +933,8 @@ tshape_list = ShapeTypeList()
 
 
 class ShapeTypeListIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_list.typical_value)
 
     @staticmethod
@@ -924,6 +950,8 @@ tshape_list_iterator = ShapeTypeListIterator()
 
 
 class ShapeTypeSet(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = set()
 
     @staticmethod
@@ -963,6 +991,8 @@ tshape_set = ShapeTypeSet()
 
 
 class ShapeTypeSetIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_set.typical_value)
 
     @staticmethod
@@ -978,6 +1008,8 @@ tshape_set_iterator = ShapeTypeSetIterator()
 
 
 class ShapeTypeFrozenset(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = frozenset()
 
     @staticmethod
@@ -1015,6 +1047,8 @@ _the_empty_dict = {}
 
 
 class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = _the_empty_dict
 
     @staticmethod
@@ -1063,6 +1097,8 @@ tshape_dict = ShapeTypeDict()
 
 
 class ShapeTypeDictIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_dict.typical_value)
 
     @staticmethod
@@ -1080,6 +1116,8 @@ tshape_dict_iterator = ShapeTypeDictIterator()
 
 
 class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = "a"
 
     @staticmethod
@@ -1177,13 +1215,15 @@ tshape_str = ShapeTypeStr()
 
 
 class TypeShapeStrDerived(ShapeTypeUnknown):
-    pass
+    __slots__ = ()
 
 
 tshape_str_derived = TypeShapeStrDerived()
 
 
 class ShapeTypeStrIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_str.typical_value)
 
     @staticmethod
@@ -1201,6 +1241,8 @@ tshape_str_iterator = ShapeTypeStrIterator()
 if python_version < 0x300:
 
     class ShapeTypeUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+        __slots__ = ()
+
         typical_value = the_empty_unicode
 
         @staticmethod
@@ -1290,11 +1332,13 @@ if python_version < 0x300:
     tshape_unicode = ShapeTypeUnicode()
 
     class ShapeTypeUnicodeDerived(ShapeTypeUnknown):
-        pass
+        __slots__ = ()
 
     tshape_unicode_derived = ShapeTypeUnicodeDerived()
 
     class ShapeTypeUnicodeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+        __slots__ = ()
+
         typical_value = iter(tshape_unicode.typical_value)
 
         @staticmethod
@@ -1315,6 +1359,8 @@ else:
 if python_version < 0x300:
 
     class ShapeTypeStrOrUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+        __slots__ = ()
+
         @staticmethod
         def emitAlternatives(emit):
             emit(tshape_str)
@@ -1380,7 +1426,7 @@ if python_version < 0x300:
     tshape_str_or_unicode = ShapeTypeStrOrUnicode()
 
     class ShapeTypeStrOrUnicodeDerived(ShapeTypeUnknown):
-        pass
+        __slots__ = ()
 
     tshape_str_or_unicode_derived = ShapeTypeStrOrUnicodeDerived()
 
@@ -1391,6 +1437,8 @@ else:
 if python_version >= 0x300:
 
     class ShapeTypeBytes(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+        __slots__ = ()
+
         typical_value = b"b"
 
         @staticmethod
@@ -1476,11 +1524,12 @@ if python_version >= 0x300:
     tshape_bytes = ShapeTypeBytes()
 
     class TypeShapeBytesDerived(ShapeTypeUnknown):
-        pass
+        __slots__ = ()
 
     tshape_bytes_derived = TypeShapeBytesDerived()
 
     class TypeShapeBytesIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+        __slots__ = ()
         typical_value = iter(tshape_bytes.typical_value)
 
         @staticmethod
@@ -1500,6 +1549,8 @@ _the_typical_bytearray_value = bytearray(b"b")
 
 
 class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = _the_typical_bytearray_value
 
     @staticmethod
@@ -1555,6 +1606,8 @@ tshape_bytearray = ShapeTypeBytearray()
 
 
 class ShapeTypeBytearrayIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_bytearray.typical_value)
 
     @staticmethod
@@ -1570,6 +1623,8 @@ tshape_bytearray_iterator = ShapeTypeBytearrayIterator()
 
 
 class ShapeTypeEllipsis(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = Ellipsis
 
     @staticmethod
@@ -1595,6 +1650,8 @@ _the_typical_slice_value = slice(7)
 
 
 class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = _the_typical_slice_value
 
     @staticmethod
@@ -1624,6 +1681,8 @@ _the_typical_xrange_value = (
 
 
 class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = _the_typical_xrange_value
 
     @staticmethod
@@ -1668,6 +1727,8 @@ tshape_xrange = ShapeTypeXrange()
 
 
 class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = iter(tshape_xrange.typical_value)
 
     @staticmethod
@@ -1683,6 +1744,8 @@ tshape_xrange_iterator = ShapeTypeXrangeIterator()
 
 
 class ShapeTypeType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = int
 
     @staticmethod
@@ -1711,6 +1774,8 @@ tshape_type = ShapeTypeType()
 
 
 class ShapeTypeModule(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     typical_value = __import__("sys")
 
     @staticmethod
@@ -1730,6 +1795,7 @@ tshape_module = ShapeTypeModule()
 
 
 class ShapeTypeFunction(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
     # TODO: Add typical value.
 
     @staticmethod
@@ -1745,6 +1811,8 @@ tshape_function = ShapeTypeFunction()
 
 
 class ShapeTypeBuiltinModule(ShapeTypeModule):
+    __slots__ = ()
+
     typical_value = __import__("_ctypes")
 
 
@@ -1752,6 +1820,7 @@ tshape_module_builtin = ShapeTypeBuiltinModule()
 
 
 class ShapeTypeFile(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
     # TODO: That need not really be a file, find something better.
     typical_value = __import__("sys").stdout
 
@@ -1781,6 +1850,8 @@ tshape_file = ShapeTypeFile()
 
 
 class ShapeTypeStaticmethod(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
+
     # TODO: Add typical value.
 
     @staticmethod
@@ -1794,6 +1865,7 @@ tshape_staticmethod = ShapeTypeStaticmethod()
 
 
 class ShapeTypeClassmethod(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+    __slots__ = ()
     # TODO: Add typical value.
 
     @staticmethod
@@ -4161,6 +4233,9 @@ if python_version >= 0x390:
 class ShapeTypeBuiltinExceptionClass(
     ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase
 ):
+    __slots__ = ()
+
+    # TODO: Add a typical value, that should be easy.
     typical_value = None
 
 

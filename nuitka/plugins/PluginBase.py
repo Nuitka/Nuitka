@@ -33,7 +33,6 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
@@ -82,6 +81,7 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from nuitka.utils.Utils import (
     getArchitecture,
     isLinux,
@@ -167,7 +167,7 @@ def _isPluginActive(plugin_name):
     return plugin_name in getUserActivatedPluginNames()
 
 
-class NuitkaPluginBase(getMetaClassBase("Plugin")):
+class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     """Nuitka base class for all plugins.
 
     Derive your plugin from "NuitkaPluginBase" please.

@@ -22,11 +22,12 @@
 import math
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase, long
+from nuitka.__past__ import long
 from nuitka.code_generation.Namify import namifyConstant
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 
-class TypeDescBase(getMetaClassBase("Type")):
+class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
     # To be overloaded
     type_name = None
     type_desc = None
