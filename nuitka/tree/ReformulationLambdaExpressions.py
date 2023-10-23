@@ -116,7 +116,7 @@ def buildLambdaNode(provider, node, source_ref):
     if function_kind == "Generator":
         if python_version < 0x270:
             tmp_return_value = code_body.allocateTempVariable(
-                temp_scope=None, name="yield_return"
+                temp_scope=None, name="yield_return", temp_type="object"
             )
 
             statements = (

@@ -207,12 +207,14 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
         temp_scope = provider.allocateTempScope("tuple_unpack")
 
         source_iter_var = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="source_iter"
+            temp_scope=temp_scope, name="source_iter", temp_type="object"
         )
 
         element_vars = [
             provider.allocateTempVariable(
-                temp_scope=temp_scope, name="element_%d" % (element_index + 1)
+                temp_scope=temp_scope,
+                name="element_%d" % (element_index + 1),
+                temp_type="object",
             )
             for element_index in range(len(detail))
         ]
@@ -562,7 +564,7 @@ def buildAssignNode(provider, node, source_ref):
         temp_scope = provider.allocateTempScope("assign_unpack")
 
         tmp_source = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="assign_source"
+            temp_scope=temp_scope, name="assign_source", temp_type="object"
         )
 
         statements = [
@@ -798,7 +800,9 @@ def _buildInplaceAssignAttributeNode(
 ):
     temp_scope = provider.allocateTempScope("inplace_assign")
 
-    tmp_variable = provider.allocateTempVariable(temp_scope=temp_scope, name="value")
+    tmp_variable = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="value", temp_type="object"
+    )
 
     # First assign the target value to a temporary variable.
     preserve_to_tmp = makeStatementAssignmentVariable(
@@ -1131,13 +1135,13 @@ def buildInplaceAssignNode(provider, node, source_ref):
         temp_scope = provider.allocateTempScope("inplace_assign_subscr")
 
         tmp_variable1 = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="target"
+            temp_scope=temp_scope, name="target", temp_type="object"
         )
         tmp_variable2 = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="subscript"
+            temp_scope=temp_scope, name="subscript", temp_type="object"
         )
         tmp_variable3 = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="value"
+            temp_scope=temp_scope, name="value", temp_type="object"
         )
 
         statements = _buildInplaceAssignSubscriptNode(
@@ -1157,24 +1161,24 @@ def buildInplaceAssignNode(provider, node, source_ref):
         temp_scope = provider.allocateTempScope("inplace_assign_slice")
 
         tmp_variable1 = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="target"
+            temp_scope=temp_scope, name="target", temp_type="object"
         )
         if lower is not None:
             tmp_variable2 = provider.allocateTempVariable(
-                temp_scope=temp_scope, name="lower"
+                temp_scope=temp_scope, name="lower", temp_type="object"
             )
         else:
             tmp_variable2 = None
 
         if upper is not None:
             tmp_variable3 = provider.allocateTempVariable(
-                temp_scope=temp_scope, name="upper"
+                temp_scope=temp_scope, name="upper", temp_type="object"
             )
         else:
             tmp_variable3 = None
 
         tmp_variable4 = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="value"
+            temp_scope=temp_scope, name="value", temp_type="object"
         )
 
         statements = _buildInplaceAssignSliceNode(
@@ -1203,7 +1207,9 @@ def buildNamedExprNode(provider, node, source_ref):
         provider=provider, name="assignment_expr", source_ref=source_ref
     )
 
-    tmp_value = outline_body.allocateTempVariable(temp_scope=None, name="value")
+    tmp_value = outline_body.allocateTempVariable(
+        temp_scope=None, name="value", temp_type="object"
+    )
 
     value = buildNode(provider=provider, node=node.value, source_ref=source_ref)
 

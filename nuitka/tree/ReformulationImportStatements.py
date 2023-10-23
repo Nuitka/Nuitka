@@ -239,7 +239,9 @@ def buildImportFromNode(provider, node, source_ref):
 
         if multi_names:
             tmp_import_from = provider.allocateTempVariable(
-                temp_scope=provider.allocateTempScope("import_from"), name="module"
+                temp_scope=provider.allocateTempScope("import_from"),
+                name="module",
+                temp_type="object",
             )
 
             statements.append(

@@ -486,7 +486,7 @@ class StatementAssignmentVariableIterator(
         self.temp_scope = provider.allocateTempScope("iterator_access")
 
         self.tmp_iterated_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iterated_value"
+            temp_scope=self.temp_scope, name="iterated_value", temp_type="object"
         )
 
         reference_iterated = ExpressionTempVariableRef(
@@ -504,7 +504,7 @@ class StatementAssignmentVariableIterator(
         )
 
         self.tmp_iteration_count_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iteration_count"
+            temp_scope=self.temp_scope, name="iteration_count", temp_type="object"
         )
 
         assign_iteration_count = makeStatementAssignmentVariable(
@@ -530,7 +530,7 @@ class StatementAssignmentVariableIterator(
 
         # For use when the "next" is replaced.
         self.tmp_iteration_next_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="next_value"
+            temp_scope=self.temp_scope, name="next_value", temp_type="object"
         )
 
         result = makeStatementsSequenceReplacementNode(

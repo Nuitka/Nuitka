@@ -882,7 +882,7 @@ def eval_extractor(node):
         )
 
         source_variable = outline_body.allocateTempVariable(
-            temp_scope=None, name="source"
+            temp_scope=None, name="source", temp_type="object"
         )
 
         final.setChildStatements(
