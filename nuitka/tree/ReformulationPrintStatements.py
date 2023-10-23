@@ -46,7 +46,7 @@ def buildPrintNode(provider, node, source_ref):
         temp_scope = provider.allocateTempScope("print")
 
         tmp_target_variable = provider.allocateTempVariable(
-            temp_scope=temp_scope, name="target"
+            temp_scope=temp_scope, name="target", temp_type="object"
         )
 
         target_default_statement = makeStatementAssignmentVariable(

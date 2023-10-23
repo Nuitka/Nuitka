@@ -157,9 +157,15 @@ def getListUnpackingHelper():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "list")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
+    tmp_result_variable = result.allocateTempVariable(
+        temp_scope, "list", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "keys", temp_type="object"
+    )
 
     if python_version < 0x390:
         list_operation_extend = ExpressionListOperationExtend
@@ -268,9 +274,15 @@ def getSetUnpackingHelper():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "set")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
+    tmp_result_variable = result.allocateTempVariable(
+        temp_scope, "set", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "keys", temp_type="object"
+    )
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
