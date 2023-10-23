@@ -531,10 +531,18 @@ def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements
 def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_variable):
     temp_scope = result.allocateTempScope("mapping")
 
-    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
-    tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
+    tmp_dict_variable = result.allocateTempVariable(
+        temp_scope, "dict", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_keys_variable = result.allocateTempVariable(
+        temp_scope, "keys", temp_type="object"
+    )
+    tmp_key_variable = result.allocateTempVariable(
+        temp_scope, "key", temp_type="object"
+    )
 
     loop_body = []
 
@@ -773,9 +781,15 @@ def _makeStarDictArgumentMergeToKwStatement(
     # This is plain terribly complex
     temp_scope = result.allocateTempScope("dict")
 
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
-    tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_keys_variable = result.allocateTempVariable(
+        temp_scope, "keys", temp_type="object"
+    )
+    tmp_key_variable = result.allocateTempVariable(
+        temp_scope, "key_xxx", temp_type="object"
+    )
 
     tmp_variables = [tmp_iter_variable, tmp_keys_variable, tmp_key_variable]
     mapping_loop_body = (
@@ -855,9 +869,15 @@ def _makeStarDictArgumentMergeToKwStatement(
 
     temp_scope = result.allocateTempScope("dict")
 
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "item")
-    tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "item", temp_type="object"
+    )
+    tmp_key_variable = result.allocateTempVariable(
+        temp_scope, "key", temp_type="object"
+    )
 
     tmp_variables += [tmp_iter_variable, tmp_item_variable, tmp_key_variable]
     dict_loop_body = (
@@ -1978,11 +1998,21 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "dict")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "dicts_iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "args_item")
-    tmp_iter2_variable = result.allocateTempVariable(temp_scope, "dict_iter")
-    tmp_key_variable = result.allocateTempVariable(temp_scope, "dict_key")
+    tmp_result_variable = result.allocateTempVariable(
+        temp_scope, "dict", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "dicts_iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "args_item", temp_type="object"
+    )
+    tmp_iter2_variable = result.allocateTempVariable(
+        temp_scope, "dict_iter", temp_type="object"
+    )
+    tmp_key_variable = result.allocateTempVariable(
+        temp_scope, "dict_key", temp_type="object"
+    )
 
     update_body = (
         makeStatementConditional(

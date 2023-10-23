@@ -533,7 +533,9 @@ def buildMatchNode(provider, node, source_ref):
     temp_scope = provider.allocateTempScope("match_statement")
 
     # The value matched against, must be released in the end.
-    tmp_subject = provider.allocateTempVariable(temp_scope, "subject")
+    tmp_subject = provider.allocateTempVariable(
+        temp_scope, "subject", temp_type="object"
+    )
 
     # Indicator variable, will end up with C bool type, and need not be released.
     tmp_indicator_variable = provider.allocateTempVariable(

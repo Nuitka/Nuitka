@@ -392,19 +392,24 @@ class ModuleVariable(Variable):
 class TempVariable(Variable):
     __slots__ = ()
 
-    def __init__(self, owner, variable_name):
+    def __init__(self, owner, variable_name, variable_type):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def getDescription(self):
-        return "temp variable '%s'" % self.variable_name
+        # TODO: Push this later down to Variable itself.
+        self.variable_type = variable_type
 
     @staticmethod
     def isTempVariable():
         return True
 
-    @staticmethod
-    def getVariableType():
-        return "object"
+    def getVariableType(self):
+        return self.variable_type
+
+    def isTempVariableBool(self):
+        return self.variable_type == "bool"
+
+    def getDescription(self):
+        return "temp variable '%s'" % self.variable_name
 
     def initVariable(self, trace_collection):
         """Initialize variable in trace collection state."""
@@ -422,14 +427,6 @@ class TempVariableBool(TempVariable):
 
     def getDescription(self):
         return "temp bool variable '%s'" % self.variable_name
-
-    @staticmethod
-    def isTempVariableBool():
-        return True
-
-    @staticmethod
-    def getVariableType():
-        return "bool"
 
 
 class LocalsDictVariable(Variable):

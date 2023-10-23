@@ -146,12 +146,14 @@ def buildClassNode3(provider, node, source_ref):
     temp_scope = provider.allocateTempScope(name="class_creation")
 
     tmp_class_decl_dict = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="class_decl_dict"
+        temp_scope=temp_scope, name="class_decl_dict", temp_type="object"
     )
     tmp_metaclass = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="metaclass"
+        temp_scope=temp_scope, name="metaclass", temp_type="object"
     )
-    tmp_prepared = provider.allocateTempVariable(temp_scope=temp_scope, name="prepared")
+    tmp_prepared = provider.allocateTempVariable(
+        temp_scope=temp_scope, name="prepared", temp_type="object"
+    )
 
     class_creation_function = ExpressionClassBodyP3(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
@@ -273,11 +275,13 @@ def buildClassNode3(provider, node, source_ref):
     statements.append(body)
 
     if node.bases:
-        tmp_bases = provider.allocateTempVariable(temp_scope=temp_scope, name="bases")
+        tmp_bases = provider.allocateTempVariable(
+            temp_scope=temp_scope, name="bases", temp_type="object"
+        )
 
         if python_version >= 0x370:
             tmp_bases_orig = provider.allocateTempVariable(
-                temp_scope=temp_scope, name="bases_orig"
+                temp_scope=temp_scope, name="bases_orig", temp_type="object"
             )
 
         def makeBasesRef():
@@ -677,9 +681,15 @@ def getClassBasesMroConversionHelper():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "list")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "base")
+    tmp_result_variable = result.allocateTempVariable(
+        temp_scope, "list", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "base", temp_type="object"
+    )
 
     args_variable = result.getVariableForAssignment(variable_name="bases")
 
@@ -891,10 +901,18 @@ def getClassSelectMetaClassHelper():
 
     temp_scope = None
 
-    tmp_winner_variable = result.allocateTempVariable(temp_scope, "winner")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "base")
-    tmp_item_type_variable = result.allocateTempVariable(temp_scope, "base_type")
+    tmp_winner_variable = result.allocateTempVariable(
+        temp_scope, "winner", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "base", temp_type="object"
+    )
+    tmp_item_type_variable = result.allocateTempVariable(
+        temp_scope, "base_type", temp_type="object"
+    )
 
     # For non-types, the metaclass cannot be overruled by bases.
     non_type_case = StatementReturn(

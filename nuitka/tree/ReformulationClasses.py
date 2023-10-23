@@ -170,17 +170,23 @@ def buildClassNode2(provider, node, source_ref):
 
     temp_scope = provider.allocateTempScope("class_creation")
 
-    tmp_bases = provider.allocateTempVariable(temp_scope, "bases")
-    tmp_class_dict = provider.allocateTempVariable(temp_scope, "class_dict")
-    tmp_metaclass = provider.allocateTempVariable(temp_scope, "metaclass")
-    tmp_class = provider.allocateTempVariable(temp_scope, "class")
+    tmp_bases = provider.allocateTempVariable(temp_scope, "bases", temp_type="object")
+    tmp_class_dict = provider.allocateTempVariable(
+        temp_scope, "class_dict", temp_type="object"
+    )
+    tmp_metaclass = provider.allocateTempVariable(
+        temp_scope, "metaclass", temp_type="object"
+    )
+    tmp_class = provider.allocateTempVariable(temp_scope, "class", temp_type="object")
 
     select_metaclass = ExpressionOutlineBody(
         provider=provider, name="select_metaclass", body=None, source_ref=source_ref
     )
 
     if node.bases:
-        tmp_base = select_metaclass.allocateTempVariable(temp_scope=None, name="base")
+        tmp_base = select_metaclass.allocateTempVariable(
+            temp_scope=None, name="base", temp_type="object"
+        )
 
         statements = (
             makeStatementAssignmentVariable(

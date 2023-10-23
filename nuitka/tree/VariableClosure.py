@@ -162,7 +162,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     temp_scope = provider.allocateTempScope("class_inplace")
 
                     tmp_variable = provider.allocateTempVariable(
-                        temp_scope=temp_scope, name="value"
+                        temp_scope=temp_scope, name="value", temp_type="object"
                     )
 
                     statements = mergeStatements(

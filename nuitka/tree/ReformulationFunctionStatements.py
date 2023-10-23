@@ -681,7 +681,9 @@ def _wrapFunctionWithSpecialNestedArgs(
 
         sub_special_index = 0
 
-        iter_var = outer_body.allocateTempVariable(None, "arg_iter_%d" % len(iter_vars))
+        iter_var = outer_body.allocateTempVariable(
+            temp_scope=None, name="arg_iter_%d" % len(iter_vars), temp_type="object"
+        )
         iter_vars.append(iter_var)
 
         statements.append(

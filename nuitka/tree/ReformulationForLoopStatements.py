@@ -66,10 +66,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="for_iterator"
+        temp_scope=temp_scope, name="for_iterator", temp_type="object"
     )
     tmp_value_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="iter_value"
+        temp_scope=temp_scope, name="iter_value", temp_type="object"
     )
 
     else_block = buildStatementsNode(

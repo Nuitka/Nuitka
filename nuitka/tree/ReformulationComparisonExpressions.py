@@ -82,12 +82,14 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     )
 
     variables = [
-        outline_body.allocateTempVariable(temp_scope=None, name="operand_%d" % count)
+        outline_body.allocateTempVariable(
+            temp_scope=None, name="operand_%d" % count, temp_type="object"
+        )
         for count in range(2, len(rights) + 2)
     ]
 
     tmp_variable = outline_body.allocateTempVariable(
-        temp_scope=None, name="comparison_result"
+        temp_scope=None, name="comparison_result", temp_type="object"
     )
 
     def makeTempAssignment(count, value):
