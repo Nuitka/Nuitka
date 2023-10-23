@@ -30,7 +30,7 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
