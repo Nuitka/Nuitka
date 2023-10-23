@@ -27,7 +27,6 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 import pkgutil
 import sys
-from abc import ABCMeta
 from hashlib import md5 as _md5
 
 # pylint: disable=invalid-name,self-assigning-variable
@@ -136,19 +135,6 @@ try:
     from types import UnionType
 except ImportError:
     UnionType = None
-
-
-def getMetaClassBase(meta_class_prefix):
-    """For Python2/3 compatible source, we create a base class that has the metaclass
-    used and doesn't require making a choice.
-    """
-
-    class MetaClass(ABCMeta):
-        pass
-
-    MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
-
-    return MetaClassBase
 
 
 if str is bytes:

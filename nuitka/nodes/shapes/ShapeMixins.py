@@ -28,6 +28,9 @@ from .ControlFlowDescriptions import (
 class ShapeContainerMixin(object):
     """Mixin that defines the common container shape functions."""
 
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def hasShapeSlotBool():
         return True
@@ -62,18 +65,27 @@ class ShapeContainerMixin(object):
 
 
 class ShapeContainerMutableMixin(ShapeContainerMixin):
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def hasShapeSlotHash():
         return False
 
 
 class ShapeContainerImmutableMixin(ShapeContainerMixin):
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def hasShapeSlotHash():
         return True
 
 
 class ShapeNotContainerMixin(object):
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def hasShapeSlotBool():
         return True
@@ -106,6 +118,9 @@ class ShapeNotContainerMixin(object):
 class ShapeNotNumberMixin(object):
     """Mixin that defines the number slots to be set."""
 
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def hasShapeSlotBool():
         return True
@@ -137,6 +152,9 @@ class ShapeNotNumberMixin(object):
 
 class ShapeNumberMixin(object):
     """Mixin that defines the number slots to be set."""
+
+    # Mixins are required to define empty slots
+    __slots__ = ()
 
     @staticmethod
     def hasShapeSlotBool():
@@ -180,6 +198,9 @@ class ShapeNumberMixin(object):
 
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):
+    # Mixins are required to define empty slots
+    __slots__ = ()
+
     @staticmethod
     def isShapeIterator():
         return True
