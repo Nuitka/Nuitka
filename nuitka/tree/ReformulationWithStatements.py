@@ -75,13 +75,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     temp_scope = provider.allocateTempScope("with")
 
     tmp_source_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="source"
+        temp_scope=temp_scope, name="source", temp_type="object"
     )
     tmp_exit_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="exit"
+        temp_scope=temp_scope, name="exit", temp_type="object"
     )
     tmp_enter_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="enter"
+        temp_scope=temp_scope, name="enter", temp_type="object"
     )
 
     # Indicator variable, will end up with C bool type, and need not be released.
