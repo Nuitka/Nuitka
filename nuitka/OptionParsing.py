@@ -433,8 +433,8 @@ data_group.add_option(
     help="""\
 Do not include data files matching the filename pattern given. This is against
 the target filename, not source paths. So to ignore a file pattern from package
-data for "package_name" should be matched as "package_name/*.txt". Or for the
-whole directory simply use "package_name". Default empty.""",
+data for 'package_name' should be matched as 'package_name/*.txt'. Or for the
+whole directory simply use 'package_name'. Default empty.""",
 )
 
 data_group.add_option(
@@ -478,8 +478,8 @@ dll_group.add_option(
     default=[],
     help="""\
 Do not include DLL files matching the filename pattern given. This is against
-the target filename, not source paths. So ignore a DLL "someDLL" contained in
-the package "package_name" it should be matched as "package_name/someDLL.*".
+the target filename, not source paths. So ignore a DLL 'someDLL' contained in
+the package 'package_name' it should be matched as 'package_name/someDLL.*'.
 Default empty.""",
 )
 
@@ -697,7 +697,7 @@ output_group.add_option(
     dest="pyi_file",
     default=True,
     help="""\
-Do not create a ".pyi" file for extension modules created by Nuitka. This is
+Do not create a '.pyi' file for extension modules created by Nuitka. This is
 used to detect implicit imports.
 Defaults to off.""",
 )
@@ -1146,7 +1146,7 @@ tracing_group.add_option(
     metavar="REPORT_DESC",
     default=[],
     help="""\
-Report via template. Provide template and output filename "template.rst.j2:output.rst". For
+Report via template. Provide template and output filename 'template.rst.j2:output.rst'. For
 built-in templates, check the User Manual for what these are. Can be given multiple times.
 Default is empty.""",
 )
