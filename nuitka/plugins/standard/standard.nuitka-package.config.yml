@@ -532,6 +532,11 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
+- module-name: 'curl_cffi'
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+
 - module-name: 'curses'
   implicit-imports:
     - depends:
