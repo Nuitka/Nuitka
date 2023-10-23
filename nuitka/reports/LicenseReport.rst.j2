@@ -22,13 +22,13 @@ This software was compiled with Nuitka and contains parts of the following softw
 
 {% for distribution in all_distributions %}
 
-{{ distribution.metadata["Name"] }}
-===================================
+{{ get_distribution_name(distribution) }}
+=========================================
 
-Version {{ distribution.metadata["Version"] }} of {{ distribution.metadata["Name"] }} was included and is
+Version {{ distribution.metadata["Version"] }} of {{ get_distribution_name(distribution) }} was included and is
 under license "{{ get_distribution_license(distribution) }}".
 
-{% if distribution_modules[distribution] != [distribution.metadata["Name"]] %}
+{% if distribution_modules[distribution] != [get_distribution_name(distribution)] %}
 The contained {{"packages are" if len(distribution_modules[distribution]) > 1 else "package is"}} {{" ,".join(quoted(distribution_modules[distribution]))}}.
 {% endif %}
 
