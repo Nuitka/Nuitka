@@ -60,6 +60,51 @@ Bug Fixes
    behaving identical for packages. Made the former not include all of
    the package, but only the top level and what that uses.
 
+-  Standalone: Added support for the ``lightning`` package. Fixed in
+   1.8.3 already.
+
+-  Distutils: Fix, the platform tag was sometimes incorrect for wheels
+   built. Fixed in 1.8.3 already.
+
+-  Compatibility: Make the PySide2/PySide6 signal connection workaround
+   more robust. It was not handling reuse of the same method properly
+   and insisted on changing ``__name__`` which some objects apparently
+   dislike a lot. Fixed in 1.8.4 already.
+
+-  Windows: Fix, need to use short path for the Python installation
+   prefix, as it might be unicode path as well. Fixed in 1.8.4 already.
+
+-  Fix, output spec ``%NONE%`` was not compiling anymore. Fixed in 1.8.4
+   already.
+
+-  Reports: Avoid having short paths for DLL sources on Windows. Fixed
+   in 1.8.4 already.
+
+-  Fix, catch provided metadata from command line
+   ``--include-distribution-metadata`` without including the package at
+   runtime. Fixed in 1.8.4 already.
+
+-  Python3.10+: Fix, was not properly initializing indicator variable
+   used in the ``match`` re-formulation. The generated code still work,
+   but this was an error on the logical level to use a variable
+   un-initialized. Fixed in 1.8.4 already.
+
+-  Standalone: Added missing DLLs for ``rlottie-python``. Fixed in 1.8.4
+   already.
+
+-  Standalone: Added missing implicit dependencies and also avoid
+   duplication of DLLs for the ``av`` package. Fixed in 1.8.4 already.
+
+-  Fix, was not handling errors when creating distribution objects.
+   Fixed in 1.8.4 already.
+
+-  macOS: Remove extended attributes from DLLs, e.g. ``finder`` can add
+   them and it prevents code signing. Fixed in 1.8.4 already.
+
+-  macOS: Workaround for signing tkinter data files properly, we just
+   exclude the problematic ones, as they are going to be unused. Fixed
+   in 1.8.4 already.
+
 Optimization
 ============
 
@@ -88,6 +133,19 @@ Organisational
 
 -  UI: Make the progress bar react to terminal resizes. This avoids many
    of the distortions seen in Visual Code that seems to do it a lot.
+
+-  UI: Added a mnemonic warning for macOS cross compilation, that it
+   will only work as well and if ran with ``arch`` on a universal
+   Python. Added in 1.8.4 already.
+
+-  UI: Enhanced error message in case of not included ``imageio``
+   plugins. Added in 1.8.4 already.
+
+Cleanups
+========
+
+-  Spelling improvements by newer codespell, and generally, partially
+   ported to 1.8.4 already so the Actions pass again.
 
 This release is not done yet.
 
