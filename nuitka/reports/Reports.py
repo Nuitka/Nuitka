@@ -49,7 +49,12 @@ from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
 from nuitka.Tracing import ReportingSystemExit, reports_logger
-from nuitka.utils.Distributions import getDistributionsFromModuleName
+from nuitka.utils.Distributions import (
+    getDistributionInstallerName,
+    getDistributionLicense,
+    getDistributionName,
+    getDistributionsFromModuleName,
+)
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
@@ -112,8 +117,16 @@ def _getReportInputData(aborted):
     all_distributions = tuple(
         sorted(
             set(sum(module_distributions.values(), ())),
-            key=lambda dist: dist.metadata["Name"],
+            key=getDistributionName,
         )
+    )
+
+    module_distribution_installers = dict(
+        (
+            getDistributionName(dist),
+            getDistributionInstallerName(getDistributionName(dist)),
+        )
+        for dist in all_distributions
     )
 
     memory_infos = getMemoryInfos()
@@ -231,7 +244,7 @@ def _addModulesToReport(root, report_input_data, diffable):
                 TreeXML.appendTreeElement(
                     distributions_xml_node,
                     "distribution-used",
-                    name=distribution.metadata["Name"],
+                    name=getDistributionName(distribution),
                 )
 
         module_distribution_names = report_input_data["module_distribution_names"][
@@ -460,8 +473,11 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         TreeXML.appendTreeElement(
             distributions_xml_node,
             "distribution",
-            name=distribution.metadata["Name"],
+            name=getDistributionName(distribution),
             version=distribution.metadata["Version"],
+            installer=report_input_data["module_distribution_installers"][
+                getDistributionName(distribution)
+            ],
         )
 
     python_xml_node = TreeXML.appendTreeElement(
@@ -514,25 +530,6 @@ def writeCompilationReportFromTemplate(
         extensions=("jinja2.ext.do",),
     )
 
-    def get_distribution_license(distribution):
-        license_name = distribution.metadata["License"]
-
-        if not license_name or license_name == "UNKNOWN":
-            for classifier in (
-                value
-                for (key, value) in distribution.metadata.items()
-                if "Classifier" in key
-            ):
-                parts = [part.strip() for part in classifier.split("::")]
-                if not parts:
-                    continue
-
-                if parts[0] == "License":
-                    license_name = parts[-1]
-                    break
-
-        return license_name
-
     def quoted(value):
         if isinstance(value, str):
             return "'%s'" % value
@@ -541,7 +538,9 @@ def writeCompilationReportFromTemplate(
 
     report_text = template.render(
         # Get the license text.
-        get_distribution_license=get_distribution_license,
+        get_distribution_license=getDistributionLicense,
+        # get the distribution_name
+        get_distribution_name=getDistributionName,
         # Quote a list of strings.
         quoted=quoted,
         # For checking length of lists.

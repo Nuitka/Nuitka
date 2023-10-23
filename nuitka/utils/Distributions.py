@@ -124,23 +124,70 @@ def getDistribution(distribution_name):
         return None
 
 
-_distribution_to_conda_package = {}
+_distribution_to_installer = {}
 
 
 def isDistributionCondaPackage(distribution_name):
     if not isAnacondaPython():
         return False
 
-    if distribution_name not in _distribution_to_conda_package:
+    return getDistributionInstallerName(distribution_name) == "conda"
+
+
+def getDistributionInstallerName(distribution_name):
+    if distribution_name not in _distribution_to_installer:
         distribution = getDistribution(distribution_name)
 
         if distribution is None:
-            _distribution_to_conda_package[distribution_name] = False
+            if distribution_name == "Pip":
+                _distribution_to_installer[distribution_name] = "default"
+            else:
+                _distribution_to_installer[distribution_name] = "not_found"
         else:
-            installer_txt = distribution.read_text("INSTALLER") or ""
+            installer_name = distribution.read_text("INSTALLER")
 
-            _distribution_to_conda_package[distribution_name] = (
-                installer_txt.upper() == "CONDA"
-            )
+            if installer_name:
+                _distribution_to_installer[
+                    distribution_name
+                ] = installer_name.strip().lower()
+            else:
+                if hasattr(distribution, "_path"):
+                    distribution_path_parts = str(getattr(distribution, "_path")).split(
+                        "/"
+                    )
 
-    return _distribution_to_conda_package[distribution_name]
+                    if (
+                        "dist-packages" in distribution_path_parts
+                        and "local" not in distribution_path_parts
+                    ):
+                        _distribution_to_installer[distribution_name] = "Debian"
+                    else:
+                        _distribution_to_installer[distribution_name] = "Unknown"
+                else:
+                    _distribution_to_installer[distribution_name] = "Unknown"
+
+    return _distribution_to_installer[distribution_name]
+
+
+def getDistributionName(distribution):
+    return distribution.metadata["Name"]
+
+
+def getDistributionLicense(distribution):
+    license_name = distribution.metadata["License"]
+
+    if not license_name or license_name == "UNKNOWN":
+        for classifier in (
+            value
+            for (key, value) in distribution.metadata.items()
+            if "Classifier" in key
+        ):
+            parts = [part.strip() for part in classifier.split("::")]
+            if not parts:
+                continue
+
+            if parts[0] == "License":
+                license_name = parts[-1]
+                break
+
+    return license_name
