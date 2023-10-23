@@ -161,6 +161,9 @@ def _enableLtoSettings(
     elif env.nuitka_python:
         lto_mode = True
         reason = "known to be supported (Nuitka-Python)"
+    elif env.fedora_python:
+        lto_mode = True
+        reason = "known to be supported (Fedora Python)"
     elif (
         env.debian_python
         and env.gcc_mode
