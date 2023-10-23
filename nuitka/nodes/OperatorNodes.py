@@ -47,7 +47,7 @@ from .shapes.StandardShapes import (
 class ExpressionPropertiesFromTypeShapeMixin(object):
     """Given a self.type_shape, this can derive default properties from there."""
 
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     def isKnownToBeHashable(self):
