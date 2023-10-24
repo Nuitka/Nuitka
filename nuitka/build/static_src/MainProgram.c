@@ -1231,6 +1231,8 @@ int main(int argc, char **argv) {
     setbuf(stderr, (char *)NULL);
 
 #if PYTHON_VERSION >= 0x300
+    // spell-checker: ignore PYTHONUNBUFFERED
+
     environment_char_t const *old_env_unbuffered = getEnvironmentVariable("PYTHONUNBUFFERED");
     setEnvironmentVariable("PYTHONUNBUFFERED", makeEnvironmentLiteral("1"));
 #endif
@@ -1240,7 +1242,8 @@ int main(int argc, char **argv) {
     NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #ifdef __FreeBSD__
-    /* FP exceptions run in "no stop" mode by default */
+    // FP exceptions run in "no stop" mode by default
+    // spell-checker: ignore fpgetmask,fpsetmask
 
     fp_except_t m;
 
@@ -1501,7 +1504,7 @@ orig_argv = argv;
 
 #if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
     // For full compatibility bump the warnings registry version,
-    // otherwise modules "__warningsregistry__" will mismatch.
+    // otherwise modules "__warningregistry__" will mismatch.
     PyObject *warnings_module = PyImport_ImportModule("warnings");
     PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
 

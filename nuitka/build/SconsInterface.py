@@ -334,6 +334,7 @@ def asBoolStr(value):
 def cleanSconsDirectory(source_dir):
     """Clean scons build directory."""
 
+    # spell-checker: ignore gcda
     extensions = (
         ".bin",
         ".c",
