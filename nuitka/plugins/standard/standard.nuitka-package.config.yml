@@ -5203,25 +5203,36 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'timm'
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          if os.environ.get('PYTORCH_JIT') is not None:
+            os.environ['PYTORCH_JIT_OLD'] = os.environ.get('PYTORCH_JIT')
+          os.environ['PYTORCH_JIT'] = "0"
+      when: 'standalone'
+    - post-import-code:
+        - |
+          import os
+          if os.environ.get('PYTORCH_JIT_OLD') is None:
+            del os.environ['PYTORCH_JIT']
+          else:
+            os.environ['PYTORCH_JIT'] = os.environ['PYTORCH_JIT_OLD']
+            del os.environ['PYTORCH_JIT_OLD']
+      when: 'standalone'
+
+- module-name: 'timm.models.hrnet'
+  anti-bloat:
+    - replacements_plain:
+        '@torch.jit.interface': ''
+
 - module-name: 'timm.models.layers.config'
   anti-bloat:
     - description: 'remove torchscript JIT usage'
       replacements_plain:
         '_NO_JIT = False': '_NO_JIT = True'
         '_NO_ACTIVATION_JIT = False': '_NO_ACTIVATION_JIT = True'
-
-- module-name: 'timm.models.layers.create_act'
-  anti-bloat:
-    - description: 'remove TorchScript JIT usage'
-      replacements_plain:
-        'from .activations_jit import *': ''
-        'from .activations_me import *': ''
-        '_ACT_FN_JIT =': 'if False: _ACT_FN_JIT ='
-        '_ACT_FN_ME =': 'if False: _ACT_FN_ME ='
-        '_ACT_FNS = (_ACT_FN_ME, _ACT_FN_JIT, _ACT_FN_DEFAULT)': '_ACT_FNS = (_ACT_FN_DEFAULT,)'
-        '_ACT_LAYER_JIT =': 'if False: _ACT_LAYER_JIT ='
-        '_ACT_LAYER_ME =': 'if False: _ACT_LAYER_ME ='
-        '_ACT_LAYERS = (_ACT_LAYER_ME, _ACT_LAYER_JIT, _ACT_LAYER_DEFAULT)': '_ACT_LAYERS = (_ACT_LAYER_DEFAULT,)'
 
 - module-name: 'tinycss2'
   data-files:
@@ -5312,13 +5323,14 @@
         support_info: 'error'
         when: 'not use_unittest'
 
-- module-name: 'torch._dynamo.config_utils'
+- module-name: 'torch._dynamo.skipfiles'
   anti-bloat:
-    - description: 'remove unittest reference'
+    # When calling inspect.getfile() on Nuitka's loader, it will yield
+    # "__module__" as "__nuitka__" but that's not in "sys.modules" and won't
+    # have a "__file__" value, so make sure to ignore it.
+    - description: "work around our '__loader__' failing check"
       replacements_plain:
-        'import unittest': ''
-        'issubclass(func, unittest.TestCase)': 'False'
-      when: 'not use_unittest'
+        'if inspect.isclass(obj)': 'if inspect.isclass(obj) and obj is not __loader__'
 
 - module-name: 'torch._inductor.codecache'
   anti-bloat:
@@ -5388,14 +5400,6 @@
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
 
-- module-name: 'torch.jit._state'
-  implicit-imports:
-    - pre-import-code:
-        - |
-          import os
-          os.environ['PYTORCH_JIT'] = "0"
-      when: 'standalone'
-
 - module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
     - depends:
@@ -5403,6 +5407,14 @@
         - 'torch.onnx.symbolic_opset12'
         - 'torch.onnx.symbolic_opset14'
         - 'torch.onnx.symbolic_opset15'
+
+- module-name: 'torch.testing._internal.common_utils'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'run_tests': 'un-callable'
+        'get_pytest_test_cases': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'torch.utils.data._typing'
   anti-bloat:
