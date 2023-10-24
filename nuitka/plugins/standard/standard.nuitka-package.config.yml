@@ -5306,6 +5306,11 @@
         relative_path: 'lib'
         prefixes:
           - ''
+  options:
+    checks:
+      - description: "torch requires unittest, cannot disallow it, use '--noinclude-unittest-mode=allow'"
+        support_info: 'error'
+        when: 'not use_unittest'
 
 - module-name: 'torch._dynamo.config_utils'
   anti-bloat:
