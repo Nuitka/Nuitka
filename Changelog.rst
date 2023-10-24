@@ -134,9 +134,11 @@ Organisational
 -  UI: Make the progress bar react to terminal resizes. This avoids many
    of the distortions seen in Visual Code that seems to do it a lot.
 
--  UI: Added a mnemonic warning for macOS cross compilation, that it
-   will only work as well and if ran with ``arch`` on a universal
-   Python. Added in 1.8.4 already.
+-  UI: Added a mnemonic warning for macOS architecture cross
+   compilation, that it will only work as well as Python does when
+   limited to that arch. Read more on `the info page
+   <https://nuitka.net/info/macos-cross-compile.html>`__ for detailed
+   information. Added in 1.8.4 already.
 
 -  UI: Enhanced error message in case of not included ``imageio``
    plugins. Added in 1.8.4 already.
@@ -574,7 +576,9 @@ Organisational
    to its limited results for portability.
 
 -  UI: Added mnemonic for unsupported Windows store Python, so we have a
-   place to give more information.
+   place to give more information. Read more on `the info page
+   <https://nuitka.net/info/unsupported-windows-app-store-python.html>`__
+   for detailed information.
 
 -  UI: Disable warning for ``numpy``/``scipy`` DLL non-identity
    conflicts. These are very common unfortunately and known to be
@@ -2106,7 +2110,10 @@ Organisational
    We now inform the user of these older Python with a warning and
    mnemonic, to either disable the console or to upgrade to Python 3.8
    or higher, which normally won't be much of an issue for most users.
-   Added in 1.4.1 already.
+
+   Read more on `the info page
+   <https://nuitka.net/info/old-python-windows-console.html>`__ for
+   detailed information. Added in 1.4.1 already.
 
 -  Debugging: Fixup debugging reference count output with Python3.4. For
    Python 3.11 compatibility tests, actually it was useful to compare
@@ -4971,8 +4978,10 @@ Organisational
 -  Anaconda: Make it more clear how to install static libpython with
    precise command.
 
--  UI: Warn about using Debian package contents. These can be
-   non-portable to other OSes.
+-  UI: Warn about using module from Debian packages. These can be made
+   non-portable to other OSes. Read more on `the info page
+   <https://nuitka.net/info/debian-dist-packages.html>`__ for detailed
+   information.
 
 -  Quality: The auto-format now floats imports to the top for
    consistency. With few exceptions, it was already done like this. But
