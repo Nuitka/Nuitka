@@ -44,7 +44,13 @@ from .FileOperations import (
     makeContainingPath,
     withMadeWritableFileMode,
 )
-from .Utils import isAlpineLinux, isLinux, isMacOS, isWin32Windows
+from .Utils import (
+    isAlpineLinux,
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+    raiseWindowsError,
+)
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -115,6 +121,8 @@ def locateDLL(dll_name):
         left = left[: left.rfind(b" (")]
 
         if python_version >= 0x300:
+            # spell-checker: ignore getfilesystemencoding
+
             left = left.decode(sys.getfilesystemencoding())
             right = right.decode(sys.getfilesystemencoding())
 
@@ -147,7 +155,7 @@ def _removeSxsFromDLL(filename):
         filename: Filename to remove SxS manifests from
     """
     # There may be more files that need this treatment, these are from scans
-    # with the "find_sxs_modules" tool.
+    # with the "find_sxs_modules" tool. spell-checker: ignore winxpgui
     if os.path.normcase(os.path.basename(filename)) not in (
         "sip.pyd",
         "win32ui.pyd",
@@ -245,6 +253,7 @@ def _getSharedLibraryRPATHElf(filename):
     )
 
     for line in output.split(b"\n"):
+        # spell-checker: ignore RUNPATH
         if b"RPATH" in line or b"RUNPATH" in line:
             result = line[line.find(b"[") + 1 : line.rfind(b"]")]
 
@@ -484,6 +493,7 @@ def getPyWin32Dir():
     Notes:
         This is needed for standalone mode only.
     """
+    # spell-checker: ignore pywin32
 
     for path_element in sys.path:
         if not path_element:
@@ -663,6 +673,8 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
             )
 
     if isMacOS():
+        # spell-checker: ignore xattr
+
         executeToolChecked(
             logger=postprocessing_logger,
             command=("xattr", "-c", target_filename),
@@ -699,10 +711,7 @@ def getWindowsRunningProcessModuleFilename(handle):
 
     res = GetModuleFileName(handle, buf, MAX_PATH)
     if res == 0:
-        # Windows only code, pylint: disable=I0021,undefined-variable
-        raise WindowsError(
-            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )
+        raiseWindowsError("getWindowsRunningProcessModuleFilename")
 
     return os.path.normcase(buf.value)
 
@@ -736,10 +745,7 @@ def _getWindowsRunningProcessModuleHandles():
     )
 
     if not res:
-        # Windows only code, pylint: disable=I0021,undefined-variable
-        raise WindowsError(
-            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )
+        raiseWindowsError("getWindowsRunningProcessModuleHandles")
 
     return tuple(handle for handle in handles if handle is not None)
 
