@@ -138,6 +138,12 @@ def _parseDependsExeOutput2(lines):
 
         assert os.path.basename(dll_filename) != "kernel32.dll"
 
+        # The executable itself is of course exempted. We cannot check its path
+        # because depends.exe mistreats unicode paths.
+        if first:
+            first = False
+            continue
+
         dll_filename = os.path.abspath(dll_filename)
         dll_filename = getWindowsLongPathName(dll_filename)
 
@@ -150,12 +156,6 @@ def _parseDependsExeOutput2(lines):
         # Ignore API DLLs, they can come in from PATH, but we do not want to
         # include them.
         if dll_name.startswith("api-ms-win-"):
-            continue
-
-        # The executable itself is of course exempted. We cannot check its path
-        # because depends.exe mistreats unicode paths.
-        if first:
-            first = False
             continue
 
         assert os.path.isfile(dll_filename), (dll_filename, line)
