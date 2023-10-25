@@ -30,118 +30,37 @@ will occasionally be done, where not every bug of standard Python is
 emulated, e.g. more complete error messages are given, but there is a
 full compatibility mode to disable even that.
 
-*******
- Usage
-*******
-
+**************
 Requirements
-============
+**************
 
--  C Compiler: You need a compiler with support for C11 or alternatively
-   for C++03 [#]_
+C Compiler
+==========
+
+You need a C compiler with support for C11 or alternatively a C++
+compiler for C++03 [#]_.
 
    Currently this means, you need to use one of these compilers:
 
    -  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
-      higher. It will be *automatically* downloaded if no usable C
-      compiler is found, which is the recommended way of installing it,
-      as Nuitka will also upgrade it for you.
+   higher. It will be *automatically* downloaded if no usable C compiler
+   is found, which is the recommended way of installing it, as Nuitka
+   will also upgrade it for you.
 
    -  Visual Studio 2022 or higher on Windows [#]_, older versions will
       work but only supported for commercial users. Configure to use the
-      English language pack for best results (Nuitka filters away
-      garbage outputs, but only for English language). It will be used
-      by default if installed.
+   English language pack for best results (Nuitka filters away garbage
+   outputs, but only for English language). It will be used by default
+   if installed.
 
-   -  On all other platforms, the ``gcc`` compiler of at least version
-      5.1, and below that the ``g++`` compiler of at least version 4.4
-      as an alternative.
+-  On all other platforms, the ``gcc`` compiler of at least version 5.1,
+   and below that the ``g++`` compiler of at least version 4.4 as an
+   alternative.
 
    -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
-
--  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10,
-   3.11
-
-   .. important::
-
-      For Python 3.3/3.4 and *only* those, we need other Python version
-      as a *compile time* dependency.
-
-      Nuitka itself is fully compatible with all listed versions, but
-      Scons as an internally used tool is not.
-
-      For these versions, you *need* a Python2 or Python 3.5 or higher
-      installed as well, but only during the compile time only. That is
-      for use with Scons (which orchestrates the C compilation), which
-      does not support the same Python versions as Nuitka.
-
-      In addition, on Windows, Python2 cannot be used because
-      ``clcache`` does not work with it, there a Python 3.5 or higher
-      needs to be installed.
-
-      Nuitka finds these needed Python versions (e.g. on Windows via
-      registry) and you shouldn't notice it as long as they are
-      installed.
-
-      Increasingly, other functionality is available when another Python
-      has a certain package installed. For example, onefile compression
-      will work for a Python 2.x when another Python is found that has
-      the ``zstandard`` package installed.
-
-   .. admonition:: Moving binaries to other machines
-
-      The created binaries can be made executable independent of the
-      Python installation, with ``--standalone`` and ``--onefile``
-      options.
-
-   .. admonition:: Binary filename suffix
-
-      The created binaries have an ``.exe`` suffix on Windows. On other
-      platforms they have no suffix for standalone mode, or ``.bin``
-      suffix, that you are free to remove or change, or specify with the
-      ``-o`` option.
-
-      The suffix for acceleration mode is added just to be sure that the
-      original script name and the binary name do not ever collide, so
-      we can safely do an overwrite without destroying the original
-      source file.
-
-   .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
-
-      You need the standard Python implementation, called "CPython", to
-      execute Nuitka, because it is closely tied to implementation
-      details of it.
-
-   .. admonition:: It **cannot be** from Windows app store
-
-      It is known that Windows app store Python definitely does not
-      work, it's checked against.
-
-   .. admonition:: It **cannot be** pyenv on macOS
-
-      It is known that macOS "pyenv" does **not** work. Use Homebrew
-      instead for self compiled Python installations. But note that
-      standalone mode will be worse on these platforms and not be as
-      backward compatible with older macOS versions.
-
--  Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows
-   (32bits/64 bits/ARM).
-
-   Others may work as well. The portability is expected to be generally
-   good, but the e.g. Scons usage may have to be adapted. Make sure to
-   match Windows Python and C compiler architecture, or else you will
-   get cryptic error messages.
-
--  Architectures: x86, x86_64 (amd64), and arm, likely many more
-
-   Other architectures are expected to also work, out of the box, as
-   Nuitka is generally not using any hardware specifics. These are just
-   the ones tested and known to be good. Feedback is welcome. Generally,
-   the architectures that Debian supports can be considered good and
-   tested too.
 
 .. [#]
 
@@ -163,6 +82,101 @@ Requirements
    there is no need to except to support pre-Windows 10 versions, and they
    might work for you, but support of these configurations is only
    available to commercial users.
+
+Python
+======
+
+Python Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11
+are supported. If at any moment, there is a stable Python release that
+is not in this list, rest assured it is being worked on and will be
+added.
+
+   .. important::
+
+   For Python 3.3/3.4 and *only* those, we need other Python version as
+   a *compile time* dependency.
+
+   Nuitka itself is fully compatible with all listed versions, but Scons
+   as an internally used tool is not.
+
+      For these versions, you *need* a Python2 or Python 3.5 or higher
+   installed as well, but only during the compile time only. That is for
+   use with Scons (which orchestrates the C compilation), which does not
+   support the same Python versions as Nuitka.
+
+   In addition, on Windows, Python2 cannot be used because ``clcache``
+   does not work with it, there a Python 3.5 or higher needs to be
+   installed.
+
+      Nuitka finds these needed Python versions (e.g. on Windows via
+   registry) and you shouldn't notice it as long as they are installed.
+
+      Increasingly, other functionality is available when another Python
+      has a certain package installed. For example, onefile compression
+   will work for a Python 2.x when another Python is found that has the
+   ``zstandard`` package installed.
+
+   .. admonition:: Moving binaries to other machines
+
+   The created binaries can be made executable independent of the Python
+   installation, with ``--standalone`` and ``--onefile`` options.
+
+   .. admonition:: Binary filename suffix
+
+      The created binaries have an ``.exe`` suffix on Windows. On other
+      platforms they have no suffix for standalone mode, or ``.bin``
+      suffix, that you are free to remove or change, or specify with the
+      ``-o`` option.
+
+      The suffix for acceleration mode is added just to be sure that the
+   original script name and the binary name do not ever collide, so we
+   can safely do an overwrite without destroying the original source
+   file.
+
+   .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
+
+      You need the standard Python implementation, called "CPython", to
+   execute Nuitka, because it is closely tied to implementation details
+   of it.
+
+   .. admonition:: It **cannot be** from Windows app store
+
+   It is known that Windows app store Python definitely does not work,
+   it's checked against.
+
+   .. admonition:: It **cannot be** pyenv on macOS
+
+      It is known that macOS "pyenv" does **not** work. Use Homebrew
+      instead for self compiled Python installations. But note that
+      standalone mode will be worse on these platforms and not be as
+      backward compatible with older macOS versions.
+
+Operating System
+================
+
+Supported Operating Systems: Linux, FreeBSD, NetBSD, macOS X, and
+Windows (32bits/64 bits/ARM).
+
+Others will work as well. The portability is expected to be generally
+good, but the e.g. Nuitka's internal Scons usage may have to be adapted
+or need flags passed. Make sure to match Python and C compiler
+architecture, or else you will get cryptic error messages.
+
+Architecture
+============
+
+Supported Architectures are x86, x86_64 (amd64), and arm, likely many,
+many more.
+
+Other architectures are expected to also work, out of the box, as Nuitka
+is generally not using any hardware specifics. These are just the ones
+tested and known to be good. Feedback is welcome. Generally, the
+architectures that Debian supports can be considered good and tested
+too.
+
+*******
+ Usage
+*******
 
 Command Line
 ============
