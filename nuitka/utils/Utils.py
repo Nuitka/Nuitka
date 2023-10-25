@@ -21,11 +21,14 @@ Here the small things that fit nowhere else and don't deserve their own module.
 
 """
 
+import ctypes
 import functools
 import os
 import sys
 import time
 from contextlib import contextmanager
+
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 
 
 def getOS():
@@ -389,3 +392,10 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
         return retryingFunction
 
     return inner
+
+
+def raiseWindowsError(message):
+    raise WindowsError(
+        ctypes.GetLastError(),
+        "%s (%s)" % (message, ctypes.FormatError(ctypes.GetLastError())),
+    )

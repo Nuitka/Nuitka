@@ -36,7 +36,6 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     PermissionError,
-    WindowsError,
     basestring,
     raw_input,
 )
@@ -51,7 +50,13 @@ from nuitka.Tracing import (
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import isLinux, isMacOS, isWin32OrPosixWindows, isWin32Windows
+from .Utils import (
+    isLinux,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+    raiseWindowsError,
+)
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -1021,10 +1026,7 @@ def getWindowsShortPathName(filename):
             if ctypes.GetLastError() == 5:
                 return filename
 
-            raise WindowsError(
-                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-            )
-
+            raiseWindowsError("getWindowsShortPathName for %s" % filename)
         if output_buf_size >= needed:
             # Short paths should be ASCII. Don't return unicode without a need,
             # as e.g. Scons hates that in environment variables.
@@ -1068,10 +1070,7 @@ def getWindowsLongPathName(filename):
             if ctypes.GetLastError() == 5:
                 return filename
 
-            raise WindowsError(
-                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-            )
-
+            raiseWindowsError("getWindowsLongPathName for %s" % filename)
         if output_buf_size >= needed:
             return output_buf.value
         else:
