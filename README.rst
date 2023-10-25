@@ -31,7 +31,7 @@ emulated, e.g. more complete error messages are given, but there is a
 full compatibility mode to disable even that.
 
 **************
-Requirements
+ Requirements
 **************
 
 C Compiler
@@ -40,15 +40,15 @@ C Compiler
 You need a C compiler with support for C11 or alternatively a C++
 compiler for C++03 [#]_.
 
-   Currently this means, you need to use one of these compilers:
+Currently this means, you need to use one of these compilers:
 
-   -  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
+-  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
    higher. It will be *automatically* downloaded if no usable C compiler
    is found, which is the recommended way of installing it, as Nuitka
    will also upgrade it for you.
 
-   -  Visual Studio 2022 or higher on Windows [#]_, older versions will
-      work but only supported for commercial users. Configure to use the
+-  Visual Studio 2022 or higher on Windows [#]_, older versions will
+   work but only supported for commercial users. Configure to use the
    English language pack for best results (Nuitka filters away garbage
    outputs, but only for English language). It will be used by default
    if installed.
@@ -57,10 +57,10 @@ compiler for C++03 [#]_.
    and below that the ``g++`` compiler of at least version 4.4 as an
    alternative.
 
-   -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
+-  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
-   -  On Windows the ``clang-cl`` compiler on Windows can be used if
-      provided by the Visual Studio installer.
+-  On Windows the ``clang-cl`` compiler on Windows can be used if
+   provided by the Visual Studio installer.
 
 .. [#]
 
@@ -91,7 +91,7 @@ are supported. If at any moment, there is a stable Python release that
 is not in this list, rest assured it is being worked on and will be
 added.
 
-   .. important::
+.. important::
 
    For Python 3.3/3.4 and *only* those, we need other Python version as
    a *compile time* dependency.
@@ -99,7 +99,7 @@ added.
    Nuitka itself is fully compatible with all listed versions, but Scons
    as an internally used tool is not.
 
-      For these versions, you *need* a Python2 or Python 3.5 or higher
+   For these versions, you *need* a Python2 or Python 3.5 or higher
    installed as well, but only during the compile time only. That is for
    use with Scons (which orchestrates the C compilation), which does not
    support the same Python versions as Nuitka.
@@ -108,48 +108,48 @@ added.
    does not work with it, there a Python 3.5 or higher needs to be
    installed.
 
-      Nuitka finds these needed Python versions (e.g. on Windows via
+   Nuitka finds these needed Python versions (e.g. on Windows via
    registry) and you shouldn't notice it as long as they are installed.
 
-      Increasingly, other functionality is available when another Python
-      has a certain package installed. For example, onefile compression
+   Increasingly, other functionality is available when another Python
+   has a certain package installed. For example, onefile compression
    will work for a Python 2.x when another Python is found that has the
    ``zstandard`` package installed.
 
-   .. admonition:: Moving binaries to other machines
+.. admonition:: Moving binaries to other machines
 
    The created binaries can be made executable independent of the Python
    installation, with ``--standalone`` and ``--onefile`` options.
 
-   .. admonition:: Binary filename suffix
+.. admonition:: Binary filename suffix
 
-      The created binaries have an ``.exe`` suffix on Windows. On other
-      platforms they have no suffix for standalone mode, or ``.bin``
-      suffix, that you are free to remove or change, or specify with the
-      ``-o`` option.
+   The created binaries have an ``.exe`` suffix on Windows. On other
+   platforms they have no suffix for standalone mode, or ``.bin``
+   suffix, that you are free to remove or change, or specify with the
+   ``-o`` option.
 
-      The suffix for acceleration mode is added just to be sure that the
+   The suffix for acceleration mode is added just to be sure that the
    original script name and the binary name do not ever collide, so we
    can safely do an overwrite without destroying the original source
    file.
 
-   .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
+.. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
 
-      You need the standard Python implementation, called "CPython", to
+   You need the standard Python implementation, called "CPython", to
    execute Nuitka, because it is closely tied to implementation details
    of it.
 
-   .. admonition:: It **cannot be** from Windows app store
+.. admonition:: It **cannot be** from Windows app store
 
    It is known that Windows app store Python definitely does not work,
    it's checked against.
 
-   .. admonition:: It **cannot be** pyenv on macOS
+.. admonition:: It **cannot be** pyenv on macOS
 
-      It is known that macOS "pyenv" does **not** work. Use Homebrew
-      instead for self compiled Python installations. But note that
-      standalone mode will be worse on these platforms and not be as
-      backward compatible with older macOS versions.
+   It is known that macOS "pyenv" does **not** work. Use Homebrew
+   instead for self compiled Python installations. But note that
+   standalone mode will be worse on these platforms and not be as
+   backward compatible with older macOS versions.
 
 Operating System
 ================
@@ -973,6 +973,28 @@ further actions taken might be recognized by some AV vendors as malware.
 This is avoidable, but only in Nuitka commercial there is actual support
 and instructions for how to do it, seeing this as a typical commercial
 only need. https://nuitka.net/doc/commercial.html
+
+Linux Standalone
+================
+
+For Linux standalone it is pretty difficult to build a binary that works
+on other Linux versions. This is mainly because on Linux, much software
+is built specifically targeted to concrete DLLs. Things like glibc used,
+are then encoded into the binary built, and it will not run with an
+older glibc, just to give one critical example.
+
+The solution is to build on the oldest OS that you want to see
+supported. Picking that and setting it up can be tedious, so can be
+login, and keeping it secure, as it's something you put your source code
+on.
+
+To aid that, Nuitka commercial has container based builds, that you can
+use. This uses dedicated optimized Python builds, targets CentOS 7 and
+supports even newest Pythons and very old OSes that way using recent C
+compiler chains all turn key solution. The effort needs to be
+compensated to support Nuitka development for Linux, there you need to
+purchase it https://nuitka.net/doc/commercial.html but even a sponsor
+license will be cheaper than doing it yourself.
 
 Memory issues and compiler bugs
 ===============================
