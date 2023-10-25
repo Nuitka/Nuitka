@@ -1345,6 +1345,8 @@
     dirs:
       - 'fonts'
       - 'images'
+      - 'data'
+      - 'uix'
 
 - module-name: 'langchain.chains.llm_summarization_checker'
   data-files:
