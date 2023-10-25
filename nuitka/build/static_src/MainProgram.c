@@ -1187,6 +1187,10 @@ static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *
 #endif
 #endif
 
+#if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
+static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called by C exit()"); }
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -1198,6 +1202,11 @@ int wmain(int argc, wchar_t **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
+#endif
+
+    // Trace when the process exits.
+#if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
+    atexit(Nuitka_at_exit);
 #endif
 
     // First things, set up stdout/stderr according to user specification.
