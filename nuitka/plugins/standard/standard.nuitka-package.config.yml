@@ -3103,10 +3103,6 @@
         console: 'recommend'
         when: 'use_pyside6'
 
-- module-name: 'PySide6.QtCore'
-  implicit-imports:
-    - depends:
-        - 'PySide6.support.deprecated'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
@@ -3117,6 +3113,11 @@
         - 'libqpdf'
         - 'libqtquick3dhelpersimplplugin'
         - 'libquick3dspatialaudioplugin'
+
+- module-name: 'PySide6.QtCore'
+  implicit-imports:
+    - depends:
+        - 'PySide6.support.deprecated'
 
 - module-name: 'pysnmp.smi'
   data-files:
