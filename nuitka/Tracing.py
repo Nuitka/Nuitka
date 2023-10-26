@@ -271,7 +271,8 @@ class OurLogger(object):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
-    def _warnMnemonic(self, mnemonic, style):
+    @staticmethod
+    def _warnMnemonic(mnemonic, style, output_function):
         if mnemonic.startswith("http"):
             url = mnemonic
             extra_prefix = ""
@@ -279,7 +280,7 @@ class OurLogger(object):
             url = "https://nuitka.net/info/%s.html" % mnemonic
             extra_prefix = "Complex topic! "
 
-        self.warning(
+        output_function(
             """    %sMore information can be found at %s%s"""
             % (extra_prefix, _getEnableStyleCode("link"), url),
             style=style,
@@ -317,7 +318,7 @@ class OurLogger(object):
         self.my_print(formatted_message, style=style, file=sys.stderr)
 
         if mnemonic is not None:
-            self._warnMnemonic(mnemonic, style=style)
+            self._warnMnemonic(mnemonic, style=style, output_function=self.warning)
 
     def sysexit(
         self, message="", style=None, mnemonic=None, exit_code=1, reporting=False
@@ -344,7 +345,7 @@ class OurLogger(object):
                 )
 
         if mnemonic is not None:
-            self._warnMnemonic(mnemonic, style=style)
+            self._warnMnemonic(mnemonic, style=style, output_function=self.warning)
 
         if reporting:
             raise ReportingSystemExit(exit_code=exit_code, exit_message=message)
@@ -360,13 +361,16 @@ class OurLogger(object):
     def isQuiet(self):
         return is_quiet or self.is_quiet
 
-    def info(self, message, style=None):
+    def info(self, message, style=None, mnemonic=None):
         if not self.isQuiet():
             if self.name:
                 message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
+
+            if mnemonic is not None:
+                self._warnMnemonic(mnemonic, style=style, output_function=self.info)
 
 
 class FileLogger(OurLogger):
@@ -388,12 +392,15 @@ class FileLogger(OurLogger):
     def isFileOutput(self):
         return self.file_handle is not None
 
-    def info(self, message, style=None):
+    def info(self, message, style=None, mnemonic=None):
         if not self.isQuiet() or self.file_handle:
             message = "%s:INFO: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
+
+            if mnemonic is not None:
+                self._warnMnemonic(mnemonic, style=style, output_function=self.my_print)
 
     def debug(self, message, style=None):
         if self.file_handle:
