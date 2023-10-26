@@ -938,20 +938,29 @@ version (>= 5.3)."""
         )
 
     if env.gcc_version < (5,):
-        scons_logger.info("The provided gcc is too old, switching to its g++ instead.")
+        if env.python_version < (3, 11):
+            scons_logger.info(
+                "The provided gcc is too old, switching to its g++ instead.",
+                mnemonic="too-old-gcc",
+            )
 
-        # Switch to g++ from gcc then if possible, when C11 mode is false.
-        the_gpp_compiler = os.path.join(
-            os.path.dirname(env.the_compiler),
-            os.path.basename(env.the_compiler).replace("gcc", "g++"),
-        )
+            # Switch to g++ from gcc then if possible, when C11 mode is false.
+            the_gpp_compiler = os.path.join(
+                os.path.dirname(env.the_compiler),
+                os.path.basename(env.the_compiler).replace("gcc", "g++"),
+            )
 
-        if getExecutablePath(the_gpp_compiler, env=env):
-            env.the_compiler = the_gpp_compiler
-            env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
+            if getExecutablePath(the_gpp_compiler, env=env):
+                env.the_compiler = the_gpp_compiler
+                env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
+            else:
+                scons_logger.sysexit(
+                    "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+                )
         else:
             scons_logger.sysexit(
-                "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+                "Error, your gcc is too old for C11 support, install a newer one.",
+                mnemonic="too-old-gcc",
             )
 
 
