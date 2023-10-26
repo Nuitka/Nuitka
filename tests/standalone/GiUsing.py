@@ -8,6 +8,8 @@ gi.require_version("Gdk", "3.0")
 
 from gi.repository import Gdk, Gtk
 
+# isort:start
+
 Gtk.init()
 
 image = cairo.ImageSurface.create_from_png("../../doc/images/Nuitka-Logo-Symbol.png")
