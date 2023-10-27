@@ -186,7 +186,7 @@ def isIgnoreListedImportMaker(source_ref):
     return StandardLibrary.isStandardLibraryPath(source_ref.getFilename())
 
 
-def warnAbout(importing, module_name, level, source_ref):
+def warnAboutNotFoundImport(importing, module_name, level, source_ref):
     # This probably should not be dealt with here
     if module_name == "":
         return
@@ -747,9 +747,10 @@ def locateModule(module_name, parent_package, level):
     as with "__import__" built-in.
 
     Returns:
-        Returns a triple of module name the module has considering
+        Returns a tuple of module name the module has considering
         package containing it, and filename of it which can be a
-        directory for packages, and the location method used.
+        directory for packages, the module kind, and the finding
+        kind.
     """
 
     if module_name.isMultidistModuleName():
