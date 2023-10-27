@@ -138,7 +138,7 @@ static void fatalErrorTempFiles(void) {
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
+static void fatalErrorHeaderAttachedData(void) { fatalError("Error, couldn't find attached data header."); }
 
 // Out of memory error.
 #if !defined(_WIN32) || _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
