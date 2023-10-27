@@ -532,6 +532,11 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
+- module-name: 'curl_cffi'
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+
 - module-name: 'curses'
   implicit-imports:
     - depends:
@@ -1345,6 +1350,8 @@
     dirs:
       - 'fonts'
       - 'images'
+      - 'data'
+      - 'uix'
 
 - module-name: 'langchain.chains.llm_summarization_checker'
   data-files:
@@ -1371,6 +1378,12 @@
   data-files:
     patterns:
       - 'version.info'
+
+- module-name: 'lightning.app.runners.cloud'
+  anti-bloat:
+    - description: 'remove lightning.app.testing dependency'
+      no-auto-follow:
+        'lightning.app.testing.helpers': 'ignore'
 
 - module-name: 'lightning_fabric'
   data-files:
@@ -5090,6 +5103,11 @@
         : "\n"
         'from distutils import version as distutils_version': ''
 
+- module-name: 'tensorflow.python.data.ops.dataset_ops'
+  implicit-imports:
+    - depends:
+        - 'tensorflow.python.data.ops.shuffle_op'
+
 - module-name: 'tensorflow.python.distribute.multi_process_runner'
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
@@ -5118,6 +5136,11 @@
     - depends:
         - 'tensorflow.python.framework.fast_tensor_util'
       when: 'not win32'
+
+- module-name: 'tensorflow.python.framework.dtypes'
+  implicit-imports:
+    - depends:
+        - 'ml_dtypes'
 
 - module-name: 'tensorflow.python.framework.meta_graph'
   anti-bloat:
@@ -5596,7 +5619,7 @@
         'importlib.util.find_spec("tensorflow") is not None': 'False'
     - description: 'more clear missing metadata error message'
       replacements_plain:
-        'package_exists = False': "sys.exit('''Nuitka: Need to use compile with '--include-package-data=%s'.''' % pkg_name)"
+        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile with '--include-distribution-metadata=%s'.''' % pkg_name)"
       when: 'not deployment'
 
 - module-name: 'transformers.utils.versions'

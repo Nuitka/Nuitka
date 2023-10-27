@@ -140,7 +140,7 @@ static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expa
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
+static void fatalErrorHeaderAttachedData(void) { fatalError("Error, couldn't find attached data header."); }
 
 // Left over data in attached payload should not happen.
 static void fatalErrorReadAttachedData(void) { fatalError("Error, couldn't read attached data."); }
