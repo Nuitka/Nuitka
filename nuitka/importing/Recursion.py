@@ -28,7 +28,7 @@ from nuitka.freezer.ImportDetection import (
     detectEarlyImports,
     detectStdlibAutoInclusionModules,
 )
-from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.importing import ImportCache, StandardLibrary
 from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
 from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
@@ -37,6 +37,13 @@ from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
+
+from .Importing import (
+    getModuleNameAndKindFromFilename,
+    isPackageDir,
+    locateModule,
+    warnAboutNotFoundImport,
+)
 
 
 def _recurseTo(module_name, module_filename, module_kind, reason):
@@ -100,6 +107,30 @@ _recursion_decision_cache = {}
 def decideRecursion(
     using_module_name, module_filename, module_name, module_kind, extra_recursion=False
 ):
+    package_part, _remainder = module_name.splitModuleBasename()
+
+    if package_part is not None:
+        (
+            _package_part,
+            package_filename,
+            package_module_kind,
+            package_finding,
+        ) = locateModule(module_name=package_part, parent_package=None, level=0)
+        assert _package_part == package_part
+
+        # For bad decisions, this may already not work.
+        if package_finding != "not-found":
+            package_decision, package_reason = decideRecursion(
+                using_module_name=using_module_name,
+                module_filename=package_filename,
+                module_name=package_part,
+                module_kind=package_module_kind,
+                extra_recursion=extra_recursion,
+            )
+
+            if package_decision is False:
+                return package_decision, package_reason
+
     key = using_module_name, module_filename, module_name, module_kind, extra_recursion
 
     if key not in _recursion_decision_cache:
@@ -174,7 +205,7 @@ def _decideRecursion(
         if plugin_decision and plugin_decision[0]:
             deciding_plugins[0].sysexit(
                 "Conflict between user and plugin decision for module '%s'."
-                % module_filename
+                % module_name
             )
 
         return False, "Module %s instructed by user to not follow to." % reason
@@ -187,7 +218,7 @@ def _decideRecursion(
         if plugin_decision and not plugin_decision[0] and deciding_plugins:
             deciding_plugins[0].sysexit(
                 "Conflict between user and plugin decision for module '%s'."
-                % module_filename
+                % module_name
             )
 
         return True, "Module %s instructed by user to follow to." % reason
@@ -297,9 +328,7 @@ def _addIncludedModule(module, package_only):
                 if sub_filename in ("__init__.py", "__pycache__"):
                     continue
 
-                if Importing.isPackageDir(sub_path) and not os.path.exists(
-                    sub_path + ".py"
-                ):
+                if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):
                     checkPluginSinglePath(
                         sub_path,
                         module_package=module.getFullName(),
@@ -331,9 +360,7 @@ def checkPluginSinglePath(plugin_filename, module_package, package_only):
             % (plugin_filename, module_package)
         )
 
-    module_name, module_kind = Importing.getModuleNameAndKindFromFilename(
-        plugin_filename
-    )
+    module_name, module_kind = getModuleNameAndKindFromFilename(plugin_filename)
 
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
@@ -387,7 +414,7 @@ def checkPluginPath(plugin_filename, module_package):
         )
 
     # Files and package directories are handled here.
-    if os.path.isfile(plugin_filename) or Importing.isPackageDir(plugin_filename):
+    if os.path.isfile(plugin_filename) or isPackageDir(plugin_filename):
         checkPluginSinglePath(
             plugin_filename,
             module_package=module_package,
@@ -399,7 +426,7 @@ def checkPluginPath(plugin_filename, module_package):
         for sub_path, sub_filename in listDir(plugin_filename):
             assert sub_filename != "__init__.py"
 
-            if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
+            if isPackageDir(sub_path) or sub_path.endswith(".py"):
                 checkPluginSinglePath(
                     sub_path,
                     module_package=None,
@@ -466,7 +493,7 @@ def considerUsedModules(module, pass_count):
                 continue
 
         if used_module.finding == "not-found":
-            Importing.warnAbout(
+            warnAboutNotFoundImport(
                 importing=module,
                 source_ref=used_module.source_ref,
                 module_name=used_module.module_name,
