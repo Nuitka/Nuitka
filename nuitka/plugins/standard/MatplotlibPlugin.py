@@ -177,12 +177,12 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
         # some special handling for matplotlib:
         # depending on whether 'tk-inter' resp. 'qt-plugins' are enabled,
         # their matplotlib backends are included.
-        if hasActivePlugin("tk-inter"):
-            if module_name in (
-                "matplotlib.backends.backend_tk",
-                "matplotlib.backends.backend_tkagg",
-                "matplotlib.backend.tkagg",
-            ):
+        if module_name in (
+            "matplotlib.backends.backend_tk",
+            "matplotlib.backends.backend_tkagg",
+            "matplotlib.backend.tkagg",
+        ):
+            if hasActivePlugin("tk-inter"):
                 return True, "Needed for tkinter matplotlib backend"
 
     def createPreModuleLoadCode(self, module):
