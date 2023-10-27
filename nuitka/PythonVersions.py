@@ -51,7 +51,7 @@ def getSupportedPythonVersions():
 
 def getNotYetSupportedPythonVersions():
     """Versions known to not work at all (yet)."""
-    return ()
+    return ("3.12",)
 
 
 def getPartiallySupportedPythonVersions():
