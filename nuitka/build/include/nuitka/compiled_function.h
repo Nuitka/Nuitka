@@ -108,7 +108,7 @@ extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_co
 #else
 extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
                                                          PyCodeObject *code_object, PyObject *defaults,
-                                                         PyObject *kwdefaults, PyObject *annotations, PyObject *module,
+                                                         PyObject *kw_defaults, PyObject *annotations, PyObject *module,
                                                          PyObject *doc, struct Nuitka_CellObject **closure,
                                                          Py_ssize_t closure_given);
 #endif
@@ -118,6 +118,16 @@ extern void Nuitka_Function_EnableConstReturnTrue(struct Nuitka_FunctionObject *
 extern void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject *function);
 
 extern void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value);
+
+#ifdef _NUITKA_PLUGIN_DILL_ENABLED
+extern int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
+                                                function_impl_code const *function_table);
+extern struct Nuitka_FunctionObject *
+Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
+                                           PyObject *code_object_desc, PyObject *constant_return_value,
+                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc,
+                                           function_impl_code const *function_table, int function_table_size);
+#endif
 
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
 
