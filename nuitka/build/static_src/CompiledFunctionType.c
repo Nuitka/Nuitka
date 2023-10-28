@@ -1007,6 +1007,127 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
     function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
 
+#ifdef _NUITKA_PLUGIN_DILL_ENABLED
+int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
+                                         function_impl_code const *function_table) {
+
+    if (function->m_c_code == _Nuitka_FunctionEmptyCodeTrueImpl) {
+        return -2;
+    }
+
+    if (function->m_c_code == _Nuitka_FunctionEmptyCodeFalseImpl) {
+        return -3;
+    }
+
+    if (function->m_c_code == _Nuitka_FunctionEmptyCodeNoneImpl) {
+        return -4;
+    }
+
+    if (function->m_c_code == _Nuitka_FunctionEmptyCodeGenericImpl) {
+        return -5;
+    }
+
+    function_impl_code const *current = function_table;
+    int offset = 0;
+
+    while (*current != NULL) {
+        if (*current == function->m_c_code) {
+            break;
+        }
+
+        current += 1;
+        offset += 1;
+    }
+
+    if (*current == NULL) {
+        PyThreadState *tstate = PyThreadState_GET();
+#if 0
+        PRINT_STRING("Looking for:");
+        PRINT_ITEM((PyObject *)function);
+        PRINT_NEW_LINE();
+#endif
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
+        return -1;
+    }
+
+    return offset;
+}
+
+struct Nuitka_FunctionObject *
+Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
+                                           PyObject *code_object_desc, PyObject *constant_return_value,
+                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc,
+                                           function_impl_code const *function_table, int function_table_size) {
+    int offset = PyLong_AsLong(function_index);
+
+    if (offset > function_table_size || offset < -5 || offset == -1) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
+        return NULL;
+    }
+
+    PyObject *filename = PyTuple_GET_ITEM(code_object_desc, 0);
+    PyObject *function_name = PyTuple_GET_ITEM(code_object_desc, 1);
+    PyObject *line = PyTuple_GET_ITEM(code_object_desc, 2);
+    int line_int = PyLong_AsLong(line);
+    assert(line_int != -1);
+
+    PyObject *arg_names = PyTuple_GET_ITEM(code_object_desc, 3);
+    PyObject *arg_count = PyTuple_GET_ITEM(code_object_desc, 4);
+    int arg_count_int = PyLong_AsLong(arg_count);
+    assert(arg_count_int != -1);
+
+    PyObject *flags = PyTuple_GET_ITEM(code_object_desc, 5);
+    int flags_int = PyLong_AsLong(flags);
+    assert(flags_int != -1);
+
+    PyCodeObject *code_object =
+        MAKE_CODE_OBJECT(filename, line_int, flags_int, function_name, function_qualname, arg_names,
+                         NULL, // freevars
+                         arg_count_int,
+                         0, // TODO: Missing kw_only_count
+                         0  // TODO: Missing pos_only_count
+        );
+
+    struct Nuitka_FunctionObject *result =
+        Nuitka_Function_New(offset >= 0 ? function_table[offset] : NULL, code_object->co_name,
+#if PYTHON_VERSION >= 0x300
+                            NULL, // TODO: Not transferring qualname yet
+#endif
+                            code_object, defaults,
+#if PYTHON_VERSION >= 0x300
+                            kw_defaults,
+                            NULL, // TODO: Not transferring annotations
+#endif
+                            module, doc, NULL, 0);
+
+    CHECK_OBJECT(result);
+
+    if (offset == -2) {
+        Nuitka_Function_EnableConstReturnTrue(result);
+    }
+    if (offset == -3) {
+        Nuitka_Function_EnableConstReturnFalse(result);
+    }
+    if (offset == -4) {
+        result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
+    }
+    if (offset == -5) {
+        CHECK_OBJECT(constant_return_value);
+
+        Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
+
+        Py_INCREF(constant_return_value);
+    }
+
+    assert(result->m_c_code != NULL);
+
+    return result;
+}
+
+#endif
+
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names);
@@ -1019,7 +1140,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #else
 struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
-                                                  PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults,
+                                                  PyCodeObject *code_object, PyObject *defaults, PyObject *kw_defaults,
                                                   PyObject *annotations, PyObject *module, PyObject *doc,
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #endif
@@ -1065,8 +1186,8 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     _onUpdatedCompiledFunctionDefaultsValue(result);
 
 #if PYTHON_VERSION >= 0x300
-    assert(kwdefaults == NULL || (PyDict_Check(kwdefaults) && DICT_SIZE(kwdefaults) > 0));
-    result->m_kwdefaults = kwdefaults;
+    assert(kw_defaults == NULL || (PyDict_Check(kw_defaults) && DICT_SIZE(kw_defaults) > 0));
+    result->m_kwdefaults = kw_defaults;
 
     assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
     result->m_annotations = annotations;

@@ -213,8 +213,10 @@ def getFunctionMakerCode(
         "constant_return_code": indented(constant_return_code),
     }
 
-    # TODO: Make it optional.
-    context.addFunctionCreationInfo(function_impl_identifier)
+    # TODO: Make it optional, only dill plugin really uses that table to
+    # transport the C code implementation pointers.
+    if function_impl_identifier != "NULL":
+        context.addFunctionCreationInfo(function_impl_identifier)
 
     return result
 
