@@ -105,6 +105,9 @@ Bug Fixes
    exclude the problematic ones, as they are going to be unused. Fixed
    in 1.8.4 already.
 
+-  Compatibility: Fix, the ``dill-compat`` plugin was regressed and
+   support for ``dill`` version 0.3 was added.
+
 Optimization
 ============
 
