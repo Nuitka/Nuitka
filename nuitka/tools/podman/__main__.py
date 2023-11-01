@@ -295,6 +295,9 @@ def _checkContainerArgument(options, default_container_directory):
 def main():
     options = parseOptions()
 
+    if options.command is None:
+        options.command = "python3 -m nuitka --version"
+
     containers_logger.info(
         "Running in container '%s' this command: %s"
         % (options.container_id, options.command)
