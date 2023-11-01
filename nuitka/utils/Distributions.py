@@ -85,7 +85,10 @@ def _initPackageToDistributionName():
 
 
 def getDistributionsFromModuleName(module_name):
-    """Get the distribution name associated with a module name."""
+    """Get the distribution names associated with a module name.
+
+    This can be more than one in case of namespace modules.
+    """
 
     # Cached result, pylint: disable=global-statement
 
@@ -99,6 +102,18 @@ def getDistributionsFromModuleName(module_name):
             key=lambda dist: dist.metadata["Name"],
         )
     )
+
+
+def getDistributionFromModuleName(module_name):
+    """Get the distribution name associated with a module name."""
+    distributions = getDistributionsFromModuleName(module_name)
+
+    if not distributions:
+        return None
+    elif len(distributions) == 1:
+        return distributions[0]
+    else:
+        return min(distributions, key=lambda dist: len(getDistributionName(dist)))
 
 
 def getDistribution(distribution_name):
@@ -132,6 +147,16 @@ def isDistributionCondaPackage(distribution_name):
         return False
 
     return getDistributionInstallerName(distribution_name) == "conda"
+
+
+def isDistributionPipPackage(distribution_name):
+    return getDistributionInstallerName(distribution_name) == "pip"
+
+
+def isDistributionSystemPackage(distribution_name):
+    return not isDistributionPipPackage(
+        distribution_name
+    ) and not isDistributionCondaPackage(distribution_name)
 
 
 def getDistributionInstallerName(distribution_name):
