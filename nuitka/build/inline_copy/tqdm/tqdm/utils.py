@@ -5,7 +5,7 @@ import os
 import re
 import sys
 from functools import wraps
-from warnings import warn
+import warnings
 
 # py2/3 compat
 try:
@@ -273,9 +273,12 @@ def _screen_shape_tput(*_):  # pragma: no cover
 def _screen_shape_linux(fp):  # pragma: no cover
 
     try:
-        from array import array
-        from fcntl import ioctl
-        from termios import TIOCGWINSZ
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            from array import array
+            from fcntl import ioctl
+            from termios import TIOCGWINSZ
     except ImportError:
         return None
     else:
@@ -294,7 +297,7 @@ def _environ_cols_wrapper():  # pragma: no cover
     Return a function which returns console width.
     Supported: linux, osx, windows, cygwin.
     """
-    warn("Use `_screen_shape_wrapper()(file)[0]` instead of"
+    warnings.warn("Use `_screen_shape_wrapper()(file)[0]` instead of"
          " `_environ_cols_wrapper()(file)`", DeprecationWarning, stacklevel=2)
     shape = _screen_shape_wrapper()
     if not shape:
