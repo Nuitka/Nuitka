@@ -39,11 +39,16 @@ from nuitka.plugins.Plugins import (
 )
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Distributions import (
+    getDistributionFromModuleName,
+    getDistributionInstallerName,
+    getDistributionName,
+    isDistributionSystemPackage,
+)
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import (
     getArchitecture,
-    isDebianBasedLinux,
     isLinux,
     isMacOS,
     isWin32Windows,
@@ -51,6 +56,9 @@ from nuitka.utils.Utils import (
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
+    # We are a bit detail rich and caching a bunch,
+    # pylint: disable=too-many-instance-attributes
+
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
@@ -60,6 +68,15 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     warned_about = set()
 
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+        self.distribution = getDistributionFromModuleName(self.binding_name)
+
+        if self.distribution is None:
+            self.sysexit("Error, failed to locate %s installation." % self.binding_name)
+
+        self.distribution_name = getDistributionName(self.distribution)
+
+        self.installer_name = getDistributionInstallerName(self.distribution_name)
+
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
 
@@ -882,12 +899,7 @@ Prefix = .
 
     def decideAllowOutsideDependencies(self, module_name):
         if isLinux() and module_name.hasNamespace(self.binding_name):
-            if isDebianBasedLinux():
-                module_filename = self.locateModule(self.binding_name)
-
-                return "dist-packages" in module_filename.split("/")
-            else:
-                return False
+            return isDistributionSystemPackage(self.distribution_name)
 
         return None
 
