@@ -1979,6 +1979,7 @@ void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate) {
                 PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package, false);
                 PyObject_SetAttr(value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
+                CHECK_OBJECT(file_value);
             }
         }
     }
