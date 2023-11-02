@@ -826,10 +826,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
         parent_module = self.getParentModule()
 
-        parent_package = parent_module.getFullName()
-        if not parent_module.isCompiledPythonPackage():
-            parent_package = parent_package.getPackageName()
-
         level = self.subnode_level
 
         if level is None:
@@ -838,6 +834,13 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             return
         else:
             level = level.getCompileTimeConstant()
+
+        if level != 0:
+            parent_package = parent_module.getFullName()
+            if not parent_module.isCompiledPythonPackage():
+                parent_package = parent_package.getPackageName()
+        else:
+            parent_package = None
 
         # TODO: Catch this as a static error maybe.
         if type(level) not in (int, long):
@@ -855,15 +858,16 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 )
             )
 
-        module_name, module_filename, module_kind, self.finding = locateModule(
-            module_name=resolveModuleName(module_name),
+        module_name = ModuleName(module_name)
+        module_name_found, module_filename, module_kind, self.finding = locateModule(
+            module_name=ModuleName(module_name),
             parent_package=parent_package,
             level=level,
         )
 
         self.used_modules = [
             makeModuleUsageAttempt(
-                module_name=module_name,
+                module_name=module_name_found,
                 filename=module_filename,
                 module_kind=module_kind,
                 finding=self.finding,
@@ -874,6 +878,8 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         ]
 
         if self.finding != "not-found":
+            module_name = module_name_found
+
             import_list = self.subnode_fromlist
 
             if import_list is not None:
@@ -917,8 +923,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
             return module_filename
         else:
-            module_name = resolveModuleName(module_name)
-
             while True:
                 module_name = module_name.getPackageName()
 
