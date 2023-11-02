@@ -86,6 +86,14 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
+    # The frozen stdlib modules of Python 3.11 are less compatible than the ones
+    # of Nuitka, so prefer those.
+    if sys.version_info >= (3, 11):
+        from _imp import _frozen_module_names
+
+        if "os" in _frozen_module_names():
+            needs_re_execution = True
+
     # Avoid doing it when running in Visual Code.
     if needs_re_execution and "debugpy" in sys.modules:
         needs_re_execution = False
