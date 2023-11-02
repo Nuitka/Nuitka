@@ -367,7 +367,7 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
                                            PyTracebackObject **exception_tb);
 
-#if PYTHON_VERSION < 0x3B0
+#if PYTHON_VERSION < 0x3b0
 #include <opcode.h>
 // Clashes with our helper names.
 #undef CALL_FUNCTION

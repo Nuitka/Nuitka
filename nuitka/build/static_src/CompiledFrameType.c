@@ -263,7 +263,7 @@ static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObje
 }
 #endif
 
-#if PYTHON_VERSION >= 0x3B0
+#if PYTHON_VERSION >= 0x3b0
 static PyObject *Nuitka_Frame_getback(struct Nuitka_FrameObject *frame, void *closure) {
     return (PyObject *)PyFrame_GetBack(&frame->m_frame);
 }
@@ -831,7 +831,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #endif
 
     // For Python 3.11 this value is checked, even if not used.
-#if PYTHON_VERSION >= 0x3B0
+#if PYTHON_VERSION >= 0x3b0
     int nlocals = (int)PyTuple_GET_SIZE(argnames);
 #else
     int nlocals = 0;
