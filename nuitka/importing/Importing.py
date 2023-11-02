@@ -257,7 +257,7 @@ def findModule(module_name, parent_package, level):
         method used.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     assert type(module_name) is ModuleName, module_name
 
@@ -278,6 +278,15 @@ def findModule(module_name, parent_package, level):
             parent_package = parent_package.getRelativePackageName(level)
         else:
             return None, None, None, "not-found"
+
+    if level == 1 and not module_name:
+        # Not actually allowed, but we only catch that at run-time.
+        if parent_package is None:
+            return None, None, None, "not-found"
+
+        module_name = parent_package
+        parent_package = None
+        level = 0
 
     # Try relative imports first if we have a parent package.
     if level != 0 and parent_package is not None:
@@ -313,7 +322,7 @@ def findModule(module_name, parent_package, level):
 
             return full_name.getPackageName(), module_filename, module_kind, "relative"
 
-    if level < 1 and module_name != "":
+    if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
 
         package_name = module_name.getPackageName()
