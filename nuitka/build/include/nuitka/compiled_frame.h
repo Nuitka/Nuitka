@@ -93,9 +93,9 @@ extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyO
 NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 #if PYTHON_VERSION < 0x300
     return code->co_code == const_str_empty;
-#elif PYTHON_VERSION < 0x3B0
+#elif PYTHON_VERSION < 0x3b0
     return code->co_code == const_str_empty;
-#elif PYTHON_VERSION < 0x3C0
+#elif PYTHON_VERSION < 0x3c0
     return _PyCode_CODE(code)[0] == 0;
 #else
     _Py_CODEUNIT *code_unit = _PyCode_CODE(code);
@@ -198,7 +198,7 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 }
 
 inline static void assertThreadFrameObject(Nuitka_ThreadStateFrameType *frame) {
-#if PYTHON_VERSION < 0x3B0
+#if PYTHON_VERSION < 0x3b0
     assertPythonFrameObject(frame);
 #else
     // For uncompiled frames of Python 3.11 these often do not exist. TODO: Figure
@@ -270,7 +270,7 @@ static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
 }
 #endif
 
-#if PYTHON_VERSION >= 0x3B0
+#if PYTHON_VERSION >= 0x3b0
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadState *tstate,
                                                                        _PyInterpreterFrame *interpreter_frame) {
     _PyInterpreterFrame *old = tstate->cframe->current_frame;

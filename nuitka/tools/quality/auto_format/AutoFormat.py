@@ -107,6 +107,13 @@ def cleanupWindowsNewlines(filename, effective_filename):
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
         updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
 
+        def replacer(match):
+            return b"PYTHON_VERSION %s %s" % (match.group(1), match.group(2).lower())
+
+        updated_code = re.sub(
+            b"PYTHON_VERSION\\s+([=<>]+)\\s+(0x3[A-F])", replacer, updated_code
+        )
+
     if updated_code != source_code:
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
