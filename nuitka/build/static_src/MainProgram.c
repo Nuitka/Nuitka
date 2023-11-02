@@ -1049,6 +1049,10 @@ static void Nuitka_Py_Initialize(void) {
 
     PyWideStringList_Append(&config.module_search_paths, binary_directory);
     config.module_search_paths_set = 1;
+
+#if PYTHON_VERSION >= 0x3b0
+    config.use_frozen_modules = 0;
+#endif
 #endif
 
     config.install_signal_handlers = 1;

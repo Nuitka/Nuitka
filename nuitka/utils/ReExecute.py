@@ -73,6 +73,9 @@ def reExecuteNuitka(pgo_filename):
     if sys.version_info >= (3, 7) and sys.flags.utf8_mode:
         args += ["-X", "utf8"]
 
+    if sys.version_info >= (3, 11):
+        args += ["-X", "frozen_modules=off"]
+
     if "nuitka.__main__" in sys.modules:
         our_filename = sys.modules["nuitka.__main__"].__file__
     else:
