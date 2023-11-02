@@ -358,6 +358,7 @@ _stdlib_no_auto_inclusion_list = (
     "tty",
     "termios",
     "this",
+    "textwrap",
     # Distribution and bytecode related stuff
     "plistlib",
     "distutils",
