@@ -86,7 +86,7 @@ class ModuleName(str):
             return ModuleName(module_name)
 
     def __repr__(self):
-        return "<ModuleName %s>" % str(self)
+        return "<ModuleName '%s'>" % str(self)
 
     def asString(self):
         """Get a simply str value.
@@ -290,9 +290,10 @@ Do not use %(func_name)s on ModuleName objects, use e.g.
 .hasNamespace(),
 .getBasename(),
 .getTopLevelPackageName()
-.hasOneOfNamespaces
+.hasOneOfNamespaces()
 
-Check API documentation of nuitka.utils.ModuleNames.ModuleName
+Check API documentation of nuitka.utils.ModuleNames.ModuleName for more
+variations.
 ''')
 """ % {
             "func_name": _func_name
