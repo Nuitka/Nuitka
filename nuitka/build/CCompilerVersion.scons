@@ -253,7 +253,7 @@ env.the_compiler = getExecutablePath(env.the_compiler, env=env)
 # Report the C compiler used.
 reportCCompiler(env, "Version", my_print)
 
-# Set up C compiler settings.
+# Set up C compiler settings, we would use that mode mode outputs.
 setupCCompiler(
     env=env,
     lto_mode=lto_mode,
