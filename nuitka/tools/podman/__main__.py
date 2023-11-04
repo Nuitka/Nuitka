@@ -91,6 +91,15 @@ Podman binary in case you do not have it in your path.
     )
 
     parser.add_option(
+        "--podman-verbose",
+        action="store_false",
+        dest="quiet",
+        default=True,
+        help="""
+Dot not use podman quietly, giving more messages during build.""",
+    )
+
+    parser.add_option(
         "--shared-path",
         action="append",
         dest="shared_paths",
@@ -159,7 +168,7 @@ def isPodman(podman_path):
     return "podman" in os.path.normcase(os.path.basename(podman_path))
 
 
-def updateContainer(podman_path, container_tag_name, container_file_path):
+def updateContainer(podman_path, container_tag_name, container_file_path, quiet):
     requirements_file = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
     )
@@ -182,12 +191,14 @@ def updateContainer(podman_path, container_tag_name, container_file_path):
             podman_path,
             "build",
             # Tolerate errors checking for image download, and use old one
-            "--quiet",
             "--tag",
             container_tag_name,
             "-f",
             container_file_path,
         ]
+
+        if quiet:
+            command.append("--quiet")
 
         if isPodman(podman_path):
             # Podman only.
@@ -345,6 +356,7 @@ def main():
             podman_path=options.podman_path,
             container_tag_name=container_tag_name,
             container_file_path=container_file_path,
+            quiet=options.quiet,
         )
 
     command = [options.podman_path, "run"]
