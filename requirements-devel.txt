@@ -15,7 +15,7 @@ astroid == 2.15.6 ; python_version >= '3.8'
 # linting rest code snippets
 restructuredtext-lint==1.4.0 ; python_version >= '3.8'
 Pygments == 2.15.1 ; python_version >= '3.8'
-rstcheck == 6.1.2 ; python_version >= '3.8'
+rstcheck == 6.2.0 ; python_version >= '3.8'
 
 # Auto-format needs
 black == 23.7.0 ; python_version >= '3.8'
