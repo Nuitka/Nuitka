@@ -969,6 +969,16 @@ def reportCCompiler(env, context, output_func):
 
     if env.the_cc_name == "cl":
         cc_output = "%s %s" % (env.the_cc_name, getMsvcVersionString(env))
+    elif isGccName(env.the_cc_name):
+        cc_output = "%s %s" % (
+            env.the_cc_name,
+            ".".join(str(d) for d in env.gcc_version),
+        )
+    elif isClangName(env.the_cc_name):
+        cc_output = "%s %s" % (
+            env.the_cc_name,
+            ".".join(str(d) for d in myDetectVersion(env, env.the_cc_name)),
+        )
     else:
         cc_output = env.the_cc_name
 
