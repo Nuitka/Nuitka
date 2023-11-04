@@ -755,6 +755,20 @@ def commentArgs():
     """
     # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
 
+    # Check files to exist or be suitable first before giving other warnings.
+    for filename in getMainEntryPointFilenames():
+        if not os.path.exists(filename):
+            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+
+        if (
+            shallMakeModule()
+            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+        ):
+            Tracing.general.sysexit(
+                """\
+Error, to compile a package, specify its directory but, not the '__init__.py'."""
+            )
+
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
     if python_version_str not in getSupportedPythonVersions():
@@ -1008,19 +1022,6 @@ Error, need to provide signing identity with '--macos-sign-identity' for \
 notarization capable signature, the default identify 'ad-hoc' is not going \
 to work."""
         )
-
-    for filename in getMainEntryPointFilenames():
-        if not os.path.exists(filename):
-            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
-
-        if (
-            shallMakeModule()
-            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-        ):
-            Tracing.general.sysexit(
-                """\
-Error, to compile a package, specify its directory but, not the '__init__.py'."""
-            )
 
     if (
         isWin32Windows()
