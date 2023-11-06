@@ -67,7 +67,11 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.Distributions import isDistributionCondaPackage
+from nuitka.utils.Distributions import (
+    getDistributionFromModuleName,
+    getDistributionName,
+    isDistributionCondaPackage,
+)
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
@@ -114,6 +118,10 @@ def _getPackageNameFromDistributionName(distribution_name):
         return "objc"
     else:
         return distribution_name
+
+
+def _getDistributionNameFromPackageName(package_name):
+    return getDistributionName(getDistributionFromModuleName(package_name))
 
 
 def _getPackageVersion(distribution_name):
@@ -1148,8 +1156,10 @@ except ImportError:
         return None
 
     @staticmethod
-    def getPackageVersion(distribution_name):
+    def getPackageVersion(module_name):
         """Provide package version of a distribution."""
+        distribution_name = _getDistributionNameFromPackageName(module_name)
+
         return _getPackageVersion(distribution_name)
 
     def getEvaluationConditionControlTags(self):
@@ -1181,6 +1191,7 @@ except ImportError:
                 "deployment": isDeploymentMode(),
                 # Querying package versions.
                 "version": _getPackageVersion,
+                "get_dist_name": _getDistributionNameFromPackageName,
                 "plugin": _isPluginActive,
                 "no_asserts": hasPythonFlagNoAsserts(),
                 "no_docstrings": hasPythonFlagNoDocStrings(),
