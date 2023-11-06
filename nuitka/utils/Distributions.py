@@ -17,6 +17,8 @@
 #
 """ Tools for accessing distributions and resolving package names for them. """
 
+import sys
+
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
@@ -26,19 +28,37 @@ from .ModuleNames import ModuleName, checkModuleName
 _package_to_distribution = None
 
 
-def getDistributionTopLevelPackageNames(distribution):
-    """Returns the top level package names for a distribution."""
-    top_level_txt = distribution.read_text("top_level.txt")
-
-    if top_level_txt:
-        result = top_level_txt.split()
-        result = [dirname.replace("/", ".") for dirname in result]
-    else:
-        result = OrderedSet()
-
+def getDistributionFiles(distribution):
+    if hasattr(distribution, "files"):
         for filename in distribution.files or ():
             filename = filename.as_posix()
 
+            yield filename
+    else:
+        for line in distribution.get_metadata_lines("RECORD"):
+            filename = line.split(",", 1)[0]
+
+            yield filename
+
+
+def getDistributionTopLevelPackageNames(distribution):
+    """Returns the top level package names for a distribution."""
+    try:
+        top_level_txt = distribution.read_text("top_level.txt")
+        if top_level_txt:
+            top_level_txt = top_level_txt.split()
+    except AttributeError:
+        try:
+            top_level_txt = list(distribution.get_metadata_lines("top_level.txt"))
+        except (FileNotFoundError, KeyError):
+            top_level_txt = None
+
+    if top_level_txt:
+        result = [dirname.replace("/", ".") for dirname in top_level_txt]
+    else:
+        result = OrderedSet()
+
+        for filename in getDistributionFiles(distribution):
             if not filename.endswith(".py"):
                 continue
 
@@ -50,9 +70,20 @@ def getDistributionTopLevelPackageNames(distribution):
             result.add(filename.split("/")[0])
 
     if not result:
-        result = (distribution.metadata["Name"],)
+        result = (getDistributionName(distribution),)
 
     return tuple(result)
+
+
+def _pkg_resource_distributions():
+    from pkg_resources import find_distributions
+
+    result = []
+
+    for element in sys.path:
+        for distribution in find_distributions(element):
+            result.append(distribution)
+    return result
 
 
 def _initPackageToDistributionName():
@@ -62,10 +93,9 @@ def _initPackageToDistributionName():
         except ImportError:
             from importlib_metadata import distributions
     except ImportError:
-        return {}
+        distributions = _pkg_resource_distributions
 
     # Cyclic dependency
-
     result = {}
 
     for distribution in distributions():
@@ -99,7 +129,7 @@ def getDistributionsFromModuleName(module_name):
     return tuple(
         sorted(
             _package_to_distribution.get(module_name, ()),
-            key=lambda dist: dist.metadata["Name"],
+            key=getDistributionName,
         )
     )
 
@@ -195,7 +225,24 @@ def getDistributionInstallerName(distribution_name):
 
 
 def getDistributionName(distribution):
-    return distribution.metadata["Name"]
+    if hasattr(distribution, "metadata"):
+        return distribution.metadata["Name"]
+    else:
+        return distribution.project_name
+
+
+def getDistributionVersion(distribution):
+    """Get the distribution version string from a distribution object.
+
+    We use importlib.metadata and pkg_resources version tuples interchangeable
+    and this is to abstract the difference is how to look up the version from
+    one.
+    """
+    # Avoiding use of public interface for pkg_resources, pylint: disable=protected-access
+    if hasattr(distribution, "metadata"):
+        return distribution.metadata["Version"]
+    else:
+        return distribution._version
 
 
 def getDistributionLicense(distribution):

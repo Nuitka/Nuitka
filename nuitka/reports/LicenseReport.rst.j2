@@ -25,7 +25,7 @@ This software was compiled with Nuitka and contains parts of the following softw
 {{ get_distribution_name(distribution) }}
 =========================================
 
-Version {{ distribution.metadata["Version"] }} of {{ get_distribution_name(distribution) }} was included and is
+Version {{ get_distribution_version(distribution) }} of {{ get_distribution_name(distribution) }} was included and is
 under license "{{ get_distribution_license(distribution) }}".
 
 {% if distribution_modules[distribution] != [get_distribution_name(distribution)] %}
