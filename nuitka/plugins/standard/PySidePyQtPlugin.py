@@ -71,7 +71,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         self.distribution = getDistributionFromModuleName(self.binding_name)
 
         if self.distribution is None:
-            self.sysexit("Error, failed to locate %s installation." % self.binding_name)
+            self.sysexit(
+                "Error, failed to locate the %s installation." % self.binding_name
+            )
 
         self.distribution_name = getDistributionName(self.distribution)
 
