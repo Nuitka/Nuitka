@@ -600,7 +600,7 @@
     checks:
       - description: 'OpenCV2 is best supported with 4.6 or later'
         support_info: 'warning'
-        when: 'version("opencv-python") < (4,6)'
+        when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils'
   anti-bloat:

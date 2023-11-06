@@ -54,6 +54,7 @@ from nuitka.utils.Distributions import (
     getDistributionLicense,
     getDistributionName,
     getDistributionsFromModuleName,
+    getDistributionVersion,
 )
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
@@ -474,7 +475,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             distributions_xml_node,
             "distribution",
             name=getDistributionName(distribution),
-            version=distribution.metadata["Version"],
+            version=getDistributionVersion(distribution),
             installer=report_input_data["module_distribution_installers"][
                 getDistributionName(distribution)
             ],
@@ -541,6 +542,8 @@ def writeCompilationReportFromTemplate(
         get_distribution_license=getDistributionLicense,
         # get the distribution_name
         get_distribution_name=getDistributionName,
+        # get the distribution version
+        get_distribution_version=getDistributionVersion,
         # Quote a list of strings.
         quoted=quoted,
         # For checking length of lists.
