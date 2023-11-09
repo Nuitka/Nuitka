@@ -6188,3 +6188,7 @@
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'
+- module-name: 'winloop'
+  implicit-imports:
+    - depends:
+        - '._noop'
