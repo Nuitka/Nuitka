@@ -98,7 +98,8 @@ if not os.environ.get("GI_TYPELIB_PATH"):
                 yield self.makeDllEntryPoint(
                     source_path=dll_path,
                     dest_path=os.path.basename(dll_path),
-                    package_name=None,
+                    module_name="gi._gi",
+                    package_name="gi",
                     reason="needed by 'gi._gi'",
                 )
 

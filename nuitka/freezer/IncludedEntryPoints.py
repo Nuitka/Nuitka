@@ -37,7 +37,7 @@ from nuitka.utils.FileOperations import (
     isRelativePath,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
 IncludedEntryPoint = collections.namedtuple(
@@ -47,6 +47,7 @@ IncludedEntryPoint = collections.namedtuple(
         "kind",
         "source_path",
         "dest_path",
+        "module_name",
         "package_name",
         "executable",
         "reason",
@@ -56,7 +57,7 @@ IncludedEntryPoint = collections.namedtuple(
 
 # Since inheritance is not a thing with namedtuple, have factory functions
 def _makeIncludedEntryPoint(
-    logger, kind, source_path, dest_path, package_name, reason, executable
+    logger, kind, source_path, dest_path, module_name, package_name, reason, executable
 ):
     if package_name is not None:
         package_name = ModuleName(package_name)
@@ -70,23 +71,30 @@ def _makeIncludedEntryPoint(
     assert not hasFilenameExtension(path=source_path, extensions=(".qml", ".json"))
 
     return IncludedEntryPoint(
-        logger,
-        kind,
-        source_path,
-        os.path.normpath(dest_path),
-        package_name,
-        executable,
-        reason,
+        logger=logger,
+        kind=kind,
+        source_path=source_path,
+        dest_path=os.path.normpath(dest_path),
+        module_name=module_name,
+        package_name=package_name,
+        executable=executable,
+        reason=reason,
     )
 
 
 def _makeDllOrExeEntryPoint(
-    logger, kind, source_path, dest_path, package_name, reason, executable
+    logger, kind, source_path, dest_path, module_name, package_name, reason, executable
 ):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
     assert ".dist" not in dest_path, dest_path
+    if module_name is not None:
+        assert checkModuleName(module_name), module_name
+        module_name = ModuleName(module_name)
+    if package_name is not None:
+        assert checkModuleName(package_name), package_name
+        package_name = ModuleName(package_name)
 
     if not os.path.isfile(source_path):
         logger.sysexit(
@@ -99,42 +107,52 @@ def _makeDllOrExeEntryPoint(
         kind=kind,
         source_path=source_path,
         dest_path=dest_path,
+        module_name=module_name,
         package_name=package_name,
         reason=reason,
         executable=executable,
     )
 
 
-def makeExtensionModuleEntryPoint(logger, source_path, dest_path, package_name, reason):
+def makeExtensionModuleEntryPoint(
+    logger, source_path, dest_path, module_name, package_name, reason
+):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="extension",
         source_path=source_path,
         dest_path=dest_path,
+        module_name=module_name,
         package_name=package_name,
         reason=reason,
         executable=False,
     )
 
 
-def makeDllEntryPoint(logger, source_path, dest_path, package_name, reason):
+def makeDllEntryPoint(
+    logger, source_path, dest_path, module_name, package_name, reason
+):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="dll",
         source_path=source_path,
         dest_path=dest_path,
+        module_name=module_name,
         package_name=package_name,
         reason=reason,
         executable=False,
     )
 
 
-def makeExeEntryPoint(logger, source_path, dest_path, package_name, reason):
+def makeExeEntryPoint(
+    logger, source_path, dest_path, module_name, package_name, reason
+):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="exe",
         source_path=source_path,
         dest_path=dest_path,
+        module_name=module_name,
         package_name=package_name,
         reason=reason,
         executable=True,
@@ -147,6 +165,7 @@ def makeMainExecutableEntryPoint(dest_path):
         kind="executable",
         source_path=dest_path,
         dest_path=os.path.basename(dest_path),
+        module_name=None,
         package_name=None,
         reason="main binary",
         executable=True,
@@ -159,6 +178,7 @@ def _makeIgnoredEntryPoint(entry_point):
         kind=entry_point.kind + "_ignored",
         source_path=entry_point.source_path,
         dest_path=entry_point.dest_path,
+        module_name=entry_point.module_name,
         package_name=entry_point.package_name,
         reason=entry_point.reason,
         executable=entry_point.executable,
@@ -308,6 +328,7 @@ def addExtensionModuleEntryPoint(module):
             source_path=module.getFilename(),
             dest_path=module.getFullName().asPath()
             + getSharedLibrarySuffix(preferred=False),
+            module_name=module.getFullName(),
             package_name=module.getFullName().getPackageName(),
             reason="required extension module for CPython library startup"
             if module.isTechnical()

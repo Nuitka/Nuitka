@@ -136,6 +136,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
                     dest_path=os.path.join(
                         os.path.basename(dll_directory), dll_basename
                     ),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
