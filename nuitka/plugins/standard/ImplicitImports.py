@@ -345,6 +345,10 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
+        # Too much code here, pylint: disable=too-many-branches
+        # TODO: Move the ones that would be possible to yaml config,
+        # e.g. the numexpr hack.
+
         if module_name == "numexpr.cpuinfo":
             # We cannot intercept "is" tests, but need it to be "isinstance",
             # so we patch it on the file. TODO: This is only temporary, in
@@ -398,23 +402,52 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                         },
                     )
 
-            if module_name == "huggingface_hub":
-                if (
-                    "__getattr__, __dir__, __all__ = _attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
-                    in source_code
-                ):
-                    huggingface_hub_lazy_loader_info = (
-                        self.queryRuntimeInformationSingle(
-                            setup_codes="import huggingface_hub",
-                            value="huggingface_hub._SUBMOD_ATTRS",
-                            info_name="huggingface_hub_lazy_loader",
-                        )
-                    )
+        if module_name == "huggingface_hub":
+            # Special handling for huggingface that uses the source code variant
+            # of lazy module. spell-checker: ignore huggingface
+            if (
+                "__getattr__, __dir__, __all__ = _attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
+                in source_code
+            ):
+                huggingface_hub_lazy_loader_info = self.queryRuntimeInformationSingle(
+                    setup_codes="import huggingface_hub",
+                    value="huggingface_hub._SUBMOD_ATTRS",
+                    info_name="huggingface_hub_lazy_loader",
+                )
 
-                    self.lazy_loader_usages[module_name] = (
-                        [],
-                        huggingface_hub_lazy_loader_info,
-                    )
+                self.lazy_loader_usages[module_name] = (
+                    [],
+                    huggingface_hub_lazy_loader_info,
+                )
+
+        if module_name == "pydantic":
+            # Pydantic has its own lazy loading, spell-checker: ignore pydantic
+            if "def __getattr__(" in source_code:
+                pydantic_info = self.queryRuntimeInformationSingle(
+                    setup_codes="import pydantic",
+                    value="pydantic._dynamic_imports",
+                    info_name="pydantic_lazy_loader",
+                )
+
+                pydantic_lazy_loader_info = {}
+                for key, value in pydantic_info.items():
+                    # Older pydantic had only a string for the attribute.
+                    if type(value) is tuple:
+                        value = "".join(value)
+
+                    if value.startswith("pydantic."):
+                        value = value[9:]
+                    else:
+                        value = value.lstrip(".")
+
+                    if value not in pydantic_lazy_loader_info:
+                        pydantic_lazy_loader_info[value] = []
+                    pydantic_lazy_loader_info[value].append(key)
+
+                self.lazy_loader_usages[module_name] = (
+                    [],
+                    pydantic_lazy_loader_info,
+                )
 
         return source_code
 
