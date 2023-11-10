@@ -300,6 +300,7 @@ that works, report a bug."""
                 yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join("tkinterdnd2", dest_path),
+                    module_name="tkinterdnd2",
                     package_name="tkinterdnd2",
                     reason="tkinterdnd2 package DLL",
                 )

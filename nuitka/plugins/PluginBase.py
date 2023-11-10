@@ -587,22 +587,28 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         """
         return locateDLLsInDirectory(directory)
 
-    def makeDllEntryPoint(self, source_path, dest_path, package_name, reason):
+    def makeDllEntryPoint(
+        self, source_path, dest_path, module_name, package_name, reason
+    ):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
+            module_name=module_name,
             package_name=package_name,
             reason=reason,
         )
 
-    def makeExeEntryPoint(self, source_path, dest_path, package_name, reason):
+    def makeExeEntryPoint(
+        self, source_path, dest_path, module_name, package_name, reason
+    ):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeExeEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
+            module_name=module_name,
             package_name=package_name,
             reason=reason,
         )
@@ -1266,9 +1272,9 @@ except ImportError:
         plugins_logger.info(cls.plugin_name + ": " + message)
 
     @classmethod
-    def sysexit(cls, message, mnemonic=None):
+    def sysexit(cls, message, mnemonic=None, reporting=True):
         plugins_logger.sysexit(
-            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=True
+            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
 
 

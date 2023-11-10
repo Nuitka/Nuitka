@@ -26,6 +26,7 @@ import sys
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 
 
@@ -256,3 +257,31 @@ def getModuleFilenameSuffixes():
             yield suffix, "PY_SOURCE"
         for suffix in importlib.machinery.BYTECODE_SUFFIXES:
             yield suffix, "PY_COMPILED"
+
+
+def getModuleNameAndKindFromFilenameSuffix(module_filename):
+    """Given a filename, decide the module name and kind.
+
+    Args:
+        module_name - file path of the module
+    Returns:
+        Tuple with the name of the module basename, and the kind of the
+        module derived from the file suffix. Can be None, None if is is not a
+        known file suffix.
+    Notes:
+        This doesn't handle packages at all.
+    """
+    if module_filename.endswith(".py"):
+        return ModuleName(os.path.basename(module_filename)[:-3]), "py"
+
+    if module_filename.endswith(".pyc"):
+        return ModuleName(os.path.basename(module_filename)[:-4]), "pyc"
+
+    for suffix in getSharedLibrarySuffixes():
+        if module_filename.endswith(suffix):
+            return (
+                ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
+                "extension",
+            )
+
+    return None, None
