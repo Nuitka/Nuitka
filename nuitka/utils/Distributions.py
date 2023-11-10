@@ -17,13 +17,13 @@
 #
 """ Tools for accessing distributions and resolving package names for them. """
 
-import sys
-
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Options import isExperimental
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 
 from .ModuleNames import ModuleName, checkModuleName
+from .Utils import isLinux
 
 _package_to_distribution = None
 
@@ -35,39 +35,48 @@ def getDistributionFiles(distribution):
 
             yield filename
     else:
-        for line in distribution.get_metadata_lines("RECORD"):
-            filename = line.split(",", 1)[0]
+        record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
 
-            yield filename
+        if record_data is not None:
+            for line in record_data.splitlines():
+                filename = line.split(",", 1)[0]
+
+                yield filename
+
+
+def _getDistributionMetadataFileContents(distribution, filename):
+    try:
+        if hasattr(distribution, "read_text"):
+            result = distribution.read_text(filename)
+        else:
+            result = "\n".join(distribution.get_metadata_lines(filename))
+
+        return result
+    except (FileNotFoundError, KeyError):
+        return None
 
 
 def getDistributionTopLevelPackageNames(distribution):
     """Returns the top level package names for a distribution."""
-    try:
-        top_level_txt = distribution.read_text("top_level.txt")
-        if top_level_txt:
-            top_level_txt = top_level_txt.split()
-    except AttributeError:
-        try:
-            top_level_txt = list(distribution.get_metadata_lines("top_level.txt"))
-        except (FileNotFoundError, KeyError):
-            top_level_txt = None
+    top_level_txt = _getDistributionMetadataFileContents(distribution, "top_level.txt")
 
-    if top_level_txt:
-        result = [dirname.replace("/", ".") for dirname in top_level_txt]
+    if top_level_txt is not None:
+        result = [dirname.replace("/", ".") for dirname in top_level_txt.splitlines()]
     else:
+        # If the file is not present, fall back to scanning all files in the
+        # distribution.
         result = OrderedSet()
 
         for filename in getDistributionFiles(distribution):
-            if not filename.endswith(".py"):
-                continue
-
             if filename.startswith("."):
                 continue
 
-            filename = filename[:-3]
+            first_path_element = filename.split("/")[0]
 
-            result.add(filename.split("/")[0])
+            if first_path_element.endswith("dist-info"):
+                continue
+
+            result.add(first_path_element)
 
     if not result:
         result = (getDistributionName(distribution),)
@@ -76,22 +85,27 @@ def getDistributionTopLevelPackageNames(distribution):
 
 
 def _pkg_resource_distributions():
-    from pkg_resources import find_distributions
+    """Small replacement of distributions() of importlib.metadata that uses pkg_resources"""
 
-    result = []
+    # pip and vendored pkg_resources are optional of course, but of course very
+    # omnipresent generally, so we don't handle failure here.
 
-    for element in sys.path:
-        for distribution in find_distributions(element):
-            result.append(distribution)
-    return result
+    # pylint: disable=I0021,no-name-in-module
+    from pip._vendor import pkg_resources
+
+    return pkg_resources.working_set
 
 
 def _initPackageToDistributionName():
     try:
+        if isExperimental("force-pkg-resources-metadata"):
+            raise ImportError
+
         try:
             from importlib.metadata import distributions
         except ImportError:
             from importlib_metadata import distributions
+
     except ImportError:
         distributions = _pkg_resource_distributions
 
@@ -149,24 +163,28 @@ def getDistributionFromModuleName(module_name):
 def getDistribution(distribution_name):
     """Get a distribution by name."""
     try:
+        if isExperimental("force-pkg-resources-metadata"):
+            raise ImportError
+
         if python_version >= 0x380:
             from importlib import metadata
         else:
             import importlib_metadata as metadata
     except ImportError:
-        return None
+        from pip._vendor.pkg_resources import (
+            DistributionNotFound,
+            get_distribution,
+        )
 
-    try:
-        return metadata.distribution(distribution_name)
-    except metadata.PackageNotFoundError:
-        # If not found, lets assume package name was given, and resolve to
-        # the distribution.
-        dists = getDistributionsFromModuleName(distribution_name)
-
-        if len(dists) == 1:
-            return dists[0]
-
-        return None
+        try:
+            return get_distribution(distribution_name)
+        except DistributionNotFound:
+            return None
+    else:
+        try:
+            return metadata.distribution(distribution_name)
+        except metadata.PackageNotFoundError:
+            return None
 
 
 _distribution_to_installer = {}
@@ -184,12 +202,28 @@ def isDistributionPipPackage(distribution_name):
 
 
 def isDistributionSystemPackage(distribution_name):
-    return not isDistributionPipPackage(
+    result = not isDistributionPipPackage(
         distribution_name
     ) and not isDistributionCondaPackage(distribution_name)
 
+    # This should only ever happen on Linux, lets know when it does happen
+    # elsewhere, since that is most probably a bug in our installer detection on
+    # non-Linux as well.
+    if result:
+        assert isLinux(), (
+            distribution_name,
+            getDistributionInstallerName(distribution_name),
+        )
+
+    return result
+
 
 def getDistributionInstallerName(distribution_name):
+    """Get the installer name from a distribution object.
+
+    We might care of pip, anaconda, Debian, or whatever installed a
+    package.
+    """
     if distribution_name not in _distribution_to_installer:
         distribution = getDistribution(distribution_name)
 
@@ -199,7 +233,9 @@ def getDistributionInstallerName(distribution_name):
             else:
                 _distribution_to_installer[distribution_name] = "not_found"
         else:
-            installer_name = distribution.read_text("INSTALLER")
+            installer_name = _getDistributionMetadataFileContents(
+                distribution, "INSTALLER"
+            )
 
             if installer_name:
                 _distribution_to_installer[
@@ -225,13 +261,36 @@ def getDistributionInstallerName(distribution_name):
 
 
 def getDistributionName(distribution):
+    """Get the distribution name from a distribution object.
+
+    We use importlib.metadata and pkg_resources version tuples interchangeable
+    and this is to abstract the difference is how to look up the name from
+    one.
+    """
+
     if hasattr(distribution, "metadata"):
         return distribution.metadata["Name"]
     else:
         return distribution.project_name
 
 
+def getDistributionVersion(distribution):
+    """Get the distribution version string from a distribution object.
+
+    We use importlib.metadata and pkg_resources version tuples interchangeable
+    and this is to abstract the difference is how to look up the version from
+    one.
+    """
+    # Avoiding use of public interface for pkg_resources, pylint: disable=protected-access
+    if hasattr(distribution, "metadata"):
+        return distribution.metadata["Version"]
+    else:
+        return distribution._version
+
+
 def getDistributionLicense(distribution):
+    """Get the distribution license from a distribution object."""
+
     license_name = distribution.metadata["License"]
 
     if not license_name or license_name == "UNKNOWN":
