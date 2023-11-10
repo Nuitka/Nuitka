@@ -85,10 +85,6 @@ from inspect import getsource
                     ("backend", "get_backend()"),
                     ("data_path", "get_data_path()"),
                     ("matplotlib_version", "__version__"),
-                    (
-                        "needs_matplotlibdata_env",
-                        "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
-                    ),
                 ),
             )
         except NuitkaCalledProcessError:
@@ -158,7 +154,7 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
                 # old config file has a backend definition
                 found = True
 
-        if not found and matplotlib_info.matplotlib_version < "3":
+        if not found and matplotlib_info.matplotlib_version < "4":
             # Set the backend, so even if it was run time determined, we now enforce it.
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
@@ -200,16 +196,13 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
         """
 
         # The version may not need the environment variable.
-        if (
-            module.getFullName() == "matplotlib"
-            and self._getMatplotlibInfo().needs_matplotlibdata_env
-        ):
+        if module.getFullName() == "matplotlib":
             code = renderTemplateFromString(
                 r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
 os.environ["MATPLOTLIBRC"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data", "matplotlibrc")
-os.environ["MPLBACKEND"] = {{matplotlib_info.backend}}
+os.environ["MPLBACKEND"] = "{{matplotlib_info.backend}}"
 {% if qt_binding_name %}
 os.environ["QT_API"] = "{{qt_binding_name}}"
 {% endif %}
