@@ -150,12 +150,17 @@ def _parseDependsExeOutput2(lines):
         dll_name = os.path.basename(dll_filename)
 
         # Ignore this runtime DLL of Python2, will be coming via manifest.
+        # spell-checker: ignore msvcr90
         if dll_name in ("msvcr90.dll",):
             continue
 
         # Ignore API DLLs, they can come in from PATH, but we do not want to
         # include them.
         if dll_name.startswith("api-ms-win-"):
+            continue
+
+        # Ignore UCRT runtime, this must come from OS, spell-checker: ignore ucrtbase
+        if dll_name == "ucrtbase.dll":
             continue
 
         assert os.path.isfile(dll_filename), (dll_filename, line)
