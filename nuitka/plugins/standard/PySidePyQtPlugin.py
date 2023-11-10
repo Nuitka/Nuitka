@@ -43,16 +43,10 @@ from nuitka.utils.Distributions import (
     getDistributionFromModuleName,
     getDistributionInstallerName,
     getDistributionName,
-    isDistributionSystemPackage,
 )
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import (
-    getArchitecture,
-    isLinux,
-    isMacOS,
-    isWin32Windows,
-)
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -457,6 +451,7 @@ import %(binding_name)s.QtCore
                         self.getQtPluginTargetPath(),
                         filename_relative,
                     ),
+                    module_name=self.binding_package_name,
                     package_name=self.binding_package_name,
                     reason="qt plugin",
                 )
@@ -886,6 +881,7 @@ Prefix = .
                     dest_path=os.path.normpath(
                         os.path.join(self._getWebEngineTargetDir(), filename_relative)
                     ),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
@@ -898,12 +894,6 @@ Prefix = .
             )
 
         self.web_engine_done_binaries = True  # prevent multiple copies
-
-    def decideAllowOutsideDependencies(self, module_name):
-        if isLinux() and module_name.hasNamespace(self.binding_name):
-            return isDistributionSystemPackage(self.distribution_name)
-
-        return None
 
     def getQtPluginTargetPath(self):
         if self.binding_name == "PyQt6":
@@ -958,6 +948,7 @@ Prefix = .
                         yield self.makeDllEntryPoint(
                             source_path=filename,
                             dest_path=basename,
+                            module_name=full_name,
                             package_name=full_name,
                             reason="needed by '%s'" % full_name.asString(),
                         )
@@ -982,6 +973,7 @@ Prefix = .
                             qml_target_dir,
                             filename_relative,
                         ),
+                        module_name=full_name,
                         package_name=full_name,
                         reason="Qt QML plugin DLL",
                     )
@@ -999,6 +991,7 @@ Prefix = .
                             yield self.makeDllEntryPoint(
                                 source_path=filename,
                                 dest_path=basename,
+                                module_name=full_name,
                                 package_name=full_name,
                                 reason="needed by OpenGL for '%s'"
                                 % full_name.asString(),
@@ -1038,6 +1031,7 @@ Prefix = .
                             yield self.makeDllEntryPoint(
                                 source_path=candidate,
                                 dest_path=dll_filename,
+                                module_name=full_name,
                                 package_name=full_name,
                                 reason="needed by '%s'" % full_name.asString(),
                             )
@@ -1050,6 +1044,7 @@ Prefix = .
                 yield self.makeDllEntryPoint(
                     source_path=dll_path,
                     dest_path=os.path.basename(dll_path),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
@@ -1059,6 +1054,7 @@ Prefix = .
                 yield self.makeDllEntryPoint(
                     source_path=dll_path,
                     dest_path=os.path.basename(dll_path),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )

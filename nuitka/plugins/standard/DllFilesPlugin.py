@@ -29,6 +29,11 @@ import sys
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Distributions import (
+    getDistributionFromModuleName,
+    getDistributionName,
+    isDistributionSystemPackage,
+)
 from nuitka.utils.FileOperations import (
     listDllFilesFromDirectory,
     listExeFilesFromDirectory,
@@ -96,6 +101,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                                     filename,
                                 )
                             ),
+                            module_name=full_name,
                             package_name=full_name,
                             reason="Yaml config of '%s'" % full_name.asString(),
                         )
@@ -111,6 +117,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                                     filename,
                                 )
                             ),
+                            module_name=full_name,
                             package_name=full_name,
                             reason="Yaml config of '%s'" % full_name.asString(),
                         )
@@ -143,6 +150,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             yield self.makeExeEntryPoint(
                 source_path=filename,
                 dest_path=dest_path,
+                module_name=full_name,
                 package_name=full_name,
                 reason="Yaml config of '%s'" % full_name.asString(),
             )
@@ -150,6 +158,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             yield self.makeDllEntryPoint(
                 source_path=filename,
                 dest_path=dest_path,
+                module_name=full_name,
                 package_name=full_name,
                 reason="Yaml config of '%s'" % full_name.asString(),
             )
@@ -259,6 +268,7 @@ conditions are missing, or this version of the module needs treatment added."""
                 yield self.makeDllEntryPoint(
                     source_path=uuid_dll_path,
                     dest_path=os.path.basename(uuid_dll_path),
+                    module_name=full_name,
                     package_name=None,
                     reason="needed by uuid package",
                 )
@@ -271,6 +281,7 @@ conditions are missing, or this version of the module needs treatment added."""
             yield self.makeDllEntryPoint(
                 source_path=xtwrapper_dll_path,
                 dest_path=os.path.basename(xtwrapper_dll_path),
+                module_name=full_name,
                 package_name=None,
                 reason="needed by 'iptc'",
             )
@@ -280,6 +291,7 @@ conditions are missing, or this version of the module needs treatment added."""
                     module.getCompileTimeDirectory(), "libsecp256k1.dll"
                 ),
                 dest_path=os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
+                module_name=full_name,
                 package_name=full_name.getPackageName(),
                 reason="needed by 'coincurve._libsecp256k1'",
             )
@@ -333,6 +345,7 @@ conditions are missing, or this version of the module needs treatment added."""
                         yield self.makeDllEntryPoint(
                             source_path=pythoncom_dll_path,
                             dest_path=pythoncom_filename,
+                            module_name=full_name,
                             package_name=None,
                             reason="needed by '%s'" % full_name.asString(),
                         )
@@ -376,3 +389,33 @@ conditions are missing, or this version of the module needs treatment added."""
                 return True
 
         return None
+
+    def decideAllowOutsideDependencies(self, module_name):
+        distribution = None
+
+        assert module_name != "_ctypes", self.config.get(
+            module_name, section="import-hacks"
+        )
+
+        while 1:
+            for entry in self.config.get(module_name, section="import-hacks"):
+                if self.evaluateCondition(
+                    full_name=module_name, condition=entry.get("when", "True")
+                ):
+                    if "package-system-dlls" in entry:
+                        return entry["package-system-dlls"] == "yes"
+
+            if distribution is None:
+                distribution = getDistributionFromModuleName(module_name)
+
+            module_name = module_name.getPackageName()
+            if not module_name:
+                break
+
+        if distribution is None:
+            return None
+
+        if not isDistributionSystemPackage(getDistributionName(distribution)):
+            return False
+        else:
+            return None
