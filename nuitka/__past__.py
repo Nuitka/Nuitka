@@ -168,12 +168,12 @@ else:
 
 
 try:
-    ExceptionGroup = ExceptionGroup
+    ExceptionGroup = ExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
     ExceptionGroup = None
 
 try:
-    BaseExceptionGroup = BaseExceptionGroup
+    BaseExceptionGroup = BaseExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
     BaseExceptionGroup = None
 
