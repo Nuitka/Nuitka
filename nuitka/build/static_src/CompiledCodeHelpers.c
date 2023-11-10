@@ -67,6 +67,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
+#include "HelperEnvironmentVariables.c"
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 

@@ -116,112 +116,7 @@ static void prepareFrozenModules(void) {
 }
 #endif
 
-#if SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1 || defined(_NUITKA_STANDALONE)
-
-#if defined(_WIN32)
-#define environment_char_t wchar_t
-
-static environment_char_t const *getEnvironmentVariable(char const *name) {
-    // Max size for environment variables according to docs.
-    wchar_t buffer[32768];
-    buffer[0] = 0;
-
-    wchar_t name_wide[40];
-    name_wide[0] = 0;
-    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
-
-    // Size must be in bytes apparently, not in characters. Cannot be larger anyway.
-    DWORD res = GetEnvironmentVariableW(name_wide, buffer, 65536);
-
-    if (res == 0 || res > sizeof(buffer)) {
-        return NULL;
-    }
-
-    return wcsdup(buffer);
-}
-
-static void setEnvironmentVariable(char const *name, environment_char_t const *value) {
-    assert(name != NULL);
-    assert(value != NULL);
-
-    wchar_t name_wide[40];
-    name_wide[0] = 0;
-    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
-
-    DWORD res = SetEnvironmentVariableW(name_wide, value);
-    assert(wcscmp(getEnvironmentVariable(name), value) == 0);
-
-    assert(res != 0);
-}
-
-static void unsetEnvironmentVariable(char const *name) {
-    wchar_t name_wide[40];
-    name_wide[0] = 0;
-    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
-
-    DWORD res = SetEnvironmentVariableW(name_wide, NULL);
-
-    assert(res != 0);
-}
-
-#define makeEnvironmentLiteral(x) L##x
-
-#else
-#define environment_char_t char
-
-#define makeEnvironmentLiteral(x) x
-
-static environment_char_t const *getEnvironmentVariable(char const *name) { return getenv(name); }
-
-static void setEnvironmentVariable(char const *name, environment_char_t const *value) { setenv(name, value, 1); }
-
-static void unsetEnvironmentVariable(char const *name) { unsetenv(name); }
-
-#endif
-
-static void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name,
-                                    environment_char_t const *old_value) {
-    PyObject *os_module = IMPORT_HARD_OS();
-    CHECK_OBJECT(os_module);
-
-    PyObject *os_environ = PyObject_GetAttrString(os_module, "environ");
-    CHECK_OBJECT(os_environ);
-
-    PyObject *variable_name_str = Nuitka_String_FromString(variable_name);
-    CHECK_OBJECT(variable_name_str);
-
-    if (old_value) {
-        setEnvironmentVariable(variable_name, old_value);
-
-#ifdef _WIN32
-        PyObject *env_value = NuitkaUnicode_FromWideChar(old_value, -1);
-#else
-        PyObject *env_value = Nuitka_String_FromString(old_value);
-#endif
-        CHECK_OBJECT(env_value);
-
-        int res = PyObject_SetItem(os_environ, variable_name_str, env_value);
-
-        if (unlikely(res != 0)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        Py_DECREF(env_value);
-    } else {
-        unsetEnvironmentVariable(variable_name);
-
-        int res = PyObject_DelItem(os_environ, variable_name_str);
-
-        if (unlikely(res != 0)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-        }
-    }
-
-    Py_DECREF(variable_name_str);
-    Py_DECREF(os_environ);
-}
-#endif
+#include "nuitka/environment_variables.h"
 
 #ifdef _NUITKA_STANDALONE
 
@@ -1049,9 +944,24 @@ static void Nuitka_Py_Initialize(void) {
 
     PyWideStringList_Append(&config.module_search_paths, binary_directory);
     config.module_search_paths_set = 1;
+#endif
 
+    // Need to disable frozen modules, Nuitka can handle them better itself.
 #if PYTHON_VERSION >= 0x3b0
+#ifdef _NUITKA_STANDALONE
     config.use_frozen_modules = 0;
+#else
+// Emulate PYTHON_FROZEN_MODULES for accelerated mode, it is only added in 3.13,
+// but we need to control it for controlling things for accelerated binaries
+// too.
+#if PYTHON_VERSION >= 0x3b0 && PYTHON_VERSION <= 0x3d0
+    environment_char_t const *frozen_modules_env = getEnvironmentVariable("PYTHON_FROZEN_MODULES");
+
+    if (frozen_modules_env == NULL ||
+        (compareEnvironmentString(frozen_modules_env, makeEnvironmentLiteral("off")) == 0)) {
+        config.use_frozen_modules = 0;
+    }
+#endif
 #endif
 #endif
 

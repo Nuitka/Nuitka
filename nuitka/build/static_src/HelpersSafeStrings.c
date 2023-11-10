@@ -29,6 +29,7 @@
 #include <windows.h>
 #endif
 #include <stdbool.h>
+#include <stdio.h>
 #endif
 
 #include "nuitka/safe_string_ops.h"
