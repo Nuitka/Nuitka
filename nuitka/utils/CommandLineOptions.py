@@ -19,7 +19,13 @@
 
 
 import sys
-from optparse import IndentedHelpFormatter, OptionGroup, OptionParser
+from optparse import (
+    AmbiguousOptionError,
+    BadOptionError,
+    IndentedHelpFormatter,
+    OptionGroup,
+    OptionParser,
+)
 
 # For re-export only:
 from optparse import SUPPRESS_HELP  # isort:skip pylint: disable=unused-import
@@ -49,6 +55,41 @@ class OurOptionParser(OptionParser):
                 )
 
         return OptionParser._process_long_opt(self, rargs, values)
+
+    def _match_long_opt(self, opt):
+        """_match_long_opt(opt : string) -> string
+
+        Determine which long option string 'opt' matches, ie. which one
+        it is an unambiguous abbreviation for.  Raises BadOptionError if
+        'opt' doesn't unambiguously match any long option string.
+
+        Nuitka: We overload it, in order avoid issues with conflicting
+        options that are really only aliases of the same option.
+        """
+        matched_options = set()
+        possibilities = []
+
+        # Exact matches are never ambiguous. We sometimes append to option names
+        # in order to detail things.
+        for option_name in self._long_opt:
+            if opt == option_name:
+                return opt
+
+        for option_name, option_obj in self._long_opt.items():
+            if option_name.startswith(opt):
+                if option_obj not in matched_options:
+                    matched_options.add(option_obj)
+                    possibilities.append(option_name)
+
+        # No exact match, so there had better be just one possibility.
+        if len(matched_options) > 1:
+            raise AmbiguousOptionError(opt, possibilities)
+
+        if possibilities:
+            assert len(possibilities) == 1, possibilities
+            return possibilities[0]
+        else:
+            raise BadOptionError(opt)
 
     def add_option(self, *args, **kwargs):
         require_compiling = kwargs.pop("require_compiling", True)
