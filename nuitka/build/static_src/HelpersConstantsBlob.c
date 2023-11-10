@@ -1214,8 +1214,6 @@ unsigned char *findMacOSBinarySection(void) {
 #endif
 
 void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *name) {
-    assert(PyThreadState_GET() == tstate);
-
     static bool init_done = false;
 
     if (init_done == false) {
