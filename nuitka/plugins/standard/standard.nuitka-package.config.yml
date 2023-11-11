@@ -5995,6 +5995,11 @@
         - 'import pywin32_system32'
       when: 'win32'
 
+- module-name: 'winloop'
+  implicit-imports:
+    - depends:
+        - '._noop'
+
 - module-name: 'wx'
   options:
     checks:
