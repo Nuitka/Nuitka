@@ -119,6 +119,7 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 
     while (*source != 0) {
         appendCharSafeW(target, *source, buffer_size);
+        target++;
         source++;
         buffer_size -= 1;
     }
