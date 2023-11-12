@@ -137,6 +137,11 @@ def getConstantDefaultPopulation():
     # "__package__" parsing
     result.append(".")
 
+    # For star imports checking private symbols
+    result.append("_")
+    if python_version < 0x300:
+        result.append("_")
+
     if python_version >= 0x300:
         # Modules have that attribute starting with Python3
         result.append("__loader__")
