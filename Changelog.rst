@@ -105,6 +105,23 @@ Bug Fixes
    exclude the problematic ones, as they are going to be unused. Fixed
    in 1.8.4 already.
 
+-  Standalone: Added hidden dependency of ``curl_cffi`` package. Fixed
+   in 1.8.5 already.
+
+-  Standalone: Added hidden dependency of ``tensorflow`` package. Fixed
+   in 1.8.5 already.
+
+-  Standalone: Added more ``kivymd`` data files. Fixed in 1.8.5 already.
+
+-  Standalone: Added implicit dependency for ``winloop`` package. Fixed
+   in 1.8.6 already.
+
+-  Windows: Fix, do not resolve main program executable filename to long
+   filename. Fixed in 1.8.5 already.
+
+-  Windows: Fix, ignore ``ucrtbase`` runtime DLLs found from ``%PATH%``
+   as well. Fixed in 1.8.6 already.
+
 -  Compatibility: Fix, the ``dill-compat`` plugin was regressed and
    support for ``dill`` version 0.3 was added.
 
@@ -120,8 +137,14 @@ Optimization
 -  Anti-Bloat: Remove ``unittest`` usage in ``bitarray``. module. Added
    in 1.8.2 already.
 
+-  Anti-Bloat: Avoid ``lightning`` to cause use of its
+   ``lightning.testing`` framework.
+
 Organisational
 ==============
+
+-  Python3.12: Mark as unsupported for now, it does not yet compile on
+   the C level again.
 
 -  UI: When interrupting during Scons build with CTRL-C do not give a
    Nuitka call stack, there is no point in that one, rather just exit
