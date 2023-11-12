@@ -1342,9 +1342,9 @@ class Plugins(object):
 
     @classmethod
     def encodeDataComposerName(cls, name):
+        # Encoding needs to match generated source code output.
         if str is not bytes:
-            # Encoding needs to match generated source code output.
-            name = name.encode("latin1")
+            name = name.encode("utf8")
 
         for plugin in getActivePlugins():
             r = plugin.encodeDataComposerName(name)

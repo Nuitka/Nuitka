@@ -121,7 +121,10 @@ def _getPackageNameFromDistributionName(distribution_name):
 
 
 def _getDistributionNameFromPackageName(package_name):
-    return getDistributionName(getDistributionFromModuleName(package_name))
+    distribution = getDistributionFromModuleName(package_name)
+
+    assert distribution is not None, package_name
+    return getDistributionName(distribution)
 
 
 def _getPackageVersion(distribution_name):

@@ -23,7 +23,7 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-/* Generated code for Python module '%(module_name)s'
+/* Generated code for Python module '%(module_identifier)s'
  * created by Nuitka version %(version)s
  *
  * This code is in part copyright %(year)s Kay Hayen.
@@ -255,7 +255,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
-    PGO_onModuleEntered("%(module_name)s");
+    PGO_onModuleEntered("%(module_identifier)s");
 
     // Store the module for future use.
     module_%(module_identifier)s = module;
@@ -289,7 +289,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
         // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
+        PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
         setupMetaPathBasedLoader(tstate);
 
@@ -300,7 +300,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 #endif
 
         /* The constants only used by this module are created now. */
-        NUITKA_PRINT_TRACE("%(module_name)s: Calling createModuleConstants().\n");
+        NUITKA_PRINT_TRACE("%(module_identifier)s: Calling createModuleConstants().\n");
         createModuleConstants(tstate);
 
         createModuleCodeObjects();
@@ -429,7 +429,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 %(module_code)s
 
     // Report to PGO about leaving the module without error.
-    PGO_onModuleExit("%(module_name)s", false);
+    PGO_onModuleExit("%(module_identifier)s", false);
 
     Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
@@ -524,7 +524,7 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
  */
 
 // Actual name might be different when loaded as a package.
-static char const *module_full_name = "%(module_name)s";
+static char const *module_full_name = %(module_name_cstr)s;
 
 MOD_INIT_DECL(%(module_identifier)s) {
     if (_Py_PackageContext != NULL) {
