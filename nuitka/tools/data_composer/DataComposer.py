@@ -279,6 +279,7 @@ def _writeConstantValue(output, constant_value):
 
         if python_version < 0x270:
             constant_value = constant_value.decode("latin1")
+            # not sure should it be utf-8
         output.write(constant_value)
     elif constant_type is BuiltinAnonValue:
         output.write(b"M")
@@ -436,7 +437,7 @@ def main():
 
             if str is not bytes:
                 # Encoding needs to match generated source code output.
-                encoded_name = name.encode("latin1")
+                encoded_name = name.encode("utf-8")
             else:
                 encoded_name = name
 

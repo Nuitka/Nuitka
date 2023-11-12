@@ -308,7 +308,7 @@ def writeSourceCode(filename, source_code):
     # or something else has failed.
     assert not os.path.isfile(filename), filename
 
-    putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
+    putTextFileContents(filename=filename, contents=source_code, encoding="utf-8")
 
 
 def parsePyIFile(module_name, pyi_filename):
