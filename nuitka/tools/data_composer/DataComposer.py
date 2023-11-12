@@ -437,7 +437,7 @@ def main():
 
             if str is not bytes:
                 # Encoding needs to match generated source code output.
-                encoded_name = name.encode("utf-8")
+                encoded_name = name.encode("utf8")
             else:
                 encoded_name = name
 

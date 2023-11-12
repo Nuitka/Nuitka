@@ -1344,7 +1344,7 @@ class Plugins(object):
     def encodeDataComposerName(cls, name):
         if str is not bytes:
             # Encoding needs to match generated source code output.
-            name = name.encode("utf-8")
+            name = name.encode("utf8")
             # for modules like abc.中文 or other need utf-8 to encode module name
 
         for plugin in getActivePlugins():
