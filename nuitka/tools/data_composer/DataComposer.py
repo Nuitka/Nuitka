@@ -279,7 +279,7 @@ def _writeConstantValue(output, constant_value):
 
         if python_version < 0x270:
             constant_value = constant_value.decode("latin1")
-            # not sure should it be utf-8
+            # python 2 dose not support utf-8 that well, so just leave it with latin1
         output.write(constant_value)
     elif constant_type is BuiltinAnonValue:
         output.write(b"M")
