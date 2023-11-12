@@ -209,6 +209,8 @@ def _namifyString(string):
         return "slash"
     elif string == "\\":
         return "backslash"
+    elif string == "_":
+        return "underscore"
     elif (
         type(string) is str
         and _re_str_needs_no_digest.match(string)
