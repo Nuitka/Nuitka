@@ -52,7 +52,7 @@ def _encodePythonStringToC(value):
             cv = c
 
         if c in b'\\\t\r\n"?':
-            result += r"\%o" % cv
+            result += r"\%03o" % cv
 
             octal = True
         elif 32 <= cv <= 127:
@@ -63,7 +63,7 @@ def _encodePythonStringToC(value):
 
             octal = False
         else:
-            result += r"\%o" % cv
+            result += r"\%03o" % cv
 
             octal = True
 
@@ -78,10 +78,8 @@ def encodePythonUnicodeToC(value):
 
     result = ""
 
-    for c in value:
-        cv = ord(c)
-
-        result += r"\%o" % cv
+    for cv in value.encode("utf16"):
+        result += r"\%03o" % cv
 
     return 'L"%s"' % result
 
