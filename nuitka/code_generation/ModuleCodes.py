@@ -22,6 +22,7 @@
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
+from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (
@@ -130,7 +131,9 @@ def getModuleCode(
     )
 
     return template % {
-        "module_name": module_name,
+        "module_name_cstr": encodePythonStringToC(
+            module_name.asString().encode("utf8")
+        ),
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
         "is_top": 1 if module.isTopModule() else 0,
