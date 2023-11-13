@@ -24,7 +24,7 @@ values.
 import codecs
 import re
 
-from nuitka.__past__ import unicode
+from nuitka.__past__ import to_byte, unicode
 
 
 def _identifierEncode(c):
@@ -63,7 +63,7 @@ def _encodePythonStringToC(value):
 
             octal = False
         else:
-            result += r"\%03o" % cv
+            result += r"\%o" % cv
 
             octal = True
 
@@ -78,8 +78,15 @@ def encodePythonUnicodeToC(value):
 
     result = ""
 
-    for cv in value.encode("utf16"):
-        result += r"\%03o" % cv
+    for c in value:
+        cv = ord(c)
+
+        if c == "\\":
+            result += "\\\\"
+        elif 34 < cv < 128:
+            result += c
+        else:
+            result += r"\x%04x" % cv
 
     return 'L"%s"' % result
 
@@ -99,6 +106,37 @@ def encodePythonStringToC(value):
         result += " "
         result += _encodePythonStringToC(value[:16000])
         value = value[16000:]
+
+    return result
+
+
+def decodeCStringToPython(value):
+    assert value.startswith('"')
+    value = value[1:-1]
+
+    result = b""
+
+    while value:
+        if value[0] == "\\":
+            value = value[1:]
+            if value[0] == "\\":
+                result += b"\\"
+                continue
+
+            if value[0].isdigit():
+                assert value[1].isdigit(), value
+                assert value[2].isdigit(), value
+
+                octal_number = int(value[2]) + int(value[1]) * 8 + int(value[0]) * 64
+                value = value[3:]
+
+                result += to_byte(octal_number)
+                continue
+
+            assert False, value[0]
+
+        result += value[0].encode("ascii")
+        value = value[1:]
 
     return result
 
