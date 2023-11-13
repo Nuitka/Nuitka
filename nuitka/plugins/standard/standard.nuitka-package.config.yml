@@ -2093,11 +2093,6 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'qtawesome'
-  data-files:
-    dirs:
-      - 'fonts'
-
 - module-name: 'panda3d'
   data-files:
     dest_path: '.'
@@ -3271,6 +3266,11 @@
         prefixes:
           - 'libiconv'
           - 'libzbar'
+
+- module-name: 'qtawesome'
+  data-files:
+    dirs:
+      - 'fonts'
 
 - module-name: 'rapidfuzz'
   implicit-imports:
