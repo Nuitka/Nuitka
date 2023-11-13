@@ -567,15 +567,20 @@ def writeCompilationReportFromTemplate(
 
 
 _crash_report_filename = "nuitka-crash-report.xml"
+_crash_report_bug_message = True
 
 
 def _informAboutCrashReport():
     if _crash_report_filename is not None:
+        message = (
+            "Compilation crash report written to file '%s'." % _crash_report_filename
+        )
+
+        if _crash_report_bug_message:
+            message += " Please include it in your bug report."
+
         reports_logger.info(
-            """\
-Compilation crash report written to file '%s'. Please include it in \
-your bug report."""
-            % _crash_report_filename,
+            message,
             style="red",
         )
 
@@ -591,6 +596,15 @@ def writeCompilationReports(aborted):
         and sys.exc_info()[0] not in (KeyboardInterrupt, SystemExit)
     ):
         report_filename = _crash_report_filename
+
+        # Inform user about bug reporting of a bug only, if this is not some sort
+        # of reporting exit, these do not constitute definitive bugs of Nuitka but
+        # are often usage errors only.
+
+        # Using global here, as this is really a singleton
+        # pylint: disable=global-statement
+        global _crash_report_bug_message
+        _crash_report_bug_message = sys.exc_info()[0] is not ReportingSystemExit
 
         atexit.register(_informAboutCrashReport)
 
