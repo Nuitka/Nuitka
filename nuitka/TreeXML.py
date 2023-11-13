@@ -71,13 +71,13 @@ try:
 
     Element = xml.etree.ElementTree.Element
 
-    def xml_tostring(tree, indent=True):
+    def xml_tostring(tree, indent=True, encoding=None):
         if indent:
             _indent(tree)
         elif not indent:
             _dedent(tree)
 
-        return xml_module.tostring(tree)
+        return xml_module.tostring(tree, encoding=encoding)
 
 except ImportError:
     xml_module = None
@@ -94,12 +94,12 @@ except ImportError:
 #     xml_writer = None
 
 
-def toBytes(tree, indent=True):
-    return xml_tostring(tree, indent=indent)
+def toBytes(tree, indent=True, encoding=None):
+    return xml_tostring(tree, indent=indent, encoding=encoding)
 
 
 def toString(tree):
-    result = toBytes(tree)
+    result = toBytes(tree, encoding="utf8")
 
     if str is not bytes:
         result = result.decode("utf8")
