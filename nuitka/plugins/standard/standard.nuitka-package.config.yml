@@ -2093,6 +2093,12 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
+- module-name: 'qtawesome'
+  data-files:
+    dest_path: 'qtawesome'
+    dirs:
+      - 'fonts'
+
 - module-name: 'panda3d'
   data-files:
     dest_path: '.'
