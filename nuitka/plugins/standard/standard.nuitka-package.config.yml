@@ -2095,7 +2095,6 @@
 
 - module-name: 'qtawesome'
   data-files:
-    dest_path: 'qtawesome'
     dirs:
       - 'fonts'
 
