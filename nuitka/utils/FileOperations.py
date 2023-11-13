@@ -30,6 +30,7 @@ import glob
 import os
 import shutil
 import stat
+import sys
 import tempfile
 import time
 from contextlib import contextmanager
@@ -38,6 +39,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     PermissionError,
     basestring,
     raw_input,
+    unicode,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
@@ -298,8 +300,28 @@ def listDir(path):
     """
     real_path = getDirectoryRealPath(path)
 
+    # The "os.listdir" output needs to be unicode paths, or else it can be unusable
+    # for Python2 on Windows at least. We try to go back on the result.
+    if str is bytes and type(real_path) is str:
+        real_path = unicode(real_path)
+
+    def _tryDecodeToStr(value):
+        if str is bytes:
+            if type(value) is unicode:
+                # File system paths, that should be usable for names of modules,
+                # as Python2 code objects will e.g. hate unicode values.
+
+                # spell-checker: ignore getfilesystemencoding
+                try:
+                    return value.decode(sys.getfilesystemencoding())
+                except UnicodeDecodeError:
+                    return value
+        else:
+            return value
+
     return sorted(
-        [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
+        (_tryDecodeToStr(os.path.join(path, filename)), _tryDecodeToStr(filename))
+        for filename in os.listdir(real_path)
     )
 
 
