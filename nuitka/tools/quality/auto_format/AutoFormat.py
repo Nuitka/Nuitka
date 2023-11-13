@@ -678,6 +678,9 @@ def autoFormatFile(
         if is_md and not limit_md:
             return
 
+        if is_txt and not is_rst and not is_md:
+            return
+
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
 
