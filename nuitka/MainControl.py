@@ -1126,6 +1126,6 @@ def main():
         try:
             writeCompilationReports(aborted=True)
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-            general.warning("Report writing was prevented by exception %s" % e)
+            general.warning("Report writing was prevented by exception %r" % e)
 
         raise
