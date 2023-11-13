@@ -506,7 +506,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
     try:
-        putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
+        putTextFileContents(
+            filename=report_filename, contents=TreeXML.toString(root), encoding="utf8"
+        )
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
