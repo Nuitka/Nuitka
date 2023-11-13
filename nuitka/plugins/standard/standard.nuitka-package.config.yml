@@ -1145,12 +1145,23 @@
       - 'languages'
       - 'images'
 
+- module-name: 'gradio'
+  data-files:
+    dirs:
+      - 'templates'
+
 - module-name: 'gradio.blocks'
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+- module-name: 'gradio.component_meta'
+  anti-bloat:
+    - description: 'workaround attempt to create .pyi files during execution'
+      change_function:
+        'create_or_modify_pyi': "'(lambda *args, **kwargs: None)'"
 
 - module-name: 'gradio.ipython_ext'
   anti-bloat:
@@ -1165,6 +1176,11 @@
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+- module-name: 'gradio_client'
+  data-files:
+    patterns:
+      - '*.json'
 
 - module-name: 'grpc'
   data-files:
