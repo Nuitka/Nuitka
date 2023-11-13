@@ -138,6 +138,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                 noinclude_ipython_mode,
                 "IPython",
             )
+            self.handled_modules["altair._magics"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
         else:
             self.control_tags["use_ipython"] = True
 

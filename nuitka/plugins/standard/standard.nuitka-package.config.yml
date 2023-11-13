@@ -44,6 +44,46 @@
     dirs:
       - 'lib'
 
+- module-name: 'altair'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'load_ipython_extension': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'altair.utils.core'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.utils.v5.display'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.api'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.display'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.schema'
+  data-files:
+    patterns:
+      - '*.json'
+
 - module-name: 'androguard.core.resources'
   data-files:
     patterns:
