@@ -824,7 +824,10 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             statements.append(
                 StatementExpressionOnly(
                     expression=makeExpressionImportModuleFixed(
-                        module_name="site", value_name="site", source_ref=source_ref
+                        using_module_name=provider.getParentModule().getFullName(),
+                        module_name="site",
+                        value_name="site",
+                        source_ref=source_ref,
                     ),
                     source_ref=source_ref,
                 )
@@ -837,6 +840,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
                 statements.append(
                     StatementExpressionOnly(
                         expression=makeExpressionImportModuleFixed(
+                            using_module_name=provider.getParentModule().getFullName(),
                             module_name=path_imported_name,
                             value_name=path_imported_name.getTopLevelPackageName(),
                             source_ref=source_ref,

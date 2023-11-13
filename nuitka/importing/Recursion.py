@@ -104,6 +104,11 @@ def recurseTo(
 _recursion_decision_cache = {}
 
 
+def getRecursionDecisions():
+    """Access to recursion decisions, intended only for reporting."""
+    return _recursion_decision_cache
+
+
 def decideRecursion(
     using_module_name, module_filename, module_name, module_kind, extra_recursion=False
 ):

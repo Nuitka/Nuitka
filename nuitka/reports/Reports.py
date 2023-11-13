@@ -33,6 +33,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
+from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleInclusionInfoByName,
@@ -129,6 +130,20 @@ def _getReportInputData(aborted):
         )
         for dist in all_distributions
     )
+
+    module_exclusions = dict((module.getFullName(), {}) for module in getDoneModules())
+
+    for (
+        _using_module_name,
+        _module_filename,
+        _module_name,
+        _module_kind,
+        _extra_recursion,
+    ), (_decision, _reason) in sorted(getRecursionDecisions().items()):
+        if _decision is not False:
+            continue
+
+        module_exclusions[_using_module_name][_module_name] = _reason
 
     memory_infos = getMemoryInfos()
 
@@ -272,13 +287,23 @@ def _addModulesToReport(root, report_input_data, diffable):
         )
 
         for used_module in report_input_data["module_usages"][module_name]:
-            TreeXML.appendTreeElement(
+            module_usage_node = TreeXML.appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
                 line=str(used_module.source_ref.getLineNumber()),
             )
+
+            exclusion_reason = report_input_data["module_exclusions"][module_name].get(
+                used_module.module_name
+            )
+
+            if exclusion_reason is not None:
+                module_usage_node.attrib["excluded"] = "yes"
+                module_usage_node.attrib["exclusion_reason"] = exclusion_reason
+            else:
+                module_usage_node.attrib["excluded"] = "no"
 
 
 def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):

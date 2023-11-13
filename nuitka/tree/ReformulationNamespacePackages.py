@@ -162,6 +162,7 @@ def createPython3NamespacePath(package, source_ref):
         source=ExpressionCallNoKeywords(
             called=ExpressionImportName(
                 module=makeExpressionImportModuleFixed(
+                    using_module_name=package.getFullName(),
                     module_name=module_name,
                     value_name=module_name,
                     source_ref=source_ref,

@@ -220,7 +220,10 @@ def buildImportFromNode(provider, node, source_ref):
     else:
         if module_name == "__future__":
             imported_from_module = makeExpressionImportModuleFixed(
-                module_name="__future__", value_name="__future__", source_ref=source_ref
+                using_module_name=provider.getParentModule().getFullName(),
+                module_name="__future__",
+                value_name="__future__",
+                source_ref=source_ref,
             )
         else:
             imported_from_module = ExpressionBuiltinImport(

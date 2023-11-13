@@ -113,7 +113,9 @@ class ExpressionImportAllowanceMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    def __init__(self):
+    def __init__(self, using_module_name):
+        self.using_module_name = using_module_name
+
         if self.finding == "not-found":
             self.allowed = False
         elif self.finding == "built-in":
@@ -122,7 +124,7 @@ class ExpressionImportAllowanceMixin(object):
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
-                using_module_name=None,
+                using_module_name=self.using_module_name,
                 module_filename=self.module_filename,
                 module_name=self.module_name,
                 module_kind=self.module_kind,
@@ -363,16 +365,25 @@ class ExpressionImportModuleHard(
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = ("module", "allowed", "guaranteed", "value_name", "is_package")
+    __slots__ = (
+        "using_module_name",
+        "module",
+        "allowed",
+        "guaranteed",
+        "value_name",
+        "is_package",
+    )
 
-    def __init__(self, module_name, value_name, source_ref):
+    def __init__(self, using_module_name, module_name, value_name, source_ref):
         ExpressionImportHardBase.__init__(
             self, module_name=module_name, source_ref=source_ref
         )
 
-        ExpressionImportAllowanceMixin.__init__(self)
-
         self.value_name = value_name
+
+        ExpressionImportAllowanceMixin.__init__(
+            self, using_module_name=using_module_name
+        )
 
         if self.finding != "not-found" and isHardModuleWithoutSideEffect(
             self.module_name
@@ -401,7 +412,11 @@ class ExpressionImportModuleHard(
         del self.parent
 
     def getDetails(self):
-        return {"module_name": self.module_name, "value_name": self.value_name}
+        return {
+            "using_module_name": self.using_module_name,
+            "module_name": self.module_name,
+            "value_name": self.value_name,
+        }
 
     def getModuleName(self):
         return self.module_name
@@ -486,6 +501,7 @@ class ExpressionImportModuleHard(
 
             if isHardModule(full_name):
                 new_node = ExpressionImportModuleHard(
+                    using_module_name=self.using_module_name,
                     module_name=full_name,
                     value_name=full_name,
                     source_ref=lookup_node.source_ref,
@@ -543,6 +559,7 @@ class ExpressionImportModuleHard(
 
                         if finding != "not-found":
                             result = makeExpressionImportModuleFixed(
+                                using_module_name=self.getParentModule().getFullName(),
                                 module_name=full_name,
                                 value_name=full_name,
                                 source_ref=lookup_node.getSourceReference(),
@@ -753,6 +770,7 @@ class ExpressionImportlibImportModuleCall(
                     trace_collection.onExceptionRaiseExit(BaseException)
 
                     result = makeExpressionImportModuleFixed(
+                        using_module_name=self.getParentModule().getFullName(),
                         module_name=resolved_module_name,
                         value_name=resolved_module_name,
                         source_ref=self.source_ref,
@@ -1011,6 +1029,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         or isStandardLibraryPath(module_filename)
                     ):
                         result = ExpressionImportModuleHard(
+                            using_module_name=self.getParentModule().getFullName(),
                             module_name=imported_module_name,
                             value_name=self._getImportedValueName(imported_module_name),
                             source_ref=self.source_ref,
@@ -1043,6 +1062,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
                 if self.finding == "built-in":
                     result = makeExpressionImportModuleBuiltin(
+                        using_module_name=self.getParentModule().getFullName(),
                         module_name=imported_module_name,
                         value_name=self._getImportedValueName(imported_module_name),
                         source_ref=self.source_ref,
@@ -1076,6 +1096,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     and isExperimental("standalone-imports")
                 ):
                     result = makeExpressionImportModuleFixed(
+                        using_module_name=self.getParentModule().getFullName(),
                         module_name=self.used_modules[0].module_name,
                         value_name=self._getImportedValueName(
                             self.used_modules[0].module_name
@@ -1206,12 +1227,15 @@ class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
         )
 
 
-def makeExpressionImportModuleFixed(module_name, value_name, source_ref):
+def makeExpressionImportModuleFixed(
+    using_module_name, module_name, value_name, source_ref
+):
     module_name = resolveModuleName(module_name)
     value_name = resolveModuleName(value_name)
 
     if isHardModule(module_name):
         return ExpressionImportModuleHard(
+            using_module_name=using_module_name,
             module_name=module_name,
             value_name=value_name,
             source_ref=source_ref,
@@ -1224,12 +1248,15 @@ def makeExpressionImportModuleFixed(module_name, value_name, source_ref):
         )
 
 
-def makeExpressionImportModuleBuiltin(module_name, value_name, source_ref):
+def makeExpressionImportModuleBuiltin(
+    using_module_name, module_name, value_name, source_ref
+):
     module_name = resolveModuleName(module_name)
     value_name = resolveModuleName(value_name)
 
     if isHardModule(module_name):
         return ExpressionImportModuleHard(
+            using_module_name=using_module_name,
             module_name=module_name,
             value_name=value_name,
             source_ref=source_ref,
