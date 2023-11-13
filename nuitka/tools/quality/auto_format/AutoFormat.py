@@ -695,7 +695,16 @@ def autoFormatFile(
             cleanupWindowsNewlines(tmp_filename, effective_filename)
 
             if not _shouldNotFormatCode(effective_filename):
-                _cleanupImportSortOrder(tmp_filename, effective_filename)
+                # TODO: isort cannot handle chinese code identifiers.
+                if (
+                    not os.path.basename(
+                        os.path.dirname(os.path.abspath(effective_filename))
+                    )
+                    .lower()
+                    .startswith("chinese")
+                ):
+                    _cleanupImportSortOrder(tmp_filename, effective_filename)
+
                 _cleanupPyLintComments(tmp_filename, effective_filename)
 
                 if effective_filename not in BLACK_SKIP_LIST:
