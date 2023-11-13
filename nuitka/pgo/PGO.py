@@ -44,6 +44,12 @@ def _readStringValue(input_file):
     return _pgo_strings[_readCIntValue(input_file)]
 
 
+def _readModuleIdentifierValue(input_file):
+    module_identifier = _readStringValue(input_file)
+
+    assert False, module_identifier
+
+
 def readPGOInputFile(input_filename):
     """Read PGO information produced by a PGO run."""
 
@@ -85,12 +91,12 @@ def readPGOInputFile(input_filename):
             probe_name = _readStringValue(input_file)
 
             if probe_name == "ModuleEnter":
-                module_name = _readStringValue(input_file)
+                module_name = _readModuleIdentifierValue(input_file)
                 arg = _readCIntValue(input_file)
 
                 _module_entries[module_name] = arg
             elif probe_name == "ModuleExit":
-                module_name = _readStringValue(input_file)
+                module_name = _readModuleIdentifierValue(input_file)
                 had_error = _readCIntValue(input_file) != 0
 
                 _module_exits[module_name] = had_error
