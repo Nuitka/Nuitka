@@ -547,7 +547,7 @@ def _shouldNotFormatCode(filename):
         return True
 
     if filename.endswith(".py"):
-        for line in getFileContentByLine(filename):
+        for line in getFileContentByLine(filename, encoding="utf8"):
             if "# encoding: nuitka-protection" in line:
                 return True
 
