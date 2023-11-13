@@ -236,9 +236,12 @@ def _screen_shape_wrapper():  # pragma: no cover
 
 def _screen_shape_windows(fp):  # pragma: no cover
     try:
-        import struct
-        from ctypes import create_string_buffer, windll
-        from sys import stdin, stdout
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            import struct
+            from ctypes import create_string_buffer, windll
+            from sys import stdin, stdout
 
         io_handle = -12  # assume stderr
         if fp == stdin:
