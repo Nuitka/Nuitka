@@ -197,6 +197,14 @@
         support_info: 'warning'
         when: 'version("attrs") < (23,1)'
 
+- module-name: 'autoit'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'AutoIt'
+      when: 'win32'
+
 - module-name: 'av.audio.frame'
   implicit-imports:
     - depends:
