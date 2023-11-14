@@ -316,6 +316,39 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReade
     return result;
 }
 
+//    def def as_posix(self):
+//        """
+//        Return Traversable child in self
+//        """
+//
+
+static PyObject *Nuitka_ResourceReaderFiles_as_posix(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
+                                                     PyObject *kwds) {
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+
+#ifdef _WIN32
+
+#if PYTHON_VERSION < 0x300
+    PyObject *result;
+
+    if (PyString_Check(path)) {
+        result = STR_REPLACE3(tstate, path, const_str_backslash, const_str_slash);
+    } else {
+        result = UNICODE_REPLACE3(tstate, path, const_str_backslash, const_str_slash);
+    }
+#else
+    PyObject *result = UNICODE_REPLACE3(tstate, path, const_str_backslash, const_str_slash);
+#endif
+
+    Py_DECREF(path);
+
+    return result;
+#else
+    return path;
+#endif
+}
+
 PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFilesObject *files, PyObject *arg) {
     PyObject *joined;
 
@@ -426,6 +459,7 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"__exit__", (PyCFunction)Nuitka_ResourceReaderFiles_exit, METH_VARARGS, NULL},
     {"__fspath__", (PyCFunction)Nuitka_ResourceReaderFiles_fspath, METH_NOARGS, NULL},
     {"absolute", (PyCFunction)Nuitka_ResourceReaderFiles_absolute, METH_NOARGS, NULL},
+    {"as_posix", (PyCFunction)Nuitka_ResourceReaderFiles_as_posix, METH_NOARGS, NULL},
 
     // Nuitka specific, for "importlib.resource.as_file" overload.
     {"as_file", (PyCFunction)Nuitka_ResourceReaderFiles_as_file, METH_NOARGS, NULL},
