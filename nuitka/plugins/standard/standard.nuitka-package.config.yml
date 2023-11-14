@@ -3010,6 +3010,13 @@
       - 'colors'
       - 'icons'
 
+- module-name: 'pyqtgraph.util.numba_helper'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'getConfigOption("useNumba")': 'False'
+      when: 'not use_numba'
+
 - module-name: 'pyqtlet2'
   data-files:
     dirs:
