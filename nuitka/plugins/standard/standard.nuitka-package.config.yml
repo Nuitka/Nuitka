@@ -3267,6 +3267,11 @@
           - 'libiconv'
           - 'libzbar'
 
+- module-name: 'qtawesome'
+  data-files:
+    dirs:
+      - 'fonts'
+
 - module-name: 'rapidfuzz'
   implicit-imports:
     - depends:
