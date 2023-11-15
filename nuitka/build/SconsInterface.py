@@ -42,6 +42,7 @@ from nuitka.PythonVersions import (
     getSystemPrefixPath,
     getTargetPythonDLLPath,
     python_version,
+    python_version_str,
 )
 from nuitka.utils.Execution import (
     getExecutablePath,
@@ -382,6 +383,8 @@ def setCommonSconsOptions(options):
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
     options["nuitka_src"] = getSconsDataPath()
+
+    options["python_version"] = python_version_str
 
     options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 
