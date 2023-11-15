@@ -595,7 +595,6 @@ def runSconsBackend():
         "full_compat": asBoolStr(Options.is_full_compat),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
-        "python_version": python_version_str,
         "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
