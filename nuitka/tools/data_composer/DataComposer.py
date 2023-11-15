@@ -309,7 +309,7 @@ def _writeConstantValue(output, constant_value):
         output.write(constant_value.__name__.encode("utf8"))
         output.write(b"\0")
     else:
-        assert False, constant_value
+        assert False, (type(constant_value), constant_value)
 
     _last_written = constant_value
 
