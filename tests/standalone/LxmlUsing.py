@@ -21,6 +21,8 @@
 
 """
 
+# nuitka-project: --standalone
+
 from __future__ import print_function
 
 import lxml.etree
