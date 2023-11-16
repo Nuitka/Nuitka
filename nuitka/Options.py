@@ -35,6 +35,7 @@ import sys
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
@@ -690,6 +691,22 @@ it before using it: '%s' (from --output-filename='%s')."""
         if os.path.isdir(pattern):
             Tracing.options_logger.sysexit(
                 "Error, pattern '%s' given to '--include-plugin-files' cannot be a directory name."
+                % pattern
+            )
+
+    for directory_name in getShallFollowExtra():
+        if not os.path.isdir(directory_name):
+            Tracing.options_logger.sysexit(
+                "Error, value '%s' given to '--include-plugin-directory' must be a directory name."
+                % directory_name
+            )
+
+        if isStandardLibraryPath(directory_name):
+            Tracing.options_logger.sysexit(
+                """\
+Error, directory '%s' given to '--include-plugin-directory' must not be a \
+standard library path. Use '--include-module' or '--include-package' \
+options instead."""
                 % pattern
             )
 
