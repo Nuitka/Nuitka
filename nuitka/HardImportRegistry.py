@@ -247,7 +247,7 @@ hard_modules_trust = {
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
-    "unittest": {"mock": trust_module},
+    "unittest": {"mock": trust_module, "main": trust_exist},
     "unittest.mock": {},
     "io": {"BytesIO": trust_exist, "StringIO": trust_exist},
     "_io": {"BytesIO": trust_exist, "StringIO": trust_exist},
