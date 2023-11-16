@@ -140,6 +140,8 @@ def _initPackageToDistributionName():
     result = {}
 
     for distribution in distributions():
+        distribution_name = getDistributionName(distribution)
+
         for package_name in getDistributionTopLevelPackageNames(distribution):
             # Protect against buggy packages.
             if not checkModuleName(package_name):
@@ -149,6 +151,13 @@ def _initPackageToDistributionName():
 
             if package_name not in result:
                 result[package_name] = set()
+
+            # Skip duplicates, e.g. user package vs. site package installation.
+            if any(
+                distribution_name == getDistributionName(dist)
+                for dist in result[package_name]
+            ):
+                continue
 
             result[package_name].add(distribution)
 
