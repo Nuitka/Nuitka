@@ -149,13 +149,23 @@ def _getReportInputData(aborted):
 
     module_exclusions = dict((module.getFullName(), {}) for module in getDoneModules())
 
+    # TODO: The module filename, and other things can be None. Once we change to
+    # namedtuples, we need to adapt the type check.
+    def _replaceNoneWithString(value):
+        if type(value) is tuple:
+            return tuple(_replaceNoneWithString(element) for element in value)
+
+        return value if value is not None else ""
+
     for (
         _using_module_name,
         _module_filename,
         _module_name,
         _module_kind,
         _extra_recursion,
-    ), (_decision, _reason) in sorted(getRecursionDecisions().items()):
+    ), (_decision, _reason) in sorted(
+        getRecursionDecisions().items(), key=_replaceNoneWithString
+    ):
         if _decision is not False:
             continue
 
