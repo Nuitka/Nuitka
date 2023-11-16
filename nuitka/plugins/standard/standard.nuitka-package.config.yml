@@ -1833,6 +1833,9 @@
       dest_path: '.'
       when: 'is_conda_package("numpy")'
 
+  anti-bloat:
+    - replacements_plain:
+        'https://': ''
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
