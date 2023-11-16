@@ -183,6 +183,7 @@ class StatementAssignmentVariableMixin(object):
         self.variable_trace.assign_node = result
         result.variable_trace = self.variable_trace
         self.variable_trace = None
+        result.parent = self.parent
 
     def _considerSpecialization(self, old_source):
         # Specialize if possible, might have become that way only recently.
