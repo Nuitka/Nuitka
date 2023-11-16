@@ -126,16 +126,6 @@ from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
-def _setupFromMainFilenames():
-    main_filenames = Options.getMainEntryPointFilenames()
-    for filename in main_filenames:
-        # Inform the importing layer about the main script directory, so it can use
-        # it when attempting to follow imports.
-        Importing.addMainScriptDirectory(
-            main_dir=os.path.dirname(os.path.abspath(filename))
-        )
-
-
 def _createMainModule():
     """Create a node tree.
 
@@ -897,9 +887,9 @@ def compileTree():
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
-    result, options = runSconsBackend()
+    result, scons_options = runSconsBackend()
 
-    return result, options
+    return result, scons_options
 
 
 def handleSyntaxError(e):
@@ -962,7 +952,9 @@ def _main():
         else None,
     )
 
-    _setupFromMainFilenames()
+    # Initialize the importing layer from options, main filenames, debugging
+    # options, etc.
+    Importing.setupImportingFromOptions()
 
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
@@ -978,7 +970,7 @@ def _main():
     dumpTreeXML()
 
     # Make the actual compilation.
-    result, options = compileTree()
+    result, scons_options = compileTree()
 
     # Exit if compilation failed.
     if not result:
@@ -1005,7 +997,7 @@ def _main():
     copyDataFiles()
 
     if Options.isStandaloneMode():
-        binary_filename = options["result_exe"]
+        binary_filename = scons_options["result_exe"]
 
         setMainEntryPoint(binary_filename)
 
@@ -1059,14 +1051,14 @@ def _main():
     if Options.isStandaloneMode() and isMacOS():
         general.info(
             "Created binary that runs on macOS %s (%s) or higher."
-            % (options["macos_min_version"], options["macos_target_arch"])
+            % (scons_options["macos_min_version"], scons_options["macos_target_arch"])
         )
 
-        if options["macos_target_arch"] != getArchitecture():
+        if scons_options["macos_target_arch"] != getArchitecture():
             general.warning(
                 "It will only work as well as 'arch -%s %s %s' does."
                 % (
-                    options["macos_target_arch"],
+                    scons_options["macos_target_arch"],
                     sys.executable,
                     Options.getMainEntryPointFilenames()[0],
                 ),

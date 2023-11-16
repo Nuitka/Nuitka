@@ -190,7 +190,7 @@ def importFromInlineCopy(module_name, must_exist, delete_module=False):
         logger=general,
     )
 
-    if delete_module:
+    if delete_module and module_name in sys.modules:
         del sys.modules[module_name]
 
     return module
@@ -230,7 +230,18 @@ def isBuiltinModuleName(module_name):
     else:
         import _imp
 
+    # TODO: Replace with "in builtin_module_names" check, once
+    # this assertion has held up widely.
+    assert _imp.is_builtin(module_name) == (
+        module_name in builtin_module_names
+    ), module_name
     return _imp.is_builtin(module_name)
+
+
+# Have a set for quicker lookups, and we cannot have "__main__" in there.
+builtin_module_names = set(
+    module_name for module_name in sys.builtin_module_names if module_name != "__main__"
+)
 
 
 def getModuleFilenameSuffixes():
