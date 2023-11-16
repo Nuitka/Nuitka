@@ -32,11 +32,11 @@ static FILE *pgo_output;
 
 // Allocated strings
 static char const **PGO_ProbeNameMappings = NULL;
-static int PGO_ProbeNameMappings_size = 0;
-static uint32_t PGO_ProbeNameMappings_used = 0;
+uint32_t PGO_ProbeNameMappings_size = 0;
+uint32_t PGO_ProbeNameMappings_used = 0;
 
-int PGO_getStringID(char const *str) {
-    for (int i = 0; i < PGO_ProbeNameMappings_used; i++) {
+uint32_t PGO_getStringID(char const *str) {
+    for (uint32_t i = 0; i < PGO_ProbeNameMappings_used; i++) {
         if (str == PGO_ProbeNameMappings[i]) {
             return i;
         }
@@ -86,7 +86,7 @@ void PGO_Finalize(void) {
 
     uint32_t offset = (uint32_t)ftell(pgo_output);
 
-    for (int i = 0; i < PGO_ProbeNameMappings_used; i++) {
+    for (uint32_t i = 0; i < PGO_ProbeNameMappings_used; i++) {
         fputs(PGO_ProbeNameMappings[i], pgo_output);
         fputc(0, pgo_output);
     }
