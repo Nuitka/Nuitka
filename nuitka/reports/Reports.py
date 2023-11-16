@@ -95,8 +95,14 @@ def _getReportInputData(aborted):
         for module in getDoneModules()
     )
 
+    module_usages = dict(
+        (module.getFullName(), tuple(module.getUsedModules()))
+        for module in getDoneModules()
+    )
+
     module_distributions = {}
     distribution_modules = {}
+
     for module in getDoneModules():
         module_distributions[module.getFullName()] = getDistributionsFromModuleName(
             module.getFullName()
@@ -107,9 +113,19 @@ def _getReportInputData(aborted):
 
             distribution_modules[_distribution].add(module.getFullName())
 
-    module_usages = dict(
-        (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
-    )
+    module_distribution_usages = {}
+    for module in getDoneModules():
+        module_distribution_usages[module.getFullName()] = OrderedSet()
+
+        for _module_usage in module_usages[module.getFullName()]:
+            if _module_usage.module_name not in module_usages:
+                continue
+
+            module_distribution_usages[module.getFullName()].update(
+                dist
+                for dist in module_distributions[_module_usage.module_name]
+                if dist not in module_distributions[module.getFullName()]
+            )
 
     module_distribution_names = dict(
         (module.getFullName(), module.getUsedDistributions())
@@ -200,7 +216,7 @@ def _getCompilationReportPath(path):
 
 
 def _addModulesToReport(root, report_input_data, diffable):
-    # Many details to work with, pylint: disable=too-many-locals
+    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
 
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
@@ -216,6 +232,13 @@ def _addModulesToReport(root, report_input_data, diffable):
                 report_input_data["module_sources"][module_name].getFilename()
             ),
         )
+
+        distributions = report_input_data["module_distributions"][module_name]
+
+        if distributions:
+            module_xml_node.attrib["distribution"] = ",".join(
+                getDistributionName(dist) for dist in distributions
+            )
 
         for plugin_name, influence, detail in report_input_data[
             "module_plugin_influences"
@@ -248,18 +271,18 @@ def _addModulesToReport(root, report_input_data, diffable):
 
             module_xml_node.append(timing_xml_node)
 
-        distributions = report_input_data["module_distributions"][module_name]
+        distributions = report_input_data["module_distribution_usages"][module_name]
 
         if distributions:
             distributions_xml_node = TreeXML.appendTreeElement(
                 module_xml_node,
-                "distributions",
+                "distribution-usages",
             )
 
             for distribution in distributions:
                 TreeXML.appendTreeElement(
                     distributions_xml_node,
-                    "distribution-used",
+                    "distribution-usage",
                     name=getDistributionName(distribution),
                 )
 
@@ -276,7 +299,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             for distribution_name, found in module_distribution_names.items():
                 TreeXML.appendTreeElement(
                     module_distribution_names_xml_node,
-                    "distribution",
+                    "distribution-lookup",
                     name=distribution_name,
                     found="yes" if found else "no",
                 )
