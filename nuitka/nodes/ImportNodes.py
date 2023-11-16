@@ -224,6 +224,8 @@ class ExpressionImportModuleFixed(ExpressionBase):
         return True
 
     def getTypeShape(self):
+        # TODO: This ought to be dead code, built-in modules have their own nodes now
+        # and may only be hard imports, but not this.
         if self.module_name in sys.builtin_module_names:
             return tshape_module_builtin
         else:

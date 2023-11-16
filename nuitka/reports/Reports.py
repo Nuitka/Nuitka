@@ -539,17 +539,20 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         arch_name=report_input_data["arch_name"],
     )
 
-    search_path_xml_node = TreeXML.appendTreeElement(
-        python_xml_node,
-        "search_path",
-    )
+    search_path = getPackageSearchPath(None)
 
-    for search_path in getPackageSearchPath(None):
-        TreeXML.appendTreeElement(
-            search_path_xml_node,
-            "path",
-            value=_getCompilationReportPath(search_path),
+    if search_path is not None:
+        search_path_xml_node = TreeXML.appendTreeElement(
+            python_xml_node,
+            "search_path",
         )
+
+        for search_path in getPackageSearchPath(None):
+            TreeXML.appendTreeElement(
+                search_path_xml_node,
+                "path",
+                value=_getCompilationReportPath(search_path),
+            )
 
     _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
