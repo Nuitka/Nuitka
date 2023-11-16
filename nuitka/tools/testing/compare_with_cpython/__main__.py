@@ -29,7 +29,6 @@ import time
 
 from nuitka.__past__ import md5
 from nuitka.OptionParsing import getNuitkaProjectOptions
-from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     executeAfterTimePassed,
@@ -150,7 +149,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
             hash_salt = hash_salt.encode("utf8")
         command_hash.update(hash_salt)
 
-        if os.name == "nt" and python_version < 0x300:
+        if os.name == "nt" and str is bytes:
             curdir = os.getcwdu()  # spell-checker: ignore getcwdu
         else:
             curdir = os.getcwd()
@@ -264,6 +263,10 @@ def main():
     include_packages = hasArgValues("--include-package")
     include_modules = hasArgValues("--include-module")
     python_flag_m = hasArg("--python-flag=-m")
+    python_version = hasArgValue("--python-version")
+
+    if python_version:
+        python_version = tuple(int(d) for d in python_version.split("."))
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -386,6 +389,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             % (repr(os.path.dirname(filename)), mini_script),
         ]
 
+        if python_version and python_version >= (3, 11):
+            cpython_cmd += ["-X", "frozen_modules=off"]
+
         if no_warnings:
             cpython_cmd[1:1] = [
                 "-W",
@@ -399,6 +405,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                 "-W",
                 "ignore",
             ]
+
+        if python_version and python_version >= (3, 11):
+            cpython_cmd += ["-X", "frozen_modules=off"]
 
         if python_flag_m:
             cpython_cmd += ["-m", os.path.basename(filename)]
