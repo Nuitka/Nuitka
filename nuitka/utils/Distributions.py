@@ -107,7 +107,7 @@ def getDistributionTopLevelPackageNames(distribution):
     return tuple(result)
 
 
-def _pkg_resource_distributions():
+def _get_pkg_resource_distributions():
     """Small replacement of distributions() of importlib.metadata that uses pkg_resources"""
 
     # pip and vendored pkg_resources are optional of course, but of course very
@@ -116,7 +116,7 @@ def _pkg_resource_distributions():
     # pylint: disable=I0021,no-name-in-module
     from pip._vendor import pkg_resources
 
-    return pkg_resources.working_set
+    return lambda: pkg_resources.working_set
 
 
 def _initPackageToDistributionName():
@@ -129,8 +129,12 @@ def _initPackageToDistributionName():
         except ImportError:
             from importlib_metadata import distributions
 
-    except ImportError:
-        distributions = _pkg_resource_distributions
+    except (ImportError, SyntaxError):
+        try:
+            distributions = _get_pkg_resource_distributions()
+        except ImportError:
+            # No pip installed, not very many distributions in that case.
+            distributions = lambda: ()
 
     # Cyclic dependency
     result = {}
