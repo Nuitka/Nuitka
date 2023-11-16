@@ -41,7 +41,7 @@ import os
 import sys
 import zipfile
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -55,6 +55,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
 from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
+    builtin_module_names,
     getModuleFilenameSuffixes,
     getSharedLibrarySuffixes,
     isBuiltinModuleName,
@@ -68,7 +69,43 @@ from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 
-_debug_module_finding = Options.shallExplainImports()
+# Debug traces, enabled via --explain-imports
+_debug_module_finding = None
+
+# Preference as expressed via --prefer-source-code
+_prefer_source_code_over_extension_modules = None
+
+
+def setupImportingFromOptions():
+    """Set up the importing layer from giving options."""
+
+    # Should only be used inside of here.
+    from nuitka import Options
+
+    # singleton, pylint: disable=global-statement
+    global _debug_module_finding
+    _debug_module_finding = Options.shallExplainImports()
+
+    global _prefer_source_code_over_extension_modules
+    _prefer_source_code_over_extension_modules = (
+        Options.shallPreferSourceCodeOverExtensionModules()
+    )
+
+    # Lets try and have this complete, please report failures.
+    if Options.is_debug and not isNuitkaPython():
+        _checkRaisingBuiltinComplete()
+
+    main_filenames = Options.getMainEntryPointFilenames()
+    for filename in main_filenames:
+        # Inform the importing layer about the main script directory, so it can use
+        # it when attempting to follow imports.
+        addMainScriptDirectory(main_dir=os.path.dirname(os.path.abspath(filename)))
+
+
+def _checkRaisingBuiltinComplete():
+    for module_name in builtin_module_names:
+        assert module_name in _stdlib_module_raises, module_name
+
 
 warned_about = set()
 
@@ -402,10 +439,7 @@ def _reportCandidates(package_name, module_name, candidate, candidates):
         else module_name
     )
 
-    if (
-        candidate.priority == 1
-        and Options.shallPreferSourceCodeOverExtensionModules() is None
-    ):
+    if candidate.priority == 1 and _prefer_source_code_over_extension_modules is None:
         for c in candidates:
             # Don't compare to itself and don't consider unused bytecode a problem.
             if c is candidate or c.priority == 3:
@@ -463,7 +497,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
     # Higher values are lower priority.
     priority_map = {
         "PY_COMPILED": 3,
-        "PY_SOURCE": 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
+        "PY_SOURCE": 0 if _prefer_source_code_over_extension_modules else 2,
         "C_EXTENSION": 1,
     }
 
@@ -623,7 +657,8 @@ def getPythonUnpackedSearchPath():
 
 
 def getPackageSearchPath(package_name):
-    assert _main_paths
+    if not _main_paths:
+        return None
 
     if package_name is None:
         result = (
@@ -883,3 +918,117 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
         source_ref,
         source_filename,
     )
+
+
+# spell-checker: ignore _posixsubprocess,pyexpat,xxsubtype
+
+_stdlib_module_raises = {
+    "__builtin__": False,
+    "_abc": False,
+    "_ast": False,
+    "_bisect": False,
+    "_blake2": False,
+    "_bytesio": False,
+    "_codecs": False,
+    "_codecs_cn": False,
+    "_codecs_hk": False,
+    "_codecs_iso2022": False,
+    "_codecs_jp": False,
+    "_codecs_kr": False,
+    "_codecs_tw": False,
+    "_collections": False,
+    "_contextvars": False,
+    "_csv": False,
+    "_datetime": False,
+    "_elementtree": False,
+    "_fileio": False,
+    "_functools": False,
+    "_heapq": False,
+    "_hotshot": False,
+    "_imp": False,
+    "_io": False,
+    "_json": False,
+    "_locale": False,
+    "_lsprof": False,
+    "_md5": False,
+    "_multibytecodec": False,
+    "_opcode": False,
+    "_operator": False,
+    "_peg_parser": False,
+    "_pickle": False,
+    "_posixsubprocess": False,
+    "_random": False,
+    "_subprocess": False,
+    "_sha": False,  # TODO: Not entirely clear if that's true
+    "_sha1": False,
+    "_sha256": False,
+    "_sha3": False,
+    "_sha512": False,
+    "_signal": False,
+    "_socket": False,
+    "_sre": False,
+    "_stat": False,
+    "_statistics": False,
+    "_string": False,
+    "_struct": False,
+    "_symtable": False,
+    "_thread": False,
+    "_tracemalloc": False,
+    "_tokenize": False,
+    "_typing": False,
+    "_warnings": False,
+    "_weakref": False,
+    "_winapi": False,
+    "_winreg": False,
+    "_xxsubinterpreters": False,
+    "array": False,
+    "atexit": False,
+    "audioop": False,
+    "binascii": False,
+    "builtins": False,
+    "cmath": False,
+    "cStringIO": False,
+    "cPickle": False,
+    "datetime": False,
+    "errno": False,
+    "exceptions": False,
+    "faulthandler": False,
+    "fcntl": False,
+    "future_builtins": False,
+    "gc": False,
+    "grp": False,
+    "itertools": False,
+    "imageop": False,
+    "imp": False,
+    "operator": False,
+    "marshal": False,
+    "math": False,
+    "mmap": False,
+    "msvcrt": False,
+    "nt": False,
+    "parser": False,
+    "posix": False,
+    "pwd": False,
+    "pyexpat": False,
+    "select": False,
+    "signal": False,
+    "strop": False,
+    "spwd": False,
+    "sys": False,
+    "syslog": False,
+    "time": False,
+    "thread": False,
+    "unicodedata": False,
+    "winreg": False,
+    "xxsubtype": False,
+    "zipimport": False,
+    "zlib": False,
+    "_ssl": True,
+}
+
+
+def isNonRaisingBuiltinModule(module_name):
+    assert isBuiltinModuleName(module_name), module_name
+
+    # Return None, if we don't know.
+    return _stdlib_module_raises.get(module_name)
