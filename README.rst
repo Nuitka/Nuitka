@@ -373,14 +373,15 @@ executable:
    ``PYTHONPATH`` at compilation time is what you should do.
 
    Use ``--include-plugin-directory`` only if you make ``__import__()``
-   calls that Nuitka cannot predict, because they e.g. depend on command
-   line parameters. Nuitka also warns about these, and point to the
-   option.
+   calls that Nuitka cannot predict, and that come from a directory, for
+   everything from your Python installation, use ``--include-module`` or
+   ``--include-package``.
 
 .. note::
 
    The resulting filename will be ``program.exe`` on Windows,
-   ``program.bin`` on other platforms.
+   ``program.bin`` on other platforms, but ``--output-filename`` allows
+   changing that.
 
 .. note::
 
