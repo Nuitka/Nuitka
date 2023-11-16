@@ -545,13 +545,17 @@ class ExpressionImportModuleHard(
                 )
             else:
                 if trust is trust_undefined:
-                    # TODO: Should add this, such that these imports are
-                    # properly resolved: pylint: disable=condition-evals-to-constant
-
-                    if self.is_package and False:
+                    # Need to attempt module imports if this is for an import
+                    # lookup of code like "from value_name import attribute_name".
+                    if self.is_package:
                         full_name = self.value_name.getChildNamed(attribute_name)
 
-                        _sub_module_name, _sub_module_filename, finding = locateModule(
+                        (
+                            _sub_module_name,
+                            _sub_module_filename,
+                            _sub_module_kind,
+                            finding,
+                        ) = locateModule(
                             module_name=full_name,
                             parent_package=None,
                             level=0,
