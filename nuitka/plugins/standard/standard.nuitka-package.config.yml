@@ -931,6 +931,19 @@
         - 'jinja2.ext.autoescape'
         - 'jinja2.ext.with_'
 
+- module-name: 'flask_restx'
+  data-files:
+    dirs:
+      - 'static'
+      - 'schemas'
+
+- module-name: 'flask_restx.swagger'
+  # Templates are put on application level for flask to find it.
+  data-files:
+    dest_path: '.'
+    dirs:
+      - 'templates'
+
 - module-name: 'folium'
   data-files:
     dirs:
