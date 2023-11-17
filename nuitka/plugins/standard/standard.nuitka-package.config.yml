@@ -5700,10 +5700,18 @@
 - module-name: 'transformers'
   data-files:
     include-metadata:
-      - 'torch'
+      - 'accelerate'
+      - 'bitsandbytes'
+      - 'datasets'
       - 'flax'
+      - 'jinja2'
+      - 'pandas'
+      - 'psutil'
       - 'tensorflow'
+      - 'torch'
       - 'tokenizers'
+      - 'scipy'
+      - 'safetensors'
       - 'sentencepiece'
 
 - module-name: 'transformers.integrations'
