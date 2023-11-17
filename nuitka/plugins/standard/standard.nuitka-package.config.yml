@@ -5436,6 +5436,13 @@
         support_info: 'error'
         when: 'not use_unittest'
 
+- module-name: 'torch._dynamo.logging'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': ''
+      when: 'not use_setuptools'
+
 - module-name: 'torch._dynamo.skipfiles'
   anti-bloat:
     # When calling inspect.getfile() on Nuitka's loader, it will yield
@@ -5452,6 +5459,9 @@
         'from torch.utils import cpp_extension': ''
       change_function:
         'get_include_and_linking_paths': 'un-callable'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
@@ -5459,6 +5469,27 @@
       replacements_plain:
         'from .cpp import DTYPE_TO_CPP, INDEX_TYPE': 'raise ImportError'
         'from .cpp import DTYPE_TO_CPP': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.codegen.triton'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.codegen.triton_utils'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.coordinate_descent_tuner'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if has_triton()': 'if False'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.graph'
@@ -5492,12 +5523,33 @@
         'from .codegen.wrapper import pexpr': 'raise ImportError'
       when: 'not use_setuptools'
 
+- module-name: 'torch._inductor.triton_heuristics'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if has_triton()': 'if False'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._inductor.triton_ops.autotune'
   anti-bloat:
     - description: 'remove setuptools usage'
       replacements_plain:
         'from ..codecache import cache_dir': ''
         'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.utils'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if _has_triton()': 'if False'
+      change_function:
+        'has_triton': "'(lambda: False)'"
+        'do_bench': 'un-callable'
+        'get_device_tflops': 'un-callable'
+        'get_gpu_dram_gbps': 'un-callable'
+      no-auto-follow:
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._jit_internal'
@@ -5520,6 +5572,15 @@
         - 'torch.onnx.symbolic_opset12'
         - 'torch.onnx.symbolic_opset14'
         - 'torch.onnx.symbolic_opset15'
+
+- module-name: 'torch.sparse._triton_ops'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if _has_triton()': 'if False'
+      change_function:
+        '_has_triton': "'(lambda: False)'"
+      when: 'not use_setuptools'
 
 - module-name: 'torch.testing._internal.common_utils'
   anti-bloat:
@@ -5807,13 +5868,6 @@
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
-
-- module-name: 'triton.compiler'
-  anti-bloat:
-    - description: 'remove setuptools usage'
-      replacements_plain:
-        'import setuptools': ''
-      when: 'not use_setuptools'
 
 - module-name: 'tsfresh.feature_extraction.data'
   anti-bloat:
