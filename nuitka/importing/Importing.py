@@ -294,7 +294,7 @@ def findModule(module_name, parent_package, level):
         method used.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     assert type(module_name) is ModuleName, module_name
 
@@ -363,32 +363,6 @@ def findModule(module_name, parent_package, level):
         module_name = normalizePackageName(module_name)
 
         package_name = module_name.getPackageName()
-
-        # Built-in module names must not be searched any further.
-        if module_name in sys.builtin_module_names:
-            if _debug_module_finding:
-                my_print(
-                    "findModule: Absolute imported module '%s' in as built-in':"
-                    % (module_name,)
-                )
-            return package_name, None, None, "built-in"
-
-        # Frozen module names are similar to built-in, but there is no list of
-        # them, therefore check loader name. Not useful at this time
-        # to make a difference with built-in.
-        if python_version >= 0x300 and module_name in sys.modules:
-            loader = getattr(sys.modules[module_name], "__loader__", None)
-
-            if (
-                loader is not None
-                and getattr(loader, "__name__", "") == "FrozenImporter"
-            ):
-                if _debug_module_finding:
-                    my_print(
-                        "findModule: Absolute imported module '%s' in as frozen':"
-                        % (module_name,)
-                    )
-                return package_name, None, None, "built-in"
 
         preloaded_path = getPreloadedPackagePath(module_name)
 
@@ -723,7 +697,7 @@ def _findModuleInPath(module_name):
 
     # Free pass for built-in modules, they need not exist.
     if package_name is None and isBuiltinModuleName(module_name):
-        return None
+        return None, "built-in"
 
     search_path = getPackageSearchPath(package_name)
 
@@ -743,7 +717,7 @@ def _findModuleInPath(module_name):
             module_name if package_name is None else package_name + "." + module_name,
         )
 
-        return None
+        return None, None
 
     if _debug_module_finding:
         my_print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
@@ -782,6 +756,8 @@ def _findModule(module_name):
         module_search_cache[key] = ImportError
         raise
 
+    # assert len(module_search_cache[key]) == 2, (module_name, module_search_cache[key])
+
     return module_search_cache[key]
 
 
@@ -808,10 +784,7 @@ def locateModule(module_name, parent_package, level):
     )
 
     # Allowing ourselves to be lazy.
-    if module_filename is None:
-        module_kind = None
-    else:
-        assert module_kind is not None, module_filename
+    assert module_kind is not None or module_filename is None, module_name
 
     assert module_package is None or (
         type(module_package) is ModuleName and module_package != ""

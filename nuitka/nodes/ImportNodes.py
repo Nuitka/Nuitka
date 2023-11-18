@@ -47,6 +47,7 @@ from nuitka.HardImportRegistry import (
     trust_undefined,
 )
 from nuitka.importing.Importing import (
+    isNonRaisingBuiltinModule,
     isPackageDir,
     locateModule,
     makeModuleUsageAttempt,
@@ -320,10 +321,8 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
     def mayHaveSideEffects():
         return True
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # TODO: For built-in modules that must be rare, but still true.
-        return True
+    def mayRaiseException(self, exception_type):
+        return isNonRaisingBuiltinModule(self.module_name) is not False
 
     def getModuleUsageAttempt(self):
         return makeModuleUsageAttempt(
@@ -1032,6 +1031,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 if self.finding == "absolute" and isHardModule(imported_module_name):
                     if (
                         imported_module_name in hard_modules_non_stdlib
+                        or module_filename is None
                         or isStandardLibraryPath(module_filename)
                     ):
                         result = ExpressionImportModuleHard(

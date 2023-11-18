@@ -1148,7 +1148,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         return self.module_usage_attempts
 
     def onModuleUsageAttempt(self, module_usage_attempt):
-        if module_usage_attempt.finding not in ("not-found", "built-in"):
+        if module_usage_attempt.finding != "not-found":
             decision, _reason = decideRecursion(
                 using_module_name=self.owner.getFullName(),
                 module_name=module_usage_attempt.module_name,

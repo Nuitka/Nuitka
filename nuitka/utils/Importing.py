@@ -230,12 +230,24 @@ def isBuiltinModuleName(module_name):
     else:
         import _imp
 
-    # TODO: Replace with "in builtin_module_names" check, once
-    # this assertion has held up widely.
-    assert _imp.is_builtin(module_name) == (
-        module_name in builtin_module_names
-    ), module_name
-    return _imp.is_builtin(module_name)
+    result = _imp.is_builtin(module_name) or _imp.is_frozen(module_name)
+
+    # Some frozen modules are not actually in that list, e.g.
+    # "importlib._bootstrap_external" on Python3.10 doesn't report to
+    # "_imp.is_frozen()" above, so we check if it's already loaded and from the
+    # "FrozenImporter" by name.
+    if result is False and module_name in sys.modules:
+        module = sys.modules[module_name]
+
+        if hasattr(module, "__loader__"):
+            loader = module.__loader__
+
+            try:
+                result = loader.__name__ == "FrozenImporter"
+            except AttributeError:
+                pass
+
+    return result
 
 
 # Have a set for quicker lookups, and we cannot have "__main__" in there.
