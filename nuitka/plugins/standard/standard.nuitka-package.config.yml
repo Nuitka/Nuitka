@@ -1732,6 +1732,13 @@
         'runtests': 'un-callable'
       when: 'not use_pytest'
 
+- module-name: 'multiprocess.util'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        '_cleanup_tests': 'un-callable'
+      when: 'not use_unittest'
+
 - module-name: 'multiprocessing.util'
   anti-bloat:
     - description: 'remove unittest reference'
