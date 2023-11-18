@@ -164,6 +164,9 @@
                         "no-auto-follow": {
                             "type": "object"
                         },
+                        "bloat-mode-overrides": {
+                            "type": "object"
+                        },
                         "when": {
                             "type": "string"
                         }
