@@ -43,7 +43,7 @@ def extractModulesUsedByModule(compilation_report, module_name):
             used_module_name = ModuleName(entry["name"])
             del entry["name"]
             entry["line"] = int(entry["line"])
-            entry["excluded"] = bool(entry["excluded"] == "yes")
+            entry["excluded"] = bool(entry["finding"] == "excluded")
 
             result[used_module_name] = entry
 
