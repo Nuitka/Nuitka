@@ -226,7 +226,7 @@ def _getCompilationReportPath(path):
 
 
 def _addModulesToReport(root, report_input_data, diffable):
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
+    # Many details to work with, pylint: disable=too-many-locals
 
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
@@ -333,10 +333,8 @@ def _addModulesToReport(root, report_input_data, diffable):
             )
 
             if exclusion_reason is not None:
-                module_usage_node.attrib["excluded"] = "yes"
+                module_usage_node.attrib["finding"] = "excluded"
                 module_usage_node.attrib["exclusion_reason"] = exclusion_reason
-            else:
-                module_usage_node.attrib["excluded"] = "no"
 
 
 def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
