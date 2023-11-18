@@ -1170,6 +1170,10 @@
   data-files:
     dirs:
       - 'templates'
+      - 'node'
+      - '_frontend_code'
+    patterns:
+      - '*.json'
 
 - module-name: 'gradio.blocks'
   anti-bloat:
@@ -6372,6 +6376,7 @@
   anti-bloat:
     - description: 'remove unittest reference'
       change_function:
+        # TODO: For a decorator, this looks breaking
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'
