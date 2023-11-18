@@ -5441,11 +5441,11 @@
         relative_path: 'lib'
         prefixes:
           - ''
-  options:
-    checks:
-      - description: "torch requires unittest, cannot disallow it, use '--noinclude-unittest-mode=allow'"
-        support_info: 'error'
-        when: 'not use_unittest'
+  anti-bloat:
+    - description: 'allow unittest inside of torch, too dependent to remove'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+      when: 'not use_unittest'
 
 - module-name: 'torch._dynamo.logging'
   anti-bloat:
