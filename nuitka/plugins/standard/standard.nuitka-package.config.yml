@@ -1695,6 +1695,22 @@
         '_get_extension': "'(lambda: None, None, None)'"
         'is_rocm_pytorch': "'(lambda: False)'"
         '_get_cuda_home': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'mmengine.utils.dl_utils.collect_env'
+  anti-bloat:
+    - description: 'remove torch.utils.cpp_extension usage'
+      change_function:
+        '_get_cuda_home': 'un-callable'
+
+- module-name: 'mmengine.utils.dl_utils.parrots_wrapper'
+  anti-bloat:
+    - description: 'remove torch.utils.cpp_extension usage'
+      change_function:
+        '_get_extension': "'(lambda: None, None, None)'"
+        'is_rocm_pytorch': "'(lambda: False)'"
+        '_get_cuda_home': 'un-callable'
+      when: 'not use_setuptools'
 
 - module-name: 'mnemonic'
   data-files:
