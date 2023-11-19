@@ -54,6 +54,7 @@ from nuitka.Options import (
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
+    isExperimental,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
@@ -1117,6 +1118,14 @@ def main():
         try:
             writeCompilationReports(aborted=True)
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-            general.warning("Report writing was prevented by exception %r" % e)
+            general.warning(
+                """\
+Report writing was prevented by exception %r, use option \
+'--experimental=debug-report-traceback' for full traceback."""
+                % e
+            )
+
+            if isExperimental("debug-report-traceback"):
+                raise
 
         raise
