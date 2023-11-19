@@ -35,6 +35,7 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
     # Found via grep -re "_import_structure = {"
     _import_structure_modules = (
         "transformers",
+        "transformers.integrations",
         "transformers.generation",
         "transformers.models.albert",
         "transformers.models.align",
@@ -245,7 +246,8 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
         if full_name in self._import_structure_modules:
             for sub_module_name in self.queryRuntimeInformationSingle(
                 setup_codes="import %s" % full_name.asString(),
-                value="list(%s._import_structure.keys())" % full_name.asString(),
+                value="list(getattr(%(module_name)s, '_import_structure', {}).keys())"
+                % {"module_name": full_name.asString()},
                 info_name="import_structure_for_%s"
                 % full_name.asString().replace(".", "_"),
             ):
