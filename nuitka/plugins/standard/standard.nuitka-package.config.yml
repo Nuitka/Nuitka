@@ -6360,6 +6360,12 @@
     dirs:
       - 'schemas'
 
+- module-name: 'yapf_third_party._ylib2to3'
+  data-files:
+    patterns:
+      - 'Grammar.txt'
+      - 'PatternGrammar.txt'
+
 - module-name: 'zmq'
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
