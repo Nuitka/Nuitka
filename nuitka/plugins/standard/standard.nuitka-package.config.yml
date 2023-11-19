@@ -843,6 +843,12 @@
     - depends:
         - 'Equation.equation_*'
 
+- module-name: 'evaluate.config'
+  anti-bloat:
+    - description: 'workaround python version test not compile time recognized'
+      replacements:
+        'PY_VERSION < version.parse("3.8")': 'str(__import__("sys").version_info < (3,8))'
+
 - module-name: 'exchangelib'
   implicit-imports:
     - depends:
