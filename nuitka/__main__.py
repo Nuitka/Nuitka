@@ -143,6 +143,13 @@ def main():
         setPthImportedPackages(ast.literal_eval(os.environ["NUITKA_PTH_IMPORTED"]))
         del os.environ["NUITKA_PTH_IMPORTED"]
 
+    if "NUITKA_USER_SITE" in os.environ:
+        from nuitka.utils.Distributions import setUserSiteDirectory
+
+        setUserSiteDirectory(ast.literal_eval(os.environ["NUITKA_USER_SITE"]))
+
+        del os.environ["NUITKA_USER_SITE"]
+
     # Now the real main program of Nuitka can take over.
     from nuitka import MainControl  # isort:skip
 
