@@ -113,6 +113,10 @@ def reExecuteNuitka(pgo_filename):
         # Note: As side effect, this might modify the "sys.path" too.
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
+        user_site = getattr(sys.modules["site"], "USER_SITE")
+        if user_site is not None:
+            os.environ["NUITKA_USER_SITE"] = repr(user_site)
+
     os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
 
     # In some environments, initial "sys.path" does not contain enough to load
