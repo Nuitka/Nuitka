@@ -50,15 +50,17 @@ from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
+from nuitka.Version import parseNuitkaVersionToTuple
 
 watch_logger = OurLogger("", base_style="blue")
 
 
-def _compareNuitkaVersions(version_a, version_b):
-    def _numberize(version):
-        return tuple(int(d) for d in version.split("rc")[0].split("."))
+def _compareNuitkaVersions(version_a, version_b, consider_rc):
+    if not consider_rc:
+        version_a = version_a.split("rc")[0]
+        version_b = version_b.split("rc")[0]
 
-    return _numberize(version_a) < _numberize(version_b)
+    return parseNuitkaVersionToTuple(version_a) < parseNuitkaVersionToTuple(version_b)
 
 
 def scanCases(path):
@@ -429,7 +431,9 @@ def _updateCase(
             if nuitka_update_mode == "force":
                 need_compile = True
             elif nuitka_update_mode == "newer":
-                if _compareNuitkaVersions(old_nuitka_version, nuitka_version):
+                if _compareNuitkaVersions(
+                    old_nuitka_version, nuitka_version, consider_rc=True
+                ):
                     need_compile = True
                 else:
                     if existing_hash != old_report_root_hash:
@@ -483,7 +487,7 @@ def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mod
 
     # Too old Nuitka version maybe.
     if nuitka_min_version is not None and _compareNuitkaVersions(
-        nuitka_version, nuitka_min_version
+        nuitka_version, nuitka_min_version, consider_rc=False
     ):
         return
 
