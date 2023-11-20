@@ -110,6 +110,12 @@ def getDistributionTopLevelPackageNames(distribution):
 def _get_pkg_resource_distributions():
     """Small replacement of distributions() of importlib.metadata that uses pkg_resources"""
 
+    # Prepare "site" for the "pip" module to find what it wants.
+    import site
+
+    if _user_site_directory is not None:
+        site.USER_SITE = _user_site_directory
+
     # pip and vendored pkg_resources are optional of course, but of course very
     # omnipresent generally, so we don't handle failure here.
 
@@ -354,3 +360,12 @@ def getDistributionLicense(distribution):
                 break
 
     return license_name
+
+
+# User site directory if any
+_user_site_directory = None
+
+
+def setUserSiteDirectory(user_site_directory):
+    global _user_site_directory  # singleton, pylint: disable=global-statement
+    _user_site_directory = user_site_directory
