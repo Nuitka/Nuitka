@@ -73,19 +73,22 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     module_name=ModuleName(current),
                 )
 
-                for sub_module in iter_modules([module_filename]):
-                    if not fnmatch.fnmatch(sub_module.name, part):
-                        continue
+                if module_filename is not None:
+                    for sub_module in iter_modules([module_filename]):
+                        if not fnmatch.fnmatch(sub_module.name, part):
+                            continue
 
-                    if count == len(parts) - 1:
-                        yield current.getChildNamed(sub_module.name)
-                    else:
-                        child_name = current.getChildNamed(sub_module.name).asString()
+                        if count == len(parts) - 1:
+                            yield current.getChildNamed(sub_module.name)
+                        else:
+                            child_name = current.getChildNamed(
+                                sub_module.name
+                            ).asString()
 
-                        for value in self._resolveModulePattern(
-                            child_name + "." + ".".join(parts[count + 1 :])
-                        ):
-                            yield value
+                            for value in self._resolveModulePattern(
+                                child_name + "." + ".".join(parts[count + 1 :])
+                            ):
+                                yield value
 
                 return
             else:
