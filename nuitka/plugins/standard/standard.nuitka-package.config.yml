@@ -3017,6 +3017,12 @@
     - depends:
         - 'pymssql._mssql'
 
+- module-name: 'pyocd'
+  data-files:
+    patterns:
+      - 'debug/sequences/*.lark'
+      - 'debug/svd/*.zip'
+
 - module-name: 'pyodbc'
   implicit-imports:
     - depends:
