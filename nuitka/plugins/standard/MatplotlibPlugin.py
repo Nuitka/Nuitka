@@ -24,6 +24,7 @@ from nuitka.plugins.Plugins import (
     getActiveQtPluginBindingName,
     hasActivePlugin,
 )
+from nuitka.utils.Execution import NuitkaCalledProcessError
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
@@ -68,9 +69,10 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
             There might exist a local version outside 'matplotlib/mpl-data' which
             we then must use instead. Determine its name by asking matplotlib.
         """
-        info = self.queryRuntimeInformationMultiple(
-            info_name="matplotlib_info",
-            setup_codes="""
+        try:
+            info = self.queryRuntimeInformationMultiple(
+                info_name="matplotlib_info",
+                setup_codes="""
 from matplotlib import matplotlib_fname, get_backend, __version__
 try:
     from matplotlib import get_data_path
@@ -78,17 +80,24 @@ except ImportError:
     from matplotlib import _get_data_path as get_data_path
 from inspect import getsource
 """,
-            values=(
-                ("matplotlibrc_filename", "matplotlib_fname()"),
-                ("backend", "get_backend()"),
-                ("data_path", "get_data_path()"),
-                ("matplotlib_version", "__version__"),
-                (
-                    "needs_matplotlibdata_env",
-                    "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
+                values=(
+                    ("matplotlibrc_filename", "matplotlib_fname()"),
+                    ("backend", "get_backend()"),
+                    ("data_path", "get_data_path()"),
+                    ("matplotlib_version", "__version__"),
                 ),
-            ),
-        )
+            )
+        except NuitkaCalledProcessError:
+            if "MPLBACKEND" not in os.environ:
+                self.sysexit(
+                    """\
+Error, failed to detect matplotlib backend. Please set 'MPLBACKEND' \
+environment variable during compilation.""",
+                    mnemonic="""\
+https://matplotlib.org/stable/users/installing/environment_variables_faq.html#envvar-MPLBACKEND""",
+                )
+
+            raise
 
         if info is None:
             self.sysexit("Error, it seems 'matplotlib' is not installed or broken.")
@@ -105,6 +114,18 @@ from inspect import getsource
             self.sysexit(
                 "mpl-data missing, matplotlib installation appears to be broken"
             )
+
+        self.info(
+            "Using %s backend '%s'."
+            % (
+                (
+                    "configuration file or default"
+                    if "MPLBACKEND" not in os.environ
+                    else "as per 'MPLBACKEND' environment variable"
+                ),
+                matplotlib_info.backend,
+            )
+        )
 
         # Include the "mpl-data" files.
         yield self.makeIncludedDataDirectory(
@@ -133,7 +154,7 @@ from inspect import getsource
                 # old config file has a backend definition
                 found = True
 
-        if not found and matplotlib_info.matplotlib_version < "3":
+        if not found and matplotlib_info.matplotlib_version < "4":
             # Set the backend, so even if it was run time determined, we now enforce it.
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
@@ -152,12 +173,12 @@ from inspect import getsource
         # some special handling for matplotlib:
         # depending on whether 'tk-inter' resp. 'qt-plugins' are enabled,
         # their matplotlib backends are included.
-        if hasActivePlugin("tk-inter"):
-            if module_name in (
-                "matplotlib.backends.backend_tk",
-                "matplotlib.backends.backend_tkagg",
-                "matplotlib.backend.tkagg",
-            ):
+        if module_name in (
+            "matplotlib.backends.backend_tk",
+            "matplotlib.backends.backend_tkagg",
+            "matplotlib.backend.tkagg",
+        ):
+            if hasActivePlugin("tk-inter"):
                 return True, "Needed for tkinter matplotlib backend"
 
     def createPreModuleLoadCode(self, module):
@@ -175,16 +196,13 @@ from inspect import getsource
         """
 
         # The version may not need the environment variable.
-        if (
-            module.getFullName() == "matplotlib"
-            and self._getMatplotlibInfo().needs_matplotlibdata_env
-        ):
+        if module.getFullName() == "matplotlib":
             code = renderTemplateFromString(
                 r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
 os.environ["MATPLOTLIBRC"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data", "matplotlibrc")
-os.environ["MPLBACKEND"] = {{matplotlib_info.backend}}
+os.environ["MPLBACKEND"] = "{{matplotlib_info.backend}}"
 {% if qt_binding_name %}
 os.environ["QT_API"] = "{{qt_binding_name}}"
 {% endif %}

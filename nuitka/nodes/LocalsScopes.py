@@ -256,7 +256,9 @@ class LocalsDictHandleBase(object):
             provider = trace_collection.getOwner()
 
             self.propagation[variable_name] = provider.allocateTempVariable(
-                temp_scope=None, name=self.getCodeName() + "_key_" + variable_name
+                temp_scope=None,
+                name=self.getCodeName() + "_key_" + variable_name,
+                temp_type="object",
             )
 
         return self.propagation[variable_name]

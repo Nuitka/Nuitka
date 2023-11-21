@@ -196,8 +196,10 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
         // Same sized set, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_Next(set1, &pos1, &key1)) {
-            int res = _PySet_Next(set2, &pos2, &key2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = _PySet_Next(set2, &pos2, &key2);
+                assert(res != 0);
+            }
 
             if (key1 != key2) {
                 result = Py_False;
@@ -210,8 +212,10 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
         // Same sized dictionary, simply check if values are identical. Other reductions should
         // make it identical, or else this won't have the effect intended.
         while (_PySet_NextEntry(set1, &pos1, &key1, &unused1)) {
-            int res = _PySet_NextEntry(set2, &pos2, &key2, &unused2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = _PySet_NextEntry(set2, &pos2, &key2, &unused2);
+                assert(res != 0);
+            }
 
             if (key1 != key2) {
                 result = Py_False;
@@ -273,8 +277,10 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
         // Other reductions should make it identical, or else this won't have the
         // effect intended.
         while (Nuitka_DictNext(a, &pos1, &key1, &value1)) {
-            int res = Nuitka_DictNext(b, &pos2, &key2, &value2);
-            assert(res != 0);
+            {
+                NUITKA_MAY_BE_UNUSED int res = Nuitka_DictNext(b, &pos2, &key2, &value2);
+                assert(res != 0);
+            }
 
             if (key1 != key2 || value1 != value2) {
                 result = Py_False;
@@ -447,6 +453,27 @@ static unsigned char const *_unpackValueCString(unsigned char const *data) {
     return data;
 }
 
+// Decoding Variable-length quantity values
+static uint64_t _unpackVariableLength(unsigned char const **data) {
+    uint64_t result = 0;
+    uint64_t factor = 1;
+
+    while (1) {
+        unsigned char value = **data;
+        *data += 1;
+
+        result += (value & 127) * factor;
+
+        if (value < 128) {
+            break;
+        }
+
+        factor <<= 7;
+    }
+
+    return result;
+}
+
 static PyObject *_unpackAnonValue(unsigned char anon_index) {
     switch (anon_index) {
     case 0:
@@ -521,9 +548,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
             break;
         }
         case 'T': {
-            // TODO: Use fixed sizes
-            // uint32_t size = unpackSizeUint32(&data);
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
             PyObject *t = PyTuple_New(size);
 
@@ -539,9 +564,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
             break;
         }
         case 'L': {
-            // TODO: Use fixed sizes
-            // uint32_t size = unpackSizeUint32(&data);
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
             PyObject *l = PyList_New(size);
 
@@ -557,9 +580,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
             break;
         }
         case 'D': {
-            // TODO: Use flexible sizes with bias towards small values.
-            // uint32_t size = unpackSizeUint32(&data);
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
             PyObject *d = _PyDict_NewPresized(size);
 
@@ -584,9 +605,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
         }
         case 'P':
         case 'S': {
-            // TODO: Use fixed sizes
-            // uint32_t size = unpackSizeUint32(&data);
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
             PyObject *s;
 
@@ -821,7 +840,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
         }
         case 'b': {
             // Python2 str or Python3 bytes, length indicated.
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
             assert(size > 1);
 
             PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
@@ -840,9 +859,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
         }
 
         case 'B': {
-            // TODO: Use fixed sizes for small, e.g. character values, and length vs. 0
-            // termination.
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
             PyObject *b = PyByteArray_FromStringAndSize((const char *)data, size);
             data += size;
@@ -878,7 +895,7 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
             break;
         }
         case 'v': {
-            int size = unpackValueInt(&data);
+            int size = (int)_unpackVariableLength(&data);
 
 #if PYTHON_VERSION < 0x300
             PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);

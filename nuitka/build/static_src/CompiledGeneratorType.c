@@ -28,6 +28,7 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+#include <structmember.h>
 #endif
 
 // In a separate file, code to interact with uncompiled generators, that does
@@ -132,7 +133,7 @@ static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generato
 
     // TODO: Identify the impact of not visiting owned objects like module.
 #if PYTHON_VERSION >= 0x300
-    Py_VISIT(generator->m_yieldfrom);
+    Py_VISIT(generator->m_yield_from);
 #endif
 
     for (Py_ssize_t i = 0; i < generator->m_closure_given; i++) {
@@ -297,12 +298,12 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
 }
 
 static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
-                                                PyObject *yieldfrom, PyObject *send_value) {
+                                                PyObject *yield_from, PyObject *send_value) {
     // Send iteration value to the sub-generator, which may be a CPython
     // generator object, something with an iterator next, or a send method,
     // where the later is only required if values other than "None" need to
     // be passed in.
-    CHECK_OBJECT(yieldfrom);
+    CHECK_OBJECT(yield_from);
     assert(send_value != NULL || HAS_ERROR_OCCURRED(tstate));
 
     PyObject *retval;
@@ -322,7 +323,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
     // Exception, was thrown into us, need to send that to sub-generator.
     if (exception_type != NULL) {
         // Passing ownership of exception fetch to it.
-        retval = _Nuitka_YieldFromPassExceptionTo(tstate, yieldfrom, exception_type, exception_value, exception_tb);
+        retval = _Nuitka_YieldFromPassExceptionTo(tstate, yield_from, exception_type, exception_value, exception_tb);
 
         // TODO: This wants to look at retval most definitely, send_value is going to be NULL.
         if (unlikely(send_value == NULL)) {
@@ -335,23 +336,23 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
                 return NULL;
             }
         }
-    } else if (PyGen_CheckExact(yieldfrom)) {
-        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yieldfrom, Py_None);
+    } else if (PyGen_CheckExact(yield_from)) {
+        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
     }
 #if PYTHON_VERSION >= 0x350
-    else if (PyCoro_CheckExact(yieldfrom)) {
-        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yieldfrom, Py_None);
+    else if (PyCoro_CheckExact(yield_from)) {
+        retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
     }
 #endif
-    else if (send_value == Py_None && Py_TYPE(yieldfrom)->tp_iternext != NULL) {
-        retval = Py_TYPE(yieldfrom)->tp_iternext(yieldfrom);
+    else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
+        retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
         // Bug compatibility here, before 3.3 tuples were unrolled in calls, which is what
         // PyObject_CallMethod does.
 #if PYTHON_VERSION >= 0x340
-        retval = PyObject_CallMethodObjArgs(yieldfrom, const_str_plain_send, send_value, NULL);
+        retval = PyObject_CallMethodObjArgs(yield_from, const_str_plain_send, send_value, NULL);
 #else
-        retval = PyObject_CallMethod(yieldfrom, (char *)"send", (char *)"O", send_value);
+        retval = PyObject_CallMethod(yield_from, (char *)"send", (char *)"O", send_value);
 #endif
     }
 
@@ -382,15 +383,15 @@ static PyObject *Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nui
     CHECK_OBJECT(generator);
     CHECK_OBJECT_X(send_value);
 
-    PyObject *yieldfrom = generator->m_yieldfrom;
-    CHECK_OBJECT(yieldfrom);
+    PyObject *yield_from = generator->m_yield_from;
+    CHECK_OBJECT(yield_from);
 
     // Need to make it unaccessible while using it.
-    generator->m_yieldfrom = NULL;
-    PyObject *yielded = _Nuitka_YieldFromGeneratorCore(tstate, generator, yieldfrom, send_value);
+    generator->m_yield_from = NULL;
+    PyObject *yielded = _Nuitka_YieldFromGeneratorCore(tstate, generator, yield_from, send_value);
 
     if (yielded == NULL) {
-        Py_DECREF(yieldfrom);
+        Py_DECREF(yield_from);
 
         if (generator->m_returned != NULL) {
             PyObject *yield_from_result = generator->m_returned;
@@ -403,7 +404,7 @@ static PyObject *Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nui
         }
 
     } else {
-        generator->m_yieldfrom = yieldfrom;
+        generator->m_yield_from = yield_from;
     }
 
     return yielded;
@@ -414,7 +415,7 @@ static PyObject *Nuitka_YieldFromGeneratorNext(PyThreadState *tstate, struct Nui
 
     // Coroutines are already perfect for yielding from.
 #if PYTHON_VERSION >= 0x350
-    if (PyCoro_CheckExact(generator->m_yieldfrom) || Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
+    if (PyCoro_CheckExact(generator->m_yield_from) || Nuitka_Coroutine_Check(generator->m_yield_from)) {
         if (unlikely((generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                             "cannot 'yield from' a coroutine object in a non-coroutine generator");
@@ -422,10 +423,10 @@ static PyObject *Nuitka_YieldFromGeneratorNext(PyThreadState *tstate, struct Nui
     } else
 #endif
     {
-        PyObject *new_iterator = MAKE_ITERATOR(tstate, generator->m_yieldfrom);
+        PyObject *new_iterator = MAKE_ITERATOR(tstate, generator->m_yield_from);
         if (new_iterator != NULL) {
-            Py_DECREF(generator->m_yieldfrom);
-            generator->m_yieldfrom = new_iterator;
+            Py_DECREF(generator->m_yield_from);
+            generator->m_yield_from = new_iterator;
         }
     }
 
@@ -539,7 +540,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         PyObject *yielded;
 
 #if PYTHON_VERSION >= 0x300
-        if (generator->m_yieldfrom == NULL) {
+        if (generator->m_yield_from == NULL) {
             yielded = ((generator_code)generator->m_code)(tstate, generator, value);
         } else {
             // This does not release the value if any, so we need to do it afterwards.
@@ -552,9 +553,9 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         assert(PyThreadState_GET() == tstate);
 
 #if PYTHON_VERSION >= 0x300
-        // If the generator returns with m_yieldfrom set, it wants us to yield
+        // If the generator returns with m_yield_from set, it wants us to yield
         // from that value from now on.
-        while (yielded == NULL && generator->m_yieldfrom != NULL) {
+        while (yielded == NULL && generator->m_yield_from != NULL) {
             yielded = Nuitka_YieldFromGeneratorNext(tstate, generator);
         }
 #endif
@@ -902,49 +903,49 @@ static bool _Nuitka_Asyncgen_close(PyThreadState *tstate, struct Nuitka_Asyncgen
 #endif
 
 // Note: This is also used for coroutines and asyncgen
-static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yieldfrom) {
+static bool Nuitka_gen_close_iter(PyThreadState *tstate, PyObject *yield_from) {
 #if _DEBUG_GENERATOR
     PRINT_STRING("Nuitka_gen_close_iter: Enter\n");
 #endif
 
-    CHECK_OBJECT(yieldfrom);
+    CHECK_OBJECT(yield_from);
 
-    // TODO: Could specialize depending in yieldfrom type for performance. Many
+    // TODO: Could specialize depending in yield_from type for performance. Many
     // times these will be our own ones, or known ones like uncompiled
     // generators.
-    if (Nuitka_Generator_Check(yieldfrom)) {
+    if (Nuitka_Generator_Check(yield_from)) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Generator_close\n");
 #endif
-        return _Nuitka_Generator_close(tstate, (struct Nuitka_GeneratorObject *)yieldfrom);
+        return _Nuitka_Generator_close(tstate, (struct Nuitka_GeneratorObject *)yield_from);
     }
 
 #if PYTHON_VERSION >= 0x350
-    if (Nuitka_Coroutine_Check(yieldfrom)) {
+    if (Nuitka_Coroutine_Check(yield_from)) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Coroutine_close\n");
 #endif
-        return _Nuitka_Coroutine_close(tstate, (struct Nuitka_CoroutineObject *)yieldfrom);
+        return _Nuitka_Coroutine_close(tstate, (struct Nuitka_CoroutineObject *)yield_from);
     }
 #endif
 
 #if PYTHON_VERSION >= 0x360
-    if (Nuitka_Asyncgen_Check(yieldfrom)) {
+    if (Nuitka_Asyncgen_Check(yield_from)) {
 #if _DEBUG_GENERATOR
         PRINT_STRING("Nuitka_gen_close_iter: Defer to _Nuitka_Asyncgen_close\n");
 #endif
-        return _Nuitka_Asyncgen_close(tstate, (struct Nuitka_AsyncgenObject *)yieldfrom);
+        return _Nuitka_Asyncgen_close(tstate, (struct Nuitka_AsyncgenObject *)yield_from);
     }
 #endif
 
-    PyObject *meth = PyObject_GetAttr(yieldfrom, const_str_plain_close);
+    PyObject *meth = PyObject_GetAttr(yield_from, const_str_plain_close);
 
     if (unlikely(meth == NULL)) {
         if (unlikely(!PyErr_ExceptionMatches(PyExc_AttributeError))) {
 #if _DEBUG_GENERATOR
             PRINT_STRING("Nuitka_gen_close_iter: Strange error while looking up close method.\n");
 #endif
-            PyErr_WriteUnraisable(yieldfrom);
+            PyErr_WriteUnraisable(yield_from);
         }
 
         CLEAR_ERROR_OCCURRED(tstate);
@@ -989,7 +990,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
                                           PyTracebackObject *exception_tb) {
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
-    PRINT_COROUTINE_VALUE("yieldfrom", generator->m_yieldfrom);
+    PRINT_COROUTINE_VALUE("yield_from", generator->m_yield_from);
     PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
     PRINT_NEW_LINE();
 #endif
@@ -1001,11 +1002,11 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
     CHECK_OBJECT_X(exception_tb);
 
 #if PYTHON_VERSION >= 0x300
-    if (generator->m_yieldfrom != NULL) {
+    if (generator->m_yield_from != NULL) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_type, PyExc_GeneratorExit)) {
             // Generators need to close the yield_from.
             Nuitka_MarkGeneratorAsRunning(generator);
-            bool res = Nuitka_gen_close_iter(tstate, generator->m_yieldfrom);
+            bool res = Nuitka_gen_close_iter(tstate, generator->m_yield_from);
             Nuitka_MarkGeneratorAsNotRunning(generator);
 
             if (res == false) {
@@ -1025,19 +1026,19 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 
 #if _DEBUG_GENERATOR
         PRINT_GENERATOR_STATUS("Passing to yielded from", generator);
-        PRINT_COROUTINE_VALUE("m_yieldfrom", generator->m_yieldfrom);
+        PRINT_COROUTINE_VALUE("m_yield_from", generator->m_yield_from);
         PRINT_NEW_LINE();
 #endif
 
-        if (Nuitka_Generator_Check(generator->m_yieldfrom)) {
-            struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)generator->m_yieldfrom);
+        if (Nuitka_Generator_Check(generator->m_yield_from)) {
+            struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)generator->m_yield_from);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
             Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Generator_throw2(tstate, gen, exception_type, exception_value, exception_tb);
             Nuitka_MarkGeneratorAsNotRunning(generator);
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
-        } else if (PyGen_CheckExact(generator->m_yieldfrom)) {
-            PyGenObject *gen = (PyGenObject *)generator->m_yieldfrom;
+        } else if (PyGen_CheckExact(generator->m_yield_from)) {
+            PyGenObject *gen = (PyGenObject *)generator->m_yield_from;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
             Nuitka_MarkGeneratorAsRunning(generator);
@@ -1045,23 +1046,23 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
             Nuitka_MarkGeneratorAsNotRunning(generator);
 #endif
 #if PYTHON_VERSION >= 0x350
-        } else if (Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
-            struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)generator->m_yieldfrom);
+        } else if (Nuitka_Coroutine_Check(generator->m_yield_from)) {
+            struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)generator->m_yield_from);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
             Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Coroutine_throw2(tstate, coro, true, exception_type, exception_value, exception_tb);
             Nuitka_MarkGeneratorAsNotRunning(generator);
-        } else if (Nuitka_CoroutineWrapper_Check(generator->m_yieldfrom)) {
+        } else if (Nuitka_CoroutineWrapper_Check(generator->m_yield_from)) {
             struct Nuitka_CoroutineObject *coro =
-                ((struct Nuitka_CoroutineWrapperObject *)generator->m_yieldfrom)->m_coroutine;
+                ((struct Nuitka_CoroutineWrapperObject *)generator->m_yield_from)->m_coroutine;
 
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
             Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Coroutine_throw2(tstate, coro, true, exception_type, exception_value, exception_tb);
             Nuitka_MarkGeneratorAsNotRunning(generator);
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
-        } else if (PyCoro_CheckExact(generator->m_yieldfrom)) {
-            PyGenObject *gen = (PyGenObject *)generator->m_yieldfrom;
+        } else if (PyCoro_CheckExact(generator->m_yield_from)) {
+            PyGenObject *gen = (PyGenObject *)generator->m_yield_from;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
             Nuitka_MarkGeneratorAsRunning(generator);
@@ -1069,9 +1070,9 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
             Nuitka_MarkGeneratorAsNotRunning(generator);
 #endif
 #if PYTHON_VERSION >= 0x360
-        } else if (Nuitka_AsyncgenAsend_Check(generator->m_yieldfrom)) {
+        } else if (Nuitka_AsyncgenAsend_Check(generator->m_yield_from)) {
             struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
-                ((struct Nuitka_AsyncgenAsendObject *)generator->m_yieldfrom);
+                ((struct Nuitka_AsyncgenAsendObject *)generator->m_yield_from);
 
             // Transferred exception ownership to "_Nuitka_AsyncgenAsend_throw2".
             Nuitka_MarkGeneratorAsRunning(generator);
@@ -1080,7 +1081,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 #endif
 #endif
         } else {
-            PyObject *meth = PyObject_GetAttr(generator->m_yieldfrom, const_str_plain_throw);
+            PyObject *meth = PyObject_GetAttr(generator->m_yield_from, const_str_plain_throw);
             if (unlikely(meth == NULL)) {
                 if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
                     // Release exception, we are done with it now.
@@ -1101,7 +1102,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 
 #if 0
             // TODO: Add slow mode traces.
-            PRINT_ITEM(coroutine->m_yieldfrom);
+            PRINT_ITEM(coroutine->m_yield_from);
             PRINT_NEW_LINE();
 #endif
             Nuitka_MarkGeneratorAsRunning(generator);
@@ -1118,14 +1119,14 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 
         if (unlikely(ret == NULL)) {
             // Return value or exception, not to continue with yielding from.
-            if (generator->m_yieldfrom != NULL) {
-                CHECK_OBJECT(generator->m_yieldfrom);
+            if (generator->m_yield_from != NULL) {
+                CHECK_OBJECT(generator->m_yield_from);
 #if _DEBUG_GENERATOR
                 PRINT_GENERATOR_STATUS("Null return, yield from removal:", generator);
-                PRINT_COROUTINE_VALUE("yieldfrom", generator->m_yieldfrom);
+                PRINT_COROUTINE_VALUE("yield_from", generator->m_yield_from);
 #endif
-                Py_DECREF(generator->m_yieldfrom);
-                generator->m_yieldfrom = NULL;
+                Py_DECREF(generator->m_yield_from);
+                generator->m_yield_from = NULL;
             }
 
             PyObject *val;
@@ -1382,9 +1383,9 @@ static int Nuitka_Generator_set_qualname(struct Nuitka_GeneratorObject *generato
 }
 
 static PyObject *Nuitka_Generator_get_yieldfrom(struct Nuitka_GeneratorObject *generator) {
-    if (generator->m_yieldfrom) {
-        Py_INCREF(generator->m_yieldfrom);
-        return generator->m_yieldfrom;
+    if (generator->m_yield_from) {
+        Py_INCREF(generator->m_yield_from);
+        return generator->m_yield_from;
     } else {
         Py_INCREF(Py_None);
         return Py_None;
@@ -1486,8 +1487,6 @@ static PyAsyncMethods Nuitka_Generator_as_async = {
     NULL /* am_send */
 };
 #endif
-
-#include <structmember.h>
 
 PyTypeObject Nuitka_Generator_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_generator", // tp_name
@@ -1649,7 +1648,7 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x300
-    result->m_yieldfrom = NULL;
+    result->m_yield_from = NULL;
 #endif
 
     memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));

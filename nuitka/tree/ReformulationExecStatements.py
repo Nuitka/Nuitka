@@ -62,11 +62,11 @@ def wrapEvalGlobalsAndLocals(
     locals_scope = provider.getLocalsScope()
 
     globals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="globals"
+        temp_scope=temp_scope, name="globals", temp_type="object"
     )
 
     locals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="locals"
+        temp_scope=temp_scope, name="locals", temp_type="object"
     )
 
     if locals_node is None:
@@ -223,19 +223,19 @@ exec: arg 1 must be a string, file, or code object""",
     source_code = buildNode(provider, body, source_ref)
 
     source_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="exec_source"
+        temp_scope=temp_scope, name="exec_source", temp_type="object"
     )
 
     globals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="globals"
+        temp_scope=temp_scope, name="globals", temp_type="object"
     )
 
     locals_keeper_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="locals"
+        temp_scope=temp_scope, name="locals", temp_type="object"
     )
 
     plain_indicator_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="plain"
+        temp_scope=temp_scope, name="plain", temp_type="bool"
     )
 
     tried = (

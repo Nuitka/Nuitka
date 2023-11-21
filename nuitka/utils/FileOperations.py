@@ -30,15 +30,16 @@ import glob
 import os
 import shutil
 import stat
+import sys
 import tempfile
 import time
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     PermissionError,
-    WindowsError,
     basestring,
     raw_input,
+    unicode,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
@@ -51,7 +52,13 @@ from nuitka.Tracing import (
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import isLinux, isMacOS, isWin32OrPosixWindows, isWin32Windows
+from .Utils import (
+    isLinux,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+    raiseWindowsError,
+)
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -293,8 +300,28 @@ def listDir(path):
     """
     real_path = getDirectoryRealPath(path)
 
+    # The "os.listdir" output needs to be unicode paths, or else it can be unusable
+    # for Python2 on Windows at least. We try to go back on the result.
+    if str is bytes and type(real_path) is str:
+        real_path = unicode(real_path)
+
+    def _tryDecodeToStr(value):
+        if str is bytes:
+            if type(value) is unicode:
+                # File system paths, that should be usable for names of modules,
+                # as Python2 code objects will e.g. hate unicode values.
+
+                # spell-checker: ignore getfilesystemencoding
+                try:
+                    return value.decode(sys.getfilesystemencoding())
+                except UnicodeDecodeError:
+                    return value
+        else:
+            return value
+
     return sorted(
-        [(os.path.join(path, filename), filename) for filename in os.listdir(real_path)]
+        (_tryDecodeToStr(os.path.join(path, filename)), _tryDecodeToStr(filename))
+        for filename in os.listdir(real_path)
     )
 
 
@@ -1021,10 +1048,7 @@ def getWindowsShortPathName(filename):
             if ctypes.GetLastError() == 5:
                 return filename
 
-            raise WindowsError(
-                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-            )
-
+            raiseWindowsError("getWindowsShortPathName for %s" % filename)
         if output_buf_size >= needed:
             # Short paths should be ASCII. Don't return unicode without a need,
             # as e.g. Scons hates that in environment variables.
@@ -1068,10 +1092,7 @@ def getWindowsLongPathName(filename):
             if ctypes.GetLastError() == 5:
                 return filename
 
-            raise WindowsError(
-                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-            )
-
+            raiseWindowsError("getWindowsLongPathName for %s" % filename)
         if output_buf_size >= needed:
             return output_buf.value
         else:
@@ -1202,6 +1223,10 @@ def getLinkTarget(filename):
     return is_link, filename
 
 
+# Late import and optional to be there.
+atomicwrites = None
+
+
 def replaceFileAtomic(source_path, dest_path):
     """
     Move ``src`` to ``dst``. If ``dst`` exists, it will be silently
@@ -1216,9 +1241,12 @@ def replaceFileAtomic(source_path, dest_path):
     if python_version >= 0x300:
         os.replace(source_path, dest_path)
     else:
-        importFromInlineCopy("atomicwrites", must_exist=True).replace_atomic(
-            source_path, dest_path
-        )
+        global atomicwrites  # singleton, pylint: disable=global-statement
+
+        if atomicwrites is None:
+            atomicwrites = importFromInlineCopy("atomicwrites", must_exist=True)
+
+        atomicwrites.replace_atomic(source_path, dest_path)
 
 
 def resolveShellPatternToFilenames(pattern):

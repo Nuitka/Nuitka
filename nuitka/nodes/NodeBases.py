@@ -28,7 +28,7 @@ expression only stuff.
 import ast
 from abc import abstractmethod
 
-from nuitka import Options, Tracing, TreeXML, Variables
+from nuitka import Options, Tracing, TreeXML
 from nuitka.__past__ import iterItems
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
@@ -38,6 +38,7 @@ from nuitka.utils.InstanceCounters import (
     counted_init,
     isCountingInstances,
 )
+from nuitka.Variables import TempVariable
 
 from .FutureSpecs import fromFlags
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
@@ -400,10 +401,6 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
-    def isExpressionImportModuleNameHard():
-        return False
-
-    @staticmethod
     def isExpressionFunctionCreation():
         return False
 
@@ -567,7 +564,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return "%s_%d" % (name, self.temp_scopes[name])
 
-    def allocateTempVariable(self, temp_scope, name, temp_type=None):
+    def allocateTempVariable(self, temp_scope, name, temp_type):
         if temp_scope is not None:
             full_name = "%s__%s" % (temp_scope, name)
         else:
@@ -591,14 +588,11 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         if temp_name in self.temp_variables:
             return self.temp_variables[temp_name]
 
-        if temp_type is None:
-            temp_class = Variables.TempVariable
-        elif temp_type == "bool":
-            temp_class = Variables.TempVariableBool
-        else:
-            assert False, temp_type
-
-        result = temp_class(owner=self, variable_name=temp_name)
+        result = TempVariable(
+            owner=self,
+            variable_name=temp_name,
+            variable_type=temp_type,
+        )
 
         self.temp_variables[temp_name] = result
 

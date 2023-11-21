@@ -33,9 +33,6 @@ class ExpressionImportHardBase(ExpressionBase):
 
         self.module_name = ModuleName(module_name)
 
-        self.finding = None
-        self.module_filename = None
-
         (
             _module_name,
             self.module_filename,
@@ -85,11 +82,6 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
             "import_name": self.import_name,
             "module_guaranteed": self.module_guaranteed,
         }
-
-    # Derived ones have the same interface.
-    @staticmethod
-    def isExpressionImportModuleNameHard():
-        return True
 
     @staticmethod
     def hasVeryTrustedValue():

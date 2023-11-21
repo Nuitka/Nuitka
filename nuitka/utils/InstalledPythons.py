@@ -20,9 +20,12 @@
 import os
 import sys
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.PythonVersions import python_version_str
+from nuitka.PythonFlavors import isAnacondaPython, isMSYS2MingwPython
+from nuitka.PythonVersions import (
+    getInstalledPythonRegistryPaths,
+    python_version_str,
+)
 
 from .Execution import (
     NuitkaCalledProcessError,
@@ -55,10 +58,33 @@ class InstalledPython(object):
         return int(major) * 256 + int(minor) * 16
 
     def isAnacondaPython(self):
-        # TODO: This may not yet going to work really
+        if self.python_exe == sys.executable:
+            return isAnacondaPython()
+
+        # TODO: May not yet work really.
         return os.path.exists(
             os.path.join(os.path.dirname(self.python_exe), "..", "conda-meta")
         )
+
+    def isMSYS2MingwPython(self):
+        if self.python_exe == sys.executable:
+            return isMSYS2MingwPython()
+
+        # TODO: May not yet work really.
+        return (
+            os.path.exists(
+                os.path.join(os.path.dirname(self.python_exe), "..", "..", "msys2.ini")
+            )
+            and os.path.basename(os.path.dirname(self.python_exe)) == "mingw64"
+        )
+
+    def getPreferredPackageType(self):
+        if self.isAnacondaPython():
+            return "conda"
+        elif self.isMSYS2MingwPython():
+            return "pacman"
+        else:
+            return "pip"
 
     # Necessary for Python 2.7, otherwise SyntaxError is given on exec.
     @staticmethod
@@ -124,38 +150,6 @@ class InstalledPython(object):
 _installed_pythons = {}
 
 
-def getInstalledPythonRegistryPaths(python_version):
-    """Yield all Pythons as found in the Windows registry."""
-    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    if str is bytes:
-        import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
-    else:
-        import winreg  # pylint: disable=I0021,import-error,no-name-in-module
-
-    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
-        for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-            for suffix in "", "-32", "-arm64":
-                try:
-                    key = winreg.OpenKey(
-                        hkey_branch,
-                        r"SOFTWARE\Python\PythonCore\%s%s\InstallPath"
-                        % (python_version, suffix),
-                        0,
-                        winreg.KEY_READ | arch_key,
-                    )
-
-                    install_dir = os.path.normpath(winreg.QueryValue(key, ""))
-                except WindowsError:
-                    pass
-                else:
-                    candidate = os.path.normpath(
-                        os.path.join(install_dir, "python.exe")
-                    )
-
-                    if os.path.exists(candidate):
-                        yield candidate
-
-
 def _getPythonInstallPathsWindows(python_version):
     """Find Python installation on Windows.
 
@@ -181,7 +175,7 @@ def _getPythonInstallPathsWindows(python_version):
 
         seen.add(candidate)
 
-    for candidate in getInstalledPythonRegistryPaths(python_version=python_version):
+    for candidate in getInstalledPythonRegistryPaths(python_version):
         if candidate not in seen:
             seen.add(candidate)
             yield candidate
@@ -211,6 +205,7 @@ def findPythons(python_version):
         result.add(InstalledPython(python_exe=candidate, python_version=python_version))
 
     _installed_pythons[python_version] = result
+
     return result
 
 

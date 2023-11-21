@@ -93,6 +93,7 @@ def _myDetectVersion(cc):
         command = (
             cc,
             "-dumpversion",
+            "-dumpfullversion",
         )
     else:
         command = (

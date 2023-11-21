@@ -1208,7 +1208,7 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
         }
     }
 
-#if PYTHON_VERSION < 0x3B0
+#if PYTHON_VERSION < 0x3b0
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
 #else
     // TODO: Maybe we should have dedicated variations with the 4 hard coded

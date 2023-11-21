@@ -39,18 +39,20 @@ from nuitka.plugins.Plugins import (
 )
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Distributions import (
+    getDistributionFromModuleName,
+    getDistributionInstallerName,
+    getDistributionName,
+)
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import (
-    getArchitecture,
-    isDebianBasedLinux,
-    isLinux,
-    isMacOS,
-    isWin32Windows,
-)
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
+    # We are a bit detail rich and caching a bunch,
+    # pylint: disable=too-many-instance-attributes
+
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
@@ -60,6 +62,17 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     warned_about = set()
 
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
+        self.distribution = getDistributionFromModuleName(self.binding_name)
+
+        if self.distribution is None:
+            self.sysexit(
+                "Error, failed to locate the %s installation." % self.binding_name
+            )
+
+        self.distribution_name = getDistributionName(self.distribution)
+
+        self.installer_name = getDistributionInstallerName(self.distribution_name)
+
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
 
@@ -199,6 +212,8 @@ of files that you may not want to be included.""",
         return "."
 
     def _getSensiblePlugins(self):
+        # spell-checker: ignore imageformats,iconengines,mediaservice,printsupport
+        # spell-checker: ignore platformthemes,egldeviceintegrations,xcbglintegrations
         return OrderedSet(
             tuple(
                 family
@@ -390,7 +405,8 @@ import %(binding_name)s.QtCore
     def _getQmlFileList(self, dlls):
         qml_plugin_dir = self._getQmlDirectory()
 
-        # List all file types of the QML plugin folder that are data files and not DLLs.
+        # List all file types of the QML plugin folder that are data files and
+        # not DLLs, spell-checker: ignore qmlc,qmltypes,metainfo,qmldir
         datafile_suffixes = (
             ".qml",
             ".qmlc",
@@ -435,6 +451,7 @@ import %(binding_name)s.QtCore
                         self.getQtPluginTargetPath(),
                         filename_relative,
                     ),
+                    module_name=self.binding_package_name,
                     package_name=self.binding_package_name,
                     reason="qt plugin",
                 )
@@ -864,6 +881,7 @@ Prefix = .
                     dest_path=os.path.normpath(
                         os.path.join(self._getWebEngineTargetDir(), filename_relative)
                     ),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
@@ -876,17 +894,6 @@ Prefix = .
             )
 
         self.web_engine_done_binaries = True  # prevent multiple copies
-
-    def decideAllowOutsideDependencies(self, module_name):
-        if isLinux() and module_name.hasNamespace(self.binding_name):
-            if isDebianBasedLinux():
-                module_filename = self.locateModule(self.binding_name)
-
-                return "dist-packages" in module_filename.split("/")
-            else:
-                return False
-
-        return None
 
     def getQtPluginTargetPath(self):
         if self.binding_name == "PyQt6":
@@ -935,10 +942,13 @@ Prefix = .
                 count = 0
                 for filename in qt_bin_files:
                     basename = os.path.basename(filename).lower()
+                    # spell-checker: ignore libeay32,ssleay32
+
                     if basename in ("libeay32.dll", "ssleay32.dll"):
                         yield self.makeDllEntryPoint(
                             source_path=filename,
                             dest_path=basename,
+                            module_name=full_name,
                             package_name=full_name,
                             reason="needed by '%s'" % full_name.asString(),
                         )
@@ -963,6 +973,7 @@ Prefix = .
                             qml_target_dir,
                             filename_relative,
                         ),
+                        module_name=full_name,
                         package_name=full_name,
                         reason="Qt QML plugin DLL",
                     )
@@ -980,6 +991,7 @@ Prefix = .
                             yield self.makeDllEntryPoint(
                                 source_path=filename,
                                 dest_path=basename,
+                                module_name=full_name,
                                 package_name=full_name,
                                 reason="needed by OpenGL for '%s'"
                                 % full_name.asString(),
@@ -1008,6 +1020,7 @@ Prefix = .
                     )
 
                 # Manually loaded DLLs by Qt5.
+                # spell-checker: ignore libcrypto
                 for dll_basename in ("libssl-1_1", "libcrypto-1_1"):
                     dll_filename = dll_basename + arch_suffix + ".dll"
 
@@ -1018,6 +1031,7 @@ Prefix = .
                             yield self.makeDllEntryPoint(
                                 source_path=candidate,
                                 dest_path=dll_filename,
+                                module_name=full_name,
                                 package_name=full_name,
                                 reason="needed by '%s'" % full_name.asString(),
                             )
@@ -1030,6 +1044,7 @@ Prefix = .
                 yield self.makeDllEntryPoint(
                     source_path=dll_path,
                     dest_path=os.path.basename(dll_path),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
@@ -1039,6 +1054,7 @@ Prefix = .
                 yield self.makeDllEntryPoint(
                     source_path=dll_path,
                     dest_path=os.path.basename(dll_path),
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
                 )
@@ -1116,8 +1132,9 @@ behavior with the uncompiled code."""
             module_set=module_set, plugin_binding_name=self.binding_name
         )
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Third party packages that make binding selections."""
+        # spell-checker: ignore pyqtgraph
         if module_name.hasNamespace("pyqtgraph"):
             # TODO: Add a mechanism to force all variable references of a name to something
             # during tree building, that would cover all uses in a nicer way.

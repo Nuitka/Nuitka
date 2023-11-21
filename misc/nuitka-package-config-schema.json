@@ -91,7 +91,8 @@
                                         }
                                     ]
                                 }
-                            }
+                            },
+                            "required" : ["prefixes"]
                         },
                         "by_code": {
                             "additionalProperties": false,
@@ -162,6 +163,9 @@
                             "type": "string"
                         },
                         "no-auto-follow": {
+                            "type": "object"
+                        },
+                        "bloat-mode-overrides": {
                             "type": "object"
                         },
                         "when": {
@@ -309,6 +313,17 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "package-system-dlls": {
+                            "type": "string",
+                            "oneOf": [
+                                {
+                                    "const": "yes"
+                                },
+                                {
+                                    "const": "no"
+                                }
+                            ]
                         },
                         "when": {
                             "type": "string"

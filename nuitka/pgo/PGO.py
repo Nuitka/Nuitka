@@ -44,6 +44,14 @@ def _readStringValue(input_file):
     return _pgo_strings[_readCIntValue(input_file)]
 
 
+def _readModuleIdentifierValue(input_file):
+    module_identifier = _readStringValue(input_file)
+    if str is not bytes:
+        module_identifier = module_identifier.decode("utf8")
+
+    return module_identifier
+
+
 def readPGOInputFile(input_filename):
     """Read PGO information produced by a PGO run."""
 
@@ -84,21 +92,21 @@ def readPGOInputFile(input_filename):
             # Which probe is it.
             probe_name = _readStringValue(input_file)
 
-            if probe_name == "ModuleEnter":
-                module_name = _readStringValue(input_file)
+            if probe_name == b"ModuleEnter":
+                module_name = _readModuleIdentifierValue(input_file)
                 arg = _readCIntValue(input_file)
 
                 _module_entries[module_name] = arg
-            elif probe_name == "ModuleExit":
-                module_name = _readStringValue(input_file)
+            elif probe_name == b"ModuleExit":
+                module_name = _readModuleIdentifierValue(input_file)
                 had_error = _readCIntValue(input_file) != 0
 
                 _module_exits[module_name] = had_error
-            elif probe_name == "END":
+            elif probe_name == b"END":
                 break
             else:
                 pgo_logger.sysexit(
-                    "Error, unknown problem '%s' encountered." % probe_name
+                    "Error, unknown probe '%s' encountered." % probe_name
                 )
 
     _pgo_active = True

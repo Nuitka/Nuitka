@@ -214,7 +214,9 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
         SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_KeyError, key);
     }
 #else
-    return _MAKE_EXCEPTION_FROM_TYPE_ARG(PyExc_KeyError, key);
+    PyObject *exception_value = _MAKE_EXCEPTION_FROM_TYPE_ARG0(PyExc_KeyError, key);
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_KeyError, exception_value);
 #endif
 }
 

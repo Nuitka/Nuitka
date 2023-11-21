@@ -26,6 +26,7 @@ import sys
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 
 
@@ -163,7 +164,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         del sys.path[0]
 
 
-def importFromInlineCopy(module_name, must_exist):
+def importFromInlineCopy(module_name, must_exist, delete_module=False):
     """Import a module from the inline copy stage."""
 
     folder_name = os.path.normpath(
@@ -181,13 +182,18 @@ def importFromInlineCopy(module_name, must_exist):
     elif python_version < 0x360 and os.path.exists(candidate_35):
         folder_name = candidate_35
 
-    return _importFromFolder(
+    module = _importFromFolder(
         module_name=module_name,
         path=folder_name,
         must_exist=must_exist,
         message=None,
         logger=general,
     )
+
+    if delete_module and module_name in sys.modules:
+        del sys.modules[module_name]
+
+    return module
 
 
 _compile_time_modules = {}
@@ -224,7 +230,30 @@ def isBuiltinModuleName(module_name):
     else:
         import _imp
 
-    return _imp.is_builtin(module_name)
+    result = _imp.is_builtin(module_name) or _imp.is_frozen(module_name)
+
+    # Some frozen modules are not actually in that list, e.g.
+    # "importlib._bootstrap_external" on Python3.10 doesn't report to
+    # "_imp.is_frozen()" above, so we check if it's already loaded and from the
+    # "FrozenImporter" by name.
+    if result is False and module_name in sys.modules:
+        module = sys.modules[module_name]
+
+        if hasattr(module, "__loader__"):
+            loader = module.__loader__
+
+            try:
+                result = loader.__name__ == "FrozenImporter"
+            except AttributeError:
+                pass
+
+    return result
+
+
+# Have a set for quicker lookups, and we cannot have "__main__" in there.
+builtin_module_names = set(
+    module_name for module_name in sys.builtin_module_names if module_name != "__main__"
+)
 
 
 def getModuleFilenameSuffixes():
@@ -251,3 +280,31 @@ def getModuleFilenameSuffixes():
             yield suffix, "PY_SOURCE"
         for suffix in importlib.machinery.BYTECODE_SUFFIXES:
             yield suffix, "PY_COMPILED"
+
+
+def getModuleNameAndKindFromFilenameSuffix(module_filename):
+    """Given a filename, decide the module name and kind.
+
+    Args:
+        module_name - file path of the module
+    Returns:
+        Tuple with the name of the module basename, and the kind of the
+        module derived from the file suffix. Can be None, None if is is not a
+        known file suffix.
+    Notes:
+        This doesn't handle packages at all.
+    """
+    if module_filename.endswith(".py"):
+        return ModuleName(os.path.basename(module_filename)[:-3]), "py"
+
+    if module_filename.endswith(".pyc"):
+        return ModuleName(os.path.basename(module_filename)[:-4]), "pyc"
+
+    for suffix in getSharedLibrarySuffixes():
+        if module_filename.endswith(suffix):
+            return (
+                ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
+                "extension",
+            )
+
+    return None, None

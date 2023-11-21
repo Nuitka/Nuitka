@@ -141,10 +141,6 @@ trace_mode = getArgumentBool("trace_mode", False)
 # good with the compiler in question.
 lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
-# Windows target mode: Compile for Windows. Used to be an option, but we
-# no longer cross compile this way.
-win_target = os.name == "nt"
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -164,7 +160,7 @@ clang_mode = getArgumentBool("clang_mode", False)
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if clang_mode and win_target and not mingw_mode:
+if clang_mode and os.name == "nt" and not mingw_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -223,7 +219,7 @@ if "CXX" in os.environ:
 
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
-    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+    if os.name == "nt" and isGccName(os.path.basename(os.environ["CXX"])):
         if show_scons_mode:
             my_print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
@@ -283,6 +279,7 @@ env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
+env.nuitka_src = nuitka_src
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
@@ -298,8 +295,8 @@ env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 env.clang_mode = clang_mode
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = win_target and not env.gcc_mode
-env.mingw_mode = win_target and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
@@ -314,7 +311,7 @@ if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
     my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
 
-    if win_target and env.msvc_mode:
+    if os.name == "nt" and env.msvc_mode:
         my_print("(MSVC %s)" % getMsvcVersionString(env))
 
     my_print()
@@ -332,6 +329,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    onefile_compile=True,
 )
 
 # Avoid them as appearing to be different files. TODO: Find out which
@@ -426,8 +424,8 @@ env.Append(
     CPPPATH=[
         source_dir,
         nuitka_include,
-        os.path.join(nuitka_src, "static_src"),
-        os.path.join(nuitka_src, "inline_copy", "zstd"),
+        os.path.join(env.nuitka_src, "static_src"),
+        os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
 )
 
@@ -436,8 +434,6 @@ if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if isMacOS():
-    env.Append(CPPDEFINES=["_NUITKA_PAYLOAD_FROM_MACOS_SECTION"])
-
     addConstantBlobFile(
         env=env,
         blob_filename=os.path.join(source_dir, "__payload.bin"),
@@ -462,9 +458,8 @@ def discoverSourceFiles():
     # Main onefile bootstrap program
     result.append(
         provideStaticSourceFile(
+            env=env,
             sub_path="OnefileBootstrap.c",
-            nuitka_src=nuitka_src,
-            source_dir=source_dir,
             c11_mode=env.c11_mode,
         )
     )
@@ -472,9 +467,8 @@ def discoverSourceFiles():
     if onefile_splash_screen:
         result.append(
             provideStaticSourceFile(
+                env=env,
                 sub_path="OnefileSplashScreen.cpp",
-                nuitka_src=nuitka_src,
-                source_dir=source_dir,
                 c11_mode=False,
             )
         )
@@ -509,7 +503,6 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    win_target=win_target,
     module_mode=module_mode,
     source_files=source_files,
 )

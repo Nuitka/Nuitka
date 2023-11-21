@@ -32,6 +32,16 @@ from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getDllExportedSymbols
+from nuitka.utils.Utils import isMacOS
+
+
+def getPythonEntryPointExportedSymbolName(module_name):
+    result = "%s%s" % ("init" if str is bytes else "PyInit_", module_name.asString())
+
+    if isMacOS():
+        result = "_" + result
+
+    return result
 
 
 def isExtensionModule(module_filename):
@@ -47,8 +57,7 @@ def isExtensionModule(module_filename):
                 return None
 
             return (
-                "%s%s" % ("init" if str is bytes else "PyInit_", module_name.asString())
-                in exported_symbols
+                getPythonEntryPointExportedSymbolName(module_name) in exported_symbols
             )
 
     return False

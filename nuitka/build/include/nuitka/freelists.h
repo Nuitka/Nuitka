@@ -19,6 +19,16 @@
 #ifndef __NUITKA_FREELISTS_H__
 #define __NUITKA_FREELISTS_H__
 
+#ifndef __cplusplus
+#include "stdbool.h"
+#endif
+
+#ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL
+static const bool use_freelists = false;
+#else
+static const bool use_freelists = true;
+#endif
+
 #define allocateFromFreeList(free_list, object_type, type_type, size)                                                  \
     if (free_list != NULL) {                                                                                           \
         result = free_list;                                                                                            \
@@ -51,7 +61,7 @@
     CHECK_OBJECT(result);
 
 #define releaseToFreeList(free_list, object, max_free_list_count)                                                      \
-    if (free_list != NULL || max_free_list_count == 0) {                                                               \
+    if (free_list != NULL || max_free_list_count == 0 || use_freelists == false) {                                     \
         if (free_list##_count >= max_free_list_count) {                                                                \
             PyObject_GC_Del(object);                                                                                   \
         } else {                                                                                                       \

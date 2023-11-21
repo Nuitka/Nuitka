@@ -174,3 +174,9 @@ ctypes_cdll_before_38_spec = BuiltinParameterSpec(
     ),
     default_count=4,
 )
+
+builtins_open_since_3_spec = BuiltinParameterSpec(
+    "builtins.open",
+    ("file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"),
+    default_count=7,
+)

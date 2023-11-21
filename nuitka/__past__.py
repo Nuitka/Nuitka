@@ -27,7 +27,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 import pkgutil
 import sys
-from abc import ABCMeta
+from hashlib import md5 as _md5
 
 # pylint: disable=invalid-name,self-assigning-variable
 
@@ -118,7 +118,7 @@ if str is bytes:
 else:
 
     def to_byte(value):
-        assert type(value) is int and 0 <= value < 256
+        assert type(value) is int and 0 <= value < 256, value
         return bytes((value,))
 
     def from_byte(value):
@@ -135,19 +135,6 @@ try:
     from types import UnionType
 except ImportError:
     UnionType = None
-
-
-def getMetaClassBase(meta_class_prefix):
-    """For Python2/3 compatible source, we create a base class that has the metaclass
-    used and doesn't require making a choice.
-    """
-
-    class MetaClass(ABCMeta):
-        pass
-
-    MetaClassBase = MetaClass("%sMetaClassBase" % meta_class_prefix, (object,), {})
-
-    return MetaClassBase
 
 
 if str is bytes:
@@ -181,14 +168,25 @@ else:
 
 
 try:
-    ExceptionGroup = ExceptionGroup
+    ExceptionGroup = ExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
     ExceptionGroup = None
 
 try:
-    BaseExceptionGroup = BaseExceptionGroup
+    BaseExceptionGroup = BaseExceptionGroup  # pylint: disable=I0021,redefined-builtin
 except NameError:
     BaseExceptionGroup = None
+
+try:
+    _md5()
+except ValueError:
+    # On FIPS compliant systems, checks might be enabled that require
+    # this parameter to be set.
+    def md5(value=b""):
+        return _md5(value, usedforsecurity=False)
+
+else:
+    md5 = _md5
 
 # For PyLint to be happy.
 assert long
