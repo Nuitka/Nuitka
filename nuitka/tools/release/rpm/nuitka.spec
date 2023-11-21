@@ -8,8 +8,8 @@
 
 %global _python_bytecompile_errors_terminate_build 0
 
-Name:           nuitka
-Version:        VERSION
+Name:           PROJECT_NAME
+Version:        PROJECT_VERSION
 Release:        5%{?dist}
 Summary:        Python compiler with full language support and CPython compatibility
 Group:          Development/Languages/Python
@@ -55,7 +55,7 @@ BuildRequires:  python3-tools
 %if 0%{?fedora} >= 35 || 0%{?suse_version} >= 1500
 BuildRequires:  python3-setuptools
 %endif
-BuildRequires:  gcc-c++
+BuildRequires:  gcc
 BuildRequires:  strace
 BuildRequires:  patchelf
 BuildRequires:  ccache
@@ -187,7 +187,7 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
@@ -241,6 +241,11 @@ rm -rf %{buildroot}
 %{_bindir}/nuitka3-run
 %endif
 %changelog
+* Thu Nov 23 2023 Kay Hayen <kay.hayen@gmail.com> - 1.9
+- changes to build without OBS, removed man pages they
+  are not really needed anyway and are too difficult to
+  maintain.
+
 * Sat Dec 28 2019 Kay Hayen <kay.hayen@gmail.com> - 0.6.7
 - adapted for Fedora31 and CentOS 8, Python3 enhancements
 - added Python3 for openSUSE 15 or higher too.
