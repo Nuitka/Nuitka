@@ -106,6 +106,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             if isWin32Windows():
                 url = "https://github.com/ccache/ccache/releases/download/v4.6/ccache-4.6-windows-32.zip"
                 ccache_binary = getCachedDownload(
+                    name="ccache",
                     url=url,
                     is_arch_specific=False,
                     specificity=url.rsplit("/", 2)[1],
@@ -121,6 +122,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                     url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
 
                     ccache_binary = getCachedDownload(
+                        name="ccache",
                         url=url,
                         is_arch_specific=False,
                         specificity=url.rsplit("/", 2)[1],

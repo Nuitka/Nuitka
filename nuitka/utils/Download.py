@@ -24,6 +24,7 @@ import os
 
 from nuitka import Tracing
 from nuitka.__past__ import urlretrieve
+from nuitka.Progress import withNuitkaDownloadProgressBar
 
 from .AppDirs import getCacheDir
 from .FileOperations import (
@@ -34,11 +35,23 @@ from .FileOperations import (
 )
 
 
-def getDownload(url, download_path):
-    try:
-        urlretrieve(url, download_path)
-    except Exception:  # Any kind of error, pylint: disable=broad-except
-        urlretrieve(url.replace("https://", "http://"), download_path)
+def getDownload(name, url, download_path):
+    # requests api, spell-checker: ignore reporthook
+
+    with withNuitkaDownloadProgressBar(desc="Download %s" % name) as reporthook:
+        try:
+            try:
+                urlretrieve(url, download_path, reporthook=reporthook)
+            except Exception:  # Any kind of error, pylint: disable=broad-except
+                urlretrieve(
+                    url.replace("https://", "http://"),
+                    download_path,
+                    reporthook=reporthook,
+                )
+        except KeyboardInterrupt:
+            deleteFile(download_path, must_exist=False)
+
+            raise
 
 
 def getDownloadCacheDir():
@@ -46,6 +59,7 @@ def getDownloadCacheDir():
 
 
 def getCachedDownload(
+    name,
     url,
     binary,
     flatten,
@@ -99,7 +113,11 @@ Fully automatic, cached. Proceed and download"""
             Tracing.general.info("Downloading '%s'." % url)
 
             try:
-                getDownload(url=url, download_path=download_path)
+                getDownload(
+                    name=name,
+                    url=url,
+                    download_path=download_path,
+                )
             except Exception as e:  # Any kind of error, pylint: disable=broad-except
                 Tracing.general.sysexit(
                     "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
@@ -150,10 +168,10 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-16.0.6-11.0.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.2.0-llvm-16.0.6-mingw-w64msvcrt-11.0.1-r1.zip"
         binary = r"mingw64\bin\gcc.exe"
     elif target_arch == "x86":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-i686-posix-dwarf-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-16.0.6-11.0.1-msvcrt-r1/winlibs-i686-posix-dwarf-gcc-13.2.0-llvm-16.0.6-mingw-w64msvcrt-11.0.1-r1.zip"
         binary = r"mingw32\bin\gcc.exe"
     elif target_arch == "arm64":
         url = None
@@ -164,6 +182,7 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
         return None
 
     gcc_binary = getCachedDownload(
+        name="mingw64",
         url=url,
         is_arch_specific=target_arch,
         specificity=url.rsplit("/", 2)[1],

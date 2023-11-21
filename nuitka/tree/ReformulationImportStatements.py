@@ -220,7 +220,10 @@ def buildImportFromNode(provider, node, source_ref):
     else:
         if module_name == "__future__":
             imported_from_module = makeExpressionImportModuleFixed(
-                module_name="__future__", source_ref=source_ref
+                using_module_name=provider.getParentModule().getFullName(),
+                module_name="__future__",
+                value_name="__future__",
+                source_ref=source_ref,
             )
         else:
             imported_from_module = ExpressionBuiltinImport(
@@ -239,7 +242,9 @@ def buildImportFromNode(provider, node, source_ref):
 
         if multi_names:
             tmp_import_from = provider.allocateTempVariable(
-                temp_scope=provider.allocateTempScope("import_from"), name="module"
+                temp_scope=provider.allocateTempScope("import_from"),
+                name="module",
+                temp_type="object",
             )
 
             statements.append(

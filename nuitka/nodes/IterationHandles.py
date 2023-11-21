@@ -22,11 +22,14 @@
 import math
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase, xrange
+from nuitka.__past__ import xrange
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 
-class IterationHandleBase(getMetaClassBase("IterationHandle")):
+class IterationHandleBase(getMetaClassBase("IterationHandle", require_slots=True)):
     """Base class for Iteration Handles."""
+
+    __slots__ = ()
 
     @abstractmethod
     def getNextValueExpression(self):
@@ -93,6 +96,11 @@ class ConstantIterationHandleBase(IterationHandleBase):
         Returns the boolean value of the next handle
     """
 
+    __slots__ = (
+        "constant_node",
+        "iter",
+    )
+
     def __init__(self, constant_node):
         assert constant_node.isIterableConstant()
 
@@ -142,8 +150,7 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
         Sequential access of the constants
     """
 
-    def __init__(self, constant_node):
-        ConstantIterationHandleBase.__init__(self, constant_node)
+    __slots__ = ()
 
     def getIterationValueWithIndex(self, value_index):
         """Tries to return constant value at the given index.
@@ -165,50 +172,49 @@ class ConstantIndexableIterationHandle(ConstantIterationHandleBase):
 
 
 class ConstantTupleIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantListIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantStrIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantUnicodeIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantBytesIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantBytearrayIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantRangeIterationHandle(ConstantIndexableIterationHandle):
-    pass
+    __slots__ = ()
 
 
 class ConstantSetAndDictIterationHandleBase(ConstantIterationHandleBase):
     """Class for the set and dictionary constants."""
 
-    def __init__(self, constant_node):
-        ConstantIterationHandleBase.__init__(self, constant_node)
+    __slots__ = ()
 
 
 class ConstantSetIterationHandle(ConstantSetAndDictIterationHandleBase):
-    pass
+    __slots__ = ()
 
 
 class ConstantFrozensetIterationHandle(ConstantSetAndDictIterationHandleBase):
-    pass
+    __slots__ = ()
 
 
 class ConstantDictIterationHandle(ConstantSetAndDictIterationHandleBase):
-    pass
+    __slots__ = ()
 
 
 class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
@@ -231,6 +237,8 @@ class ListAndTupleContainerMakingIterationHandle(IterationHandleBase):
     getIterationValueWithIndex(value_index)
         Sequential access of the expression
     """
+
+    __slots__ = ("elements", "iter")
 
     def __init__(self, elements):
         self.elements = elements
@@ -272,10 +280,12 @@ class RangeIterationHandleBase(IterationHandleBase):
     high : int
         Optional. An integer number specifying at which position to end.
     step : int
-        Optional. An integer number specifying the incrementation. Default is 1
+        Optional. An integer number specifying the increment. Default is 1
     """
 
     step = 1
+
+    __slots__ = ("low", "iter", "source_ref")
 
     def __init__(self, low_value, range_value, source_ref):
         self.low = low_value
@@ -332,6 +342,8 @@ class RangeIterationHandleBase(IterationHandleBase):
 class IterationHandleRange1(RangeIterationHandleBase):
     """Iteration handle for range(low,)"""
 
+    __slots__ = ()
+
     def __init__(self, low_value, source_ref):
         RangeIterationHandleBase.__init__(
             self, low_value, xrange(low_value), source_ref
@@ -348,6 +360,8 @@ class IterationHandleRange1(RangeIterationHandleBase):
 class IterationHandleRange2(RangeIterationHandleBase):
     """Iteration handle for ranges(low, high)"""
 
+    __slots__ = ("high",)
+
     def __init__(self, low_value, high_value, source_ref):
         RangeIterationHandleBase.__init__(
             self, low_value, xrange(low_value, high_value), source_ref
@@ -361,6 +375,11 @@ class IterationHandleRange2(RangeIterationHandleBase):
 
 class IterationHandleRange3(RangeIterationHandleBase):
     """Iteration handle for ranges(low, high, step)"""
+
+    __slots__ = (
+        "high",
+        "step",
+    )
 
     def __init__(self, low_value, high_value, step_value, source_ref):
         RangeIterationHandleBase.__init__(

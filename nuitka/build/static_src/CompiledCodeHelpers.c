@@ -67,6 +67,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
+#include "HelperEnvironmentVariables.c"
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
@@ -1868,8 +1869,11 @@ static char const *getDllDirectory(void) {
 
 #else
     Dl_info where;
-    int res = dladdr((void *)getDllDirectory, &where);
-    assert(res != 0);
+
+    {
+        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+        assert(res != 0);
+    }
 
     return dirname((char *)where.dli_fname);
 #endif
@@ -1902,10 +1906,13 @@ void _initBuiltinModule(void) {
     assert(PyDict_Check(dict_builtin));
 
 #ifdef _NUITKA_STANDALONE
-    int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
-    assert(res == 0);
-    PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
-    assert(res == 0);
+    {
+        NUITKA_MAY_BE_UNUSED int res =
+            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
+        assert(res == 0);
+        PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
+        assert(res == 0);
+    }
 #endif
 
     // init Nuitka_BuiltinModule_Type, PyType_Ready won't copy all member from
@@ -1927,7 +1934,7 @@ void _initBuiltinModule(void) {
     Nuitka_BuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
     Nuitka_BuiltinModule_Type.tp_new = PyModule_Type.tp_new;
     Nuitka_BuiltinModule_Type.tp_free = PyModule_Type.tp_free;
-    int res2 = PyType_Ready(&Nuitka_BuiltinModule_Type);
+    NUITKA_MAY_BE_UNUSED int res2 = PyType_Ready(&Nuitka_BuiltinModule_Type);
     assert(res2 >= 0);
 
     // Replace type of builtin module to take over.

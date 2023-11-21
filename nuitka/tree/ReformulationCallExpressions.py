@@ -107,7 +107,7 @@ def buildCallNode(provider, node, source_ref):
             )
 
             tmp_called = outline_body.allocateTempVariable(
-                temp_scope=None, name="called"
+                temp_scope=None, name="called", temp_type="object"
             )
 
             helper_args = [

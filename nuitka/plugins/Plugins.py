@@ -119,10 +119,8 @@ def _addActivePlugin(plugin_class, args, force=False):
     else:
         plugin_args = {}
 
-    try:
+    with withPluginProblemReporting(plugin_class, "Plugin initialization failed", ()):
         plugin_instance = plugin_class(**plugin_args)
-    except TypeError as e:
-        plugin_class.sysexit("Problem initializing plugin: %s" % e)
 
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
 
@@ -465,8 +463,8 @@ class Plugins(object):
 
     @staticmethod
     def _reportImplicitImports(plugin, module, implicit_imports):
-        from nuitka.importing import Recursion
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
+        from nuitka.importing.Recursion import decideRecursion, recurseTo
 
         for full_name, module_filename in implicit_imports:
             # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
@@ -475,7 +473,7 @@ class Plugins(object):
             )
 
             # This will get back to all other plugins allowing them to inhibit it though.
-            decision, decision_reason = Recursion.decideRecursion(
+            decision, decision_reason = decideRecursion(
                 using_module_name=module.getFullName(),
                 module_filename=module_filename,
                 module_name=full_name,
@@ -483,7 +481,7 @@ class Plugins(object):
             )
 
             if decision:
-                imported_module = Recursion.recurseTo(
+                imported_module = recurseTo(
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
@@ -972,7 +970,7 @@ class Plugins(object):
                 fake_modules[full_name].append((fake_module, plugin, reason))
 
     @staticmethod
-    def onModuleSourceCode(module_name, source_code):
+    def onModuleSourceCode(module_name, source_filename, source_code):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
 
@@ -980,7 +978,11 @@ class Plugins(object):
 
         for plugin in getActivePlugins():
             with withPluginModuleNameProblemReporting(plugin, module_name):
-                new_source_code = plugin.onModuleSourceCode(module_name, source_code)
+                new_source_code = plugin.onModuleSourceCode(
+                    module_name=module_name,
+                    source_filename=source_filename,
+                    source_code=source_code,
+                )
                 if new_source_code is not None and new_source_code != source_code:
                     source_code = new_source_code
                     contributing_plugins.add(plugin)
@@ -1038,6 +1040,43 @@ class Plugins(object):
             result = must_recurse
 
         return result, deciding_plugins
+
+    module_usage_looked_ahead_cache = set()
+
+    @classmethod
+    def onModuleUsageLookAhead(cls, module_name, module_filename, module_kind):
+        if module_name in cls.module_usage_looked_ahead_cache:
+            return
+
+        cls.module_usage_looked_ahead_cache.add(module_name)
+
+        # Lazy load the source code if a plugin wants it, the pre_load caches
+        # the result for later usage.
+        def getModuleSourceCode():
+            if module_kind != "py":
+                return None
+
+            from nuitka.tree.SourceHandling import readSourceCodeFromFilename
+
+            if os.path.isdir(module_filename):
+                source_filename = os.path.join(module_filename, "__init__.py")
+            else:
+                source_filename = module_filename
+
+            if not os.path.isfile(source_filename):
+                return None
+
+            return readSourceCodeFromFilename(
+                module_name=module_name, source_filename=source_filename, pre_load=True
+            )
+
+        for plugin in getActivePlugins():
+            plugin.onModuleUsageLookAhead(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+                get_module_source=getModuleSourceCode,
+            )
 
     @staticmethod
     def onModuleRecursion(
@@ -1303,9 +1342,9 @@ class Plugins(object):
 
     @classmethod
     def encodeDataComposerName(cls, name):
+        # Encoding needs to match generated source code output.
         if str is not bytes:
-            # Encoding needs to match generated source code output.
-            name = name.encode("latin1")
+            name = name.encode("utf8")
 
         for plugin in getActivePlugins():
             r = plugin.encodeDataComposerName(name)
@@ -1336,41 +1375,45 @@ class Plugins(object):
                 yield value
 
     @classmethod
-    def decideAllowOutsideDependencies(cls, module_name):
-        if not Options.isExperimental("no-outside-dependencies"):
-            return None
+    def getExtraConstantDefaultPopulation(cls):
+        for plugin in getActivePlugins():
+            for value in plugin.getExtraConstantDefaultPopulation():
+                yield value
 
+    @classmethod
+    def decideAllowOutsideDependencies(cls, module_name):
         result = None
         plugin_name = None
 
-        if module_name is not None:
-            for plugin in getActivePlugins():
-                value = plugin.decideAllowOutsideDependencies(module_name)
+        assert module_name is not None
 
-                if value is True:
-                    if result is False:
-                        plugin.sysexit(
-                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
-                            % plugin_name
-                        )
+        for plugin in getActivePlugins():
+            value = plugin.decideAllowOutsideDependencies(module_name)
 
-                    result = True
-                    plugin_name = plugin.plugin_name
-
-                elif value is False:
-                    if result is False:
-                        plugin.sysexit(
-                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
-                            % plugin_name
-                        )
-
-                    result = False
-                    plugin_name = plugin.plugin_name
-                elif value is not None:
+            if value is True:
+                if result is False:
                     plugin.sysexit(
-                        "Error, can only return True, False, None from 'decideAllowOutsideDependencies' not %r"
-                        % value
+                        "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                        % plugin_name
                     )
+
+                result = True
+                plugin_name = plugin.plugin_name
+
+            elif value is False:
+                if result is False:
+                    plugin.sysexit(
+                        "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                        % plugin_name
+                    )
+
+                result = False
+                plugin_name = plugin.plugin_name
+            elif value is not None:
+                plugin.sysexit(
+                    "Error, can only return True, False, None from 'decideAllowOutsideDependencies' not %r"
+                    % value
+                )
 
         return result
 

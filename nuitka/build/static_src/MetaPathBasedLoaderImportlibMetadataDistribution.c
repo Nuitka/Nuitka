@@ -76,8 +76,10 @@ class nuitka_distribution(Distribution):\n\
             importlib_metadata_distribution = PyObject_GetAttrString(module, "distribution");
             CHECK_OBJECT(importlib_metadata_distribution);
 
-            bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_distribution_patch");
-            assert(bool_res != false);
+            {
+                NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_distribution_patch");
+                assert(bool_res != false);
+            }
 
             Py_DECREF(module);
         }

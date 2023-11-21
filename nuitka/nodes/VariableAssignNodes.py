@@ -183,6 +183,7 @@ class StatementAssignmentVariableMixin(object):
         self.variable_trace.assign_node = result
         result.variable_trace = self.variable_trace
         self.variable_trace = None
+        result.parent = self.parent
 
     def _considerSpecialization(self, old_source):
         # Specialize if possible, might have become that way only recently.
@@ -486,7 +487,7 @@ class StatementAssignmentVariableIterator(
         self.temp_scope = provider.allocateTempScope("iterator_access")
 
         self.tmp_iterated_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iterated_value"
+            temp_scope=self.temp_scope, name="iterated_value", temp_type="object"
         )
 
         reference_iterated = ExpressionTempVariableRef(
@@ -504,7 +505,7 @@ class StatementAssignmentVariableIterator(
         )
 
         self.tmp_iteration_count_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="iteration_count"
+            temp_scope=self.temp_scope, name="iteration_count", temp_type="object"
         )
 
         assign_iteration_count = makeStatementAssignmentVariable(
@@ -530,7 +531,7 @@ class StatementAssignmentVariableIterator(
 
         # For use when the "next" is replaced.
         self.tmp_iteration_next_variable = provider.allocateTempVariable(
-            temp_scope=self.temp_scope, name="next_value"
+            temp_scope=self.temp_scope, name="next_value", temp_type="object"
         )
 
         result = makeStatementsSequenceReplacementNode(
@@ -915,6 +916,9 @@ class StatementAssignmentVariableFromVariable(
         old_source = self.subnode_source
         variable = self.variable
 
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with built-in names.
         if not variable.isModuleVariable() and old_source.getVariable() is variable:
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
@@ -924,8 +928,10 @@ class StatementAssignmentVariableFromVariable(
                     expression=old_source, node=self
                 )
 
+                result = trace_collection.onStatement(result)
+
                 return (
-                    result.computeStatementsSequence(trace_collection),
+                    result,
                     "new_statements",
                     """\
 Lowered assignment of %s from itself to mere access of it."""
@@ -943,18 +949,22 @@ Removed assignment of %s from itself which is known to be defined."""
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
-        # Assigning from and to the same variable, can be optimized away
-        # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
+        if source.isExpressionVariableRef():
+            self.variable_trace = trace_collection.onVariableSetAliasing(
+                variable=variable,
+                version=self.variable_version,
+                assign_node=self,
+                source=source,
+            )
+        else:
+            # Set-up the trace to the trace collection, so future references will
+            # find this assignment.
+            self.variable_trace = trace_collection.onVariableSet(
+                variable=variable, version=self.variable_version, assign_node=self
+            )
 
-        # Set-up the trace to the trace collection, so future references will
-        # find this assignment.
-        self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
-        )
-
-        # TODO: Determine from future use of assigned variable, if this is needed at all.
-        trace_collection.removeKnowledge(source)
+            # TODO: Determine from future use of assigned variable, if this is needed at all.
+            trace_collection.removeKnowledge(source)
 
         return self._considerSpecialization(old_source)
 

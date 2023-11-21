@@ -46,7 +46,7 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
     } else {
         int kind1 = PyUnicode_KIND(a);
         if (unlikely(kind1 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)a);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
@@ -54,7 +54,7 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
 
         int kind2 = PyUnicode_KIND(b);
         if (unlikely(kind2 == 0)) {
-            int res = _PyUnicode_Ready((PyObject *)b);
+            NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);

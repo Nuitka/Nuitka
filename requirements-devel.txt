@@ -15,12 +15,12 @@ astroid == 2.15.6 ; python_version >= '3.8'
 # linting rest code snippets
 restructuredtext-lint==1.4.0 ; python_version >= '3.8'
 Pygments == 2.15.1 ; python_version >= '3.8'
-rstcheck == 6.1.2 ; python_version >= '3.8'
+rstcheck == 6.2.0 ; python_version >= '3.8'
 
 # Auto-format needs
 black == 23.7.0 ; python_version >= '3.8'
 toml >= 0.10.1 ; python_version >= '3.8'
-isort == 5.11.4 ; python_version >= '3.8'
+isort == 5.12.0 ; python_version >= '3.8'
 yamllint == 1.28.0 ; python_version >= '3.8'
 rstfmt == 0.0.13 ; python_version >= '3.8'
 jsonschema == 4.6.0 ; python_version >= '3.8'
@@ -48,6 +48,9 @@ tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
 # of newer virtualenv.
 virtualenv == 16.7.10; python_version == '2.7'
 virtualenv ; python_version >= '3.5'
+
+# Nuitka-Watch based testing and report based environment creations.
+pipenv
 
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'

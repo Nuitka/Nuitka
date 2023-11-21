@@ -52,7 +52,7 @@ from nuitka.code_generation.ComparisonHelperDefinitions import (
     getSpecializedComparisonOperations,
 )
 from nuitka.code_generation.ImportCodes import getImportModuleHardCodeName
-from nuitka.nodes.ImportNodes import (
+from nuitka.HardImportRegistry import (
     hard_modules,
     hard_modules_non_stdlib,
     hard_modules_version,

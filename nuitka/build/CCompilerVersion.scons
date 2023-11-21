@@ -69,6 +69,7 @@ from .SconsUtils import (
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
+    getArgumentRequired,
     getExecutablePath,
     initScons,
     isClangName,
@@ -86,6 +87,8 @@ setArguments(ARGUMENTS)
 # Set up the basic stuff.
 initScons()
 
+nuitka_src = getArgumentRequired("nuitka_src")
+
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
 
@@ -98,10 +101,6 @@ experimental = getArgumentList("experimental", "")
 # LTO mode: Use link time optimizations of C compiler if available and known
 # good with the compiler in question.
 lto_mode = getArgumentDefaulted("lto_mode", "auto")
-
-# Windows target mode: Compile for Windows. Used to be an option, but we
-# no longer cross compile this way.
-win_target = os.name == "nt"
 
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
@@ -122,7 +121,7 @@ clang_mode = getArgumentBool("clang_mode", False)
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not mingw_mode and clang_mode:
+if os.name == "nt" and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -163,7 +162,7 @@ if "CXX" in os.environ:
 
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
-    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+    if os.name == "nt" and isGccName(os.path.basename(os.environ["CXX"])):
         if show_scons_mode:
             my_print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
         mingw_mode = True
@@ -221,6 +220,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
+env.nuitka_src = nuitka_src
 env.low_memory = False
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
@@ -236,8 +236,8 @@ env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 env.clang_mode = clang_mode
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = win_target and not env.gcc_mode
-env.mingw_mode = win_target and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
@@ -253,12 +253,13 @@ env.the_compiler = getExecutablePath(env.the_compiler, env=env)
 # Report the C compiler used.
 reportCCompiler(env, "Version", my_print)
 
-# Set up C compiler settings.
+# Set up C compiler settings, we would use that mode mode outputs.
 setupCCompiler(
     env=env,
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    onefile_compile=False,
 )
 
 # TODO: Report modes.

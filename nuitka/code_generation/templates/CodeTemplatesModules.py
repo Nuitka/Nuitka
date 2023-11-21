@@ -23,7 +23,7 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-/* Generated code for Python module '%(module_name)s'
+/* Generated code for Python module '%(module_identifier)s'
  * created by Nuitka version %(version)s
  *
  * This code is in part copyright %(year)s Kay Hayen.
@@ -130,47 +130,36 @@ extern PyTypeObject Nuitka_Loader_Type;
 // in another process, useful for multiprocessing extensions like dill
 extern void registerDillPluginTables(PyThreadState *tstate, char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function);
 
-function_impl_code functable_%(module_identifier)s[] = {
+static function_impl_code const function_table_%(module_identifier)s[] = {
 %(module_function_table_entries)s
-    NULL
-};
-
-static char const *_reduce_compiled_function_argnames[] = {
-    "func",
     NULL
 };
 
 static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *func;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:reduce_compiled_function", (char **)_reduce_compiled_function_argnames, &func, NULL)) {
+    if (!PyArg_ParseTuple(args, "O:reduce_compiled_function", &func, NULL)) {
         return NULL;
     }
 
     if (Nuitka_Function_Check(func) == false) {
         PyThreadState *tstate = PyThreadState_GET();
 
-        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "not a compiled function");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
-    function_impl_code *current = functable_%(module_identifier)s;
-    int offset = 0;
+    int offset = Nuitka_Function_GetFunctionCodeIndex(function, function_table_%(module_identifier)s);
 
-    while (*current != NULL) {
-        if (*current == function->m_c_code) {
-            break;
-        }
-
-        current += 1;
-        offset += 1;
-    }
-
-    if (*current == NULL) {
+    if (unlikely(offset == -1)) {
         PyThreadState *tstate = PyThreadState_GET();
-
+#if 0
+        PRINT_STRING("Looking for:");
+        PRINT_ITEM(func);
+        PRINT_NEW_LINE();
+#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
         return NULL;
     }
@@ -185,11 +174,30 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     CHECK_OBJECT_DEEP(code_object_desc);
 
-    PyObject *result = MAKE_TUPLE_EMPTY(4);
+
+    PyObject *result = MAKE_TUPLE_EMPTY(6);
     PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
-    PyTuple_SET_ITEM0(result, 3, function->m_doc != NULL ? function->m_doc : Py_None);
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
+#else
+    PyTuple_SET_ITEM0(result, 3, Py_None);
+#endif
+    PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
+
+    if (offset == -5) {
+        CHECK_OBJECT(function->m_constant_return_value);
+        PyTuple_SET_ITEM0(result, 5, function->m_constant_return_value);
+    } else {
+        PyTuple_SET_ITEM0(result, 5, Py_None);
+    }
+
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 6, function->m_qualname);
+#else
+    PyTuple_SET_ITEM0(result, 6, Py_None);
+#endif
 
     CHECK_OBJECT_DEEP(result);
 
@@ -197,92 +205,48 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 }
 
 static PyMethodDef _method_def_reduce_compiled_function = {"reduce_compiled_function", (PyCFunction)_reduce_compiled_function,
-                                                           METH_VARARGS | METH_KEYWORDS, NULL};
-
-static char const *_create_compiled_function_argnames[] = {
-    "func",
-    "code_object_desc",
-    "defaults",
-    "doc",
-    NULL
-};
+                                                           METH_VARARGS, NULL};
 
 
 static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObject *kwds) {
     CHECK_OBJECT_DEEP(args);
 
-    PyObject *func;
+    PyObject *function_index;
     PyObject *code_object_desc;
     PyObject *defaults;
+    PyObject *kw_defaults;
     PyObject *doc;
+    PyObject *constant_return_value;
+    PyObject *function_qualname;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OOOO:create_compiled_function", (char **)_create_compiled_function_argnames, &func, &code_object_desc, &defaults, &doc, NULL)) {
+    if (!PyArg_ParseTuple(args, "OOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, NULL)) {
         return NULL;
     }
 
-    int offset = PyLong_AsLong(func);
-
-    if (offset == -1 && HAS_ERROR_OCCURRED(tstate)) {
-        return NULL;
-    }
-
-    if (offset > sizeof(functable_%(module_identifier)s) || offset < 0) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR_STATE(tstate, PyExc_TypeError, "Wrong offset for compiled function.");
-        return NULL;
-    }
-
-    PyObject *filename = PyTuple_GET_ITEM(code_object_desc, 0);
-    PyObject *function_name = PyTuple_GET_ITEM(code_object_desc, 1);
-    PyObject *line = PyTuple_GET_ITEM(code_object_desc, 2);
-    int line_int = PyLong_AsLong(line);
-    assert(!HAS_ERROR_OCCURRED(tstate));
-
-    PyObject *argnames = PyTuple_GET_ITEM(code_object_desc, 3);
-    PyObject *arg_count = PyTuple_GET_ITEM(code_object_desc, 4);
-    int arg_count_int = PyLong_AsLong(arg_count);
-    assert(!HAS_ERROR_OCCURRED(tstate));
-    PyObject *flags = PyTuple_GET_ITEM(code_object_desc, 5);
-    int flags_int = PyLong_AsLong(flags);
-    assert(!HAS_ERROR_OCCURRED(tstate));
-
-    PyCodeObject *code_object = MAKE_CODE_OBJECT(
-        filename,
-        line_int,
-        flags_int,
-        function_name,
-        function_name, // TODO: function_qualname
-        argnames,
-        NULL, // freevars
-        arg_count_int,
-        0, // TODO: Missing kw_only_count
-        0 // TODO: Missing pos_only_count
-    );
-
-    struct Nuitka_FunctionObject *result = Nuitka_Function_New(
-        functable_%(module_identifier)s[offset],
-        code_object->co_name,
 #if PYTHON_VERSION >= 0x300
-        NULL, // TODO: Not transferring qualname yet
+    if (kw_defaults == Py_None) {
+        kw_defaults = NULL;
+    }
 #endif
-        code_object,
-        defaults,
-#if PYTHON_VERSION >= 0x300
-        NULL, // kwdefaults are done on the outside currently
-        NULL, // TODO: Not transferring annotations
-#endif
+
+    return (PyObject *)Nuitka_Function_CreateFunctionViaCodeIndex(
         module_%(module_identifier)s,
+        function_qualname,
+        function_index,
+        code_object_desc,
+        constant_return_value,
+        defaults,
+        kw_defaults,
         doc,
-        NULL,
-        0
+        function_table_%(module_identifier)s,
+        sizeof(function_table_%(module_identifier)s) / sizeof(function_impl_code)
     );
-
-    return (PyObject *)result;
 }
 
 static PyMethodDef _method_def_create_compiled_function = {
     "create_compiled_function",
     (PyCFunction)_create_compiled_function,
-    METH_VARARGS | METH_KEYWORDS, NULL
+    METH_VARARGS, NULL
 };
 
 
@@ -291,7 +255,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
-    PGO_onModuleEntered("%(module_name)s");
+    PGO_onModuleEntered("%(module_identifier)s");
 
     // Store the module for future use.
     module_%(module_identifier)s = module;
@@ -325,7 +289,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
         // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
+        PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
         setupMetaPathBasedLoader(tstate);
 
@@ -336,7 +300,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 #endif
 
         /* The constants only used by this module are created now. */
-        NUITKA_PRINT_TRACE("%(module_name)s: Calling createModuleConstants().\n");
+        NUITKA_PRINT_TRACE("%(module_identifier)s: Calling createModuleConstants().\n");
         createModuleConstants(tstate);
 
         createModuleCodeObjects();
@@ -465,7 +429,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 %(module_code)s
 
     // Report to PGO about leaving the module without error.
-    PGO_onModuleExit("%(module_name)s", false);
+    PGO_onModuleExit("%(module_identifier)s", false);
 
     Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
@@ -560,7 +524,7 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
  */
 
 // Actual name might be different when loaded as a package.
-static char const *module_full_name = "%(module_name)s";
+static char const *module_full_name = %(module_name_cstr)s;
 
 MOD_INIT_DECL(%(module_identifier)s) {
     if (_Py_PackageContext != NULL) {
@@ -583,8 +547,10 @@ MOD_INIT_DECL(%(module_identifier)s) {
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
-    bool res = Nuitka_SetModuleString(module_full_name, module);
-    assert(res != false);
+    {
+        NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(module_full_name, module);
+        assert(res != false);
+    }
 #endif
 
     PyThreadState *tstate = PyThreadState_GET();

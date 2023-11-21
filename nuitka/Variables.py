@@ -25,7 +25,7 @@ module variable references.
 
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.__past__ import iterItems
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils import Utils
@@ -34,11 +34,12 @@ from nuitka.utils.InstanceCounters import (
     counted_init,
     isCountingInstances,
 )
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 complete = False
 
 
-class Variable(getMetaClassBase("Variable")):
+class Variable(getMetaClassBase("Variable", require_slots=True)):
     # We will need all of these attributes, since we track the global
     # state and cache some decisions as attributes. TODO: But in some
     # cases, part of the these might be moved to the outside.
@@ -390,21 +391,26 @@ class ModuleVariable(Variable):
 
 
 class TempVariable(Variable):
-    __slots__ = ()
+    __slots__ = ("variable_type",)
 
-    def __init__(self, owner, variable_name):
+    def __init__(self, owner, variable_name, variable_type):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
-    def getDescription(self):
-        return "temp variable '%s'" % self.variable_name
+        # TODO: Push this later down to Variable itself.
+        self.variable_type = variable_type
 
     @staticmethod
     def isTempVariable():
         return True
 
-    @staticmethod
-    def getVariableType():
-        return "object"
+    def getVariableType(self):
+        return self.variable_type
+
+    def isTempVariableBool(self):
+        return self.variable_type == "bool"
+
+    def getDescription(self):
+        return "temp variable '%s'" % self.variable_name
 
     def initVariable(self, trace_collection):
         """Initialize variable in trace collection state."""
@@ -415,21 +421,6 @@ class TempVariable(Variable):
         """Remove all knowledge for the variable marking as unknown, or keep it depending on variable type."""
         # For temporary variables, the knowledge is not by name, so never gets
         # lost to outside star imports or exec/eval uses.
-
-
-class TempVariableBool(TempVariable):
-    __slots__ = ()
-
-    def getDescription(self):
-        return "temp bool variable '%s'" % self.variable_name
-
-    @staticmethod
-    def isTempVariableBool():
-        return True
-
-    @staticmethod
-    def getVariableType():
-        return "bool"
 
 
 class LocalsDictVariable(Variable):

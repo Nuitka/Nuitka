@@ -73,6 +73,9 @@ def reExecuteNuitka(pgo_filename):
     if sys.version_info >= (3, 7) and sys.flags.utf8_mode:
         args += ["-X", "utf8"]
 
+    if sys.version_info >= (3, 11):
+        args += ["-X", "frozen_modules=off"]
+
     if "nuitka.__main__" in sys.modules:
         our_filename = sys.modules["nuitka.__main__"].__file__
     else:
@@ -109,6 +112,10 @@ def reExecuteNuitka(pgo_filename):
 
         # Note: As side effect, this might modify the "sys.path" too.
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
+
+        user_site = getattr(sys.modules["site"], "USER_SITE")
+        if user_site is not None:
+            os.environ["NUITKA_USER_SITE"] = repr(user_site)
 
     os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
 

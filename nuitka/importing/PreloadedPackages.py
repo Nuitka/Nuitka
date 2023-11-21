@@ -27,6 +27,7 @@ import sys
 
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import getFileContentByLine, listDir
+from nuitka.utils.ModuleNames import ModuleName
 
 
 def getLoadedPackages():
@@ -154,7 +155,7 @@ def setPthImportedPackages(value):
     # We need to set this from the outside, pylint: disable=global-statement
     global pth_imported_packages
 
-    pth_imported_packages = value
+    pth_imported_packages = tuple(ModuleName(module_name) for module_name in value)
 
 
 def getPthImportedPackages():

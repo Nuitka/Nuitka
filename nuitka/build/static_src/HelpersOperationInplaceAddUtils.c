@@ -85,10 +85,11 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
     Py_buffer wb;
     wb.len = -1;
 
-    int res = PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE);
-
-    // Has to work.
-    assert(res == 0);
+    {
+        NUITKA_MAY_BE_UNUSED int res = PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE);
+        // Has to work.
+        assert(res == 0);
+    }
 
     Py_ssize_t oldsize = PyBytes_GET_SIZE(*operand1);
 

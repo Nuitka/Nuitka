@@ -55,6 +55,12 @@ class PackageConfigYaml(object):
         for item in data:
             module_name = item.pop("module-name")
 
+            if not module_name:
+                general.sysexit(
+                    "Error, invalid config in '%s' looks like an empty module name was given."
+                    % (self.name)
+                )
+
             if "/" in module_name:
                 general.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
@@ -107,7 +113,9 @@ def getYamlPackage():
 
             getYamlPackage.yaml = yaml
         except ImportError:
-            getYamlPackage.yaml = importFromInlineCopy("yaml", must_exist=True)
+            getYamlPackage.yaml = importFromInlineCopy(
+                "yaml", must_exist=True, delete_module=True
+            )
 
     return getYamlPackage.yaml
 

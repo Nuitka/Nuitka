@@ -29,7 +29,10 @@ import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
-from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
+from nuitka.code_generation.ConstantCodes import (
+    addDistributionMetadataValue,
+    getDistributionMetadataValues,
+)
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
@@ -51,6 +54,7 @@ from nuitka.Options import (
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
+    isExperimental,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessing
@@ -67,6 +71,7 @@ from nuitka.PythonFlavors import (
     isPyenvPython,
 )
 from nuitka.PythonVersions import (
+    getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
     python_version,
@@ -103,7 +108,6 @@ from . import ModuleRegistry, Options, OutputDirectories
 from .build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
-    getSconsDataPath,
     runScons,
     setCommonSconsOptions,
 )
@@ -123,16 +127,6 @@ from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
-def _setupFromMainFilenames():
-    main_filenames = Options.getMainEntryPointFilenames()
-    for filename in main_filenames:
-        # Inform the importing layer about the main script directory, so it can use
-        # it when attempting to follow imports.
-        Importing.addMainScriptDirectory(
-            main_dir=os.path.dirname(os.path.abspath(filename))
-        )
-
-
 def _createMainModule():
     """Create a node tree.
 
@@ -142,7 +136,7 @@ def _createMainModule():
     directory paths.
 
     """
-    # Many cases to deal with, pylint: disable=too-many-branches
+    # Many cases and details to deal with, pylint: disable=too-many-branches,too-many-locals
 
     Plugins.onBeforeCodeParsing()
 
@@ -246,7 +240,9 @@ def _createMainModule():
             )
 
         Recursion.checkPluginSinglePath(
-            plugin_filename=module_filename, module_package=module_name.getPackageName()
+            plugin_filename=module_filename,
+            module_package=module_name.getPackageName(),
+            package_only=True,
         )
 
     # Allow plugins to add more modules based on the initial set being complete.
@@ -261,6 +257,18 @@ def _createMainModule():
     # Freezer may have concerns for some modules.
     if Options.isStandaloneMode():
         checkFreezingModuleSet()
+
+    # Check if distribution meta data is included, that cannot be used.
+    for distribution_name, (
+        package_name,
+        _metadata,
+        _entry_points,
+    ) in getDistributionMetadataValues():
+        if not ModuleRegistry.hasDoneModule(package_name):
+            inclusion_logger.sysexit(
+                "Error, including metadata for distribution '%s' without including related package '%s'."
+                % (distribution_name, package_name)
+            )
 
     # Allow plugins to comment on final module set.
     Plugins.onModuleCompleteSet()
@@ -578,8 +586,6 @@ def runSconsBackend():
         "full_compat": asBoolStr(Options.is_full_compat),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
-        "python_version": python_version_str,
-        "nuitka_src": getSconsDataPath(),
         "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
@@ -692,6 +698,10 @@ def runSconsBackend():
 
     if Options.shallMakeModule():
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
+
+    link_module_libs = getModuleLinkerLibs()
+    if link_module_libs:
+        options["link_module_libs"] = ",".join(link_module_libs)
 
     env_values = setCommonSconsOptions(options)
 
@@ -878,9 +888,9 @@ def compileTree():
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
-    result, options = runSconsBackend()
+    result, scons_options = runSconsBackend()
 
-    return result, options
+    return result, scons_options
 
 
 def handleSyntaxError(e):
@@ -943,7 +953,9 @@ def _main():
         else None,
     )
 
-    _setupFromMainFilenames()
+    # Initialize the importing layer from options, main filenames, debugging
+    # options, etc.
+    Importing.setupImportingFromOptions()
 
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
@@ -959,7 +971,7 @@ def _main():
     dumpTreeXML()
 
     # Make the actual compilation.
-    result, options = compileTree()
+    result, scons_options = compileTree()
 
     # Exit if compilation failed.
     if not result:
@@ -986,7 +998,7 @@ def _main():
     copyDataFiles()
 
     if Options.isStandaloneMode():
-        binary_filename = options["result_exe"]
+        binary_filename = scons_options["result_exe"]
 
         setMainEntryPoint(binary_filename)
 
@@ -1040,14 +1052,14 @@ def _main():
     if Options.isStandaloneMode() and isMacOS():
         general.info(
             "Created binary that runs on macOS %s (%s) or higher."
-            % (options["macos_min_version"], options["macos_target_arch"])
+            % (scons_options["macos_min_version"], scons_options["macos_target_arch"])
         )
 
-        if options["macos_target_arch"] != getArchitecture():
+        if scons_options["macos_target_arch"] != getArchitecture():
             general.warning(
                 "It will only work as well as 'arch -%s %s %s' does."
                 % (
-                    options["macos_target_arch"],
+                    scons_options["macos_target_arch"],
                     sys.executable,
                     Options.getMainEntryPointFilenames()[0],
                 ),
@@ -1106,6 +1118,14 @@ def main():
         try:
             writeCompilationReports(aborted=True)
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-            general.warning("Report writing was prevented by exception %s" % e)
+            general.warning(
+                """\
+Report writing was prevented by exception %r, use option \
+'--experimental=debug-report-traceback' for full traceback."""
+                % e
+            )
+
+            if isExperimental("debug-report-traceback"):
+                raise
 
         raise

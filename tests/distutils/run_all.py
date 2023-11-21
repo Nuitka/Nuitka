@@ -53,7 +53,27 @@ from nuitka.tools.testing.Common import (
     setup,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
-from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    getFileContents,
+    putTextFileContents,
+    removeDirectory,
+)
+
+
+def _adaptPyProjectFile(case_dir, source_filename):
+    putTextFileContents(
+        filename=os.path.join(case_dir, "pyproject.toml"),
+        contents=getFileContents(os.path.join(case_dir, source_filename)).replace(
+            "file:../../..",
+            "file:%s"
+            % (
+                os.path.abspath(os.path.join(case_dir, "..", "..", "..")).replace(
+                    "\\", "/"
+                )
+            ),
+        ),
+    )
 
 
 def main():
@@ -98,10 +118,10 @@ def main():
                 if is_pyproject:
                     venv.runCommand("pip install build")
 
-                    copyFile(
-                        source_path=os.path.join(case_dir, "pyproject.cpython.toml"),
-                        dest_path=os.path.join(case_dir, "pyproject.toml"),
+                    _adaptPyProjectFile(
+                        case_dir=case_dir, source_filename="pyproject.cpython.toml"
                     )
+
                     venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
                     deleteFile(
                         os.path.join(case_dir, "pyproject.toml"), must_exist=True
@@ -185,10 +205,10 @@ def main():
                 if is_pyproject:
                     venv.runCommand("pip install build")
 
-                    copyFile(
-                        source_path=os.path.join(case_dir, "pyproject.nuitka.toml"),
-                        dest_path=os.path.join(case_dir, "pyproject.toml"),
+                    _adaptPyProjectFile(
+                        case_dir=case_dir, source_filename="pyproject.nuitka.toml"
                     )
+
                     venv.runCommand(
                         commands=['cd "%s"' % case_dir, "python -m build -w"]
                     )

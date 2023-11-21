@@ -49,7 +49,7 @@ from nuitka.nodes.StatementNodes import (
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
-from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
+from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -75,13 +75,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     temp_scope = provider.allocateTempScope("with")
 
     tmp_source_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="source"
+        temp_scope=temp_scope, name="source", temp_type="object"
     )
     tmp_exit_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="exit"
+        temp_scope=temp_scope, name="exit", temp_type="object"
     )
     tmp_enter_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="enter"
+        temp_scope=temp_scope, name="enter", temp_type="object"
     )
 
     # Indicator variable, will end up with C bool type, and need not be released.
@@ -164,13 +164,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     # For "async with", await the entered value and exit value must be awaited.
     if not sync:
-        exit_value_exception = ExpressionYieldFromWaitable(
+        exit_value_exception = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncWaitExit(
                 expression=exit_value_exception, source_ref=source_ref
             ),
             source_ref=source_ref,
         )
-        exit_value_no_exception = ExpressionYieldFromWaitable(
+        exit_value_no_exception = ExpressionYieldFromAwaitable(
             ExpressionAsyncWaitExit(
                 expression=exit_value_no_exception, source_ref=source_ref
             ),
@@ -186,7 +186,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     # Before 3.9, __aenter__ is immediately awaited, after we first do __aexit__ lookup.
     if not sync and python_version < 0x390:
-        enter_value = ExpressionYieldFromWaitable(
+        enter_value = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncWaitEnter(
                 expression=enter_value, source_ref=source_ref
             ),
@@ -217,7 +217,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     if python_version >= 0x390 and not sync:
         enter_await_statement = makeStatementAssignmentVariable(
             variable=tmp_enter_variable,
-            source=ExpressionYieldFromWaitable(
+            source=ExpressionYieldFromAwaitable(
                 expression=ExpressionAsyncWaitEnter(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_enter_variable, source_ref=source_ref

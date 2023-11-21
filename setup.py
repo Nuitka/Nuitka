@@ -167,6 +167,9 @@ package_data = {
         "inline_copy/zstd/*.h",
         "inline_copy/zstd/*/*.h",
         "inline_copy/zstd/*/*.c",
+        "inline_copy/zlib/LICENSE",
+        "inline_copy/zlib/*.h",
+        "inline_copy/zlib/*.c",
         "static_src/*/*.asm",
         "static_src/*/*.S",
         "include/*.h",
@@ -176,6 +179,7 @@ package_data = {
     + inline_copy_files,
     "nuitka.code_generation": ["templates_c/*.j2"],
     "nuitka.reports": ["*.j2"],
+    "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
 }
 
 

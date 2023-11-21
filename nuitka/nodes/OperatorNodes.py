@@ -47,7 +47,7 @@ from .shapes.StandardShapes import (
 class ExpressionPropertiesFromTypeShapeMixin(object):
     """Given a self.type_shape, this can derive default properties from there."""
 
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     def isKnownToBeHashable(self):
@@ -627,7 +627,7 @@ if python_version >= 0x350:
             return left_shape.getOperationBinaryMatMultShape(right_shape)
 
 
-_operator2binary_operation_nodeclass = {
+_operator2binary_operation_node_class = {
     "Add": ExpressionOperationBinaryAdd,
     "Sub": ExpressionOperationBinarySub,
     "Mult": ExpressionOperationBinaryMult,
@@ -644,14 +644,14 @@ _operator2binary_operation_nodeclass = {
 }
 
 if python_version < 0x300:
-    _operator2binary_operation_nodeclass["OldDiv"] = ExpressionOperationBinaryOldDiv
+    _operator2binary_operation_node_class["OldDiv"] = ExpressionOperationBinaryOldDiv
 
 if python_version >= 0x350:
-    _operator2binary_operation_nodeclass["MatMult"] = ExpressionOperationBinaryMatMult
+    _operator2binary_operation_node_class["MatMult"] = ExpressionOperationBinaryMatMult
 
 
 def makeBinaryOperationNode(operator, left, right, source_ref):
-    node_class = _operator2binary_operation_nodeclass[operator]
+    node_class = _operator2binary_operation_node_class[operator]
 
     return node_class(left=left, right=right, source_ref=source_ref)
 
@@ -914,7 +914,7 @@ if python_version >= 0x350:
             return left_shape.getOperationBinaryMatMultShape(right_shape)
 
 
-_operator2binary_inplace_nodeclass = {
+_operator2binary_inplace_node_class = {
     "IAdd": ExpressionOperationInplaceAdd,
     "ISub": ExpressionOperationInplaceSub,
     "IMult": ExpressionOperationInplaceMult,
@@ -930,13 +930,13 @@ _operator2binary_inplace_nodeclass = {
 }
 
 if python_version < 0x300:
-    _operator2binary_inplace_nodeclass["IOldDiv"] = ExpressionOperationInplaceOldDiv
+    _operator2binary_inplace_node_class["IOldDiv"] = ExpressionOperationInplaceOldDiv
 
 if python_version >= 0x350:
-    _operator2binary_inplace_nodeclass["IMatMult"] = ExpressionOperationInplaceMatMult
+    _operator2binary_inplace_node_class["IMatMult"] = ExpressionOperationInplaceMatMult
 
 
 def makeExpressionOperationBinaryInplace(operator, left, right, source_ref):
-    node_class = _operator2binary_inplace_nodeclass[operator]
+    node_class = _operator2binary_inplace_node_class[operator]
 
     return node_class(left=left, right=right, source_ref=source_ref)

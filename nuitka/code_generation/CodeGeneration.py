@@ -364,8 +364,8 @@ from .VariableCodes import (
 )
 from .YieldCodes import (
     generateYieldCode,
+    generateYieldFromAwaitableCode,
     generateYieldFromCode,
-    generateYieldFromWaitableCode,
 )
 
 _generated_functions = {}
@@ -776,6 +776,7 @@ addExpressionDispatchDict(
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
+        "EXPRESSION_IMPORT_MODULE_BUILTIN": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_FIXED": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,
@@ -865,7 +866,7 @@ addExpressionDispatchDict(
         "EXPRESSION_VARIABLE_OR_BUILTIN_REF": generateVariableReferenceCode,
         "EXPRESSION_YIELD": generateYieldCode,
         "EXPRESSION_YIELD_FROM": generateYieldFromCode,
-        "EXPRESSION_YIELD_FROM_WAITABLE": generateYieldFromWaitableCode,
+        "EXPRESSION_YIELD_FROM_AWAITABLE": generateYieldFromAwaitableCode,
         "EXPRESSION_ASYNC_WAIT": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_ENTER": generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_EXIT": generateAsyncWaitCode,
@@ -916,6 +917,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISDIR_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_BUILTINS_OPEN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
         "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL": generateCtypesCdllCallCode,

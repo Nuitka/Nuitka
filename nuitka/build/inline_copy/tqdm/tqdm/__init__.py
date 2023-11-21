@@ -1,7 +1,7 @@
 from ._monitor import TMonitor, TqdmSynchronisationWarning
 from ._tqdm_pandas import tqdm_pandas
-from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
-from .gui import trange as tgrange  # TODO: remove in v5.0.0
+# from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
+# from .gui import trange as tgrange  # TODO: remove in v5.0.0
 from .std import (
     TqdmDeprecationWarning, TqdmExperimentalWarning, TqdmKeyError, TqdmMonitorWarning,
     TqdmTypeError, TqdmWarning, tqdm, trange)

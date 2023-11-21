@@ -102,6 +102,25 @@ PyObject *IMPORT_HARD__IO(void) {
     return module_import_hard__io;
 }
 
+/* C helper for hard import of module "builtins" import. */
+PyObject *IMPORT_HARD_BUILTINS(void) {
+    static PyObject *module_import_hard_builtins = NULL;
+
+    if (module_import_hard_builtins == NULL) {
+        module_import_hard_builtins = PyImport_ImportModule("builtins");
+
+        if (unlikely(module_import_hard_builtins == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'builtins'");
+            abort();
+        }
+    }
+
+    return module_import_hard_builtins;
+}
+
 /* C helper for hard import of module "ctypes" import. */
 PyObject *IMPORT_HARD_CTYPES(void) {
     static PyObject *module_import_hard_ctypes = NULL;

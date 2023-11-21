@@ -26,7 +26,11 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
-from nuitka.importing.Importing import getPythonUnpackedSearchPath
+from nuitka.importing.Importing import (
+    getPythonUnpackedSearchPath,
+    locateModule,
+)
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.Options import (
     isShowProgress,
     shallNotStoreDependsExeCachedResults,
@@ -227,6 +231,22 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     )
 
 
+def _reduceToPythonPath(used_dlls):
+    inside_paths = getPythonUnpackedSearchPath()
+
+    def decideInside(dll_filename):
+        return any(
+            isFilenameBelowPath(path=inside_path, filename=dll_filename)
+            for inside_path in inside_paths
+        )
+
+    used_dlls = set(
+        dll_filename for dll_filename in used_dlls if decideInside(dll_filename)
+    )
+
+    return used_dlls
+
+
 def _detectUsedDLLs(standalone_entry_point, source_dir):
     binary_filename = standalone_entry_point.source_path
     try:
@@ -244,26 +264,27 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
     else:
         # Plugins generally decide if they allow dependencies from the outside
         # based on the package name.
-        allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
-            standalone_entry_point.package_name
-        )
 
-        # TODO: Command line option maybe
-        if allow_outside_dependencies is None:
-            allow_outside_dependencies = True
+        if standalone_entry_point.module_name is not None and used_dlls:
+            module_name, module_filename, _kind, finding = locateModule(
+                standalone_entry_point.module_name, parent_package=None, level=0
+            )
 
-        if not allow_outside_dependencies:
-            inside_paths = getPythonUnpackedSearchPath()
+            # Make sure we are not surprised here.
+            assert (
+                module_name == standalone_entry_point.module_name
+            ), standalone_entry_point.module_name
+            assert finding == "absolute", standalone_entry_point.module_name
 
-            def decideInside(dll_filename):
-                return any(
-                    isFilenameBelowPath(path=inside_path, filename=dll_filename)
-                    for inside_path in inside_paths
+            if isStandardLibraryPath(module_filename):
+                allow_outside_dependencies = True
+            else:
+                allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+                    standalone_entry_point.module_name
                 )
 
-            used_dlls = set(
-                dll_filename for dll_filename in used_dlls if decideInside(dll_filename)
-            )
+            if allow_outside_dependencies is False:
+                used_dlls = _reduceToPythonPath(used_dlls)
 
         # Allow plugins can prevent inclusion, this may discard things from used_dlls.
         removed_dlls = Plugins.removeDllDependencies(
@@ -293,6 +314,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                 logger=inclusion_logger,
                 source_path=used_dll,
                 dest_path=dest_path,
+                module_name=standalone_entry_point.module_name,
                 package_name=standalone_entry_point.package_name,
                 reason="Used by '%s'" % standalone_entry_point.dest_path,
             )

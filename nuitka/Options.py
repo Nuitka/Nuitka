@@ -35,7 +35,8 @@ import sys
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.OptionParsing import parseOptions
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
+from nuitka.OptionParsing import parseOptions, runSpecialCommandsFromOptions
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
@@ -271,7 +272,7 @@ def parseArgs():
             Tracing.general.sysexit(
                 """\
 Error, the Python from Windows app store is not supported.""",
-                mnemonic="unsupported-python",
+                mnemonic="unsupported-windows-app-store-python",
             )
 
     is_nuitka_run, options, positional_args, extra_args = parseOptions(
@@ -309,6 +310,9 @@ Error, the Python from Windows app store is not supported.""",
                 return '"%s"' % arg
         else:
             return arg
+
+    # This will not return if a non-compiling command is given.
+    runSpecialCommandsFromOptions(options)
 
     if not options.version:
         Tracing.options_logger.info(
@@ -690,6 +694,22 @@ it before using it: '%s' (from --output-filename='%s')."""
                 % pattern
             )
 
+    for directory_name in getShallFollowExtra():
+        if not os.path.isdir(directory_name):
+            Tracing.options_logger.sysexit(
+                "Error, value '%s' given to '--include-plugin-directory' must be a directory name."
+                % directory_name
+            )
+
+        if isStandardLibraryPath(directory_name):
+            Tracing.options_logger.sysexit(
+                """\
+Error, directory '%s' given to '--include-plugin-directory' must not be a \
+standard library path. Use '--include-module' or '--include-package' \
+options instead."""
+                % pattern
+            )
+
     if options.static_libpython == "yes" and getSystemStaticLibPythonPath() is None:
         Tracing.options_logger.sysexit(
             "Error, static libpython is not found or not supported for this Python installation."
@@ -751,6 +771,20 @@ def commentArgs():
 
     """
     # A ton of cases to consider, pylint: disable=too-many-branches,too-many-statements
+
+    # Check files to exist or be suitable first before giving other warnings.
+    for filename in getMainEntryPointFilenames():
+        if not os.path.exists(filename):
+            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+
+        if (
+            shallMakeModule()
+            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+        ):
+            Tracing.general.sysexit(
+                """\
+Error, to compile a package, specify its directory but, not the '__init__.py'."""
+            )
 
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
@@ -1006,19 +1040,6 @@ notarization capable signature, the default identify 'ad-hoc' is not going \
 to work."""
         )
 
-    for filename in getMainEntryPointFilenames():
-        if not os.path.exists(filename):
-            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
-
-        if (
-            shallMakeModule()
-            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-        ):
-            Tracing.general.sysexit(
-                """\
-Error, to compile a package, specify its directory but, not the '__init__.py'."""
-            )
-
     if (
         isWin32Windows()
         and 0x340 <= python_version < 0x380
@@ -1132,7 +1153,7 @@ def getShallFollowInNoCase():
 
 
 def getShallFollowModules():
-    """*list*, items of ``--follow-import-to=``"""
+    """*list*, items of ``--follow-import-to=`` amended with what ``--include-module`` and ``--include-package`` got"""
     return sum(
         [
             _splitShellPattern(x)
@@ -1506,6 +1527,11 @@ def shallDisableBytecodeCacheUsage():
     return shallDisableCacheUsage("bytecode")
 
 
+def shallDisableCompressionCacheUsage():
+    """:returns: bool derived from ``--disable-cache=compression``"""
+    return shallDisableCacheUsage("compression")
+
+
 def shallDisableConsoleWindow():
     """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
     return options.disable_console
@@ -1692,6 +1718,11 @@ def getOnefileChildGraceTime():
 def shallNotCompressOnefile():
     """*bool* = ``--onefile-no-compression``"""
     return options.onefile_no_compression
+
+
+def shallOnefileAsArchive():
+    """*bool* = ``--onefile-as-archive``"""
+    return options.onefile_as_archive
 
 
 def getIconPaths():

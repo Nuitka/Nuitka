@@ -24,13 +24,12 @@ it is really necessary.
 """
 
 
-import hashlib
 import math
 import re
 import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import GenericAlias, UnionType, long, unicode, xrange
+from nuitka.__past__ import GenericAlias, UnionType, long, md5, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.Tracing import general
 
@@ -210,6 +209,8 @@ def _namifyString(string):
         return "slash"
     elif string == "\\":
         return "backslash"
+    elif string == "_":
+        return "underscore"
     elif (
         type(string) is str
         and _re_str_needs_no_digest.match(string)
@@ -244,10 +245,10 @@ def _isAscii(string):
 def _digest(value):
     if str is bytes:
         # Python2 is simple
-        return hashlib.md5(value).hexdigest()
+        return md5(value).hexdigest()
     else:
         # Python3 needs to encode the string if it is one.
         if type(value) is bytes:
-            return hashlib.md5(value).hexdigest()
+            return md5(value).hexdigest()
         else:
-            return hashlib.md5(value.encode("utf8")).hexdigest()
+            return md5(value.encode("utf8")).hexdigest()

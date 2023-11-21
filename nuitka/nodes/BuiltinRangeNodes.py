@@ -47,7 +47,7 @@ from .shapes.BuiltinTypeShapes import tshape_xrange
 class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
     """Mixin class for range nodes with 1/2/3 arguments."""
 
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
@@ -403,7 +403,7 @@ class ExpressionBuiltinRange3(
 class ExpressionBuiltinXrangeMixin(object):
     """Mixin class for xrange nodes with 1/2/3 arguments."""
 
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec

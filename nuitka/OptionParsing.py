@@ -358,6 +358,16 @@ When creating the onefile, disable compression of the payload. This is
 mostly for debug purposes, or to save time. Default is off.""",
 )
 
+onefile_group.add_option(
+    "--onefile-as-archive",
+    action="store_true",
+    dest="onefile_as_archive",
+    default=False,
+    help="""\
+When creating the onefile, use an archive format, that can be unpacked
+with "nuitka-onefile-unpack" rather than a stream that only the onefile
+program itself unpacks. Default is off.""",
+)
 
 del onefile_group
 
@@ -423,8 +433,8 @@ data_group.add_option(
     help="""\
 Do not include data files matching the filename pattern given. This is against
 the target filename, not source paths. So to ignore a file pattern from package
-data for "package_name" should be matched as "package_name/*.txt". Or for the
-whole directory simply use "package_name". Default empty.""",
+data for 'package_name' should be matched as 'package_name/*.txt'. Or for the
+whole directory simply use 'package_name'. Default empty.""",
 )
 
 data_group.add_option(
@@ -468,8 +478,8 @@ dll_group.add_option(
     default=[],
     help="""\
 Do not include DLL files matching the filename pattern given. This is against
-the target filename, not source paths. So ignore a DLL "someDLL" contained in
-the package "package_name" it should be matched as "package_name/someDLL.*".
+the target filename, not source paths. So ignore a DLL 'someDLL' contained in
+the package 'package_name' it should be matched as 'package_name/someDLL.*'.
 Default empty.""",
 )
 
@@ -687,7 +697,7 @@ output_group.add_option(
     dest="pyi_file",
     default=True,
     help="""\
-Do not create a ".pyi" file for extension modules created by Nuitka. This is
+Do not create a '.pyi' file for extension modules created by Nuitka. This is
 used to detect implicit imports.
 Defaults to off.""",
 )
@@ -947,7 +957,7 @@ del c_compiler_group
 
 caching_group = parser.add_option_group("Cache Control")
 
-_cache_names = ("all", "ccache", "bytecode")
+_cache_names = ("all", "ccache", "bytecode", "compression")
 
 if isWin32Windows():
     _cache_names += ("dll-dependencies",)
@@ -1136,7 +1146,7 @@ tracing_group.add_option(
     metavar="REPORT_DESC",
     default=[],
     help="""\
-Report via template. Provide template and output filename "template.rst.j2:output.rst". For
+Report via template. Provide template and output filename 'template.rst.j2:output.rst'. For
 built-in templates, check the User Manual for what these are. Can be given multiple times.
 Default is empty.""",
 )
@@ -1892,8 +1902,7 @@ def _considerGithubWorkflowOptions(phase):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes, and dispatching of tool
-    # mode executions, pylint: disable=too-many-branches,too-many-statements
+    # well as integrating with plugins and run modes. pylint: disable=too-many-branches
 
     # First, isolate the first non-option arguments.
     extra_args = []
@@ -1964,6 +1973,19 @@ def parseOptions(logger):
 Error, need filename argument with python module or main program."""
         )
 
+    if not options.immediate_execution and len(positional_args) > 1:
+        parser.print_help()
+
+        logger.sysexit(
+            """
+Error, specify only one positional argument unless "--run" is specified to
+pass them to the compiled program execution."""
+        )
+
+    return is_nuitka_run, options, positional_args, extra_args
+
+
+def runSpecialCommandsFromOptions(options):
     if options.plugin_list:
         from nuitka.plugins.Plugins import listPlugins
 
@@ -2002,14 +2024,3 @@ Error, need filename argument with python module or main program."""
             report_filename=os.path.expanduser(options.compilation_report_filename),
         )
         sys.exit(0)
-
-    if not options.immediate_execution and len(positional_args) > 1:
-        parser.print_help()
-
-        logger.sysexit(
-            """
-Error, specify only one positional argument unless "--run" is specified to
-pass them to the compiled program execution."""
-        )
-
-    return is_nuitka_run, options, positional_args, extra_args

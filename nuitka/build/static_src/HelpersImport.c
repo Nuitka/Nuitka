@@ -187,7 +187,21 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
 
         // When we are not using the "__all__", we should skip private variables.
         if (all_case == false) {
-            if (Nuitka_String_AsString_Unchecked(item)[0] == '_') {
+            PyObject *startswith_value;
+#if PYTHON_VERSION < 0x300
+            if (PyString_Check(item)) {
+                startswith_value = STR_STARTSWITH2(tstate, item, const_str_underscore);
+            } else {
+                startswith_value = UNICODE_STARTSWITH2(tstate, item, const_str_underscore);
+            }
+#else
+            startswith_value = UNICODE_STARTSWITH2(tstate, item, const_str_underscore);
+#endif
+
+            CHECK_OBJECT(startswith_value);
+            Py_DECREF(startswith_value);
+
+            if (startswith_value == Py_True) {
                 continue;
             }
         }
@@ -472,3 +486,17 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
     return result;
 }
 #endif
+
+PyObject *IMPORT_MODULE_FIXED(PyThreadState *tstate, PyObject *module_name, PyObject *value_name) {
+    PyObject *import_result = IMPORT_MODULE1(tstate, module_name);
+
+    if (unlikely(import_result == NULL)) {
+        return import_result;
+    }
+
+    PyObject *result = Nuitka_GetModule(tstate, value_name);
+
+    Py_DECREF(import_result);
+
+    return result;
+}

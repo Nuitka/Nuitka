@@ -152,15 +152,19 @@ def createPathAssignment(package, source_ref):
 
 
 def createPython3NamespacePath(package, source_ref):
+    module_name = (
+        "_frozen_importlib" if python_version < 0x350 else "_frozen_importlib_external"
+    )
+
     return StatementAssignmentVariableName(
         provider=package,
         variable_name="__path__",
         source=ExpressionCallNoKeywords(
             called=ExpressionImportName(
                 module=makeExpressionImportModuleFixed(
-                    module_name="_frozen_importlib"
-                    if python_version < 0x350
-                    else "_frozen_importlib_external",
+                    using_module_name=package.getFullName(),
+                    module_name=module_name,
+                    value_name=module_name,
                     source_ref=source_ref,
                 ),
                 import_name="_NamespacePath",

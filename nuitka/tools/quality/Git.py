@@ -28,6 +28,7 @@ import os
 import re
 
 from nuitka.Tracing import my_print
+from nuitka.utils.CStrings import decodeCStringToPython
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
     check_call,
@@ -54,6 +55,15 @@ def _parseIndexDiffLine(line):
     if not match:
         raise ValueError("Failed to parse diff-index line: " + line)
 
+    def parseGitPath(value):
+        if value is None:
+            return None
+
+        if value.startswith('"'):
+            return decodeCStringToPython(value).decode("utf8")
+
+        return value
+
     return {
         "src_mode": unless_zeroed(match.group(1)),
         "dst_mode": unless_zeroed(match.group(2)),
@@ -61,8 +71,8 @@ def _parseIndexDiffLine(line):
         "dst_hash": unless_zeroed(match.group(4)),
         "status": match.group(5),
         "score": int(match.group(6)) if match.group(6) else None,
-        "src_path": match.group(7),
-        "dst_path": match.group(8),
+        "src_path": parseGitPath(match.group(7)),
+        "dst_path": parseGitPath(match.group(8)),
     }
 
 

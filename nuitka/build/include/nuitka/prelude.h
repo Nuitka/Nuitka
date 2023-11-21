@@ -55,12 +55,12 @@
 #endif
 
 /* Include the relevant Python C-API header files. */
-#include "Python.h"
-#include "frameobject.h"
-#include "marshal.h"
-#include "methodobject.h"
-#include "osdefs.h"
-#include "structseq.h"
+#include <Python.h>
+#include <frameobject.h>
+#include <marshal.h>
+#include <methodobject.h>
+#include <osdefs.h>
+#include <structseq.h>
 
 #if PYTHON_VERSION < 0x3a0
 #include "pydebug.h"
@@ -126,6 +126,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
+#include <internal/pycore_dict.h>
 #include <internal/pycore_frame.h>
 #include <internal/pycore_gc.h>
 #endif
@@ -135,6 +136,10 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_opcode.h>
 // Clashes with our helper names.
 #undef CALL_FUNCTION
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+#include <cpython/code.h>
 #endif
 
 #if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
@@ -483,6 +488,12 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #else
 #define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
 #define NUITKA_INIT_PROGRAM_LATE(module_name)
+#endif
+
+#if _NUITKA_EXPERIMENTAL_EXIT_PROGRAM
+#include "nuitka_exit_program.h"
+#else
+#define NUITKA_FINALIZE_PROGRAM(tstate)
 #endif
 
 // Only Python3.9+ has a more precise check, while making the old one slow.

@@ -32,7 +32,7 @@ from .ExpressionBases import ExpressionBase
 
 
 class ExpressionBuiltinSumMixin(object):
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_sum_spec

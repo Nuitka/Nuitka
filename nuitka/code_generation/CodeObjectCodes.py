@@ -22,6 +22,7 @@ Right now only the creation is done here. But more should be added later on.
 
 import os
 
+from nuitka.__past__ import unicode
 from nuitka.Options import getFileReferenceMode
 from nuitka.PythonVersions import python_version
 
@@ -113,8 +114,11 @@ def getCodeObjectsInitCode(context):
     else:
         template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
 
+    if str is bytes and type(module_filename) is unicode:
+        module_filename = module_filename.encode("utf8")
+
     # The code object will not work from any other type, cannot be e.g. unicode.
-    assert type(module_filename) is str, type(module_filename)
+    assert type(module_filename) is str, (type(module_filename), module_filename)
 
     statements.append(template % (context.getConstantCode(constant=module_filename)))
 

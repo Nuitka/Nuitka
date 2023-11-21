@@ -39,6 +39,10 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.reports.CompilationReportReader import (
+    extractModulesUsedByModule,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
@@ -57,6 +61,8 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
+            report_filename = "compilation-report-%s.xml" % filename
+
             extra_flags = [
                 # No error exits normally, unless we break tests, and that we would
                 # like to know.
@@ -70,7 +76,7 @@ def main():
                 "two_step_execution",
                 # Inclusion report is used by the testing of expected things included
                 # or not.
-                "--report=%s.xml" % filename,
+                "--report=%s" % report_filename,
                 # Cache the CPython results for reuse, they will normally not change.
                 "cpython_cache",
             ]
@@ -82,6 +88,16 @@ def main():
                 search_mode=search_mode,
                 needs_2to3=False,
             )
+
+            compilation_report = parseCompilationReport(report_filename)
+
+            modules_used = extractModulesUsedByModule(
+                compilation_report=compilation_report, module_name="__main__"
+            )
+            assert (
+                modules_used["ImportedButMaybeNotUsed"]["exclusion_reason"]
+                == "PGO based decision"
+            ), modules_used
 
     search_mode.finish()
 

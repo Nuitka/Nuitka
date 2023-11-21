@@ -111,6 +111,13 @@
       change_function:
         '_main': "'(lambda: None)'"
 
+- module-name: 'enum'
+  anti-bloat:
+    - replacements_plain:
+        'def __call__(cls, value,': 'def __call__(cls, value=None,'
+        'return cls.__new__(cls, value)': 'return cls.__new__(cls, value if value is not None or cls.__module__ != "PySide6.QtCore" else 0)'
+      when: 'plugin("pyside6")'
+
 - module-name: 'formatter'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -327,7 +334,7 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
-      when: 'not deployment'
+      when: 'not deployment and not plugin("tk-inter")'
   options:
     checks:
       - console: 'recommend'

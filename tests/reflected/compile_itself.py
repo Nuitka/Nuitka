@@ -311,6 +311,8 @@ def executePASS1():
 def compileAndCompareWith(nuitka, pass_number):
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
+    if "PYTHON_FROZEN_MODULES" not in os.environ:
+        os.environ["PYTHON_FROZEN_MODULES"] = "off"
 
     base_dir = os.path.join("..", "..")
 

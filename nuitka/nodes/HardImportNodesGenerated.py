@@ -36,6 +36,7 @@ from nuitka.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
+    builtins_open_since_3_spec,
     ctypes_cdll_before_38_spec,
     ctypes_cdll_since_38_spec,
     importlib_metadata_backport_distribution_spec,
@@ -79,6 +80,7 @@ from .ChildrenHavingMixins import (
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
+    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin,
@@ -96,6 +98,126 @@ from .ExpressionShapeMixins import (
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 hard_import_node_classes = {}
+
+
+class ExpressionBuiltinsOpenRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference builtins.open"""
+
+    kind = "EXPRESSION_BUILTINS_OPEN_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="builtins",
+            import_name="open",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .BuiltinOpenNodes import makeExpressionBuiltinsOpenCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionBuiltinsOpenCall,
+            builtin_spec=builtins_open_since_3_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'builtins.open' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionBuiltinsOpenRef] = builtins_open_since_3_spec
+
+
+class ExpressionBuiltinsOpenCallBase(
+    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for BuiltinsOpenCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "file",
+        "mode|optional",
+        "buffering|optional",
+        "encoding|optional",
+        "errors|optional",
+        "newline|optional",
+        "closefd|optional",
+        "opener|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = builtins_open_since_3_spec
+
+    def __init__(
+        self,
+        file,
+        mode,
+        buffering,
+        encoding,
+        errors,
+        newline,
+        closefd,
+        opener,
+        source_ref,
+    ):
+        ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin.__init__(
+            self,
+            file=file,
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+            opener=opener,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not builtins_open_since_3_spec.isCompileTimeComputable(
+            (
+                self.subnode_file,
+                self.subnode_mode,
+                self.subnode_buffering,
+                self.subnode_encoding,
+                self.subnode_errors,
+                self.subnode_newline,
+                self.subnode_closefd,
+                self.subnode_opener,
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
@@ -190,8 +312,7 @@ class ExpressionCtypesCdllSince38CallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not ctypes_cdll_since_38_spec.isCompileTimeComputable(
@@ -257,8 +378,7 @@ class ExpressionCtypesCdllBefore38CallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not ctypes_cdll_before_38_spec.isCompileTimeComputable(
@@ -725,8 +845,7 @@ class ExpressionImportlibMetadataDistributionCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -838,8 +957,7 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -883,8 +1001,7 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def finalize(self):
         del self.parent
@@ -974,8 +1091,7 @@ class ExpressionImportlibMetadataMetadataCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -1067,8 +1183,7 @@ class ExpressionImportlibMetadataVersionCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -1459,8 +1574,7 @@ class ExpressionImportlibResourcesFilesCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -1556,8 +1670,7 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -1662,8 +1775,7 @@ class ExpressionImportlibResourcesReadTextCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if (
@@ -1752,8 +1864,7 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_listdir_spec.isCompileTimeComputable(
@@ -1834,8 +1945,7 @@ class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_abspath_spec.isCompileTimeComputable(
@@ -1916,8 +2026,7 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_basename_spec.isCompileTimeComputable(
@@ -1998,8 +2107,7 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_exists_spec.isCompileTimeComputable(
@@ -2082,8 +2190,7 @@ class ExpressionOsPathIsabsCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_isabs_spec.isCompileTimeComputable(
@@ -2164,8 +2271,7 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_isdir_spec.isCompileTimeComputable(
@@ -2246,8 +2352,7 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_isfile_spec.isCompileTimeComputable(
@@ -2321,8 +2426,7 @@ class ExpressionOsUnameCallBase(ExpressionBase):
     def __init__(self, source_ref):
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def finalize(self):
         del self.parent
@@ -2889,8 +2993,7 @@ class ExpressionPkgutilGetDataCallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+        self.attempted = False
 
     def computeExpression(self, trace_collection):
         if self.attempted or not pkgutil_get_data_spec.isCompileTimeComputable(

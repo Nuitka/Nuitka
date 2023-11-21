@@ -114,6 +114,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
             yield self.makeDllEntryPoint(
                 source_path=dll_filename,
                 dest_path=os.path.join("glfw", os.path.basename(dll_filename)),
+                module_name="glfw",
                 package_name="glfw.library",
                 reason="needed by 'glfw'",
             )

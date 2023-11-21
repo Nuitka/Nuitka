@@ -52,11 +52,11 @@ from .SconsUtils import (
     setEnvironmentVariable,
 )
 
-# spell-checker: ignore CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
+# spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
 # spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
 # spell-checker: ignore -feliminate,noexecstack,implib
-# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,
+# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS
 
 
 def _detectWindowsSDK(env):
@@ -161,6 +161,9 @@ def _enableLtoSettings(
     elif env.nuitka_python:
         lto_mode = True
         reason = "known to be supported (Nuitka-Python)"
+    elif env.fedora_python:
+        lto_mode = True
+        reason = "known to be supported (Fedora Python)"
     elif (
         env.debian_python
         and env.gcc_mode
@@ -210,18 +213,21 @@ version for lto mode (>= 4.6). Disabled."""
         reason = "gcc 4.6 is doesn't have good enough LTO support"
 
     if env.gcc_mode and lto_mode:
-        env.Append(CCFLAGS=["-flto"])
-
         if env.clang_mode:
+            env.Append(CCFLAGS=["-flto"])
             env.Append(LINKFLAGS=["-flto"])
         else:
+            env.Append(CCFLAGS=["-flto=%d" % job_count])
+            env.Append(LINKFLAGS=["-flto=%d" % job_count])
+
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
             env.Append(LINKFLAGS=["-fuse-linker-plugin"])
 
-            env.Append(LINKFLAGS=["-flto=%d" % job_count])
-
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
+
+            if env.mingw_mode and "MAKE" not in os.environ:
+                setEnvironmentVariable(env, "MAKE", "mingw32-make.exe")
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
@@ -229,7 +235,9 @@ version for lto mode (>= 4.6). Disabled."""
 
         if not env.clangcl_mode:
             env.Append(LINKFLAGS=["/LTCG"])
-            env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
+
+            if getMsvcVersion(env) >= (14, 3):
+                env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
 
     if orig_lto_mode == "auto":
         scons_details_logger.info(
@@ -491,6 +499,11 @@ unsigned char const *getConstantsBlobData(void) {
         # Indicate "linker" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_LINKER"])
 
+        # For MinGW the symbol name to be used is more low level.
+        constant_bin_link_name = "constant_bin_data"
+        if env.mingw_mode:
+            constant_bin_link_name = "_" + constant_bin_link_name
+
         env.Append(
             LINKFLAGS=[
                 "-Wl,-b",
@@ -503,9 +516,9 @@ unsigned char const *getConstantsBlobData(void) {
                     mingw_mode=env.mingw_mode or isPosixWindows(),
                 ),
                 "-Wl,-defsym",
-                "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
+                "-Wl,%s=_binary_%s___constants_bin_start"
                 % (
-                    "_" if env.mingw_mode else "",
+                    constant_bin_link_name,
                     "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
                 ),
             ]
@@ -573,7 +586,7 @@ def enableWindowsStackSize(env, target_arch):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
-def setupCCompiler(env, lto_mode, pgo_mode, job_count):
+def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     # This is driven by many branches on purpose and has a lot of things
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
 
@@ -765,12 +778,12 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    # Avoid dependency on MinGW libraries.
+    # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
     if env.mingw_mode and not env.clang_mode:
         env.Append(LINKFLAGS=["-static-libgcc"])
 
     # MinGW64 for 64 bits needs this due to CPython bugs.
-    if env.mingw_mode and env.target_arch == "x86_64":
+    if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
         env.Append(CPPDEFINES=["MS_WIN64"])
 
     # For shell API usage to lookup app folders we need this. Note that on Windows ARM
@@ -782,6 +795,24 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
     # Since Fedora 36, the system Python will not link otherwise.
     if isFedoraBasedLinux():
         env.Append(CCFLAGS=["-fPIC"])
+
+    # We use zlib for crc32 functionality
+    zlib_inline_copy_dir = os.path.join(env.nuitka_src, "inline_copy", "zlib")
+    if os.path.exists(os.path.join(zlib_inline_copy_dir, "crc32.c")):
+        env.Append(
+            CPPPATH=[
+                zlib_inline_copy_dir,
+            ],
+        )
+    else:
+        # TODO: Should only happen for official Debian packages, and there we
+        # can use the zlib static linking maybe, but for onefile it's not easy
+        # to get it, so just use slow checksum for now.
+        if onefile_compile:
+            env.Append(CPPDEFINES=["_NUITKA_USE_OWN_CRC32"])
+        else:
+            env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
+            env.Append(LIBS="z")
 
 
 def _enablePgoSettings(env, pgo_mode):
@@ -907,20 +938,29 @@ version (>= 5.3)."""
         )
 
     if env.gcc_version < (5,):
-        scons_logger.info("The provided gcc is too old, switching to its g++ instead.")
+        if env.python_version < (3, 11):
+            scons_logger.info(
+                "The provided gcc is too old, switching to its g++ instead.",
+                mnemonic="too-old-gcc",
+            )
 
-        # Switch to g++ from gcc then if possible, when C11 mode is false.
-        the_gpp_compiler = os.path.join(
-            os.path.dirname(env.the_compiler),
-            os.path.basename(env.the_compiler).replace("gcc", "g++"),
-        )
+            # Switch to g++ from gcc then if possible, when C11 mode is false.
+            the_gpp_compiler = os.path.join(
+                os.path.dirname(env.the_compiler),
+                os.path.basename(env.the_compiler).replace("gcc", "g++"),
+            )
 
-        if getExecutablePath(the_gpp_compiler, env=env):
-            env.the_compiler = the_gpp_compiler
-            env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
+            if getExecutablePath(the_gpp_compiler, env=env):
+                env.the_compiler = the_gpp_compiler
+                env.the_cc_name = env.the_cc_name.replace("gcc", "g++")
+            else:
+                scons_logger.sysexit(
+                    "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+                )
         else:
             scons_logger.sysexit(
-                "Error, your gcc is too old for C11 support, and no related g++ to workaround that is found."
+                "Error, your gcc is too old for C11 support, install a newer one.",
+                mnemonic="too-old-gcc",
             )
 
 
@@ -929,6 +969,16 @@ def reportCCompiler(env, context, output_func):
 
     if env.the_cc_name == "cl":
         cc_output = "%s %s" % (env.the_cc_name, getMsvcVersionString(env))
+    elif isGccName(env.the_cc_name):
+        cc_output = "%s %s" % (
+            env.the_cc_name,
+            ".".join(str(d) for d in env.gcc_version),
+        )
+    elif isClangName(env.the_cc_name):
+        cc_output = "%s %s" % (
+            env.the_cc_name,
+            ".".join(str(d) for d in myDetectVersion(env, env.the_cc_name)),
+        )
     else:
         cc_output = env.the_cc_name
 

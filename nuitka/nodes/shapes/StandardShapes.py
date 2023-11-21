@@ -19,17 +19,19 @@
 
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase
 from nuitka.code_generation.c_types.CTypePyObjectPointers import (
     CTypePyObjectPtr,
 )
 from nuitka.code_generation.Reports import onMissingOperation
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
 from .ShapeMixins import ShapeIteratorMixin
 
 
-class ShapeBase(getMetaClassBase("Shape")):
+class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
+    __slots__ = ()
+
     def __repr__(self):
         return "<%s %s %s>" % (
             self.__class__.__name__,
@@ -493,6 +495,8 @@ class ShapeBase(getMetaClassBase("Shape")):
 
 
 class ShapeTypeUnknown(ShapeBase):
+    __slots__ = ()
+
     @staticmethod
     def getOperationBinaryAddShape(right_shape):
         return operation_result_unknown
@@ -566,7 +570,7 @@ tshape_unknown = ShapeTypeUnknown()
 
 
 class ShapeTypeUninitialized(ShapeTypeUnknown):
-    pass
+    __slots__ = ()
 
 
 tshape_uninitialized = ShapeTypeUninitialized()
@@ -625,6 +629,8 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
 
 class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+
+    __slots__ = ()
 
     @staticmethod
     def isShapeIterator():

@@ -28,7 +28,6 @@ module.
 
 import os
 
-from nuitka.Options import shallUseStaticLibPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContents, isFilenameBelowPath
 from nuitka.utils.ModuleNames import ModuleName
@@ -104,10 +103,13 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if isWin32OrPosixWindows() and not shallUseStaticLibPython():
-            import _ctypes
+        if isWin32OrPosixWindows():
+            from nuitka.Options import shallUseStaticLibPython
 
-            stdlib_paths.add(os.path.dirname(_ctypes.__file__))
+            if not shallUseStaticLibPython():
+                import _ctypes
+
+                stdlib_paths.add(os.path.dirname(_ctypes.__file__))
 
         getStandardLibraryPaths.result = [
             os.path.normcase(os.path.normpath(stdlib_path))
@@ -358,6 +360,7 @@ _stdlib_no_auto_inclusion_list = (
     "tty",
     "termios",
     "this",
+    "textwrap",
     # Distribution and bytecode related stuff
     "plistlib",
     "distutils",

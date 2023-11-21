@@ -75,9 +75,12 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
 
         ExpressionBase.__init__(self, source_ref)
 
+{% if is_stdlib_module %}
+        self.attempted = False
+{% else %}
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
-
+{% endif %}
 
 {% if not mixin_name %}
     def finalize(self):

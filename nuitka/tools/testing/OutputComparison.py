@@ -144,7 +144,30 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = thread_re.sub(r"Thread 0xXXXXXXXX", line)
         line = compiled_types_re.sub(r"\1", line)
         line = global_name_error_re.sub(r"\1\2\3", line)
+
         line = module_repr_re.sub(r"\1xxxxx\2", line)
+
+        # Frozen modules of 3.11, _imp._frozen_module_names
+        for module_name in (
+            "zipimport",
+            "abc",
+            "codecs",
+            "io",
+            "_collections_abc",
+            "_sitebuiltins",
+            "genericpath",
+            "ntpath",
+            "posixpath",
+            "os.path",
+            "os",
+            "site",
+            "stat",
+        ):
+            line = line.replace(
+                "<module '%s' (frozen)>" % module_name,
+                "<module '%s' from 'xxxxx'>" % module_name,
+            )
+
         line = non_ascii_error_rt.sub(r"\1 xxxx", line)
         line = timing_re.sub(r"in x.xx seconds", line)
 

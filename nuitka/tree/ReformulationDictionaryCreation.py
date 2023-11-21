@@ -117,9 +117,15 @@ def getDictUnpackingHelper():
 
     temp_scope = None
 
-    tmp_result_variable = result.allocateTempVariable(temp_scope, "dict")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_item_variable = result.allocateTempVariable(temp_scope, "keys")
+    tmp_result_variable = result.allocateTempVariable(
+        temp_scope, "dict", temp_type="object"
+    )
+    tmp_iter_variable = result.allocateTempVariable(
+        temp_scope, "iter", temp_type="object"
+    )
+    tmp_item_variable = result.allocateTempVariable(
+        temp_scope, "keys", temp_type="object"
+    )
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(

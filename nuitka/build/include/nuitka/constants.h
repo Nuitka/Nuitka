@@ -160,6 +160,8 @@ extern PyObject **global_constants;
 #define const_str_plain___newobj__ global_constants[44]
 // '.'
 #define const_str_dot global_constants[45]
+// '_'
+#define const_str_underscore global_constants[45]
 // '__getattr__'
 #define const_str_plain___getattr__ global_constants[46]
 // '__setattr__'

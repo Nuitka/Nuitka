@@ -44,6 +44,46 @@
     dirs:
       - 'lib'
 
+- module-name: 'altair'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'load_ipython_extension': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'altair.utils.core'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.utils.v5.display'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.api'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.display'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'altair.vegalite.v5.schema'
+  data-files:
+    patterns:
+      - '*.json'
+
 - module-name: 'androguard.core.resources'
   data-files:
     patterns:
@@ -156,6 +196,14 @@
       - description: "'attrs' is not fully supported before version 23.1.0"
         support_info: 'warning'
         when: 'version("attrs") < (23,1)'
+
+- module-name: 'autoit'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'AutoIt'
+      when: 'win32'
 
 - module-name: 'av.audio.frame'
   implicit-imports:
@@ -600,7 +648,7 @@
     checks:
       - description: 'OpenCV2 is best supported with 4.6 or later'
         support_info: 'warning'
-        when: 'version("opencv-python") < (4,6)'
+        when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils'
   anti-bloat:
@@ -664,6 +712,15 @@
       replacements_plain:
         'import IPython.display as display': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'datasets.packaged_modules'
+  anti-bloat:
+    - description: 'workaround dependency source code usages'
+      context:
+        - 'import datasets.packaged_modules'
+      replacements_re:
+        'inspect\.getsource\((.*?)\)': '""'
+      append_result: '"_PACKAGED_DATASETS_MODULES = %r" % datasets.packaged_modules._PACKAGED_DATASETS_MODULES'
 
 - module-name: 'datatree'
   anti-bloat:
@@ -786,6 +843,12 @@
     - depends:
         - 'Equation.equation_*'
 
+- module-name: 'evaluate.config'
+  anti-bloat:
+    - description: 'workaround python version test not compile time recognized'
+      replacements:
+        'PY_VERSION < version.parse("3.8")': 'str(__import__("sys").version_info < (3,8))'
+
 - module-name: 'exchangelib'
   implicit-imports:
     - depends:
@@ -873,6 +936,19 @@
         - 'jinja2.ext'
         - 'jinja2.ext.autoescape'
         - 'jinja2.ext.with_'
+
+- module-name: 'flask_restx'
+  data-files:
+    dirs:
+      - 'static'
+      - 'schemas'
+
+- module-name: 'flask_restx.swagger'
+  # Templates are put on application level for flask to find it.
+  data-files:
+    dest_path: '.'
+    dirs:
+      - 'templates'
 
 - module-name: 'folium'
   data-files:
@@ -1096,6 +1172,47 @@
       - 'languages'
       - 'images'
 
+- module-name: 'gradio'
+  data-files:
+    dirs:
+      - 'templates'
+      - 'node'
+      - '_frontend_code'
+    patterns:
+      - '*.json'
+
+- module-name: 'gradio.blocks'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'gradio.component_meta'
+  anti-bloat:
+    - description: 'workaround attempt to create .pyi files during execution'
+      change_function:
+        'create_or_modify_pyi': "'(lambda *args, **kwargs: None)'"
+
+- module-name: 'gradio.ipython_ext'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'gradio.utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'gradio_client'
+  data-files:
+    patterns:
+      - '*.json'
+
 - module-name: 'grpc'
   data-files:
     patterns:
@@ -1215,13 +1332,6 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
-- module-name: 'joblib'
-  options:
-    checks:
-      - description: 'joblib beyond 1.2 is not yet supported, downgrade to "joblib==1.2.0"'
-        support_info: 'error'
-        when: 'version("joblib") >= (1,3) and win32'
-
 - module-name: 'joblib._dask'
   anti-bloat:
     - description: 'remove optional dask usage'
@@ -1256,6 +1366,13 @@
       append_plain: |
         if __name__ == "__main__": main()
       when: 'not win32'
+
+- module-name: 'joblib.externals.loky.backend.popen_loky_win32'
+  anti-bloat:
+    - description: 'workaround for forking itself'
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'False'
+      when: 'win32'
 
 - module-name: 'joblib.externals.loky.backend.resource_tracker'
   anti-bloat:
@@ -1578,6 +1695,22 @@
         '_get_extension': "'(lambda: None, None, None)'"
         'is_rocm_pytorch': "'(lambda: False)'"
         '_get_cuda_home': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'mmengine.utils.dl_utils.collect_env'
+  anti-bloat:
+    - description: 'remove torch.utils.cpp_extension usage'
+      change_function:
+        '_get_cuda_home': 'un-callable'
+
+- module-name: 'mmengine.utils.dl_utils.parrots_wrapper'
+  anti-bloat:
+    - description: 'remove torch.utils.cpp_extension usage'
+      change_function:
+        '_get_extension': "'(lambda: None, None, None)'"
+        'is_rocm_pytorch': "'(lambda: False)'"
+        '_get_cuda_home': 'un-callable'
+      when: 'not use_setuptools'
 
 - module-name: 'mnemonic'
   data-files:
@@ -1624,6 +1757,13 @@
         'doctests': 'un-callable'
         'runtests': 'un-callable'
       when: 'not use_pytest'
+
+- module-name: 'multiprocess.util'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        '_cleanup_tests': 'un-callable'
+      when: 'not use_unittest'
 
 - module-name: 'multiprocessing.util'
   anti-bloat:
@@ -1682,7 +1822,7 @@
         'test': 'un-callable'
   options:
     checks:
-      - description: "Numba is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+      - description: "Numba is not yet working with Nuitka standalone, try to use '--noinclude-numba-mode', but it may fail."
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
@@ -1739,6 +1879,9 @@
       dest_path: '.'
       when: 'is_conda_package("numpy")'
 
+  anti-bloat:
+    - replacements_plain:
+        'https://': ''
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -2924,6 +3067,13 @@
       - 'colors'
       - 'icons'
 
+- module-name: 'pyqtgraph.util.numba_helper'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'getConfigOption("useNumba")': 'False'
+      when: 'not use_numba'
+
 - module-name: 'pyqtlet2'
   data-files:
     dirs:
@@ -3059,18 +3209,17 @@
   implicit-imports:
     - post-import-code:
         - |
-          def patched_connect(self, receiver, type=None):
-              type = type or QtCore.Qt.ConnectionType.AutoConnection
+          def patched_disconnect(self, receiver):
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
+                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
+                      patched_disconnect._protected.append(receiver)
 
-              return orig_connect(self, receiver, type)
+              return orig_disconnect(self, receiver)
 
           from PySide2 import QtCore
-          orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = patched_connect
+          orig_disconnect = QtCore.SignalInstance.disconnect
+          QtCore.SignalInstance.disconnect = patched_disconnect
 
   options:
     checks:
@@ -3085,6 +3234,22 @@
         - 'shiboken2'
 
 - module-name: 'PySide6'
+  implicit-imports:
+    - post-import-code:
+        - |
+          def patched_disconnect(self, receiver):
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
+                      patched_disconnect._protected.append(receiver)
+
+              return orig_disconnect(self, receiver)
+
+          from PySide6 import QtCore
+          orig_disconnect = QtCore.SignalInstance.disconnect
+          QtCore.SignalInstance.disconnect = patched_disconnect
+      when: 'version("PySide6") < (6,6)'
+
   options:
     checks:
       - description: 'PySide6 is a GUI framework'
@@ -3106,20 +3271,6 @@
   implicit-imports:
     - depends:
         - 'PySide6.support.deprecated'
-    - post-import-code:
-        - |
-          def patched_connect(self, receiver, type=None):
-              type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
-
-              return orig_connect(self, receiver, type)
-
-          from PySide6 import QtCore
-          orig_connect = QtCore.SignalInstance.connect
-          QtCore.SignalInstance.connect = patched_connect
 
 - module-name: 'pysnmp.smi'
   data-files:
@@ -3256,6 +3407,11 @@
         prefixes:
           - 'libiconv'
           - 'libzbar'
+
+- module-name: 'qtawesome'
+  data-files:
+    dirs:
+      - 'fonts'
 
 - module-name: 'rapidfuzz'
   implicit-imports:
@@ -3762,8 +3918,8 @@
   data-files:
     dirs:
       - 'data'
-    include-pyi-file: 'yes'
 
+# TODO: Our lazy loader support may mean these are not really necessary anymore.
 - module-name: 'skimage._shared'
   implicit-imports:
     - depends:
@@ -3779,13 +3935,7 @@
           def __init__(self, name):
             pass
 
-- module-name: 'skimage.color'
-  data-files:
-    include-pyi-file: 'yes'
-
 - module-name: 'skimage.data'
-  data-files:
-    include-pyi-file: 'yes'
   implicit-imports:
     - depends:
         - '._fetchers'
@@ -3798,15 +3948,9 @@
       when: 'not use_pytest'
 
 - module-name: 'skimage.draw'
-  data-files:
-    include-pyi-file: 'yes'
   implicit-imports:
     - depends:
         - 'skimage.draw._draw'
-
-- module-name: 'skimage.exposure'
-  data-files:
-    include-pyi-file: 'yes'
 
 - module-name: 'skimage.external.tifffile'
   implicit-imports:
@@ -3836,10 +3980,6 @@
     - depends:
         - 'skimage.feature._orb_descriptor_positions'
 
-- module-name: 'skimage.filters'
-  data-files:
-    include-pyi-file: 'yes'
-
 - module-name: 'skimage.filters.rank'
   implicit-imports:
     - depends:
@@ -3848,10 +3988,6 @@
         - 'skimage.filters.rank.core_cy_3d'
         - 'skimage.filters.rank.generic_cy'
         - 'skimage.filters.rank.percentile_cy'
-
-- module-name: 'skimage.future'
-  data-files:
-    include-pyi-file: 'yes'
 
 - module-name: 'skimage.future.graph'
   implicit-imports:
@@ -4262,7 +4398,7 @@
 - module-name: 'sparse'
   options:
     checks:
-      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'."
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
@@ -5213,25 +5349,36 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'timm'
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          if os.environ.get('PYTORCH_JIT') is not None:
+            os.environ['PYTORCH_JIT_OLD'] = os.environ.get('PYTORCH_JIT')
+          os.environ['PYTORCH_JIT'] = "0"
+      when: 'standalone'
+    - post-import-code:
+        - |
+          import os
+          if os.environ.get('PYTORCH_JIT_OLD') is None:
+            del os.environ['PYTORCH_JIT']
+          else:
+            os.environ['PYTORCH_JIT'] = os.environ['PYTORCH_JIT_OLD']
+            del os.environ['PYTORCH_JIT_OLD']
+      when: 'standalone'
+
+- module-name: 'timm.models.hrnet'
+  anti-bloat:
+    - replacements_plain:
+        '@torch.jit.interface': ''
+
 - module-name: 'timm.models.layers.config'
   anti-bloat:
     - description: 'remove torchscript JIT usage'
       replacements_plain:
         '_NO_JIT = False': '_NO_JIT = True'
         '_NO_ACTIVATION_JIT = False': '_NO_ACTIVATION_JIT = True'
-
-- module-name: 'timm.models.layers.create_act'
-  anti-bloat:
-    - description: 'remove TorchScript JIT usage'
-      replacements_plain:
-        'from .activations_jit import *': ''
-        'from .activations_me import *': ''
-        '_ACT_FN_JIT =': 'if False: _ACT_FN_JIT ='
-        '_ACT_FN_ME =': 'if False: _ACT_FN_ME ='
-        '_ACT_FNS = (_ACT_FN_ME, _ACT_FN_JIT, _ACT_FN_DEFAULT)': '_ACT_FNS = (_ACT_FN_DEFAULT,)'
-        '_ACT_LAYER_JIT =': 'if False: _ACT_LAYER_JIT ='
-        '_ACT_LAYER_ME =': 'if False: _ACT_LAYER_ME ='
-        '_ACT_LAYERS = (_ACT_LAYER_ME, _ACT_LAYER_JIT, _ACT_LAYER_DEFAULT)': '_ACT_LAYERS = (_ACT_LAYER_DEFAULT,)'
 
 - module-name: 'tinycss2'
   data-files:
@@ -5316,14 +5463,27 @@
         relative_path: 'lib'
         prefixes:
           - ''
-
-- module-name: 'torch._dynamo.config_utils'
   anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'import unittest': ''
-        'issubclass(func, unittest.TestCase)': 'False'
+    - description: 'allow unittest inside of torch, too dependent to remove'
+      bloat-mode-overrides:
+        'unittest': 'allow'
       when: 'not use_unittest'
+
+- module-name: 'torch._dynamo.logging'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': ''
+      when: 'not use_setuptools'
+
+- module-name: 'torch._dynamo.skipfiles'
+  anti-bloat:
+    # When calling inspect.getfile() on Nuitka's loader, it will yield
+    # "__module__" as "__nuitka__" but that's not in "sys.modules" and won't
+    # have a "__file__" value, so make sure to ignore it.
+    - description: "work around our '__loader__' failing check"
+      replacements_plain:
+        'if inspect.isclass(obj)': 'if inspect.isclass(obj) and obj is not __loader__'
 
 - module-name: 'torch._inductor.codecache'
   anti-bloat:
@@ -5332,6 +5492,9 @@
         'from torch.utils import cpp_extension': ''
       change_function:
         'get_include_and_linking_paths': 'un-callable'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
@@ -5339,6 +5502,27 @@
       replacements_plain:
         'from .cpp import DTYPE_TO_CPP, INDEX_TYPE': 'raise ImportError'
         'from .cpp import DTYPE_TO_CPP': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.codegen.triton'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.codegen.triton_utils'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.coordinate_descent_tuner'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if has_triton()': 'if False'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.graph'
@@ -5372,12 +5556,33 @@
         'from .codegen.wrapper import pexpr': 'raise ImportError'
       when: 'not use_setuptools'
 
+- module-name: 'torch._inductor.triton_heuristics'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if has_triton()': 'if False'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._inductor.triton_ops.autotune'
   anti-bloat:
     - description: 'remove setuptools usage'
       replacements_plain:
         'from ..codecache import cache_dir': ''
         'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.utils'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if _has_triton()': 'if False'
+      change_function:
+        'has_triton': "'(lambda: False)'"
+        'do_bench': 'un-callable'
+        'get_device_tflops': 'un-callable'
+        'get_gpu_dram_gbps': 'un-callable'
+      no-auto-follow:
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._jit_internal'
@@ -5393,14 +5598,6 @@
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
 
-- module-name: 'torch.jit._state'
-  implicit-imports:
-    - pre-import-code:
-        - |
-          import os
-          os.environ['PYTORCH_JIT'] = "0"
-      when: 'standalone'
-
 - module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
     - depends:
@@ -5408,6 +5605,23 @@
         - 'torch.onnx.symbolic_opset12'
         - 'torch.onnx.symbolic_opset14'
         - 'torch.onnx.symbolic_opset15'
+
+- module-name: 'torch.sparse._triton_ops'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'if _has_triton()': 'if False'
+      change_function:
+        '_has_triton': "'(lambda: False)'"
+      when: 'not use_setuptools'
+
+- module-name: 'torch.testing._internal.common_utils'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'run_tests': 'un-callable'
+        'get_pytest_test_cases': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'torch.utils.data._typing'
   anti-bloat:
@@ -5519,10 +5733,18 @@
 - module-name: 'transformers'
   data-files:
     include-metadata:
-      - 'torch'
+      - 'accelerate'
+      - 'bitsandbytes'
+      - 'datasets'
       - 'flax'
+      - 'jinja2'
+      - 'pandas'
+      - 'psutil'
       - 'tensorflow'
+      - 'torch'
       - 'tokenizers'
+      - 'scipy'
+      - 'safetensors'
       - 'sentencepiece'
 
 - module-name: 'transformers.integrations'
@@ -5687,13 +5909,6 @@
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
-
-- module-name: 'triton.compiler'
-  anti-bloat:
-    - description: 'remove setuptools usage'
-      replacements_plain:
-        'import setuptools': ''
-      when: 'not use_setuptools'
 
 - module-name: 'tsfresh.feature_extraction.data'
   anti-bloat:
@@ -6161,6 +6376,12 @@
     dirs:
       - 'schemas'
 
+- module-name: 'yapf_third_party._ylib2to3'
+  data-files:
+    patterns:
+      - 'Grammar.txt'
+      - 'PatternGrammar.txt'
+
 - module-name: 'zmq'
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
@@ -6183,6 +6404,7 @@
   anti-bloat:
     - description: 'remove unittest reference'
       change_function:
+        # TODO: For a decorator, this looks breaking
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'

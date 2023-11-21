@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Support for gi typelib files
+""" Support for gi typelib files and DLLs
 """
 import os
 
@@ -86,16 +86,29 @@ if not os.environ.get("GI_TYPELIB_PATH"):
 
     @standalone_only
     def getExtraDlls(self, module):
-        if module.getFullName() == "gi._gi":
-            gtk_dll_path = self.locateDLL("gtk-3")
+        def tryLocateAndLoad(dll_name):
+            # Support various name forms in MSYS2 over time.
+            dll_path = self.locateDLL(dll_name)
+            if dll_path is None:
+                dll_path = self.locateDLL("%s" % dll_name)
+            if dll_path is None:
+                dll_path = self.locateDLL("lib%s" % dll_name)
 
-            if gtk_dll_path is None:
-                gtk_dll_path = self.locateDLL("gtk-3-0")
-
-            if gtk_dll_path is not None:
+            if dll_path is not None:
                 yield self.makeDllEntryPoint(
-                    source_path=gtk_dll_path,
-                    dest_path=os.path.basename(gtk_dll_path),
-                    package_name=None,
+                    source_path=dll_path,
+                    dest_path=os.path.basename(dll_path),
+                    module_name="gi._gi",
+                    package_name="gi",
                     reason="needed by 'gi._gi'",
                 )
+
+        if module.getFullName() == "gi._gi":
+            # TODO: Get local relevant DLL names from GI
+            for dll_name in (
+                "gtk-3-0",
+                "soup-2.4-1",
+                "soup-gnome-2.4-1",
+                "libsecret-1-0",
+            ):
+                yield tryLocateAndLoad(dll_name)

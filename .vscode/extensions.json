@@ -15,7 +15,8 @@
         "redhat.vscode-yaml",
         "dawidd6.debian-vscode",
         "streetsidesoftware.code-spell-checker",
-        "samuelcolvin.jinjahtml"
+        "samuelcolvin.jinjahtml",
+        "tamasfe.even-better-toml"
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
     "unwantedRecommendations": [

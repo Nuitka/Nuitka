@@ -183,6 +183,6 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
     assert(!self_aiter);
 #endif
 
-    int res = PyType_Ready(type);
+    NUITKA_MAY_BE_UNUSED int res = PyType_Ready(type);
     assert(res >= 0);
 }

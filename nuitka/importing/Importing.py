@@ -37,12 +37,11 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 
 import collections
-import hashlib
 import os
 import sys
 import zipfile
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -54,7 +53,9 @@ from nuitka.Tracing import my_print, recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
+from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
+    builtin_module_names,
     getModuleFilenameSuffixes,
     getSharedLibrarySuffixes,
     isBuiltinModuleName,
@@ -68,7 +69,43 @@ from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 
-_debug_module_finding = Options.shallExplainImports()
+# Debug traces, enabled via --explain-imports
+_debug_module_finding = None
+
+# Preference as expressed via --prefer-source-code
+_prefer_source_code_over_extension_modules = None
+
+
+def setupImportingFromOptions():
+    """Set up the importing layer from giving options."""
+
+    # Should only be used inside of here.
+    from nuitka import Options
+
+    # singleton, pylint: disable=global-statement
+    global _debug_module_finding
+    _debug_module_finding = Options.shallExplainImports()
+
+    global _prefer_source_code_over_extension_modules
+    _prefer_source_code_over_extension_modules = (
+        Options.shallPreferSourceCodeOverExtensionModules()
+    )
+
+    # Lets try and have this complete, please report failures.
+    if Options.is_debug and not isNuitkaPython():
+        _checkRaisingBuiltinComplete()
+
+    main_filenames = Options.getMainEntryPointFilenames()
+    for filename in main_filenames:
+        # Inform the importing layer about the main script directory, so it can use
+        # it when attempting to follow imports.
+        addMainScriptDirectory(main_dir=os.path.dirname(os.path.abspath(filename)))
+
+
+def _checkRaisingBuiltinComplete():
+    for module_name in builtin_module_names:
+        assert module_name in _stdlib_module_raises, module_name
+
 
 warned_about = set()
 
@@ -186,7 +223,7 @@ def isIgnoreListedImportMaker(source_ref):
     return StandardLibrary.isStandardLibraryPath(source_ref.getFilename())
 
 
-def warnAbout(importing, module_name, level, source_ref):
+def warnAboutNotFoundImport(importing, module_name, level, source_ref):
     # This probably should not be dealt with here
     if module_name == "":
         return
@@ -279,6 +316,15 @@ def findModule(module_name, parent_package, level):
         else:
             return None, None, None, "not-found"
 
+    if level == 1 and not module_name:
+        # Not actually allowed, but we only catch that at run-time.
+        if parent_package is None:
+            return None, None, None, "not-found"
+
+        module_name = parent_package
+        parent_package = None
+        level = 0
+
     # Try relative imports first if we have a parent package.
     if level != 0 and parent_package is not None:
         if module_name:
@@ -313,36 +359,10 @@ def findModule(module_name, parent_package, level):
 
             return full_name.getPackageName(), module_filename, module_kind, "relative"
 
-    if level < 1 and module_name != "":
+    if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
 
         package_name = module_name.getPackageName()
-
-        # Built-in module names must not be searched any further.
-        if module_name in sys.builtin_module_names:
-            if _debug_module_finding:
-                my_print(
-                    "findModule: Absolute imported module '%s' in as built-in':"
-                    % (module_name,)
-                )
-            return package_name, None, None, "built-in"
-
-        # Frozen module names are similar to built-in, but there is no list of
-        # them, therefore check loader name. Not useful at this time
-        # to make a difference with built-in.
-        if python_version >= 0x300 and module_name in sys.modules:
-            loader = getattr(sys.modules[module_name], "__loader__", None)
-
-            if (
-                loader is not None
-                and getattr(loader, "__name__", "") == "FrozenImporter"
-            ):
-                if _debug_module_finding:
-                    my_print(
-                        "findModule: Absolute imported module '%s' in as frozen':"
-                        % (module_name,)
-                    )
-                return package_name, None, None, "built-in"
 
         preloaded_path = getPreloadedPackagePath(module_name)
 
@@ -393,10 +413,7 @@ def _reportCandidates(package_name, module_name, candidate, candidates):
         else module_name
     )
 
-    if (
-        candidate.priority == 1
-        and Options.shallPreferSourceCodeOverExtensionModules() is None
-    ):
+    if candidate.priority == 1 and _prefer_source_code_over_extension_modules is None:
         for c in candidates:
             # Don't compare to itself and don't consider unused bytecode a problem.
             if c is candidate or c.priority == 3:
@@ -454,7 +471,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
     # Higher values are lower priority.
     priority_map = {
         "PY_COMPILED": 3,
-        "PY_SOURCE": 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
+        "PY_SOURCE": 0 if _prefer_source_code_over_extension_modules else 2,
         "C_EXTENSION": 1,
     }
 
@@ -582,26 +599,26 @@ def _unpackPathElement(path_entry):
     if not path_entry:
         return "."  # empty means current directory
 
-    if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
-        if path_entry not in _egg_files:
-            with open(path_entry, "rb") as f:
-                checksum = hashlib.md5(f.read()).hexdigest()
+    if os.path.isfile(path_entry):
+        if path_entry.lower().endswith((".egg", ".zip")):
+            if path_entry not in _egg_files:
+                checksum = getFileContentsHash(path_entry)
 
-            target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
+                target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
 
-            if not os.path.exists(target_dir):
-                try:
-                    # Not all Python versions allow using with here, pylint: disable=consider-using-with
-                    zip_ref = zipfile.ZipFile(path_entry, "r")
-                    zip_ref.extractall(target_dir)
-                    zip_ref.close()
-                except BaseException:
-                    removeDirectory(target_dir, ignore_errors=True)
-                    raise
+                if not os.path.exists(target_dir):
+                    try:
+                        # Not all Python versions allow using with here, pylint: disable=consider-using-with
+                        zip_ref = zipfile.ZipFile(path_entry, "r")
+                        zip_ref.extractall(target_dir)
+                        zip_ref.close()
+                    except BaseException:
+                        removeDirectory(target_dir, ignore_errors=True)
+                        raise
 
-            _egg_files[path_entry] = target_dir
+                _egg_files[path_entry] = target_dir
 
-        return _egg_files[path_entry]
+            return _egg_files[path_entry]
 
     return path_entry
 
@@ -614,7 +631,8 @@ def getPythonUnpackedSearchPath():
 
 
 def getPackageSearchPath(package_name):
-    assert _main_paths
+    if not _main_paths:
+        return None
 
     if package_name is None:
         result = (
@@ -632,8 +650,9 @@ def getPackageSearchPath(package_name):
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
-                # Hack for "uniconverter". TODO: Move this to plug-in decision. This
+                # Hack for "uniconvertor". TODO: Move this to plug-in decision. This
                 # fails the above test, but at run time should be a package.
+                # spell-checker: ignore uniconvertor
             elif package_name == "uniconvertor.app.modules":
                 result.append(package_dir)
 
@@ -678,7 +697,7 @@ def _findModuleInPath(module_name):
 
     # Free pass for built-in modules, they need not exist.
     if package_name is None and isBuiltinModuleName(module_name):
-        return None
+        return None, "built-in"
 
     search_path = getPackageSearchPath(package_name)
 
@@ -698,7 +717,7 @@ def _findModuleInPath(module_name):
             module_name if package_name is None else package_name + "." + module_name,
         )
 
-        return None
+        return None, None
 
     if _debug_module_finding:
         my_print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
@@ -737,6 +756,8 @@ def _findModule(module_name):
         module_search_cache[key] = ImportError
         raise
 
+    # assert len(module_search_cache[key]) == 2, (module_name, module_search_cache[key])
+
     return module_search_cache[key]
 
 
@@ -747,9 +768,10 @@ def locateModule(module_name, parent_package, level):
     as with "__import__" built-in.
 
     Returns:
-        Returns a triple of module name the module has considering
+        Returns a tuple of module name the module has considering
         package containing it, and filename of it which can be a
-        directory for packages, and the location method used.
+        directory for packages, the module kind, and the finding
+        kind.
     """
 
     if module_name.isMultidistModuleName():
@@ -762,10 +784,7 @@ def locateModule(module_name, parent_package, level):
     )
 
     # Allowing ourselves to be lazy.
-    if module_filename is None:
-        module_kind = None
-    else:
-        assert module_kind is not None, module_filename
+    assert module_kind is not None or module_filename is None, module_name
 
     assert module_package is None or (
         type(module_package) is ModuleName and module_package != ""
@@ -872,3 +891,117 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
         source_ref,
         source_filename,
     )
+
+
+# spell-checker: ignore _posixsubprocess,pyexpat,xxsubtype
+
+_stdlib_module_raises = {
+    "__builtin__": False,
+    "_abc": False,
+    "_ast": False,
+    "_bisect": False,
+    "_blake2": False,
+    "_bytesio": False,
+    "_codecs": False,
+    "_codecs_cn": False,
+    "_codecs_hk": False,
+    "_codecs_iso2022": False,
+    "_codecs_jp": False,
+    "_codecs_kr": False,
+    "_codecs_tw": False,
+    "_collections": False,
+    "_contextvars": False,
+    "_csv": False,
+    "_datetime": False,
+    "_elementtree": False,
+    "_fileio": False,
+    "_functools": False,
+    "_heapq": False,
+    "_hotshot": False,
+    "_imp": False,
+    "_io": False,
+    "_json": False,
+    "_locale": False,
+    "_lsprof": False,
+    "_md5": False,
+    "_multibytecodec": False,
+    "_opcode": False,
+    "_operator": False,
+    "_peg_parser": False,
+    "_pickle": False,
+    "_posixsubprocess": False,
+    "_random": False,
+    "_subprocess": False,
+    "_sha": False,  # TODO: Not entirely clear if that's true
+    "_sha1": False,
+    "_sha256": False,
+    "_sha3": False,
+    "_sha512": False,
+    "_signal": False,
+    "_socket": False,
+    "_sre": False,
+    "_stat": False,
+    "_statistics": False,
+    "_string": False,
+    "_struct": False,
+    "_symtable": False,
+    "_thread": False,
+    "_tracemalloc": False,
+    "_tokenize": False,
+    "_typing": False,
+    "_warnings": False,
+    "_weakref": False,
+    "_winapi": False,
+    "_winreg": False,
+    "_xxsubinterpreters": False,
+    "array": False,
+    "atexit": False,
+    "audioop": False,
+    "binascii": False,
+    "builtins": False,
+    "cmath": False,
+    "cStringIO": False,
+    "cPickle": False,
+    "datetime": False,
+    "errno": False,
+    "exceptions": False,
+    "faulthandler": False,
+    "fcntl": False,
+    "future_builtins": False,
+    "gc": False,
+    "grp": False,
+    "itertools": False,
+    "imageop": False,
+    "imp": False,
+    "operator": False,
+    "marshal": False,
+    "math": False,
+    "mmap": False,
+    "msvcrt": False,
+    "nt": False,
+    "parser": False,
+    "posix": False,
+    "pwd": False,
+    "pyexpat": False,
+    "select": False,
+    "signal": False,
+    "strop": False,
+    "spwd": False,
+    "sys": False,
+    "syslog": False,
+    "time": False,
+    "thread": False,
+    "unicodedata": False,
+    "winreg": False,
+    "xxsubtype": False,
+    "zipimport": False,
+    "zlib": False,
+    "_ssl": True,
+}
+
+
+def isNonRaisingBuiltinModule(module_name):
+    assert isBuiltinModuleName(module_name), module_name
+
+    # Return None, if we don't know.
+    return _stdlib_module_raises.get(module_name)
