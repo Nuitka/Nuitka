@@ -77,13 +77,21 @@ def checkSchema(document):
 
     with openTextFile(getYamlPackageConfigurationSchemaFilename(), "r") as schema_file:
         with openTextFile(document, "r") as yaml_file:
+            yaml_data = yaml.load(yaml_file, yaml.BaseLoader)
+
             try:
                 validators.Draft202012Validator(
                     schema=json.loads(schema_file.read())
-                ).validate(instance=yaml.load(yaml_file, yaml.BaseLoader))
-            except ValidationError:
+                ).validate(instance=yaml_data)
+            except ValidationError as e:
+                try:
+                    module_name = repr(yaml_data[e.path[0]]["module-name"])
+                except Exception:  # pylint: disable=broad-except
+                    module_name = "unknown"
+
                 tools_logger.sysexit(
-                    "Error, please fix the schema errors in '%s' yaml file." % document
+                    "Error, please fix the schema error in yaml file '%s' for %s module:\n%s"
+                    % (document, module_name, e.message)
                 )
             else:
                 my_print("OK, schema validated", style="blue")
@@ -145,9 +153,9 @@ def main():
         sys.exit("No files found.")
 
     for filename in filenames:
-        checkYamllint(filename)
         checkSchema(filename)
         checkValues(filename)
+        checkYamllint(filename)
 
 
 if __name__ == "__main__":
