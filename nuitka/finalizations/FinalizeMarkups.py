@@ -136,7 +136,7 @@ class FinalizeMarkups(VisitorNoopMixin):
             if (
                 node.isExpressionYield()
                 or node.isExpressionYieldFrom()
-                or node.isExpressionYieldFromWaitable()
+                or node.isExpressionYieldFromAwaitable()
             ):
                 search = node.getParent()
 

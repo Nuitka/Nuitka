@@ -222,10 +222,11 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
     CHECK_OBJECT(wrapper_enhancement_code_object);
 
     {
-        PyObject *module = PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
+        NUITKA_MAY_BE_UNUSED PyObject *module =
+            PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
         CHECK_OBJECT(module);
 
-        bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_types_patch");
+        NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_types_patch");
         assert(bool_res != false);
     }
 

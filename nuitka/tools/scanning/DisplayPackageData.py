@@ -47,7 +47,7 @@ def displayPackageData(module_name):
 
     if not os.path.isdir(package_directory):
         tools_logger.sysexit(
-            "Error, doesn't seem that '%s' is a package on disk."
+            "Error, doesn't seem that '%s' is a package on disk but rather a plain module."
             % module_name.asString()
         )
 

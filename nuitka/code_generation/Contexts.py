@@ -24,7 +24,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 
 from nuitka import Options
-from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.__past__ import iterItems
 from nuitka.Constants import isMutable
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
@@ -34,6 +34,7 @@ from nuitka.utils.InstanceCounters import (
     counted_init,
     isCountingInstances,
 )
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 from .VariableDeclarations import VariableDeclaration, VariableStorage
 
@@ -43,6 +44,9 @@ from .VariableDeclarations import VariableDeclaration, VariableStorage
 class TempMixin(object):
     # Lots of details, everything gets to store bits here, to indicate
     # code generation states, and there are many, pylint: disable=too-many-instance-attributes
+
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def __init__(self):
         self.tmp_names = {}
@@ -301,6 +305,9 @@ CodeObjectHandle = collections.namedtuple(
 
 
 class CodeObjectsMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         # Code objects needed made unique by a key.
         self.code_objects = {}
@@ -336,7 +343,9 @@ class CodeObjectsMixin(object):
         return getStringHash("-".join(str(s) for s in key))
 
 
-class PythonContextBase(getMetaClassBase("Context")):
+class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
+    __slots__ = ("source_ref", "current_source_ref")
+
     @counted_init
     def __init__(self):
         self.source_ref = None
@@ -522,6 +531,8 @@ class PythonContextBase(getMetaClassBase("Context")):
 class PythonChildContextBase(PythonContextBase):
     # Base classes can be abstract, pylint: disable=I0021,abstract-method
 
+    __slots__ = ("parent",)
+
     def __init__(self, parent):
         PythonContextBase.__init__(self)
 
@@ -568,6 +579,9 @@ class PythonChildContextBase(PythonContextBase):
 
 
 class FrameDeclarationsMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         # Frame is active or not, default not.
         self.frame_variables_stack = [""]
@@ -699,6 +713,9 @@ class FrameDeclarationsMixin(object):
 
 
 class ReturnReleaseModeMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.return_release_mode = False
 
@@ -722,6 +739,9 @@ class ReturnReleaseModeMixin(object):
 
 
 class ReturnValueNameMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
     def __init__(self):
         self.return_name = None
 
@@ -738,15 +758,53 @@ class ReturnValueNameMixin(object):
 
 
 class PythonModuleContext(
+    FrameDeclarationsMixin,
     TempMixin,
     CodeObjectsMixin,
-    FrameDeclarationsMixin,
     ReturnReleaseModeMixin,
     ReturnValueNameMixin,
     PythonContextBase,
 ):
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
+
+    __slots__ = (
+        "module",
+        "name",
+        "code_name",
+        "declaration_codes",
+        "helper_codes",
+        "frame_handle",
+        "variable_storage",
+        "function_table_entries",
+        "constant_accessor",
+        # FrameDeclarationsMixin
+        "frame_variables_stack",
+        "frame_type_descriptions",
+        "frame_variable_types",
+        "frames_used",
+        "frame_stack",
+        "locals_dict_names",
+        # TempMixin:
+        "tmp_names",
+        "labels",
+        "exception_escape",
+        "loop_continue",
+        "loop_break",
+        "true_target",
+        "false_target",
+        "keeper_variable_count",
+        "exception_keepers",
+        "preserver_variable_declaration",
+        "cleanup_names",
+        # CodeObjectsMixin
+        "code_objects",
+        # ReturnReleaseModeMixin
+        "return_release_mode",
+        "return_exit",
+        # ReturnValueNameMixin
+        "return_name",
+    )
 
     def __init__(self, module, data_filename):
         PythonContextBase.__init__(self)
@@ -857,6 +915,36 @@ class PythonFunctionContext(
     ReturnValueNameMixin,
     PythonChildContextBase,
 ):
+    __slots__ = (
+        "function",
+        "frame_handle",
+        "variable_storage",
+        # FrameDeclarationsMixin
+        "frame_variables_stack",
+        "frame_type_descriptions",
+        "frame_variable_types",
+        "frames_used",
+        "frame_stack",
+        "locals_dict_names",
+        # TempMixin:
+        "tmp_names",
+        "labels",
+        "exception_escape",
+        "loop_continue",
+        "loop_break",
+        "true_target",
+        "false_target",
+        "keeper_variable_count",
+        "exception_keepers",
+        "preserver_variable_declaration",
+        "cleanup_names",
+        # ReturnReleaseModeMixin
+        "return_release_mode",
+        "return_exit",
+        # ReturnValueNameMixin
+        "return_name",
+    )
+
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(self, parent=parent)
 
@@ -902,6 +990,8 @@ class PythonFunctionContext(
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):
+    __slots__ = ()
+
     @staticmethod
     def getContextObjectName():
         return None
@@ -916,6 +1006,8 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
 
 class PythonGeneratorObjectContext(PythonFunctionContext):
+    __slots__ = ()
+
     def _makeVariableStorage(self):
         return VariableStorage(heap_name="%s_heap" % self.getContextObjectName())
 
@@ -939,18 +1031,24 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
 
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
+    __slots__ = ()
+
     @staticmethod
     def getContextObjectName():
         return "coroutine"
 
 
 class PythonAsyncgenObjectContext(PythonGeneratorObjectContext):
+    __slots__ = ()
+
     @staticmethod
     def getContextObjectName():
         return "asyncgen"
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
+    __slots__ = ()
+
     @staticmethod
     def getContextObjectName():
         return None
@@ -967,6 +1065,16 @@ class PythonFunctionCreatedContext(PythonFunctionContext):
 class PythonFunctionOutlineContext(
     ReturnReleaseModeMixin, ReturnValueNameMixin, PythonChildContextBase
 ):
+    __slots__ = (
+        "outline",
+        "variable_storage",
+        # ReturnReleaseModeMixin
+        "return_release_mode",
+        "return_exit",
+        # ReturnValueNameMixin
+        "return_name",
+    )
+
     def __init__(self, parent, outline):
         PythonChildContextBase.__init__(self, parent=parent)
 

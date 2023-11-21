@@ -20,7 +20,6 @@
 import ast
 import atexit
 import gc
-import hashlib
 import os
 import re
 import shutil
@@ -32,7 +31,7 @@ import time
 from contextlib import contextmanager
 from optparse import OptionParser
 
-from nuitka.__past__ import subprocess
+from nuitka.__past__ import md5, subprocess
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -1273,9 +1272,9 @@ def setupCacheHashSalt(test_code_path):
         stdout_git, stderr_git = process.communicate()
         assert process.returncode == 0, stderr_git
 
-        salt_value = hashlib.md5(stdout_git)
+        salt_value = md5(stdout_git)
     else:
-        salt_value = hashlib.md5()
+        salt_value = md5()
 
         for filename in getFileList(test_code_path):
             if filename.endswith(".py"):

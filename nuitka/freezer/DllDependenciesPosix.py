@@ -204,6 +204,9 @@ _linux_dll_ignore_list = [
     # The DRM layer should also be taken from the OS in question and won't
     # allow loading native drivers otherwise.
     "libdrm.so",
+    # The zlib can be assumed to be everywhere, and outside dependencies
+    # may actually load it.
+    "libz.so",
 ]
 
 if isAnacondaPython() or isAlpineLinux():

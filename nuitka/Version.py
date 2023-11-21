@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V1.8.6
+Nuitka V1.9
 Copyright (C) 2023 Kay Hayen."""
 
 
@@ -32,13 +32,12 @@ def getNuitkaVersion():
     return version_string.split()[1][1:]
 
 
-def getNuitkaVersionTuple():
-    """Return Nuitka version as a string.
+def parseNuitkaVersionToTuple(version):
+    """Return Nuitka version as a tuple.
 
-    This can also not be used for precise comparisons, last one might contain "rc"
+    This can also not be used for precise comparisons, even with rc versions,
+    but it's not actually a version.
     """
-
-    version = getNuitkaVersion()
 
     if "rc" in version:
         rc_number = int(version[version.find("rc") + 2 :] or "0")
@@ -56,6 +55,17 @@ def getNuitkaVersionTuple():
     result = [int(digit) for digit in result]
     result.extend((is_final, rc_number))
     return tuple(result)
+
+
+def getNuitkaVersionTuple():
+    """Return Nuitka version as a tuple.
+
+    This can also not be used for precise comparisons, even with rc versions,
+    but it's not actually a version. The format is used what is used for
+    "__compiled__" values.
+    """
+
+    return parseNuitkaVersionToTuple(version=getNuitkaVersion())
 
 
 def getNuitkaVersionYear():

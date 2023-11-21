@@ -475,6 +475,9 @@ def getCallModuleName(module_name, function_name):
         return "OsSysNodes"
     if module_name == "ctypes":
         return "CtypesNodes"
+    if module_name == "builtins":
+        if function_name == "open":
+            return "BuiltinOpenNodes"
 
     assert False, (module_name, function_name)
 
@@ -729,6 +732,9 @@ def addFromNodes():
     node_factory_translations[
         "ExpressionImportlibMetadataBackportMetadataCall"
     ] = "makeExpressionImportlibMetadataBackportMetadataCall"
+    node_factory_translations[
+        "ExpressionBuiltinsOpenCall"
+    ] = "makeExpressionBuiltinsOpenCall"
 
 
 addFromNodes()
@@ -1068,6 +1074,16 @@ hard_import_node_classes = {}
                     function_name_title=function_name_title,
                     function_name_code=makeCodeCased(function_name),
                     module_name=module_name,
+                    is_stdlib_module=module_name
+                    in (
+                        "builtins",
+                        "os",
+                        "os.path",
+                        "pkgutil",
+                        "ctypes",
+                        "importlib.metadata",
+                        "importlib.resources",
+                    ),
                     module_name_code=makeCodeCased(adaptModuleName(module_name)),
                     module_name_title=module_name_title,
                     call_node_module_name=getCallModuleName(module_name, function_name),

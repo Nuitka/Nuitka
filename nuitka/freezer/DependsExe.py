@@ -53,6 +53,7 @@ def getDependsExePath():
         depends_url = "https://dependencywalker.com/depends22_x64.zip"
 
     return getCachedDownload(
+        name="dependency walker",
         url=depends_url,
         is_arch_specific=getArchitecture(),
         binary="depends.exe",

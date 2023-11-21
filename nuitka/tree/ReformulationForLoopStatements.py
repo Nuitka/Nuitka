@@ -36,7 +36,7 @@ from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
-from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
+from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
@@ -66,10 +66,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="for_iterator"
+        temp_scope=temp_scope, name="for_iterator", temp_type="object"
     )
     tmp_value_variable = provider.allocateTempVariable(
-        temp_scope=temp_scope, name="iter_value"
+        temp_scope=temp_scope, name="iter_value", temp_type="object"
     )
 
     else_block = buildStatementsNode(
@@ -108,7 +108,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             source_ref=source_ref,
         )
     else:
-        next_node = ExpressionYieldFromWaitable(
+        next_node = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncNext(
                 value=ExpressionTempVariableRef(
                     variable=tmp_iter_variable, source_ref=source_ref
@@ -170,7 +170,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             value=source, source_ref=source.getSourceReference()
         )
     else:
-        iter_source = ExpressionYieldFromWaitable(
+        iter_source = ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncIter(
                 value=source, source_ref=source.getSourceReference()
             ),

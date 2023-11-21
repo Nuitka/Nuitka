@@ -30,9 +30,13 @@ def _addFromDirectory(path, suffixes, ignore_list):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
-        for entry in _default_ignore_list:
-            if entry in dirnames:
-                dirnames.remove(entry)
+        # Remove things we never care about.
+        dirnames[:] = [
+            dirname
+            for dirname in dirnames
+            if dirname not in _default_ignore_list
+            if not dirname.endswith((".build", ".dist"))
+        ]
 
         filenames.sort()
 
@@ -59,7 +63,8 @@ def _addFromDirectory(path, suffixes, ignore_list):
             if filename.endswith((".exe", ".bin")):
                 continue
 
-            # Python files only.
+            # Python files only might include files with a shebang that points
+            # to Python.
             if ".py" in suffixes and not filename.endswith(suffixes):
                 shebang = getShebangFromFile(fullpath)
 

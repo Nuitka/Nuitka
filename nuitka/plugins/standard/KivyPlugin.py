@@ -129,6 +129,7 @@ except ImportError:
                 yield self.makeDllEntryPoint(
                     source_path=full_path,
                     dest_path=target_filename,
+                    module_name=full_name,
                     package_name=full_name,
                     reason="needed by 'kivy'",
                 )

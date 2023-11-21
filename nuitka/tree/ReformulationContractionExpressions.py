@@ -73,7 +73,7 @@ from nuitka.nodes.VariableReleaseNodes import (
 )
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
-    ExpressionYieldFromWaitable,
+    ExpressionYieldFromAwaitable,
 )
 from nuitka.PythonVersions import python_version
 
@@ -100,7 +100,7 @@ def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
         )
 
         if not for_asyncgen or python_version < 0x370:
-            result = ExpressionYieldFromWaitable(
+            result = ExpressionYieldFromAwaitable(
                 expression=result, source_ref=source_ref
             )
 
@@ -114,7 +114,7 @@ def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
 
 def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
-        return ExpressionYieldFromWaitable(
+        return ExpressionYieldFromAwaitable(
             expression=ExpressionAsyncNext(value=iterator_ref, source_ref=source_ref),
             source_ref=source_ref,
         )
@@ -140,10 +140,12 @@ def _buildPython2ListContraction(provider, node, source_ref):
         provider=provider, name="list_contraction", source_ref=source_ref
     )
 
-    iter_tmp = function_body.allocateTempVariable(temp_scope=None, name=".0")
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope=None, name=".0", temp_type="object"
+    )
 
     container_tmp = function_body.allocateTempVariable(
-        temp_scope=None, name="contraction_result"
+        temp_scope=None, name="contraction_result", temp_type="object"
     )
 
     statements, release_statements = _buildContractionBodyNode(
@@ -233,7 +235,9 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         provider=provider, name="genexpr", source_ref=source_ref
     )
 
-    iter_tmp = function_body.allocateTempVariable(temp_scope=None, name=".0")
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope=None, name=".0", temp_type="object"
+    )
 
     parent_module = provider.getParentModule()
 
@@ -460,7 +464,7 @@ def _buildContractionBodyNode(
 
     for count, qual in enumerate(reversed(node.generators)):
         tmp_value_variable = function_body.allocateTempVariable(
-            temp_scope=temp_scope, name="iter_value_%d" % count
+            temp_scope=temp_scope, name="iter_value_%d" % count, temp_type="object"
         )
 
         tmp_variables.append(tmp_value_variable)
@@ -473,7 +477,7 @@ def _buildContractionBodyNode(
             iterator_ref = makeVariableRefNode(variable=iter_tmp, source_ref=source_ref)
 
             if for_asyncgen and python_version >= 0x370:
-                iterator_ref = ExpressionYieldFromWaitable(
+                iterator_ref = ExpressionYieldFromAwaitable(
                     expression=iterator_ref, source_ref=source_ref
                 )
 
@@ -490,7 +494,9 @@ def _buildContractionBodyNode(
             )
 
             tmp_iter_variable = function_body.allocateTempVariable(
-                temp_scope=temp_scope, name="contraction_iter_%d" % count
+                temp_scope=temp_scope,
+                name="contraction_iter_%d" % count,
+                temp_type="object",
             )
 
             tmp_variables.append(tmp_iter_variable)
@@ -589,10 +595,12 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
     )
 
-    iter_tmp = function_body.allocateTempVariable(temp_scope=None, name=".0")
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope=None, name=".0", temp_type="object"
+    )
 
     container_tmp = function_body.allocateTempVariable(
-        temp_scope=None, name="contraction"
+        temp_scope=None, name="contraction", temp_type="object"
     )
 
     statements, release_statements = _buildContractionBodyNode(

@@ -22,11 +22,12 @@
 import math
 from abc import abstractmethod
 
-from nuitka.__past__ import getMetaClassBase, long
+from nuitka.__past__ import long
 from nuitka.code_generation.Namify import namifyConstant
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 
-class TypeDescBase(getMetaClassBase("Type")):
+class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
     # To be overloaded
     type_name = None
     type_desc = None
@@ -350,7 +351,7 @@ class TypeDescBase(getMetaClassBase("Type")):
             )
         elif slot == "tp_richcompare":
             # Try to detect fallbacks, this needs version specific management
-            # for at least "LONG", maybe others.
+            # for at least "LONG", maybe others. spell-checker: ignore RICHCOMPARE
 
             assert self is object_desc, self
             return "RICHCOMPARE(%s)" % operand
@@ -461,22 +462,26 @@ return %(return_value)s;""" % {
     def hasSameTypeOperationSpecializationCode(self, other, nb_slot, sq_slot):
         # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 
-        cand = self if self is not object_desc else other
+        candidate = self if self is not object_desc else other
 
         # Both are objects, nothing to be done.
-        if cand is object_desc:
+        if candidate is object_desc:
             assert self is object_desc
             assert other is object_desc
             return False
 
-        # Special case for sequence concats/repeats.
-        if sq_slot is not None and not cand.hasSlot(nb_slot) and cand.hasSlot(sq_slot):
+        # Special case for sequence concat/repeats.
+        if (
+            sq_slot is not None
+            and not candidate.hasSlot(nb_slot)
+            and candidate.hasSlot(sq_slot)
+        ):
             slot = sq_slot
         else:
             slot = nb_slot
 
         if slot == "sq_repeat":
-            if cand in (
+            if candidate in (
                 list_desc,
                 tuple_desc,
                 set_desc,
@@ -489,12 +494,12 @@ return %(return_value)s;""" % {
                 return False
 
         if slot == "nb_remainder":
-            if cand in (list_desc, tuple_desc, set_desc, dict_desc):
+            if candidate in (list_desc, tuple_desc, set_desc, dict_desc):
                 # No remainder with themselves.
                 return False
 
         if slot == "nb_multiply":
-            if cand in (
+            if candidate in (
                 str_desc,
                 bytes_desc,
                 list_desc,
@@ -508,7 +513,7 @@ return %(return_value)s;""" % {
         if slot == "nb_add":
             # Tuple and list, etc. use sq_concat.
             # TODO: What about unicode_desc
-            if cand in (
+            if candidate in (
                 str_desc,
                 bytes_desc,
                 tuple_desc,
@@ -520,7 +525,7 @@ return %(return_value)s;""" % {
                 return False
 
         if slot in ("nb_and", "nb_or", "nb_xor"):
-            if cand in (
+            if candidate in (
                 str_desc,
                 bytes_desc,
                 unicode_desc,
@@ -532,7 +537,7 @@ return %(return_value)s;""" % {
                 return False
 
         if slot in ("nb_lshift", "nb_rshift"):
-            if cand in (
+            if candidate in (
                 str_desc,
                 bytes_desc,
                 unicode_desc,
@@ -588,26 +593,29 @@ return %(return_value)s;""" % {
     def getTypeComparisonSpecializationHelper(
         self, other, op_code, target, operand1, operand2
     ):
-        cand1 = self if self is not object_desc else other
-        cand2 = other if other is not object_desc else self
+        candidate1 = self if self is not object_desc else other
+        candidate2 = other if other is not object_desc else self
 
-        if cand1 is object_desc:
+        if candidate1 is object_desc:
             return "", None, None, None, None, None
 
-        if long_desc in (cand1, cand2) and int_desc in (cand1, cand2):
-            if cand1 == int_desc:
+        if long_desc in (candidate1, candidate2) and int_desc in (
+            candidate1,
+            candidate2,
+        ):
+            if candidate1 == int_desc:
                 operand1 = int_desc.getAsLongValueExpression(operand1)
-                cand1 = c_long_desc
-            elif cand2 == int_desc:
+                candidate1 = c_long_desc
+            elif candidate2 == int_desc:
                 operand2 = int_desc.getAsLongValueExpression(operand1)
-                cand2 = c_long_desc
+                candidate2 = c_long_desc
             else:
                 assert False
 
         if (
             target is n_bool_desc
-            and cand1 is cand2
-            and cand1 not in (tuple_desc, list_desc)
+            and candidate1 is candidate2
+            and candidate1 not in (tuple_desc, list_desc)
         ):
             target = c_bool_desc
 
@@ -616,12 +624,12 @@ return %(return_value)s;""" % {
             % (
                 op_code,
                 target.getHelperCodeName(),
-                cand1.getHelperCodeName(),
-                cand2.getHelperCodeName(),
+                candidate1.getHelperCodeName(),
+                candidate2.getHelperCodeName(),
             ),
             target,
-            cand1,
-            cand2,
+            candidate1,
+            candidate2,
             operand1,
             operand2,
         )
@@ -1518,6 +1526,7 @@ class CLongDesc(ConcreteCTypeBase):
 
     @staticmethod
     def getLongValueMediumValueExpression(operand):
+        # spell-checker: disable=sdigit
         return "(sdigit)%s" % (operand)
 
 

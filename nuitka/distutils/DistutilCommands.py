@@ -323,6 +323,9 @@ class build(distutils.command.build.build):
                 for option, value in toml_options.get("nuitka", {}).items():
                     command.extend(self._parseOptionsEntry(option, value))
 
+                for option, value in toml_options.get("tool.nuitka", {}).items():
+                    command.extend(self._parseOptionsEntry(option, value))
+
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
                 for option, value in self.distribution.command_options[

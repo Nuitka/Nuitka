@@ -187,9 +187,10 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-tracebacktests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
-    $python2 -m nuitka.__main__ --show-scons --run tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
     $python2 ./tests/run-tests --skip-reflection-test
 else

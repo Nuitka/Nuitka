@@ -174,7 +174,20 @@ def getSourceCodeDiff(source_code, source_code_modified):
     return list(diff)
 
 
-def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
+_source_code_cache = {}
+
+
+def readSourceCodeFromFilenameWithInformation(
+    module_name, source_filename, pre_load=False
+):
+    key = (module_name, source_filename)
+
+    if key in _source_code_cache:
+        if pre_load:
+            return _source_code_cache[key]
+        else:
+            return _source_code_cache.pop(key)
+
     if python_version < 0x300:
         source_code = _readSourceCodeFromFilename2(source_filename)
     else:
@@ -184,7 +197,9 @@ def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
     # module and doesn't want any changes from plugins in that case.
     if module_name is not None:
         source_code_modified, contributing_plugins = Plugins.onModuleSourceCode(
-            module_name=module_name, source_code=source_code
+            module_name=module_name,
+            source_filename=source_filename,
+            source_code=source_code,
         )
     else:
         source_code_modified = source_code
@@ -198,12 +213,19 @@ def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
             for line in source_diff:
                 my_print(line, end="\n" if not line.startswith("---") else "")
 
-    return source_code_modified, source_code, contributing_plugins
+    result = source_code_modified, source_code, contributing_plugins
+
+    if pre_load:
+        _source_code_cache[key] = result
+
+    return result
 
 
-def readSourceCodeFromFilename(module_name, source_filename):
+def readSourceCodeFromFilename(module_name, source_filename, pre_load=False):
     return readSourceCodeFromFilenameWithInformation(
-        module_name=module_name, source_filename=source_filename
+        module_name=module_name,
+        source_filename=source_filename,
+        pre_load=pre_load,
     )[0]
 
 

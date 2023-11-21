@@ -33,7 +33,6 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
@@ -68,8 +67,16 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.Distributions import isDistributionCondaPackage
+from nuitka.utils.Distributions import (
+    getDistributionFromModuleName,
+    getDistributionName,
+    isDistributionCondaPackage,
+)
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    getFileContents,
+)
 from nuitka.utils.Importing import isBuiltinModuleName
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -78,6 +85,7 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from nuitka.utils.Utils import (
     getArchitecture,
     isLinux,
@@ -110,6 +118,13 @@ def _getPackageNameFromDistributionName(distribution_name):
         return "objc"
     else:
         return distribution_name
+
+
+def _getDistributionNameFromPackageName(package_name):
+    distribution = getDistributionFromModuleName(package_name)
+
+    assert distribution is not None, package_name
+    return getDistributionName(distribution)
 
 
 def _getPackageVersion(distribution_name):
@@ -163,7 +178,7 @@ def _isPluginActive(plugin_name):
     return plugin_name in getUserActivatedPluginNames()
 
 
-class NuitkaPluginBase(getMetaClassBase("Plugin")):
+class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     """Nuitka base class for all plugins.
 
     Derive your plugin from "NuitkaPluginBase" please.
@@ -273,7 +288,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         """Inspect or modify source code.
 
         Args:
@@ -286,6 +301,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             going to allow simply checking the source code without the need to
             pass it back.
         """
+        # Virtual method, pylint: disable=unused-argument
         self.checkModuleSourceCode(module_name, source_code)
 
         return source_code
@@ -431,6 +447,25 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onModuleUsageLookAhead(
+        self, module_name, module_filename, module_kind, get_module_source
+    ):
+        """React to tentative recursion of a module coming up.
+
+        For definite usage, use onModuleRecursion where it's a fact and
+        happening next. This may be a usage that is later optimized away
+        and doesn't impact anything. The main usage is to setup e.g.
+        hard imports as a factory, e.g. with detectable lazy loaders.
+
+        Args:
+            module_name: full module name
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
+            get_module_source: callable to get module source code if any
+        Returns:
+            None
+        """
+
     def onModuleRecursion(
         self,
         module_name,
@@ -440,7 +475,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         source_ref,
         reason,
     ):
-        """React to recursion to a module coming up.
+        """React to recursion of a module coming up.
 
         Args:
             module_name: full module name
@@ -555,22 +590,28 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         """
         return locateDLLsInDirectory(directory)
 
-    def makeDllEntryPoint(self, source_path, dest_path, package_name, reason):
+    def makeDllEntryPoint(
+        self, source_path, dest_path, module_name, package_name, reason
+    ):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
+            module_name=module_name,
             package_name=package_name,
             reason=reason,
         )
 
-    def makeExeEntryPoint(self, source_path, dest_path, package_name, reason):
+    def makeExeEntryPoint(
+        self, source_path, dest_path, module_name, package_name, reason
+    ):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeExeEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
+            module_name=module_name,
             package_name=package_name,
             reason=reason,
         )
@@ -904,6 +945,21 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    @classmethod
+    def getPluginDataFilesDir(cls):
+        """Helper function that returns path, where data files for the plugin are stored."""
+        plugin_filename = sys.modules[cls.__module__].__file__
+        return changeFilenameExtension(plugin_filename, "")
+
+    def getPluginDataFileContents(self, filename):
+        """Helper function that returns contents of a plugin data file."""
+        return getFileContents(
+            os.path.join(
+                self.getPluginDataFilesDir(),
+                filename,
+            )
+        )
+
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
 
@@ -1035,6 +1091,10 @@ except ImportError:
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
                 return None
+
+            if Options.is_debug:
+                self.info(cmd)
+
             raise
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
@@ -1090,6 +1150,11 @@ except ImportError:
         # Virtual method, pylint: disable=unused-argument
         return self.plugin_name
 
+    def getExtraConstantDefaultPopulation(self):
+        """Provide extra global constant values to code generation."""
+        # Virtual method, pylint: disable=no-self-use
+        return ()
+
     def decideAllowOutsideDependencies(self, module_name):
         """Decide if outside of Python dependencies are allowed.
 
@@ -1100,8 +1165,10 @@ except ImportError:
         return None
 
     @staticmethod
-    def getPackageVersion(distribution_name):
+    def getPackageVersion(module_name):
         """Provide package version of a distribution."""
+        distribution_name = _getDistributionNameFromPackageName(module_name)
+
         return _getPackageVersion(distribution_name)
 
     def getEvaluationConditionControlTags(self):
@@ -1133,6 +1200,7 @@ except ImportError:
                 "deployment": isDeploymentMode(),
                 # Querying package versions.
                 "version": _getPackageVersion,
+                "get_dist_name": _getDistributionNameFromPackageName,
                 "plugin": _isPluginActive,
                 "no_asserts": hasPythonFlagNoAsserts(),
                 "no_docstrings": hasPythonFlagNoDocStrings(),
@@ -1207,9 +1275,9 @@ except ImportError:
         plugins_logger.info(cls.plugin_name + ": " + message)
 
     @classmethod
-    def sysexit(cls, message, mnemonic=None):
+    def sysexit(cls, message, mnemonic=None, reporting=True):
         plugins_logger.sysexit(
-            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=True
+            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
 
 

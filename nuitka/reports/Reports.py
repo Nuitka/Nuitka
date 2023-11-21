@@ -33,6 +33,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
+from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleInclusionInfoByName,
@@ -49,7 +50,13 @@ from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
 from nuitka.Tracing import ReportingSystemExit, reports_logger
-from nuitka.utils.Distributions import getDistributionsFromModuleName
+from nuitka.utils.Distributions import (
+    getDistributionInstallerName,
+    getDistributionLicense,
+    getDistributionName,
+    getDistributionsFromModuleName,
+    getDistributionVersion,
+)
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
@@ -88,8 +95,14 @@ def _getReportInputData(aborted):
         for module in getDoneModules()
     )
 
+    module_usages = dict(
+        (module.getFullName(), tuple(module.getUsedModules()))
+        for module in getDoneModules()
+    )
+
     module_distributions = {}
     distribution_modules = {}
+
     for module in getDoneModules():
         module_distributions[module.getFullName()] = getDistributionsFromModuleName(
             module.getFullName()
@@ -100,9 +113,19 @@ def _getReportInputData(aborted):
 
             distribution_modules[_distribution].add(module.getFullName())
 
-    module_usages = dict(
-        (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
-    )
+    module_distribution_usages = {}
+    for module in getDoneModules():
+        module_distribution_usages[module.getFullName()] = OrderedSet()
+
+        for _module_usage in module_usages[module.getFullName()]:
+            if _module_usage.module_name not in module_usages:
+                continue
+
+            module_distribution_usages[module.getFullName()].update(
+                dist
+                for dist in module_distributions[_module_usage.module_name]
+                if dist not in module_distributions[module.getFullName()]
+            )
 
     module_distribution_names = dict(
         (module.getFullName(), module.getUsedDistributions())
@@ -112,9 +135,41 @@ def _getReportInputData(aborted):
     all_distributions = tuple(
         sorted(
             set(sum(module_distributions.values(), ())),
-            key=lambda dist: dist.metadata["Name"],
+            key=getDistributionName,
         )
     )
+
+    module_distribution_installers = dict(
+        (
+            getDistributionName(dist),
+            getDistributionInstallerName(getDistributionName(dist)),
+        )
+        for dist in all_distributions
+    )
+
+    module_exclusions = dict((module.getFullName(), {}) for module in getDoneModules())
+
+    # TODO: The module filename, and other things can be None. Once we change to
+    # namedtuples, we need to adapt the type check.
+    def _replaceNoneWithString(value):
+        if type(value) is tuple:
+            return tuple(_replaceNoneWithString(element) for element in value)
+
+        return value if value is not None else ""
+
+    for (
+        _using_module_name,
+        _module_filename,
+        _module_name,
+        _module_kind,
+        _extra_recursion,
+    ), (_decision, _reason) in sorted(
+        getRecursionDecisions().items(), key=_replaceNoneWithString
+    ):
+        if _decision is not False:
+            continue
+
+        module_exclusions[_using_module_name][_module_name] = _reason
 
     memory_infos = getMemoryInfos()
 
@@ -188,6 +243,13 @@ def _addModulesToReport(root, report_input_data, diffable):
             ),
         )
 
+        distributions = report_input_data["module_distributions"][module_name]
+
+        if distributions:
+            module_xml_node.attrib["distribution"] = ",".join(
+                getDistributionName(dist) for dist in distributions
+            )
+
         for plugin_name, influence, detail in report_input_data[
             "module_plugin_influences"
         ][module_name]:
@@ -219,19 +281,19 @@ def _addModulesToReport(root, report_input_data, diffable):
 
             module_xml_node.append(timing_xml_node)
 
-        distributions = report_input_data["module_distributions"][module_name]
+        distributions = report_input_data["module_distribution_usages"][module_name]
 
         if distributions:
             distributions_xml_node = TreeXML.appendTreeElement(
                 module_xml_node,
-                "distributions",
+                "distribution-usages",
             )
 
             for distribution in distributions:
                 TreeXML.appendTreeElement(
                     distributions_xml_node,
-                    "distribution-used",
-                    name=distribution.metadata["Name"],
+                    "distribution-usage",
+                    name=getDistributionName(distribution),
                 )
 
         module_distribution_names = report_input_data["module_distribution_names"][
@@ -247,7 +309,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             for distribution_name, found in module_distribution_names.items():
                 TreeXML.appendTreeElement(
                     module_distribution_names_xml_node,
-                    "distribution",
+                    "distribution-lookup",
                     name=distribution_name,
                     found="yes" if found else "no",
                 )
@@ -258,13 +320,21 @@ def _addModulesToReport(root, report_input_data, diffable):
         )
 
         for used_module in report_input_data["module_usages"][module_name]:
-            TreeXML.appendTreeElement(
+            module_usage_node = TreeXML.appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
                 line=str(used_module.source_ref.getLineNumber()),
             )
+
+            exclusion_reason = report_input_data["module_exclusions"][module_name].get(
+                used_module.module_name
+            )
+
+            if exclusion_reason is not None:
+                module_usage_node.attrib["finding"] = "excluded"
+                module_usage_node.attrib["exclusion_reason"] = exclusion_reason
 
 
 def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
@@ -460,8 +530,11 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         TreeXML.appendTreeElement(
             distributions_xml_node,
             "distribution",
-            name=distribution.metadata["Name"],
-            version=distribution.metadata["Version"],
+            name=getDistributionName(distribution),
+            version=getDistributionVersion(distribution),
+            installer=report_input_data["module_distribution_installers"][
+                getDistributionName(distribution)
+            ],
         )
 
     python_xml_node = TreeXML.appendTreeElement(
@@ -474,22 +547,27 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         arch_name=report_input_data["arch_name"],
     )
 
-    search_path_xml_node = TreeXML.appendTreeElement(
-        python_xml_node,
-        "search_path",
-    )
+    search_path = getPackageSearchPath(None)
 
-    for search_path in getPackageSearchPath(None):
-        TreeXML.appendTreeElement(
-            search_path_xml_node,
-            "path",
-            value=_getCompilationReportPath(search_path),
+    if search_path is not None:
+        search_path_xml_node = TreeXML.appendTreeElement(
+            python_xml_node,
+            "search_path",
         )
+
+        for search_path in getPackageSearchPath(None):
+            TreeXML.appendTreeElement(
+                search_path_xml_node,
+                "path",
+                value=_getCompilationReportPath(search_path),
+            )
 
     _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
     try:
-        putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
+        putTextFileContents(
+            filename=report_filename, contents=TreeXML.toString(root), encoding="utf8"
+        )
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
@@ -514,25 +592,6 @@ def writeCompilationReportFromTemplate(
         extensions=("jinja2.ext.do",),
     )
 
-    def get_distribution_license(distribution):
-        license_name = distribution.metadata["License"]
-
-        if not license_name or license_name == "UNKNOWN":
-            for classifier in (
-                value
-                for (key, value) in distribution.metadata.items()
-                if "Classifier" in key
-            ):
-                parts = [part.strip() for part in classifier.split("::")]
-                if not parts:
-                    continue
-
-                if parts[0] == "License":
-                    license_name = parts[-1]
-                    break
-
-        return license_name
-
     def quoted(value):
         if isinstance(value, str):
             return "'%s'" % value
@@ -541,7 +600,11 @@ def writeCompilationReportFromTemplate(
 
     report_text = template.render(
         # Get the license text.
-        get_distribution_license=get_distribution_license,
+        get_distribution_license=getDistributionLicense,
+        # get the distribution_name
+        get_distribution_name=getDistributionName,
+        # get the distribution version
+        get_distribution_version=getDistributionVersion,
         # Quote a list of strings.
         quoted=quoted,
         # For checking length of lists.
@@ -563,15 +626,20 @@ def writeCompilationReportFromTemplate(
 
 
 _crash_report_filename = "nuitka-crash-report.xml"
+_crash_report_bug_message = True
 
 
 def _informAboutCrashReport():
     if _crash_report_filename is not None:
+        message = (
+            "Compilation crash report written to file '%s'." % _crash_report_filename
+        )
+
+        if _crash_report_bug_message:
+            message += " Please include it in your bug report."
+
         reports_logger.info(
-            """\
-Compilation crash report written to file '%s'. Please include it in \
-your bug report."""
-            % _crash_report_filename,
+            message,
             style="red",
         )
 
@@ -587,6 +655,15 @@ def writeCompilationReports(aborted):
         and sys.exc_info()[0] not in (KeyboardInterrupt, SystemExit)
     ):
         report_filename = _crash_report_filename
+
+        # Inform user about bug reporting of a bug only, if this is not some sort
+        # of reporting exit, these do not constitute definitive bugs of Nuitka but
+        # are often usage errors only.
+
+        # Using global here, as this is really a singleton
+        # pylint: disable=global-statement
+        global _crash_report_bug_message
+        _crash_report_bug_message = sys.exc_info()[0] is not ReportingSystemExit
 
         atexit.register(_informAboutCrashReport)
 

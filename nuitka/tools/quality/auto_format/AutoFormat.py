@@ -107,6 +107,13 @@ def cleanupWindowsNewlines(filename, effective_filename):
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
         updated_code = updated_code.replace(b"# spellchecker", b"# spell-checker")
 
+        def replacer(match):
+            return b"PYTHON_VERSION %s %s" % (match.group(1), match.group(2).lower())
+
+        updated_code = re.sub(
+            b"PYTHON_VERSION\\s+([=<>]+)\\s+(0x3[A-F])", replacer, updated_code
+        )
+
     if updated_code != source_code:
         with open(filename, "wb") as out_file:
             out_file.write(updated_code)
@@ -540,7 +547,7 @@ def _shouldNotFormatCode(filename):
         return True
 
     if filename.endswith(".py"):
-        for line in getFileContentByLine(filename):
+        for line in getFileContentByLine(filename, encoding="utf8"):
             if "# encoding: nuitka-protection" in line:
                 return True
 
@@ -599,6 +606,7 @@ def autoFormatFile(
     if effective_filename is None:
         effective_filename = filename
 
+    # From git, we sometimes get directories.
     if os.path.isdir(effective_filename):
         return
 
@@ -670,6 +678,9 @@ def autoFormatFile(
         if is_md and not limit_md:
             return
 
+        if is_txt and not is_rst and not is_md:
+            return
+
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
 
@@ -687,7 +698,16 @@ def autoFormatFile(
             cleanupWindowsNewlines(tmp_filename, effective_filename)
 
             if not _shouldNotFormatCode(effective_filename):
-                _cleanupImportSortOrder(tmp_filename, effective_filename)
+                # TODO: isort cannot handle chinese code identifiers.
+                if (
+                    not os.path.basename(
+                        os.path.dirname(os.path.abspath(effective_filename))
+                    )
+                    .lower()
+                    .startswith("chinese")
+                ):
+                    _cleanupImportSortOrder(tmp_filename, effective_filename)
+
                 _cleanupPyLintComments(tmp_filename, effective_filename)
 
                 if effective_filename not in BLACK_SKIP_LIST:
