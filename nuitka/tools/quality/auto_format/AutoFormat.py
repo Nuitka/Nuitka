@@ -424,10 +424,13 @@ def _cleanupRstFmt(filename, effective_filename):
 
 
 warned_clang_format = False
-_clang_format_path = None
+_clang_format_path = False
 
 
-def _getClangFormatPath():
+def _getClangFormatPath(trace):
+    # Lots of checks and attempts done here, to find it.
+    # pylint: disable=too-many-branches
+
     # Using global here, as this is really a singleton, in
     # the form of a module, pylint: disable=global-statement
     global warned_clang_format, _clang_format_path
@@ -435,6 +438,9 @@ def _getClangFormatPath():
     # Do not try a second time.
     if warned_clang_format:
         return None
+
+    if _clang_format_path is not False:
+        return _clang_format_path
 
     # Search Visual Code C++ extension for LLVM path.
     for candidate in ".vscode", ".vscode-server":
@@ -462,7 +468,8 @@ def _getClangFormatPath():
 
     if not _clang_format_path:
         _clang_format_path = (
-            getExecutablePath("clang-format-16")
+            getExecutablePath("clang-format-17")
+            or getExecutablePath("clang-format-16")
             or getExecutablePath("clang-format-15")
             or getExecutablePath("clang-format-14")
             or getExecutablePath("clang-format-13")
@@ -490,6 +497,10 @@ You need to install clang-format version 12 or higher. Easiest is to have Visual
 the recommended extensions installed under your user, as that will then be used by default.
 """
                 )
+            elif trace:
+                general.info(
+                    "Using clang-format version %s to format C code." % clang_version
+                )
         except NuitkaCalledProcessError as e:
             general.warning(
                 "failed to execute clang-format version check: %s" % e.stderr
@@ -503,14 +514,14 @@ the recommended extensions installed under your user, as that will then be used 
     return _clang_format_path
 
 
-def _cleanupClangFormat(filename):
+def _cleanupClangFormat(filename, trace):
     """Call clang-format on a given filename to format C code.
 
     Args:
         filename: What file to re-format.
     """
 
-    clang_format_path = _getClangFormatPath()
+    clang_format_path = _getClangFormatPath(trace=trace)
 
     if clang_format_path:
         subprocess.call(
@@ -729,7 +740,7 @@ def autoFormatFile(
         elif is_c or is_cpp:
             if not _shouldNotFormatCode(effective_filename):
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
-                _cleanupClangFormat(tmp_filename)
+                _cleanupClangFormat(tmp_filename, trace=trace)
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
         elif is_txt:
             if not _shouldNotFormatCode(effective_filename):
