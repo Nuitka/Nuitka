@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.9 (Draft)
-****************************
+********************
+ Nuitka Release 1.9
+********************
 
 This release has had a focus on improved startup time and compatibility
 with lazy loaders which has resulted in some optimization. There are
