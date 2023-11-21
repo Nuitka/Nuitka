@@ -148,6 +148,7 @@ def main():
         scanTargets(
             positional_args,
             suffixes=(".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
+            ignore_list=("get-pip-2.6.py",),
         )
     )
     if not filenames:
