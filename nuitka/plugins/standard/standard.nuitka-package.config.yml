@@ -734,6 +734,23 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'delphifmx'
+  dlls:
+    - from_filenames:
+        relative_path: 'Win32'
+        prefixes:
+          - 'DelphiFMX'
+        suffixes:
+          - 'pyd'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'Win64'
+        prefixes:
+          - 'DelphiFMX'
+        suffixes:
+          - 'pyd'
+      when: 'win32 and arch_amd64'
+
 - module-name: 'dependency_injector._cwiring'
   implicit-imports:
     - depends:
