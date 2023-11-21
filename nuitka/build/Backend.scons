@@ -102,7 +102,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,linkflags,libpath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -120,7 +120,7 @@ nuitka_src = getArgumentRequired("nuitka_src")
 static_src = os.path.join(source_dir, "static")
 
 # The name of executable or extension module that we produce.
-result_basepath = getArgumentRequired("result_name")
+result_base_path = getArgumentRequired("result_name")
 
 # The name of executable that we produce (in executable mode).
 result_exe = getArgumentDefaulted("result_exe", None)
@@ -178,10 +178,6 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
-# Windows target mode: Compile for Windows. Used to be an option, but we
-# no longer cross compile this way.
-win_target = os.name == "nt"
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -204,7 +200,7 @@ clang_mode = getArgumentBool("clang_mode", False)
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not mingw_mode and clang_mode:
+if os.name == "nt" and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -290,6 +286,9 @@ cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
+# From statically compiled modules of the Python
+link_module_libs = getArgumentList("link_module_libs", "")
+
 # Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
@@ -362,6 +361,7 @@ env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
+env.nuitka_src = nuitka_src
 env.low_memory = low_memory
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
@@ -377,8 +377,8 @@ env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 env.clang_mode = clang_mode
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = win_target and not env.gcc_mode
-env.mingw_mode = win_target and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
@@ -395,7 +395,7 @@ if show_scons_mode:
     my_print("Scons: Compiler used", end=" ")
     my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
 
-    if win_target and env.msvc_mode:
+    if os.name == "nt" and env.msvc_mode:
         my_print("(MSVC %s)" % getMsvcVersionString(env))
 
     my_print()
@@ -412,6 +412,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode=pgo_mode,
     job_count=job_count,
+    onefile_compile=False,
 )
 
 
@@ -425,14 +426,14 @@ if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
                 "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
                 "--file-prefix-map=%s=%s"
                 % (
-                    os.path.normpath(os.path.join(source_dir, "static_src")),
-                    os.path.normpath(os.path.join(nuitka_src, "static_src")),
+                    os.path.normpath(os.path.join(env.source_dir, "static_src")),
+                    os.path.normpath(os.path.join(env.nuitka_src, "static_src")),
                 ),
             ]
         )
 
 if env.msvc_mode:
-    # With Clang on Windows, there is also an linker to use.
+    # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
     env.Append(
         CCFLAGS=[
             "/EHsc",  # No C++ exception handling code.
@@ -447,7 +448,7 @@ if env.msvc_mode:
 
     if module_mode:
         # Make sure we handle import library on our own and put it into the
-        # build directory.
+        # build directory, spell-checker: ignore IMPLIB
 
         no_import_lib = True
         env.Append(
@@ -571,7 +572,7 @@ if env.gcc_mode and env.debian_python:
 
 
 def _detectPythonHeaderPath():
-    if win_target:
+    if os.name == "nt":
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
         # compiled for mingw64, it's more standard.
 
@@ -611,7 +612,7 @@ def _detectPythonHeaderPath():
         if os.path.exists(os.path.join(candidate, "Python.h")):
             return candidate
 
-    if win_target:
+    if os.name == "nt":
         scons_logger.sysexit(
             """Error, you seem to be using the unsupported embeddable CPython distribution."""
         )
@@ -645,10 +646,10 @@ if env.nuitka_python:
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if env.static_libpython and (not win_target or env.nuitka_python):
+if env.static_libpython and (not os.name == "nt" or env.nuitka_python):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
-if win_target:
+if os.name == "nt":
     if env.nuitka_python:
         env.Append(
             LINKFLAGS=[
@@ -709,16 +710,19 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix_external, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
+    # Any module libs that are for self-compiled Python to be static.
+    env.Append(_LIBFLAGS=["-l" + lib_desc for lib_desc in link_module_libs])
+
     if env.nuitka_python:
         link_data = loadJsonFromFilename(
             os.path.join(python_prefix_external, "link.json")
         )
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
-            if os.path.isfile(lib):
-                env.Append(_LIBFLAGS=[lib])
-            elif lib.startswith(":") and lib.endswith(".a"):
+            if lib.startswith(":") and lib.endswith(".a"):
                 env.Append(_LIBFLAGS=["-l" + lib])
+            elif os.path.isfile(lib):
+                env.Append(_LIBFLAGS=[lib])
             else:
                 env.Append(LIBS=[lib])
         env.Append(LIBPATH=link_data["library_dirs"])
@@ -779,7 +783,7 @@ if isMacOS():
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
-nuitka_include = os.path.join(nuitka_src, "include")
+nuitka_include = os.path.join(env.nuitka_src, "include")
 
 if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
     scons_logger.sysexit(
@@ -789,10 +793,12 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
-env.Append(CPPPATH=[source_dir, nuitka_include, os.path.join(nuitka_src, "static_src")])
+env.Append(
+    CPPPATH=[source_dir, nuitka_include, os.path.join(env.nuitka_src, "static_src")]
+)
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
+if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -868,9 +874,8 @@ def discoverSourceFiles():
 
     result += [
         provideStaticSourceFile(
+            env=env,
             sub_path=filename,
-            nuitka_src=nuitka_src,
-            source_dir=source_dir,
             c11_mode=env.c11_mode,
         )
         for filename in static_src_filenames
@@ -883,11 +888,11 @@ source_files = discoverSourceFiles()
 
 if module_mode:
     # For Python modules, the standard shared library extension is not what
-    # gets used.
+    # gets used. spell-checker: ignore SHLIBSUFFIX
     env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
-        result_basepath, source_files, no_import_lib=no_import_lib
+        result_base_path, source_files, no_import_lib=no_import_lib
     )
 else:
     target = env.Program(result_exe, source_files)
@@ -967,9 +972,7 @@ def createBuildDefinitionsFile():
             build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
 
     build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
-
-    if main_module_name != "__main__":
-        build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
+    build_definitions["NUITKA_MAIN_IS_PACKAGE_BOOL"] = main_module_name != "__main__"
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
@@ -978,7 +981,7 @@ if forced_stderr_path and not forced_stdout_path:
     env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
 
 if file_reference_mode == "original":
-    env.Append(CPPDEFINES=["NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
+    env.Append(CPPDEFINES=["_NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
 
 
 createBuildDefinitionsFile()
@@ -1010,7 +1013,6 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    win_target=win_target,
     module_mode=module_mode,
     source_files=source_files,
 )

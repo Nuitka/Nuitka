@@ -381,7 +381,7 @@ block.
 -  Development (``develop`` branch)
 
    The future release, supposedly in almost ready for release state at
-   nearly all times, but this is as strict. It is not officially
+   nearly all times, but this is less strict. It is not officially
    supported, and may have problems and at times inconsistencies.
    Normally this branch is supposed to not be rebased. For severe
    problems it may be done though.

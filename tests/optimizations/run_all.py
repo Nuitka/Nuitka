@@ -224,6 +224,7 @@ def main():
 
                 command.insert(2, "--must-not-re-execute")
 
+                # spell-checker: ignore --rcfile
                 command = (
                     command[0:1]
                     + ["-S", "-m", "coverage", "run", "--rcfile", os.devnull, "-a"]
@@ -240,7 +241,7 @@ def main():
                 check_call(command)
 
             # Parse the result into XML and check it
-            result = getFileContents(xml_filename)
+            result = getFileContents(xml_filename, mode="rb")
             try:
                 root = lxml.etree.fromstring(result)
             except lxml.etree.XMLSyntaxError:

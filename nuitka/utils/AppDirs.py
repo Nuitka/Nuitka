@@ -35,7 +35,7 @@ from nuitka.Tracing import general
 from .FileOperations import makePath
 from .Importing import importFromInlineCopy
 
-appdirs = importFromInlineCopy("appdirs", must_exist=False)
+appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
 
 if appdirs is None:
     import appdirs  # pylint: disable=I0021,import-error
@@ -73,7 +73,7 @@ def getCacheDir():
                 """\
 Error, failed to create cache directory '%s'. If this is due to a special environment, \
 please consider making a PR for a general solution that adds support for it, or use \
-NUITKA_CACHE_DIR set to a writable directory."""
+'NUITKA_CACHE_DIR' set to a writable directory."""
                 % _cache_dir
             )
 

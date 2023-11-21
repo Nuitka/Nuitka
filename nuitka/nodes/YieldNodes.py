@@ -104,7 +104,7 @@ class ExpressionYieldFrom(ExpressionYieldBase):
     kind = "EXPRESSION_YIELD_FROM"
 
 
-class ExpressionYieldFromWaitable(ExpressionYieldBase):
+class ExpressionYieldFromAwaitable(ExpressionYieldBase):
     """Yielding from an expression.
 
     Typical code: await x, async for ..., async with (Python3.5)
@@ -116,4 +116,4 @@ class ExpressionYieldFromWaitable(ExpressionYieldBase):
     slots and have dedicated nodes.
     """
 
-    kind = "EXPRESSION_YIELD_FROM_WAITABLE"
+    kind = "EXPRESSION_YIELD_FROM_AWAITABLE"

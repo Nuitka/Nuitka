@@ -588,7 +588,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # The ast uses funny names a bunch.
-    # spell-checker: ignore varnames,elts,posonlyargs,kwonlyargs,varargannotation,vararg
+    # spell-checker: ignore elts,posonlyargs,kwonlyargs,varargannotation,vararg
     # spell-checker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
@@ -681,7 +681,9 @@ def _wrapFunctionWithSpecialNestedArgs(
 
         sub_special_index = 0
 
-        iter_var = outer_body.allocateTempVariable(None, "arg_iter_%d" % len(iter_vars))
+        iter_var = outer_body.allocateTempVariable(
+            temp_scope=None, name="arg_iter_%d" % len(iter_vars), temp_type="object"
+        )
         iter_vars.append(iter_var)
 
         statements.append(

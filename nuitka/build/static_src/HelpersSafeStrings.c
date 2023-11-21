@@ -29,6 +29,7 @@
 #include <windows.h>
 #endif
 #include <stdbool.h>
+#include <stdio.h>
 #endif
 
 #include "nuitka/safe_string_ops.h"
@@ -107,7 +108,7 @@ void appendCharSafeW(wchar_t *target, char c, size_t buffer_size) {
 
     target += wcslen(target);
     char buffer_c[2] = {c, 0};
-    size_t res = mbstowcs(target, buffer_c, 2);
+    NUITKA_MAY_BE_UNUSED size_t res = mbstowcs(target, buffer_c, 2);
     assert(res == 1);
 }
 

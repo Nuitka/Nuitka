@@ -63,12 +63,14 @@
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
+#if PYTHON_VERSION < 0x3c0
 typedef struct {
     /* Python object folklore: */
     PyObject_HEAD
 
         PyObject *md_dict;
 } PyModuleObject;
+#endif
 
 // Generated code helpers, used in static helper codes:
 extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *const *args);

@@ -35,6 +35,7 @@ from nuitka.utils.Utils import isWin32Windows
 # Late import and optional to be there.
 use_progress_bar = False
 tqdm = None
+colorama = None
 
 
 class NuitkaProgressBar(object):
@@ -108,7 +109,7 @@ def _getTqdmModule():
     elif tqdm is False:
         return None
     else:
-        tqdm = importFromInlineCopy("tqdm", must_exist=False)
+        tqdm = importFromInlineCopy("tqdm", must_exist=False, delete_module=True)
 
         if tqdm is None:
             try:
@@ -135,12 +136,17 @@ def _getTqdmModule():
 
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
+    global colorama  # singleton, pylint: disable=global-statement
 
     if _getTqdmModule() is not None:
         use_progress_bar = True
 
         if isWin32Windows():
-            colorama = importFromInlineCopy("colorama", must_exist=True)
+            if colorama is None:
+                colorama = importFromInlineCopy(
+                    "colorama", must_exist=True, delete_module=True
+                )
+
             colorama.init()
 
 
@@ -202,3 +208,27 @@ def wrapWithProgressBar(iterable, stage, unit):
         Tracing.progress = result
 
         return result
+
+
+@contextmanager
+def withNuitkaDownloadProgressBar(*args, **kwargs):
+    if not use_progress_bar or _getTqdmModule() is None:
+        yield
+    else:
+
+        class NuitkaDownloadProgressBar(tqdm):
+            # spell-checker: ignore bsize, tsize
+            def onProgress(self, b=1, bsize=1, tsize=None):
+                if tsize is not None:
+                    self.total = tsize
+                self.update(b * bsize - self.n)
+
+        kwargs.update(
+            disable=None,
+            leave=False,
+            dynamic_ncols=True,
+            bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
+        )
+
+        with NuitkaDownloadProgressBar(*args, **kwargs) as progress_bar:
+            yield progress_bar.onProgress

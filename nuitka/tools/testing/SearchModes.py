@@ -21,10 +21,10 @@ The test runner can handle found errors, skip tests, etc. with search
 modes, which are implemented here.
 """
 
-import hashlib
 import os
 import sys
 
+from nuitka.__past__ import md5
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
@@ -133,7 +133,7 @@ class SearchModeResume(SearchModeBase):
             tests_path = tests_path.encode("utf8")
             version = version.encode("utf8")
 
-        case_hash = hashlib.md5(tests_path)
+        case_hash = md5(tests_path)
         case_hash.update(version)
 
         from .Common import getTestingCacheDir

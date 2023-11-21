@@ -30,7 +30,7 @@ from .shapes.BuiltinTypeShapes import tshape_file
 
 
 class ExpressionBuiltinOpenMixin(object):
-    # Mixins are required to slots
+    # Mixins are required to define empty slots
     __slots__ = ()
 
     @staticmethod
@@ -112,3 +112,30 @@ class ExpressionBuiltinOpenP3(
         )
 
         ExpressionBase.__init__(self, source_ref)
+
+
+def makeExpressionBuiltinsOpenCall(
+    filename,
+    mode,
+    buffering,
+    encoding,
+    errors,
+    newline,
+    closefd,
+    opener,
+    source_ref,
+):
+    """Function reference ctypes.CDLL"""
+
+    assert str is not bytes
+    return ExpressionBuiltinOpenP3(
+        filename=filename,
+        mode=mode,
+        buffering=buffering,
+        encoding=encoding,
+        errors=errors,
+        newline=newline,
+        closefd=closefd,
+        opener=opener,
+        source_ref=source_ref,
+    )

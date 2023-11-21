@@ -42,7 +42,7 @@ struct Nuitka_AsyncgenObject {
     PyObject *m_module;
 
     PyObject *m_qualname;
-    PyObject *m_yieldfrom;
+    PyObject *m_yield_from;
 
     // Weak references are supported for asyncgen objects in CPython.
     PyObject *m_weakrefs;

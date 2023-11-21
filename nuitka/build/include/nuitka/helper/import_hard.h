@@ -38,6 +38,9 @@ extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void);
 /* C helper for hard import of module "_io" import. */
 extern PyObject *IMPORT_HARD__IO(void);
 
+/* C helper for hard import of module "builtins" import. */
+extern PyObject *IMPORT_HARD_BUILTINS(void);
+
 /* C helper for hard import of module "ctypes" import. */
 extern PyObject *IMPORT_HARD_CTYPES(void);
 

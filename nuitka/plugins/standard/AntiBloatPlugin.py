@@ -92,6 +92,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["triton"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
@@ -135,6 +139,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                 "IPython",
             )
             self.handled_modules["matplotlib_inline.backend_inline"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
+            self.handled_modules["altair._magics"] = (
                 noinclude_ipython_mode,
                 "IPython",
             )
@@ -446,7 +454,7 @@ Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
 
         return source_code
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
             if self.evaluateCondition(
                 full_name=module_name, condition=anti_bloat_config.get("when", "True")
@@ -533,6 +541,34 @@ Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due t
 
         return result
 
+    def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
+        while 1:
+            config = self.config.get(using_module_name, section="anti-bloat")
+
+            if config:
+                for anti_bloat_config in config:
+                    bloat_mode_overrides = anti_bloat_config.get(
+                        "bloat-mode-overrides", ()
+                    )
+
+                    if not bloat_mode_overrides:
+                        continue
+
+                    if self.evaluateCondition(
+                        full_name=intended_module_name,
+                        condition=anti_bloat_config.get("when", "True"),
+                    ):
+                        for module_name, mode in bloat_mode_overrides.items():
+                            if module_name == intended_module_name:
+                                return mode
+
+            using_module_name = using_module_name.getPackageName()
+
+            if not using_module_name:
+                break
+
+        return None
+
     def onModuleRecursion(
         self,
         module_name,
@@ -567,6 +603,14 @@ Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due t
                 return
 
             if module_name.hasNamespace(handled_module_name):
+                override_mode = self._getModuleBloatModeOverrides(
+                    using_module_name=using_module_name,
+                    intended_module_name=intended_module_name,
+                )
+
+                if override_mode is not None:
+                    mode = override_mode
+
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(

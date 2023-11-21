@@ -42,6 +42,7 @@ from nuitka.PythonVersions import (
     getSystemPrefixPath,
     getTargetPythonDLLPath,
     python_version,
+    python_version_str,
 )
 from nuitka.utils.Execution import (
     getExecutablePath,
@@ -334,6 +335,7 @@ def asBoolStr(value):
 def cleanSconsDirectory(source_dir):
     """Clean scons build directory."""
 
+    # spell-checker: ignore gcda
     extensions = (
         ".bin",
         ".c",
@@ -380,6 +382,9 @@ def setCommonSconsOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
+    options["nuitka_src"] = getSconsDataPath()
+
+    options["python_version"] = python_version_str
 
     options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 

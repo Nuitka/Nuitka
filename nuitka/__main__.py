@@ -86,6 +86,14 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
+    # The frozen stdlib modules of Python 3.11 are less compatible than the ones
+    # of Nuitka, so prefer those.
+    if sys.version_info >= (3, 11):
+        from _imp import _frozen_module_names
+
+        if "os" in _frozen_module_names():
+            needs_re_execution = True
+
     # Avoid doing it when running in Visual Code.
     if needs_re_execution and "debugpy" in sys.modules:
         needs_re_execution = False
@@ -134,6 +142,13 @@ def main():
 
         setPthImportedPackages(ast.literal_eval(os.environ["NUITKA_PTH_IMPORTED"]))
         del os.environ["NUITKA_PTH_IMPORTED"]
+
+    if "NUITKA_USER_SITE" in os.environ:
+        from nuitka.utils.Distributions import setUserSiteDirectory
+
+        setUserSiteDirectory(ast.literal_eval(os.environ["NUITKA_USER_SITE"]))
+
+        del os.environ["NUITKA_USER_SITE"]
 
     # Now the real main program of Nuitka can take over.
     from nuitka import MainControl  # isort:skip
