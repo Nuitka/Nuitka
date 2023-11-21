@@ -529,7 +529,23 @@ Tests
 -  Show tracebacks made in report creations on GitHub Actions and during
    RPM builds.
 
-This release is not done yet.
+Summary
+=======
+
+This is again massive in terms of new features supported. The lazy
+loader support is very important as it allows to handle more packages in
+better ways than just including everything.
+
+The new added optimization are nice, esp. startup time will make a huge
+difference for many people, but mainly the focus was on supporting
+packages properly, and getting Nuitka-Watch to be able to detect
+breaking of packages from PyPI closer to when it happens.
+
+And then of course, there is a tremendous amount of improvements for the
+UI, with lots features become even more rounded.
+
+For Python 3.12 work has begun, but there is more to do for it. At this
+time it's not clear how long it takes to add it. Stay tuned.
 
 ********************
  Nuitka Release 1.8
