@@ -643,18 +643,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
         if data_file_desc.count("=") == 1:
             src, dst = data_file_desc.split("=", 1)
-
-            filenames = resolveShellPatternToFilenames(src)
-
-            if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
-                Tracing.options_logger.sysexit(
-                    "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
-                    % src
-                )
+            src = os.path.expanduser(src)
+            src_pattern = src
         else:
             src, dst, pattern = data_file_desc.split("=", 2)
+            src = os.path.expanduser(src)
+            src_pattern = os.path.join(src, pattern)
 
-            filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
+        filenames = resolveShellPatternToFilenames(src_pattern)
+
+        if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
+            Tracing.options_logger.sysexit(
+                "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
+                % src
+            )
 
         if not filenames:
             Tracing.options_logger.sysexit(
@@ -1218,11 +1220,15 @@ def getShallIncludeDataFiles():
             src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
+                pattern = os.path.expanduser(pattern)
+
                 yield pattern, None, dest, data_file_desc
         else:
             src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
+                pattern = os.path.expanduser(pattern)
+
                 yield os.path.join(src, pattern), src, dest, data_file_desc
 
 
