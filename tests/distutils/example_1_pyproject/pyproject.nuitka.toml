@@ -23,7 +23,7 @@
 requires = ["setuptools>=42", "wheel", "file:../../..", "toml"]
 build-backend = "nuitka.distutils.Build"
 
-[nuitka]
+[tool.nuitka]
 # Note: These are not recommended, but they make it obvious to have effect that
 # can be seen, namely have "explain imports" output in the compilation output.
 # This also uses both supported forms for assigning a boolean option of Nuitka,

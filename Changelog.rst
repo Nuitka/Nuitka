@@ -5597,7 +5597,7 @@ New Features
 
    .. code:: toml
 
-      [nuitka]
+      [tool.nuitka]
       # options without an argument are passed as boolean value
       show-scons = true
 

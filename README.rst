@@ -698,7 +698,7 @@ value:
    [tool.setuptools.package-data]
    some_package = ['data_file.txt']
 
-   [nuitka]
+   [tool.nuitka]
    # These are not recommended, but they make it obvious to have effect.
 
    # boolean option, e.g. if you cared for C compilation commands, leading
