@@ -559,6 +559,12 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'cmsis_pack_manager.cmsis_pack_manager'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'native'
+
 - module-name: 'connexion'
   data-files:
     dirs:
@@ -3010,6 +3016,12 @@
   implicit-imports:
     - depends:
         - 'pymssql._mssql'
+
+- module-name: 'pyocd'
+  data-files:
+    patterns:
+      - 'debug/sequences/*.lark'
+      - 'debug/svd/*.zip'
 
 - module-name: 'pyodbc'
   implicit-imports:
