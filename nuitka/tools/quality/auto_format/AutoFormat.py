@@ -468,7 +468,8 @@ def _getClangFormatPath(trace):
 
     if not _clang_format_path:
         _clang_format_path = (
-            getExecutablePath("clang-format-17")
+            getExecutablePath("clang-format-18")
+            or getExecutablePath("clang-format-17")
             or getExecutablePath("clang-format-16")
             or getExecutablePath("clang-format-15")
             or getExecutablePath("clang-format-14")

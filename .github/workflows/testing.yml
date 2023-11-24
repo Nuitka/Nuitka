@@ -93,6 +93,13 @@ jobs:
 
       - name: Auto-format check on Nuitka source code
         run: |
+          # Install clang-format-17 which we use in VS code.
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-get install software-properties-common
+          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main'
+          sudo apt-get update
+          sudo apt-get install clang-format-18
+
           python ./bin/autoformat-nuitka-source --check-only
         if: matrix.python_version == '3.9'
 
