@@ -17,11 +17,14 @@
 #
 """ Tools for accessing distributions and resolving package names for them. """
 
+import os
+
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 
+from .FileOperations import searchPrefixPath
 from .Importing import getModuleNameAndKindFromFilenameSuffix
 from .ModuleNames import ModuleName, checkModuleName
 from .Utils import isLinux
@@ -268,6 +271,27 @@ def isDistributionSystemPackage(distribution_name):
     return result
 
 
+_pdm_dir_cache = {}
+
+
+def isPdmPackageInstallation(distribution):
+    distribution_path = getattr(distribution, "_path")
+    if distribution_path is None:
+        return False
+
+    site_packages_path = searchPrefixPath(str(distribution_path), "site-packages")
+    if site_packages_path is None:
+        return False
+
+    candidate = os.path.join(site_packages_path, "..", "..", "pyvenv.cfg")
+
+    result = _pdm_dir_cache.get(candidate)
+    if result is None:
+        _pdm_dir_cache[candidate] = os.path.exists(candidate)
+
+    return _pdm_dir_cache[candidate]
+
+
 def getDistributionInstallerName(distribution_name):
     """Get the installer name from a distribution object.
 
@@ -293,6 +317,8 @@ def getDistributionInstallerName(distribution_name):
                 ] = installer_name.strip().lower()
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
+            elif isPdmPackageInstallation(distribution):
+                return "pip"
             else:
                 if hasattr(distribution, "_path"):
                     distribution_path_parts = str(getattr(distribution, "_path")).split(
