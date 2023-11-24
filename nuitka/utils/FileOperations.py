@@ -604,11 +604,19 @@ def deleteFile(path, must_exist):
             raise OSError("Does not exist", path)
 
 
-def splitPath(path):
-    """Split path, skipping empty elements."""
-    return tuple(
-        element for element in os.path.split(path.rstrip(os.path.sep)) if element
-    )
+def searchPrefixPath(path, element):
+    """Search element and return prefix in path, if any."""
+
+    while path:
+        if os.path.normcase(os.path.basename(path)) == os.path.normcase(element):
+            return path
+
+        new_path = os.path.dirname(path)
+        if new_path == path:
+            break
+        path = new_path
+
+    return None
 
 
 def getFilenameExtension(path):
