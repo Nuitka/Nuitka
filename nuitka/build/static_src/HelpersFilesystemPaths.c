@@ -819,6 +819,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
         }
 
         *target++ = *source++;
+        *target = 0;
         buffer_size -= 1;
     }
 
@@ -955,6 +956,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
         }
 
         *target++ = *source++;
+        *target = 0;
         buffer_size -= 1;
     }
 
