@@ -252,6 +252,8 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     if compilation_mode != "compiled":
+        node.name = mangleName(node.name, provider)
+
         return _buildBytecodeOrSourceFunction(
             provider=provider,
             node=node,
