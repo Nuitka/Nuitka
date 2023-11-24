@@ -1794,7 +1794,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 
     {"sys_path_hook", (PyCFunction)_nuitka_loader_sys_path_hook, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
-    {NULL, NULL}
+    {NULL, NULL} // terminator
 };
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
