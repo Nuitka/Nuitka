@@ -436,7 +436,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 for key, value in pydantic_info.items():
                     # Older pydantic had only a string for the attribute.
                     if type(value) is tuple:
-                        value = "".join(value)
+                        value = "".join(value).rstrip(".")
 
                     if value.startswith("pydantic."):
                         value = value[9:]
@@ -447,6 +447,8 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                         pydantic_lazy_loader_info[value] = []
                     pydantic_lazy_loader_info[value].append(key)
 
+                # TODO: Have a function to do it, that also validates the values right
+                # away, so as to not crash during usage.
                 self.lazy_loader_usages[module_name] = (
                     [],
                     pydantic_lazy_loader_info,
