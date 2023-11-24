@@ -869,7 +869,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     size_t length = strlen(target);
 
-                    if ((length >= 4) && (strcasecmp(target + length - 4, ".exe") == 0)) {
+                    if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
                         target[length - 4] = 0;
                     }
                 } else if (strcasecmp(var_name, "PID") == 0) {
