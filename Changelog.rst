@@ -6,9 +6,33 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-*****************************
+****************************
  Nuitka Release 2.0 (Draft)
-*****************************
+****************************
+
+Bug Fixes
+=========
+
+-  Standalone: Added support for ``delphifmx`` package. Fixed in 1.9.1
+   already.
+
+-  Fix, workaround for private functions as Qt slots not having names
+   mangled. Fixed in 1.9.1 already.
+
+-  Fix, when using Nuitka with ``pdm`` it was not detected as using pip
+   packages. Fixed in 1.9.1 already.
+
+-  Fix, for ``pydantic`` our lazy loader parser didn't handle all cases
+   properly yet. Fixed in 1.9.1 already.
+
+-  Standalone: Added data files for ``pyocd`` package. Fixed in 1.9.1
+   already.
+
+-  Standalone: Added DLL for ``cmsis_pack_manager`` package. Fixed in
+   1.9.1 already.
+
+Summary
+=======
 
 This release is not done yet.
 
@@ -18,7 +42,9 @@ This release is not done yet.
 
 This release has had a focus on improved startup time and compatibility
 with lazy loaders which has resulted in some optimization. There are
-also the usual amounts of bug fixes.
+also the usual amounts of bug fixes. For macOS and Linux there are lots
+of improvements that should make standalone mode for them robust with
+many more configurations.
 
 Bug Fixes
 =========
