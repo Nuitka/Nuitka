@@ -60,6 +60,9 @@ static int Nuitka_Cell_tp_compare(struct Nuitka_CellObject *cell_a, struct Nuitk
     return PyObject_Compare(cell_a->ob_ref, cell_b->ob_ref);
 }
 #else
+#define Nuitka_Cell_tp_compare (NULL)
+#define cmpfunc void *
+
 static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
     PyObject *result;
 
@@ -126,7 +129,6 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
     Py_INCREF(result);
     return result;
 }
-
 #endif
 
 static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
@@ -192,17 +194,13 @@ static PyGetSetDef Nuitka_Cell_getsetlist[] = {
 
 PyTypeObject Nuitka_Cell_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_cell",
-    sizeof(struct Nuitka_CellObject),   // tp_basicsize
-    0,                                  // tp_itemsize
-    (destructor)Nuitka_Cell_tp_dealloc, // tp_dealloc
-    0,                                  // tp_print
-    0,                                  // tp_getattr
-    0,                                  // tp_setattr
-#if PYTHON_VERSION < 0x300
-    (cmpfunc)Nuitka_Cell_tp_compare, // tp_compare
-#else
-    0,                          // tp_reserved
-#endif
+    sizeof(struct Nuitka_CellObject),        // tp_basicsize
+    0,                                       // tp_itemsize
+    (destructor)Nuitka_Cell_tp_dealloc,      // tp_dealloc
+    0,                                       // tp_print
+    0,                                       // tp_getattr
+    0,                                       // tp_setattr
+    (cmpfunc)Nuitka_Cell_tp_compare,         // tp_compare / tp_reserved
     (reprfunc)Nuitka_Cell_tp_repr,           // tp_repr
     0,                                       // tp_as_number
     0,                                       // tp_as_sequence
