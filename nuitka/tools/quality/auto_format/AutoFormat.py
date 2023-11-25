@@ -283,7 +283,10 @@ def _getPythonBinaryCall(binary_name):
                 messages.append(message)
 
         with withEnvironmentPathAdded(
-            "PATH", os.path.join(sys.prefix, "Scripts"), os.path.join(sys.prefix, "bin")
+            "PATH",
+            os.path.join(sys.prefix, "Scripts"),
+            os.path.join(sys.prefix, "bin"),
+            prefix=True,
         ):
             binary_path = getExecutablePath(binary_name)
 
@@ -450,8 +453,7 @@ def _getClangFormatPath(trace):
             for extension_path, extension_filename in listDir(vs_code_extension_path):
                 if extension_filename.startswith("ms-vscode.cpptools-"):
                     with withEnvironmentPathAdded(
-                        "PATH",
-                        os.path.join(extension_path, "LLVM/bin"),
+                        "PATH", os.path.join(extension_path, "LLVM/bin"), prefix=True
                     ):
                         _clang_format_path = getExecutablePath("clang-format")
 
@@ -463,6 +465,7 @@ def _getClangFormatPath(trace):
             "PATH",
             r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files\LLVM\bin",
+            prefix=True,
         ):
             _clang_format_path = getExecutablePath("clang-format")
 
