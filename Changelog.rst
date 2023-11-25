@@ -31,6 +31,15 @@ Bug Fixes
 -  Standalone: Added DLL for ``cmsis_pack_manager`` package. Fixed in
    1.9.1 already.
 
+-  Standalone: Fix, the specs expanded at run time in some causes could
+   contain random characters. Fixed in 1.9.2 already.
+
+New Features
+============
+
+-  Windows: Added support for using junctions in the Python environment.
+   Added in 1.9.2 already.
+
 Summary
 =======
 
