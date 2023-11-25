@@ -559,6 +559,11 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'cmsis_pack_manager'
+  implicit-imports:
+    - depends:
+        - 'cmsis_pack_manager.cmsis_pack_manager'
+
 - module-name: 'cmsis_pack_manager.cmsis_pack_manager'
   dlls:
     - from_filenames:
@@ -1502,6 +1507,12 @@
   data-files:
     dirs:
       - 'grammars'
+
+- module-name: 'libusb_package'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libusb-1.0'
 
 - module-name: 'librosa.core.intervals'
   data-files:
@@ -3039,6 +3050,23 @@
     patterns:
       - 'debug/sequences/*.lark'
       - 'debug/svd/*.zip'
+  implicit-imports:
+    - depends:
+        - '.*'
+        - 'capstone'
+        - 'colorama'
+        - 'hidapi'
+        - 'importlib-metadata'
+        - 'importlib-resources'
+        - 'intelhex'
+        - 'intervaltree'
+        - 'libusb_package'
+        - 'natsort'
+        - 'prettytable'
+        - 'pyelftools'
+        - 'pylink-square'
+        - 'pyusb'
+        - 'typing-extensions'
 
 - module-name: 'pyodbc'
   implicit-imports:
