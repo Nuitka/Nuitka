@@ -266,7 +266,9 @@ def getDirectoryRealPath(path):
         path with symlinks resolved
 
     Notes:
-        Workaround for Windows symlink is applied.
+        Workaround for Windows symlink is applied. This function is not recursive
+        at all with older Python, i.e. only the last part, the directory itself
+        is being resolved there.
 
     """
     path = os.path.realpath(path)
@@ -275,6 +277,45 @@ def getDirectoryRealPath(path):
     if os.name == "nt":
         if os.path.islink(path) or (not os.path.isdir(path) and os.path.exists(path)):
             path = _getRealPathWindows(path)
+
+    return path
+
+
+def getFilenameRealPath(path):
+    """Get os.path.realpath with Python2 and Windows symlink workaround applied.
+
+    Args:
+        path: path to get realpath of
+
+    Returns:
+        path with symlinks resolved
+
+    Notes:
+        Workaround for Windows symlinks are applied, this works recursive and
+        assumes that the path given itself is a file and not a directory, and
+        doesn't handle file symlinks at the end on older Python currently, but
+        we shouldn't deal with those.
+    """
+    path = os.path.realpath(path)
+
+    # Attempt to resolve Windows symlinks older Python
+    if os.name == "nt":
+        path = path.strip(os.path.sep)
+
+        if os.path.sep in path:
+            dirname = os.path.dirname(path)
+            filename = os.path.basename(path)
+
+            if dirname:
+                dirname = getDirectoryRealPath(dirname)
+
+                # Drive letters do not get slashes from "os.path.join", so
+                # we inject this here and normalize the path afterwards to
+                # remove any duplication added.
+                if os.path.sep not in dirname:
+                    dirname = dirname + os.path.sep
+
+                return os.path.normpath(os.path.join(dirname, filename))
 
     return path
 
@@ -1126,6 +1167,8 @@ def getExternalUsePath(filename, only_dirname=False):
 
     if os.name == "nt":
         if filename not in _external_use_path_cache:
+            filename = getFilenameRealPath(filename)
+
             asked_filename = filename
 
             if only_dirname:
