@@ -750,6 +750,31 @@
         suffixes:
           - 'pyd'
       when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'Linux64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'linux and not android'
+    - from_filenames:
+        relative_path: 'Android64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'android64'
+    - from_filenames:
+        relative_path: 'Android'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'android32'
+    - from_filenames:
+        relative_path: 'OSX64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'macos and arch_x86'
+    - from_filenames:
+        relative_path: 'OSXARM64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'macos and arch_arm64'
 
 - module-name: 'dependency_injector._cwiring'
   implicit-imports:
