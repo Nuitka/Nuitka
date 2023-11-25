@@ -49,9 +49,6 @@ tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
 virtualenv == 16.7.10; python_version == '2.7'
 virtualenv ; python_version >= '3.5'
 
-# Nuitka-Watch based testing and report based environment creations.
-pipenv
-
 # Tests of PyPI packages need that usually.
 pytest; python_version == '2.7' or python_version >= '3.4'
 
