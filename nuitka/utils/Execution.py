@@ -176,7 +176,11 @@ def callProcess(*popenargs, **kwargs):
 
 
 @contextmanager
-def withEnvironmentPathAdded(env_var_name, *paths):
+def withEnvironmentPathAdded(env_var_name, *paths, **kw):
+    # Workaround star args with keyword args on older Python
+    prefix = kw.pop("prefix", False)
+    assert not kw, kw
+
     assert os.path.sep not in env_var_name
 
     paths = [path for path in paths if path]
@@ -188,7 +192,11 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
         if env_var_name in os.environ:
             old_path = os.environ[env_var_name]
-            os.environ[env_var_name] += os.pathsep + path
+
+            if prefix:
+                os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
+            else:
+                os.environ[env_var_name] += os.pathsep + path
         else:
             old_path = None
             os.environ[env_var_name] = path
