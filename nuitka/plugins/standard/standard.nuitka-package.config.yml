@@ -1569,6 +1569,14 @@
           - 'llvmlite'
           - 'libllvmlite'
 
+- module-name: 'loguru._colorama'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'ipykernel': 'ignore'
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'lxml'
   implicit-imports:
     - depends:
