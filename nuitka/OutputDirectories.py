@@ -27,7 +27,11 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils.FileOperations import hasFilenameExtension, makePath
+from nuitka.utils.FileOperations import (
+    hasFilenameExtension,
+    makePath,
+    putTextFileContents,
+)
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
@@ -58,6 +62,11 @@ def getSourceDirectoryPath(onefile=False):
     )
 
     makePath(result)
+
+    git_ignore_filename = os.path.join(result, ".gitignore")
+
+    if not os.path.exists(git_ignore_filename):
+        putTextFileContents(filename=git_ignore_filename, contents="*")
 
     return result
 
