@@ -196,6 +196,7 @@ default_ignored_suffixes = (
     ".pyi",
     ".so",
     ".pyd",
+    ".pyx",
     ".dll",
     ".dylib",
 )
