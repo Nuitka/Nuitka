@@ -5558,6 +5558,13 @@
         'triton': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'torch._inductor.codegen.autotuner'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -5585,6 +5592,13 @@
     - description: 'remove setuptools usage via triton'
       replacements_plain:
         'if has_triton()': 'if False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.decomposition'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      change_function:
+        'should_pad_bench': 'un-callable'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.graph'
@@ -5631,6 +5645,31 @@
       replacements_plain:
         'from ..codecache import cache_dir': ''
         'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'has_triton()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv1x1'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'has_triton()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv_perf_model'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.utils'
