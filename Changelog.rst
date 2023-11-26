@@ -37,12 +37,28 @@ Bug Fixes
 -  Fix, ``{"a":b, ...}.get("b")`` could crash at runtime. Fixed in 1.9.2
    already.
 
+-  Standalone: Added data files for "pyproj" package. Fixed in 1.9.2
+   already
+
+-  Standalone: Added more metadata requirements for ``transformers``
+   package. Fixed in 1.9.2 already
+
 New Features
 ============
 
 -  Windows: Added support for using junctions in the Python environment,
    these are used e.g. when installing via ``scoop``. Added in 1.9.2
    already.
+
+Optimization
+============
+
+-  Avoid including ``.pyx`` files when scanning for data files, these
+   are code files too, in this case source files that are definitely
+   unused most of the time.
+
+-  Anti-Bloat: Avoid using ``triton`` in ``torch`` package in more
+   cases. Added in 1.9.2 already.
 
 Organisational
 ==============
