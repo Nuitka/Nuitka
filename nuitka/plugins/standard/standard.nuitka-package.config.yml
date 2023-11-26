@@ -3098,6 +3098,11 @@
   anti-bloat:
     - description: 'remove doctest usage'
 
+- module-name: 'pyproj'
+  data-files:
+    dirs:
+      - 'proj_dir'
+
 - module-name: 'PyQt5'
   data-files:
     empty_dirs:
