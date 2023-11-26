@@ -34,11 +34,21 @@ Bug Fixes
 -  Standalone: Fix, the specs expanded at run time in some causes could
    contain random characters. Fixed in 1.9.2 already.
 
+-  Fix, ``{"a":b, ...}.get("b")`` could crash at runtime. Fixed in 1.9.2
+   already.
+
 New Features
 ============
 
--  Windows: Added support for using junctions in the Python environment.
-   Added in 1.9.2 already.
+-  Windows: Added support for using junctions in the Python environment,
+   these are used e.g. when installing via ``scoop``. Added in 1.9.2
+   already.
+
+Organisational
+==============
+
+-  Added ``.gitignore`` to build folder that just causes these folders
+   to be ignored by git.
 
 Summary
 =======
