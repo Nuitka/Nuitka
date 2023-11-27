@@ -88,6 +88,7 @@ from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 from nuitka.utils.Utils import (
     getArchitecture,
+    isAndroidBasedLinux,
     isLinux,
     isMacOS,
     isWin32Windows,
@@ -1192,6 +1193,9 @@ except ImportError:
                 "macos": isMacOS(),
                 "win32": isWin32Windows(),
                 "linux": isLinux(),
+                "android": isAndroidBasedLinux(),
+                "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
+                "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
                 "anaconda": isAnacondaPython(),
                 "is_conda_package": isDistributionCondaPackage,
                 "debian_python": isDebianPackagePython(),
