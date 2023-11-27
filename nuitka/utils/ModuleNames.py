@@ -225,6 +225,13 @@ class ModuleName(str):
         else:
             return ModuleName(parent_new)
 
+    def getChildNameFromPackage(self, package_name):
+        """Get child a module name part for a name in the package."""
+        assert self.hasNamespace(package_name)
+
+        submodule_name_str = str(self)[len(str(package_name)) + 1 :]
+        return ModuleName(submodule_name_str)
+
     def matchesToShellPattern(self, pattern):
         """Match a module name to a list of patterns
 
