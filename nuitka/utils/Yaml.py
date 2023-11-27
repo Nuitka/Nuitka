@@ -37,6 +37,7 @@ from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
 from .Importing import importFromInlineCopy
+from .ModuleNames import checkModuleName
 
 
 class PackageConfigYaml(object):
@@ -64,6 +65,12 @@ class PackageConfigYaml(object):
             if "/" in module_name:
                 general.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
+                    % (self.name, module_name)
+                )
+
+            if not checkModuleName(module_name):
+                general.sysexit(
+                    "Error, invalid module name in '%s' not valid '%s'."
                     % (self.name, module_name)
                 )
 
