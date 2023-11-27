@@ -60,11 +60,18 @@ Optimization
 -  Anti-Bloat: Avoid using ``triton`` in ``torch`` package in more
    cases. Added in 1.9.2 already.
 
+-  Anti-Bloat: Avoid using ``pytest`` in ``knetworkx`` package in more
+   cases. Added in 1.9.2 already.
+
 Organisational
 ==============
 
 -  Added ``.gitignore`` to build folder that just causes these folders
    to be ignored by git.
+
+-  UI: Changed ``--show-source-changes`` to accept module pattern to
+   make it easier to only see the ones currently being worked on. To get
+   the old behavior of showing everything, use ``*`` as a pattern.
 
 Summary
 =======
