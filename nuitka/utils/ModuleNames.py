@@ -233,7 +233,7 @@ class ModuleName(str):
         return ModuleName(submodule_name_str)
 
     def matchesToShellPattern(self, pattern):
-        """Match a module name to a list of patterns
+        """Match a module name to a patterns
 
         Args:
             pattern:
