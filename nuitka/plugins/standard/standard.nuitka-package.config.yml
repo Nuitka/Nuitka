@@ -750,6 +750,31 @@
         suffixes:
           - 'pyd'
       when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'Linux64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'linux and not android'
+    - from_filenames:
+        relative_path: 'Android64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'android64'
+    - from_filenames:
+        relative_path: 'Android'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'android32'
+    - from_filenames:
+        relative_path: 'OSX64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'macos and arch_x86'
+    - from_filenames:
+        relative_path: 'OSXARM64'
+        prefixes:
+          - 'libDelphiFMX'
+      when: 'macos and arch_arm64'
 
 - module-name: 'dependency_injector._cwiring'
   implicit-imports:
@@ -1257,6 +1282,19 @@
         - 'cairo'
         - 'gtk'
 
+- module-name: 'gymnasium.envs.registration'
+  anti-bloat:
+    - description: 'better error message for environment backends'
+      replacements_plain:
+        '    mod = importlib.import_module(mod_name)': |
+          #
+              try:
+                mod = importlib.import_module(mod_name)
+              except ModuleNotFoundError:
+                import sys
+                sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
+      when: 'not deployment'
+
 - module-name: 'h5py'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -1544,6 +1582,14 @@
           - 'llvmlite'
           - 'libllvmlite'
 
+- module-name: 'loguru._colorama'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'ipykernel': 'ignore'
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'lxml'
   implicit-imports:
     - depends:
@@ -1811,6 +1857,13 @@
     - description: 'remove pytest reference'
       replacements_plain:
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
+      when: 'not use_pytest'
+
+- module-name: 'networkx.utils.backends'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
       when: 'not use_pytest'
 
 - module-name: 'networkx.utils.decorators'
@@ -3064,6 +3117,11 @@
       - 'dictionaries'
   anti-bloat:
     - description: 'remove doctest usage'
+
+- module-name: 'pyproj'
+  data-files:
+    dirs:
+      - 'proj_dir'
 
 - module-name: 'PyQt5'
   data-files:
@@ -5525,6 +5583,13 @@
         'triton': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'torch._inductor.codegen.autotuner'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -5552,6 +5617,13 @@
     - description: 'remove setuptools usage via triton'
       replacements_plain:
         'if has_triton()': 'if False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.decomposition'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      change_function:
+        'should_pad_bench': 'un-callable'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.graph'
@@ -5598,6 +5670,31 @@
       replacements_plain:
         'from ..codecache import cache_dir': ''
         'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'has_triton()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv1x1'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'has_triton()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.conv_perf_model'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.utils'
@@ -5766,15 +5863,20 @@
       - 'bitsandbytes'
       - 'datasets'
       - 'flax'
+      - 'ftfy'
       - 'jinja2'
       - 'pandas'
+      - 'peft'
       - 'psutil'
       - 'tensorflow'
       - 'torch'
       - 'tokenizers'
+      - 'torchvision'
       - 'scipy'
       - 'safetensors'
       - 'sentencepiece'
+      - 'timm'
+      - 'openai'
 
 - module-name: 'transformers.integrations'
   anti-bloat:

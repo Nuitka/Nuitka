@@ -217,7 +217,7 @@ SxS
                 "-f1",
                 "-pa1",
                 "-ps1",
-                binary_filename,
+                getExternalUsePath(binary_filename),
             ),
             external_cwd=True,
         )
