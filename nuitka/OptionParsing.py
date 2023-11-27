@@ -1647,12 +1647,15 @@ plugin_group.add_option(
 
 plugin_group.add_option(
     "--show-source-changes",
-    action="store_true",
+    action="append",
     dest="show_source_changes",
-    default=False,
+    default=[],
     help="""\
 Show source changes to original Python file content before compilation. Mostly
-intended for developing plugins. Default False.""",
+intended for developing plugins and Nuitka package configuration. Use e.g.
+'--show-source-changes=numpy.**' to see all changes below a given namespace
+or use '*' to see everything which can get a lot.
+Default empty.""",
 )
 
 del plugin_group

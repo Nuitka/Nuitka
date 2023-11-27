@@ -2135,9 +2135,14 @@ def getForcedStderrPath():
     return result
 
 
-def shallShowSourceModifications():
+def shallShowSourceModifications(module_name):
     """*bool* display plugin source changes derived from --show-source-changes"""
-    return options is not None and options.show_source_changes
+    if options is None:
+        return False
+
+    result, _reason = module_name.matchesToShellPatterns(options.show_source_changes)
+
+    return result
 
 
 def isLowMemory():
