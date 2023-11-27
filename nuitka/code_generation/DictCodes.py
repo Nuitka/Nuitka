@@ -279,13 +279,14 @@ def generateDictOperationGet2Code(to_name, expression, emit, context):
             renderTemplateFromString(
                 r"""
 {% if expression.known_hashable_key %}
-%(value_name)s = DICT_GET_ITEM0(tstate, %(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM1(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL) {
 {% else %}
-%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(tstate, %(dict_name)s, %(key_name)s);
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, %(dict_name)s, %(key_name)s);
 if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = Py_None;
+    Py_INCREF(%(value_name)s);
 }
 """,
                 expression=expression,
@@ -305,14 +306,13 @@ if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
             context=context,
         )
 
+        context.addCleanupTempName(value_name)
+
 
 def generateDictOperationGet3Code(to_name, expression, emit, context):
     dict_name, key_name, default_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    # TODO: This code could actually make it dependent on default taking
-    # a reference or not, and then use DICT_GET_ITEM0/DICT_GET_ITEM_WITH_HASH_ERROR0 if not.
 
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
