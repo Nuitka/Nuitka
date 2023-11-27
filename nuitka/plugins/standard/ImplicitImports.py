@@ -395,15 +395,25 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
                 # Inline the values, to avoid the data files.
                 if result is not None:
-                    source_code = source_code.replace(
-                        attach_call,
-                        attach_call_replacement
-                        % {
-                            "module_name": module_name.asString(),
-                            "submodules": result[0],
-                            "attrs": result[1],
-                        },
-                    )
+                    replacement = attach_call_replacement % {
+                        "module_name": module_name.asString(),
+                        "submodules": tuple(
+                            sub_module_name.asString() for sub_module_name in result[0]
+                        ),
+                        "attrs": dict(
+                            (
+                                sub_module_name.getChildNameFromPackage(
+                                    module_name
+                                ).asString(),
+                                module_attributes,
+                            )
+                            for (sub_module_name, module_attributes) in sorted(
+                                result[1].items()
+                            )
+                        ),
+                    }
+
+                    source_code = source_code.replace(attach_call, replacement)
 
         if module_name == "huggingface_hub":
             # Special handling for huggingface that uses the source code variant
@@ -418,9 +428,16 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     info_name="huggingface_hub_lazy_loader",
                 )
 
-                self.lazy_loader_usages[module_name] = (
-                    [],
-                    huggingface_hub_lazy_loader_info,
+                self._addLazyLoader(
+                    module_name,
+                    submodules=(),
+                    submodule_attrs=dict(
+                        ("." + submodule_name, attributes)
+                        for (
+                            submodule_name,
+                            attributes,
+                        ) in huggingface_hub_lazy_loader_info.items()
+                    ),
                 )
 
         if module_name == "pydantic":
@@ -438,23 +455,49 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     if type(value) is tuple:
                         value = "".join(value).rstrip(".")
 
-                    if value.startswith("pydantic."):
-                        value = value[9:]
-                    else:
-                        value = value.lstrip(".")
-
                     if value not in pydantic_lazy_loader_info:
                         pydantic_lazy_loader_info[value] = []
                     pydantic_lazy_loader_info[value].append(key)
 
-                # TODO: Have a function to do it, that also validates the values right
-                # away, so as to not crash during usage.
-                self.lazy_loader_usages[module_name] = (
-                    [],
-                    pydantic_lazy_loader_info,
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=(),
+                    submodule_attrs=pydantic_lazy_loader_info,
                 )
 
         return source_code
+
+    def _addLazyLoader(self, module_name, submodules, submodule_attrs):
+        """Add lazy loader information for a module.
+
+        Args:
+            module_name: name of the module to work on
+            submodules: list of attributes that are known submodules
+            submodule_attrs: dict of module name to list of attributes
+
+        Notes:
+            It converts to modules names on the fly. If in submodule_attr
+            the module name starts with a "." then it's relative to the
+            module_name value.
+
+        """
+
+        submodules = tuple(ModuleName(submodule) for submodule in submodules)
+
+        submodule_attrs = dict(
+            (
+                module_name.getChildNamed(submodule[1:])
+                if submodule.startswith(".")
+                else ModuleName(submodule),
+                tuple(attribute_names),
+            )
+            for (submodule, attribute_names) in sorted(submodule_attrs.items())
+        )
+
+        self.lazy_loader_usages[module_name] = (
+            submodules,
+            submodule_attrs,
+        )
 
     def _handleLazyLoad(self, module_name, source_filename):
         pyi_filename = source_filename + "i"
@@ -473,9 +516,16 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 visitor = lazy_loader._StubVisitor()
                 visitor.visit(stub_node)
 
-                self.lazy_loader_usages[module_name] = (
-                    visitor._submodules,
-                    visitor._submod_attrs,
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=visitor._submodules,
+                    submodule_attrs=dict(
+                        ("." + submodule_name, attributes)
+                        for (
+                            submodule_name,
+                            attributes,
+                        ) in visitor._submod_attrs.items()
+                    ),
                 )
 
                 return self.lazy_loader_usages[module_name]
@@ -586,7 +636,6 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 sub_module_name,
                 attribute_names,
             ) in sub_module_attr.items():
-                sub_module_name = module_name.getChildNamed(sub_module_name)
                 addModuleDynamicHard(sub_module_name)
 
                 _lookAhead(using_module_name=module_name, module_name=sub_module_name)

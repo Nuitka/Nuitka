@@ -332,7 +332,9 @@ def _addModulesToReport(root, report_input_data, diffable):
                 used_module.module_name
             )
 
-            if exclusion_reason is not None:
+            # Include reason why a module was excluded unless it is obvious like
+            # with built-in modules.
+            if exclusion_reason is not None and used_module.module_kind != "built-in":
                 module_usage_node.attrib["finding"] = "excluded"
                 module_usage_node.attrib["exclusion_reason"] = exclusion_reason
 

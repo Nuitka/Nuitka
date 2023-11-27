@@ -819,6 +819,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
         }
 
         *target++ = *source++;
+        *target = 0;
         buffer_size -= 1;
     }
 
@@ -868,7 +869,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     size_t length = strlen(target);
 
-                    if ((length >= 4) && (strcasecmp(target + length - 4, ".exe") == 0)) {
+                    if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
                         target[length - 4] = 0;
                     }
                 } else if (strcasecmp(var_name, "PID") == 0) {
@@ -955,6 +956,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
         }
 
         *target++ = *source++;
+        *target = 0;
         buffer_size -= 1;
     }
 
