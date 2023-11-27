@@ -205,7 +205,10 @@ def readSourceCodeFromFilenameWithInformation(
         source_code_modified = source_code
         contributing_plugins = ()
 
-    if Options.shallShowSourceModifications() and source_code_modified != source_code:
+    if (
+        Options.shallShowSourceModifications(module_name)
+        and source_code_modified != source_code
+    ):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)
 
         if source_diff:
