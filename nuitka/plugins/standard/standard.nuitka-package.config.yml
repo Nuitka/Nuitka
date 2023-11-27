@@ -1282,6 +1282,19 @@
         - 'cairo'
         - 'gtk'
 
+- module-name: 'gymnasium.envs.registration'
+  anti-bloat:
+    - description: 'better error message for environment backends'
+      replacements_plain:
+        '    mod = importlib.import_module(mod_name)': |
+          #
+              try:
+                mod = importlib.import_module(mod_name)
+              except ModuleNotFoundError:
+                import sys
+                sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
+      when: 'not deployment'
+
 - module-name: 'h5py'
   anti-bloat:
     - description: 'remove IPython reference'
