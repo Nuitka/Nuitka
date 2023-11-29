@@ -1477,6 +1477,8 @@
     - description: 'workaround for forking itself'
       replacements_plain:
         "getattr(sys, 'frozen', False)": 'False'
+        'getattr(sys, "frozen", False)': 'False'
+        'assert is_forking(sys.argv), "Not forking"': ''
       when: 'win32'
 
 - module-name: 'joblib.externals.loky.backend.resource_tracker'
