@@ -508,6 +508,7 @@
   implicit-imports:
     - depends:
         - 'chromadb.telemetry.posthog'
+        - 'chromadb.telemetry.product.posthog'
         - 'chromadb.api.local'
         - 'chromadb.db.duckdb'
         - 'chromadb.db.impl.sqlite'
@@ -518,6 +519,7 @@
         - 'chromadb.migrations.embeddings_queue'
         - 'chromadb.migrations.sysdb'
         - 'chromadb.migrations.metadb'
+        - 'chromadb.ingest.impl.simple_policy'
 
 - module-name: 'chromadb.migrations.embeddings_queue'
   data-files:
