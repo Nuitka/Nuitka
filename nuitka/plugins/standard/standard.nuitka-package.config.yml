@@ -326,6 +326,48 @@
       change_function:
         'test': 'un-callable'
 
+- module-name: 'bitsandbytes.triton.dequantize_rowwise'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.int8_matmul_mixed_dequanitze'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.int8_matmul_rowwise_dequantize'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_columnwise_and_transpose'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_global'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_rowwise'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
 - module-name: 'boto3'
   data-files:
     dirs:
