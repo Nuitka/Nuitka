@@ -900,12 +900,18 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, home_path, buffer_size);
                 is_path = true;
             } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
-                if (expandTemplatePath(target, "{HOME}", buffer_size - strlen(target)) == false) {
-                    return false;
-                }
+                char const *xdg_cache_home = getenv("XDG_CACHE_HOME");
 
-                appendCharSafe(target, '/', buffer_size);
-                appendStringSafe(target, ".cache", buffer_size);
+                if (xdg_cache_home != NULL && xdg_cache_home[0] == '/') {
+                    appendStringSafe(target, xdg_cache_home, buffer_size);
+                } else {
+                    if (expandTemplatePath(target, "{HOME}", buffer_size - strlen(target)) == false) {
+                        return false;
+                    }
+
+                    appendCharSafe(target, '/', buffer_size);
+                    appendStringSafe(target, ".cache", buffer_size);
+                }
                 is_path = true;
 #ifdef NUITKA_COMPANY_NAME
             } else if (strcasecmp(var_name, "COMPANY") == 0) {
