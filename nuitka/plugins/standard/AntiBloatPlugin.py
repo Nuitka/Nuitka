@@ -113,6 +113,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                 noinclude_pytest_mode,
                 "pytest",
             )
+            self.handled_modules["distributed.utils_test"] = (
+                noinclude_pytest_mode,
+                "pytest",
+            )
         else:
             self.control_tags["use_pytest"] = True
 
