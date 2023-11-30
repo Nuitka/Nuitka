@@ -326,6 +326,15 @@
       change_function:
         'test': 'un-callable'
 
+- module-name: 'bitsandbytes.cextension'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libbitsandbytes_'
+        suffixes:
+          # Applies currently to all OSes in bitsandbytes wheels.
+          - 'so'
+
 - module-name: 'bitsandbytes.triton.dequantize_rowwise'
   anti-bloat:
     - description: 'remove setuptools usage via triton'
