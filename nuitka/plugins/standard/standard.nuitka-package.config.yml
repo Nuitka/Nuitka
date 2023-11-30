@@ -851,6 +851,13 @@
       replacements_plain:
         'from .testing import setup_test': ''
 
+- module-name: 'distributed.client'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'distributed.config'
   data-files:
     patterns:
@@ -863,6 +870,13 @@
         'from IPython.display import display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'distributed.diagnostics.progressbar'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'distributed.scheduler'
   anti-bloat:
     - description: 'remove cython support'
@@ -870,6 +884,13 @@
       replacements_plain:
         'from cython import compiled': 'raise ImportError'
         'if compiled:': 'if False:'
+
+- module-name: 'distributed.utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'is_kernel': "'(lambda : False)'"
+      when: 'not use_ipython'
 
 - module-name: 'dns.rdtypes'
   implicit-imports:
