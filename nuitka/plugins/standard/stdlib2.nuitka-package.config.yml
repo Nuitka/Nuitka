@@ -2,6 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
+# checksum: 0aae4a6357f87503c64dfe60bcf69acd
 ---
 - module-name: 'audiodev'
   anti-bloat:
