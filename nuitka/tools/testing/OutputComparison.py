@@ -136,6 +136,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
         if line.startswith("Nuitka:WARNING:     Complex topic"):
             continue
+        if line.startswith("Nuitka:WARNING:") and "matching checksum" in line:
+            continue
 
         if syntax_error_caret_re.match(line):
             continue

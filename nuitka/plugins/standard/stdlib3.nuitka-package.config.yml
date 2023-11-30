@@ -2,6 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
+# checksum: 4502df9c14c14fb07d2e8319fd73baf7
 ---
 - module-name: '_asyncio'
   implicit-imports:
