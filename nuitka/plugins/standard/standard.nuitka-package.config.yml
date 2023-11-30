@@ -4205,6 +4205,13 @@
         - 'skimage.restoration._unwrap_2d'
         - 'skimage.restoration._unwrap_3d'
 
+- module-name: 'skimage.restoration._cycle_spin'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'skimage.segmentation'
   implicit-imports:
     - depends:
