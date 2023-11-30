@@ -36,6 +36,7 @@ from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
+from .Hashing import getStringHash
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
 
@@ -150,6 +151,23 @@ def parseYaml(data):
 _yaml_cache = {}
 
 
+def getYamlFileChecksum(yaml_data):
+    lines = yaml_data.splitlines()
+    if len(lines) > 4 and lines[4].startswith(b"# checksum: "):
+        return lines[4].split()[2]
+
+    return None
+
+
+def calculateYamlFileChecksum(yaml_data):
+    if b"\n---\n" not in yaml_data:
+        raise ValueError("Malformed yaml data without --- header")
+
+    yaml_data = yaml_data.split(b"\n---\n", 2)[1]
+
+    return getStringHash(yaml_data).encode("utf8")
+
+
 def parsePackageYaml(package_name, filename):
     key = package_name, filename
 
@@ -158,6 +176,25 @@ def parsePackageYaml(package_name, filename):
 
         if data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
+
+        validated = "False"
+
+        lines = data.splitlines()
+        if len(lines) > 4:
+            if lines[4].startswith(b"# checksum: "):
+                file_checksum = lines[4].split()[2]
+
+                if file_checksum != calculateYamlFileChecksum(data):
+                    validated = "not matching"
+                else:
+                    validated = "matching"
+            else:
+                validated = "not present"
+        else:
+            validated = "not present"
+
+        if validated != "matching":
+            general.warning("Using file %s with %s checksum." % (filename, validated))
 
         _yaml_cache[key] = PackageConfigYaml(name=filename, data=parseYaml(data))
 

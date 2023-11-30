@@ -44,6 +44,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
+    calculateYamlFileChecksum,
     getYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
@@ -53,16 +54,17 @@ from nuitka.utils.Yaml import (
 def checkYamllint(document):
     import yamllint.cli  # pylint: disable=I0021,import-error
 
-    my_print("Checking %r for proper yaml:" % document, style="blue")
     try:
         yamllint.cli.run([document])
     except SystemExit as e:
         lint_result = e.code
     else:
-        sys.exit("Error, yamllint didn't raise expected SystemExit exception.")
+        tools_logger.sysexit(
+            "Error, yamllint didn't raise expected SystemExit exception."
+        )
 
     if lint_result != 0:
-        sys.exit("Error, no lint clean yaml.")
+        tools_logger.sysexit("Error, not lint clean yaml.")
 
     my_print("OK, yamllint passed.", style="blue")
 
@@ -94,7 +96,7 @@ def checkSchema(document):
                     % (document, module_name, e.message)
                 )
             else:
-                my_print("OK, schema validated", style="blue")
+                my_print("OK, schema validated.", style="blue")
 
 
 def _checkValues(filename, module_name, section, value):
@@ -122,14 +124,52 @@ def checkValues(filename):
         for section, section_config in config.items():
             _checkValues(filename, module_name, section, section_config)
 
+    my_print("OK, manual value tests passed.", style="blue")
+
+
+def checkChecksum(filename, update):
+    yaml_data_old = getFileContents(filename, mode="rb")
+    lines = yaml_data_old.splitlines()
+
+    if len(lines) < 5 or not lines[4].startswith(b"# checksum:"):
+        tools_logger.sysexit("Make sure the file is autoformatted first.")
+
+    lines[4] = b"# checksum: %s" % calculateYamlFileChecksum(yaml_data_old)
+    yaml_data_new = b"\n".join(lines) + b"\n"
+
+    if yaml_data_new != yaml_data_old:
+        if update:
+            with openTextFile(filename, "wb") as output_file:
+                output_file.write(yaml_data_new)
+
+            my_print("OK, updated checksum.", style="blue")
+        else:
+            tools_logger.sysexit(
+                "Error, checksum does not match, use --update or enable commit hook."
+            )
+    else:
+        my_print("OK, checksum valid.", style="blue")
+
 
 def main():
     parser = OptionParser()
 
-    _options, positional_args = parser.parse_args()
+    parser.add_option(
+        "--update-checksum",
+        dest="update_checksum",
+        action="store_true",
+        default=False,
+        help="""\
+Update the version checksum after checking, so Nuitka knowns it can be trusted.""",
+    )
+
+    options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["nuitka/plugins/standard/*.yml"]
+        positional_args = [
+            "nuitka/plugins/standard/*.yml",
+            "nuitka/plugins/commercial/*.yml",
+        ]
 
     my_print("Working on:", positional_args)
 
@@ -150,12 +190,16 @@ def main():
         )
     )
     if not filenames:
-        sys.exit("No files found.")
+        tools_logger.sysexit("No files found.")
 
     for filename in filenames:
+        my_print("Checking '%s' for proper contents:" % filename, style="blue")
+
         checkSchema(filename)
         checkValues(filename)
         checkYamllint(filename)
+
+        checkChecksum(filename, update=options.update_checksum)
 
 
 if __name__ == "__main__":
