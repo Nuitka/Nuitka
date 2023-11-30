@@ -78,7 +78,11 @@
                                     "type": "array"
                                 },
                                 "suffixes": {
-                                    "type": "array"
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "pattern": "^[^.]\\w*$"
+                                    }
                                 },
                                 "executable": {
                                     "type": "string",
