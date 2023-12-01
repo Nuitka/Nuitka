@@ -464,10 +464,17 @@ if env.debug_mode:
     if env.gcc_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
+
+        if "allow-c-warnings" not in env.experimental_flags:
+            env.Append(
+                CCFLAGS=[
+                    "-Wall",
+                    "-Werror",
+                ]
+            )
+
         env.Append(
             CCFLAGS=[
-                "-Wall",
-                "-Werror",
                 # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
                 # which are unfounded, so disable them.
                 "-Wno-error=strict-aliasing",
