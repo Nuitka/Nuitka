@@ -87,6 +87,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             exe = dll_config.get("executable", "no") == "yes"
 
             suffixes = dll_config.get("suffixes")
+            if suffixes is not None:
+                suffixes = tuple(suffix.lstrip(".") for suffix in suffixes)
 
             for prefix in dll_config.get("prefixes"):
                 if exe:
