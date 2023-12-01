@@ -822,7 +822,7 @@
         relative_path: 'OSX64'
         prefixes:
           - 'libDelphiFMX'
-      when: 'macos and arch_x86'
+      when: 'macos and arch_amd64'
     - from_filenames:
         relative_path: 'OSXARM64'
         prefixes:
