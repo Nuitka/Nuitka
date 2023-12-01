@@ -37,6 +37,7 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
+from nuitka.tools.quality.yamllint.YamlChecker import checkYamlSchema
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print, tools_logger
 from nuitka.utils.Execution import (
@@ -693,7 +694,7 @@ def autoFormatFile(
         if is_md and not limit_md:
             return
 
-        if is_txt and not is_rst and not is_md:
+        if is_txt and not is_rst and not is_md and not is_package_config_yaml:
             return
 
     # Work on a temporary copy
@@ -762,6 +763,12 @@ def autoFormatFile(
                     formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
+                    checkYamlSchema(
+                        logger=tools_logger,
+                        filename=tmp_filename,
+                        effective_filename=effective_filename,
+                        update=True,
+                    )
 
         _transferBOM(filename, tmp_filename)
 

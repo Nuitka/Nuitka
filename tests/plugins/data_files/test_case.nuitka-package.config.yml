@@ -2,6 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
+# checksum: 6a90d828c9360c1772a826cd948e1b6e
 ---
 - module-name: 'data_files_package'
   data-files:
