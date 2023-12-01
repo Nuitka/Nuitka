@@ -169,6 +169,9 @@ def _getReportInputData(aborted):
         if _decision is not False:
             continue
 
+        if _using_module_name is None:
+            continue
+
         module_exclusions[_using_module_name][_module_name] = _reason
 
     memory_infos = getMemoryInfos()
