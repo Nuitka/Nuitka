@@ -603,13 +603,14 @@ Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due t
                 return
 
             if module_name.hasNamespace(handled_module_name):
-                override_mode = self._getModuleBloatModeOverrides(
-                    using_module_name=using_module_name,
-                    intended_module_name=intended_module_name,
-                )
+                if using_module_name is not None:
+                    override_mode = self._getModuleBloatModeOverrides(
+                        using_module_name=using_module_name,
+                        intended_module_name=intended_module_name,
+                    )
 
-                if override_mode is not None:
-                    mode = override_mode
+                    if override_mode is not None:
+                        mode = override_mode
 
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":

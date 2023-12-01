@@ -326,6 +326,57 @@
       change_function:
         'test': 'un-callable'
 
+- module-name: 'bitsandbytes.cextension'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libbitsandbytes_'
+        suffixes:
+          # Applies currently to all OSes in bitsandbytes wheels.
+          - 'so'
+
+- module-name: 'bitsandbytes.triton.dequantize_rowwise'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.int8_matmul_mixed_dequanitze'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.int8_matmul_rowwise_dequantize'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_columnwise_and_transpose'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_global'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'bitsandbytes.triton.quantize_rowwise'
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      replacements_plain:
+        'is_triton_available()': 'False'
+      when: 'not use_setuptools'
+
 - module-name: 'boto3'
   data-files:
     dirs:
@@ -508,6 +559,7 @@
   implicit-imports:
     - depends:
         - 'chromadb.telemetry.posthog'
+        - 'chromadb.telemetry.product.posthog'
         - 'chromadb.api.local'
         - 'chromadb.db.duckdb'
         - 'chromadb.db.impl.sqlite'
@@ -518,6 +570,7 @@
         - 'chromadb.migrations.embeddings_queue'
         - 'chromadb.migrations.sysdb'
         - 'chromadb.migrations.metadb'
+        - 'chromadb.ingest.impl.simple_policy'
 
 - module-name: 'chromadb.migrations.embeddings_queue'
   data-files:
@@ -769,7 +822,7 @@
         relative_path: 'OSX64'
         prefixes:
           - 'libDelphiFMX'
-      when: 'macos and arch_x86'
+      when: 'macos and arch_amd64'
     - from_filenames:
         relative_path: 'OSXARM64'
         prefixes:
@@ -798,6 +851,13 @@
       replacements_plain:
         'from .testing import setup_test': ''
 
+- module-name: 'distributed.client'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'distributed.config'
   data-files:
     patterns:
@@ -810,6 +870,13 @@
         'from IPython.display import display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'distributed.diagnostics.progressbar'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'distributed.scheduler'
   anti-bloat:
     - description: 'remove cython support'
@@ -817,6 +884,13 @@
       replacements_plain:
         'from cython import compiled': 'raise ImportError'
         'if compiled:': 'if False:'
+
+- module-name: 'distributed.utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'is_kernel': "'(lambda : False)'"
+      when: 'not use_ipython'
 
 - module-name: 'dns.rdtypes'
   implicit-imports:
@@ -1433,6 +1507,8 @@
     - description: 'workaround for forking itself'
       replacements_plain:
         "getattr(sys, 'frozen', False)": 'False'
+        'getattr(sys, "frozen", False)': 'False'
+        'assert is_forking(sys.argv), "Not forking"': ''
       when: 'win32'
 
 - module-name: 'joblib.externals.loky.backend.resource_tracker'
@@ -4149,6 +4225,13 @@
         - 'skimage.restoration._unwrap_1d'
         - 'skimage.restoration._unwrap_2d'
         - 'skimage.restoration._unwrap_3d'
+
+- module-name: 'skimage.restoration._cycle_spin'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
 
 - module-name: 'skimage.segmentation'
   implicit-imports:

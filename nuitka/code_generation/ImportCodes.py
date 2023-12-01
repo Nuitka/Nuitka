@@ -189,12 +189,14 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
             emit(
                 renderTemplateFromString(
                     r"""
+{% if import_gives_ref %}
 {
     PyObject *hard_module = {{module_getter_code1}};
-{% if import_gives_ref %}
     Py_DECREF(hard_module);
-{% endif %}
 }
+{% else %}
+{{module_getter_code1}};
+{% endif %}
 {{value_name}} = {{module_getter_code2}};
 """,
                     value_name=value_name,

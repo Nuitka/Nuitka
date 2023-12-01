@@ -370,14 +370,6 @@ if debug_mode:
             CCFLAGS=[
                 "-Wall",
                 "-Werror",
-                # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
-                # which are unfounded, so disable them.
-                "-Wno-error=strict-aliasing",
-                "-Wno-strict-aliasing",
-                # At least for self-compiled Python3.2, and MinGW this happens
-                # and has little use anyway.
-                "-Wno-error=format",
-                "-Wno-format",
             ]
         )
 
