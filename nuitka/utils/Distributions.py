@@ -19,6 +19,7 @@
 
 import os
 
+from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental
 from nuitka.PythonFlavors import isAnacondaPython
@@ -215,6 +216,8 @@ def getDistributionFromModuleName(module_name):
 
 def getDistribution(distribution_name):
     """Get a distribution by name."""
+    assert isValidDistributionName(distribution_name), distribution_name
+
     try:
         if isExperimental("force-pkg-resources-metadata"):
             raise ImportError
@@ -254,10 +257,16 @@ def isDistributionPipPackage(distribution_name):
     return getDistributionInstallerName(distribution_name) == "pip"
 
 
+def isDistributionPoetryPackage(distribution_name):
+    return getDistributionInstallerName(distribution_name).startswith("poetry")
+
+
 def isDistributionSystemPackage(distribution_name):
-    result = not isDistributionPipPackage(
-        distribution_name
-    ) and not isDistributionCondaPackage(distribution_name)
+    result = (
+        not isDistributionPipPackage(distribution_name)
+        and not isDistributionPoetryPackage(distribution_name)
+        and not isDistributionCondaPackage(distribution_name)
+    )
 
     # This should only ever happen on Linux, lets know when it does happen
     # elsewhere, since that is most probably a bug in our installer detection on
@@ -338,6 +347,10 @@ def getDistributionInstallerName(distribution_name):
     return _distribution_to_installer[distribution_name]
 
 
+def isValidDistributionName(distribution_name):
+    return type(distribution_name) in (str, unicode)
+
+
 def getDistributionName(distribution):
     """Get the distribution name from a distribution object.
 
@@ -347,9 +360,12 @@ def getDistributionName(distribution):
     """
 
     if hasattr(distribution, "metadata"):
-        return distribution.metadata["Name"]
+        result = distribution.metadata["Name"]
     else:
-        return distribution.project_name
+        result = distribution.project_name
+
+    assert isValidDistributionName(result), distribution
+    return result
 
 
 def getDistributionVersion(distribution):
