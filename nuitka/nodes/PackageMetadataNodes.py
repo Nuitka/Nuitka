@@ -75,11 +75,19 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
     kind = "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        require = _getPkgResourcesModule().require
-        ResolutionError = _getPkgResourcesModule().ResolutionError
-        InvalidRequirement = (
-            _getPkgResourcesModule().extern.packaging.requirements.InvalidRequirement
-        )
+        resources_module = _getPkgResourcesModule()
+
+        require = resources_module.require
+        ResolutionError = resources_module.ResolutionError
+
+        try:
+            InvalidRequirement = (
+                resources_module.extern.packaging.requirements.InvalidRequirement
+            )
+        except AttributeError:
+            InvalidRequirement = (
+                resources_module.packaging.requirements.InvalidRequirement
+            )
 
         args = tuple(
             element.getCompileTimeConstant() for element in self.subnode_requirements
@@ -135,8 +143,9 @@ class ExpressionPkgResourcesGetDistributionCall(
     kind = "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        get_distribution = _getPkgResourcesModule().get_distribution
-        DistributionNotFound = _getPkgResourcesModule().DistributionNotFound
+        pkg_resources_module = _getPkgResourcesModule()
+        get_distribution = pkg_resources_module.get_distribution
+        DistributionNotFound = pkg_resources_module.DistributionNotFound
 
         arg = self.subnode_dist.getCompileTimeConstant()
 
@@ -363,8 +372,9 @@ class ExpressionPkgResourcesIterEntryPointsCall(
     kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
-        iter_entry_points = _getPkgResourcesModule().iter_entry_points
-        DistributionNotFound = _getPkgResourcesModule().DistributionNotFound
+        pkg_resources_module = _getPkgResourcesModule()
+        iter_entry_points = pkg_resources_module.iter_entry_points
+        DistributionNotFound = pkg_resources_module.DistributionNotFound
 
         group = self.subnode_group.getCompileTimeConstant()
         if self.subnode_name is not None:
