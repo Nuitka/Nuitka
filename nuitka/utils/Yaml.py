@@ -35,7 +35,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
-from .FileOperations import getFileContents
+from .FileOperations import getFileContents, openTextFile
 from .Hashing import getStringHash
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
@@ -159,13 +159,37 @@ def getYamlFileChecksum(yaml_data):
     return None
 
 
-def calculateYamlFileChecksum(yaml_data):
+def _calculateYamlFileChecksum(yaml_data):
     if b"\n---\n" not in yaml_data:
         raise ValueError("Malformed yaml data without --- header")
 
     yaml_data = yaml_data.split(b"\n---\n", 2)[1]
 
     return getStringHash(yaml_data).encode("utf8")
+
+
+def checkOrUpdateChecksum(filename, update, logger):
+    yaml_data_old = getFileContents(filename, mode="rb")
+    lines = yaml_data_old.splitlines()
+
+    if len(lines) < 5 or not lines[4].startswith(b"# checksum:"):
+        logger.sysexit("Make sure the file is autoformatted first.")
+
+    lines[4] = b"# checksum: %s" % _calculateYamlFileChecksum(yaml_data_old)
+    yaml_data_new = b"\n".join(lines) + b"\n"
+
+    if yaml_data_new != yaml_data_old:
+        if update:
+            with openTextFile(filename, "wb") as output_file:
+                output_file.write(yaml_data_new)
+
+            logger.info("OK, updated checksum.", style="blue")
+        else:
+            logger.sysexit(
+                "Error, checksum does not match, use --update or enable commit hook."
+            )
+    else:
+        logger.info("OK, checksum valid.", style="blue")
 
 
 def parsePackageYaml(package_name, filename):
@@ -184,7 +208,7 @@ def parsePackageYaml(package_name, filename):
             if lines[4].startswith(b"# checksum: "):
                 file_checksum = lines[4].split()[2]
 
-                if file_checksum != calculateYamlFileChecksum(data):
+                if file_checksum != _calculateYamlFileChecksum(data):
                     validated = "not matching"
                 else:
                     validated = "matching"
