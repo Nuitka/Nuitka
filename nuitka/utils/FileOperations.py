@@ -1053,6 +1053,10 @@ def isFilenameBelowPath(path, filename, consider_short=True):
             filename = getExternalUsePath(filename)
             path = getExternalUsePath(path)
 
+            if isWin32Windows():
+                if getWindowsDrive(path) != getWindowsDrive(filename):
+                    return False
+
             result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
     return result
