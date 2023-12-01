@@ -1214,7 +1214,7 @@ except ImportError:
             }
         )
 
-        if isWin32Windows():
+        if isWin32Windows() or isMacOS():
             context.update(
                 {
                     "arch_x86": getArchitecture() == "x86",

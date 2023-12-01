@@ -364,6 +364,8 @@ static int multiprocessing_resource_tracker_arg = -1;
 // This is a joblib loky fork
 #ifdef _WIN32
 static bool is_joblib_popen_loky_win32 = false;
+static int loky_joblib_pipe_handle_arg = 0;
+static int loky_joblib_parent_pid_arg = 0;
 #else
 static bool is_joblib_popen_loky_posix = false;
 #endif
@@ -440,6 +442,15 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                 is_joblib_popen_loky_win32 = true;
                 break;
             }
+
+            if (scanFilename(argv[i + 1],
+                             FILENAME_EMPTY_STR "from joblib.externals.loky.backend.popen_loky_win32 import main; "
+                                                "main(pipe_handle=%i, parent_pid=%i)",
+                             &loky_joblib_pipe_handle_arg, &loky_joblib_parent_pid_arg)) {
+                is_joblib_popen_loky_win32 = true;
+                break;
+            }
+
 #endif
         }
 
@@ -1500,7 +1511,20 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_win32_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_NO_ARGS(tstate, main_function);
+        if (loky_joblib_pipe_handle_arg == 0) {
+            CALL_FUNCTION_NO_ARGS(tstate, main_function);
+        } else {
+            char const *kw_keys[] = {"pipe_handle", "parent_pid"};
+            PyObject *kw_values[] = {
+                PyLong_FromLong(loky_joblib_pipe_handle_arg),
+                PyLong_FromLong(loky_joblib_parent_pid_arg),
+            };
+
+            PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+
+            CALL_FUNCTION_WITH_KEYARGS(tstate, main_function, kw_args);
+        }
+        static int loky_joblib_parent_pid_arg = 0;
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
