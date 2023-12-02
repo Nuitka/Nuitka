@@ -327,19 +327,18 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
     else:
         assert False
 
-    with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", "1"):
-        check_call(
-            run_command
-            + [
-                nuitka_binary,
-                os.path.join(case_dir, case_data["filename"]),
-                "--report=compilation-report.xml",
-                "--report-diffable",
-                "--report-user-provided=pipenv_hash=%s"
-                % getFileContentsHash(lock_filename),
-            ]
-            + extra_options
-        )
+    check_call(
+        run_command
+        + [
+            nuitka_binary,
+            os.path.join(case_dir, case_data["filename"]),
+            "--report=compilation-report.xml",
+            "--report-diffable",
+            "--report-user-provided=pipenv_hash=%s"
+            % getFileContentsHash(lock_filename),
+        ]
+        + extra_options
+    )
 
     if case_data["interactive"] == "no":
         binaries = getFileList(
@@ -351,17 +350,18 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
         if len(binaries) != 1:
             sys.exit("Error, failed to identify created binary.")
 
-        stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
-
-        if exit_nuitka != 0:
-            sys.exit(
-                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
-            )
+        with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", "1"):
+            stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
 
         with open("compiled-stdout.txt", "wb") as output:
             output.write(stdout)
         with open("compiled-stderr.txt", "wb") as output:
             output.write(stderr)
+
+        if exit_nuitka != 0:
+            sys.exit(
+                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
+            )
 
 
 def _updateCase(
