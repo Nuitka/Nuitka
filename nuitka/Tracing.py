@@ -364,7 +364,7 @@ class OurLogger(object):
     def info(self, message, style=None, mnemonic=None):
         if not self.isQuiet():
             if self.name:
-                message = "%s:INFO: %s" % (self.name, message)
+                message = "%s: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)
@@ -394,7 +394,7 @@ class FileLogger(OurLogger):
 
     def info(self, message, style=None, mnemonic=None):
         if not self.isQuiet() or self.file_handle:
-            message = "%s:INFO: %s" % (self.name, message)
+            message = "%s: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)

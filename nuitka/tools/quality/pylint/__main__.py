@@ -26,7 +26,7 @@ from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
-from nuitka.tools.quality.Git import getModifiedPaths, getUnpushedPaths
+from nuitka.tools.quality.Git import getModifiedPaths, getUnPushedPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
@@ -139,7 +139,7 @@ Insist on PyLint to be installed. Default is %default.""",
         elif options.unpushed:
             positional_args = [
                 filename
-                for filename in getUnpushedPaths()
+                for filename in getUnPushedPaths()
                 if isPythonFile(filename)
                 if not isIgnoredFile(filename)
             ]

@@ -70,7 +70,7 @@ def import_re_callback(match):
 
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
-logging_info_re = re.compile(r"^Nuitka.*?:INFO")
+logging_info_re = re.compile(r"^Nuitka(-\w+)?: ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 
 # Python3.11 style traceback carets are not done by Nuitka (yet?)
