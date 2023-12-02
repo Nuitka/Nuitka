@@ -1211,17 +1211,12 @@ except ImportError:
                 "no_annotations": hasPythonFlagNoAnnotations(),
                 # Querying package properties
                 "has_builtin_module": isBuiltinModuleName,
+                # Architectures
+                "arch_x86": getArchitecture() == "x86",
+                "arch_amd64": getArchitecture() == "x86_64",
+                "arch_arm64": getArchitecture() == "arm64",
             }
         )
-
-        if isWin32Windows() or isMacOS():
-            context.update(
-                {
-                    "arch_x86": getArchitecture() == "x86",
-                    "arch_amd64": getArchitecture() == "x86_64",
-                    "arch_arm64": getArchitecture() == "arm64",
-                }
-            )
 
         versions = getTestExecutionPythonVersions()
 
