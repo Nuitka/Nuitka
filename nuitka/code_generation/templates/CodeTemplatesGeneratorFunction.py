@@ -119,6 +119,7 @@ template_generator_return_exit = """\
     generator->m_returned = %(return_value)s;
 #endif
 
+%(function_cleanup)s
     return NULL;
 """
 
