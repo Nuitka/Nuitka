@@ -2863,6 +2863,14 @@
     - description: 'workaround __new__ decorator issue'
       append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
 
+- module-name: 'pip._vendor.rich.jupyter'
+  # See rich.jupyter
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'display': 'un-callable'
+      when: 'not use_ipython'
+
 - module-name: 'pkg_resources'
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
