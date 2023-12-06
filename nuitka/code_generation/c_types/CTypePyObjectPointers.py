@@ -463,7 +463,7 @@ class CTypeCellObject(CTypeBase):
         if init_from is not None:
             return "Nuitka_Cell_New1(%s)" % init_from
         else:
-            return "Nuitka_Cell_Empty()"
+            return "Nuitka_Cell_NewEmpty()"
 
     @classmethod
     def getInitTestConditionCode(cls, value_name, inverted):

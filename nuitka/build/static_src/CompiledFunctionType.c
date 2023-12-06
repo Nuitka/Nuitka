@@ -32,6 +32,12 @@
 
 // spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Function_Type;
+int count_allocated_Nuitka_Function_Type;
+int count_released_Nuitka_Function_Type;
+#endif
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
@@ -649,6 +655,11 @@ static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
 
 static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Function_Type -= 1;
+    count_released_Nuitka_Function_Type += 1;
+#endif
+
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
@@ -1145,6 +1156,11 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #endif
 {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Function_Type += 1;
+    count_allocated_Nuitka_Function_Type += 1;
+#endif
+
     struct Nuitka_FunctionObject *result;
 
     // Macro to assign result memory from GC or free list.
