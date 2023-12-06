@@ -31,11 +31,22 @@
 #include "nuitka/prelude.h"
 #endif
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Cell_Type;
+int count_allocated_Nuitka_Cell_Type;
+int count_released_Nuitka_Cell_Type;
+#endif
+
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
 static int free_list_cells_count = 0;
 
 static void Nuitka_Cell_tp_dealloc(struct Nuitka_CellObject *cell) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Cell_Type -= 1;
+    count_released_Nuitka_Cell_Type += 1;
+#endif
+
     Nuitka_GC_UnTrack(cell);
     Py_XDECREF(cell->ob_ref);
 
@@ -230,7 +241,12 @@ PyTypeObject Nuitka_Cell_Type = {
 
 void _initCompiledCellType(void) { Nuitka_PyType_Ready(&Nuitka_Cell_Type, NULL, true, false, false, false, false); }
 
-struct Nuitka_CellObject *Nuitka_Cell_Empty(void) {
+struct Nuitka_CellObject *Nuitka_Cell_NewEmpty(void) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Cell_Type += 1;
+    count_allocated_Nuitka_Cell_Type += 1;
+#endif
+
     struct Nuitka_CellObject *result;
 
     allocateFromFreeListFixed(free_list_cells, struct Nuitka_CellObject, Nuitka_Cell_Type);
@@ -243,6 +259,10 @@ struct Nuitka_CellObject *Nuitka_Cell_Empty(void) {
 }
 
 struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Cell_Type += 1;
+    count_allocated_Nuitka_Cell_Type += 1;
+#endif
     CHECK_OBJECT(value);
 
     struct Nuitka_CellObject *result;
@@ -258,6 +278,10 @@ struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value) {
 }
 
 struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Cell_Type += 1;
+    count_allocated_Nuitka_Cell_Type += 1;
+#endif
     CHECK_OBJECT(value);
 
     struct Nuitka_CellObject *result;

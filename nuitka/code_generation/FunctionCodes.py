@@ -794,7 +794,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
             )
 
             if variable_declaration.getCType() is CTypeCellObject:
-                emit("%s = Nuitka_Cell_Empty();" % variable_declaration)
+                emit("%s = Nuitka_Cell_NewEmpty();" % variable_declaration)
 
     # Need to set return target, to assign to_name from.
 
