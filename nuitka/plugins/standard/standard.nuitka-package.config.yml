@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 74e141390b9bd8935f5c69d35f02738d
+# checksum: 888164ab62c2642f1a2ddbd01cca2bd7
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
