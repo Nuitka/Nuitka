@@ -939,6 +939,11 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
             CHECK_OBJECT_X(value->ob_ref);
 
             memcpy(t, &value, sizeof(struct Nuitka_CellObject *));
+            // TODO: Reference count must become wrong here, should
+            // be forced to one probably, or we should simply not
+            // store cells, but their values. Take a ref off "value"
+            // is probably not needed.
+            // Py_SET_REFCNT((struct Nuitka_CellObject *)t, 1);
             Py_INCREF(value);
 
             t += sizeof(struct Nuitka_CellObject *);
