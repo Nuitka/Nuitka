@@ -35,7 +35,7 @@ struct Nuitka_CellObject {
 };
 
 // Create cell with out value, and with or without reference given.
-extern struct Nuitka_CellObject *Nuitka_Cell_Empty(void);
+extern struct Nuitka_CellObject *Nuitka_Cell_NewEmpty(void);
 extern struct Nuitka_CellObject *Nuitka_Cell_New0(PyObject *value);
 extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 
@@ -46,4 +46,11 @@ extern struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value);
 #define Nuitka_Cell_GET(cell)                                                                                          \
     (CHECK_OBJECT(cell), assert(Nuitka_Cell_Check((PyObject *)cell)), (((struct Nuitka_CellObject *)(cell))->ob_ref))
 #endif
+
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Cell_Type;
+extern int count_allocated_Nuitka_Cell_Type;
+extern int count_released_Nuitka_Cell_Type;
+#endif
+
 #endif

@@ -237,6 +237,11 @@ static void PRINT_REFCOUNTS(void) {
 
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
+    PRINT_FORMAT("Compiled Functions: %d | %d | %d (module/class ownership may occur)\n",
+                 count_active_Nuitka_Function_Type, count_allocated_Nuitka_Function_Type,
+                 count_released_Nuitka_Function_Type);
+    PRINT_FORMAT("Compiled Generators: %d | %d | %d\n", count_active_Nuitka_Generator_Type,
+                 count_allocated_Nuitka_Generator_Type, count_released_Nuitka_Generator_Type);
 #if PYTHON_VERSION >= 0x350
     PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
                  count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
@@ -259,6 +264,8 @@ static void PRINT_REFCOUNTS(void) {
 
     PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
                  count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
+    PRINT_FORMAT("Compiled Cells: %d | %d | %d (function ownership may occur)\n", count_active_Nuitka_Cell_Type,
+                 count_allocated_Nuitka_Cell_Type, count_released_Nuitka_Cell_Type);
     PRINT_STRING("CACHED counts at program end:\n");
     PRINT_STRING("active | allocated | released | hits\n");
     PRINT_FORMAT("Cached Frames: %d | %d | %d | %d\n", count_active_frame_cache_instances,
