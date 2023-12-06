@@ -97,7 +97,10 @@ from nuitka.nodes.ExceptionNodes import (
     StatementReraiseException,
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
-from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.GeneratorNodes import (
+    StatementGeneratorReturn,
+    StatementGeneratorReturnNone,
+)
 from nuitka.nodes.ImportNodes import (
     isHardModuleWithoutSideEffect,
     makeExpressionImportModuleFixed,
@@ -594,10 +597,12 @@ def buildReturnNode(provider, node, source_ref):
         provider.isExpressionGeneratorObjectBody()
         or provider.isExpressionAsyncgenObjectBody()
     ):
-        if expression is None:
-            expression = ExpressionConstantNoneRef(source_ref=source_ref)
-
-        return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
+        if expression is None or expression.isExpressionConstantNoneRef():
+            return StatementGeneratorReturnNone(source_ref=source_ref)
+        else:
+            return StatementGeneratorReturn(
+                expression=expression, source_ref=source_ref
+            )
     else:
         return makeStatementReturn(expression=expression, source_ref=source_ref)
 
