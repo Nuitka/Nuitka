@@ -6623,3 +6623,96 @@
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'
+
+- module-name: "playwright"
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          os.environ['PLAYWRIGHT_BROWSERS_PATH'] = "0"
+      when: "standalone"
+  data-files:
+    dirs:
+      - driver/package/.local-browsers/**
+      - . # fixes https://github.com/Nuitka/Nuitka/issues/1029
+  dlls:
+    #this is specific to windows and could be better, recursively looking for DLLs in driver/package/.local-browsers/ will make this a cross platform solution regardless of what browser drivers the user has installed in the folder
+    - from_filenames:
+        relative_path: driver/package/.local-browsers/chromium-1091/chrome-win
+        prefixes:
+          - chrome_elf
+          - chrome
+          - chrome_wer
+          - D3DCompiler_47
+          - eventlog_provider
+          - libEGL
+          - libGLESv2
+          - mojo_core
+          - vk_swiftshader
+          - vulkan-1
+      when: win32
+    - from_filenames:
+        relative_path: driver/package/.local-browsers/firefox-1429/firefox
+        prefixes:
+          - AccessibleMarshal
+          - freebl3
+          - gkcodecs
+          - ipcclientcerts
+          - lgpllibs
+          - libEGL
+          - libGLESv2
+          - mozavcodec
+          - mozavutil
+          - mozglue
+          - msvcp140
+          - notificationserver
+          - nss3
+          - nssckbi
+          - osclientcerts
+          - qipcap64
+          - softokn3
+          - vcruntime140
+          - vcruntime140_1
+          - xul
+    - from_filenames:
+        relative_path: driver/package/.local-browsers/webkit-1944
+        prefixes:
+          - brotlicommon
+          - brotlidec
+          - brotlienc
+          - cairo
+          - crypto-51
+          - icudt74
+          - icuin74
+          - icuio74
+          - icutest74
+          - icutu74
+          - icuuc74
+          - JavaScriptCore
+          - jpeg62
+          - jxl
+          - jxl_threads
+          - lcms2
+          - libcurl
+          - libEGL
+          - libexslt
+          - libGLESv2
+          - libpng16
+          - libxml2
+          - libxslt
+          - msvcp140
+          - msvcp140_2
+          - nghttp2
+          - nghttp3
+          - ngtcp2
+          - ngtcp2_crypto_quictls
+          - psl
+          - sqlite3
+          - ssl-54
+          - tls-27
+          - vcruntime140
+          - vcruntime140_1
+          - WebCore
+          - WebKit2
+          - WTF
+          - zlib1
