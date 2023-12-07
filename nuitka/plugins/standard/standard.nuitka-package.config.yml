@@ -6716,3 +6716,8 @@
           - WebKit2
           - WTF
           - zlib1
+
+- module-name: "playwright_stealth"
+  data-files:
+    dirs:
+      - .
