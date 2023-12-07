@@ -16,6 +16,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-project: --follow-import-to=测试
+# nuitka-project: --follow-import-to=那里
 
 from 测试 import 这里
 
