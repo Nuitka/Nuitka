@@ -33,6 +33,7 @@ import stat
 import sys
 import tempfile
 import time
+import unicodedata
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
@@ -1386,3 +1387,17 @@ def syncFileOutput(file_handle):
         except AttributeError:
             # Too old to have "syncfs" available.
             return
+
+
+def isFilesystemEncodable(filename):
+    """Decide if a filename is safe for use as a file system path with tools."""
+    if os.name == "nt":
+        value = (
+            unicodedata.normalize("NFKD", filename)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+
+        return value == filename
+    else:
+        return True
