@@ -4955,15 +4955,11 @@
     dirs:
       - 'static'
 
-- module-name: 'streamlit.delta_generator'
+- module-name: 'streamlit.runtime.caching.cache_utils'
   anti-bloat:
-    - description: 'remove IPython reference'
+    - description: 'remove warning for compiled functions'
       replacements_plain:
-        'from streamlit.elements.legacy_altair import LegacyAltairMixin': ''
-        'LegacyAltairMixin,': ''
-        'from streamlit.elements.arrow_altair import ArrowAltairMixin': ''
-        'ArrowAltairMixin,': ''
-      when: 'not use_ipython'
+        '_LOGGER.debug(': '('
 
 - module-name: 'sv_ttk'
   data-files:
