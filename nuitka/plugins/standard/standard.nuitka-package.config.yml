@@ -1622,6 +1622,12 @@
     patterns:
       - 'intervals.msgpack'
 
+- module-name: 'libusb_package'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libusb'
+
 - module-name: 'lightgbm.libpath'
   dlls:
     - from_filenames:
