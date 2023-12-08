@@ -82,6 +82,8 @@ def getDistributionTopLevelPackageNames(distribution):
                 continue
             if first_path_element == "__pycache__":
                 continue
+            if not checkModuleName(first_path_element) or first_path_element == ".":
+                continue
 
             if remainder:
                 module_name = ModuleName(first_path_element)
