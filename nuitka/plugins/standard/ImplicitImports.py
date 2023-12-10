@@ -597,6 +597,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
         "transformers.utils.dummy_pt_objects",  # Not performance relevant.
         "transformers.utils.dummy_flax_objects",  # Not performance relevant.
         "transformers.utils.dummy_tf_objects",  # Not performance relevant.
+        "rich",  #  # Not performance relevant and memory leaking due to empty compiled cell leaks
     )
 
     def decideCompilation(self, module_name):
