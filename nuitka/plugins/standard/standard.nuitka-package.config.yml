@@ -3231,6 +3231,10 @@
         macos_bundle_as_onefile: 'yes'
         when: 'macos and use_pyqt5'
 
+  import-hacks:
+    - acceptable-missing-dlls:
+        - 'libqpdf'
+
 - module-name: 'PyQt6'
   options:
     checks:
