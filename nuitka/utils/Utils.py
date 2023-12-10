@@ -220,6 +220,10 @@ def isOpenBSD():
     return getOS() == "OpenBSD"
 
 
+def isBSD():
+    return "BSD" in getOS()
+
+
 _is_alpine = None
 
 
