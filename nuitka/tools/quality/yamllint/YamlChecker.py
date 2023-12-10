@@ -89,7 +89,7 @@ def checkYamllint(logger, document):
     import yamllint.cli  # pylint: disable=I0021,import-error
 
     try:
-        yamllint.cli.run([document])
+        yamllint.cli.run(["--strict", document])
     except SystemExit as e:
         lint_result = e.code
 
