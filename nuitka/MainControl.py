@@ -1091,7 +1091,7 @@ not use compiled code while it exists."""
 
     # Execute the module immediately if option was given.
     if Options.shallExecuteImmediately():
-        general.info("Launching '%s'" % run_filename)
+        general.info("Launching '%s'." % run_filename)
 
         if Options.shallMakeModule():
             executeModule(
