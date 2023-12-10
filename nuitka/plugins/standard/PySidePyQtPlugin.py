@@ -1488,8 +1488,8 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
                 if top_package_name not in self.warned_about:
                     self.info(
                         """\
-Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing
-its use. As a result an "ImportError" might be given at run time. Uninstall
+Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing \
+its use. As a result an "ImportError" might be given at run time. Uninstall \
 it for full compatible behavior with the uncompiled code to debug it."""
                         % {
                             "unwanted": top_package_name,
