@@ -13,9 +13,6 @@ Nuitka blog.
 Bug Fixes
 =========
 
--  Standalone: Added support for ``delphifmx`` package. Fixed in 1.9.1
-   already.
-
 -  Fix, workaround for private functions as Qt slots not having names
    mangled. Fixed in 1.9.1 already.
 
@@ -37,11 +34,74 @@ Bug Fixes
 -  Fix, ``{"a":b, ...}.get("b")`` could crash at runtime. Fixed in 1.9.2
    already.
 
--  Standalone: Added data files for "pyproj" package. Fixed in 1.9.2
-   already
+-  Standalone: Added data files for ``pyproj`` package. Fixed in 1.9.2
+   already.
 
 -  Standalone: Added more metadata requirements for ``transformers``
-   package. Fixed in 1.9.2 already
+   package. Fixed in 1.9.2 already.
+
+-  Debian: The ``extern`` namespace might not exist in the
+   ``pkg_resources`` module, make the code work with versions that
+   remove it and use the proper external package names then. Fixed in
+   1.9.3 already.
+
+-  Plugins: Fix, could crash when including packages from the command
+   line, if they had yaml configuration that requires checking the using
+   module, e.g. anti-bloat work. Fixed in 1.9.3 already.
+
+-  Standalone: Added support for ``delphifmx`` package. Fixed in 1.9.4
+   already.
+
+-  Android: Fix, cannot exclude ``libz`` on that platform, it's not a
+   full Linux OS. Fixed in 1.9.3 already.
+
+-  Standalone: Add needed DLLs for ``bitsandbytes`` package. Fixed in
+   1.9.3 already.
+
+-  Windows: Fix, newer ``joblib`` was not working anymore. Fixed in
+   1.9.3 already.
+
+-  Windows: Fix, could crash when working with junctions that switch
+   drives. Fixed in 1.9.3 already.
+
+-  Fix, was crashing with poetry installed environments. Fixed in 1.9.3
+   already.
+
+-  Standalone: Added support for newer ``chromadb`` package. Fixed in
+   1.9.3 already.
+
+-  Fix, could crash in report creation on modules excluded that were
+   asked via command line for inclusion. Fixed in 1.9.3 already.
+
+-  Anti-Bloat: Fix for newer ``streamlit``, it was causing
+   ``SyntaxError`` for the compilation. Fixed in 1.9.4 already.
+
+-  Arch: Added support for their OS release file location too. Fixed in
+   1.9.4 already.
+
+-  Windows: Fix, MinGW64 doesn't accept chinese module names a C source
+   files. Use short paths for these instead. Fixed in 1.9.4 already.
+
+-  Standalone: Added missing DLL for ``libusb_package`` package. Fixed
+   in 1.9.4 already.
+
+-  Fix, properly skip directories with non-module top level names when
+   trying to find top level packages of distributions. Fixed in 1.9.4
+   already.
+
+-  Fix, avoid memory leak bug in triggered by ``rich`` package. Fixed in
+   1.9.4 already.
+
+-  Python3.11+: Fix, didn't detect non-keywords on star dict calls in
+   some cases. Fixed in 1.9.4 already.
+
+-  Fix, avoid crashes due to unrecognized installers on macOS and
+   Windows, some packages that are built via legacy fallbacks of certain
+   pip versions do not leave any indication of their origin at all.
+   Fixed in 1.9.4 already.
+
+-  Windows: Fix, need to indicate that the program is long path aware or
+   else it cannot work with the paths. Fixed in 1.9.4 already.
 
 New Features
 ============
@@ -49,6 +109,22 @@ New Features
 -  Windows: Added support for using junctions in the Python environment,
    these are used e.g. when installing via ``scoop``. Added in 1.9.2
    already.
+
+-  Added option ``--cf-protection`` to select the control flow
+   protection mode for the GCC compiler and deviate from default values
+   of some environments to less strict values.
+
+-  Reports: Added output filename to report, mainly intended for
+   automatically locating the compilation result independent of options
+   used.
+
+-  Plugins: Now detects modified yaml files and points to checking them
+   which will after successful checks update their checksum. This should
+   make it less likely to get them wrong.
+
+-  Windows: Detect when we create too large compiled executables. There
+   is a limit of 2GB that you might e.g. violate by attempting to embed
+   very large files. This doesn't cover onefile yet.
 
 Optimization
 ============
@@ -63,8 +139,20 @@ Optimization
 -  Anti-Bloat: Avoid using ``pytest`` in ``knetworkx`` package in more
    cases. Added in 1.9.2 already.
 
+-  Anti-Bloat: Avoid using ``IPython`` in ``distributed`` package. Added
+   in 1.9.3 already.
+
+-  Anti-Bloat: Avoid using ``dask`` in ``skimage``. Added in 1.9.3
+   already.
+
+-  Anti-Bloat: Avoid using ``triton`` in the ``bitsandbytes`` package.
+   Added in 1.9.3 already.
+
 Organisational
 ==============
+
+-  Project: Added Code of Conduct. Adapted from the one used in the
+   Linux kernel.
 
 -  Added ``.gitignore`` to build folder that just causes these folders
    to be ignored by git.
@@ -72,6 +160,31 @@ Organisational
 -  UI: Changed ``--show-source-changes`` to accept module pattern to
    make it easier to only see the ones currently being worked on. To get
    the old behavior of showing everything, use ``*`` as a pattern.
+
+-  Scons: Allow disabling to enforce no warnings for C compilation
+
+   Currently only for gcc, where we need it until loop tracing is
+   better, we can now use ``--experimental=allow-c-warnings`` options to
+   make ``--debug`` work for some known currently unavoidable warnings.
+
+Cleanups
+========
+
+-  Cleanup, avoid "unused but set variable" warning from the C compiler
+   for hard some forms of hard imports.
+
+Tests
+=====
+
+-  When locating the standalone binary created, use a compilation report
+   and resolve the path specified there. This allows macOS app bundles
+   to be used in these tests as well.
+
+-  Made the PyQt tests executable on macOS too adding necessary options.
+
+-  Added reference test case for unpacking into a list, this was not
+   covered but under suspect of reference leaking which turns out to be
+   wrong.
 
 Summary
 =======
@@ -446,7 +559,7 @@ Optimization
 
 -  Anti-Bloat: Avoid using ``unittest`` in ``multiprocess`` package.
 
--  Anti-Bloat: Avoid using ``setuptools`` with new "mmcv" package as
+-  Anti-Bloat: Avoid using ``setuptools`` with new ``mmcv`` package as
    well.
 
 -  Anti-Bloat: Avoid URLs in numpy messages.
