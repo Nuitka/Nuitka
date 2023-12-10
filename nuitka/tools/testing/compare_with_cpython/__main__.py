@@ -49,6 +49,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
+from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
 
@@ -496,6 +497,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if report:
         extra_options.append("--report=%s" % report)
+        deleteFile(report, must_exist=False)
 
     if nofollow_imports or (not follow_imports and not standalone_mode):
         extra_options.append("--nofollow-imports")
