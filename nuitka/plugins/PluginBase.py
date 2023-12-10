@@ -1271,7 +1271,7 @@ except ImportError:
 
     @classmethod
     def info(cls, message):
-        plugins_logger.info(cls.plugin_name + ": " + message)
+        plugins_logger.info(message, prefix=cls.plugin_name)
 
     @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
