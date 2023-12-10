@@ -44,8 +44,10 @@ from nuitka.Options import (
     getCompilationReportFilename,
     getCompilationReportTemplates,
     getCompilationReportUserData,
+    isOnefileMode,
     shallCreateDiffableCompilationReport,
 )
+from nuitka.OutputDirectories import getResultRunFilename
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
@@ -193,6 +195,8 @@ def _getReportInputData(aborted):
     user_data = getCompilationReportUserData()
 
     data_composer = getDataComposerReportValues()
+
+    output_run_filename = os.path.abspath(getResultRunFilename(onefile=isOnefileMode()))
 
     return dict(
         (var_name, var_value)
@@ -568,6 +572,14 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             )
 
     _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
+
+    python_xml_node = TreeXML.appendTreeElement(
+        root,
+        "output",
+        run_filename=_getCompilationReportPath(
+            report_input_data["output_run_filename"]
+        ),
+    )
 
     try:
         putTextFileContents(
