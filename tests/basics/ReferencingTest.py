@@ -1317,6 +1317,22 @@ def simpleFunction133():
     C().method_function_with_defaults(1, x, 3, d=[1])
 
 
+# TODO: This memory leaks closure cells and needs a fix
+def nosimpleFunction134():
+    def someGenWithClosureGiven():
+        if x:
+            return
+
+        value_given = []
+
+        def localFuncUsingClosureValue():
+            return value_given
+
+        yield localFuncUsingClosureValue
+
+    return list(someGenWithClosureGiven())
+
+
 ####################################
 
 # These need stderr to be wrapped.
