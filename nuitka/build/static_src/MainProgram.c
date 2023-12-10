@@ -1524,7 +1524,6 @@ orig_argv = argv;
 
             CALL_FUNCTION_WITH_KEYARGS(tstate, main_function, kw_args);
         }
-        static int loky_joblib_parent_pid_arg = 0;
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 

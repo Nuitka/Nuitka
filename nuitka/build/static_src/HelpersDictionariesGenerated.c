@@ -727,7 +727,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
 
                         Py_INCREF(value);
                         PyObject *key = *key_ptr;
-                        if (is_unicode) {
+                        if (is_unicode == false) {
                             if (unlikely(!checkKeywordType(key))) {
                                 had_kw_error = true;
                             }
