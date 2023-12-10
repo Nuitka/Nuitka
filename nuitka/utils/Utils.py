@@ -101,6 +101,8 @@ def getLinuxDistribution():
 
         if os.path.exists("/etc/os-release"):
             result, base, version = _parseOsReleaseFileContents("/etc/os-release")
+        elif os.path.exists("/usr/lib/os-release"):
+            result, base, version = _parseOsReleaseFileContents("/usr/lib/os-release")
         elif os.path.exists("/etc/SuSE-release"):
             result, base, version = _parseOsReleaseFileContents("/etc/SuSE-release")
         elif os.path.exists("/etc/issue"):
