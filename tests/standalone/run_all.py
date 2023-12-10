@@ -43,6 +43,10 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkTestRequirements,
@@ -62,7 +66,7 @@ from nuitka.tools.testing.RuntimeTracing import (
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isBSD, isLinux, isMacOS, isWin32Windows
 
 
 def displayError(dirname, filename):
@@ -73,6 +77,48 @@ def displayError(dirname, filename):
 
     inclusion_log_path = filename[:-3] + ".py.inclusion.log"
     displayFileContents("inclusion log", inclusion_log_path)
+
+
+def _checkForLibcBinaries(dist_path):
+    found_glibc_libs = []
+    for dist_filename in os.listdir(os.path.join(dist_path)):
+        if os.path.basename(dist_filename).startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so.",
+            )
+        ):
+            found_glibc_libs.append(dist_filename)
+
+    if found_glibc_libs:
+        test_logger.sysexit(
+            "Should not ship glibc libraries with the standalone executable (found %s)"
+            % found_glibc_libs
+        )
 
 
 def main():
@@ -89,6 +135,8 @@ def main():
         if not active:
             continue
 
+        report_filename = "test-compilation-report.xml"
+
         extra_flags = [
             "expect_success",
             "--standalone",
@@ -99,6 +147,7 @@ def main():
             "timing",
             # Don't care here, this is mostly for coverage.
             "--nowarn-mnemonic=debian-dist-packages",
+            "--report=%s" % report_filename,
         ]
 
         # skip each test if their respective requirements are not met
@@ -160,9 +209,6 @@ def main():
             )
             continue
 
-        if filename == "PandasUsing.py":
-            extra_flags.append("plugin_enable:no-qt")
-
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
 
@@ -202,53 +248,18 @@ def main():
             on_error=displayError,
         )
 
-        # Second check if glibc libraries haven't been accidentally
-        # shipped with the standalone executable
-        found_glibc_libs = []
-        for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):
-            if os.path.basename(dist_filename).startswith(
-                (
-                    "ld-linux-x86-64.so",
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so.",
-                    "libBrokenLocale.so.",
-                    "libSegFault.so",
-                    "libanl.so.",
-                    "libcidn.so.",
-                    "libcrypt.so.",
-                    "libmemusage.so",
-                    "libmvec.so.",
-                    "libnsl.so.",
-                    "libnss_compat.so.",
-                    "libnss_db.so.",
-                    "libnss_dns.so.",
-                    "libnss_files.so.",
-                    "libnss_hesiod.so.",
-                    "libnss_nis.so.",
-                    "libnss_nisplus.so.",
-                    "libpcprofile.so",
-                    "libresolv.so.",
-                    "librt.so.",
-                    "libthread_db-1.0.so",
-                    "libthread_db.so.",
-                    "libutil.so.",
-                )
-            ):
-                found_glibc_libs.append(dist_filename)
+        compilation_report = parseCompilationReport(report_filename)
 
-        if found_glibc_libs:
-            test_logger.warning(
-                "Should not ship glibc libraries with the standalone executable (found %s)"
-                % found_glibc_libs
-            )
-            sys.exit(1)
-
-        binary_filename = os.path.join(
-            filename[:-3] + ".dist",
-            filename[:-3] + (".exe" if os.name == "nt" else ".bin"),
+        binary_filename = getCompilationOutputBinary(
+            compilation_report=compilation_report,
+            prefixes=(("${cwd}", os.getcwd()),),
         )
+        output_dist_path = os.path.dirname(binary_filename)
+
+        # Second check if libc libraries haven't been accidentally
+        # shipped with the standalone executable
+        if isLinux() or isBSD():
+            _checkForLibcBinaries(output_dist_path)
 
         try:
             if not doesSupportTakingRuntimeTrace():

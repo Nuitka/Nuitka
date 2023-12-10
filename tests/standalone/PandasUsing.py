@@ -23,6 +23,9 @@
 
 # nuitka-project: --standalone
 
+# Avoid Qt, not being used
+# nuitka-project: --enable-plugin=no-qt
+
 # Make sure, the usual bad ones are not included with anti-bloat.
 
 # nuitka-project: --noinclude-default-mode=error
