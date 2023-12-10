@@ -201,7 +201,7 @@ else
 {% endif %}
                 PyObject *key = *key_ptr;
 {% if per_key_code %}
-                if (is_unicode) {
+                if (is_unicode == false) {
                     {{ per_key_code }}
                 }
 {% endif %}

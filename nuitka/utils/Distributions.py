@@ -28,7 +28,7 @@ from nuitka.PythonVersions import python_version
 from .FileOperations import searchPrefixPath
 from .Importing import getModuleNameAndKindFromFilenameSuffix
 from .ModuleNames import ModuleName, checkModuleName
-from .Utils import isLinux
+from .Utils import isMacOS, isWin32Windows
 
 _package_to_distribution = None
 
@@ -81,6 +81,8 @@ def getDistributionTopLevelPackageNames(distribution):
             if first_path_element.endswith("dist-info"):
                 continue
             if first_path_element == "__pycache__":
+                continue
+            if not checkModuleName(first_path_element) or first_path_element == ".":
                 continue
 
             if remainder:
@@ -263,22 +265,13 @@ def isDistributionPoetryPackage(distribution_name):
 
 
 def isDistributionSystemPackage(distribution_name):
-    result = (
-        not isDistributionPipPackage(distribution_name)
+    return (
+        not isMacOS()
+        and not isWin32Windows()
+        and not isDistributionPipPackage(distribution_name)
         and not isDistributionPoetryPackage(distribution_name)
         and not isDistributionCondaPackage(distribution_name)
     )
-
-    # This should only ever happen on Linux, lets know when it does happen
-    # elsewhere, since that is most probably a bug in our installer detection on
-    # non-Linux as well.
-    if result:
-        assert isLinux(), (
-            distribution_name,
-            getDistributionInstallerName(distribution_name),
-        )
-
-    return result
 
 
 _pdm_dir_cache = {}

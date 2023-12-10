@@ -1623,6 +1623,12 @@
     patterns:
       - 'intervals.msgpack'
 
+- module-name: 'libusb_package'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libusb'
+
 - module-name: 'lightgbm.libpath'
   dlls:
     - from_filenames:
@@ -2863,6 +2869,14 @@
   anti-bloat:
     - description: 'workaround __new__ decorator issue'
       append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
+
+- module-name: 'pip._vendor.rich.jupyter'
+  # See rich.jupyter
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'display': 'un-callable'
+      when: 'not use_ipython'
 
 - module-name: 'pkg_resources'
   anti-bloat:
@@ -4942,15 +4956,11 @@
     dirs:
       - 'static'
 
-- module-name: 'streamlit.delta_generator'
+- module-name: 'streamlit.runtime.caching.cache_utils'
   anti-bloat:
-    - description: 'remove IPython reference'
+    - description: 'remove warning for compiled functions'
       replacements_plain:
-        'from streamlit.elements.legacy_altair import LegacyAltairMixin': ''
-        'LegacyAltairMixin,': ''
-        'from streamlit.elements.arrow_altair import ArrowAltairMixin': ''
-        'ArrowAltairMixin,': ''
-      when: 'not use_ipython'
+        '_LOGGER.debug(': '('
 
 - module-name: 'sv_ttk'
   data-files:
