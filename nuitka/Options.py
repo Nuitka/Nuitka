@@ -2224,3 +2224,6 @@ def shallDisplayWarningMnemonic(mnemonic):
 
 def shallShowExecutedCommands():
     return isExperimental("show-commands")
+
+def isUnlockFCFProtectionMode():
+    return options.unlock_fcf_protection

@@ -434,6 +434,9 @@ def setCommonSconsOptions(options):
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
 
+    if Options.isUnlockFCFProtectionMode():
+        options["unlock_fcf_protection"] = asBoolStr(True)
+
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
         options["cpp_defines"] = ",".join(

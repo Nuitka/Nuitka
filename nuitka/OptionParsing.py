@@ -952,6 +952,15 @@ Use static link library of Python. Allowed values are "yes", "no",
 and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
+c_compiler_group.add_option(
+    "--unlock-fcf-protection",
+    action="store_true",
+    dest="unlock_fcf_protection",
+    default=False,
+    help="""\
+Unlock fcf-protection""",
+)
+
 
 del c_compiler_group
 
