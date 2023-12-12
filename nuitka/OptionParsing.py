@@ -952,6 +952,20 @@ Use static link library of Python. Allowed values are "yes", "no",
 and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
+c_compiler_group.add_option(
+    "--cf-protection",
+    action="store",
+    dest="cf_protection",
+    metavar="PROTECTION_MODE",
+    default="auto",
+    choices=("auto", "full", "branch", "return", "none", "check"),
+    help="""\
+This option is gcc specific. For the gcc compiler, select the
+"cf-protection" mode. Default "auto" is to use the gcc default
+value, but you can override it, e.g. to disable it with "none"
+value. Refer to gcc documentation for "-fcf-protection" for the
+details.""",
+)
 
 del c_compiler_group
 

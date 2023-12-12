@@ -474,6 +474,9 @@ def setCommonSconsOptions(options):
 
     options["target_arch"] = getArchitecture()
 
+    if Options.getFcfProtectionMode() != "auto":
+        options["cf_protection"] = Options.getFcfProtectionMode()
+
     env_values = OrderedDict()
 
     string_values = Options.getWindowsVersionInfoStrings()

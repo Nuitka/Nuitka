@@ -201,6 +201,9 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# gcc compiler cf_protection option
+cf_protection = getArgumentDefaulted("cf_protection", "auto")
+
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
 
@@ -298,6 +301,9 @@ env.clang_mode = clang_mode
 env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
+
+# gcc compiler cf_protection option
+env.cf_protection = cf_protection
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
