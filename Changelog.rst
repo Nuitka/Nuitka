@@ -40,11 +40,6 @@ Bug Fixes
 -  Standalone: Added more metadata requirements for ``transformers``
    package. Fixed in 1.9.2 already.
 
--  Debian: The ``extern`` namespace might not exist in the
-   ``pkg_resources`` module, make the code work with versions that
-   remove it and use the proper external package names then. Fixed in
-   1.9.3 already.
-
 -  Plugins: Fix, could crash when including packages from the command
    line, if they had yaml configuration that requires checking the using
    module, e.g. anti-bloat work. Fixed in 1.9.3 already.
@@ -103,6 +98,16 @@ Bug Fixes
 -  Windows: Fix, need to indicate that the program is long path aware or
    else it cannot work with the paths. Fixed in 1.9.4 already.
 
+-  Debian: The ``extern`` namespace might not exist in the
+   ``pkg_resources`` module, make the code work with versions that
+   remove it and use the proper external package names then. Fixed in
+   1.9.5 already.
+
+-  Compatibility: Fix, need to also have ``.exists`` method in our files
+   reader objects. Fixed in 1.9.5 already.
+
+-  macOS: Fix, PyQt5 standalone can fail due to ``libqpdf`` too.
+
 New Features
 ============
 
@@ -129,9 +134,12 @@ New Features
 Optimization
 ============
 
--  Avoid including ``.pyx`` files when scanning for data files, these
-   are code files too, in this case source files that are definitely
-   unused most of the time.
+-  Avoid late specialization for ``None`` returns in generators and do
+   it during tree building already, to remove noise.
+
+-  Standalone: Avoid including ``.pyx`` files when scanning for data
+   files, these are code files too, in this case source files that are
+   definitely unused most of the time.
 
 -  Anti-Bloat: Avoid using ``triton`` in ``torch`` package in more
    cases. Added in 1.9.2 already.
@@ -157,9 +165,38 @@ Organisational
 -  Added ``.gitignore`` to build folder that just causes these folders
    to be ignored by git.
 
+-  User Manual: Added information on how to debug fork bombs from
+   created binaries.
+
+-  Debugging: The output of ``--experimental=--report-refcounts`` that
+   we use to show leaks of compiled time objects at program exit, now
+   counts and reports on functions, generator objects and compiled cells
+   as well.
+
+-  Quality: Warnings from ``yamllint`` not disabled are errors. These
+   were only output, but didn't cause the autoformat to error exit yet.
+
+-  UI: Enhanced formatting of info traces, drop the ``:INFO`` part that
+   shouts, and reserve that for errors and warnings. Also format info
+   messages to make sure they fit into the line.
+
 -  UI: Changed ``--show-source-changes`` to accept module pattern to
    make it easier to only see the ones currently being worked on. To get
    the old behavior of showing everything, use ``*`` as a pattern.
+
+-  UI: Allow using ``~`` in data files source path and expand it
+   properly.
+
+-  Quality: Enhanced schema for our package configuration yaml files to
+   detect suffixes with leading dots, that is not wanted. These now fail
+   checks, but we also tolerate them now.
+
+-  Quality: Check module names used in the package configuration yaml
+   files for validity, this catches e.g. trailing dots.
+
+-  Quality: Make sure to really prefer ``clang-format`` from Visual Code
+   and MSVC for formatting C code, otherwise a system installed one
+   could be used that gives slightly different outputs.
 
 -  Scons: Allow disabling to enforce no warnings for C compilation
 
@@ -169,6 +206,8 @@ Organisational
 
 Cleanups
 ========
+
+-  User Manual was proof read and had a bunch of wordings improved.
 
 -  Cleanup, avoid "unused but set variable" warning from the C compiler
    for hard some forms of hard imports.
