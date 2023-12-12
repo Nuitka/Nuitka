@@ -601,8 +601,6 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     _enableC11Settings(env)
 
     if env.gcc_mode:
-        if env.unlock_fcf_protection:
-            env.Append(CCFLAGS=["-fcf-protection=none"])
         # Support for gcc and clang, restricting visibility as much as possible.
         env.Append(CCFLAGS=["-fvisibility=hidden"])
 
@@ -630,6 +628,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             # compilation more memory hungry, but also faster.
             env.Append(CCFLAGS="-pipe")
 
+        # gcc complier fcf_protection option
+        env.Append(CCFLAGS=[f"-fcf-protection={env.fcf_protection}"])
     # Support for clang.
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-w"])

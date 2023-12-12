@@ -953,12 +953,14 @@ and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
 c_compiler_group.add_option(
-    "--unlock-fcf-protection",
-    action="store_true",
-    dest="unlock_fcf_protection",
-    default=False,
+    "--fcf-protection",
+    action="store",
+    dest="fcf_protection",
+    metavar="choice",
+    default="full",
+    choices=("full", "branch", "return", "none", "check"),
     help="""\
-Unlock fcf-protection""",
+Choice fcf-protection mode""",
 )
 
 

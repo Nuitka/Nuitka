@@ -434,9 +434,6 @@ def setCommonSconsOptions(options):
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
 
-    if Options.isUnlockFCFProtectionMode():
-        options["unlock_fcf_protection"] = asBoolStr(True)
-
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
         options["cpp_defines"] = ",".join(
@@ -476,6 +473,9 @@ def setCommonSconsOptions(options):
         options["macos_target_arch"] = macos_target_arch
 
     options["target_arch"] = getArchitecture()
+
+    if Options.getFcfProtectionMode() != "full":
+        options["fcf_protection"] = Options.getFcfProtectionMode()
 
     env_values = OrderedDict()
 

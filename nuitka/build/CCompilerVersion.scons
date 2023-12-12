@@ -147,8 +147,8 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
-# Unlock unlock_fcf_protection
-unlock_fcf_protection = getArgumentBool("unlock_fcf_protection", False)
+# gcc complier fcf_protection option
+fcf_protection = getArgumentDefaulted("fcf_protection", "full")
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
@@ -243,8 +243,8 @@ env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
-# Unlock fcf-proection
-env.unlock_fcf_protection = unlock_fcf_protection
+# gcc complier fcf_protection option
+env.fcf_protection = fcf_protection
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
