@@ -2224,3 +2224,8 @@ def shallDisplayWarningMnemonic(mnemonic):
 
 def shallShowExecutedCommands():
     return isExperimental("show-commands")
+
+
+def getFcfProtectionMode():
+    """:returns: string derived from ``--fcf-protection``"""
+    return options.cf_protection

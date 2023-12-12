@@ -631,6 +631,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             # compilation more memory hungry, but also faster.
             env.Append(CCFLAGS="-pipe")
 
+        # gcc compiler cf_protection option
+        if env.cf_protection != "auto":
+            env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
     # Support for clang.
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-w"])
