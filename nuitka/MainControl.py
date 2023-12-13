@@ -65,6 +65,7 @@ from nuitka.Progress import (
 )
 from nuitka.PythonFlavors import (
     isApplePython,
+    isArchPackagePython,
     isDebianPackagePython,
     isFedoraPackagePython,
     isNuitkaPython,
@@ -608,13 +609,12 @@ def runSconsBackend():
 
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
-
     if isFedoraPackagePython():
         options["fedora_python"] = asBoolStr(True)
-
+    if isArchPackagePython():
+        options["arch_python"] = asBoolStr(True)
     if isApplePython():
         options["apple_python"] = asBoolStr(True)
-
     if isPyenvPython():
         options["pyenv_python"] = asBoolStr(True)
 
