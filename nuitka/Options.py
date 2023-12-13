@@ -1731,6 +1731,7 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
+# pylint: disable=line-too-long
 def getIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico`` ``--macos-app-icon`` ``--linux-icon`` and ``--linux-onefile-icon``"""
 
