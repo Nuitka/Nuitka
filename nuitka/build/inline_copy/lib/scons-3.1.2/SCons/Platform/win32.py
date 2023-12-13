@@ -183,8 +183,10 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
         return 127
     else:
         # one temporary file for stdout and stderr
-        tmpFileStdout = os.path.normpath(tempfile.mktemp())
-        tmpFileStderr = os.path.normpath(tempfile.mktemp())
+        tmpFileStdout, tmpFileStdoutName = tempfile.mkstemp(text=True)
+        os.close(tmpFileStdout)
+        tmpFileStderr, tmpFileStderrName = tempfile.mkstemp(text=True)
+        os.close(tmpFileStderr)
 
         # check if output is redirected
         stdoutRedirected = 0
@@ -199,9 +201,9 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
 
         # redirect output of non-redirected streams to our tempfiles
         if stdoutRedirected == 0:
-            args.append(">" + str(tmpFileStdout))
+            args.append(">" + str(tmpFileStdoutName))
         if stderrRedirected == 0:
-            args.append("2>" + str(tmpFileStderr))
+            args.append("2>" + str(tmpFileStderrName))
 
         # actually do the spawn
         try:
@@ -300,7 +302,7 @@ def get_system_root():
             except:
                 pass
 
-    # Ensure system root is a string and not unicode 
+    # Ensure system root is a string and not unicode
     # (This only matters for py27 were unicode in env passed to POpen fails)
     val = str(val)
     _system_root = val
