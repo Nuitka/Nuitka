@@ -1740,6 +1740,12 @@ def getIconPaths():
         result = options.windows_icon_path
     elif isMacOS():
         result = options.macos_icon_path
+    else:
+        result = (
+            options.linux_icon_path
+            + options.windows_icon_path
+            + options.macos_icon_path
+        )
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
