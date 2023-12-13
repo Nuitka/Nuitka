@@ -1732,7 +1732,7 @@ def shallOnefileAsArchive():
 
 
 def getIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico`` ``--macos-app-icon`` ``--linux-onefile-icon`` and ``--linux-onefile-icon``"""
+    """*list of str*, values of ``--windows-icon-from-ico`` ``--macos-app-icon`` ``--linux-icon`` and ``--linux-onefile-icon``"""
 
     if isLinux():
         result = options.linux_icon_path
