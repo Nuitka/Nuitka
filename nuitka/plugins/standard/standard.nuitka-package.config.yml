@@ -3429,7 +3429,19 @@
           from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
           QtCore.SignalInstance.disconnect = patched_disconnect
-      when: 'version("PySide6") < (6,6)'
+
+          def patched_connect(self, receiver, type=None):
+              type = type or QtCore.Qt.ConnectionType.AutoConnection
+              if hasattr(receiver, "im_func"):
+                  if hasattr(receiver.im_func, "__compiled__"):
+                      patched_connect._protected = getattr(patched_connect, "_protected", [])
+                      patched_connect._protected.append(receiver)
+
+              return orig_connect(self, receiver, type)
+
+          from PySide6 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = patched_connect
 
   options:
     checks:
