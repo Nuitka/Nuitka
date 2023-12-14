@@ -1080,7 +1080,15 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
     PyObject *result = NULL;
 
     if (entry != NULL) {
+#ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
+        PyGC_Collect();
+#endif
+
         result = loadModule(tstate, module, module_name, entry);
+
+#ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
+        PyGC_Collect();
+#endif
 
         if (unlikely(result == NULL)) {
             return NULL;
