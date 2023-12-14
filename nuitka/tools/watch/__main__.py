@@ -332,6 +332,7 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
         + [
             nuitka_binary,
             os.path.join(case_dir, case_data["filename"]),
+            "--assume-yes-for-downloads",
             "--report=compilation-report.xml",
             "--report-diffable",
             "--report-user-provided=pipenv_hash=%s"
