@@ -313,7 +313,21 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    registerDillPluginTables(tstate, loader_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
+    {
+        char const *module_name_c;
+        if (loader_entry != NULL) {
+            module_name_c = loader_entry->name;
+        } else {
+            PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+            module_name_c = Nuitka_String_AsString(module_name);
+        }
+
+        registerDillPluginTables(tstate, module_name_c, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
+    }
+
+
+
+
 #endif
 
     // Set "__compiled__" to what version information we have.

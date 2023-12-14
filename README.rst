@@ -12,8 +12,8 @@ license, requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8,
-3.9, 3.10, 3.11 have, when itself run with that Python version.
+**every** construct that CPython 2.6, 2.7, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9,
+3.10, 3.11 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -86,15 +86,14 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-Python Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11
-are supported. If at any moment, there is a stable Python release that
-is not in this list, rest assured it is being worked on and will be
-added.
+Python Version 2.6, 2.7 or 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 are
+supported. If at any moment, there is a stable Python release that is
+not in this list, rest assured it is being worked on and will be added.
 
 .. important::
 
-   For Python 3.3/3.4 and *only* those, we need other Python version as
-   a *compile time* dependency.
+   For Python 3.4 and *only* that version, we need other Python version
+   as a *compile time* dependency.
 
    Nuitka itself is fully compatible with all listed versions, but Scons
    as an internally used tool is not.
@@ -1507,7 +1506,7 @@ the 14.3 based version is recommended.
 +------------------+-------------+-------------------------------+
 | 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8            |
 +------------------+-------------+-------------------------------+
-| 10.0             | 2010        | 3.3, 3.4                      |
+| 10.0             | 2010        | 3.4                           |
 +------------------+-------------+-------------------------------+
 | 9.0              | 2008        | 2.6, 2.7                      |
 +------------------+-------------+-------------------------------+

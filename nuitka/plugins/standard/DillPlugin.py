@@ -48,25 +48,4 @@ Extending "dill" for compiled types to be pickle-able as well.""",
         return {"_NUITKA_PLUGIN_DILL_ENABLED": "1"}
 
     def getExtraCodeFiles(self):
-        return {"DillPlugin.c": extra_code}
-
-
-extra_code = r"""
-#include "nuitka/prelude.h"
-
-void registerDillPluginTables(PyThreadState *tstate, char const *module_name, PyMethodDef *reduce_compiled_function, PyMethodDef *create_compiled_function) {
-    PyObject *function_tables = PyObject_GetAttrString((PyObject *)builtin_module, "compiled_function_tables");
-
-    if (function_tables == NULL) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        function_tables = MAKE_DICT_EMPTY();
-        PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
-    }
-
-    PyObject *funcs = MAKE_TUPLE2_0(PyCFunction_New(reduce_compiled_function, NULL), PyCFunction_New(create_compiled_function, NULL));
-
-    PyDict_SetItemString(function_tables, module_name, funcs);
-}
-
-"""
+        return {"DillPlugin.c": self.getPluginDataFileContents("DillPlugin.c")}
