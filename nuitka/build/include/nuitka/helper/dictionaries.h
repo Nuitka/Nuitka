@@ -343,6 +343,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 }
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+    CHECK_OBJECT(key);
     CHECK_OBJECT(value);
 
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
