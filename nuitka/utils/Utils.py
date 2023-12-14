@@ -159,6 +159,12 @@ def isFedoraBasedLinux():
     return (base or dist_name) == "Fedora"
 
 
+def isArchBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    return (base or dist_name) == "Arch"
+
+
 def isAndroidBasedLinux():
     # spell-checker: ignore googlesource
     if not isLinux():

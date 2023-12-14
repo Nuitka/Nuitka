@@ -243,6 +243,7 @@ def createEnvironment(
     env.nuitka_python = getArgumentBool("nuitka_python", False)
     env.debian_python = getArgumentBool("debian_python", False)
     env.fedora_python = getArgumentBool("fedora_python", False)
+    env.arch_python = getArgumentBool("arch_python", False)
     env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
