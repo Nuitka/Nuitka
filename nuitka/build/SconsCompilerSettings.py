@@ -164,6 +164,9 @@ def _enableLtoSettings(
     elif env.fedora_python:
         lto_mode = True
         reason = "known to be supported (Fedora Python)"
+    elif env.arch_python:
+        lto_mode = True
+        reason = "known to be supported (Arch Python)"
     elif (
         env.debian_python
         and env.gcc_mode

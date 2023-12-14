@@ -85,9 +85,10 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
                 resources_module.extern.packaging.requirements.InvalidRequirement
             )
         except AttributeError:
-            InvalidRequirement = (
-                resources_module.packaging.requirements.InvalidRequirement
-            )
+            # Debian removes "extern.packaging" in some versions
+            import packaging
+
+            InvalidRequirement = packaging.requirements.InvalidRequirement
 
         args = tuple(
             element.getCompileTimeConstant() for element in self.subnode_requirements
