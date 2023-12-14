@@ -221,6 +221,16 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
     return result;
 }
 
+static PyObject *Nuitka_ResourceReaderFiles_exists(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
+                                                   PyObject *kwds) {
+
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+    PyObject *result = OS_PATH_FILE_EXISTS(tstate, file_name);
+    Py_DECREF(file_name);
+    return result;
+}
+
 //    @abc.abstractmethod
 //    def is_dir(self) -> bool:
 //        """
@@ -451,6 +461,7 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"iterdir", (PyCFunction)Nuitka_ResourceReaderFiles_iterdir, METH_NOARGS, NULL},
     {"read_bytes", (PyCFunction)Nuitka_ResourceReaderFiles_read_bytes, METH_NOARGS, NULL},
     {"read_text", (PyCFunction)Nuitka_ResourceReaderFiles_read_text, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"exists", (PyCFunction)Nuitka_ResourceReaderFiles_exists, METH_NOARGS, NULL},
     {"is_dir", (PyCFunction)Nuitka_ResourceReaderFiles_is_dir, METH_NOARGS, NULL},
     {"is_file", (PyCFunction)Nuitka_ResourceReaderFiles_is_file, METH_NOARGS, NULL},
     {"joinpath", (PyCFunction)Nuitka_ResourceReaderFiles_joinpath, METH_VARARGS | METH_KEYWORDS, NULL},
