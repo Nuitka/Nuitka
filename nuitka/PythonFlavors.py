@@ -34,6 +34,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import (
     isAndroidBasedLinux,
+    isArchBasedLinux,
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
@@ -237,6 +238,16 @@ def isFedoraPackagePython():
     return system_prefix_path == "/usr"
 
 
+def isArchPackagePython():
+    """Is the Python from a Fedora package."""
+    if not isArchBasedLinux():
+        return False
+
+    system_prefix_path = getSystemPrefixPath()
+
+    return system_prefix_path == "/usr"
+
+
 def isCPythonOfficialPackage():
     """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
 
@@ -277,6 +288,8 @@ def getPythonFlavorName():
         return "Debian Python"
     elif isFedoraPackagePython():
         return "Fedora Python"
+    elif isArchPackagePython():
+        return "Arch Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isApplePython():
