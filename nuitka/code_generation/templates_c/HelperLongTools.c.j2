@@ -31,7 +31,7 @@
     }
 
     Py_ssize_t {{operand}}_digit_count = 0;
-    digit {{operand}}_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    digit {{operand}}_digits[5] = {0}; // Could be more minimal and depend on sizeof(digit)
     {
         unsigned long t = {{operand}}_abs_ival;
 

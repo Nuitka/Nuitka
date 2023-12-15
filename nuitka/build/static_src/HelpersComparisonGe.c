@@ -11573,7 +11573,7 @@ static PyObject *COMPARE_GE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
     }
 
     Py_ssize_t operand2_digit_count = 0;
-    digit operand2_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    digit operand2_digits[5] = {0}; // Could be more minimal and depend on sizeof(digit)
     {
         unsigned long t = operand2_abs_ival;
 
@@ -11637,7 +11637,7 @@ static bool COMPARE_GE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
     }
 
     Py_ssize_t operand2_digit_count = 0;
-    digit operand2_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    digit operand2_digits[5] = {0}; // Could be more minimal and depend on sizeof(digit)
     {
         unsigned long t = operand2_abs_ival;
 
