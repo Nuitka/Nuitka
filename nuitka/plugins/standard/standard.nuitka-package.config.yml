@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 93d06891301a1b10a956366f3420fa64
+# checksum: 6303b143c705f9669c99d3262d7e4eb1
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -3437,10 +3437,6 @@
 
               return orig_disconnect(self, receiver)
 
-          from PySide6 import QtCore
-          orig_disconnect = QtCore.SignalInstance.disconnect
-          QtCore.SignalInstance.disconnect = patched_disconnect
-
           def patched_connect(self, receiver, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
               if hasattr(receiver, "im_func"):
@@ -3451,6 +3447,8 @@
               return orig_connect(self, receiver, type)
 
           from PySide6 import QtCore
+          orig_disconnect = QtCore.SignalInstance.disconnect
+          QtCore.SignalInstance.disconnect = patched_disconnect
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = patched_connect
 
