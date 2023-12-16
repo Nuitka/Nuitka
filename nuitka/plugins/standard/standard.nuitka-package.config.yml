@@ -5534,6 +5534,13 @@
     - depends:
         - '._*'
 
+- module-name: 'tf_keras.src.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'thinc.backends.cblas'
   implicit-imports:
     - depends:
