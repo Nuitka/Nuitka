@@ -208,10 +208,15 @@ def parsePackageYaml(package_name, filename):
             if lines[4].startswith(b"# checksum: "):
                 file_checksum = lines[4].split()[2]
 
-                if file_checksum != _calculateYamlFileChecksum(data):
+                try:
+                    data_checksum = _calculateYamlFileChecksum(data)
+                except ValueError:
                     validated = "not matching"
                 else:
-                    validated = "matching"
+                    if file_checksum != data_checksum:
+                        validated = "not matching"
+                    else:
+                        validated = "matching"
             else:
                 validated = "not present"
         else:
