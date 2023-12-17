@@ -605,6 +605,8 @@ def _detectPythonHeaderPath():
             os.path.join(
                 python_prefix_external, "include", "python" + python_abi_version
             ),
+            # CPython source code checkout
+            os.path.join(python_prefix_external, "Include"),
             # Haiku specific paths:
             os.path.join(
                 python_prefix_external, "develop/headers", "python" + python_abi_version
