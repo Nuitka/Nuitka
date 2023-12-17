@@ -331,6 +331,12 @@ def getSystemPrefixPath():
 
             sys_prefix = getDirectoryRealPath(sys_prefix)
 
+        # Self-compiled Python version in source tree
+        if os.path.isdir(
+            os.path.join(os.path.dirname(os.path.realpath(sys.executable)), "PCbuild")
+        ):
+            sys_prefix = os.path.dirname(os.path.realpath(sys.executable))
+
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix
