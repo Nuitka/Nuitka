@@ -41,15 +41,7 @@
                     },
                     "include-pyi-file": {
                         "type": "string",
-                        "oneOf": [
-                            {
-                                "const": "yes"
-                            },
-                            {
-                                "const": "no"
-                            }
-                        ]
-                    },
+                        "enum": ["yes", "no"]                    },
                     "include-metadata": {
                         "type": "array",
                         "items": {
@@ -86,14 +78,7 @@
                                 },
                                 "executable": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "yes"
-                                        },
-                                        {
-                                            "const": "no"
-                                        }
-                                    ]
+                                    "enum": ["yes", "no"]
                                 }
                             },
                             "required" : ["prefixes"]
@@ -110,14 +95,7 @@
                                 },
                                 "executable": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "yes"
-                                        },
-                                        {
-                                            "const": "no"
-                                        }
-                                    ]
+                                    "enum": ["yes", "no"]
                                 }
                             }
                         },
@@ -149,14 +127,23 @@
                             "type": "string"
                         },
                         "replacements_plain": {
-                            "type": "object"
+                            "type": "object",
+                            "additionalProperties": {
+                                 "type": "string"
+                            }
                         },
                         "replacements_re": {
-                            "type": "object"
-                        },
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                           }
+                       },
                         "replacements": {
-                            "type": "object"
-                        },
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                           }
+                       },
                         "change_function": {
                             "type": "object"
                         },
@@ -223,56 +210,19 @@
                                 },
                                 "console": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "yes"
-                                        },
-                                        {
-                                            "const": "no"
-                                        },
-                                        {
-                                            "const": "recommend"
-                                        }
-                                    ]
+                                    "enum": ["yes", "no", "recommend"]
                                 },
                                 "macos_bundle": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "yes"
-                                        },
-                                        {
-                                            "const": "no"
-                                        },
-                                        {
-                                            "const": "recommend"
-                                        }
-                                    ]
+                                    "enum": ["yes", "no", "recommend"]
                                 },
                                 "macos_bundle_as_onefile": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "yes"
-                                        },
-                                        {
-                                            "const": "no"
-                                        }
-                                    ]
+                                    "enum": ["yes", "no"]
                                 },
                                 "support_info": {
                                     "type": "string",
-                                    "oneOf": [
-                                        {
-                                            "const": "error"
-                                        },
-                                        {
-                                            "const": "warning"
-                                        },
-                                        {
-                                            "const": "info"
-                                        }
-                                    ]
+                                    "enum": ["error", "warning", "info"]
                                 },
                                 "when": {
                                     "type": "string"
@@ -320,14 +270,7 @@
                         },
                         "package-system-dlls": {
                             "type": "string",
-                            "oneOf": [
-                                {
-                                    "const": "yes"
-                                },
-                                {
-                                    "const": "no"
-                                }
-                            ]
+                            "enum": ["yes", "no"]
                         },
                         "when": {
                             "type": "string"
