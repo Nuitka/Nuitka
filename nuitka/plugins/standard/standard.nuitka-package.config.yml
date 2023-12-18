@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 94c98c586f4ee06892dac61c55a3299f
+# checksum: 7ed79ece5a9aba3c236ed713678c65c4
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -5562,22 +5562,9 @@
         'main': 'un-callable'
 
 - module-name: 'timm'
-  implicit-imports:
-    - pre-import-code:
-        - |
-          import os
-          if os.environ.get('PYTORCH_JIT') is not None:
-            os.environ['PYTORCH_JIT_OLD'] = os.environ.get('PYTORCH_JIT')
-          os.environ['PYTORCH_JIT'] = "0"
-      when: 'standalone'
-    - post-import-code:
-        - |
-          import os
-          if os.environ.get('PYTORCH_JIT_OLD') is None:
-            del os.environ['PYTORCH_JIT']
-          else:
-            os.environ['PYTORCH_JIT'] = os.environ['PYTORCH_JIT_OLD']
-            del os.environ['PYTORCH_JIT_OLD']
+  import-hacks:
+    - overridden-environment-variables:
+        'PYTORCH_JIT': '0'
       when: 'standalone'
 
 - module-name: 'timm.models.hrnet'
