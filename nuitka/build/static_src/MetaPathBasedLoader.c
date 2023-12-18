@@ -64,7 +64,7 @@ static inline bool isVerbose(void) { return false; }
 static struct Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static bool hasFrozenModule(char const *name) {
-    for (struct _frozen const *p = PyImport_FrozenModules;; p++) {
+    for (struct _frozen const *p = PyImport_FrozenModules; p != NULL; p++) {
         if (p->name == NULL) {
             return false;
         }

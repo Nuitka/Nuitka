@@ -32,9 +32,17 @@ else:
     import builtins
 
 if TYPE_CHECKING:
-    compiled_method = type
-    compiled_function = type
-    compiled_function_tables = ()
+    compiled_function_tables = {}
+
+
+class ForCompiledTypeLookups:
+    def for_compiled_type(self):
+        pass
+
+
+compiled_function = type(ForCompiledTypeLookups.for_compiled_type)
+compiled_method = type(ForCompiledTypeLookups().for_compiled_type)
+assert "__compiled__" in globals()
 
 dill_version = tuple(int(d) for d in dill.__version__.split("."))
 
