@@ -238,6 +238,12 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "overridden-environment-variables": {
+                            "type": "object",
+                            "additionalProperties": {
+                                 "type": "string"
+                            }
+                        },
                         "package-paths": {
                             "type": "array",
                             "items": {
