@@ -308,6 +308,13 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         init_done = true;
     }
 
+#if defined(_NUITKA_MODULE) && %(is_top)d
+    PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad");
+    if (pre_load == NULL) {
+        return NULL;
+    }
+#endif
+
     // PRINT_STRING("in init%(module_identifier)s\n");
 
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
@@ -324,10 +331,6 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
         registerDillPluginTables(tstate, module_name_c, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
     }
-
-
-
-
 #endif
 
     // Set "__compiled__" to what version information we have.
