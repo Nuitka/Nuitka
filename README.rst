@@ -1313,7 +1313,7 @@ variables, this is an example:
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2
-   # nuitka-project: --include-qt-plugins=sensible,qml
+   # nuitka-project: --include-qt-plugins=qml
 
 The comments must be at the start of lines, and indentation inside of
 them is to be used, to end a conditional block, much like in Python.
