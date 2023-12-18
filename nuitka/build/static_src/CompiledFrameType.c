@@ -411,6 +411,10 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 }
 
 static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
+    assert(Nuitka_Frame_Check((PyObject *)frame));
+    CHECK_OBJECT((PyObject *)frame);
+    assert(_PyObject_GC_IS_TRACKED(frame));
+
     Py_VISIT(frame->m_frame.f_back);
 
 #if PYTHON_VERSION < 0x3b0
