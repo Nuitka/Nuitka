@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 7ed79ece5a9aba3c236ed713678c65c4
+# checksum: 11ed91baf6cb3a75dcc66b43d8eec2c9
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -785,6 +785,19 @@
       replacements_re:
         'inspect\.getsource\((.*?)\)': '""'
       append_result: '"_PACKAGED_DATASETS_MODULES = %r" % datasets.packaged_modules._PACKAGED_DATASETS_MODULES'
+
+- module-name: 'datasets.utils.py_utils'
+  anti-bloat:
+    - description: 'add support for compiled functions'
+      append_plain: |
+        def copyfunc(func):
+            try:
+                g = func.clone()
+            except AttributeError:
+                g = types.FunctionType(func.__code__, func.__globals__, func.__name__, func.__defaults__, func.__closure__)
+                g.__kwdefaults__ = func.__kwdefaults__
+
+            return g
 
 - module-name: 'datatree'
   anti-bloat:
