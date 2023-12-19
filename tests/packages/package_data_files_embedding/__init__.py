@@ -17,22 +17,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
-
-import os
-
-import data_files_package
-
-# nuitka-project: --standalone
-# nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
-# nuitka-project-if: {Commercial} is not None:
-#   nuitka-project: --embed-data-files-runtime-pattern=lala.txt
-
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt")
-)
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
-)
-
-print("OK.")
+# Just to make it a package.

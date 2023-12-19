@@ -20,19 +20,20 @@
 from __future__ import print_function
 
 import os
+import pkgutil
 
-import data_files_package
+# Note: Only the commercial version of Nuitka that can embed files can do this
 
-# nuitka-project: --standalone
-# nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
-# nuitka-project-if: {Commercial} is not None:
-#   nuitka-project: --embed-data-files-runtime-pattern=lala.txt
+# nuitka-project: --module
+# nuitka-project: --include-data-dir={MAIN_DIRECTORY}/sub_dir=sub_dir
+# nuitka-project: --include-data-file={MAIN_DIRECTORY}/lala.txt=lala.txt
+# nuitka-project: --embed-data-files-runtime-pattern=*.txt
 
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt")
-)
-assert os.path.exists(
-    os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
-)
+assert os.path.exists(os.path.join(os.path.dirname(__file__), "lala.txt"))
+assert os.path.exists(os.path.join(os.path.dirname(__file__), "sub_dir/lulu.txt"))
+
+
+print(pkgutil.get_data(__name__, "lala.txt"))
+print(pkgutil.get_data(__name__, "sub_dir/lulu.txt"))
 
 print("OK.")
