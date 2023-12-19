@@ -1270,11 +1270,13 @@ def _makeModuleBodyTooComplex(
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
-        recursion_logger.info(
-            """\
+        # Known harmless case, not causing issues, lets not warn about it.
+        if module_name != "sympy.polys.numberfields.resolvent_lookup":
+            recursion_logger.info(
+                """\
 Cannot compile module '%s' because its code is too complex, included as bytecode."""
-            % module_name
-        )
+                % module_name
+            )
 
     return makeUncompiledPythonModule(
         module_name=module_name,
