@@ -41,6 +41,8 @@ int count_released_Nuitka_Function_Type;
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
+    CHECK_OBJECT((PyObject *)function);
+    assert(_PyObject_GC_IS_TRACKED(function));
 
 #if PYTHON_VERSION >= 0x300
     if (object == NULL || object == Py_None) {
