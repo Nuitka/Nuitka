@@ -636,6 +636,11 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
+    for (Py_ssize_t i = 0; i < function->m_closure_given; i++) {
+        assert(function->m_closure[i]);
+        Py_INCREF(function->m_closure[i]);
+    }
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(function->m_c_code, function->m_name,
 #if PYTHON_VERSION >= 0x300
