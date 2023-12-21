@@ -643,6 +643,34 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
         Py_INCREF(function->m_closure[i]);
     }
 
+    Py_INCREF(function->m_defaults);
+
+#if PYTHON_VERSION >= 0x300
+#if 0
+    PRINT_STRING("Nuitka_Function_clone:");
+    PRINT_ITEM((PyObject *)function);
+    PRINT_NEW_LINE();
+#endif
+
+    PyObject *annotations = function->m_annotations;
+    if (annotations != NULL) {
+        if (DICT_SIZE(annotations) != 0) {
+            annotations = DICT_COPY(annotations);
+        } else {
+            annotations = NULL;
+        }
+    }
+
+    PyObject *kwdefaults = function->m_kwdefaults;
+    if (kwdefaults != NULL) {
+        if (DICT_SIZE(kwdefaults) != 0) {
+            kwdefaults = DICT_COPY(kwdefaults);
+        } else {
+            kwdefaults = NULL;
+        }
+    }
+#endif
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(function->m_c_code, function->m_name,
 #if PYTHON_VERSION >= 0x300
@@ -650,7 +678,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
 #endif
                             function->m_code_object, function->m_defaults,
 #if PYTHON_VERSION >= 0x300
-                            function->m_kwdefaults, function->m_annotations,
+                            kwdefaults, annotations,
 #endif
                             function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
 
