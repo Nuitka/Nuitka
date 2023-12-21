@@ -562,11 +562,12 @@ def _runPythonPgoBinary():
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
-        _exit_code = _runPgoBinary()
+        exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
         general.sysexit(
-            "Error, no Python PGO information produced, did the created binary run at all?"
+            "Error, no Python PGO information produced, did the created binary (exit code %d) as expected?"
+            % exit_code
         )
 
     return pgo_filename
