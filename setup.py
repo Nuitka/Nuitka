@@ -107,7 +107,7 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
 
 
 def addInlineCopy(name, do_byte_compile=True):
-    if int(os.environ.get("NUITKA_NO_INLINE_COPY", 0)) == 1:
+    if os.getenv("NUITKA_NO_INLINE_COPY", "0") == "1":
         return
 
     addDataFiles(

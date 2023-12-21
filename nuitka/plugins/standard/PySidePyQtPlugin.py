@@ -690,7 +690,7 @@ system Qt plugins, which may be from another Qt version.""",
         if full_name == self.binding_name and isWin32Windows():
             code = """\
 import os
-path = os.environ.get("PATH", "")
+path = os.getenv("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """

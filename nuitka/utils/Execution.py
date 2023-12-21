@@ -72,7 +72,7 @@ def getExecutablePath(filename, extra_dir=None):
     """Find an execute in PATH environment."""
 
     # Search in PATH environment.
-    search_path = os.environ.get("PATH", "")
+    search_path = os.getenv("PATH", "")
 
     if extra_dir is not None:
         search_path = extra_dir + os.pathsep + search_path

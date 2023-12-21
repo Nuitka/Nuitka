@@ -63,14 +63,14 @@ def main():
     parser = OptionParser()
 
     parser.add_option(
-        "--nuitka", action="store", dest="nuitka", default=os.environ.get("NUITKA", "")
+        "--nuitka", action="store", dest="nuitka", default=os.getenv("NUITKA", "")
     )
 
     parser.add_option(
         "--cpython",
         action="store",
         dest="cpython",
-        default=os.environ.get("PYTHON", sys.executable),
+        default=os.getenv("PYTHON", sys.executable),
     )
 
     parser.add_option("--code-diff", action="store", dest="diff_filename", default="")
@@ -160,7 +160,7 @@ def main():
             "--python-flag=no_site",
         ]
 
-        nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
+        nuitka_call.extend(os.getenv("NUITKA_EXTRA_OPTIONS", "").split())
 
         nuitka_call.append(case_name)
 

@@ -671,7 +671,7 @@ def runSconsBackend():
     if sys.flags.bytes_warning:
         options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.environ.get("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
+    if int(os.getenv("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
     if Options.hasPythonFlagTraceImports():
@@ -765,7 +765,7 @@ def runSconsBackend():
 
 
 def callExecPython(args, clean_path, add_path):
-    old_python_path = os.environ.get("PYTHONPATH")
+    old_python_path = os.getenv("PYTHONPATH")
 
     if clean_path and old_python_path is not None:
         os.environ["PYTHONPATH"] = ""
