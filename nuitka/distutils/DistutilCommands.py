@@ -306,7 +306,7 @@ class build(distutils.command.build.build):
             else:
                 command.append("--include-module=%s" % include_package_name)
 
-            toml_filename = os.environ.get("NUITKA_TOML_FILE")
+            toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
                 # Import toml parser like "build" module does.
                 try:

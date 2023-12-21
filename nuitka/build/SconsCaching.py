@@ -53,8 +53,8 @@ def _getPythonDirCandidates(python_prefix):
 
     for python_dir in (
         sys.prefix,
-        os.environ.get("CONDA_PREFIX"),
-        os.environ.get("CONDA"),
+        os.getenv("CONDA_PREFIX"),
+        os.getenv("CONDA"),
     ):
         if python_dir and python_dir not in result:
             result.append(python_dir)
@@ -81,7 +81,7 @@ def _getCcacheGuessedPaths(python_prefix):
 
 
 def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
-    ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
+    ccache_binary = os.getenv("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
     if ccache_binary is None:

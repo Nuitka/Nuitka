@@ -130,8 +130,8 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.environ.get("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
-        path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
+    return os.getenv("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
+        path=os.getenv("PYENV_ROOT"), filename=getSystemPrefixPath()
     )
 
 
@@ -269,9 +269,9 @@ def isCPythonOfficialPackage():
 
 
 def isGithubActionsPython():
-    return os.environ.get(
-        "GITHUB_ACTIONS", ""
-    ) == "true" and getSystemPrefixPath().startswith("/opt/hostedtoolcache/Python")
+    return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
+        "/opt/hostedtoolcache/Python"
+    )
 
 
 def getPythonFlavorName():

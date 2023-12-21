@@ -177,7 +177,7 @@ def _getTerminalSize():
             return columns[1]
 
         try:
-            return int(os.environ.get("COLUMNS", "1000"))
+            return int(os.getenv("COLUMNS", "1000"))
         except ValueError:
             return 1000
     else:

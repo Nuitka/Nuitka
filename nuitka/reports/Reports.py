@@ -216,7 +216,7 @@ def _getReportPathPrefixes():
     if _report_prefixes is None:
         _report_prefixes = []
 
-        sys_prefix = os.environ.get("NUITKA_SYS_PREFIX", sys.prefix)
+        sys_prefix = os.getenv("NUITKA_SYS_PREFIX", sys.prefix)
         real_sys_prefix = getSystemPrefixPath()
 
         if real_sys_prefix != sys_prefix:

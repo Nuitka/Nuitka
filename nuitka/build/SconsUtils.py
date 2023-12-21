@@ -619,7 +619,7 @@ def getMsvcVersion(env):
 
     # TODO: Workaround for prompt being used.
     if value is None:
-        value = os.environ.get("VCToolsVersion", "14.3").rsplit(".", 1)[0]
+        value = os.getenv("VCToolsVersion", "14.3").rsplit(".", 1)[0]
 
     value = value.replace("exp", "")
     return tuple((int(d) for d in value.split(".")))

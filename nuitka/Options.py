@@ -297,7 +297,7 @@ Error, the Python from Windows app store is not supported.""",
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
 
-    if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
+    if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
     def _quoteArg(arg):
@@ -320,7 +320,7 @@ Error, the Python from Windows app store is not supported.""",
             % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
         )
 
-    if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
+    if os.getenv("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )

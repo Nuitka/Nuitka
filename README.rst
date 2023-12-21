@@ -680,7 +680,7 @@ can add this to your ``setup.py``.
    To temporarily disable the compilation, you could the remove above
    line, or edit the value to ``False`` by or take its value from an
    environment variable if you so choose, e.g.
-   ``bool(os.environ.get("USE_NUITKA", "True"))``. This is up to you.
+   ``bool(os.getenv("USE_NUITKA", "True"))``. This is up to you.
 
 Or you could put it in your ``setup.cfg``
 
@@ -833,7 +833,7 @@ this should then be a bundle.
    #    nuitka-project: --macos-create-app-bundle
    #
    # Debugging options, controlled via environment variable at compile time.
-   # nuitka-project-if: os.environ.get("DEBUG_COMPILATION", "no") == "yes"
+   # nuitka-project-if: os.getenv("DEBUG_COMPILATION", "no") == "yes"
    #     nuitka-project: --enable-console
    # nuitka-project-else:
    #     nuitka-project: --disable-console

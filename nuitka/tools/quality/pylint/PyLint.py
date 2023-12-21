@@ -323,7 +323,7 @@ def executePyLint(filenames, show_todo, verbose, one_by_one):
         if not isSpecificPythonOnly(filename)
     ]
 
-    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
+    extra_options = os.getenv("PYLINT_EXTRA_OPTIONS", "").split()
     if "" in extra_options:
         extra_options.remove("")
 

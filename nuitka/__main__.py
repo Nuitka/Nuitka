@@ -83,7 +83,7 @@ def main():
     # caching it, and comparing generated source code. While the created binary
     # actually may still use it, during compilation we don't want to. So lets
     # disable it.
-    if os.environ.get("PYTHONHASHSEED", "-1") != "0":
+    if os.getenv("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
     # The frozen stdlib modules of Python 3.11 are less compatible than the ones
