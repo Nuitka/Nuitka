@@ -168,7 +168,7 @@ if clang_mode and os.name == "nt" and not mingw_mode:
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
 
-if int(os.environ.get("NUITKA_QUIET", "0")):
+if int(os.getenv("NUITKA_QUIET", "0")):
     setQuiet()
 
 # Home of Python to be compiled against, used to find tools like clcache and

@@ -49,5 +49,5 @@ def setupPATH():
 
 
 def addPYTHONPATH(path):
-    python_path = os.environ.get("PYTHONPATH", "")
+    python_path = os.getenv("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = os.pathsep.join(python_path.split(os.pathsep) + [path])

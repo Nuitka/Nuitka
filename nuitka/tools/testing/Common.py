@@ -924,7 +924,7 @@ def withPythonPathChange(python_path):
 
 
 def addExtendedExtraOptions(*args):
-    old_value = os.environ.get("NUITKA_EXTRA_OPTIONS")
+    old_value = os.getenv("NUITKA_EXTRA_OPTIONS")
 
     value = old_value
 
@@ -1189,7 +1189,7 @@ def getTestingCPythonOutputsCacheDir():
     cache_dir = getCacheDir()
 
     result = os.path.join(
-        cache_dir, "cpython_outputs", os.environ.get("NUITKA_TEST_SUITE", "")
+        cache_dir, "cpython_outputs", os.getenv("NUITKA_TEST_SUITE", "")
     )
 
     makePath(result)

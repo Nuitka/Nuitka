@@ -212,6 +212,8 @@ Cleanups
 -  Cleanup, avoid "unused but set variable" warning from the C compiler
    for hard some forms of hard imports.
 
+-  Prefer ``os.getenv`` over ``os.environ.get`` for readability.
+
 Tests
 =====
 

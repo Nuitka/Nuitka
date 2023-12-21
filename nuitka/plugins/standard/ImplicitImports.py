@@ -551,8 +551,8 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     ) in entry.get("overridden-environment-variables").items():
                         code = """\
 import os
-if os.environ.get("%(environment_variable_name)s") is not None:
-    os.environ["%(environment_variable_name)s" + "_OLD"] = os.environ.get("%(environment_variable_name)s")
+if os.getenv("%(environment_variable_name)s") is not None:
+    os.environ["%(environment_variable_name)s" + "_OLD"] = os.getenv("%(environment_variable_name)s")
 os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
 """ % {
                             "environment_variable_name": environment_variable_name,
@@ -585,7 +585,7 @@ According to Yaml 'post-import-code' configuration."""
                     ):
                         code = """\
 import os
-if os.environ.get("%(environment_variable_name)s" + "_OLD") is None:
+if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
     del os.environ["%(environment_variable_name)s"]
 else:
     os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
