@@ -294,6 +294,8 @@ static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, P
         }
     }
 
+    // Delegate all other attributes to the underlying function.
+    // TODO: Could be a bit more direct here, and know this is generic lookup.
     return PyObject_GetAttr((PyObject *)method->m_function, name);
 }
 
