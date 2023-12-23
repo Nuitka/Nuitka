@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 9f85d8d6cc975ab147dc7b2c2c4f9936
+# checksum: be4b30ad53ba9a8ea88c97aab6635f12
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -3753,25 +3753,6 @@
       when: 'not win32'
 
 - module-name: 'scipy'
-  implicit-imports:
-    - depends:
-        - "scipy.cluster"
-        - "scipy.constants"
-        - "scipy.datasets"
-        - "scipy.fft"
-        - "scipy.fftpack"
-        - "scipy.integrate"
-        - "scipy.interpolate"
-        - "scipy.io"
-        - "scipy.linalg"
-        - "scipy.ndimage"
-        - "scipy.odr"
-        - "scipy.optimize"
-        - "scipy.signal"
-        - "scipy.sparse"
-        - "scipy.spatial"
-        - "scipy.special"
-        - "scipy.stats"
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3782,6 +3763,26 @@
         prefixes:
           - ''
       when: 'win32'
+
+  implicit-imports:
+    - depends:
+        - 'scipy.cluster'
+        - 'scipy.constants'
+        - 'scipy.datasets'
+        - 'scipy.fft'
+        - 'scipy.fftpack'
+        - 'scipy.integrate'
+        - 'scipy.interpolate'
+        - 'scipy.io'
+        - 'scipy.linalg'
+        - 'scipy.ndimage'
+        - 'scipy.odr'
+        - 'scipy.optimize'
+        - 'scipy.signal'
+        - 'scipy.sparse'
+        - 'scipy.spatial'
+        - 'scipy.special'
+        - 'scipy.stats'
 
 - module-name: 'scipy._distributor_init'
   anti-bloat:
