@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: ce4d7554c3ee74ac46e6e0fb31df586a
+# checksum: 5fe6f6b4b1d4729d183d2411c98868ea
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -3839,6 +3839,16 @@
         prefixes:
           - ''
       when: 'win32'
+
+  implicit-imports:
+    - depends:
+        - 'scipy.cluster'
+        - 'scipy.datasets'
+        - 'scipy.fftpack'
+        - 'scipy.io'
+        - 'scipy.misc'
+        - 'scipy.odr'
+        - 'scipy.signal'
 
 - module-name: 'scipy._distributor_init'
   anti-bloat:
