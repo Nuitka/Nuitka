@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 73a4cbd8a4da07f1035357eb1234e777
+# checksum: ce4d7554c3ee74ac46e6e0fb31df586a
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -2927,9 +2927,10 @@
   data-files:
     dirs:
       - 'driver/package/.local-browsers/**'
-      - '.' # fixes https://github.com/Nuitka/Nuitka/issues/1029
+      - '.'
+      # fixes https://github.com/Nuitka/Nuitka/issues/1029
+      # this is specific to windows and could be better, recursively looking for DLLs in driver/package/.local-browsers/ will make this a cross platform solution regardless of what browser drivers the user has installed in the folder
   dlls:
-    #this is specific to windows and could be better, recursively looking for DLLs in driver/package/.local-browsers/ will make this a cross platform solution regardless of what browser drivers the user has installed in the folder
     - from_filenames:
         relative_path: 'driver/package/.local-browsers/chromium-1091/chrome-win'
         prefixes:
