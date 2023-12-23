@@ -3753,6 +3753,25 @@
       when: 'not win32'
 
 - module-name: 'scipy'
+  implicit-imports:
+    - depends:
+        - "scipy.cluster"
+        - "scipy.constants"
+        - "scipy.datasets"
+        - "scipy.fft"
+        - "scipy.fftpack"
+        - "scipy.integrate"
+        - "scipy.interpolate"
+        - "scipy.io"
+        - "scipy.linalg"
+        - "scipy.ndimage"
+        - "scipy.odr"
+        - "scipy.optimize"
+        - "scipy.signal"
+        - "scipy.sparse"
+        - "scipy.spatial"
+        - "scipy.special"
+        - "scipy.stats"
   dlls:
     - from_filenames:
         relative_path: '.libs'
