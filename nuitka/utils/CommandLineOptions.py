@@ -94,8 +94,14 @@ class OurOptionParser(OptionParser):
     def add_option(self, *args, **kwargs):
         require_compiling = kwargs.pop("require_compiling", True)
 
+        default_values = self.get_default_values()
+
         result = OptionParser.add_option(self, *args, **kwargs)
         result.require_compiling = require_compiling
+
+        if result.dest is not None:
+            if hasattr(default_values, result.dest):
+                assert result.default == getattr(default_values, result.dest)
 
         return result
 
