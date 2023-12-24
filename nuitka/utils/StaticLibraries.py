@@ -98,6 +98,19 @@ def isDebianSuitableForStaticLinking():
         return True
 
 
+def _getSysConfigVarLIBPL():
+    # Return the LIBPL config variable, or None if it's not set or retrievable
+    try:
+        import sysconfig
+
+        return sysconfig.get_config_var("LIBPL")
+
+    except ImportError:
+        # Cannot detect this properly for Python 2.6, but we don't care much
+        # about that anyway.
+        return None
+
+
 def _getSystemStaticLibPythonPath():
     # Return driven function with many cases, pylint: disable=too-many-branches,too-many-return-statements
 
@@ -140,28 +153,20 @@ def _getSystemStaticLibPythonPath():
             ),
         ]
 
-        try:
-            import sysconfig
-
-            libpl = sysconfig.get_config_var("LIBPL")
-            if libpl is not None:
-                candidates += [
-                    # Anaconda has this.
-                    os.path.join(
-                        libpl,
-                        "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-                    ),
-                    # MSYS2 mingw64 Python has this.
-                    os.path.join(
-                        libpl,
-                        "libpython" + python_abi_version + ".dll.a",
-                    ),
-                ]
-
-        except ImportError:
-            # Cannot detect this properly for Python 2.6, but we don't care much
-            # about that anyway.
-            pass
+        libpl = _getSysConfigVarLIBPL()
+        if libpl is not None:
+            candidates += [
+                # Anaconda has this.
+                os.path.join(
+                    libpl,
+                    "libpython" + python_abi_version.replace(".", "") + ".dll.a",
+                ),
+                # MSYS2 mingw64 Python has this.
+                os.path.join(
+                    libpl,
+                    "libpython" + python_abi_version + ".dll.a",
+                ),
+            ]
 
         for candidate in candidates:
             if os.path.exists(candidate):
@@ -196,31 +201,23 @@ def _getSystemStaticLibPythonPath():
         # This is not necessarily only for Python3 on Debian, but maybe others as well,
         # but that's what's been tested.
         if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
-            try:
-                import sysconfig
+            candidate = os.path.join(
+                _getSysConfigVarLIBPL(),
+                "libpython" + python_abi_version + "-pic.a",
+            )
 
-                candidate = os.path.join(
-                    sysconfig.get_config_var("LIBPL"),
-                    "libpython" + python_abi_version + "-pic.a",
-                )
+            if os.path.exists(candidate):
+                return candidate
 
-                if os.path.exists(candidate):
-                    return candidate
+        libpl = _getSysConfigVarLIBPL()
+        if libpl is not None:
+            candidate = os.path.join(
+                libpl,
+                "libpython" + python_abi_version + ".a",
+            )
 
-                libpl = sysconfig.get_config_var("LIBPL")
-                if libpl is not None:
-                    candidate = os.path.join(
-                        libpl,
-                        "libpython" + python_abi_version + ".a",
-                    )
-
-                    if os.path.exists(candidate):
-                        return candidate
-
-            except ImportError:
-                # Cannot detect this properly for Python 2.6, but we don't care much
-                # about that anyway.
-                pass
+            if os.path.exists(candidate):
+                return candidate
 
     return None
 
