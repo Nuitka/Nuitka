@@ -140,6 +140,29 @@ def _getSystemStaticLibPythonPath():
             ),
         ]
 
+        try:
+            import sysconfig
+
+            libpl = sysconfig.get_config_var("LIBPL")
+            if libpl is not None:
+                candidates += [
+                    # Anaconda has this.
+                    os.path.join(
+                        libpl,
+                        "libpython" + python_abi_version.replace(".", "") + ".dll.a",
+                    ),
+                    # MSYS2 mingw64 Python has this.
+                    os.path.join(
+                        libpl,
+                        "libpython" + python_abi_version + ".dll.a",
+                    ),
+                ]
+
+        except ImportError:
+            # Cannot detect this properly for Python 2.6, but we don't care much
+            # about that anyway.
+            pass
+
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
@@ -184,20 +207,20 @@ def _getSystemStaticLibPythonPath():
                 if os.path.exists(candidate):
                     return candidate
 
+                libpl = sysconfig.get_config_var("LIBPL")
+                if libpl is not None:
+                    candidate = os.path.join(
+                        libpl,
+                        "libpython" + python_abi_version + ".a",
+                    )
+
+                    if os.path.exists(candidate):
+                        return candidate
+
             except ImportError:
                 # Cannot detect this properly for Python 2.6, but we don't care much
                 # about that anyway.
                 pass
-
-    libpl = sysconfig.get_config_var("LIBPL")
-    if libpl is not None:
-        candidate = os.path.join(
-            libpl,
-            "libpython" + python_abi_version + ".a",
-        )
-
-        if os.path.exists(candidate):
-            return candidate
 
     return None
 
