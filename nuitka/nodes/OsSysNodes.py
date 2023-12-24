@@ -98,6 +98,22 @@ class ExpressionOsPathBasenameCall(ExpressionOsPathBasenameCallBase):
         )
 
 
+class ExpressionOsPathDirnameCall(ExpressionOsPathBasenameCallBase):
+    kind = "EXPRESSION_OS_PATH_DIRNAME_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        result = makeConstantRefNode(
+            constant=os.path.dirname(self.subnode_p.getCompileTimeConstant()),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.dirname' call.",
+        )
+
+
 class ExpressionOsPathAbspathCall(ExpressionOsPathAbspathCallBase):
     kind = "EXPRESSION_OS_PATH_ABSPATH_CALL"
 

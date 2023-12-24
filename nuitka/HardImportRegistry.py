@@ -209,6 +209,8 @@ module_os_path_trust = {
     "isfile": trust_node,
     "isdir": trust_node,
     "basename": trust_node,
+    "dirname": trust_node,
+    "abspath": trust_node,
 }
 
 

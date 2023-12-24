@@ -141,6 +141,7 @@ os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_co
 os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
 )
+os_path_dirname_spec = BuiltinParameterSpec("os.path.dirname", ("p",), default_count=0)
 os_path_abspath_spec = BuiltinParameterSpec(
     "os.path.abspath", ("path",), default_count=0
 )
