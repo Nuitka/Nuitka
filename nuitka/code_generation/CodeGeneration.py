@@ -917,6 +917,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISDIR_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_BUILTINS_OPEN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
