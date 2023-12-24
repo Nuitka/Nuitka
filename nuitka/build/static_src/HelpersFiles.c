@@ -211,6 +211,17 @@ PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename) {
     return result;
 }
 
+PyObject *OS_PATH_DIRNAME(PyThreadState *tstate, PyObject *filename) {
+    CHECK_OBJECT(filename);
+
+    PyObject *dirname_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_dirname);
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, dirname_func, filename);
+
+    Py_DECREF(dirname_func);
+    return result;
+}
+
 PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 

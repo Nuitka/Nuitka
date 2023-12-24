@@ -38,6 +38,36 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 
 #ifdef _NUITKA_STANDALONE
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
+
+static PyObject *STRIP_DIRNAME(PyObject *path) {
+#if PYTHON_VERSION < 0x300
+    char const *path_cstr = PyString_AS_STRING(path);
+
+#ifdef _WIN32
+    char const *last_sep = strrchr(path_cstr, '\\');
+#else
+    char const *last_sep = strrchr(path_cstr, '/');
+#endif
+    if (unlikely(last_sep == NULL)) {
+        Py_INCREF(path);
+        return path;
+    }
+
+    return PyString_FromStringAndSize(path_cstr, last_sep - path_cstr);
+#else
+#ifdef _WIN32
+    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_backslash, 0, PyUnicode_GetLength(path), -1);
+#else
+    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_slash, 0, PyUnicode_GetLength(path), -1);
+#endif
+    if (likely(dot_index != -1)) {
+        return PyUnicode_Substring(path, 0, dot_index);
+    } else {
+        Py_INCREF(path);
+        return path;
+    }
+#endif
+}
 #endif
 
 extern void setDistributionsMetadata(PyObject *metadata_values);
@@ -103,8 +133,10 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"minor", (char *)"Minor release number"},
         {(char *)"micro", (char *)"Micro release number"},
         {(char *)"releaselevel", (char *)"'alpha', 'beta', 'candidate', or 'release'"},
+        {(char *)"containing_dir", (char *)"directory of the containing binary"},
         {(char *)"standalone", (char *)"boolean indicating standalone mode usage"},
-        {(char *)"onefile", (char *)"boolean indicating standalone mode usage"},
+        {(char *)"onefile", (char *)"boolean indicating onefile mode usage"},
+        {(char *)"macos_bundle_mode", (char *)"boolean indicating macOS app bundle mode usage"},
         {(char *)"no_asserts", (char *)"boolean indicating --python-flag=no_asserts usage"},
         {(char *)"no_docstrings", (char *)"boolean indicating --python-flag=no_docstrings usage"},
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
@@ -112,10 +144,10 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     };
 
     static PyStructSequence_Desc Nuitka_VersionInfoDesc = {
-        (char *)"__nuitka_version__",                                    /* name */
-        (char *)"__compiled__\\n\\nVersion information as a named tuple.", /* doc */
-        Nuitka_VersionInfoFields,                                        /* fields */
-        9
+        (char *)"__nuitka_version__",                                       /* name */
+        (char *)"__compiled__\\n\\nVersion information as a named tuple.",  /* doc */
+        Nuitka_VersionInfoFields,                                           /* fields */
+        sizeof(Nuitka_VersionInfoFields) / sizeof(PyStructSequence_Field)-1 /* count */
     };
 
     PyStructSequence_InitType(&Nuitka_VersionInfoType, &Nuitka_VersionInfoDesc);
@@ -129,40 +161,60 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
+    PyObject *binary_directory = getContainingDirectoryObject(false);
+#ifdef _NUITKA_STANDALONE
+#ifndef _NUITKA_ONEFILE_MODE
+    binary_directory = STRIP_DIRNAME(binary_directory);
+#endif
+
+#ifdef _NUITKA_MACOS_BUNDLE
+    binary_directory = STRIP_DIRNAME(binary_directory);
+    binary_directory = STRIP_DIRNAME(binary_directory);
+#endif
+#endif
+
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, binary_directory);
+
 #ifdef _NUITKA_STANDALONE
     PyObject *is_standalone_mode = Py_True;
 #else
     PyObject *is_standalone_mode = Py_False;
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, is_standalone_mode);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_standalone_mode);
 #ifdef _NUITKA_ONEFILE_MODE
     PyObject *is_onefile_mode = Py_True;
 #else
     PyObject *is_onefile_mode = Py_False;
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 5, is_onefile_mode);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_onefile_mode);
+
+#ifdef _NUITKA_MACOS_BUNDLE
+    PyObject *is_macos_bundle_mode = Py_True;
+#else
+    PyObject *is_macos_bundle_mode = Py_False;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 7, is_macos_bundle_mode);
 
 #if _NUITKA_NO_ASSERTS == 1
     PyObject *is_no_asserts = Py_True;
 #else
     PyObject *is_no_asserts = Py_False;
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_no_asserts);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 8, is_no_asserts);
 
 #if _NUITKA_NO_DOCSTRINGS == 1
     PyObject *is_no_docstrings = Py_True;
 #else
     PyObject *is_no_docstrings = Py_False;
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 7, is_no_docstrings);
-
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 9, is_no_docstrings);
 
 #if _NUITKA_NO_ANNOTATIONS == 1
     PyObject *is_no_annotations = Py_True;
 #else
     PyObject *is_no_annotations = Py_False;
 #endif
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 8, is_no_annotations);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 10, is_no_annotations);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

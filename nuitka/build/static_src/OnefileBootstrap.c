@@ -118,6 +118,7 @@
 #endif
 
 #include "HelpersChecksumTools.c"
+#include "HelpersEnvironmentVariablesSystem.c"
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
@@ -187,22 +188,6 @@ static FILE_HANDLE createFileForWritingChecked(filename_char_t const *filename) 
     }
 
     return result;
-}
-
-static int getMyPid(void) {
-#if defined(_WIN32)
-    return GetCurrentProcessId();
-#else
-    return getpid();
-#endif
-}
-
-static void setEnvironVar(char const *var_name, char const *value) {
-#if defined(_WIN32)
-    SetEnvironmentVariable("NUITKA_ONEFILE_PARENT", value);
-#else
-    setenv(var_name, value, 1);
-#endif
 }
 
 static unsigned char const *payload_data = NULL;
@@ -1092,11 +1077,18 @@ int main(int argc, char **argv) {
 
     // Pass our pid by value to the child. If we exit for some reason, re-parenting
     // might change it by the time the child looks at its parent.
-    {
-        char buffer[128];
-        snprintf(buffer, sizeof(buffer), "%d", getMyPid());
-        setEnvironVar("NUITKA_ONEFILE_PARENT", buffer);
-    }
+#if defined(_WIN32)
+    setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
+#else
+    setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", (long)getpid());
+#endif
+
+#if defined(_WIN32)
+    filename_char_t const *binary_filename = getBinaryFilenameWideChars(false);
+#else
+    filename_char_t const *binary_filename = getBinaryFilenameHostEncoded(false);
+#endif
+    setEnvironmentVariable("NUITKA_ONEFILE_BINARY", binary_filename);
 
     NUITKA_PRINT_TIMING("ONEFILE: Preparing forking of slave process.");
 
