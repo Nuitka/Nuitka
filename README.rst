@@ -1298,6 +1298,20 @@ standalone binary.
    not make assumptions about the directory your program is started
    from.
 
+In case you mean to refer to the location of the ``.dist`` folder for
+files that are to reside near the binary, there is
+``__compiled__.containing_dir`` that also abstracts all differences with
+``--macos-create-app-bundle`` and the ``.app`` folder a having more
+nested structure.
+
+.. code:: python
+
+   # This will find a file *near* your app or dist folder
+   try:
+      open(os.path.join(__compiled__.containing_dir, "user-provided-file.txt"))
+   except NameError:
+      open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
+
 Onefile: Finding files
 ======================
 
@@ -1318,6 +1332,12 @@ which you expect to be inside the onefile binary, access them like this.
    open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
    # This will find a file *inside* your onefile.exe
    open(os.path.join(os.path.dirname(__file__), "user-provided-file.txt"))
+
+   # This will find a file *near* your onefile binary and work for standalone too
+   try:
+      open(os.path.join(__compiled__.containing_dir, "user-provided-file.txt"))
+   except NameError:
+      open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
 
 Windows Programs without console give no errors
 ===============================================
