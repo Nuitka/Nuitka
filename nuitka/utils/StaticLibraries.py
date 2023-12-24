@@ -153,21 +153,6 @@ def _getSystemStaticLibPythonPath():
             ),
         ]
 
-        libpl = _getSysConfigVarLIBPL()
-        if libpl is not None:
-            candidates += [
-                # Anaconda has this.
-                os.path.join(
-                    libpl,
-                    "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-                ),
-                # MSYS2 mingw64 Python has this.
-                os.path.join(
-                    libpl,
-                    "libpython" + python_abi_version + ".dll.a",
-                ),
-            ]
-
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
