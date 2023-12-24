@@ -628,6 +628,9 @@ def runSconsBackend():
         if Options.isOnefileTempDirMode():
             options["onefile_temp_mode"] = asBoolStr(True)
 
+    if Options.shallCreateAppBundle():
+        options["macos_bundle_mode"] = asBoolStr(True)
+
     if Options.getForcedStdoutPath():
         options["forced_stdout_path"] = Options.getForcedStdoutPath()
 

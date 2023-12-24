@@ -109,6 +109,7 @@ def getConstantDefaultPopulation():
         "\\",
         "path",
         "basename",
+        "dirname",
         "abspath",
         "isabs",
         "exists",

@@ -214,6 +214,9 @@ standalone_mode = getArgumentBool("standalone_mode", False)
 # Onefile mode
 onefile_mode = getArgumentBool("onefile_mode", False)
 
+# MacOS bundle
+macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
+
 # Onefile temp mode
 onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
 
@@ -531,6 +534,9 @@ if trace_mode:
 
 if env.standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
+
+if macos_bundle_mode:
+    env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE"])
 
 if onefile_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])

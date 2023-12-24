@@ -199,6 +199,7 @@ extern PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path);
 
 // Small helpers to work with filenames from "os.path" module
 extern PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename);
+extern PyObject *OS_PATH_DIRNAME(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_ABSPATH(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename);
 
@@ -378,6 +379,9 @@ extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 
 // Get the binary directory, translated to ANSI/native path
 extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
+
+// Get the containing directory as an object with symlinks resolved or not.
+extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
 #ifdef _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate);

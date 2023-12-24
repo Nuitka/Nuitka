@@ -67,7 +67,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
-#include "HelperEnvironmentVariables.c"
+#include "HelpersEnvironmentVariables.c"
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
@@ -1754,7 +1754,7 @@ static PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
+PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
     static PyObject *binary_directory = NULL;
     static PyObject *binary_directory_resolved = NULL;
 
@@ -1825,48 +1825,17 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
+static filename_char_t const *getDllDirectory(void) {
 #if defined(_WIN32)
-// Replacement for RemoveFileSpecA, slightly smaller.
-static void stripFilenameA(char *path) {
-    char *last_slash = NULL;
+    static WCHAR path[MAXPATHLEN + 1];
+    path[0] = 0;
 
-    while (*path != 0) {
-        if (*path == '\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-#endif
-
-static char const *getDllDirectory(void) {
-#if defined(_WIN32)
-    static char path[MAXPATHLEN + 1];
-    path[0] = '\0';
-
-#if PYTHON_VERSION >= 0x300
-    WCHAR path2[MAXPATHLEN + 1];
-    path2[0] = 0;
-
-    int res = GetModuleFileNameW(getDllModuleHandle(), path2, MAXPATHLEN + 1);
+    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
     assert(res != 0);
 
-    int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, MAXPATHLEN + 1, NULL, NULL);
-    assert(res2 != 0);
-#else
-    int res = GetModuleFileNameA(getDllModuleHandle(), path, MAXPATHLEN + 1);
-    assert(res != 0);
-#endif
-
-    stripFilenameA(path);
+    stripFilenameW(path);
 
     return path;
-
 #else
     Dl_info where;
 
@@ -1878,7 +1847,41 @@ static char const *getDllDirectory(void) {
     return dirname((char *)where.dli_fname);
 #endif
 }
+static PyObject *getDllDirectoryObject(void) {
+    static PyObject *dll_directory = NULL;
+
+    if (dll_directory == NULL) {
+        filename_char_t const *dll_directory_filename = getDllDirectory();
+
+        dll_directory = Nuitka_String_FromFilename(dll_directory_filename);
+    }
+
+    CHECK_OBJECT(dll_directory);
+
+    return dll_directory;
+}
 #endif
+
+PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
+#if defined(_NUITKA_EXE)
+#if defined(_NUITKA_ONEFILE_MODE)
+    environment_char_t const *onefile_binary = getEnvironmentVariable("NUITKA_ONEFILE_BINARY");
+    if (onefile_binary != NULL) {
+        PyObject *result = Nuitka_String_FromFilename(onefile_binary);
+        unsetEnvironmentVariable("NUITKA_ONEFILE_BINARY");
+
+        PyThreadState *tstate = PyThreadState_GET();
+        return OS_PATH_DIRNAME(tstate, result);
+    }
+
+    return getBinaryDirectoryObject(resolve_symlinks);
+#else
+    return getBinaryDirectoryObject(resolve_symlinks);
+#endif
+#else
+    return getDllDirectoryObject();
+#endif
+}
 
 static void _initDeepCopy(void);
 
@@ -1950,11 +1953,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     static PyObject *our_path_object = NULL;
 
     if (our_path_object == NULL) {
-#if defined(_NUITKA_EXE)
-        our_path_object = getBinaryDirectoryObject(true);
-#else
-        our_path_object = Nuitka_String_FromString(getDllDirectory());
-#endif
+        our_path_object = getContainingDirectoryObject(true);
     }
 
     return JOIN_PATH2(our_path_object, relative);
