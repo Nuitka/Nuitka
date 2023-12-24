@@ -20,14 +20,12 @@
 """
 
 import os
-import subprocess
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
-    isPyenvPython,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -191,22 +189,15 @@ def _getSystemStaticLibPythonPath():
                 # about that anyway.
                 pass
 
-        if isPyenvPython():
-            try:
-                machine = subprocess.check_output(["gcc", "-dumpmachine"])
+    libpl = sysconfig.get_config_var("LIBPL")
+    if libpl is not None:
+        candidate = os.path.join(
+            libpl,
+            "libpython" + python_abi_version + ".a",
+        )
 
-                candidate = os.path.join(
-                    sys_prefix,
-                    "lib",
-                    "config-" + python_abi_version + "-" + machine,
-                    "libpython" + python_abi_version + ".a",
-                )
-
-                if os.path.exists(candidate):
-                    return candidate
-
-            except subprocess.CalledProcessError:
-                pass
+        if os.path.exists(candidate):
+            return candidate
 
     return None
 
