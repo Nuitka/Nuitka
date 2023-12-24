@@ -12287,6 +12287,7 @@ class ChildHavingPMixin(object):
 
     # This is generated for use in
     #   ExpressionOsPathBasename
+    #   ExpressionOsPathDirname
 
     def __init__(
         self,
@@ -12370,6 +12371,7 @@ class ChildHavingPMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionOsPathBasenameMixin = ChildHavingPMixin
+ChildrenExpressionOsPathDirnameMixin = ChildHavingPMixin
 
 
 class ChildHavingPackageMixin(object):
