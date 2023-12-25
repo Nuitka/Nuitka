@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 9f85d8d6cc975ab147dc7b2c2c4f9936
+# checksum: 93d06891301a1b10a956366f3420fa64
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -1607,6 +1607,12 @@
       - 'images'
       - 'data'
       - 'uix'
+
+- module-name: 'kiwisolver'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_cext'
 
 - module-name: 'langchain.chains.llm_summarization_checker'
   data-files:
