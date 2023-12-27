@@ -1459,7 +1459,8 @@ macos_group.add_option(
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
 option your get to specify another identity to use. The signing of code is now
-mandatory on macOS and cannot be disabled. Default "ad-hoc" if not given.""",
+mandatory on macOS and cannot be disabled. Use "auto" to detect your only identity
+installed. Default "ad-hoc" if not given.""",
 )
 
 macos_group.add_option(
