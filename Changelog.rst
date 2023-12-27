@@ -111,6 +111,9 @@ Bug Fixes
 New Features
 ============
 
+-  macOS: Added new value ``auto`` for detecting signing identity, if
+   only one is available in the system.
+
 -  Windows: Added support for using junctions in the Python environment,
    these are used e.g. when installing via ``scoop``. Added in 1.9.2
    already.

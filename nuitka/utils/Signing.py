@@ -52,6 +52,44 @@ for the certificate in KeyChain Access application for this certificate."""
     return None, stderr
 
 
+def detectMacIdentity():
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=["security", "find-identity"],
+        absence_message="The 'security' program is used to scan for signing identities",
+    )
+
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    result = None
+
+    for line in output.splitlines():
+        line = line.strip()
+
+        if line.startswith("2)"):
+            postprocessing_logger.sysexit(
+                "More than one signing identity, auto mode cannot be used."
+            )
+
+        if line.startswith("1)"):
+            parts = line.split(" ", 2)
+
+            result = parts[1]
+            signing_name = parts[2]
+
+    if result is None:
+        postprocessing_logger.sysexit(
+            "Failed to detect any signing identity, auto mode cannot be used."
+        )
+    else:
+        postprocessing_logger.info(
+            "Using signing identity %s automatically." % signing_name
+        )
+
+    return result
+
+
 def addMacOSCodeSignature(filenames):
     """Add the code signature to filenames.
 
@@ -67,6 +105,9 @@ def addMacOSCodeSignature(filenames):
 
     # Weak signing.
     identity = getMacOSSigningIdentity()
+
+    if identity == "auto":
+        identity = detectMacIdentity()
 
     command = [
         "codesign",
