@@ -268,6 +268,21 @@ def isCPythonOfficialPackage():
     return False
 
 
+_is_self_compiled_python = None
+
+
+def isSelfCompiledPythonUninstalled():
+    # singleton, pylint: disable=global-statement
+    global _is_self_compiled_python
+
+    if _is_self_compiled_python is None:
+        sys_prefix = getSystemPrefixPath()
+
+        _is_self_compiled_python = os.path.isdir(os.path.join(sys_prefix, "PCbuild"))
+
+    return _is_self_compiled_python
+
+
 def isGithubActionsPython():
     return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
         "/opt/hostedtoolcache/Python"
@@ -304,6 +319,8 @@ def getPythonFlavorName():
         return "Android Termux"
     elif isCPythonOfficialPackage():
         return "CPython Official"
+    elif isSelfCompiledPythonUninstalled():
+        return "Self Compiled Uninstalled"
     elif isGithubActionsPython():
         return "GitHub Actions Python"
     else:

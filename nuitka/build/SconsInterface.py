@@ -37,6 +37,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
     getSystemPrefixPath,
@@ -433,6 +434,9 @@ def setCommonSconsOptions(options):
 
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
+
+    if isSelfCompiledPythonUninstalled():
+        options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:

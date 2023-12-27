@@ -631,22 +631,28 @@ def _detectPythonHeaderPath():
 
     for candidate in candidates:
         if os.path.exists(os.path.join(candidate, "Python.h")):
-            return candidate
-
-    if os.name == "nt":
-        scons_logger.sysexit(
-            """Error, you seem to be using the unsupported embeddable CPython distribution."""
-        )
+            yield candidate
+            break
     else:
-        scons_logger.sysexit(
-            """\
+        if os.name == "nt":
+            scons_logger.sysexit(
+                """\
+Error, you seem to be using the unsupported embeddable CPython distribution \
+use a full Python instead."""
+            )
+        else:
+            scons_logger.sysexit(
+                """\
 Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
-            % ("debug" if python_debug else "development", candidates)
-        )
+                % ("debug" if python_debug else "development", candidates)
+            )
+
+    if env.self_compiled_python_uninstalled:
+        yield python_prefix_external
 
 
-env.Append(CPPPATH=[_detectPythonHeaderPath()])
+env.Append(CPPPATH=list(_detectPythonHeaderPath()))
 
 # To support self-built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
