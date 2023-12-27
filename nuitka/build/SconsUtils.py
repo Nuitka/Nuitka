@@ -248,6 +248,9 @@ def createEnvironment(
     env.anaconda_python = getArgumentBool("anaconda_python", False)
     env.pyenv_python = getArgumentBool("pyenv_python", False)
     env.apple_python = getArgumentBool("apple_python", False)
+    env.self_compiled_python_uninstalled = getArgumentBool(
+        "self_compiled_python_uninstalled", False
+    )
 
     # Non-elf binary, important for linker settings.
     env.noelf_mode = getArgumentBool("noelf_mode", False)
