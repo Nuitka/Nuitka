@@ -126,7 +126,7 @@ def _takeSystemCallTraceOutput(logger, path, command):
             if b"ENOENT" in line:
                 continue
 
-            if line.startswith((b"write(", b"write_nocancel(")):
+            if line.startswith((b"write(", b"write_nocancel(", b"read(")):
                 continue
 
             if line.startswith((b"stat(", b"newfstatat(")) and b"S_IFDIR" in line:
