@@ -463,8 +463,9 @@ def addClangClPathFromMSVC(env):
     clangcl_path = getExecutablePath("clang-cl", env=env)
 
     if clangcl_path is None:
+        # llvm project on windows also include clang-cl.exe
         scons_details_logger.sysexit(
-            "Visual Studio has no Clang component found at '%s'." % clang_dir
+            "clang-cl.exe not found at '%s' or in %PATH%." % clang_dir
         )
 
     env["CC"] = "clang-cl"
