@@ -662,11 +662,6 @@ if os.name == "nt":
     if os.path.exists(python_header_path):
         env.Append(CPPPATH=[python_header_path])
 
-
-def getWindowsPythonDLLPath():
-    return os.environ["NUITKA_PYTHON_DLL_PATH"]
-
-
 if env.nuitka_python:
     env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
 
