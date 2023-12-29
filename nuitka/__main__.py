@@ -64,11 +64,13 @@ def main():
     else:
         # Remove path element added for being called via "__main__.py", this can
         # only lead to trouble, having e.g. a "distutils" in sys.path that comes
-        # from "nuitka.distutils".
+        # from "nuitka.distutils". Also ignore path elements that do not really
+        # exist.
         sys.path = [
             path_element
             for path_element in sys.path
             if os.path.dirname(os.path.abspath(__file__)) != path_element
+            if os.path.exists(path_element)
         ]
 
     # We will run with the Python configuration as specified by the user, if it does
