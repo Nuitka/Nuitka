@@ -1195,8 +1195,6 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TIMING("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
-#else
-
 #endif
 
 #if _NUITKA_FROZEN > 0
@@ -1335,6 +1333,24 @@ orig_argv = argv;
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
+#else
+    {
+        environment_char_t const *python_path_cstr = getEnvironmentVariable("NUITKA_PYTHONPATH");
+
+        if (python_path_cstr != NULL) {
+            PyObject *python_path_str = Nuitka_String_FromFilename(python_path_cstr);
+#ifdef _WIN32
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ";");
+#else
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ":");
+#endif
+            Py_DECREF(python_path_str);
+
+            PySys_SetObject("path", python_path_list);
+
+            unsetEnvironmentVariable("NUITKA_PYTHONPATH");
+        }
+    }
 #endif
 
     /* Lie about it, believe it or not, there are "site" files, that check
