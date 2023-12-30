@@ -434,7 +434,7 @@ def addClangClPathFromMSVC(env):
 
     if cl_exe is None:
         scons_logger.sysexit(
-            "Error, Visual Studio required for using ClangCL on Windows."
+            "Error, You need to install MSVC to use ClangCL on Windows."
         )
 
     clang_dir = os.path.join(cl_exe[: cl_exe.lower().rfind("msvc")], "Llvm")
@@ -465,7 +465,9 @@ def addClangClPathFromMSVC(env):
     if clangcl_path is None:
         # llvm project on windows also include clang-cl.exe
         scons_details_logger.sysexit(
-            "clang-cl.exe not found at '%s' or in %PATH%." % clang_dir
+            """clang-cl.exe not found in Visual Studio '%s' or in PATH.\n
+            "Install it from Visual Studio installer or from LLVM project release"""
+            % clang_dir
         )
 
     env["CC"] = "clang-cl"
