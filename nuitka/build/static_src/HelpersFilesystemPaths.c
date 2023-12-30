@@ -749,7 +749,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                     }
                 } else if (wcsicmp(var_name, L"PID") == 0) {
                     char pid_buffer[128];
-                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", GetCurrentProcessId());
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
 
                     appendStringSafeW(target, pid_buffer, buffer_size);
                 } else if (wcsicmp(var_name, L"HOME") == 0) {
