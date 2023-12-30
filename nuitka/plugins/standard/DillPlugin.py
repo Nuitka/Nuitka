@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.Options import shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -36,7 +37,15 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        if full_name == "dill":
+        if full_name == "dill" and not shallMakeModule():
+            return (
+                self.getPluginDataFileContents("dill-postLoad.py"),
+                """\
+Extending "dill" for compiled types to be pickle-able as well.""",
+            )
+
+    def createPreModuleLoadCode(self, module):
+        if shallMakeModule() and module.isTopModule():
             return (
                 self.getPluginDataFileContents("dill-postLoad.py"),
                 """\

@@ -133,7 +133,7 @@ void printOSErrorMessage(char const *message, error_code_t error_code) {
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
                   error_code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&err_buffer, 0, NULL);
 
-    fprintf(stderr, "%s ([Error %d] %s)\n", message, error_code, err_buffer);
+    fprintf(stderr, "%s ([Error " ERROR_CODE_FORMAT_STR "] %s)\n", message, error_code, err_buffer);
 #else
     fprintf(stderr, "%s: %s\n", message, strerror(error_code));
 #endif
