@@ -40,9 +40,11 @@ extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t bu
 /* Get OS error code and print it to stderr. */
 #ifdef _WIN32
 typedef DWORD error_code_t;
+#define ERROR_CODE_FORMAT_STR "%ld"
 static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
 #else
 typedef int error_code_t;
+#define ERROR_CODE_FORMAT_STR "%d"
 static inline error_code_t getCurrentErrorCode(void) { return errno; }
 #endif
 extern void printOSErrorMessage(char const *message, error_code_t error_code);
