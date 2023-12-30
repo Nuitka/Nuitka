@@ -920,11 +920,6 @@ void _initCompiledFunctionType(void) {
         }
     }
 #endif
-
-#ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    // TODO: Move this to a __nuitka__ module maybe
-    PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function", (PyObject *)&Nuitka_Function_Type);
-#endif
 }
 
 // Shared implementations for empty functions. When a function body is empty, but

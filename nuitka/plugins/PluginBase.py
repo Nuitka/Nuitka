@@ -1087,8 +1087,11 @@ except ImportError:
         if shallShowExecutedCommands():
             self.info("Executing query command:\n%s" % cmd)
 
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf8"
+
         try:
-            feedback = check_output([sys.executable, "-c", cmd])
+            feedback = check_output([sys.executable, "-c", cmd], env=env)
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
                 return None

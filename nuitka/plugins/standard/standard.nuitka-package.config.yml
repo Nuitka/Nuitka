@@ -641,6 +641,10 @@
         'comtypes': 'ignore'
 
 - module-name: 'curl_cffi'
+  data-files:
+    patterns:
+      - 'cacert.pem'
+
   implicit-imports:
     - depends:
         - '_cffi_backend'
@@ -5540,6 +5544,13 @@
   implicit-imports:
     - depends:
         - '._*'
+
+- module-name: 'tf_keras.src.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'thinc.backends.cblas'
   implicit-imports:

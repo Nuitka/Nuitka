@@ -366,7 +366,12 @@ Error, the Python from Windows app store is not supported.""",
     if options.is_onefile:
         options.is_standalone = True
 
-    # Standalone implies no_site build
+    # macOS bundle implies standalone build.
+    if shallCreateAppBundle():
+        options.is_standalone = True
+
+    # Standalone implies no_site build unless overridden, therefore put it
+    # at start of flags, so "site" can override it.
     if options.is_standalone:
         options.python_flags.insert(0, "no_site")
 
