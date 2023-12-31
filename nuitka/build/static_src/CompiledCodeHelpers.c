@@ -2105,3 +2105,7 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #endif
 
 #include "MetaPathBasedLoader.c"
+
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+#include "HelpersDumpBacktraces.c"
+#endif
