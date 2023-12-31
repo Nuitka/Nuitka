@@ -42,6 +42,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
+    isManyLinuxPython,
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
@@ -1404,6 +1405,15 @@ def _shallUseStaticLibPython():
 
         if isPyenvPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
+
+        if isManyLinuxPython():
+            return (
+                True,
+                """\
+Nuitka on 'manylinux' has no shared libraries. Use container with \
+the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
+added to provide the static link library.""",
+            )
 
     return options.static_libpython == "yes", None
 
