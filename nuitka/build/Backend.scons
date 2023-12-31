@@ -816,7 +816,12 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
 env.Append(
-    CPPPATH=[source_dir, nuitka_include, os.path.join(env.nuitka_src, "static_src")]
+    CPPPATH=[
+        source_dir,
+        nuitka_include,
+        os.path.join(env.nuitka_src, "static_src"),
+        os.path.join(env.nuitka_src, "inline_copy", "libbacktrace"),
+    ]
 )
 
 # Set load libpython from binary directory default
