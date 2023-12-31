@@ -283,6 +283,26 @@ def isSelfCompiledPythonUninstalled():
     return _is_self_compiled_python
 
 
+_is_manylinux_python = None
+
+
+def isManyLinuxPython():
+    if not isLinux():
+        return False
+
+    # singleton, pylint: disable=global-statement
+    global _is_manylinux_python
+
+    sys_prefix = getSystemPrefixPath()
+
+    if _is_manylinux_python is None:
+        _is_manylinux_python = os.path.isfile(
+            os.path.join(sys_prefix, "..", "static-libs-for-embedding-only.tar.xz")
+        )
+
+    return _is_manylinux_python
+
+
 def isGithubActionsPython():
     return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
         "/opt/hostedtoolcache/Python"
@@ -323,5 +343,7 @@ def getPythonFlavorName():
         return "Self Compiled Uninstalled"
     elif isGithubActionsPython():
         return "GitHub Actions Python"
+    elif isManyLinuxPython():
+        return "Manylinux Python"
     else:
         return "Unknown"
