@@ -501,4 +501,9 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define PyCFunction_CheckExact PyCFunction_Check
 #endif
 
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+extern void INIT_C_BACKTRACES(void);
+extern void DUMP_C_BACKTRACE(void);
+#endif
+
 #endif

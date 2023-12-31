@@ -1135,7 +1135,10 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
 #endif
-
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+    INIT_C_BACKTRACES();
+    DUMP_C_BACKTRACE();
+#endif
     // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
     atexit(Nuitka_at_exit);
