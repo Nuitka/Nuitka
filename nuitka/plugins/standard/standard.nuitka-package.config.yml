@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: dea09415efe5e77188afabe9b0229750
+# checksum: c1294e67f3e93ccbe8ea0d5ae1fe410a
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -5703,6 +5703,72 @@
         suffixes:
           - 'dylib'
       when: 'macos'
+
+- module-name: 'toga'
+  data-files:
+    include-metadata:
+      - 'toga-core'
+  implicit-imports:
+    - depends:
+        - 'toga_winforms'
+      when: 'win32'
+    - depends:
+        - 'toga_gtk'
+      when: 'linux'
+
+- module-name: 'toga.platform'
+  anti-bloat:
+    - description: 'better error message for environment backends'
+      replacements_plain:
+        '       factory = importlib.import_module(f"{backend.value}.factory")': |
+          #
+                  try:
+                    factory = importlib.import_module(f'{backend.value}.factory')
+                  except ModuleNotFoundError:
+                    import sys
+                    sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s.factory'." % backend.value)
+      when: 'not deployment'
+
+- module-name: 'toga_gtk'
+  data-files:
+    dirs:
+      - 'resources'
+
+    include-metadata:
+      - 'toga-gtk'
+
+- module-name: 'toga_winforms'
+  data-files:
+    dirs:
+      - 'resources'
+    include-metadata:
+      - 'toga-winforms'
+  dlls:
+    - from_filenames:
+        relative_path: 'libs/WebView2/arm64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/WebView2/x86'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'libs/WebView2/x64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+
+    - from_filenames:
+        relative_path: 'libs/WebView2'
+        prefixes:
+          - 'Microsoft.'
+      when: 'win32'
+  implicit-imports:
+    - depends:
+        - 'toga_winforms.libs.wrapper'
+        - 'ctypes.wintypes'
 
 - module-name: 'tokenizers.tools.visualizer'
   anti-bloat:
