@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 93d06891301a1b10a956366f3420fa64
+# checksum: 2fc3ae65cfcaa44fa3937964400ec16f
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -5646,6 +5646,50 @@
         suffixes:
           - 'dylib'
       when: 'macos'
+
+- module-name: 'toga'
+  data-files:
+    include-metadata:
+      - 'toga-core'
+  implicit-imports:
+    - depends:
+        - 'toga_winforms'
+      when: 'win32'
+
+- module-name: 'toga_winforms'
+  data-files:
+    dirs:
+      - 'resources'
+    patterns:
+      - '**/*.py'
+    include-metadata:
+      - 'toga-winforms'
+  dlls:
+    - from_filenames:
+        relative_path: 'libs/WebView2/arm64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'libs/WebView2/x86'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'libs/WebView2/x64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+
+    - from_filenames:
+        relative_path: 'libs/WebView2'
+        prefixes:
+          - 'Microsoft.'
+      when: 'win32'
+  implicit-imports:
+    - depends:
+        - 'toga_winforms.libs.wrapper'
+        - 'ctypes.wintypes'
 
 - module-name: 'tokenizers.tools.visualizer'
   anti-bloat:
