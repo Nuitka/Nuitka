@@ -117,7 +117,7 @@ def _addWindowsIconFromIcons(onefile):
 
     result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
 
-    for icon_spec in Options.getIconPaths():
+    for icon_spec in Options.getWindowsIconPaths():
         if "#" in icon_spec:
             icon_path, icon_index = icon_spec.rsplit("#", 1)
             icon_index = int(icon_index)

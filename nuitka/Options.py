@@ -513,18 +513,18 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     if isLinux():
-        if len(getIconPaths()) > 1:
+        if len(getLinuxIconPaths()) > 1:
             Tracing.options_logger.sysexit(
                 "Error, can only use one icon file on Linux."
             )
 
     if isMacOS():
-        if len(getIconPaths()) > 1:
+        if len(getMacOSIconPaths()) > 1:
             Tracing.options_logger.sysexit(
                 "Error, can only use one icon file on macOS."
             )
 
-    for icon_path in getIconPaths():
+    for icon_path in getWindowsIconPaths():
         if "#" in icon_path and isWin32Windows():
             icon_path, icon_index = icon_path.rsplit("#", 1)
 
@@ -533,13 +533,6 @@ it before using it: '%s' (from --output-filename='%s')."""
                     "Error, icon number in '%s#%s' not valid."
                     % (icon_path + "#" + icon_index)
                 )
-
-        if not os.path.exists(icon_path):
-            Tracing.options_logger.sysexit(
-                "Error, icon path '%s' does not exist." % icon_path
-            )
-
-        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
 
         if getWindowsIconExecutablePath():
             Tracing.options_logger.sysexit(
@@ -1035,7 +1028,7 @@ and not with the non-debug version.
         isMacOS()
         and shallCreateAppBundle()
         and shallDisableConsoleWindow()
-        and not getIconPaths()
+        and not getMacOSIconPaths()
     ):
         Tracing.general.warning(
             """\
@@ -1744,21 +1737,26 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
-# pylint: disable=line-too-long
-def getIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico`` ``--macos-app-icon`` ``--linux-icon`` and ``--linux-onefile-icon``"""
+def _checkIconPaths(icon_paths):
+    for icon_path in icon_paths:
+        if not os.path.exists(icon_path):
+            Tracing.options_logger.sysexit(
+                "Error, icon path '%s' does not exist." % icon_path
+            )
 
-    result = []
-    if isLinux():
-        result += options.linux_icon_path
-    elif isWin32OrPosixWindows():
-        result += options.windows_icon_path
-    elif isMacOS():
-        result += options.macos_icon_path
-    else:
-        result += options.windows_icon_path
-        result += options.macos_icon_path
-        result += options.linux_icon_path
+        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
+
+    return icon_paths
+
+
+def getWindowsIconPaths():
+    """*list of str*, values of ``--windows-icon-from-ico``"""
+    return _checkIconPaths(options.windows_icon_path)
+
+
+def getLinuxIconPaths():
+    """*list of str*, values of ``--linux-icon``"""
+    result = options.linux_icon_path
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
@@ -1774,7 +1772,12 @@ def getIconPaths():
                 result.append(icon)
                 break
 
-    return result
+    return _checkIconPaths(result)
+
+
+def getMacOSIconPaths():
+    """*list of str*, values of ``--macos-app-icon``"""
+    return _checkIconPaths(options.macos_icon_path)
 
 
 def getWindowsIconExecutablePath():
