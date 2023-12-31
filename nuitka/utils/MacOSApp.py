@@ -62,7 +62,7 @@ def createPlistInfoFile(logger, onefile):
         ]
     )
 
-    icon_paths = Options.getIconPaths()
+    icon_paths = Options.getMacOSIconPaths()
 
     if icon_paths:
         assert len(icon_paths) == 1
