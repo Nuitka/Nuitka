@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 9a8221a9f798f73c4f7085ac8b9b8751
+# checksum: dea09415efe5e77188afabe9b0229750
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -4031,6 +4031,12 @@
     - depends:
         - '.msvc'
       when: 'standalone and win32'
+
+- module-name: 'setuptools.version'
+  anti-bloat:
+    - description: 'workaround for metadata version of setuptools'
+      replacements:
+        "pkg_resources.get_distribution('setuptools').version": "repr(__import__('setuptools.version').version.__version__)"
 
 - module-name: 'sgmllib'
   anti-bloat:
