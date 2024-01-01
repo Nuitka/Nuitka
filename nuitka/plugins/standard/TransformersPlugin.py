@@ -248,8 +248,7 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                 setup_codes="import %s" % full_name.asString(),
                 value="list(getattr(%(module_name)s, '_import_structure', {}).keys())"
                 % {"module_name": full_name.asString()},
-                info_name="import_structure_for_%s"
-                % full_name.asString().replace(".", "_"),
+                info_name="import_structure_for_%s" % full_name.asString(),
             ):
                 sub_module_name = full_name.getChildNamed(sub_module_name)
 
