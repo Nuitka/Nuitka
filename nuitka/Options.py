@@ -1736,10 +1736,21 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
+# pylint: disable=line-too-long
 def getIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
+    """*list of str*, values of ``--windows-icon-from-ico`` ``--macos-app-icon`` ``--linux-icon`` and ``--linux-onefile-icon``"""
 
-    result = options.icon_path
+    result = []
+    if isLinux():
+        result += options.linux_icon_path
+    elif isWin32OrPosixWindows():
+        result += options.windows_icon_path
+    elif isMacOS():
+        result += options.macos_icon_path
+    else:
+        result += options.windows_icon_path
+        result += options.macos_icon_path
+        result += options.linux_icon_path
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
