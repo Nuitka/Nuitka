@@ -238,7 +238,7 @@ def _getCompilationReportPath(path):
 
 
 def _addModulesToReport(root, report_input_data, diffable):
-    # Many details to work with, pylint: disable=too-many-locals
+    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
 
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
@@ -273,8 +273,20 @@ def _addModulesToReport(root, report_input_data, diffable):
                 condition, condition_tags_used, condition_result = detail
 
                 influence_xml_node.attrib["condition"] = condition
-                influence_xml_node.attrib["tags_used"] = ",".join(condition_tags_used)
+                if condition_tags_used:
+                    influence_xml_node.attrib["tags_used"] = ",".join(
+                        condition_tags_used
+                    )
                 influence_xml_node.attrib["result"] = str(condition_result).lower()
+            elif influence == "variable-used":
+                variable_name, condition_tags_used, variable_value = detail
+
+                influence_xml_node.attrib["variable"] = variable_name
+                if condition_tags_used:
+                    influence_xml_node.attrib["tags_used"] = ",".join(
+                        condition_tags_used
+                    )
+                influence_xml_node.attrib["value"] = variable_value
             else:
                 assert False, influence
 
