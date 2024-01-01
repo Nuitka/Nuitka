@@ -1,10 +1,10 @@
 # yamllint disable rule:line-length
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
-# checksum: 6a90d828c9360c1772a826cd948e1b6e
 ---
-- module-name: 'data_files_package'
+- module-name: 'data_files_package' # checksum: 672cf793
   data-files:
     patterns:
       - '**/*.txt'

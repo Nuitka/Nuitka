@@ -1,77 +1,77 @@
 # yamllint disable rule:line-length
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
-# checksum: 0aae4a6357f87503c64dfe60bcf69acd
 ---
-- module-name: 'audiodev'
+- module-name: 'audiodev' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'BaseHTTPServer'
+- module-name: 'BaseHTTPServer' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'Bastion'
+- module-name: 'Bastion' # checksum: 167cb032
   anti-bloat:
     - description: 'remove module ability to run as a binary'
 
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'Cookie'
+- module-name: 'Cookie' # checksum: 167cb032
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'fpformat'
+- module-name: 'fpformat' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'mhlib'
+- module-name: 'mhlib' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'modulefinder'
+- module-name: 'modulefinder' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'rexec'
+- module-name: 'rexec' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'StringIO'
+- module-name: 'StringIO' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'Tkinter'
+- module-name: 'Tkinter' # checksum: 16ff58dd
   options:
     checks:
       - console: 'recommend'
         when: 'plugin("tk-inter")'
 
-- module-name: 'xml.sax.xmlreader'
+- module-name: 'xml.sax.xmlreader' # checksum: 167cb032
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'xmllib'
+- module-name: 'xmllib' # checksum: 820d21fd
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
