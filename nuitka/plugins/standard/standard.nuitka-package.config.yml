@@ -3446,11 +3446,11 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: dbc6a5c9
+- module-name: 'PySide2' # checksum: 5b277431
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver):
+          def patched_disconnect(self, receiver=None):
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
@@ -3474,11 +3474,11 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: ade325d5
+- module-name: 'PySide6' # checksum: d2912f12
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver):
+          def patched_disconnect(self, receiver=None):
               if hasattr(receiver, "im_func"):
                   if hasattr(receiver.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
