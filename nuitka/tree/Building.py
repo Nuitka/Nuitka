@@ -1397,7 +1397,7 @@ def buildModule(
                     source_diff = getSourceCodeDiff(original_source_code, source_code)
 
                     for line in source_diff:
-                        plugins_logger.warning(line)
+                        plugins_logger.warning(line, keep_format=True)
 
                     if len(contributing_plugins) == 1:
                         next(iter(contributing_plugins)).sysexit(
