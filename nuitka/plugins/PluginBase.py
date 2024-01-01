@@ -133,12 +133,32 @@ def _getEvaluationContext():
             "no_asserts": hasPythonFlagNoAsserts(),
             "no_docstrings": hasPythonFlagNoDocStrings(),
             "no_annotations": hasPythonFlagNoAnnotations(),
+            # Locating package directories
+            "_get_module_directory": _getModuleDirectory,
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
             "arch_x86": getArchitecture() == "x86",
             "arch_amd64": getArchitecture() == "x86_64",
             "arch_arm64": getArchitecture() == "arm64",
+            # Frequent used modules
+            "sys": sys,
+            "os": os,
+            # Builtins
+            "True": True,
+            "False": False,
+            "None": None,
+            "repr": repr,
+            "len": len,
+            "str": str,
+            "bool": bool,
+            "int": int,
+            "tuple": tuple,
+            "list": list,
+            "dict": dict,
+            "set": set,
+            "frozenset": frozenset,
+            "__import__": __import__,
         }
 
         versions = getTestExecutionPythonVersions()
@@ -229,6 +249,16 @@ def _getPackageVersion(distribution_name):
         _package_versions[distribution_name] = result
 
     return _package_versions[distribution_name]
+
+
+def _getModuleDirectory(module_name):
+    from nuitka.importing.Importing import locateModule
+
+    _module_name, module_filename, _module_kind, _finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    return module_filename
 
 
 def _isPluginActive(plugin_name):
@@ -1238,7 +1268,7 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use
         return {}
 
-    def evaluateExpression(self, full_name, expression, config_name):
+    def evaluateExpression(self, full_name, expression, config_name, extra_context):
         context = TagContext(logger=self, full_name=full_name, config_name=config_name)
         context.update(control_tags)
 
@@ -1282,6 +1312,9 @@ except ImportError:
 
         context["get_variable"] = get_variable
 
+        if extra_context:
+            context.update(extra_context)
+
         # We trust the yaml files, pylint: disable=eval-used
         try:
             result = eval(expression, context)
@@ -1290,7 +1323,7 @@ except ImportError:
                 raise
 
             self.sysexit(
-                "Error, failed to evaluate !!expression '%s' in this context, exception was '%s'."
+                "Error, failed to evaluate expression %r in this context, exception was '%s'."
                 % (expression, e)
             )
 

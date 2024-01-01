@@ -122,6 +122,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     full_name=full_name,
                     expression=dependency,
                     config_name="depends value",
+                    extra_context=None,
                 )
             elif "*" in dependency or "?" in dependency:
                 for resolved in self._resolveModulePattern(dependency):
