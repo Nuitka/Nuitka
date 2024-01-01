@@ -117,7 +117,13 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 else:
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()
 
-            if "*" in dependency or "?" in dependency:
+            if "(" in dependency:
+                yield self.evaluateExpression(
+                    full_name=full_name,
+                    expression=dependency,
+                    config_name="depends value",
+                )
+            elif "*" in dependency or "?" in dependency:
                 for resolved in self._resolveModulePattern(dependency):
                     yield resolved
             else:

@@ -8,6 +8,21 @@
                 "type": "string",
                 "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
             },
+            "variables": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "setup_code": {
+                        "type": "string"
+                    },
+                    "declarations": {
+                        "type": "object",
+                        "additionalProperties": {
+                                "type": "string"
+                        }
+                    }
+                }
+            },
             "data-files": {
                 "type": "object",
                 "additionalProperties": false,

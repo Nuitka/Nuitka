@@ -5704,30 +5704,23 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: d70820f5
+- module-name: 'toga' # checksum: 565626da
+  variables:
+    setup_code: 'import toga.platform'
+    declarations:
+      'toga_backend_module_name': 'toga.platform.get_platform_factory().__name__'
   data-files:
     include-metadata:
       - 'toga-core'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools_scm': ''
+      when: 'not use_setuptools'
+
   implicit-imports:
     - depends:
-        - 'toga_winforms'
-      when: 'win32'
-    - depends:
-        - 'toga_gtk'
-      when: 'linux'
-
-- module-name: 'toga.platform' # checksum: a054fb6
-  anti-bloat:
-    - description: 'better error message for environment backends'
-      replacements_plain:
-        '       factory = importlib.import_module(f"{backend.value}.factory")': |
-          #
-                  try:
-                    factory = importlib.import_module(f'{backend.value}.factory')
-                  except ModuleNotFoundError:
-                    import sys
-                    sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s.factory'." % backend.value)
-      when: 'not deployment'
+        - 'get_variable("toga_backend_module_name")'
 
 - module-name: 'toga_gtk' # checksum: 1577803b
   data-files:
@@ -6220,6 +6213,13 @@
       change_function:
         # TODO: Forcing inline of this will be better solution.
         'require_version_core': "'(lambda requirement: None)'"
+
+- module-name: 'travertino' # checksum: cb0be8d
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools_scm': ''
+      when: 'not use_setuptools'
 
 - module-name: 'trimesh.viewer.notebook' # checksum: d055e332
   anti-bloat:
