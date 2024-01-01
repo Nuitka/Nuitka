@@ -978,11 +978,11 @@
     patterns:
       - 'specs/*.json'
 
-- module-name: 'Equation' # checksum: d7c76751
+- module-name: 'Equation' # checksum: aa47a17f
   anti-bloat:
     - description: 'workaround for standalone mode'
       replacements:
-        'os.listdir(dirname)': 'repr(os.listdir(__dirname__))'
+        'os.listdir(dirname)': 'repr(os.listdir(_get_module_directory("Equation")))'
       when: 'standalone'
   implicit-imports:
     - depends:
@@ -5704,11 +5704,7 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: 565626da
-  variables:
-    setup_code: 'import toga.platform'
-    declarations:
-      'toga_backend_module_name': 'toga.platform.get_platform_factory().__name__'
+- module-name: 'toga' # checksum: 3d34027f
   data-files:
     include-metadata:
       - 'toga-core'
@@ -5718,24 +5714,24 @@
         'setuptools_scm': ''
       when: 'not use_setuptools'
 
-  implicit-imports:
-    - depends:
-        - 'get_variable("toga_backend_module_name")'
+- module-name: 'toga.platform' # checksum: 4db91cac
+  variables:
+    setup_code: 'import toga.platform'
+    declarations:
+      'toga_backend_module_name': 'toga.platform.get_platform_factory().__name__'
+  anti-bloat:
+    - change_function:
+        'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_gtk' # checksum: 1577803b
+- module-name: 'toga_gtk' # checksum: 3f9f0b7d
   data-files:
     dirs:
       - 'resources'
 
-    include-metadata:
-      - 'toga-gtk'
-
-- module-name: 'toga_winforms' # checksum: 5dda2bcf
+- module-name: 'toga_winforms' # checksum: 286969f5
   data-files:
     dirs:
       - 'resources'
-    include-metadata:
-      - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
