@@ -43,6 +43,15 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
+            elif type(value) is dict:
+                self.updateFromBytes(b"dict")
+                self.updateFromValues(*list(value.items()))
+            elif type(value) is tuple:
+                self.updateFromBytes(b"tuple")
+                self.updateFromValues(*value)
+            elif type(value) is list:
+                self.updateFromBytes(b"list")
+                self.updateFromValues(*value)
             else:
                 assert False, type(value)
 
@@ -117,3 +126,6 @@ class HashCRC32(HashBase):
 
     def asDigest(self):
         return self.hash
+
+    def asHexDigest(self):
+        return hex(self.hash)[2:]

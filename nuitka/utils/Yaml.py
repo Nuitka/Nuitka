@@ -35,8 +35,8 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
-from .FileOperations import getFileContents, openTextFile
-from .Hashing import getStringHash
+from .FileOperations import getFileContents
+from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
 from .ModuleNames import checkModuleName
 
@@ -47,9 +47,11 @@ class PackageConfigYaml(object):
         "data",
     )
 
-    def __init__(self, name, data):
+    def __init__(self, name, file_data):
         self.name = name
 
+        assert type(file_data) is bytes
+        data = parseYaml(file_data)
         assert type(data) is list
 
         self.data = OrderedDict()
@@ -151,81 +153,26 @@ def parseYaml(data):
 _yaml_cache = {}
 
 
-def getYamlFileChecksum(yaml_data):
-    lines = yaml_data.splitlines()
-    if len(lines) > 4 and lines[4].startswith(b"# checksum: "):
-        return lines[4].split()[2]
+def getYamlDataHash(data):
+    result = HashCRC32()
+    result.updateFromValues(data)
 
-    return None
-
-
-def _calculateYamlFileChecksum(yaml_data):
-    if b"\n---\n" not in yaml_data:
-        raise ValueError("Malformed yaml data without --- header")
-
-    yaml_data = yaml_data.split(b"\n---\n", 2)[1]
-
-    return getStringHash(yaml_data).encode("utf8")
-
-
-def checkOrUpdateChecksum(filename, update, logger):
-    yaml_data_old = getFileContents(filename, mode="rb")
-    lines = yaml_data_old.splitlines()
-
-    if len(lines) < 5 or not lines[4].startswith(b"# checksum:"):
-        logger.sysexit("Make sure the file is autoformatted first.")
-
-    lines[4] = b"# checksum: %s" % _calculateYamlFileChecksum(yaml_data_old)
-    yaml_data_new = b"\n".join(lines) + b"\n"
-
-    if yaml_data_new != yaml_data_old:
-        if update:
-            with openTextFile(filename, "wb") as output_file:
-                output_file.write(yaml_data_new)
-
-            logger.info("OK, updated checksum.", style="blue")
-        else:
-            logger.sysexit(
-                "Error, checksum does not match, use --update or enable commit hook."
-            )
-    else:
-        logger.info("OK, checksum valid.", style="blue")
+    return result.asHexDigest()
 
 
 def parsePackageYaml(package_name, filename):
     key = package_name, filename
 
     if key not in _yaml_cache:
-        data = pkgutil.get_data(package_name, filename)
+        if package_name is None:
+            file_data = getFileContents(filename, mode="rb")
+        else:
+            file_data = pkgutil.get_data(package_name, filename)
 
-        if data is None:
+        if file_data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
 
-        validated = "False"
-
-        lines = data.splitlines()
-        if len(lines) > 4:
-            if lines[4].startswith(b"# checksum: "):
-                file_checksum = lines[4].split()[2]
-
-                try:
-                    data_checksum = _calculateYamlFileChecksum(data)
-                except ValueError:
-                    validated = "not matching"
-                else:
-                    if file_checksum != data_checksum:
-                        validated = "not matching"
-                    else:
-                        validated = "matching"
-            else:
-                validated = "not present"
-        else:
-            validated = "not present"
-
-        if validated != "matching":
-            general.warning("Using file %s with %s checksum." % (filename, validated))
-
-        _yaml_cache[key] = PackageConfigYaml(name=filename, data=parseYaml(data))
+        _yaml_cache[key] = PackageConfigYaml(name=filename, file_data=file_data)
 
     return _yaml_cache[key]
 
@@ -272,7 +219,7 @@ def getYamlPackageConfiguration():
             _package_config.update(
                 PackageConfigYaml(
                     name=user_yaml_filename,
-                    data=parseYaml(getFileContents(user_yaml_filename, mode="rb")),
+                    file_data=getFileContents(user_yaml_filename, mode="rb"),
                 )
             )
 

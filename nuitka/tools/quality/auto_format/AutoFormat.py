@@ -769,6 +769,9 @@ def autoFormatFile(
                         effective_filename=effective_filename,
                         update=True,
                     )
+                    formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
+                    cleanupWindowsNewlines(tmp_filename, effective_filename)
+                    _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 

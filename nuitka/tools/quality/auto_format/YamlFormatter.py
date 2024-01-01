@@ -32,7 +32,6 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
-    getYamlFileChecksum,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
 )
@@ -55,8 +54,8 @@ YAML_HEADER = """\
 # yamllint disable rule:line-length
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
+# yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
-# checksum: %s
 """
 
 
@@ -312,7 +311,6 @@ def formatYaml(path, ignore_diff=False):
     yaml.indent(sequence=4, offset=2)
 
     file_data = getFileContents(path, mode="rb")
-    checksum = getYamlFileChecksum(file_data) or b"not-updated"
 
     data = yaml.load(file_data)
 
@@ -357,7 +355,7 @@ def formatYaml(path, ignore_diff=False):
     tmp_path = path + ".tmp"
 
     with open(tmp_path, "w", encoding="utf-8") as output_file:
-        output_file.write(YAML_HEADER % checksum.decode("utf8"))
+        output_file.write(YAML_HEADER)
 
         string_io = StringIO()
         yaml.dump(new_data, string_io)
