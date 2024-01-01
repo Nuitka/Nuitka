@@ -176,7 +176,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         filename_code = dll_config.get("filename_code")
 
         filename = self.queryRuntimeInformationMultiple(
-            "%s_%s" % (full_name.asString().replace(".", "_"), count),
+            "%s_%s" % (full_name.asString(), count),
             setup_codes=setup_codes,
             values=(("filename", filename_code),),
         ).filename
