@@ -37,6 +37,7 @@ from nuitka.utils.Yaml import (
 )
 
 MASTER_KEYS = None
+VARIABLE_KEYS = None
 DATA_FILES_KEYS = None
 DLLS_KEYS = None
 DLLS_BY_CODE_KEYS = None
@@ -61,7 +62,7 @@ YAML_HEADER = """\
 
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
-    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
+    global MASTER_KEYS, VARIABLE_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
     global DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
     global OPTIONS_KEYS, OPTIONS_CHECKS_KEYS, IMPORT_HACK_KEYS
 
@@ -72,6 +73,9 @@ def _initNuitkaPackageSchema():
         schema = json.load(schema_file)
 
     MASTER_KEYS = tuple(schema["items"]["properties"].keys())
+    VARIABLE_KEYS = tuple(
+        schema["items"]["properties"]["variables"]["properties"].keys()
+    )
     DATA_FILES_KEYS = tuple(
         schema["items"]["properties"]["data-files"]["properties"].keys()
     )
@@ -109,10 +113,11 @@ def _decideStrFormat(string_value):
     """
     take the character that is not closest to the beginning or end
     """
-    # Singleton, pylint: disable=too-many-return-statements
+    # Singleton, pylint: disable=too-many-boolean-expressions,too-many-return-statements
     if (
         string_value not in MASTER_KEYS
         and string_value not in DATA_FILES_KEYS
+        and string_value not in VARIABLE_KEYS
         and string_value not in DLLS_KEYS
         and string_value not in DLLS_BY_CODE_KEYS
         and string_value not in DLLS_FROM_FILENAMES_KEYS
