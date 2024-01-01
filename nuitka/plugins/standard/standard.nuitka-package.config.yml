@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 2fc3ae65cfcaa44fa3937964400ec16f
+# checksum: 133d24db79df4ce8def7b78e17b882f4
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -5655,6 +5655,19 @@
     - depends:
         - 'toga_winforms'
       when: 'win32'
+    - depends:
+        - 'toga_gtk'
+      when: 'linux'
+
+- module-name: 'toga_gtk'
+  data-files:
+    dirs:
+      - 'resources'
+    patterns:
+      - '**/*.py'
+
+    include-metadata:
+      - 'toga-gtk'
 
 - module-name: 'toga_winforms'
   data-files:
