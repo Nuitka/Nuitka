@@ -1144,7 +1144,7 @@ except ImportError:
         }
 
         if shallShowExecutedCommands():
-            self.info("Executing query command:\n%s" % cmd)
+            self.info("Executing query command:\n%s" % cmd, keep_format=True)
 
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf8"
@@ -1357,8 +1357,8 @@ except ImportError:
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
     @classmethod
-    def info(cls, message):
-        plugins_logger.info(message, prefix=cls.plugin_name)
+    def info(cls, message, keep_format=False):
+        plugins_logger.info(message, prefix=cls.plugin_name, keep_format=keep_format)
 
     @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
