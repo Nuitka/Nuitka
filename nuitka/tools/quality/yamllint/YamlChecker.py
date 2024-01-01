@@ -17,13 +17,17 @@
 #
 """ Check and update Yaml checksum if possible."""
 
-from nuitka.utils.FileOperations import getFileContents, openTextFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    openTextFile,
+    putTextFileContents,
+)
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
-    checkOrUpdateChecksum,
+    getYamlDataHash,
     getYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
-    parseYaml,
+    parsePackageYaml,
 )
 
 
@@ -75,7 +79,7 @@ def _checkValues(logger, filename, module_name, section, value):
 def checkValues(logger, filename):
     yaml = PackageConfigYaml(
         name=filename,
-        data=parseYaml(getFileContents(filename, mode="rb")),
+        file_data=getFileContents(filename, mode="rb"),
     )
 
     for module_name, config in yaml.items():
@@ -101,11 +105,33 @@ def checkYamllint(logger, document):
     logger.info("OK, yamllint passed.", style="blue")
 
 
+def checkOrUpdateChecksum(filename, update, logger):
+    yaml_file_text = getFileContents(filename, encoding="utf8")
+
+    yaml_data = parsePackageYaml(package_name=None, filename=filename)
+
+    lines = []
+
+    for line in yaml_file_text.splitlines():
+        if line.startswith("- module-name:"):
+            parts = line.split("'", 2)
+            module_name = parts[1]
+
+            checksum = getYamlDataHash(yaml_data.data.get(module_name))
+
+            line = "- module-name: '%s' # checksum: %s" % (module_name, checksum)
+
+        lines.append(line)
+
+    if update:
+        putTextFileContents(filename, lines, encoding="utf8")
+        logger.info("OK, checksums updated.", style="blue")
+
+
 def checkYamlSchema(logger, filename, effective_filename, update):
     logger.info("Checking '%s' for proper contents:" % effective_filename, style="blue")
 
     checkSchema(logger, filename)
     checkValues(logger, filename)
-    checkYamllint(logger, filename)
-
     checkOrUpdateChecksum(filename=filename, update=update, logger=logger)
+    checkYamllint(logger, filename)
