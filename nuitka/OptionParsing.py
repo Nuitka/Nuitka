@@ -1325,7 +1325,7 @@ windows_group.add_option(
 windows_group.add_option(
     "--windows-icon-from-ico",
     action="append",
-    dest="icon_path",
+    dest="windows_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="""\
@@ -1405,7 +1405,7 @@ is the only way to unlock disabling of console.Defaults to off.""",
 macos_group.add_option(
     "--macos-app-icon",
     action="append",
-    dest="icon_path",
+    dest="macos_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
@@ -1511,7 +1511,7 @@ linux_group.add_option(
     "--linux-icon",
     "--linux-onefile-icon",
     action="append",
-    dest="icon_path",
+    dest="linux_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
