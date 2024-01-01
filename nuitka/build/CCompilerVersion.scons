@@ -201,7 +201,7 @@ if "CC" in os.environ:
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env)
-elif clang_mode:
+elif clang_mode and not mingw_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
 
