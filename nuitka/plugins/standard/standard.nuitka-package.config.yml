@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: 133d24db79df4ce8def7b78e17b882f4
+# checksum: 37ccea88d0f5c27d31e4f84d47d7b22e
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -5659,12 +5659,23 @@
         - 'toga_gtk'
       when: 'linux'
 
+- module-name: 'toga.platform'
+  anti-bloat:
+    - description: 'better error message for environment backends'
+      replacements_plain:
+        '    factory = importlib.import_module(f"{backend.value}.factory")': |
+          #
+              try:
+                factory = importlib.import_module(f'{backend.value}.factory')
+              except ModuleNotFoundError:
+                import sys
+                sys.exit('Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s.factory'.' % backend.value)
+      when: 'not deployment'
+
 - module-name: 'toga_gtk'
   data-files:
     dirs:
       - 'resources'
-    patterns:
-      - '**/*.py'
 
     include-metadata:
       - 'toga-gtk'
@@ -5673,8 +5684,6 @@
   data-files:
     dirs:
       - 'resources'
-    patterns:
-      - '**/*.py'
     include-metadata:
       - 'toga-winforms'
   dlls:
