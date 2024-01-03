@@ -37,6 +37,7 @@ import unicodedata
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    FileNotFoundError,
     PermissionError,
     basestring,
     raw_input,
