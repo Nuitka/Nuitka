@@ -64,9 +64,9 @@ class TimerReport(object):
 
         # Shortcuts.
         if decider is True:
-            decider = lambda: True
+            decider = lambda: 1
         elif decider is False:
-            decider = lambda: False
+            decider = lambda: 0
 
         if logger is None:
             logger = general
