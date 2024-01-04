@@ -306,7 +306,7 @@ class OurLogger(object):
         )
         self.my_print(formatted_message, style=style, file=sys.stderr)
 
-    def warning(self, message, style="red", mnemonic=None, keep_format=False):
+    def warning(self, message, style="yellow", mnemonic=None, keep_format=False):
         if mnemonic is not None:
             from .Options import shallDisplayWarningMnemonic
 
