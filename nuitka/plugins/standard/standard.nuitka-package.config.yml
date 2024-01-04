@@ -1997,6 +1997,13 @@
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
+- module-name: 'networkx.drawing.nx_pydot' # checksum: 9e6d9638
+  anti-bloat:
+    - description: 'remove pytest reference (via nose)'
+      no-auto-follow:
+        'nose': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'networkx.utils.backends' # checksum: 591a2853
   anti-bloat:
     - description: 'remove pytest reference'
