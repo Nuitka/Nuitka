@@ -835,7 +835,7 @@ class TraceCollectionBase(object):
         # print("Enter mergeMultipleBranches", len(collections))
         with TimerReport(
             message="Running merge for %s took %%.2f seconds" % collections,
-            decider=lambda: 0,
+            decider=False,
         ):
             variable_versions = defaultdict(OrderedSet)
 
