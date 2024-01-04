@@ -4178,10 +4178,15 @@
     - depends:
         - 'queue'
 
-- module-name: 'skimage' # checksum: 810a705a
+- module-name: 'skimage' # checksum: 2265010b
   data-files:
     dirs:
       - 'data'
+  anti-bloat:
+    - description: 'remove pytest reference (via nose)'
+      no-auto-follow:
+        'nose': 'ignore'
+      when: 'not use_pytest'
 
 # TODO: Our lazy loader support may mean these are not really necessary anymore.
 - module-name: 'skimage._shared' # checksum: 9e389afa
