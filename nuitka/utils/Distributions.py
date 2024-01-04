@@ -277,7 +277,7 @@ _pdm_dir_cache = {}
 
 
 def isPdmPackageInstallation(distribution):
-    distribution_path = getattr(distribution, "_path")
+    distribution_path = getattr(distribution, "_path", None)
     if distribution_path is None:
         return False
 
