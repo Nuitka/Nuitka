@@ -174,6 +174,11 @@ def _getReportInputData(aborted):
         if _using_module_name is None:
             continue
 
+        # We might be interrupted, and have this information, but never actually
+        # finished the module.
+        if _using_module_name not in module_exclusions:
+            continue
+
         module_exclusions[_using_module_name][_module_name] = _reason
 
     memory_infos = getMemoryInfos()
