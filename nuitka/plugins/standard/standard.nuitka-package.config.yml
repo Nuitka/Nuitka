@@ -3652,6 +3652,13 @@
           def __init__(self, name):
             pass
 
+- module-name: 'pywt._utils' # checksum: 9e6d9638
+  anti-bloat:
+    - description: 'remove pytest reference (via nose)'
+      no-auto-follow:
+        'nose': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'pyzbar' # checksum: a2a725bb
   dlls:
     - from_filenames:
