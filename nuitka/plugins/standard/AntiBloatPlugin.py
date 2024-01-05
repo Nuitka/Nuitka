@@ -28,18 +28,16 @@ import re
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
 
-class NuitkaPluginAntiBloat(NuitkaPluginBase):
+class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
     # Lots of details, a bunch of state is cached
-    # pylint: disable=too-many-instance-attributes
 
     plugin_name = "anti-bloat"
     plugin_desc = (
@@ -64,6 +62,8 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
     ):
         # Many details, due to many repetitive arguments, pylint: disable=too-many-branches,too-many-statements
 
+        NuitkaYamlPluginBase.__init__(self)
+
         self.show_changes = show_changes
 
         # Default manually to default argument value:
@@ -79,8 +79,6 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             noinclude_dask_mode = noinclude_default_mode
         if noinclude_numba_mode is None:
             noinclude_numba_mode = noinclude_default_mode
-
-        self.config = getYamlPackageConfiguration()
 
         self.handled_modules = OrderedDict()
 
@@ -651,25 +649,32 @@ Undesirable import of '%s' (intending to avoid '%s') in \
                     )
 
         if using_module_name is not None:
-            config = self.config.get(using_module_name, section="anti-bloat")
 
-            if config:
-                for anti_bloat_config in config:
-                    no_auto_follows = anti_bloat_config.get("no-auto-follow", {})
+            def decideRelevant(key, value):
+                # Only checking key, pylint: disable=unused-argument
 
-                    for no_auto_follow, description in no_auto_follows.items():
-                        if module_name.hasNamespace(no_auto_follow):
-                            if self.evaluateCondition(
-                                full_name=module_name,
-                                condition=anti_bloat_config.get("when", "True"),
-                            ):
-                                self.no_auto_follows[no_auto_follow] = description
+                return module_name.hasNamespace(key)
 
-                                return (
-                                    False,
-                                    "according to yaml 'no-auto-follow' configuration of '%s'"
-                                    % using_module_name,
-                                )
+            for (
+                config_of_module_name,
+                no_auto_follow,
+                description,
+            ) in self.getYamlConfigItemItems(
+                module_name=using_module_name,
+                section="anti-bloat",
+                item_name="no-auto-follow",
+                decide_relevant=decideRelevant,
+                recursive=True,
+            ):
+                assert module_name.hasNamespace(no_auto_follow), no_auto_follow
+
+                self.no_auto_follows[no_auto_follow] = description
+
+                return (
+                    False,
+                    "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
+                    % (config_of_module_name, no_auto_follow),
+                )
 
         # Do not provide an opinion about it.
         return None
