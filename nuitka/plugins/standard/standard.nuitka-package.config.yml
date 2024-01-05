@@ -5096,7 +5096,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow'
+- module-name: 'tensorflow' # checksum: 2ee0185f
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5122,7 +5122,7 @@
         sys.modules["tensorflow.keras.layers"] = keras.layers
         sys.modules["tensorflow.keras.activations"] = keras.activations
         sys.modules["tensorflow.keras.models"] = keras.models
-
+      when: 'standalone'
   implicit-imports:
     - depends:
         - 'tensorboard'
