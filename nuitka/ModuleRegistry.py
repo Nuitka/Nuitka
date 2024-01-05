@@ -257,6 +257,16 @@ def addModuleInfluencingVariable(
     )
 
 
+def addModuleInfluencingParameter(
+    module_name, plugin_name, parameter_name, control_tags, result
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "parameter-used", (parameter_name, tuple(control_tags), result))
+    )
+
+
 def getModuleInfluences(module_name):
     return module_influencing_plugins.get(module_name, ())
 

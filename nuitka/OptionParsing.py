@@ -1661,6 +1661,19 @@ plugin_group.add_option(
 )
 
 plugin_group.add_option(
+    "--module-parameter",
+    action="append",
+    dest="module_parameters",
+    default=[],
+    help="""\
+Provide a module parameter. You are asked by some packages
+to provide extra decisions. Format is currently
+--module-parameter=module.name-option-name=value
+Default empty.""",
+)
+
+
+plugin_group.add_option(
     "--show-source-changes",
     action="append",
     dest="show_source_changes",

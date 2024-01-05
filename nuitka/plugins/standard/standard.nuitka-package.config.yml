@@ -1984,11 +1984,16 @@
     - depends:
         - '_cffi_backend'
 
-- module-name: 'networkx' # checksum: 3f9815dc
+- module-name: 'networkx' # checksum: fd0ab52f
   anti-bloat:
-    - description: 'remove networkx.testing usage'
+    - description: 'remove networkx.testing usage and pytest references'
       replacements_plain:
         'from networkx.testing.test import run as test': 'test = None'
+        'from networkx.tests.test import run as test': 'test = None'
+      no-auto-follow:
+        'nose': 'ignore'
+        'pytest': 'ignore'
+      when: 'not use_pytest'
 
 - module-name: 'networkx.classes.backends' # checksum: 29bf8c92
   anti-bloat:
@@ -5641,12 +5646,6 @@
       change_function:
         'main': 'un-callable'
 
-- module-name: 'timm' # checksum: 77802364
-  import-hacks:
-    - overridden-environment-variables:
-        'PYTORCH_JIT': '0'
-      when: 'standalone'
-
 - module-name: 'timm.models.hrnet' # checksum: fdbe0e63
   anti-bloat:
     - replacements_plain:
@@ -5785,7 +5784,10 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 4f9716da
+- module-name: 'torch' # checksum: ac3832ce
+  parameters:
+    - 'name': 'disable-jit'
+      'values': 'value in ("yes", "no")'
   data-files:
     dirs:
       - 'bin'
@@ -5802,6 +5804,16 @@
       bloat-mode-overrides:
         'unittest': 'allow'
       when: 'not use_unittest'
+
+  options:
+    checks:
+      - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
+        support_info: 'parameter'
+        when: 'standalone and get_parameter("disable-jit", None) is None'
+  import-hacks:
+    - force-environment-variables:
+        'PYTORCH_JIT': '0'
+      when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
 - module-name: 'torch._dynamo.logging' # checksum: 1d305809
   anti-bloat:

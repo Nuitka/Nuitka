@@ -287,6 +287,15 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["value"] = variable_value
+            elif influence == "parameter-used":
+                parameter_name, condition_tags_used, parameter_value = detail
+
+                influence_xml_node.attrib["parameter"] = parameter_name
+                if condition_tags_used:
+                    influence_xml_node.attrib["tags_used"] = ",".join(
+                        condition_tags_used
+                    )
+                influence_xml_node.attrib["value"] = repr(parameter_value)
             else:
                 assert False, influence
 
