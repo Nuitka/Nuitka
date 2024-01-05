@@ -548,6 +548,25 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     code = "\n".join(entry.get("pre-import-code"))
 
         for entry in self.config.get(full_name, section="import-hacks"):
+            if "force-environment-variables" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    for (
+                        environment_variable_name,
+                        environment_variable_value,
+                    ) in entry.get("force-environment-variables").items():
+                        code = """\
+import os
+os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
+""" % {
+                            "environment_variable_name": environment_variable_name,
+                            "environment_variable_value": environment_variable_value,
+                        }
+                        yield code, """\
+According to Yaml 'force-environment-variables' configuration."""
+
+        for entry in self.config.get(full_name, section="import-hacks"):
             if "overridden-environment-variables" in entry:
                 if self.evaluateCondition(
                     full_name=full_name, condition=entry.get("when", "True")

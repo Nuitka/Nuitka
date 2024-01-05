@@ -8,6 +8,25 @@
                 "type": "string",
                 "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
             },
+            "parameters": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "values": {
+                            "type": "string"
+                        },
+                        "default": {
+                            "type": "string"
+                        }
+                    },
+                    "required" : ["name", "values"]
+                }
+            },
             "variables": {
                 "type": "object",
                 "additionalProperties": false,
@@ -237,7 +256,7 @@
                                 },
                                 "support_info": {
                                     "type": "string",
-                                    "enum": ["error", "warning", "info"]
+                                    "enum": ["error", "warning", "info", "parameter"]
                                 },
                                 "when": {
                                     "type": "string"
@@ -254,6 +273,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "overridden-environment-variables": {
+                            "type": "object",
+                            "additionalProperties": {
+                                 "type": "string"
+                            }
+                        },
+                        "force-environment-variables": {
                             "type": "object",
                             "additionalProperties": {
                                  "type": "string"

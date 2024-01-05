@@ -2266,3 +2266,16 @@ def shallShowExecutedCommands():
 def getFcfProtectionMode():
     """:returns: string derived from ``--fcf-protection``"""
     return options.cf_protection
+
+
+def getModuleParameter(module_name, parameter_name):
+    """:returns: string derived from ``--module-parameter``"""
+    option_name = module_name.asString() + "-" + parameter_name
+
+    for module_option in options.module_parameters:
+        module_option_name, module_option_value = module_option.split("=", 1)
+
+        if option_name == module_option_name:
+            return module_option_value
+
+    return None
