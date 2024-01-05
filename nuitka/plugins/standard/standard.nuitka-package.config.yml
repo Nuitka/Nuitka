@@ -1984,9 +1984,9 @@
     - depends:
         - '_cffi_backend'
 
-- module-name: 'networkx' # checksum: fd0ab52f
+- module-name: 'networkx' # checksum: 6f2aa88a
   anti-bloat:
-    - description: 'remove networkx.testing usage and pytest references'
+    - description: 'remove networkx.testing usage and pytest reference (via nose)'
       replacements_plain:
         'from networkx.testing.test import run as test': 'test = None'
         'from networkx.tests.test import run as test': 'test = None'
@@ -2000,20 +2000,6 @@
     - description: 'remove pytest reference'
       replacements_plain:
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
-      when: 'not use_pytest'
-
-- module-name: 'networkx.drawing.nx_pydot' # checksum: 9e6d9638
-  anti-bloat:
-    - description: 'remove pytest reference (via nose)'
-      no-auto-follow:
-        'nose': 'ignore'
-      when: 'not use_pytest'
-
-- module-name: 'networkx.utils.backends' # checksum: 591a2853
-  anti-bloat:
-    - description: 'remove pytest reference'
-      no-auto-follow:
-        'pytest': 'ignore'
       when: 'not use_pytest'
 
 - module-name: 'networkx.utils.decorators' # checksum: 7f34ff95
