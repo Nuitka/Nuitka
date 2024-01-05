@@ -49,6 +49,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
+    addModuleInfluencingParameter,
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
@@ -1312,6 +1313,24 @@ except ImportError:
 
         context["get_variable"] = get_variable
 
+        def get_parameter(parameter_name, default):
+            result = Options.getModuleParameter(full_name, parameter_name)
+
+            if result is None:
+                result = default
+
+            addModuleInfluencingParameter(
+                module_name=full_name,
+                plugin_name=self.plugin_name,
+                parameter_name=parameter_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
+
+            return result
+
+        context["get_parameter"] = get_parameter
+
         if extra_context:
             context.update(extra_context)
 
@@ -1350,6 +1369,22 @@ except ImportError:
         context.update(control_tags)
 
         context.update(_getEvaluationContext())
+
+        def get_parameter(parameter_name, default):
+            result = Options.getModuleParameter(full_name, parameter_name)
+
+            if result is None:
+                result = default
+
+            addModuleInfluencingParameter(
+                module_name=full_name,
+                plugin_name=self.plugin_name,
+                parameter_name=parameter_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
+
+        context["get_parameter"] = get_parameter
 
         # We trust the yaml files, pylint: disable=eval-used
         try:
