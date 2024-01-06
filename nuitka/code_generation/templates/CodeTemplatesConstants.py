@@ -55,8 +55,11 @@ static PyObject *STRIP_DIRNAME(PyObject *path) {
 
     return PyString_FromStringAndSize(path_cstr, last_sep - path_cstr);
 #else
-    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_dot, 0, PyUnicode_GetLength(path), -1);
-
+#ifdef _WIN32
+    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_backslash, 0, PyUnicode_GetLength(path), -1);
+#else
+    Py_ssize_t dot_index = PyUnicode_Find(path, const_str_slash, 0, PyUnicode_GetLength(path), -1);
+#endif
     if (likely(dot_index != -1)) {
         return PyUnicode_Substring(path, 0, dot_index);
     } else {
@@ -160,7 +163,9 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     PyObject *binary_directory = getContainingDirectoryObject(false);
 #ifdef _NUITKA_STANDALONE
+#ifndef _NUITKA_ONEFILE_MODE
     binary_directory = STRIP_DIRNAME(binary_directory);
+#endif
 
 #ifdef _NUITKA_MACOS_BUNDLE
     binary_directory = STRIP_DIRNAME(binary_directory);
