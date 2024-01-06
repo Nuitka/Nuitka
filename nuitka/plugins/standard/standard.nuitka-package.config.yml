@@ -2,7 +2,7 @@
 # yamllint disable rule:indentation
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
-# checksum: ce4d7554c3ee74ac46e6e0fb31df586a
+# checksum: 9e25c98f2bb31edc5f9c1b6b46609bcc
 ---
 - module-name: '_dbus_glib_bindings'
   implicit-imports:
@@ -3213,13 +3213,14 @@
       - '.'
 
 - module-name: 'pygame'
+  data-files:
+    patterns:
+      - 'freesansbold.ttf'
+
   options:
     checks:
       - description: 'PyGame is a GUI framework'
         console: 'recommend'
-  data-files:
-    patterns:
-      - "freesansbold.ttf"
 
 - module-name: 'pygeos._geometry'
   implicit-imports:
