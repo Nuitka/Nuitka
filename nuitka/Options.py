@@ -765,6 +765,14 @@ Error, onefile mode on Termux requires 'termux-elf-cleaner' to be installed, \
 use 'pkg install termux-elf-cleaner' to use it."""
         )
 
+    for user_yaml_filename in getUserProvidedYamlFiles():
+        if not os.path.exists(user_yaml_filename):
+            Tracing.options_logger.sysexit(
+                """\
+Error, cannot find user provider yaml file '%s'."""
+                % user_yaml_filename
+            )
+
     # This triggers checks inside that code
     getCompilationReportUserData()
 
