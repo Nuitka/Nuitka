@@ -3123,7 +3123,11 @@
     dirs:
       - '.'
 
-- module-name: 'pygame'
+- module-name: 'pygame' # checksum: 74ba6d7b
+  data-files:
+    patterns:
+      - 'freesansbold.ttf'
+
   options:
     checks:
       - description: 'PyGame is a GUI framework'
