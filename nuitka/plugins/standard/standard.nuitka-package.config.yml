@@ -1373,13 +1373,15 @@
                 sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
       when: 'not deployment'
 
-- module-name: 'h5py'
+- module-name: 'h5py' # checksum: 5a8caf97
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
         'enable_ipython_completer': "'(lambda: None)'"
       when: 'not use_ipython'
     - description: 'remove h5py testing framework'
+      replacements_plain:
+        'from .tests import run_tests': ''
       change_function:
         'run_tests': "'(lambda args=None: None)'"
 
