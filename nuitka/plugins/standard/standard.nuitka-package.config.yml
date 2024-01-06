@@ -3217,6 +3217,9 @@
     checks:
       - description: 'PyGame is a GUI framework'
         console: 'recommend'
+  data-files:
+    patterns:
+      - "freesansbold.ttf"
 
 - module-name: 'pygeos._geometry'
   implicit-imports:
