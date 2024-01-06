@@ -4160,7 +4160,13 @@
     - depends:
         - 'skimage.external.tifffile._tifffile'
 
-- module-name: 'skimage.feature'
+- module-name: 'skimage.external.tifffile.tifffile_local' # checksum: 9838c964
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': 'un-callable'
+
+- module-name: 'skimage.feature' # checksum: 3caac2d
   implicit-imports:
     - depends:
         - 'skimage.feature.brief_cy'
