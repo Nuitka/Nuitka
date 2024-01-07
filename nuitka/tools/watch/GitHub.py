@@ -18,6 +18,7 @@
 """ GitHub interfacing for nuitka-watch. """
 
 import os
+import sys
 
 from nuitka.tools.quality.Git import (
     getCurrentBranchName,
@@ -33,12 +34,11 @@ def checkInNuitkaWatch():
     assert remote_url == "git@github.com:Nuitka/Nuitka-Watch.git", remote_url
     branch_name = getCurrentBranchName()
     assert branch_name == "main", branch_name
+    assert os.path.exists(".git")
 
 
 def createNuitkaWatchPR(category, description):
     checkInNuitkaWatch()
-
-    # TODO: Need to go to Nuitka-Watch root dir, how?
 
     modified_files = list(getModifiedPaths())
 
@@ -72,7 +72,7 @@ current Nuitka-Watch state.
 """ % (
         description,
         changed_flavor,
-        "unknown command",
+        " ".join(sys.argv),
     )
 
     branch_name = "auto-%s-%s" % (category, changed_flavor)

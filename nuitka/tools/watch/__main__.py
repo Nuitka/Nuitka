@@ -52,6 +52,8 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
 from nuitka.Version import parseNuitkaVersionToTuple
 
+from .GitHub import createNuitkaWatchPR
+
 watch_logger = OurLogger("", base_style="blue")
 
 
@@ -589,6 +591,15 @@ Do not change anything, just report what would be done. Not yet perfectly true. 
 Recompile even if the versions seems not changed. Default %default.""",
     )
 
+    parser.add_option(
+        "--pr",
+        action="store",
+        dest="nuitka_pr_mode",
+        default=None,
+        help="""\
+PR to create. Default not making a PR.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) <= 1, positional_args
@@ -615,6 +626,11 @@ Recompile even if the versions seems not changed. Default %default.""",
 
     base_dir = os.path.abspath(base_dir)
 
+    if options.nuitka_pr_mode is not None:
+        pr_category, pr_description = options.nuitka_pr_mode.split(",")
+    else:
+        pr_category = pr_description = None
+
     with withDirectoryChange(base_dir):
         for case_filename in scanCases(base_dir):
             case_relpath = relpath(case_filename, start=base_dir)
@@ -630,6 +646,9 @@ Recompile even if the versions seems not changed. Default %default.""",
                     no_pipenv_update=options.no_pipenv_update,
                     nuitka_update_mode=options.nuitka_update_mode,
                 )
+
+        if pr_category is not None:
+            createNuitkaWatchPR(category=pr_category, description=pr_description)
 
 
 if __name__ == "__main__":
