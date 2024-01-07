@@ -132,7 +132,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'astropy'
+- module-name: 'astor' # checksum: 85584475
+  data-files:
+    patterns:
+      - 'VERSION'
+
+- module-name: 'astropy' # checksum: a8187224
   data-files:
     patterns:
       - 'CITATION'
