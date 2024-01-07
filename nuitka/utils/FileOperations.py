@@ -683,7 +683,8 @@ def hasFilenameExtension(path, extensions):
     """Has a filename one of the given extensions.
 
     Note: The extensions should be normalized, i.e. lower case and will match other
-    cases where the file system does that on a platform.
+    cases where the file system does that on a platform. Also they include a dot,
+    e.g. ".qml" is a good value.
     """
 
     extension = getFilenameExtension(path)
@@ -844,7 +845,7 @@ def changeTextFileContents(filename, contents, encoding=None, compare_only=False
 
 @contextmanager
 def withPreserveFileMode(filenames):
-    if type(filenames) in (str, unicode):
+    if isinstance(filenames, basestring):
         filenames = [filenames]
 
     old_modes = {}
@@ -859,7 +860,7 @@ def withPreserveFileMode(filenames):
 
 @contextmanager
 def withMadeWritableFileMode(filenames):
-    if type(filenames) in (str, unicode):
+    if isinstance(filenames, basestring):
         filenames = [filenames]
 
     with withPreserveFileMode(filenames):
