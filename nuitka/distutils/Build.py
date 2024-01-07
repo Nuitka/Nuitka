@@ -53,7 +53,7 @@ prepare_metadata_for_build_wheel = _BACKEND.prepare_metadata_for_build_wheel
 build_wheel = _BACKEND.build_wheel
 build_sdist = _BACKEND.build_sdist
 
-LEGACY_EDITABLE = getattr(setuptools.build_meta, "LEGACY_EDITABLE")
+LEGACY_EDITABLE = getattr(setuptools.build_meta, "LEGACY_EDITABLE", False)
 
 if not LEGACY_EDITABLE:
     get_requires_for_build_editable = _BACKEND.get_requires_for_build_editable
