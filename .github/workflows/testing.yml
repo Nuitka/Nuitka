@@ -93,7 +93,7 @@ jobs:
 
       - name: Auto-format check on Nuitka source code
         run: |
-          # Install clang-format-17 which we use in VS code.
+          # Install clang-format that matches what we use in VS code.
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt-get install software-properties-common
           sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main'
