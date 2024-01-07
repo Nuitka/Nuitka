@@ -19,7 +19,10 @@
 
 import os
 
-from nuitka.__past__ import unicode
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    FileNotFoundError,
+    unicode,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental
 from nuitka.PythonFlavors import (

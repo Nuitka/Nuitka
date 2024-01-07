@@ -37,6 +37,7 @@ import unicodedata
 from contextlib import contextmanager
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    FileNotFoundError,
     PermissionError,
     basestring,
     raw_input,
@@ -843,7 +844,7 @@ def changeTextFileContents(filename, contents, encoding=None, compare_only=False
 
 @contextmanager
 def withPreserveFileMode(filenames):
-    if type(filenames) is str:
+    if type(filenames) in (str, unicode):
         filenames = [filenames]
 
     old_modes = {}
@@ -858,7 +859,7 @@ def withPreserveFileMode(filenames):
 
 @contextmanager
 def withMadeWritableFileMode(filenames):
-    if type(filenames) is str:
+    if type(filenames) in (str, unicode):
         filenames = [filenames]
 
     with withPreserveFileMode(filenames):
