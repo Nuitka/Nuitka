@@ -5312,6 +5312,12 @@
         : 'run_all_tests_in_graph_and_eager_modes = None'
       when: 'not use_unittest'
 
+- module-name: 'tensorflow.contrib.factorization.python.ops.factorization_ops' # checksum: 4ea2083
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_factorization_ops'
+
 - module-name: 'tensorflow.contrib.factorization.python.opso' # checksum: 280169f9
   implicit-imports:
     - depends:
