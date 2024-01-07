@@ -153,6 +153,11 @@ PermissionError = (  # pylint: disable=redefined-builtin
     PermissionError if str is not bytes else OSError
 )
 
+# Make it available for Python2 as well
+FileNotFoundError = (  # pylint: disable=redefined-builtin
+    FileNotFoundError if str is not bytes else IOError
+)
+
 if not hasattr(pkgutil, "ModuleInfo"):
     # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
     from collections import namedtuple
@@ -203,3 +208,4 @@ assert MutableSet
 assert subprocess
 assert GenericAlias or intern
 assert UnionType or intern
+assert FileNotFoundError
