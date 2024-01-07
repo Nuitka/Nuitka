@@ -513,6 +513,7 @@ PyObject *IMPORT_HARD_UNITTEST(void) {
 }
 
 /* C helper for hard import of module "unittest.mock" import. */
+#if PYTHON_VERSION >= 0x300
 PyObject *IMPORT_HARD_UNITTEST__MOCK(void) {
     static PyObject *module_import_hard_unittest__mock = NULL;
 
@@ -530,3 +531,4 @@ PyObject *IMPORT_HARD_UNITTEST__MOCK(void) {
 
     return module_import_hard_unittest__mock;
 }
+#endif

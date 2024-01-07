@@ -85,7 +85,9 @@ def main():
         dest="mode",
         default=None,
         help="""\
-The mode of update, prerelease, hotfix, release, auto (default auto determines from branch).""",
+The mode of version number update, "prerelease", "hotfix", "release",
+"auto" (default auto determined from branch name), and "redate" bumps
+the changelog date only.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -118,18 +120,22 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
         else:
             sys.exit("Error, cannot detect mode from branch name '%s'." % branch_name)
 
-    new_version = getBumpedVersion(mode, old_version)
-    my_print("Bumped %s '%s' -> '%s'." % (mode, old_version, new_version))
+    if mode != "redate":
+        new_version = getBumpedVersion(mode, old_version)
+        my_print("Bumped %s '%s' -> '%s'." % (mode, old_version, new_version))
 
-    with openTextFile("nuitka/Version.py", "w") as options_file:
-        for line in option_lines:
-            if line.startswith("Nuitka V"):
-                line = "Nuitka V" + new_version + "\n"
+        with openTextFile("nuitka/Version.py", "w") as options_file:
+            for line in option_lines:
+                if line.startswith("Nuitka V"):
+                    line = "Nuitka V" + new_version + "\n"
 
-            options_file.write(line)
+                options_file.write(line)
 
-    # Debian is currently in not freeze, change to "experimental" once that changes.
-    updateDebianChangelog(old_version, new_version, "unstable")
+        # Debian is currently in not freeze, change to "experimental" once that changes.
+        updateDebianChangelog(old_version, new_version, "unstable")
+    else:
+        # Debian is currently in not freeze, change to "experimental" once that changes.
+        updateDebianChangelog(old_version, old_version, "unstable")
 
     if mode == "release":
         with withFileOpenedAndAutoFormatted("Changelog.rst") as changelog_file:

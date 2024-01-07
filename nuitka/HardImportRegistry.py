@@ -91,6 +91,7 @@ hard_modules_version = {
     "importlib.metadata": (0x380, None, None),
     "ctypes.wintypes": (None, None, "win32"),
     "builtin": (0x300, None, None),
+    "unittest.mock": (0x300, None, None),
 }
 
 hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
