@@ -5160,7 +5160,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 36137aee
+- module-name: 'tensorflow' # checksum: 8a5551ae
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5173,6 +5173,7 @@
         'import site as _site': '_site = None'
         'if _running_from_pip_package()': 'if False'
         '_site.ENABLE_USER_SITE': 'False'
+        '_site_packages_dirs += [_site.USER_SITE]': 'pass'
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
