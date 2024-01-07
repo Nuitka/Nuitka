@@ -474,6 +474,11 @@ class CompiledPythonModule(
         self.used_modules = None
 
     def getUsedModules(self):
+        if self.trace_collection is None:
+            # Optimization is not yet done at all, but report writing for error
+            # exit may happen.
+            return ()
+
         return self.trace_collection.getModuleUsageAttempts()
 
     def getUsedDistributions(self):
