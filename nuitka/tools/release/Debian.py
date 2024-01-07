@@ -42,7 +42,18 @@ def _callDebchange(*args):
     check_call(args, stdin=getNullInput())
 
 
+_discarded_last_entry = False
+
+
 def _discardDebianChangelogLastEntry():
+    # Kind of weak, but we do not keep track if we do a lot of things,
+    # for every program run this is only done once to simplify code,
+    # but it's not reusable therefore.
+    # pylint: disable=global-statement
+    global _discarded_last_entry
+
+    if _discarded_last_entry:
+        return
     changelog_lines = getFileContents("debian/changelog").splitlines()
 
     with openTextFile("debian/changelog", "w") as output:
@@ -54,9 +65,14 @@ def _discardDebianChangelogLastEntry():
             if not first:
                 output.write(line + "\n")
 
+    _discarded_last_entry = True
+
 
 def updateDebianChangelog(old_version, new_version, distribution):
     debian_version = new_version.replace("rc", "~rc") + "+ds-1"
+
+    if old_version == new_version:
+        _discardDebianChangelogLastEntry()
 
     os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
 

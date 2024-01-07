@@ -132,7 +132,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'astropy'
+- module-name: 'astor' # checksum: 85584475
+  data-files:
+    patterns:
+      - 'VERSION'
+
+- module-name: 'astropy' # checksum: a8187224
   data-files:
     patterns:
       - 'CITATION'
@@ -1373,13 +1378,15 @@
                 sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
       when: 'not deployment'
 
-- module-name: 'h5py'
+- module-name: 'h5py' # checksum: 5a8caf97
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
         'enable_ipython_completer': "'(lambda: None)'"
       when: 'not use_ipython'
     - description: 'remove h5py testing framework'
+      replacements_plain:
+        'from .tests import run_tests': ''
       change_function:
         'run_tests': "'(lambda args=None: None)'"
 
@@ -1872,7 +1879,24 @@
     dirs:
       - 'wordlist'
 
-- module-name: 'moto'
+- module-name: 'mock.mock' # checksum: 76ad686f
+  anti-bloat:
+    - replacements_plain:
+        'from unittest.util import safe_repr': ''
+      append_plain: |
+        def safe_repr(obj, short=False):
+          _MAX_LENGTH = 80
+
+          try:
+            result = repr(obj)
+          except Exception:
+            result = object.__repr__(obj)
+          if not short or len(result) < _MAX_LENGTH:
+            return result
+          return result[:_MAX_LENGTH] + ' [truncated]...'
+      when: 'not use_unittest'
+
+- module-name: 'moto' # checksum: cd522fec
   data-files:
     patterns:
       - 'ec2/resources/instance_types.json'
@@ -3123,7 +3147,11 @@
     dirs:
       - '.'
 
-- module-name: 'pygame'
+- module-name: 'pygame' # checksum: 74ba6d7b
+  data-files:
+    patterns:
+      - 'freesansbold.ttf'
+
   options:
     checks:
       - description: 'PyGame is a GUI framework'
@@ -4154,7 +4182,13 @@
     - depends:
         - 'skimage.external.tifffile._tifffile'
 
-- module-name: 'skimage.feature'
+- module-name: 'skimage.external.tifffile.tifffile_local' # checksum: 9838c964
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': 'un-callable'
+
+- module-name: 'skimage.feature' # checksum: 3caac2d
   implicit-imports:
     - depends:
         - 'skimage.feature.brief_cy'
@@ -5084,7 +5118,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow'
+- module-name: 'tensorflow' # checksum: 2ee0185f
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5110,7 +5144,7 @@
         sys.modules["tensorflow.keras.layers"] = keras.layers
         sys.modules["tensorflow.keras.activations"] = keras.activations
         sys.modules["tensorflow.keras.models"] = keras.models
-
+      when: 'standalone'
   implicit-imports:
     - depends:
         - 'tensorboard'
