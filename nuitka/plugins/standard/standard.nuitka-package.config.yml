@@ -383,10 +383,16 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
+- module-name: 'boto' # checksum: 22795308
+  data-files:
+    patterns:
+      - '*.json'
+
 - module-name: 'boto3' # checksum: b316019a
   data-files:
     dirs:
       - 'data'
+
   implicit-imports:
     - depends:
         - 'boto3.ec2'
