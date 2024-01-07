@@ -19,7 +19,10 @@
 
 import os
 
-from nuitka.__past__ import unicode
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    FileNotFoundError,
+    unicode,
+)
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental
 from nuitka.PythonFlavors import (
@@ -288,7 +291,7 @@ _pdm_dir_cache = {}
 
 
 def isPdmPackageInstallation(distribution):
-    distribution_path = getattr(distribution, "_path")
+    distribution_path = getattr(distribution, "_path", None)
     if distribution_path is None:
         return False
 
