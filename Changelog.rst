@@ -145,6 +145,12 @@ Bug Fixes
 -  Standalone: Added necessary data file for ``pygame`` package. Added
    in 1.9.7 already.
 
+-  Standalone: Fix, was not properly handling standard library
+   overloading module names for decisions. Inclusion and compilation
+   mode were made as if the module was part of the standard library,
+   rather than user code. This is now properly checking if it's also an
+   actual standard library module.
+
 New Features
 ============
 
@@ -163,19 +169,33 @@ New Features
    automatically locating the compilation result independent of options
    used.
 
--  Plugins: Now detects modified yaml files and points to checking them
-   which will after successful checks update their checksum. This should
-   make it less likely to get them wrong.
+-  Plugins: Now provides a checksum for yaml files, but not yet verifies
+   them at runtime, to ask the user to run the checker tool to update it
+   when they make modifications.
 
 -  Windows: Detect when we create too large compiled executables. There
    is a limit of 2GB that you might e.g. violate by attempting to embed
    very large files. This doesn't cover onefile yet.
+
+-  Watch: The tool can now create PRs with the changes in Nuitka-Watch
+   for merging, this is for using it in the CI.
+
+-  Plugins: Added ``overridden-environment-variables`` feature to
+   package configuration. These are environment variable changes that
+   only last during the import of that module and are undone later.
+
+-  Plugins: Added ``force-environment-variables`` feature to package
+   configuration. These are environment variable changes done on module
+   import that are not undone.
 
 Optimization
 ============
 
 -  Avoid late specialization for ``None`` returns in generators and do
    it during tree building already, to remove noise.
+
+-  Added successful detection of static libpython for self compiled
+   Python Linux and macOS. This makes it work with ``pyenv`` as well.
 
 -  Standalone: Avoid including ``.pyx`` files when scanning for data
    files, these are code files too, in this case source files that are
@@ -212,11 +232,20 @@ Optimization
 -  Anti-Bloat: Avoid ``h5py.tests`` with older ``h5py`` as well. Added
    in 1.9.7 already.
 
+-  Anti-Bloat: Using ``distributed.utils_test`` is also considered using
+   ``pytest``.
+
+-  Anti-Bloat: Avoid ``IPython`` in the ``pip`` package.
+
 Organisational
 ==============
 
 -  Project: Added Code of Conduct. Adapted from the one used in the
    Linux kernel.
+
+-  User Manual: Added pointer for Nuitka-Action `Nuitka-Action
+   <https://github.com/Nuitka/Nuitka-Action>`__ for users interested in
+   using Nuitka in GitHub workflows.
 
 -  Added ``.gitignore`` to build folder that just causes these folders
    to be ignored by git.
@@ -240,8 +269,8 @@ Organisational
    make it easier to only see the ones currently being worked on. To get
    the old behavior of showing everything, use ``*`` as a pattern.
 
--  UI: Allow using ``~`` in data files source path and expand it
-   properly.
+-  UI: Allow using ``~`` in data files source path for command line
+   options and expand it properly.
 
 -  Quality: Enhanced schema for our package configuration yaml files to
    detect suffixes with leading dots, that is not wanted. These now fail
@@ -279,12 +308,17 @@ Organisational
 Cleanups
 ========
 
+-  Use enums in the Nuitka package configuration schema.
+
 -  User Manual was proof read and had a bunch of wordings improved.
 
 -  Cleanup, avoid "unused but set variable" warning from the C compiler
    for hard some forms of hard imports.
 
 -  Prefer ``os.getenv`` over ``os.environ.get`` for readability.
+
+-  Changed parts of the C codes that ``clang-format`` had a hard time
+   with to something more normal.
 
 Tests
 =====
