@@ -5160,7 +5160,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 2ee0185f
+- module-name: 'tensorflow' # checksum: 36137aee
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5174,6 +5174,7 @@
         'if _running_from_pip_package()': 'if False'
         '_site.ENABLE_USER_SITE': 'False'
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
+        'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
       append_plain: |
         import sys
@@ -5193,11 +5194,19 @@
         - 'tensorflow_estimator'
         - 'keras.api._v2.keras'
 
-- module-name: 'tensorflow._api.v1.compat.v2' # checksum: 3b5c62cb
+- module-name: 'tensorflow._api.v1.compat.v1' # checksum: 3e84bd8b
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow._api.v1.compat.v1 import test': 'test = None'
+
+- module-name: 'tensorflow._api.v1.compat.v2' # checksum: 669a14a3
+  anti-bloat:
+    - description: 'remove useless tensorflow testing usage'
+      replacements_plain:
+        'from . import test': 'test = None'
+        'from tensorflow._api.v1.compat.v2 import test': 'test = None'
 
 - module-name: 'tensorflow._api.v2.__internal__' # checksum: 6575e290
   anti-bloat:
