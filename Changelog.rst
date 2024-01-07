@@ -101,12 +101,49 @@ Bug Fixes
 -  Debian: The ``extern`` namespace might not exist in the
    ``pkg_resources`` module, make the code work with versions that
    remove it and use the proper external package names then. Fixed in
-   1.9.5 already.
+   1.9.6 already.
 
 -  Compatibility: Fix, need to also have ``.exists`` method in our files
    reader objects. Fixed in 1.9.5 already.
 
 -  macOS: Fix, PyQt5 standalone can fail due to ``libqpdf`` too.
+
+-  Compatibility: Make ``dill-compat`` plugin support module mode too,
+   previously this only worked for executables only. Fixed in 1.9.6
+   already.
+
+-  Standalone: Added data file for ``curl_cffi`` package. Fixed in 1.9.6
+   already.
+
+-  Windows: Fix warnings given by MinGW64 in debug mode for onefile
+   compilation. Fixed in 1.9.6 already.
+
+-  Python2: The handling of DLL permission changes was not robust
+   against using unicode filenames. Fixed in 1.9.7 already.
+
+-  Python2: Fix, could crash on Debian packages when detecting their
+   installer. Fixed in 1.9.7 already.
+
+-  Standalone: Added required data file for ``astor`` package. Fixed in
+   1.9.7 already.
+
+-  Reports: Fix, in case of build crashes during optimization, the bug
+   report creation could be crashing because the module is not in the
+   list of done modules yet. Fixed in 1.9.7 already.
+
+-  Python2: Fix, ``unittest.mock`` was not yet available, code
+   attempting to use it was crashing the compilation. Fixed in 1.9.7
+   already.
+
+-  Accelerated: Fix, tensorflow configuration removing ``site`` usage
+   needs to apply only to standalone mode. Fixed in 1.9.7 already.
+
+-  Plugins: Fix, the ``get_dist_name`` Nuitka package configuration
+   function could crash in some rare configurations. Fixed in 1.9.7
+   already.
+
+-  Standalone: Added necessary data file for ``pygame`` package. Added
+   in 1.9.7 already.
 
 New Features
 ============
@@ -159,6 +196,22 @@ Optimization
 -  Anti-Bloat: Avoid using ``triton`` in the ``bitsandbytes`` package.
    Added in 1.9.3 already.
 
+-  Anti-Bloat: Avoid ``IPython`` in ``tf_keras`` package as well. Added
+   in 1.9.6 already.
+
+-  Anti-Bloat: Avoid ``unittest`` in ``mock.mock`` module. Added in
+   1.9.7 already.
+
+-  Avoid importing ``setuptools_scm`` during compilation when using the
+   ``tqdm`` inline copy, this also avoids a warning on Ubuntu. Added in
+   1.9.7 already.
+
+-  Anti-Bloat: Avoid ``doctest`` in ``skimage`` in their ``tifffile``
+   inline copy as well. Added in 1.9.7 already.
+
+-  Anti-Bloat: Avoid ``h5py.tests`` with older ``h5py`` as well. Added
+   in 1.9.7 already.
+
 Organisational
 ==============
 
@@ -206,6 +259,22 @@ Organisational
    Currently only for gcc, where we need it until loop tracing is
    better, we can now use ``--experimental=allow-c-warnings`` options to
    make ``--debug`` work for some known currently unavoidable warnings.
+
+-  macOS: Make ``--macos-create-app-bundle`` imply standalone mode, it's
+   not working or useful for accelerated mode anyway.
+
+-  Standalone: Added support for using self-compiled Python versions
+   that are not installed on Linux and macOS. This avoids having to do
+   ``make install`` and can ease debugging with changes made in Python
+   core itself. Added in 1.9.6 already.
+
+-  Release: Added ability to simple re-date hotfixes. Previously the
+   version bump commit needed to be dropped, now a fixup commit is easy
+   to generate.
+
+-  UI: Check user yaml file present immediately. Otherwise it was
+   crashing when parsing yaml files first time with less comprehensible
+   exceptions. Added in 1.9.7 already.
 
 Cleanups
 ========
