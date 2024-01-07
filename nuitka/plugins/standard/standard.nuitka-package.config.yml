@@ -5283,6 +5283,13 @@
         - 'tensorflow.compiler.tf2xla.ops._xla_ops'
       when: 'not win32'
 
+- module-name: 'tensorflow.contrib' # checksum: e2ec935f
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.contrib import testing': 'testing=None'
+      when: 'not use_unittest'
+
 - module-name: 'tensorflow.contrib.bigtable.python.ops' # checksum: 549b8309
   implicit-imports:
     - depends:
@@ -5294,6 +5301,15 @@
     - depends:
         - 'tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops'
       when: 'not win32'
+
+- module-name: 'tensorflow.contrib.eager.python.tfe' # checksum: 9ea31d00
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.framework.test_util import run_in_graph_and_eager_modes as run_test_in_graph_and_eager_modes': 'run_test_in_graph_and_eager_modes = None'
+        ? 'from tensorflow.python.framework.test_util import run_all_in_graph_and_eager_modes as run_all_tests_in_graph_and_eager_modes'
+        : 'run_all_tests_in_graph_and_eager_modes = None'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow.contrib.factorization.python.opso' # checksum: 280169f9
   implicit-imports:
