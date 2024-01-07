@@ -38,6 +38,7 @@ from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContents,
     getFileSize,
+    hasFilenameExtension,
     makePath,
     putTextFileContents,
     removeFileExecutablePermission,
@@ -125,9 +126,7 @@ def _addWindowsIconFromIcons(onefile):
             icon_path = icon_spec
             icon_index = None
 
-        icon_path = os.path.normcase(icon_path)
-
-        if not icon_path.endswith(".ico"):
+        if not hasFilenameExtension(icon_path, ".ico"):
             postprocessing_logger.info(
                 "File '%s' is not in Windows icon format, converting to it." % icon_path
             )
