@@ -336,7 +336,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         module_filename = self.locateModule(module_name)
 
         if os.path.isfile(module_filename):
-            module_filename = yield os.path.dirname(module_filename)
+            module_filename = os.path.dirname(module_filename)
 
         for relative_path in config.get("global-sys-path", ()):
             candidate = os.path.abspath(os.path.join(module_filename, relative_path))
