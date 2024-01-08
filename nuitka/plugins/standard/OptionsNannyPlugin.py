@@ -62,7 +62,7 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         if support_info != "parameter":
             if condition != "True":
                 problem_desc = (
-                    "incomplete support due untrue condition '%s'" % condition
+                    "incomplete support due to untrue condition '%s'" % condition
                 )
             else:
                 problem_desc = "incomplete support"
@@ -110,7 +110,7 @@ Otherwise a terminal window will open"""
                     """\
 Note, when using '%s', consider using '--disable-console' option. %s. However \
 for debugging, terminal output is the easiest way to see informative traceback \
-and error information, so delay this until your program working and remove \
+and error information, so delay this until your program is working and remove \
 once you find it non-working, and use '--enable-console' to make it explicit \
 and not see this message."""
                     % (full_name, downside_message)
