@@ -179,8 +179,10 @@ def isUninstalledPython():
         res = GetSystemDirectory(buf, MAX_PATH)
         assert res != 0
 
-        system_path = os.path.normcase(buf.value)
-        return not getRunningPythonDLLPath().startswith(system_path)
+        system_path = buf.value
+        return not isFilenameBelowPath(
+            path=system_path, filename=getRunningPythonDLLPath()
+        )
 
     return isAnacondaPython() or "WinPython" in sys.version
 

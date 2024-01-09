@@ -1706,9 +1706,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = os.path.normcase(
-                os.path.join(".", options.pgo_executable)
-            )
+            options.pgo_executable = os.path.join(".", options.pgo_executable)
 
     return options.pgo_executable
 
