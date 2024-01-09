@@ -33,6 +33,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getWindowsShortPathName,
+    hasFilenameExtension,
     isFilesystemEncodable,
     openTextFile,
 )
@@ -534,7 +535,7 @@ def provideStaticSourceFile(env, sub_path, c11_mode):
         env.source_dir, "static_src", os.path.basename(sub_path)
     )
 
-    if target_filename.endswith(".c") and not c11_mode:
+    if hasFilenameExtension(target_filename, ".c") and not c11_mode:
         target_filename += "pp"  # .cpp suffix then.
 
     cheapCopyFile(source_filename, target_filename)
@@ -558,9 +559,9 @@ def scanSourceDir(env, dirname, plugins):
             added_path = True
 
         # Only C files are of interest here.
-        if not filename_base.endswith((".c", "cpp")) or not filename_base.startswith(
-            ("module.", "__", "plugin.")
-        ):
+        if not hasFilenameExtension(
+            filename_base, (".c", "cpp")
+        ) or not filename_base.startswith(("module.", "__", "plugin.")):
             continue
 
         filename = os.path.join(dirname, filename_base)
@@ -569,13 +570,12 @@ def scanSourceDir(env, dirname, plugins):
 
         if isWin32Windows() and not isFilesystemEncodable(filename_base):
             target_filename = getWindowsShortPathName(target_filename)
-            target_filename = os.path.normcase(target_filename)
 
         # We pretend to use C++ if no C11 compiler is present.
         if env.c11_mode:
             yield target_filename
         else:
-            if filename.endswith(".c"):
+            if hasFilenameExtension(filename, ".c"):
                 target_filename += "pp"  # .cpp" suffix then
 
                 os.rename(filename, target_filename)
