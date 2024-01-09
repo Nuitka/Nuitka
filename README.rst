@@ -1401,7 +1401,9 @@ object for Python to use.
 Nuitka Options in the code
 ==========================
 
-There is support for conditional options, and options using pre-defined
+One clean way of providing options to Nuitka, that you will always use
+for your program, is to put them into the main file you compile. There
+is even support for conditional options, and options using pre-defined
 variables, this is an example:
 
 .. code:: python
