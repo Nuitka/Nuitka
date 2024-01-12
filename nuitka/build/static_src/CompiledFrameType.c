@@ -870,9 +870,23 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #endif
 ) {
     CHECK_OBJECT(filename);
-    assert(Nuitka_String_CheckExact(filename));
+    assert(Nuitka_StringOrUnicode_CheckExact(filename));
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_CheckExact(function_name));
+
+#if PYTHON_VERSION < 0x300
+    PyObject *filename_str = NULL;
+
+    // TODO: Memory leak of filename, it might be intended transferred to the
+    // code object by using code.
+    if (PyUnicode_CheckExact(filename)) {
+        filename_str = PyUnicode_AsUTF8String(filename);
+        filename = filename_str;
+    } else {
+        filename_str = filename;
+        Py_INCREF(filename);
+    }
+#endif
 
     if (argnames == NULL) {
         argnames = const_tuple_empty;
@@ -965,6 +979,10 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     );
 
     // assert(DEEP_HASH(tstate, argnames) == hash);
+
+#if PYTHON_VERSION < 0x300
+    Py_DECREF(filename_str);
+#endif
 
     if (result == NULL) {
         PyErr_PrintEx(0);
