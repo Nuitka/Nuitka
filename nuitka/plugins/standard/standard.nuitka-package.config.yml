@@ -1140,6 +1140,14 @@
         'from future.moves.test import support': 'raise ImportError'
       when: 'not use_unittest'
 
+- module-name: 'geopandas.datasets' # checksum: d6c28237
+  data-files:
+    dirs:
+      - 'naturalearth_cities'
+      - 'naturalearth_lowres'
+    patterns:
+      - '*.zip'
+
 - module-name: 'gevent' # checksum: ce776b5f
   implicit-imports:
     - depends:
