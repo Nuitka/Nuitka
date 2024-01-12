@@ -251,6 +251,9 @@ extern _PyRuntimeState _PyRuntime;
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
 #define Nuitka_String_CheckExact PyString_CheckExact
+NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObject *value) {
+    return PyString_CheckExact(value) || PyUnicode_CheckExact(value);
+}
 #define Nuitka_StringObject PyStringObject
 #define Nuitka_String_FromString PyString_FromString
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
@@ -268,6 +271,7 @@ extern _PyRuntimeState _PyRuntime;
 
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
+#define Nuitka_StringOrUnicode_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
