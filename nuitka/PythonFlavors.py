@@ -33,6 +33,7 @@ from nuitka.utils.FileOperations import (
     isFilenameSameAsOrBelowPath,
 )
 from nuitka.utils.Utils import (
+    isAlpineLinux,
     isAndroidBasedLinux,
     isArchBasedLinux,
     isFedoraBasedLinux,
@@ -240,6 +241,16 @@ def isFedoraPackagePython():
     return system_prefix_path == "/usr"
 
 
+def isAlpinePackagePython():
+    """Is the Python from a Alpine package."""
+    if not isAlpineLinux():
+        return False
+
+    system_prefix_path = getSystemPrefixPath()
+
+    return system_prefix_path == "/usr"
+
+
 def isArchPackagePython():
     """Is the Python from a Fedora package."""
     if not isArchBasedLinux():
@@ -327,6 +338,8 @@ def getPythonFlavorName():
         return "Fedora Python"
     elif isArchPackagePython():
         return "Arch Python"
+    elif isAlpinePackagePython():
+        return "Alpine Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isApplePython():
