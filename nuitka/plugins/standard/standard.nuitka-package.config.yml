@@ -3486,7 +3486,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: d2912f12
+- module-name: 'PySide6' # checksum: d718f67
   implicit-imports:
     - post-import-code:
         - |
@@ -3504,6 +3504,9 @@
                   if hasattr(receiver.im_func, "__compiled__"):
                       patched_connect._protected = getattr(patched_connect, "_protected", [])
                       patched_connect._protected.append(receiver)
+
+                      if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
+                        receiver.im_func.__name__ = "_pyside6_workaround_" + receiver.im_func.__name__
 
               return orig_connect(self, receiver, type)
 
