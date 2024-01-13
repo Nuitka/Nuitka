@@ -75,7 +75,7 @@ parser.add_option(
     dest="module_mode",
     default=False,
     help="""\
-Create an extension module executable instead of a program. Defaults to off.""",
+Create an importable binary extension module executable instead of a program. Defaults to off.""",
 )
 
 parser.add_option(
@@ -118,16 +118,6 @@ parser.add_option(
 )
 
 parser.add_option(
-    "--python-debug",
-    action="store_true",
-    dest="python_debug",
-    default=None,
-    help="""\
-Use debug version or not. Default uses what you are using to run Nuitka, most
-likely a non-debug version.""",
-)
-
-parser.add_option(
     "--python-flag",
     action="append",
     dest="python_flags",
@@ -145,11 +135,22 @@ Default empty.""",
 )
 
 parser.add_option(
+    "--python-debug",
+    action="store_true",
+    dest="python_debug",
+    default=None,
+    help="""\
+Use debug version or not. Default uses what you are using to run Nuitka, most
+likely a non-debug version. Only for debugging and testing purposes.""",
+)
+
+parser.add_option(
     "--python-for-scons",
     action="store",
     dest="python_scons",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
 If using Python3.3 or Python3.4, provide the path of a Python binary to use
 for Scons. Otherwise Nuitka can use what you run Nuitka with or a Python
@@ -180,6 +181,7 @@ parser.add_option(
     action="store_true",
     dest="github_workflow_options",
     default=False,
+    github_action=False,
     help=SUPPRESS_HELP,
 )
 
@@ -435,6 +437,19 @@ Do not include data files matching the filename pattern given. This is against
 the target filename, not source paths. So to ignore a file pattern from package
 data for 'package_name' should be matched as 'package_name/*.txt'. Or for the
 whole directory simply use 'package_name'. Default empty.""",
+)
+
+data_group.add_option(
+    "--include-onefile-external-data",
+    action="append",
+    dest="data_files_external",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Include the specified data file patterns outside of the onefile binary,
+rather than on the inside. Makes only sense in case of '--onefile'
+compilation. First files have to be specified as included somehow,
+then this refers to target paths. Default empty.""",
 )
 
 data_group.add_option(
@@ -865,6 +880,7 @@ parser.add_option(
     action="store_false",
     dest="allow_reexecute",
     default=True,
+    github_action=False,
     help=SUPPRESS_HELP,
 )
 

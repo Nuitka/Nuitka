@@ -28,8 +28,10 @@ import os
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
+    getOutputPath,
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
+    getShallIncludeExternallyDataFilePatterns,
     getShallIncludePackageData,
     getShallNotIncludeDataFilePatterns,
     isOnefileMode,
@@ -114,7 +116,7 @@ class IncludedDataFile(object):
         self.tracer = tracer
 
     def __repr__(self):
-        return "<%s %s source %s dest %s reason '%s' tags '%s'>" % (
+        return "<%s %s source '%s' dest '%s' reason '%s' tags '%s'>" % (
             self.__class__.__name__,
             self.kind,
             self.source_path,
@@ -283,11 +285,11 @@ _included_data_files = []
 def addIncludedDataFile(included_datafile):
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
-    for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
+    for external_datafile_pattern in getShallNotIncludeDataFilePatterns():
         if fnmatch.fnmatch(
-            included_datafile.dest_path, noinclude_datafile_pattern
+            included_datafile.dest_path, external_datafile_pattern
         ) or isFilenameBelowPath(
-            path=noinclude_datafile_pattern, filename=included_datafile.dest_path
+            path=external_datafile_pattern, filename=included_datafile.dest_path
         ):
             included_datafile.tags.add("inhibit")
             included_datafile.tags.remove("copy")
@@ -303,6 +305,15 @@ def addIncludedDataFile(included_datafile):
     # for candidate in _included_data_files:
     #     if candidate.dest_path == included_datafile.dest_path:
     #         assert False, included_datafile
+
+    if included_datafile.needsCopy():
+        for external_datafile_pattern in getShallIncludeExternallyDataFilePatterns():
+            if fnmatch.fnmatch(
+                included_datafile.dest_path, external_datafile_pattern
+            ) or isFilenameBelowPath(
+                path=external_datafile_pattern, filename=included_datafile.dest_path
+            ):
+                included_datafile.tags.add("external")
 
     _included_data_files.append(included_datafile)
 
@@ -518,24 +529,27 @@ def _handleDataFile(included_datafile):
             "Error, package data files are only included in standalone or onefile mode."
         )
 
-    dist_dir = getStandaloneDirectoryPath()
-
     key = tracer, included_datafile.reason
     if key not in _data_file_traces:
         _data_file_traces[key] = []
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
 
-    if included_datafile.kind == "data_blob":
+    dist_dir = getStandaloneDirectoryPath()
+
+    if "external" in included_datafile.tags:
+        dest_path = getOutputPath(included_datafile.dest_path)
+    else:
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+
+    if included_datafile.kind == "data_blob":
         makePath(os.path.dirname(dest_path))
 
         with openTextFile(filename=dest_path, mode="wb") as output_file:
             output_file.write(included_datafile.data)
     elif included_datafile.kind == "data_file":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-
         makePath(os.path.dirname(dest_path))
+
         copyFileWithPermissions(
             source_path=included_datafile.source_path,
             dest_path=dest_path,

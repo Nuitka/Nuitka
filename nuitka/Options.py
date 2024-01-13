@@ -254,6 +254,16 @@ def printVersionInformation():
     )
 
 
+def _warnOnefileOnlyOption(option_name):
+    if not options.is_onefile:
+        Tracing.options_logger.warning(
+            """\
+Using onefile specific option '%s' has no effect \
+when '--onefile' is not specified."""
+            % option_name
+        )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -380,12 +390,7 @@ Error, the Python from Windows app store is not supported.""",
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-tempdir-spec")
 
     # Check onefile splash image
     if options.splash_screen_image:
@@ -395,26 +400,19 @@ when '--onefile' is not specified."""
                 % options.splash_screen_image
             )
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
 
     if options.onefile_child_grace_time is not None:
         if not options.onefile_child_grace_time.isdigit():
             Tracing.options_logger.sysexit(
                 """\
-Error, value given for '--onefile-child-grace-time' must be integer."""
+Error, the value given for '--onefile-child-grace-time' must be integer."""
             )
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile-child-grace-time' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-child-grace-time")
+
+    if getShallIncludeExternallyDataFilePatterns():
+        _warnOnefileOnlyOption("--include-onefile-external-data")
 
     if options.force_stdout_spec:
         checkPathSpec(
@@ -1251,6 +1249,12 @@ def getShallNotIncludeDataFilePatterns():
     """*list*, items of ``--noinclude-data-files=``"""
 
     return options.data_files_inhibited
+
+
+def getShallIncludeExternallyDataFilePatterns():
+    """*list*, items of ``--include-onefile-external-data=``"""
+
+    return options.data_files_external
 
 
 def getShallNotIncludeDllFilePatterns():
