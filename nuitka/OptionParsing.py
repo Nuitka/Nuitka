@@ -104,6 +104,7 @@ parser.add_option(
     action="store_true",
     dest="is_onefile",
     default=False,
+    github_action_default=True,
     help="""\
 On top of standalone mode, enable onefile mode. This means not a folder,
 but a compressed executable is created and used. Defaults to off.""",
@@ -537,6 +538,7 @@ warnings_group.add_option(
     action="store_true",
     dest="assume_yes_for_downloads",
     default=False,
+    github_action_default=True,
     help="""\
 Allow Nuitka to download external code if necessary, e.g. dependency
 walker, ccache, and even gcc on Windows. To disable, redirect input
@@ -1928,11 +1930,17 @@ def _considerGithubWorkflowOptions(phase):
 
         option_name = "--%s" % key
 
-        if parser.isBooleanOption("--%s" % key):
+        if parser.isBooleanOption(option_name):
             if value == "false":
                 continue
 
             options_added.append(option_name)
+        elif parser.isListOption(option_name):
+            for value in value.split("\n"):
+                if not value.strip():
+                    continue
+
+                options_added.append("%s=%s" % (option_name, value))
         else:
             # Boolean disabled options from inactive plugins that default to off.
             if value == "false":
