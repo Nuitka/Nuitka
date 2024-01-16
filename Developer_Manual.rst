@@ -4184,7 +4184,7 @@ After the conditional statement we will know that "x" is an "int" with
 possible values in ``(1,2)``, which can be used to predict that the
 return value is always ``True``.
 
-The forth goal will therefore be that the "ValueFriendConstantList"
+The fourth goal will therefore be that the "ValueFriendConstantList"
 knows that append changes ``a`` value, but it remains a list, and that
 the size increases by one. It should provide an other value friend
 "ValueFriendList" for "a" due to that.

@@ -5461,7 +5461,7 @@ to use ``PyObject *`` based types.
 
 Scalability has again seen very real improvements, memory usage of
 Nuitka itself, as well as compile time inside Nuitka are down by a lot
-for some cases, very noticeable. There is never enough of this, but it
+for some cases, very noticeably. There is never enough of this, but it
 appears, in many cases now, large compilations run much faster.
 
 For macOS specifically, the new DLL dependency analysis, is much more
