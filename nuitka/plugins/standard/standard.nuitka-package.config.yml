@@ -1780,7 +1780,7 @@
         '_fix_ipython_backend2gui': "'(lambda cls: None)'"
       when: 'not use_ipython'
 
-- module-name: 'matplotlib.backends' # checksum: 167fcf7
+- module-name: 'matplotlib.backends' # checksum: b30e7761
   implicit-imports:
     - depends:
         - 'matplotlib.backends._backend_agg'
@@ -1801,6 +1801,9 @@
         - 'matplotlib.backends.backend_qtagg'
         - 'matplotlib.backends.backend_qt'
       when: 'use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6'
+    - depends:
+        - 'matplotlib.backends.backend_macosx'
+      when: 'macos and not (use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backends.backend_cairo' # checksum: 7ada20bb
   implicit-imports:
