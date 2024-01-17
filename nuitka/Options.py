@@ -41,6 +41,7 @@ from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
+    isCPythonOfficialPackage,
     isDebianPackagePython,
     isManyLinuxPython,
     isMSYS2MingwPython,
@@ -1418,6 +1419,9 @@ Nuitka on 'manylinux' has no shared libraries. Use container with \
 the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
 added to provide the static link library.""",
             )
+
+        if isMacOS() and isCPythonOfficialPackage():
+            return True, None
 
     return options.static_libpython == "yes", None
 

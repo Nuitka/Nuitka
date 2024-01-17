@@ -668,7 +668,10 @@ if env.nuitka_python:
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if env.static_libpython and (not os.name == "nt" or env.nuitka_python):
+# TODO: This ought to be decided outside of scons and per flavor maybe.
+if env.static_libpython and (
+    (not os.name == "nt" and not isMacOS()) or env.nuitka_python
+):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if os.name == "nt":
