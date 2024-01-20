@@ -5822,7 +5822,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 84315db6
+- module-name: 'torch' # checksum: ac3832ce
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -5845,13 +5845,13 @@
 
   options:
     checks:
-      - description: "Torch JIT is disabled by default, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
+      - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
         support_info: 'parameter'
         when: 'standalone and get_parameter("disable-jit", None) is None'
   import-hacks:
     - force-environment-variables:
         'PYTORCH_JIT': '0'
-      when: 'get_parameter("disable-jit", "no" if standalone else "yes") == "yes"'
+      when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
 - module-name: 'torch._dynamo.logging' # checksum: 1d305809
   anti-bloat:
