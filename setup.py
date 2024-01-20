@@ -126,6 +126,7 @@ addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
 sdist_mode = "sdist" in sys.argv
+install_mode = "install" in sys.argv
 
 if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
@@ -353,7 +354,10 @@ class BinaryDistribution(Distribution):
 
     @staticmethod
     def has_ext_modules():
-        return True
+        # For "python setup.py install" this triggers an attempt to lookup
+        # package dependencies, which fails to work, since it's not yet
+        # installed and might not yet be in PyPI as well.
+        return not install_mode
 
 
 with open("README.rst", "rb") as input_file:
