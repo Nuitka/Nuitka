@@ -237,6 +237,9 @@ def withEnvironmentVarOverridden(env_var_name, value):
 def withEnvironmentVarsOverridden(mapping):
     """Change multiple environment variables and restore them after context."""
 
+    if mapping is None:
+        mapping = {}
+
     old_values = {}
 
     for env_var_name, value in mapping.items():
