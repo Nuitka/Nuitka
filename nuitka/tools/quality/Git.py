@@ -108,7 +108,7 @@ def getModifiedPaths():
 
         result.add(line)
 
-    return tuple(sorted(result))
+    return tuple(sorted(filename for filename in result if os.path.exists(filename)))
 
 
 def getRemoteURL(remote_name):
