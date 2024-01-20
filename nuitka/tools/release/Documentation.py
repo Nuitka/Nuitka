@@ -118,58 +118,48 @@ def checkRstLint(document):
     my_print("OK.", style="blue")
 
 
-def makeManPages():
+def updateManPages():
     if not os.path.exists("man"):
         os.mkdir("man")
 
-    def makeManPage(python, suffix):
-        cmd = [
-            "help2man",
-            "-n",
-            "the Python compiler",
-            "--no-discard-stderr",
-            "--no-info",
-            "--include",
-            "doc/nuitka-man-include.txt",
-            "%s ./bin/nuitka" % python,
-        ]
+    cmd = [
+        "help2man",
+        "-n",
+        "the Python compiler",
+        "--no-discard-stderr",
+        "--no-info",
+        "--include",
+        "doc/nuitka-man-include.txt",
+        "%s ./bin/nuitka" % sys.executable,
+    ]
 
-        with openTextFile("doc/nuitka%s.1" % suffix, "wb") as output:
-            check_call(cmd, stdout=output)
-        cmd[-1] += "-run"
-        with openTextFile("doc/nuitka%s-run.1" % suffix, "wb") as output:
-            check_call(cmd, stdout=output)
+    with openTextFile("doc/nuitka.1", "wb") as output:
+        check_call(cmd, stdout=output)
 
-        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
-            manpage_contents = getFileContents(manpage).splitlines()
+    cmd[-1] += "-run"
+    with openTextFile("doc/nuitka-run.1", "wb") as output:
+        check_call(cmd, stdout=output)
 
-            new_contents = []
-            mark = False
+    for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
+        manpage_contents = getFileContents(manpage).splitlines()
 
-            for count, line in enumerate(manpage_contents):
-                if mark:
-                    line = ".SS " + line + ".BR\n"
-                    mark = False
-                elif line == ".IP\n" and manpage_contents[count + 1].endswith(":\n"):
-                    mark = True
-                    continue
+        new_contents = []
+        mark = False
 
-                if line == r"\fB\-\-g\fR++\-only" + "\n":
-                    line = r"\fB\-\-g\++\-only\fR" + "\n"
+        for count, line in enumerate(manpage_contents):
+            if mark:
+                line = ".SS " + line + ".BR\n"
+                mark = False
+            elif line == ".IP\n" and manpage_contents[count + 1].endswith(":\n"):
+                mark = True
+                continue
 
-                new_contents.append(line)
+            if line == r"\fB\-\-g\fR++\-only" + "\n":
+                line = r"\fB\-\-g\++\-only\fR" + "\n"
 
-            putTextFileContents(manpage, contents=new_contents)
+            new_contents.append(line)
 
-    makeManPage("python2", "2")
-    makeManPage("python3", "3")
-
-
-def createReleaseDocumentation():
-    checkReleaseDocumentation()
-
-    if os.name != "nt":
-        makeManPages()
+        putTextFileContents(manpage, contents=new_contents)
 
 
 def checkReleaseDocumentation():

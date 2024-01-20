@@ -7,7 +7,7 @@ import shutil
 import sys
 
 from nuitka.tools.release.Debian import cleanupTarfileForDebian, runPy2dsc
-from nuitka.tools.release.Documentation import createReleaseDocumentation
+from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.Tracing import my_print
 
@@ -16,7 +16,7 @@ def main():
     branch_name = checkBranchName()
     assert branch_name == "main"
 
-    createReleaseDocumentation()
+    checkReleaseDocumentation()
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")

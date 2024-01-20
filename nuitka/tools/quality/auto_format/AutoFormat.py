@@ -659,6 +659,7 @@ def autoFormatFile(
             "Containerfile",
             ".containerfile",
             ".containerfile.in",
+            ".1",
         )
     ) or os.path.basename(filename) in (
         "changelog",
