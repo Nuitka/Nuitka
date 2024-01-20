@@ -559,6 +559,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         source_ref,
         reason,
     ):
+        # Quite a few special cases, but not really complex. pylint: disable=too-many-branches
+
         # Do not even look at these. It's either included by a module that is in standard
         # library, or included for a module in standard library.
         if reason == "stdlib" or (
@@ -611,13 +613,20 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                     )
 
                     if key not in self.warnings_given:
+                        if handled_module_name == intended_module_name:
+                            handled_module_name_desc = "'%s'" % handled_module_name
+                        else:
+                            handled_module_name_desc = (
+                                "'%s' (intending to avoid '%s')"
+                                % (handled_module_name, intended_module_name)
+                            )
+
                         self.warning(
                             """\
-Undesirable import of '%s' (intending to avoid '%s') in \
-'%s' (at '%s') encountered. It may slow down compilation."""
+Undesirable import of %s in '%s' (at '%s') encountered. It may \
+slow down compilation."""
                             % (
-                                handled_module_name,
-                                intended_module_name,
+                                handled_module_name_desc,
                                 using_module_name,
                                 source_ref.getAsString(),
                             ),
