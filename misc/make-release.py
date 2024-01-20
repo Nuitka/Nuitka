@@ -34,7 +34,7 @@ import shutil
 from optparse import OptionParser
 
 from nuitka.tools.release.Debian import checkChangeLog
-from nuitka.tools.release.Documentation import createReleaseDocumentation
+from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import (
     checkAtHome,
     checkBranchName,
@@ -73,7 +73,7 @@ else:
 shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
-createReleaseDocumentation()
+checkReleaseDocumentation()
 assert os.system("%s setup.py sdist --formats=bztar,gztar,zip" % sys.executable) == 0
 
 checkAtHome()

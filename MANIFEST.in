@@ -5,7 +5,8 @@ include MANIFEST.in
 include README.rst
 include Changelog.rst
 include Developer_Manual.rst
-include doc/*.1
+include doc/nuitka.1
+include doc/nuitka-run.1
 
 include bin/compare_with_cpython
 include bin/compare_with_xml
