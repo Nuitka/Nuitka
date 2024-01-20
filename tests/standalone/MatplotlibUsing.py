@@ -19,6 +19,8 @@
 #
 """ Test using matplotlib, should actually do something with it. """
 
+import os
+
 from matplotlib import pyplot as plt
 
 # nuitka-skip-unless-imports: matplotlib
@@ -37,4 +39,7 @@ from matplotlib import pyplot as plt
 y = [0, 1, 2, 3]
 
 plt.plot(y, color="red", markersize=1, linestyle="-")
+
+if os.getenv("NUITKA_TEST_INTERACTIVE") == "1":
+    plt.show()
 print("OK.")
