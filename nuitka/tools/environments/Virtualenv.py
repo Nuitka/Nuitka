@@ -26,7 +26,12 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import unicode
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_call, executeProcess
+from nuitka.utils.Execution import (
+    NuitkaCalledProcessError,
+    check_call,
+    executeProcess,
+    withEnvironmentVarsOverridden,
+)
 from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     removeDirectory,
@@ -38,7 +43,7 @@ class Virtualenv(object):
     def __init__(self, env_dir):
         self.env_dir = os.path.abspath(env_dir)
 
-    def runCommand(self, commands, style=None):
+    def runCommand(self, commands, env=None, style=None):
         if type(commands) in (str, unicode):
             commands = [commands]
 
@@ -53,7 +58,14 @@ class Virtualenv(object):
             if style is not None:
                 my_print("Executing: %s" % command, style=style)
 
-            assert os.system(command) == 0, command
+            with withEnvironmentVarsOverridden(env):
+                exit_code = os.system(command)
+                if exit_code != 0:
+                    my_print("Failure %s for: %s" % (exit_code, command), style=style)
+
+                    raise NuitkaCalledProcessError(
+                        exit_code, command, output=None, stderr=None
+                    )
 
     def runCommandWithOutput(self, commands, style=None):
         """
@@ -116,7 +128,8 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
             my_print("Executing: %s" % " ".join(command), style=style)
         check_call(command)
 
+    try:
         yield Virtualenv(env_dir)
-
-    if delete:
-        removeDirectory(env_dir, ignore_errors=False)
+    finally:
+        if delete:
+            removeDirectory(env_dir, ignore_errors=False)
