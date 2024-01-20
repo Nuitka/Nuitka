@@ -2044,16 +2044,26 @@
     patterns:
       - 'usage.txt'
 
-- module-name: 'numba' # checksum: edd899a8
+- module-name: 'numba' # checksum: a8eab062
+  parameters:
+    - 'name': 'disable-jit'
+      'values': 'value in ("yes", "no")'
   anti-bloat:
     - description: 'remove numba testing reference'
       change_function:
         'test': 'un-callable'
   options:
     checks:
-      - description: "Numba is not yet working with Nuitka standalone, try to use '--noinclude-numba-mode', but it may fail."
+      - description: "Numba is not yet fully working with Nuitka standalone, try to use '--noinclude-numba-mode=nofollow', but it may fail."
         support_info: 'warning'
         when: 'not use_numba and standalone'
+      - description: "Numba JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=numba-disable-jit=yes|no'"
+        support_info: 'parameter'
+        when: 'standalone and get_parameter("disable-jit", None) is None'
+  import-hacks:
+    - force-environment-variables:
+        'NUMBA_DISABLE_JIT': '1'
+      when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
 - module-name: 'numba.core.caching' # checksum: dce4aaa0
   anti-bloat:
