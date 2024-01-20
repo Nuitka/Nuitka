@@ -33,6 +33,11 @@ import sys
 os.chdir(os.path.dirname(__file__) or ".")
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
+# Disable setuptools warnings.
+import warnings
+
+warnings.filterwarnings("ignore", "")
+
 # isort:start
 
 import fnmatch
