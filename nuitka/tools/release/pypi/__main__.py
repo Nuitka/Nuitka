@@ -25,7 +25,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
-from nuitka.tools.release.Documentation import createReleaseDocumentation
+from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -101,7 +101,7 @@ Do not update the the container, use it if updating was done recently.
     shutil.rmtree("dist", ignore_errors=True)
 
     my_print("Creating documentation.", style="blue")
-    createReleaseDocumentation()
+    checkReleaseDocumentation()
     my_print("Creating source distribution.", style="blue")
     assert (
         os.system("umask 0022 && chmod -R a+rX . && %s setup.py sdist" % sys.executable)

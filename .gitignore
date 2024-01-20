@@ -57,7 +57,6 @@ Developer_Manual.pdf
 Developer_Manual.html
 Changelog.pdf
 Changelog.html
-doc/*.1
 doc/man-*.html
 doxygen-warnings.log
 venv_cpython/
