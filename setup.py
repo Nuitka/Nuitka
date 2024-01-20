@@ -463,4 +463,5 @@ Python compiler with full language support and CPython compatibility""",
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,
+    verbose=0,
 )
