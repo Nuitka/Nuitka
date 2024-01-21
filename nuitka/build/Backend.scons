@@ -867,8 +867,8 @@ else:
         # For complete outputs, we have to match the C runtime of the Python DLL, if any,
         # for Nuitka-Python there is of course none.
         if not env.nuitka_python and (
-            forced_stdout_path not in ("%NONE%", "%NULL%", None)
-            or forced_stderr_path not in ("%NONE%", "%NULL%", None)
+            forced_stdout_path not in ("{NONE}", "{NULL}", None)
+            or forced_stderr_path not in ("{NONE}", "{NULL}", None)
         ):
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
         else:
@@ -986,17 +986,17 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
     if forced_stdout_path:
-        if forced_stdout_path == "%NONE%":
+        if forced_stdout_path == "{NONE}":
             build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
-        elif forced_stdout_path == "%NULL%":
+        elif forced_stdout_path == "{NULL}":
             build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
         else:
             build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
 
     if forced_stderr_path:
-        if forced_stderr_path == "%NONE%":
+        if forced_stderr_path == "{NONE}":
             build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
-        elif forced_stderr_path == "%NULL%":
+        elif forced_stderr_path == "{NULL}":
             build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
         else:
             build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path

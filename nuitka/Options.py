@@ -36,7 +36,11 @@ from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.OptionParsing import parseOptions, runSpecialCommandsFromOptions
+from nuitka.OptionParsing import (
+    parseOptions,
+    run_time_variable_names,
+    runSpecialCommandsFromOptions,
+)
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
@@ -95,71 +99,123 @@ is_report_missing = None
 is_verbose = None
 
 
+def _convertOldStylePathSpecQuotes(value):
+    quote = None
+
+    result = ""
+    for c in value:
+        if c == "%":
+            if quote is None:
+                quote = "{"
+                result += quote
+            elif quote == "{":
+                result += "}"
+                quote = None
+        else:
+            result += c
+
+    return result
+
+
 def checkPathSpec(value, arg_name, allow_disable):
     # There are never enough checks here, pylint: disable=too-many-branches
-
-    if "%NONE%" in value:
-        if not allow_disable:
-            Tracing.options_logger.sysexit(
-                "Using value '%%NONE%%' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "%NONE%":
-            Tracing.options_logger.sysexit(
-                "Using value '%%NONE%%' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "%NULL%" in value:
-        if not allow_disable:
-            Tracing.options_logger.sysexit(
-                "Using value '%%NULL%%' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "%NULL%":
-            Tracing.options_logger.sysexit(
-                "Using value '%%NULL%%' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "%COMPANY%" in value and not getCompanyName():
-        Tracing.options_logger.sysexit(
-            "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if "%PRODUCT%" in value and not getProductName():
-        Tracing.options_logger.sysexit(
-            "Using value '%%PRODUCT%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if "%VERSION%" in value and not (getFileVersion() or getProductVersion()):
-        Tracing.options_logger.sysexit(
-            "Using value '%%VERSION%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if value.count("%") % 2 != 0:
+    old = value
+    value = _convertOldStylePathSpecQuotes(value)
+    if old != value:
         Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '%s=%s' and may \
-not do what you want it to do."""
+            "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
+            % (arg_name, old, value)
+        )
+
+    if "{NONE}" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '{NONE}' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "{NONE}":
+            Tracing.options_logger.sysexit(
+                "Using value '{NONE}' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "{NULL}" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '{NULL}' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "{NULL}":
+            Tracing.options_logger.sysexit(
+                "Using value '{NULL}' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "{COMPANY}" in value and not getCompanyName():
+        Tracing.options_logger.sysexit(
+            "Using value '{COMPANY}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
+
+    if "{PRODUCT}" in value and not getProductName():
+        Tracing.options_logger.sysexit(
+            "Using value '{PRODUCT}' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+    if "{VERSION}" in value and not (getFileVersion() or getProductVersion()):
+        Tracing.options_logger.sysexit(
+            "Using value '{VERSION}' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+    if value.count("{") != value.count("}"):
+        Tracing.options_logger.sysexit(
+            """Unmatched '{}' is wrong for '%s=%s' and may \
+definitely not do what you want it to do."""
+            % (arg_name, value)
+        )
+
+    # Catch nested or illegal variable names.
+    var_name = None
+    for c in value:
+        if c in "{":
+            if var_name is not None:
+                Tracing.options_logger.sysexit(
+                    """Nested '{' is wrong for '%s=%s'.""" % (arg_name, value)
+                )
+            var_name = ""
+        elif c == "}":
+            if var_name is None:
+                Tracing.options_logger.sysexit(
+                    """Stray '}' is wrong for '%s=%s'.""" % (arg_name, value)
+                )
+
+            if var_name not in run_time_variable_names:
+                Tracing.onefile_logger.sysexit(
+                    "Found unknown variable name '%s' in for '%s=%s'."
+                    "" % (var_name, arg_name, value)
+                )
+
+            var_name = None
+        else:
+            if var_name is not None:
+                var_name += c
 
     for candidate in (
-        "%PROGRAM%",
-        "%PROGRAM_BASE%",
-        "%CACHE_DIR%",
-        "%HOME%",
-        "%TEMP%",
+        "{PROGRAM}",
+        "{PROGRAM_BASE}",
+        "{CACHE_DIR}",
+        "{HOME}",
+        "{TEMP}",
     ):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
-                """Absolute run time path of '%s' can only be at the \
-start of '%s=%s', using it in the middle is not allowed."""
+                """\
+Absolute run time paths of '%s' can only be at the start of \
+'%s=%s', using it in the middle of it is not allowed."""
                 % (candidate, arg_name, value)
             )
 
@@ -170,9 +226,11 @@ start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
 
+    return value
+
 
 def _checkOnefileTargetSpec():
-    checkPathSpec(
+    options.onefile_tempdir_spec = checkPathSpec(
         options.onefile_tempdir_spec,
         arg_name="--onefile-tempdir-spec",
         allow_disable=False,
@@ -186,7 +244,7 @@ you cannot unpack the onefile payload into the same directory as the binary,
 as that would overwrite it and cause locking issues as well."""
         )
 
-    if options.onefile_tempdir_spec.count("%") == 0:
+    if options.onefile_tempdir_spec.count("{") == 0:
         Tracing.options_logger.warning(
             """Not using any variables for '--onefile-tempdir-spec' should only be \
 done if your program absolutely needs to be in the same path always: '%s'"""
@@ -195,16 +253,20 @@ done if your program absolutely needs to be in the same path always: '%s'"""
 
     if os.path.isabs(options.onefile_tempdir_spec):
         Tracing.options_logger.warning(
-            """Using an absolute path should be avoided unless you are targeting a \
-very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            """\
+Using an absolute path should be avoided unless you are targeting a \
+very well known environment: anchoring it with e.g. '{TEMP}', \
+'{CACHE_DIR}' is recommended: You seemingly gave the value '%s'"""
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
-        ("%TEMP%", "%HOME%", "%CACHE_DIR%")
+        ("{TEMP}", "{HOME}", "{CACHE_DIR}")
     ):
         Tracing.options_logger.warning(
-            """Using an relative to the executable should be avoided unless you are targeting a \
-very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            """\
+Using a relative to the onefile executable should be avoided \
+unless you are targeting a very well known environment, anchoring \
+it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
 
@@ -416,12 +478,12 @@ Error, the value given for '--onefile-child-grace-time' must be integer."""
         _warnOnefileOnlyOption("--include-onefile-external-data")
 
     if options.force_stdout_spec:
-        checkPathSpec(
+        options.force_stdout_spec = checkPathSpec(
             options.force_stdout_spec, "--force-stdout-spec", allow_disable=True
         )
 
     if options.force_stderr_spec:
-        checkPathSpec(
+        options.force_stderr_spec = checkPathSpec(
             options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
         )
 
@@ -1674,10 +1736,10 @@ def isOnefileTempDirMode():
     spec = getOnefileTempDirSpec()
 
     for candidate in (
-        "%PID",
-        "%TIME%",
-        "%PROGRAM%",
-        "%PROGRAM_BASE%",
+        "{PID}",
+        "{TIME}",
+        "{PROGRAM}",
+        "{PROGRAM_BASE}",
     ):
         if candidate in spec:
             return True
@@ -1727,7 +1789,7 @@ def getPythonPgoUnseenModulePolicy():
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
     result = (
-        options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+        options.onefile_tempdir_spec or "{TEMP}" + os.path.sep + "onefile_{PID}_{TIME}"
     )
 
     # This changes the '/' to '\' on Windows at least.
