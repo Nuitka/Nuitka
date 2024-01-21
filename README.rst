@@ -687,7 +687,7 @@ Or you could put it in your ``setup.cfg``
 .. code:: toml
 
    [metadata]
-   build_with_nuitka = True
+   build_with_nuitka = true
 
 And last, but not least, Nuitka also supports the new ``build`` meta, so
 when you have a ``pyproject.toml`` already, simple replace or add this
@@ -711,7 +711,7 @@ value:
    show-scons = true
 
    # options with single values, e.g. enable a plugin of Nuitka
-   enable-plugin = pyside2
+   enable-plugin = "pyside2"
 
    # options with several values, e.g. avoiding including modules, accepts
    # list argument.
