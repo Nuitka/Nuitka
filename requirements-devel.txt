@@ -39,7 +39,7 @@ doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
 # Run time code generation needs Jinja2 now
 Jinja2 == 2.11.3 ; python_version == '2.7'
-Jinja2 == 3.0.3 ; python_version >= '3.7'
+Jinja2 == 3.1.3 ; python_version >= '3.7'
 
 # For the progress bar to look nicely.
 tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
