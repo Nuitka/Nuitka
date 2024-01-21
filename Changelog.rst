@@ -191,6 +191,64 @@ New Features
 Optimization
 ============
 
+-  Scalability: Avoid variables that are not shared to be treated as if
+   they were, marking their type shape as ``tshape_unknown`` in the
+   first micro pass. These micro passes are not visible, but basically
+   constitute a full visit of the module tree over and over, until no
+   more optimization is changing it. This can lead to quicker
+   resolution, as that unknown type shape effectively disallowed all
+   optimization for variables and reduce the number of necessary micro
+   passes by one.
+
+-  Escaped variables did provide a type shape ``tshape_unknown`` and
+   while a lot of optimization looks for value knowledge, and gets by
+   the escaped nature of the value, sometimes, this was seriously
+   inhibiting some of the type based optimization.
+
+-  Loop type shape analysis now succeeds in detecting the types for this
+   code example, which is sort of a break-through for future performance
+   enhancements in generated code.
+
+   .. code:: python
+
+      # Initial the value of "i" is "NUITKA_NINT_UNASSIGNED" in its
+      # indicator part. The C compiler will remove that assignment
+      # as it's only checked in the assignment coming up.
+      i = 0
+      # Assignment from a constant, produces a value where both the C
+      # and the object value are value. This is indicated by a value
+      # of "NUITKA_NINT_BOTH_VALID". The code generation will assign
+      # both the object member from a prepared value, and the clong
+      # member to 0.
+
+      # For the conditional check, "NUITKA_NINT_CLONG_VALID" will
+      # always be set, and therefore function will resort to comparing
+      # that clong member against 9 simply, that will always be very
+      # fast. Depending on how well the C compiler can tell if an overflow
+      # can even occur, such that an object might get created, it can even
+      # optimize that statically. In this case it probably could, but we
+      # do not rely on that to be fast.
+      while i < 9:  # RICH_COMPARE_LT_CBOOL_NINT_CLONG
+         # Here, we might change the type of the object. In Python2,
+         # this can change from ``int`` to ``long``, and our type
+         # analysis tells us that. We can consider another thing,
+         # not "NINT", but "NINTLONG" or so, to special case that
+         # code. We ignore Python2 here, but multiple possible types
+         # will be an issue, e.g. list or tuple, float or complex.
+         # So this calls a function, that returns a value of type
+         # "NINT" (actually it will become an in-place operation
+         # but lets ignore that too).
+         # That function is "BINARY_OPERATION_ADD_NINT_NINT_CLONG"(i, 1)
+         # and it is going to check if the CLONG is valid, add the one,
+         # and set to result to a new int. It will reset the
+         # "NUITKA_NINT_OBJECT_VALID" flag, since the object will not be
+         # bothered to create.
+         i = i + 1
+
+      # Since "NUITKA_INT_OBJECT_VALID" not given, need to create the
+      # PyObject and return it.
+      return i
+
 -  Avoid late specialization for ``None`` returns in generators and do
    it during tree building already, to remove noise.
 
