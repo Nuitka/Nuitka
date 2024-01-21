@@ -535,10 +535,10 @@ Finding files`_ as well.
 
 For the unpacking, by default a unique user temporary path one is used,
 and then deleted, however this default
-``--onefile-tempdir-spec="%TEMP%/onefile_%PID%_%TIME%"`` can be
+``--onefile-tempdir-spec="{TEMP}/onefile_{PID}_{TIME}"`` can be
 overridden with a path specification that is using then using a cached
 path, avoiding repeated unpacking, e.g. with
-``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%"``
+``--onefile-tempdir-spec="{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}"``
 which uses version information, and user-specific cache directory.
 
 .. note::
@@ -552,29 +552,29 @@ Currently, these expanded tokens are available:
 +----------------+-----------------------------------------------------------+---------------------------------------+
 | Token          | What this Expands to                                      | Example                               |
 +================+===========================================================+=======================================+
-| %TEMP%         | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
+| {TEMP}         | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PID%          | Process ID                                                | 2772                                  |
+| {PID}          | Process ID                                                | 2772                                  |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %TIME%         | Time in seconds since the epoch.                          | 1299852985                            |
+| {TIME}         | Time in seconds since the epoch.                          | 1299852985                            |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PROGRAM%      | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
+| {PROGRAM}      | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PROGRAM_BASE% | No-suffix of run-time filename of executable.             | C:\\SomeWhere\\YourOnefile            |
+| {PROGRAM_BASE} | No-suffix of run-time filename of executable.             | C:\\SomeWhere\\YourOnefile            |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %CACHE_DIR%    | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
+| {CACHE_DIR}    | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %COMPANY%      | Value given as ``--company-name``                         | YourCompanyName                       |
+| {COMPANY}      | Value given as ``--company-name``                         | YourCompanyName                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PRODUCT%      | Value given as ``--product-name``                         | YourProductName                       |
+| {PRODUCT}      | Value given as ``--product-name``                         | YourProductName                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %VERSION%      | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
+| {VERSION}      | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %HOME%         | Home directory for the user.                              | /home/somebody                        |
+| {HOME}         | Home directory for the user.                              | /home/somebody                        |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %NONE%         | When provided for file outputs, ``None`` is used          | see notice below                      |
+| {NONE}         | When provided for file outputs, ``None`` is used          | see notice below                      |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %NULL%         | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
+| {NULL}         | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
 +----------------+-----------------------------------------------------------+---------------------------------------+
 
 .. important::
@@ -584,7 +584,7 @@ Currently, these expanded tokens are available:
    folder name is possible, it can cause locking issues in that case,
    where the program gets restarted.
 
-   Usually, you need to use ``%TIME%`` or at least ``%PID%`` to make a
+   Usually, you need to use ``{TIME}`` or at least ``{PID}`` to make a
    path unique, and this is mainly intended for use cases, where e.g.
    you want things to reside in a place you choose or abide your naming
    conventions.
@@ -592,17 +592,17 @@ Currently, these expanded tokens are available:
 .. important::
 
    For disabling output and stderr with ``--force-stdout-spec`` and
-   ``--force-stderr-spec`` the values ``%NONE%`` and ``%NULL%`` achieve
-   it, but with different effect. With ``%NONE%``, the corresponding
+   ``--force-stderr-spec`` the values ``{NONE}`` and ``{NULL}`` achieve
+   it, but with different effect. With ``{NONE}``, the corresponding
    handle becomes ``None``. As a result, e.g. ``sys.stdout`` will be
-   ``None``, which is different from ``%NULL%`` where it will be backed
+   ``None``, which is different from ``{NULL}`` where it will be backed
    by a file pointing to ``os.devnull``, i.e. you can write to it.
 
-   With ``%NONE%``, you may get ``RuntimeError: lost sys.stdout`` in
-   case it does get used; with ``%NULL%`` that never happens. However,
-   some libraries handle this as input for their logging mechanism, and
-   on Windows this is how you are compatible with ``pythonw.exe`` which
-   is behaving like ``%NONE%``.
+   With ``{NONE}``, you may e.g. get ``RuntimeError: lost sys.stdout``
+   in case it does get used; with ``{NULL}`` that never happens.
+   However, some libraries handle this as input for their logging
+   mechanism, and on Windows this is how you are compatible with
+   ``pythonw.exe`` which is behaving like ``{NONE}``.
 
 Use Case 5 - Setuptools Wheels
 ==============================

@@ -30,6 +30,7 @@ pretty good.
 import os
 import re
 import sys
+from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
@@ -334,9 +335,9 @@ onefile_group.add_option(
     default=None,
     help="""\
 Use this as a folder to unpack to in onefile mode. Defaults to
-'%TEMP%/onefile_%PID%_%TIME%', i.e. user temporary directory
+'{TEMP}/onefile_{PID}_{TIME}', i.e. user temporary directory
 and being non-static it's removed. Use e.g. a string like
-'%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%' which is a good
+'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
 static cache path, this will then not be removed.""",
 )
 
@@ -1311,7 +1312,7 @@ os_group.add_option(
     help="""\
 Force standard output of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM_BASE%.out.txt', i.e. file near your program,
+Defaults to not active, use e.g. '{PROGRAM_BASE}.out.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
@@ -1325,7 +1326,7 @@ os_group.add_option(
     help="""\
 Force standard error of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM_BASE%.err.txt', i.e. file near your program,
+Defaults to not active, use e.g. '{PROGRAM_BASE}.err.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
@@ -1746,6 +1747,33 @@ def _considerPluginOptions(logger):
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
+run_time_variable_names = (
+    "TEMP",
+    "PID",
+    "TIME",
+    "PROGRAM",
+    "PROGRAM_BASE",
+    "CACHE_DIR",
+    "COMPANY",
+    "PRODUCT",
+    "VERSION",
+    "HOME",
+    "NONE",
+    "NULL",
+)
+
+
+class _RetainingFormatter(Formatter):
+    def get_value(self, key, args, kwargs):
+        if isinstance(key, str):
+            try:
+                return kwargs[key]
+            except KeyError:
+                return "{%s}" % key
+        else:
+            return Formatter.get_value(self, key, args, kwargs)
+
+
 def _expandProjectArg(arg, filename_arg, for_eval):
     def wrap(value):
         if for_eval:
@@ -1774,7 +1802,14 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     if isWin32OrPosixWindows():
         values["WindowsRelease"] = getWindowsRelease()
 
-    arg = arg.format(**values)
+    values.update(
+        (
+            (run_time_variable_name, "{%s}" % run_time_variable_name)
+            for run_time_variable_name in run_time_variable_names
+        )
+    )
+
+    arg = _RetainingFormatter().format(arg, **values)
 
     return arg
 

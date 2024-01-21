@@ -78,7 +78,7 @@
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
 #define _NUITKA_ONEFILE_TEMP_BOOL 0
 #define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
-#define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
+#define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME}"
 
 #define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
 #define _NUITKA_AUTO_UPDATE_BOOL 1
@@ -496,7 +496,7 @@ static bool createDirectory(filename_char_t const *path) {
 #if defined(_WIN32)
     if (created_dir_count == 0) {
         filename_char_t home_path[4096];
-        wchar_t *pattern = L"%HOME%";
+        wchar_t *pattern = L"{HOME}";
 
         bool_res = expandTemplatePathFilename(home_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
 

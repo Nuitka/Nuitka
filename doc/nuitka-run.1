@@ -137,10 +137,10 @@ Onefile options:
 .TP
 \fB\-\-onefile\-tempdir\-spec\fR=\fI\,ONEFILE_TEMPDIR_SPEC\/\fR
 Use this as a folder to unpack to in onefile mode.
-Defaults to '%TEMP%/onefile_%PID%_%TIME%', i.e. user
+Defaults to '{TEMP}/onefile_{PID}_{TIME}', i.e. user
 temporary directory and being non\-static it's removed.
 Use e.g. a string like
-\&'%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%' which is a
+\&'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a
 good static cache path, this will then not be removed.
 .TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
@@ -586,7 +586,7 @@ Force standard output of the program to go to this
 location. Useful for programs with disabled console
 and programs using the Windows Services Plugin of
 Nuitka commercial. Defaults to not active, use e.g.
-\&'%PROGRAM_BASE%.out.txt', i.e. file near your program,
+\&'{PROGRAM_BASE}.out.txt', i.e. file near your program,
 check User Manual for full list of available values.
 .TP
 \fB\-\-force\-stderr\-spec\fR=\fI\,FORCE_STDERR_SPEC\/\fR
@@ -594,7 +594,7 @@ Force standard error of the program to go to this
 location. Useful for programs with disabled console
 and programs using the Windows Services Plugin of
 Nuitka commercial. Defaults to not active, use e.g.
-\&'%PROGRAM_BASE%.err.txt', i.e. file near your program,
+\&'{PROGRAM_BASE}.err.txt', i.e. file near your program,
 check User Manual for full list of available values.
 .IP
 Windows specific controls:
