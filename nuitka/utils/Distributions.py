@@ -378,7 +378,7 @@ def getDistributionName(distribution):
     else:
         result = distribution.project_name
 
-    assert isValidDistributionName(result), distribution
+    assert isValidDistributionName(result), (distribution, result)
     return result
 
 
