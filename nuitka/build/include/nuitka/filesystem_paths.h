@@ -96,7 +96,7 @@ extern bool renameFile(filename_char_t const *source, filename_char_t const *des
 
 extern uint32_t getFileCRC32(filename_char_t const *filename);
 
-// Expand symbolic paths, containing %TEMP%, %PID% without overflowing.
+// Expand symbolic paths, containing {TEMP}, {PID} without overflowing.
 extern bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 extern bool expandTemplatePath(char *target, char const *source, size_t buffer_size);
 
