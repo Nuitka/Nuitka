@@ -39,10 +39,37 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 
+# Ignore import errors, we only need sys.modules
+IMPORT_CODE = """
+import sys
 
-def _detectImports(command):
+sys.real_prefix = sys.prefix
+sys.path = %s
+imports = %r
+
+for imp in imports:
+    try:
+        __import__(imp)
+    except Exception:
+        pass
+"""
+
+
+def _detectImports(imports, sub_collect=False):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=too-many-branches,too-many-statements
+
+    # Make sure the right import path (the one Nuitka binary is running with)
+    # is used.
+    reduced_path = [
+        path_element
+        for path_element in sys.path
+        if not areSamePaths(path_element, ".")
+        if not areSamePaths(
+            path_element, os.path.dirname(sys.modules["__main__"].__file__)
+        )
+    ]
+    command = IMPORT_CODE % (repr(reduced_path), imports)
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 0x300:
@@ -52,21 +79,6 @@ print("\\n".join(sorted(
     for module in sys.modules.values()
     if getattr(module, "__file__", None) not in (None, "<frozen>"
 ))), file = sys.stderr)"""
-
-    reduced_path = [
-        path_element
-        for path_element in sys.path
-        if not areSamePaths(path_element, ".")
-        if not areSamePaths(
-            path_element, os.path.dirname(sys.modules["__main__"].__file__)
-        )
-    ]
-
-    # Make sure the right import path (the one Nuitka binary is running with)
-    # is used.
-    command = (
-        "import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)
-    ) + command
 
     if str is not bytes:
         command = command.encode("utf8")
@@ -103,13 +115,13 @@ print("\\n".join(sorted(
         if line.startswith(b"import "):
             parts = line.split(b" # ", 2)
 
-            module_name = parts[0].split(b" ", 2)[1].strip(b"'")
+            _module_name = parts[0].split(b" ", 2)[1].strip(b"'")
             origin = parts[1].split()[0]
 
             if python_version >= 0x300:
-                module_name = module_name.decode("utf8")
+                _module_name = _module_name.decode("utf8")
 
-            module_name = ModuleName(module_name)
+            module_name = ModuleName(_module_name)
 
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
@@ -136,10 +148,17 @@ print("\\n".join(sorted(
                     detections.append((module_name, 2, "sourcefile", filename))
                 else:
                     assert False
-            elif origin == b"sourcefile":
-                filename = parts[1][len(b"sourcefile ") :]
-                if python_version >= 0x300:
-                    filename = filename.decode("utf8")
+            elif origin in (b"sourcefile", b"<_frozen_importlib_external.SourceFileLoader"):
+                if origin == b"sourcefile":
+                    filename = parts[1][len(b"sourcefile ") :]
+                    if python_version >= 0x300:
+                        filename = filename.decode("utf8")
+                else:
+                    mod = pkgutil.get_loader(_module_name)
+                    if python_version >= 0x300:
+                        filename = mod.get_filename()
+                    else:
+                        filename = mod.filename
 
                 # Do not leave standard library when freezing.
                 if not isStandardLibraryPath(filename):
@@ -181,6 +200,12 @@ print("\\n".join(sorted(
     module_names = set()
 
     for module_name, _priority, kind, filename in sorted(detections):
+        if sub_collect and os.path.basename(filename) in ("__init__.pyc", "__init__.py"):
+            for m in pkgutil.iter_modules([os.path.dirname(filename)]):
+                mod = ModuleName("%s.%s" % (module_name, m[1]))
+                mod.dont_follow = True
+                module_names.add(mod)
+
         if isStandardLibraryNoAutoInclusionModule(module_name):
             continue
 
@@ -206,40 +231,13 @@ print("\\n".join(sorted(
 
 
 def _detectEarlyImports():
-    encoding_names = [
-        m[1] for m in pkgutil.iter_modules(sys.modules["encodings"].__path__)
-    ]
-
-    if os.name != "nt":
-        # On posix systems, and posix Python variants on Windows, these won't
-        # work and fail to import.
-        for encoding_name in ("mbcs", "cp65001", "oem"):
-            if encoding_name in encoding_names:
-                encoding_names.remove(encoding_name)
-
-    # Not for startup.
-    for non_locale_encoding in (
-        "bz2_codec",
-        "idna",
-        "base64_codec",
-        "hex_codec",
-        "rot_13",
-    ):
-        if non_locale_encoding in encoding_names:
-            encoding_names.remove(non_locale_encoding)
-
-    import_code = ";".join(
-        "import encodings.%s" % encoding_name
-        for encoding_name in sorted(encoding_names)
-    )
-
-    import_code += ";import locale;"
+    imports = ("locale",)
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 0x300:
-        import_code += "import inspect;import importlib._bootstrap"
+        imports += ("inspect", "importlib._bootstrap")
 
-    return _detectImports(command=import_code)
+    return _detectImports(imports, sub_collect=True)
 
 
 _early_modules_names = None
@@ -283,51 +281,14 @@ def _detectStdlibAutoInclusionModules():
     # Otherwise this just makes imports of everything so we can see where
     # it comes from and what it requires.
 
-    import_code = """
-imports = %r
-
-failed = set()
-
-class ImportBlocker(object):
-    def find_module(self, fullname, path = None):
-        if fullname in failed:
-            return self
-
-        return None
-
-    def load_module(self, name):
-        raise ImportError("%%s has failed before" %% name)
-
-sys.meta_path.insert(0, ImportBlocker())
-
-for imp in imports:
-    try:
-        __import__(imp)
-    except (ImportError, SyntaxError):
-        failed.add(imp)
-    except ValueError as e:
-        if "cannot contain null bytes" in e.args[0]:
-            failed.add(imp)
-        else:
-            sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-            raise
-    except Exception:
-        sys.stderr.write("PROBLEM with '%%s'\\n" %% imp)
-        raise
-
-    for fail in failed:
-        if fail in sys.modules:
-            del sys.modules[fail]
-""" % (
-        tuple(
-            module_name.asString()
-            for module_name in sorted(
-                stdlib_modules, key=lambda name: (name not in first_ones, name)
-            )
-        ),
+    imports = tuple(
+        module_name.asString()
+        for module_name in sorted(
+            stdlib_modules, key=lambda name: (name not in first_ones, name)
+        )
     )
 
-    return _detectImports(command=import_code)
+    return _detectImports(imports)
 
 
 _stdlib_modules_names = None
