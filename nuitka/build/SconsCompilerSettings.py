@@ -197,6 +197,7 @@ def _enableLtoSettings(
         orig_lto_mode == "auto"
         and lto_mode
         and env.module_count > module_count_threshold
+        and not env.nuitka_python
     ):
         lto_mode = False
         reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
