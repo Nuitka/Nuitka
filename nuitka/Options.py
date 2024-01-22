@@ -1873,6 +1873,28 @@ def shallAskForWindowsUIAccessRights():
     return options.windows_uac_uiaccess
 
 
+def getLegalCopyright():
+    """*str* name of the product to use derived from ``--copyright``"""
+    return options.legal_copyright
+
+
+def getLegalTrademarks():
+    """*str* name of the product to use derived from ``--trademarks``"""
+    return options.legal_trademarks
+
+
+def getLegalInformation():
+    result = options.legal_copyright
+
+    if options.legal_trademarks:
+        if result is not None:
+            result += "\nTrademark information:" + options.legal_trademarks
+        else:
+            result = options.legal_trademarks
+
+    return result
+
+
 def getWindowsVersionInfoStrings():
     """*dict of str*, values of ."""
 
@@ -1931,12 +1953,12 @@ def getWindowsSplashScreen():
 
 
 def getCompanyName():
-    """*str* name of the company to use"""
+    """*str* name of the company to use derived from ``--company-name``"""
     return options.company_name
 
 
 def getProductName():
-    """*str* name of the product to use"""
+    """*str* name of the product to use derived from ``--product-name``"""
     return options.product_name
 
 
