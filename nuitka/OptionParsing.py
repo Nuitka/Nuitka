@@ -156,8 +156,8 @@ parser.add_option(
     help="""\
 When compiling with Python 3.4 provide the path of a
 Python binary to use for Scons. Otherwise Nuitka can
-use what you run Nuitka with find Python installation,
-e.g. from Windows registry. On Windows Python 3.5 or
+use what you run Nuitka with, or find Python installation,
+e.g. from Windows registry. On Windows, a Python 3.5 or
 higher is needed. On non-Windows, a Python 2.6 or 2.7
 will do as well.""",
 )
