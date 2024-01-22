@@ -107,6 +107,11 @@ def createPlistInfoFile(logger, onefile):
     else:
         infos["NSHighResolutionCapable"] = True
 
+    legal_text = Options.getLegalInformation()
+
+    if legal_text is not None:
+        infos["NSHumanReadableCopyright"] = legal_text
+
     for resource_name, resource_desc in Options.getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:
             logger.sysexit("Duplicate value for '%s' is not allowed." % resource_name)

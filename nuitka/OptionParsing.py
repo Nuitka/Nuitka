@@ -1606,7 +1606,7 @@ version_group.add_option(
     metavar="COPYRIGHT_TEXT",
     default=None,
     help="""\
-Copyright used in version information. Windows only at this time. Defaults to not present.""",
+Copyright used in version information. Windows/macOS only at this time. Defaults to not present.""",
 )
 
 version_group.add_option(
@@ -1616,7 +1616,7 @@ version_group.add_option(
     metavar="TRADEMARK_TEXT",
     default=None,
     help="""\
-Trademark used in version information. Windows only at this time. Defaults to not present.""",
+Trademark used in version information. Windows/macOS only at this time. Defaults to not present.""",
 )
 
 
