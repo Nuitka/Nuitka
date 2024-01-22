@@ -32,6 +32,10 @@ def getNuitkaVersion():
     return version_string.split()[1][1:]
 
 
+# Sanity check.
+assert getNuitkaVersion()[-1].isdigit(), getNuitkaVersion()
+
+
 def parseNuitkaVersionToTuple(version):
     """Return Nuitka version as a tuple.
 
