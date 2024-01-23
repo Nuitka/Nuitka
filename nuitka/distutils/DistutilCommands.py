@@ -309,10 +309,13 @@ class build(distutils.command.build.build):
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
                 # Import toml parser like "build" module does.
-                try:
-                    from tomli import loads as toml_loads
-                except ImportError:
-                    from toml import loads as toml_loads
+                if sys.version_info >= (3, 11):
+                    from tomllib import loads as toml_loads
+                else:
+                    try:
+                        from tomli import loads as toml_loads
+                    except ImportError:
+                        from toml import loads as toml_loads
 
                 # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
                 # pylint: disable=unspecified-encoding
