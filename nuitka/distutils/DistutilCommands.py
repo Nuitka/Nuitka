@@ -34,6 +34,7 @@ from nuitka.importing.Importing import (
     flushImportCache,
     locateModule,
 )
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
@@ -309,10 +310,14 @@ class build(distutils.command.build.build):
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
                 # Import toml parser like "build" module does.
-                try:
-                    from tomli import loads as toml_loads
-                except ImportError:
-                    from toml import loads as toml_loads
+                if python_version >= 0x3B0:
+                    # stdlib only for 3.11, pylint: disable=I0021,import-error
+                    from tomllib import loads as toml_loads
+                else:
+                    try:
+                        from tomli import loads as toml_loads
+                    except ImportError:
+                        from toml import loads as toml_loads
 
                 # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
                 # pylint: disable=unspecified-encoding
