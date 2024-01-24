@@ -612,7 +612,9 @@ PR to create. Default not making a PR.""",
     for python_version in options.python_versions or reversed(
         getTestExecutionPythonVersions()
     ):
-        installed_pythons[python_version] = findPythons(python_version)
+        installed_pythons[python_version] = findPythons(
+            python_version, module_name="pipenv"
+        )
 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
     assert os.path.exists(nuitka_binary)
