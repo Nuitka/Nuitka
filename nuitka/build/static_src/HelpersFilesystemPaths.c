@@ -513,6 +513,14 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
                 copyStringSafeW(resolved_filename, resolved_filename + 4, resolved_filename_size);
             }
         }
+
+        // Avoid network filenames with UNC prefix, they won't work for loading
+        // extension modules and other things, Python avoids them too.
+        if (wcsncmp(resolved_filename, L"\\\\?\\UNC\\", 8) == 0) {
+            copyStringSafeW(resolved_filename, resolved_filename + 6, resolved_filename_size);
+            resolved_filename[0] = L'\\';
+        }
+
     } else {
         copyStringSafeW(resolved_filename, filename, resolved_filename_size);
     }
