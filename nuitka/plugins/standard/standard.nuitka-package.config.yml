@@ -941,6 +941,11 @@
       replacements_plain:
         "raise IOError('Starting path not found')": 'pass'
 
+- module-name: 'easyocr' # checksum: fb59d361
+  data-files:
+    patterns:
+      - 'character/*.txt'
+
 - module-name: 'echopype.echodata.convention' # checksum: 2707b2b2
   data-files:
     patterns:
@@ -1460,7 +1465,7 @@
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'imageio.core.imopen' # checksum: a02bffe9
+- module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
     - replacements_plain:
         '`pip install imageio[{config.install_name}]` to install it': '`--include-module={config.module_name}` with Nuitka to include it'
@@ -1472,6 +1477,7 @@
         - 'imageio.plugins.pillow_legacy'
         - 'imageio.plugins.freeimage'
         - 'imageio.plugins.simpleitk'
+        - 'imageio.plugins.pillow'
 
 - module-name: 'imagej' # checksum: 763ace32
   anti-bloat:
