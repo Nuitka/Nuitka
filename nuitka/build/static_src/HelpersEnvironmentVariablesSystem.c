@@ -15,12 +15,12 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-
 // Helpers for working with environment variables in a portable way. This mainly
 // abstracts the string type differences between Win32 and non-Win32 environment
 // variables.
 
-#include "nuitka/environment_variables.h"
+#include "nuitka/environment_variables_system.h"
+#include "nuitka/safe_string_ops.h"
 
 #if defined(_WIN32)
 
@@ -77,44 +77,17 @@ void unsetEnvironmentVariable(char const *name) { unsetenv(name); }
 
 #endif
 
-void undoEnvironmentVariable(PyThreadState *tstate, char const *variable_name, environment_char_t const *old_value) {
-    PyObject *os_module = IMPORT_HARD_OS();
-    CHECK_OBJECT(os_module);
+void setEnvironmentVariableFromLong(char const *name, long value) {
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "%ld", value);
 
-    PyObject *os_environ = PyObject_GetAttrString(os_module, "environ");
-    CHECK_OBJECT(os_environ);
+#if defined(_WIN32)
+    wchar_t buffer2[128];
+    buffer2[0] = 0;
+    appendStringSafeW(buffer2, buffer, 128);
 
-    PyObject *variable_name_str = Nuitka_String_FromString(variable_name);
-    CHECK_OBJECT(variable_name_str);
-
-    if (old_value) {
-        setEnvironmentVariable(variable_name, old_value);
-
-#ifdef _WIN32
-        PyObject *env_value = NuitkaUnicode_FromWideChar(old_value, -1);
+    setEnvironmentVariable(name, buffer2);
 #else
-        PyObject *env_value = Nuitka_String_FromString(old_value);
+    setEnvironmentVariable(name, buffer);
 #endif
-        CHECK_OBJECT(env_value);
-
-        int res = PyObject_SetItem(os_environ, variable_name_str, env_value);
-
-        if (unlikely(res != 0)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        Py_DECREF(env_value);
-    } else {
-        unsetEnvironmentVariable(variable_name);
-
-        int res = PyObject_DelItem(os_environ, variable_name_str);
-
-        if (unlikely(res != 0)) {
-            CLEAR_ERROR_OCCURRED(tstate);
-        }
-    }
-
-    Py_DECREF(variable_name_str);
-    Py_DECREF(os_environ);
 }

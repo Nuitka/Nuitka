@@ -2,10 +2,11 @@
 
 include LICENSE.txt
 include MANIFEST.in
-include README.rst README.pdf
-include Changelog.rst Changelog.pdf
-include Developer_Manual.rst Developer_Manual.pdf
-include doc/*.1
+include README.rst
+include Changelog.rst
+include Developer_Manual.rst
+include doc/nuitka.1
+include doc/nuitka-run.1
 
 include bin/compare_with_cpython
 include bin/compare_with_xml

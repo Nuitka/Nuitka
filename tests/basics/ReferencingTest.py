@@ -1317,6 +1317,48 @@ def simpleFunction133():
     C().method_function_with_defaults(1, x, 3, d=[1])
 
 
+def copy_func(func):
+    try:
+        return func.clone()
+    except AttributeError:
+        import types
+
+        return types.FunctionType(
+            func.__code__,
+            func.__globals__,
+            name=func.__name__,
+            argdefs=func.__defaults__,
+            closure=func.__closure__,
+        )
+        # g.__kwdefaults__ = f.__kwdefaults__
+
+
+def simpleFunction134():
+    z = x
+
+    def to_copy(a=3):
+        "some docstring"
+        return 7 * a * z
+
+    return copy_func(to_copy)
+
+
+# TODO: This memory leaks closure cells and needs a fix
+def nosimpleFunction135():
+    def someGenWithClosureGiven():
+        if x:
+            return
+
+        value_given = []
+
+        def localFuncUsingClosureValue():
+            return value_given
+
+        yield localFuncUsingClosureValue
+
+    return list(someGenWithClosureGiven())
+
+
 ####################################
 
 # These need stderr to be wrapped.

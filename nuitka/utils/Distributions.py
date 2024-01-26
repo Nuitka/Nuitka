@@ -25,7 +25,11 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isMSYS2MingwPython,
+    isPosixWindows,
+)
 from nuitka.PythonVersions import python_version
 
 from .FileOperations import searchPrefixPath
@@ -259,6 +263,13 @@ def isDistributionCondaPackage(distribution_name):
     return getDistributionInstallerName(distribution_name) == "conda"
 
 
+def isDistributionMsys2Package(distribution_name):
+    if not isAnacondaPython():
+        return False
+
+    return getDistributionInstallerName(distribution_name).startswith("MSYS2")
+
+
 def isDistributionPipPackage(distribution_name):
     return getDistributionInstallerName(distribution_name) == "pip"
 
@@ -304,6 +315,9 @@ def getDistributionInstallerName(distribution_name):
     We might care of pip, anaconda, Debian, or whatever installed a
     package.
     """
+
+    # many cases due to fallback variants, pylint: disable=too-many-branches
+
     if distribution_name not in _distribution_to_installer:
         distribution = getDistribution(distribution_name)
 
@@ -325,6 +339,10 @@ def getDistributionInstallerName(distribution_name):
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):
                 return "pip"
+            elif isMSYS2MingwPython():
+                return "MSYS2 MinGW"
+            elif isPosixWindows():
+                return "MSYS2 Posix"
             else:
                 if hasattr(distribution, "_path"):
                     distribution_path_parts = str(getattr(distribution, "_path")).split(
@@ -361,7 +379,11 @@ def getDistributionName(distribution):
     else:
         result = distribution.project_name
 
-    assert isValidDistributionName(result), distribution
+    assert isValidDistributionName(result), (
+        distribution,
+        result,
+        getattr(distribution, "_path", "no path"),
+    )
     return result
 
 

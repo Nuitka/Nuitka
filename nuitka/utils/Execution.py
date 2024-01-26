@@ -72,7 +72,7 @@ def getExecutablePath(filename, extra_dir=None):
     """Find an execute in PATH environment."""
 
     # Search in PATH environment.
-    search_path = os.environ.get("PATH", "")
+    search_path = os.getenv("PATH", "")
 
     if extra_dir is not None:
         search_path = extra_dir + os.pathsep + search_path
@@ -176,7 +176,11 @@ def callProcess(*popenargs, **kwargs):
 
 
 @contextmanager
-def withEnvironmentPathAdded(env_var_name, *paths):
+def withEnvironmentPathAdded(env_var_name, *paths, **kw):
+    # Workaround star args with keyword args on older Python
+    prefix = kw.pop("prefix", False)
+    assert not kw, kw
+
     assert os.path.sep not in env_var_name
 
     paths = [path for path in paths if path]
@@ -188,7 +192,11 @@ def withEnvironmentPathAdded(env_var_name, *paths):
 
         if env_var_name in os.environ:
             old_path = os.environ[env_var_name]
-            os.environ[env_var_name] += os.pathsep + path
+
+            if prefix:
+                os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
+            else:
+                os.environ[env_var_name] += os.pathsep + path
         else:
             old_path = None
             os.environ[env_var_name] = path
@@ -228,6 +236,9 @@ def withEnvironmentVarOverridden(env_var_name, value):
 @contextmanager
 def withEnvironmentVarsOverridden(mapping):
     """Change multiple environment variables and restore them after context."""
+
+    if mapping is None:
+        mapping = {}
 
     old_values = {}
 
@@ -343,7 +354,7 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return 0, b"", b""
+            return 0
         else:
             logger.sysexit(absence_message)
 

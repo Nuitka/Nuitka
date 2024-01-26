@@ -108,10 +108,31 @@ def getModifiedPaths():
 
         result.add(line)
 
-    return tuple(sorted(result))
+    return tuple(sorted(filename for filename in result if os.path.exists(filename)))
 
 
-def getUnpushedPaths():
+def getRemoteURL(remote_name):
+    output = check_output(["git", "remote", "get-url", remote_name])
+
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    return output.strip()
+
+
+def getCurrentBranchName():
+    try:
+        output = check_output(["git", "branch", "--show-current"])
+    except NuitkaCalledProcessError:
+        output = check_output(["git", "symbolic-ref", "--short", "HEAD"])
+
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    return output.strip()
+
+
+def getUnPushedPaths():
     result = set()
 
     try:

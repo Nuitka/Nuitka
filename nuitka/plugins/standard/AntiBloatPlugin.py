@@ -23,23 +23,22 @@ that to be done and causing massive degradations.
 """
 
 import ast
-import os
 import re
-import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
 
-class NuitkaPluginAntiBloat(NuitkaPluginBase):
+class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
+    # Lots of details, a bunch of state is cached
+
     plugin_name = "anti-bloat"
     plugin_desc = (
         "Patch stupid imports out of widely used library modules source codes."
@@ -63,6 +62,8 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
     ):
         # Many details, due to many repetitive arguments, pylint: disable=too-many-branches,too-many-statements
 
+        NuitkaYamlPluginBase.__init__(self)
+
         self.show_changes = show_changes
 
         # Default manually to default argument value:
@@ -78,8 +79,6 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             noinclude_dask_mode = noinclude_default_mode
         if noinclude_numba_mode is None:
             noinclude_numba_mode = noinclude_default_mode
-
-        self.config = getYamlPackageConfiguration()
 
         self.handled_modules = OrderedDict()
 
@@ -110,6 +109,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                 "pytest",
             )
             self.handled_modules["sqlalchemy.testing"] = (
+                noinclude_pytest_mode,
+                "pytest",
+            )
+            self.handled_modules["distributed.utils_test"] = (
                 noinclude_pytest_mode,
                 "pytest",
             )
@@ -206,6 +209,9 @@ form 'module_name:[%s]'."""
         # Keep track of modules prevented from automatically following and the
         # information given for that.
         self.no_auto_follows = {}
+
+        # Cache execution context for anti-bloat configs.
+        self.context_codes = {}
 
     def getEvaluationConditionControlTags(self):
         return self.control_tags
@@ -321,23 +327,35 @@ which can and should be a top level package and then one choice, "error",
 "warning", "nofollow", e.g. PyQt5:error.""",
         )
 
+    def _getContextCode(self, module_name, anti_bloat_config):
+        context_code = anti_bloat_config.get("context", "")
+        if type(context_code) in (tuple, list):
+            context_code = "\n".join(context_code)
+
+        if context_code not in self.context_codes:
+            context = {}
+
+            try:
+                # We trust the yaml files, pylint: disable=exec-used
+                exec(context_code, context)
+            except Exception as e:  # pylint: disable=broad-except
+                self.sysexit(
+                    """\
+Error, cannot exec module '%s', context code '%s' due to: %s"""
+                    % (module_name, context_code, e)
+                )
+
+            self.context_codes[context_code] = context
+
+        return dict(self.context_codes[context_code])
+
     def _onModuleSourceCode(self, module_name, anti_bloat_config, source_code):
-        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+        # Complex dealing with many cases, pylint: disable=too-many-branches
 
         description = anti_bloat_config.get("description", "description not given")
 
         # To allow detection if it did anything.
         change_count = 0
-
-        context = {"sys": sys, "os": os}
-
-        context_code = anti_bloat_config.get("context", "")
-        if type(context_code) in (tuple, list):
-            context_code = "\n".join(context_code)
-        context["version"] = self.getPackageVersion
-
-        # We trust the yaml files, pylint: disable=eval-used,exec-used
-        context_ready = not bool(context_code)
 
         for replace_src, replace_code in anti_bloat_config.get(
             "replacements", {}
@@ -347,38 +365,16 @@ which can and should be a top level package and then one choice, "error",
                 continue
 
             if replace_code:
-                if not context_ready:
-                    try:
-                        exec(context_code, context)
-                    except Exception as e:  # pylint: disable=broad-except
-                        self.sysexit(
-                            """\
-Error, cannot exec module '%s', execute context code '%s' due to: %s"""
-                            % (module_name, context_code, e)
-                        )
-
-                    context_ready = True
-
-                if "__dirname__" in replace_code:
-                    context["__dirname__"] = self.locateModule(module_name)
-
-                try:
-                    replace_dst = eval(replace_code, context)
-                except Exception as e:  # pylint: disable=broad-except
-                    self.sysexit(
-                        """\
-Error, cannot eval module '%s' replacement expression code '%s' in '%s' due to: %s"""
-                        % (module_name, replace_code, context_code, e)
-                    )
+                replace_dst = self.evaluateExpression(
+                    full_name=module_name,
+                    expression=replace_code,
+                    config_name="module '%s' config 'replacements' " % module_name,
+                    extra_context=self._getContextCode(
+                        module_name=module_name, anti_bloat_config=anti_bloat_config
+                    ),
+                )
             else:
                 replace_dst = ""
-
-            if type(replace_dst) is not str:
-                self.sysexit(
-                    """\
-Error, module '%s' replacement expression code for '%s' needs to generate string, not %s"""
-                    % (module_name, replace_code, type(replace_dst))
-                )
 
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
@@ -409,18 +405,14 @@ Error, module '%s' replacement expression code for '%s' needs to generate string
             append_code = "\n".join(append_code)
 
         if append_code:
-            if not context_ready:
-                exec(context_code, context)
-                context_ready = True
-
-            try:
-                append_result = eval(append_code, context)
-            except Exception as e:  # pylint: disable=broad-except
-                self.sysexit(
-                    """\
-Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
-                    % (module_name, append_code, context_code, e)
-                )
+            append_result = self.evaluateExpression(
+                full_name=module_name,
+                expression=append_code,
+                config_name="module '%s' config 'append_code'" % module_name,
+                extra_context=self._getContextCode(
+                    module_name=module_name, anti_bloat_config=anti_bloat_config
+                ),
+            )
 
             source_code += "\n" + append_result
             change_count += 1
@@ -470,14 +462,6 @@ Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
     def _onFunctionBodyParsing(
         self, module_name, anti_bloat_config, function_name, body
     ):
-        context = {}
-        context_code = anti_bloat_config.get("context", "")
-        if type(context_code) in (tuple, list):
-            context_code = "\n".join(context_code)
-
-        # We trust the yaml files, pylint: disable=eval-used,exec-used
-        context_ready = not bool(context_code)
-
         replace_code = anti_bloat_config.get("change_function", {}).get(function_name)
 
         if replace_code == "un-callable":
@@ -489,18 +473,15 @@ Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
         if replace_code is None:
             return False
 
-        if not context_ready:
-            exec(context_code, context)
-            context_ready = True
-
-        try:
-            replacement = eval(replace_code, context)
-        except Exception as e:  # pylint: disable=broad-except
-            self.sysexit(
-                """\
-Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due to: %s"""
-                % (module_name, function_name, replace_code, context_code, e)
-            )
+        replacement = self.evaluateExpression(
+            full_name=module_name,
+            expression=replace_code,
+            config_name="module '%s' config 'change_function' of '%s'"
+            % (module_name, function_name),
+            extra_context=self._getContextCode(
+                module_name=module_name, anti_bloat_config=anti_bloat_config
+            ),
+        )
 
         # Single node is required, extract the generated module body with
         # single expression only statement value or a function body.
@@ -578,6 +559,8 @@ Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due t
         source_ref,
         reason,
     ):
+        # Quite a few special cases, but not really complex. pylint: disable=too-many-branches
+
         # Do not even look at these. It's either included by a module that is in standard
         # library, or included for a module in standard library.
         if reason == "stdlib" or (
@@ -630,13 +613,20 @@ Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due t
                     )
 
                     if key not in self.warnings_given:
+                        if handled_module_name == intended_module_name:
+                            handled_module_name_desc = "'%s'" % handled_module_name
+                        else:
+                            handled_module_name_desc = (
+                                "'%s' (intending to avoid '%s')"
+                                % (handled_module_name, intended_module_name)
+                            )
+
                         self.warning(
                             """\
-Undesirable import of '%s' (intending to avoid '%s') in \
-'%s' (at '%s') encountered. It may slow down compilation."""
+Undesirable import of %s in '%s' (at '%s') encountered. It may \
+slow down compilation."""
                             % (
-                                handled_module_name,
-                                intended_module_name,
+                                handled_module_name_desc,
                                 using_module_name,
                                 source_ref.getAsString(),
                             ),
@@ -668,25 +658,32 @@ Undesirable import of '%s' (intending to avoid '%s') in \
                     )
 
         if using_module_name is not None:
-            config = self.config.get(using_module_name, section="anti-bloat")
 
-            if config:
-                for anti_bloat_config in config:
-                    no_auto_follows = anti_bloat_config.get("no-auto-follow", {})
+            def decideRelevant(key, value):
+                # Only checking key, pylint: disable=unused-argument
 
-                    for no_auto_follow, description in no_auto_follows.items():
-                        if module_name.hasNamespace(no_auto_follow):
-                            if self.evaluateCondition(
-                                full_name=module_name,
-                                condition=anti_bloat_config.get("when", "True"),
-                            ):
-                                self.no_auto_follows[no_auto_follow] = description
+                return module_name.hasNamespace(key)
 
-                                return (
-                                    False,
-                                    "according to yaml 'no-auto-follow' configuration of '%s'"
-                                    % using_module_name,
-                                )
+            for (
+                config_of_module_name,
+                no_auto_follow,
+                description,
+            ) in self.getYamlConfigItemItems(
+                module_name=using_module_name,
+                section="anti-bloat",
+                item_name="no-auto-follow",
+                decide_relevant=decideRelevant,
+                recursive=True,
+            ):
+                assert module_name.hasNamespace(no_auto_follow), no_auto_follow
+
+                self.no_auto_follows[no_auto_follow] = description
+
+                return (
+                    False,
+                    "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
+                    % (config_of_module_name, no_auto_follow),
+                )
 
         # Do not provide an opinion about it.
         return None

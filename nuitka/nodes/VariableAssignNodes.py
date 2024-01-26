@@ -500,7 +500,6 @@ class StatementAssignmentVariableIterator(
         assign_iterated = makeStatementAssignmentVariable(
             source=iterated_value,
             variable=self.tmp_iterated_variable,
-            variable_version=None,
             source_ref=iterated_value.source_ref,
         )
 
@@ -511,7 +510,6 @@ class StatementAssignmentVariableIterator(
         assign_iteration_count = makeStatementAssignmentVariable(
             source=makeConstantRefNode(constant=0, source_ref=self.source_ref),
             variable=self.tmp_iteration_count_variable,
-            variable_version=None,
             source_ref=iterated_value.source_ref,
         )
 

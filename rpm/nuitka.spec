@@ -187,8 +187,7 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-tracebacktests/basics/EmptyModuleTest.py
-    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
@@ -220,12 +219,6 @@ then
     $python3 setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
 fi
 
-mkdir -p %{buildroot}%{_mandir}/man1
-gzip -c doc/nuitka2.1 > %{buildroot}%{_mandir}/man1/nuitka2.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka2.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
-gzip -c doc/nuitka2-run.1 > %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
-
 %clean
 rm -rf %{buildroot}
 
@@ -237,7 +230,6 @@ rm -rf %{buildroot}
 %{_bindir}/nuitka2-run
 %{python_sitearch}/*
 %endif
-%{_mandir}/man1/*
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 %{python3_sitearch}/*
 %{_bindir}/nuitka3
@@ -249,14 +241,14 @@ rm -rf %{buildroot}
 %{_bindir}/nuitka3-run
 %endif
 %changelog
-* Sat Dec 28 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.7
+* Sat Dec 28 2019 Kay Hayen <kay.hayen@gmail.com> - 0.6.7
 - adapted for Fedora31 and CentOS 8, Python3 enhancements
 - added Python3 for openSUSE 15 or higher too.
 
-* Fri Jun 07 2019 Kay Hayen<kay.hayen@gmail.com> - 0.6.4
+* Fri Jun 07 2019 Kay Hayen <kay.hayen@gmail.com> - 0.6.4
 - adapted for Fedora30
 
-* Mon Mar 26 2018 Kay Hayen<kay.hayen@gmail.com> - 0.5.29
+* Mon Mar 26 2018 Kay Hayen <kay.hayen@gmail.com> - 0.5.29
 - added Python3 packaging
 
 * Sun Sep 08 2013 Kay Hayen <kay.hayen@gmail.com> - 0.4.6

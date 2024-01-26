@@ -169,6 +169,8 @@ class StatementLoop(StatementLoopBase):
                 current.getTypeShape().emitAlternatives(
                     self.loop_resume[loop_variable].add
                 )
+                # print("first", self.source_ref, loop_variable, ":",
+                #     self.loop_resume[loop_variable])
             else:
                 if (
                     self.loop_resume[loop_variable]
@@ -189,6 +191,7 @@ class StatementLoop(StatementLoopBase):
                     incomplete = False
 
             # Mark the variable as loop usage before executing it.
+            # print("loop merge from shapes", self.loop_resume[loop_variable])
             loop_entry_traces.add(
                 (
                     loop_variable,

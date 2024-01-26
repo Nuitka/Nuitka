@@ -47,11 +47,16 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getTempDir,
     my_print,
+    reportSkip,
     setup,
 )
+from nuitka.Version import getCommercialVersion
 
 
 def main():
+    # Complex stuff, even more should become common code though.
+    # pylint: disable=too-many-branches
+
     setup(suite="packages")
 
     search_mode = createSearchMode()
@@ -71,6 +76,14 @@ def main():
 
         if active:
             my_print("Consider output of compiled package:", filename)
+
+            if "embed" in filename and getCommercialVersion() is None:
+                reportSkip(
+                    "Skipped, only working with Nuitka commercial",
+                    ".",
+                    filename,
+                )
+                continue
 
             filename_main = None
 

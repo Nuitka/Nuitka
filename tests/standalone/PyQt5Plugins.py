@@ -19,7 +19,17 @@
 #
 from PyQt5 import QtGui
 
+# nuitka-skip-unless-imports: PyQt5.QtGui
+
 # nuitka-project: --standalone
+# nuitka-project: --enable-plugin=pyqt5
+#
+# nuitka-project-if: {OS} == "Darwin":
+#   nuitka-project: --macos-create-app-bundle
+#   nuitka-project: --onefile
+
+print(QtGui.QImageReader.supportedImageFormats())
+
 # nuitka-project: --enable-plugin=pyqt5
 
 # nuitka-skip-unless-imports: PyQt5.QtGui

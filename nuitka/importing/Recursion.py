@@ -177,7 +177,11 @@ def _decideRecursion(
     if module_name in detectEarlyImports():
         return True, "Technically required for CPython library startup."
 
-    if module_name in detectStdlibAutoInclusionModules():
+    is_stdlib = module_filename is not None and StandardLibrary.isStandardLibraryPath(
+        module_filename
+    )
+
+    if is_stdlib and module_name in detectStdlibAutoInclusionModules():
         return True, "Including as part of the non-excluded parts of standard library."
 
     # In '-m' mode, when including the package, do not duplicate main program.
@@ -242,7 +246,6 @@ def _decideRecursion(
 
     # PGO decisions are not overruling plugins, but all command line options, they are
     # supposed to be applied already.
-    is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
 
     if not is_stdlib or Options.shallFollowStandardLibrary():
         # TODO: Bad placement of this function or should PGO also know about
@@ -250,7 +253,12 @@ def _decideRecursion(
         from nuitka.tree.Building import decideCompilationMode
 
         if (
-            decideCompilationMode(is_top=False, module_name=module_name, for_pgo=True)
+            decideCompilationMode(
+                is_top=False,
+                module_name=module_name,
+                module_filename=module_filename,
+                for_pgo=True,
+            )
             == "compiled"
         ):
             pgo_decision = decideInclusionFromPGO(

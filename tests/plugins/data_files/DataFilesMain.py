@@ -25,7 +25,8 @@ import data_files_package
 
 # nuitka-project: --standalone
 # nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
-
+# nuitka-project-if: {Commercial} is not None:
+#   nuitka-project: --embed-data-files-runtime-pattern=lala.txt
 
 assert os.path.exists(
     os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt")

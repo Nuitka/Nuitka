@@ -119,11 +119,7 @@ def getStandardLibraryPaths():
     return getStandardLibraryPaths.result
 
 
-def isStandardLibraryPath(filename):
-    """Check if a path is in the standard library."""
-
-    filename = os.path.normcase(os.path.normpath(filename))
-
+def _isStandardLibraryPath(filename):
     # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.
     if os.path.basename(filename) == "site.py":
@@ -142,6 +138,20 @@ def isStandardLibraryPath(filename):
             return True
 
     return False
+
+
+_is_standard_library_path_cache = {}
+
+
+def isStandardLibraryPath(filename):
+    """Check if a path is in the standard library."""
+
+    filename = os.path.normcase(os.path.normpath(filename))
+
+    if filename not in _is_standard_library_path_cache:
+        _is_standard_library_path_cache[filename] = _isStandardLibraryPath(filename)
+
+    return _is_standard_library_path_cache[filename]
 
 
 # Some modules we want to exclude entirely.

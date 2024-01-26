@@ -220,6 +220,11 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
 
     def hasWritersOutsideOf(self, provider):
         if not self.owner.locals_scope.complete:
+            # TODO: Maybe this doesn't have to be limited to these types.
+            if not self.shared_users and (
+                self.isLocalVariable() or self.isTempVariable()
+            ):
+                return False
             return None
         elif self.writers is None:
             return False

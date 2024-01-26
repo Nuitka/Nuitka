@@ -177,7 +177,7 @@ def _getTerminalSize():
             return columns[1]
 
         try:
-            return int(os.environ.get("COLUMNS", "1000"))
+            return int(os.getenv("COLUMNS", "1000"))
         except ValueError:
             return 1000
     else:
@@ -286,21 +286,10 @@ class OurLogger(object):
             style=style,
         )
 
-    def warning(self, message, style="red", mnemonic=None):
-        if mnemonic is not None:
-            from .Options import shallDisplayWarningMnemonic
-
-            if not shallDisplayWarningMnemonic(mnemonic):
-                return
-
-        if self.name:
-            prefix = "%s:WARNING: " % self.name
-        else:
-            prefix = "WARNING: "
-
+    def _printFormatted(self, prefix, message, style, keep_format):
         style = style or self.base_style
 
-        if sys.stderr.isatty():
+        if sys.stderr.isatty() and not keep_format:
             width = _getTerminalSize() or 10000
         else:
             width = 10000
@@ -316,6 +305,22 @@ class OurLogger(object):
             replace_whitespace=False,
         )
         self.my_print(formatted_message, style=style, file=sys.stderr)
+
+    def warning(self, message, style="yellow", mnemonic=None, keep_format=False):
+        if mnemonic is not None:
+            from .Options import shallDisplayWarningMnemonic
+
+            if not shallDisplayWarningMnemonic(mnemonic):
+                return
+
+        if self.name:
+            prefix = "%s:WARNING: " % self.name
+        else:
+            prefix = "WARNING: "
+
+        self._printFormatted(
+            prefix=prefix, message=message, style=style, keep_format=keep_format
+        )
 
         if mnemonic is not None:
             self._warnMnemonic(mnemonic, style=style, output_function=self.warning)
@@ -361,13 +366,16 @@ class OurLogger(object):
     def isQuiet(self):
         return is_quiet or self.is_quiet
 
-    def info(self, message, style=None, mnemonic=None):
+    def info(self, message, style=None, mnemonic=None, prefix=None, keep_format=False):
         if not self.isQuiet():
-            if self.name:
-                message = "%s:INFO: %s" % (self.name, message)
-
-            style = style or self.base_style
-            self.my_print(message, style=style)
+            self._printFormatted(
+                prefix="%s: " % self.name
+                if prefix is None
+                else "%s:%s: " % (self.name, prefix),
+                message=message,
+                style=style,
+                keep_format=keep_format,
+            )
 
             if mnemonic is not None:
                 self._warnMnemonic(mnemonic, style=style, output_function=self.info)
@@ -394,7 +402,7 @@ class FileLogger(OurLogger):
 
     def info(self, message, style=None, mnemonic=None):
         if not self.isQuiet() or self.file_handle:
-            message = "%s:INFO: %s" % (self.name, message)
+            message = "%s: %s" % (self.name, message)
 
             style = style or self.base_style
             self.my_print(message, style=style)

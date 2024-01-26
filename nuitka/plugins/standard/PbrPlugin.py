@@ -47,9 +47,9 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
         if full_name == "pbr.packaging":
             code = """\
 import os
-version = os.environ.get(
+version = os.getenv(
         "PBR_VERSION",
-        os.environ.get("OSLO_PACKAGE_VERSION"))
+        os.getenv("OSLO_PACKAGE_VERSION"))
 if not version:
     os.environ["OSLO_PACKAGE_VERSION"] = "1.0"
 """

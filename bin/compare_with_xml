@@ -46,7 +46,7 @@ Comparing output of '{filename}' using '{nuitka1}' <-> '{nuitka2}' ...""".format
     )
 )
 
-extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
+extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "")
 
 nuitka1_cmd = "{nuitka1} --xml {filename}".format(nuitka1=nuitka1, filename=filename)
 nuitka2_cmd = "{nuitka2} --xml {filename}".format(nuitka2=nuitka2, filename=filename)

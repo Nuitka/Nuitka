@@ -97,7 +97,10 @@ from nuitka.nodes.ExceptionNodes import (
     StatementReraiseException,
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
-from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.GeneratorNodes import (
+    StatementGeneratorReturn,
+    StatementGeneratorReturnNone,
+)
 from nuitka.nodes.ImportNodes import (
     isHardModuleWithoutSideEffect,
     makeExpressionImportModuleFixed,
@@ -594,10 +597,12 @@ def buildReturnNode(provider, node, source_ref):
         provider.isExpressionGeneratorObjectBody()
         or provider.isExpressionAsyncgenObjectBody()
     ):
-        if expression is None:
-            expression = ExpressionConstantNoneRef(source_ref=source_ref)
-
-        return StatementGeneratorReturn(expression=expression, source_ref=source_ref)
+        if expression is None or expression.isExpressionConstantNoneRef():
+            return StatementGeneratorReturnNone(source_ref=source_ref)
+        else:
+            return StatementGeneratorReturn(
+                expression=expression, source_ref=source_ref
+            )
     else:
         return makeStatementReturn(expression=expression, source_ref=source_ref)
 
@@ -987,15 +992,17 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
         assert False
 
 
-def decideCompilationMode(is_top, module_name, for_pgo):
+def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
     """Decide the compilation mode for a module.
 
     module_name - The module to decide compilation mode for.
     for_pgo - consider PGO information or not
     """
 
+    is_stdlib = module_filename is not None and isStandardLibraryPath(module_filename)
+
     # Technically required modules must be bytecode
-    if module_name in detectEarlyImports():
+    if is_stdlib and module_name in detectEarlyImports():
         return "bytecode"
 
     result = Plugins.decideCompilation(module_name)
@@ -1014,13 +1021,8 @@ required to compiled."""
 
     # Include all of standard library as bytecode, for now. We need to identify
     # which ones really need that.
-    if not is_top:
-        module_filename = Importing.locateModule(
-            module_name=module_name, parent_package=None, level=0
-        )[1]
-
-        if module_filename is not None and isStandardLibraryPath(module_filename):
-            result = "bytecode"
+    if not is_top and is_stdlib:
+        result = "bytecode"
 
     # Plugins need to win over PGO, as they might know it better
     if result is None and not for_pgo:
@@ -1028,7 +1030,7 @@ required to compiled."""
 
     # Default if neither plugins nor PGO have expressed an opinion
     if result is None:
-        if module_name in detectStdlibAutoInclusionModules():
+        if is_stdlib and module_name in detectStdlibAutoInclusionModules():
             result = "bytecode"
         else:
             result = "compiled"
@@ -1067,6 +1069,7 @@ def _loadUncompiledModuleFromCache(
 
 def _createModule(
     module_name,
+    module_filename,
     module_kind,
     reason,
     source_code,
@@ -1077,11 +1080,13 @@ def _createModule(
     is_main,
     main_added,
 ):
+    is_stdlib = module_filename is not None and isStandardLibraryPath(module_filename)
+
     if module_kind == "extension":
         result = PythonExtensionModule(
             module_name=module_name,
             reason=reason,
-            technical=module_name in detectEarlyImports(),
+            technical=is_stdlib and module_name in detectEarlyImports(),
             source_ref=source_ref,
         )
     elif is_main:
@@ -1091,7 +1096,10 @@ def _createModule(
             main_added=main_added,
             module_name=module_name,
             mode=decideCompilationMode(
-                is_top=is_top, module_name=module_name, for_pgo=False
+                is_top=is_top,
+                module_name=module_name,
+                module_filename=module_filename,
+                for_pgo=False,
             ),
             future_spec=None,
             source_ref=source_ref,
@@ -1107,7 +1115,10 @@ def _createModule(
         )
     else:
         mode = decideCompilationMode(
-            is_top=is_top, module_name=module_name, for_pgo=False
+            is_top=is_top,
+            module_name=module_name,
+            module_filename=module_filename,
+            for_pgo=False,
         )
 
         if (
@@ -1265,11 +1276,13 @@ def _makeModuleBodyTooComplex(
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
-        recursion_logger.info(
-            """\
+        # Known harmless case, not causing issues, lets not warn about it.
+        if module_name != "sympy.polys.numberfields.resolvent_lookup":
+            recursion_logger.info(
+                """\
 Cannot compile module '%s' because its code is too complex, included as bytecode."""
-            % module_name
-        )
+                % module_name
+            )
 
     return makeUncompiledPythonModule(
         module_name=module_name,
@@ -1390,7 +1403,7 @@ def buildModule(
                     source_diff = getSourceCodeDiff(original_source_code, source_code)
 
                     for line in source_diff:
-                        plugins_logger.warning(line)
+                        plugins_logger.warning(line, keep_format=True)
 
                     if len(contributing_plugins) == 1:
                         next(iter(contributing_plugins)).sysexit(
@@ -1427,6 +1440,7 @@ def buildModule(
 
     module = _createModule(
         module_name=module_name,
+        module_filename=None if is_fake else module_filename,
         module_kind=module_kind,
         reason=reason,
         source_code=source_code,

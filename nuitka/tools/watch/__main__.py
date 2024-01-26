@@ -52,6 +52,8 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
 from nuitka.Version import parseNuitkaVersionToTuple
 
+from .GitHub import createNuitkaWatchPR
+
 watch_logger = OurLogger("", base_style="blue")
 
 
@@ -327,19 +329,19 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
     else:
         assert False
 
-    with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", "1"):
-        check_call(
-            run_command
-            + [
-                nuitka_binary,
-                os.path.join(case_dir, case_data["filename"]),
-                "--report=compilation-report.xml",
-                "--report-diffable",
-                "--report-user-provided=pipenv_hash=%s"
-                % getFileContentsHash(lock_filename),
-            ]
-            + extra_options
-        )
+    check_call(
+        run_command
+        + [
+            nuitka_binary,
+            os.path.join(case_dir, case_data["filename"]),
+            "--assume-yes-for-downloads",
+            "--report=compilation-report.xml",
+            "--report-diffable",
+            "--report-user-provided=pipenv_hash=%s"
+            % getFileContentsHash(lock_filename),
+        ]
+        + extra_options
+    )
 
     if case_data["interactive"] == "no":
         binaries = getFileList(
@@ -351,17 +353,18 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
         if len(binaries) != 1:
             sys.exit("Error, failed to identify created binary.")
 
-        stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
-
-        if exit_nuitka != 0:
-            sys.exit(
-                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
-            )
+        with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", "1"):
+            stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
 
         with open("compiled-stdout.txt", "wb") as output:
             output.write(stdout)
         with open("compiled-stderr.txt", "wb") as output:
             output.write(stderr)
+
+        if exit_nuitka != 0:
+            sys.exit(
+                "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
+            )
 
 
 def _updateCase(
@@ -588,6 +591,15 @@ Do not change anything, just report what would be done. Not yet perfectly true. 
 Recompile even if the versions seems not changed. Default %default.""",
     )
 
+    parser.add_option(
+        "--pr",
+        action="store",
+        dest="nuitka_pr_mode",
+        default=None,
+        help="""\
+PR to create. Default not making a PR.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) <= 1, positional_args
@@ -600,7 +612,9 @@ Recompile even if the versions seems not changed. Default %default.""",
     for python_version in options.python_versions or reversed(
         getTestExecutionPythonVersions()
     ):
-        installed_pythons[python_version] = findPythons(python_version)
+        installed_pythons[python_version] = findPythons(
+            python_version, module_name="pipenv"
+        )
 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
     assert os.path.exists(nuitka_binary)
@@ -613,6 +627,11 @@ Recompile even if the versions seems not changed. Default %default.""",
     watch_logger.info("Working with Nuitka %s." % nuitka_version)
 
     base_dir = os.path.abspath(base_dir)
+
+    if options.nuitka_pr_mode is not None:
+        pr_category, pr_description = options.nuitka_pr_mode.split(",")
+    else:
+        pr_category = pr_description = None
 
     with withDirectoryChange(base_dir):
         for case_filename in scanCases(base_dir):
@@ -629,6 +648,9 @@ Recompile even if the versions seems not changed. Default %default.""",
                     no_pipenv_update=options.no_pipenv_update,
                     nuitka_update_mode=options.nuitka_update_mode,
                 )
+
+        if pr_category is not None:
+            createNuitkaWatchPR(category=pr_category, description=pr_description)
 
 
 if __name__ == "__main__":

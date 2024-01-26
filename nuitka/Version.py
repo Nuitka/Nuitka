@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V1.9.7
+Nuitka V2.0
 Copyright (C) 2023 Kay Hayen."""
 
 
@@ -30,6 +30,10 @@ def getNuitkaVersion():
     This should not be used for >= comparisons directly.
     """
     return version_string.split()[1][1:]
+
+
+# Sanity check.
+assert getNuitkaVersion()[-1].isdigit(), getNuitkaVersion()
 
 
 def parseNuitkaVersionToTuple(version):

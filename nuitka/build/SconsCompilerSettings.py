@@ -197,6 +197,7 @@ def _enableLtoSettings(
         orig_lto_mode == "auto"
         and lto_mode
         and env.module_count > module_count_threshold
+        and not env.nuitka_python
     ):
         lto_mode = False
         reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
@@ -262,7 +263,7 @@ def checkWindowsCompilerFound(
     env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
-    # Many cases to deal with, pylint: disable=too-many-branches
+    # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
 
     if os.name == "nt":
         # On Windows, in case MSVC was not found and not previously forced, use the
@@ -270,7 +271,8 @@ def checkWindowsCompilerFound(
         compiler_path = getExecutablePath(env["CC"], env=env)
 
         scons_details_logger.info(
-            "Checking usability of '%s' from '%s'." % (compiler_path, env["CC"])
+            "Checking usability of binary '%s' from environment '%s'."
+            % (compiler_path, env["CC"])
         )
 
         # On MSYS2, cannot use the POSIX compiler, drop that even before we check arches, since that
@@ -296,6 +298,14 @@ def checkWindowsCompilerFound(
                 )
             ):
                 # This will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
+
+        if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            if clang_mode and not isClangName(the_cc_name):
+                # This will trigger using it to use our own clang in branch below.
                 compiler_path = None
                 env["CC"] = None
 
@@ -390,7 +400,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
 
         if compiler_path is None and msvc_version is None:
             scons_details_logger.info(
-                "No usable C compiler, attempt fallback to winlibs gcc."
+                "No usable C compiler, attempt fallback to winlibs gcc or clang."
             )
 
             # This will download "gcc.exe" (and "clang.exe") when all others have been
@@ -631,6 +641,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             # compilation more memory hungry, but also faster.
             env.Append(CCFLAGS="-pipe")
 
+        # gcc compiler cf_protection option
+        if env.cf_protection != "auto":
+            env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
     # Support for clang.
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-w"])

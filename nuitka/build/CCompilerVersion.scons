@@ -129,7 +129,7 @@ if os.name == "nt" and not mingw_mode and clang_mode:
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
 
-if int(os.environ.get("NUITKA_QUIET", "0")):
+if int(os.getenv("NUITKA_QUIET", "0")):
     setQuiet()
 
 # Forced MSVC version (windows-only)
@@ -146,6 +146,9 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
+
+# gcc compiler cf_protection option
+cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
@@ -198,7 +201,7 @@ if "CC" in os.environ:
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env)
-elif clang_mode:
+elif clang_mode and not mingw_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
 
@@ -239,6 +242,9 @@ env.clang_mode = clang_mode
 env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
+
+# gcc compiler cf_protection option
+env.cf_protection = cf_protection
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(

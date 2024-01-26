@@ -157,4 +157,10 @@ PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(PyThreadState *tstate, struct N
                                                  PyObject *object, PyObject *const *args, Py_ssize_t args_size,
                                                  PyObject *kw);
 
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Function_Type;
+extern int count_allocated_Nuitka_Function_Type;
+extern int count_released_Nuitka_Function_Type;
+#endif
+
 #endif

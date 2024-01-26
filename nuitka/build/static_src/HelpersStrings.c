@@ -619,7 +619,7 @@ PyObject *STR_JOIN(PyThreadState *tstate, PyObject *str, PyObject *iterable) {
 
 #endif
 
-PyObject *NuitkaUnicode_FromWideChar(const wchar_t *str, Py_ssize_t size) {
+PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size) {
 #if PYTHON_VERSION < 0x300
     if (size == -1) {
         size = wcslen(str);

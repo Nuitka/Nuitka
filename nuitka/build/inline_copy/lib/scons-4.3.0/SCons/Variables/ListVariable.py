@@ -70,22 +70,22 @@ class _ListVariable(collections.UserList):
         self.allowedElems = sorted(allowedElems)
 
     def __cmp__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __eq__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __ge__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __gt__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __le__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __lt__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __str__(self):
         if not len(self):

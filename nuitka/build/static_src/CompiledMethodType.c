@@ -294,6 +294,8 @@ static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, P
         }
     }
 
+    // Delegate all other attributes to the underlying function.
+    // TODO: Could be a bit more direct here, and know this is generic lookup.
     return PyObject_GetAttr((PyObject *)method->m_function, name);
 }
 
@@ -464,27 +466,40 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
 
     if (!_PyArg_NoKeywords("compiled_method", kw)) {
         return NULL;
-    } else if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
+    }
+
+    if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
         return NULL;
-    } else if (!PyCallable_Check(func)) {
+    }
+
+    CHECK_OBJECT(func);
+
+    if (!PyCallable_Check(func)) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "first argument must be callable");
         return NULL;
-    } else {
-        if (self == Py_None) {
-            self = NULL;
-        }
-
-        if (self == NULL && klass == NULL) {
-            PyThreadState *tstate = PyThreadState_GET();
-
-            SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "unbound methods must have non-NULL im_class");
-            return NULL;
-        }
     }
 
-    assert(Nuitka_Function_Check(func));
+    if (self == Py_None) {
+        self = NULL;
+    }
+
+    if (self == NULL && klass == NULL) {
+        PyThreadState *tstate = PyThreadState_GET();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "unbound methods must have non-NULL im_class");
+        return NULL;
+    }
+
+    if (Nuitka_Method_Check(func)) {
+        return Nuitka_Method_New(((struct Nuitka_MethodObject *)func)->m_function, self, klass);
+    }
+
+    if (Nuitka_Function_Check(func) == false) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("Cannot create compiled_ method from type '%s'", func);
+        return NULL;
+    }
 
     return Nuitka_Method_New((struct Nuitka_FunctionObject *)func, self, klass);
 }

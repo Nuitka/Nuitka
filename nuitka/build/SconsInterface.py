@@ -37,10 +37,10 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
     getSystemPrefixPath,
-    getTargetPythonDLLPath,
     python_version,
     python_version_str,
 )
@@ -151,14 +151,7 @@ Anaconda Python.
 
 
 @contextlib.contextmanager
-def _setupSconsEnvironment2(scons_filename):
-    is_backend = scons_filename == "Backend.scons"
-
-    if is_backend and isWin32Windows() and not Options.shallUseStaticLibPython():
-        # On Win32, we use the Python.DLL path for some things. We pass it
-        # via environment variable
-        os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
-
+def _setupSconsEnvironment2():
     os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
 
     # Remove environment variables that can only harm if we have to switch
@@ -188,16 +181,13 @@ def _setupSconsEnvironment2(scons_filename):
     if old_pythonhome is not None:
         os.environ["PYTHONHOME"] = old_pythonhome
 
-    if "NUITKA_PYTHON_DLL_PATH" in os.environ:
-        del os.environ["NUITKA_PYTHON_DLL_PATH"]
-
     del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
     del os.environ["NUITKA_PACKAGE_DIR"]
 
 
 @contextlib.contextmanager
-def _setupSconsEnvironment(scons_filename):
+def _setupSconsEnvironment():
     """Setup the scons execution environment.
 
     For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
@@ -216,7 +206,7 @@ def _setupSconsEnvironment(scons_filename):
         change_dir = None
 
     with withDirectoryChange(change_dir, allow_none=True):
-        with _setupSconsEnvironment2(scons_filename=scons_filename):
+        with _setupSconsEnvironment2():
             yield
 
 
@@ -272,7 +262,7 @@ def _buildSconsCommand(options, scons_filename):
 
 
 def runScons(options, env_values, scons_filename):
-    with _setupSconsEnvironment(scons_filename):
+    with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
         if "source_dir" in options and Options.shallCompileWithoutBuildDirectory():
@@ -434,6 +424,9 @@ def setCommonSconsOptions(options):
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
 
+    if isSelfCompiledPythonUninstalled():
+        options["self_compiled_python_uninstalled"] = asBoolStr(True)
+
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
         options["cpp_defines"] = ",".join(
@@ -473,6 +466,9 @@ def setCommonSconsOptions(options):
         options["macos_target_arch"] = macos_target_arch
 
     options["target_arch"] = getArchitecture()
+
+    if Options.getFcfProtectionMode() != "auto":
+        options["cf_protection"] = Options.getFcfProtectionMode()
 
     env_values = OrderedDict()
 

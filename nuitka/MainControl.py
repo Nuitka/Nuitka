@@ -562,11 +562,12 @@ def _runPythonPgoBinary():
     pgo_filename = OutputDirectories.getPgoRunInputFilename()
 
     with withEnvironmentVarOverridden("NUITKA_PGO_OUTPUT", pgo_filename):
-        _exit_code = _runPgoBinary()
+        exit_code = _runPgoBinary()
 
     if not os.path.exists(pgo_filename):
         general.sysexit(
-            "Error, no Python PGO information produced, did the created binary run at all?"
+            "Error, no Python PGO information produced, did the created binary (exit code %d) as expected?"
+            % exit_code
         )
 
     return pgo_filename
@@ -627,6 +628,9 @@ def runSconsBackend():
         if Options.isOnefileTempDirMode():
             options["onefile_temp_mode"] = asBoolStr(True)
 
+    if Options.shallCreateAppBundle():
+        options["macos_bundle_mode"] = asBoolStr(True)
+
     if Options.getForcedStdoutPath():
         options["forced_stdout_path"] = Options.getForcedStdoutPath()
 
@@ -671,7 +675,7 @@ def runSconsBackend():
     if sys.flags.bytes_warning:
         options["python_sysflag_bytes_warning"] = asBoolStr(True)
 
-    if int(os.environ.get("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
+    if int(os.getenv("NUITKA_NOSITE_FLAG", Options.hasPythonFlagNoSite())):
         options["python_sysflag_no_site"] = asBoolStr(True)
 
     if Options.hasPythonFlagTraceImports():
@@ -765,7 +769,7 @@ def runSconsBackend():
 
 
 def callExecPython(args, clean_path, add_path):
-    old_python_path = os.environ.get("PYTHONPATH")
+    old_python_path = os.getenv("PYTHONPATH")
 
     if clean_path and old_python_path is not None:
         os.environ["PYTHONPATH"] = ""

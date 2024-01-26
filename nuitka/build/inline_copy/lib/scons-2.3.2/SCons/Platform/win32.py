@@ -130,8 +130,10 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
         return 127
     else:
         # one temporary file for stdout and stderr
-        tmpFileStdout = os.path.normpath(tempfile.mktemp())
-        tmpFileStderr = os.path.normpath(tempfile.mktemp())
+        tmpFileStdout, tmpFileStdoutName = tempfile.mkstemp(text=True)
+        os.close(tmpFileStdout)
+        tmpFileStderr, tmpFileStderrname = tempfile.mkstemp(text=True)
+        os.close(tmpFileStderr)
 
         # check if output is redirected
         stdoutRedirected = 0
@@ -147,9 +149,9 @@ def piped_spawn(sh, escape, cmd, args, env, stdout, stderr):
 
         # redirect output of non-redirected streams to our tempfiles
         if stdoutRedirected == 0:
-            args.append(">" + str(tmpFileStdout))
+            args.append(">" + str(tmpFileStdoutName))
         if stderrRedirected == 0:
-            args.append("2>" + str(tmpFileStderr))
+            args.append("2>" + str(tmpFileStderrname))
 
         # actually do the spawn
         try:

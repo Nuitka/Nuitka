@@ -216,7 +216,7 @@ extern "C" void initSplashScreen(void) {
 
     splash_window = createSplashWindow(splash_bitmap);
 
-    wchar_t const *pattern = L"%TEMP%\\onefile_%PID%_splash_feedback.tmp";
+    wchar_t const *pattern = L"{TEMP}\\onefile_{PID}_splash_feedback.tmp";
     BOOL bool_res =
         expandTemplatePathW(splash_indicator_path, pattern, sizeof(splash_indicator_path) / sizeof(wchar_t));
     if (bool_res == false) {

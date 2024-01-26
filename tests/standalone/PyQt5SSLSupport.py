@@ -17,11 +17,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-skip-unless-imports: PyQt5.QtGui
+
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=pyqt5
 
-from PyQt5.QtNetwork import QSslSocket
+# nuitka-project-if: {OS} == "Darwin":
+#   nuitka-project: --macos-create-app-bundle
+#   nuitka-project: --onefile
 
-# nuitka-skip-unless-imports: PyQt5.QtGui
+from PyQt5.QtNetwork import QSslSocket
 
 print("SSL support: %r" % (QSslSocket.supportsSsl(),))

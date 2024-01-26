@@ -395,7 +395,7 @@ def main():
     # many details, mostly needed for reporting: pylint: disable=too-many-locals
 
     data_composer_logger.is_quiet = (
-        os.environ.get("NUITKA_DATA_COMPOSER_VERBOSE", "0") != "1"
+        os.getenv("NUITKA_DATA_COMPOSER_VERBOSE", "0") != "1"
     )
 
     # Internal tool, most simple command line handling. This is the build directory

@@ -690,7 +690,7 @@ system Qt plugins, which may be from another Qt version.""",
         if full_name == self.binding_name and isWin32Windows():
             code = """\
 import os
-path = os.environ.get("PATH", "")
+path = os.getenv("PATH", "")
 if not path.startswith(__nuitka_binary_dir):
     os.environ["PATH"] = __nuitka_binary_dir + ";" + path
 """
@@ -1488,8 +1488,8 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
                 if top_package_name not in self.warned_about:
                     self.info(
                         """\
-Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing
-its use. As a result an "ImportError" might be given at run time. Uninstall
+Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing \
+its use. As a result an "ImportError" might be given at run time. Uninstall \
 it for full compatible behavior with the uncompiled code to debug it."""
                         % {
                             "unwanted": top_package_name,

@@ -876,6 +876,20 @@ def generateOsPathBasenameCallCode(to_name, expression, emit, context):
     )
 
 
+def generateOsPathDirnameCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_DIRNAME",
+        tstate=True,
+        arg_desc=(("path_arg", expression.subnode_p),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateOsPathAbspathCallCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
