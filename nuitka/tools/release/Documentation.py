@@ -72,6 +72,7 @@ extra_rst_keywords = (
     b"grid",
     b"toctree",
     b"automodule",
+    b"dropdown",
 )
 
 
