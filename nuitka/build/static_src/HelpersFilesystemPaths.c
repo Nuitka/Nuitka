@@ -513,6 +513,14 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
                 copyStringSafeW(resolved_filename, resolved_filename + 4, resolved_filename_size);
             }
         }
+
+        // Avoid network filenames with UNC prefix, they won't work for loading
+        // extension modules and other things, Python avoids them too.
+        if (wcsncmp(resolved_filename, L"\\\\?\\UNC\\", 8) == 0) {
+            copyStringSafeW(resolved_filename, resolved_filename + 6, resolved_filename_size);
+            resolved_filename[0] = L'\\';
+        }
+
     } else {
         copyStringSafeW(resolved_filename, filename, resolved_filename_size);
     }
@@ -712,101 +720,107 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
     wchar_t var_name[1024];
     wchar_t *w = NULL;
 
+    bool var_started = false;
+
     while (*source != 0) {
-        if (*source == '%') {
-            if (w == NULL) {
-                w = var_name;
-                *w = 0;
+        if (*source == L'{') {
+            assert(var_started == false);
+            var_started = true;
 
-                source++;
+            w = var_name;
+            *w = 0;
 
-                continue;
-            } else {
-                *w = 0;
+            source++;
 
-                bool is_path = false;
+            continue;
+        } else if (*source == L'}') {
+            assert(var_started == true);
+            var_started = false;
 
-                if (wcsicmp(var_name, L"TEMP") == 0) {
-                    GetTempPathW((DWORD)buffer_size, target);
-                    is_path = true;
-                } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
+            *w = 0;
+
+            bool is_path = false;
+
+            if (wcsicmp(var_name, L"TEMP") == 0) {
+                GetTempPathW((DWORD)buffer_size, target);
+                is_path = true;
+            } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1
-                    appendWStringSafeW(target, __wargv[0], buffer_size);
+                appendWStringSafeW(target, __wargv[0], buffer_size);
 #else
-                    if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
-                        return false;
-                    }
+                if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
+                    return false;
+                }
 #endif
-                } else if (wcsicmp(var_name, L"PROGRAM_BASE") == 0) {
-                    if (expandTemplatePathW(target, L"%PROGRAM%", buffer_size - wcslen(target)) == false) {
-                        return false;
-                    }
-
-                    size_t length = wcslen(target);
-
-                    if ((length >= 4) && (wcsicmp(target + length - 4, L".exe") == 0)) {
-                        target[length - 4] = 0;
-                    }
-                } else if (wcsicmp(var_name, L"PID") == 0) {
-                    char pid_buffer[128];
-                    snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
-
-                    appendStringSafeW(target, pid_buffer, buffer_size);
-                } else if (wcsicmp(var_name, L"HOME") == 0) {
-                    if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
-                        return false;
-                    }
-                    is_path = true;
-                } else if (wcsicmp(var_name, L"CACHE_DIR") == 0) {
-                    if (appendStringCSIDLPathW(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
-                        return false;
-                    }
-                    is_path = true;
-#ifdef NUITKA_COMPANY_NAME
-                } else if (wcsicmp(var_name, L"COMPANY") == 0) {
-                    appendWStringSafeW(target, L"" NUITKA_COMPANY_NAME, buffer_size);
-#endif
-#ifdef NUITKA_PRODUCT_NAME
-                } else if (wcsicmp(var_name, L"PRODUCT") == 0) {
-                    appendWStringSafeW(target, L"" NUITKA_PRODUCT_NAME, buffer_size);
-#endif
-#ifdef NUITKA_VERSION_COMBINED
-                } else if (wcsicmp(var_name, L"VERSION") == 0) {
-                    appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
-#endif
-                } else if (wcsicmp(var_name, L"TIME") == 0) {
-                    char time_buffer[1024];
-
-                    __int64 time = 0;
-                    assert(sizeof(time) == sizeof(FILETIME));
-                    GetSystemTimeAsFileTime((LPFILETIME)&time);
-
-                    snprintf(time_buffer, sizeof(time_buffer), "%lld", time);
-
-                    appendStringSafeW(target, time_buffer, buffer_size);
-                } else {
+            } else if (wcsicmp(var_name, L"PROGRAM_BASE") == 0) {
+                if (expandTemplatePathW(target, L"{PROGRAM}", buffer_size - wcslen(target)) == false) {
                     return false;
                 }
 
-                // Skip over appended stuff.
-                while (*target) {
-                    target++;
-                    buffer_size -= 1;
+                size_t length = wcslen(target);
+
+                if ((length >= 4) && (wcsicmp(target + length - 4, L".exe") == 0)) {
+                    target[length - 4] = 0;
                 }
+            } else if (wcsicmp(var_name, L"PID") == 0) {
+                char pid_buffer[128];
+                snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
 
-                if (is_path) {
-                    while (*(target - 1) == FILENAME_SEP_CHAR) {
-                        target--;
-                        *target = 0;
-                        buffer_size += 1;
-                    }
+                appendStringSafeW(target, pid_buffer, buffer_size);
+            } else if (wcsicmp(var_name, L"HOME") == 0) {
+                if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
+                    return false;
                 }
+                is_path = true;
+            } else if (wcsicmp(var_name, L"CACHE_DIR") == 0) {
+                if (appendStringCSIDLPathW(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
+                    return false;
+                }
+                is_path = true;
+#ifdef NUITKA_COMPANY_NAME
+            } else if (wcsicmp(var_name, L"COMPANY") == 0) {
+                appendWStringSafeW(target, L"" NUITKA_COMPANY_NAME, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_NAME
+            } else if (wcsicmp(var_name, L"PRODUCT") == 0) {
+                appendWStringSafeW(target, L"" NUITKA_PRODUCT_NAME, buffer_size);
+#endif
+#ifdef NUITKA_VERSION_COMBINED
+            } else if (wcsicmp(var_name, L"VERSION") == 0) {
+                appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
+#endif
+            } else if (wcsicmp(var_name, L"TIME") == 0) {
+                char time_buffer[1024];
 
-                w = NULL;
-                source++;
+                __int64 time = 0;
+                assert(sizeof(time) == sizeof(FILETIME));
+                GetSystemTimeAsFileTime((LPFILETIME)&time);
 
-                continue;
+                snprintf(time_buffer, sizeof(time_buffer), "%lld", time);
+
+                appendStringSafeW(target, time_buffer, buffer_size);
+            } else {
+                return false;
             }
+
+            // Skip over appended stuff.
+            while (*target) {
+                target++;
+                buffer_size -= 1;
+            }
+
+            if (is_path) {
+                while (*(target - 1) == FILENAME_SEP_CHAR) {
+                    target--;
+                    *target = 0;
+                    buffer_size += 1;
+                }
+            }
+
+            w = NULL;
+            source++;
+
+            continue;
         }
 
         if (w != NULL) {
@@ -825,6 +839,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
     *target = 0;
 
+    assert(var_started == false);
     return true;
 }
 
@@ -836,114 +851,118 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
     char var_name[1024];
     char *w = NULL;
 
+    bool var_started = false;
+
     while (*source != 0) {
-        if (*source == '%') {
-            if (w == NULL) {
-                w = var_name;
-                *w = 0;
+        if (*source == '{') {
+            assert(var_started == false);
+            var_started = true;
 
-                source++;
+            w = var_name;
+            *w = 0;
 
-                continue;
-            } else {
-                *w = 0;
+            source++;
 
-                bool is_path = false;
+            continue;
+        } else if (*source == '}') {
+            assert(var_started == true);
+            var_started = false;
+            *w = 0;
 
-                if (strcasecmp(var_name, "TEMP") == 0) {
-                    char const *tmp_dir = getenv("TMPDIR");
-                    if (tmp_dir == NULL) {
-                        tmp_dir = "/tmp";
-                    }
+            bool is_path = false;
 
-                    appendStringSafe(target, tmp_dir, buffer_size);
-                    is_path = true;
-                } else if (strcasecmp(var_name, "PROGRAM") == 0) {
-                    char const *exe_name = getBinaryFilenameHostEncoded(false);
+            if (strcasecmp(var_name, "TEMP") == 0) {
+                char const *tmp_dir = getenv("TMPDIR");
+                if (tmp_dir == NULL) {
+                    tmp_dir = "/tmp";
+                }
 
-                    appendStringSafe(target, exe_name, buffer_size);
-                } else if (strcasecmp(var_name, "PROGRAM_BASE") == 0) {
-                    if (expandTemplatePath(target, "%PROGRAM%", buffer_size - strlen(target)) == false) {
-                        return false;
-                    }
+                appendStringSafe(target, tmp_dir, buffer_size);
+                is_path = true;
+            } else if (strcasecmp(var_name, "PROGRAM") == 0) {
+                char const *exe_name = getBinaryFilenameHostEncoded(false);
 
-                    size_t length = strlen(target);
-
-                    if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
-                        target[length - 4] = 0;
-                    }
-                } else if (strcasecmp(var_name, "PID") == 0) {
-                    char pid_buffer[128];
-
-                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
-
-                    appendStringSafe(target, pid_buffer, buffer_size);
-                } else if (strcasecmp(var_name, "HOME") == 0) {
-                    char const *home_path = getenv("HOME");
-
-                    if (home_path == NULL) {
-                        struct passwd *pw_data = getpwuid(getuid());
-
-                        if (unlikely(pw_data == NULL)) {
-                            return false;
-                        }
-
-                        home_path = pw_data->pw_dir;
-                    }
-
-                    appendStringSafe(target, home_path, buffer_size);
-                    is_path = true;
-                } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
-                    if (expandTemplatePath(target, "%HOME%", buffer_size - strlen(target)) == false) {
-                        return false;
-                    }
-
-                    appendCharSafe(target, '/', buffer_size);
-                    appendStringSafe(target, ".cache", buffer_size);
-                    is_path = true;
-#ifdef NUITKA_COMPANY_NAME
-                } else if (strcasecmp(var_name, "COMPANY") == 0) {
-                    appendStringSafe(target, NUITKA_COMPANY_NAME, buffer_size);
-#endif
-#ifdef NUITKA_PRODUCT_NAME
-                } else if (strcasecmp(var_name, "PRODUCT") == 0) {
-                    appendStringSafe(target, NUITKA_PRODUCT_NAME, buffer_size);
-#endif
-#ifdef NUITKA_VERSION_COMBINED
-                } else if (strcasecmp(var_name, "VERSION") == 0) {
-                    appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
-#endif
-                } else if (strcasecmp(var_name, "TIME") == 0) {
-                    char time_buffer[1024];
-
-                    struct timeval current_time;
-                    gettimeofday(&current_time, NULL);
-                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec,
-                             (long)current_time.tv_usec);
-
-                    appendStringSafe(target, time_buffer, buffer_size);
-                } else {
+                appendStringSafe(target, exe_name, buffer_size);
+            } else if (strcasecmp(var_name, "PROGRAM_BASE") == 0) {
+                if (expandTemplatePath(target, "{PROGRAM}", buffer_size - strlen(target)) == false) {
                     return false;
                 }
-                // Skip over appended stuff.
-                while (*target) {
-                    target++;
-                    buffer_size -= 1;
-                }
 
-                if (is_path) {
-                    while (*(target - 1) == FILENAME_SEP_CHAR) {
-                        target--;
-                        *target = 0;
-                        buffer_size += 1;
+                size_t length = strlen(target);
+
+                if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
+                    target[length - 4] = 0;
+                }
+            } else if (strcasecmp(var_name, "PID") == 0) {
+                char pid_buffer[128];
+
+                snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+
+                appendStringSafe(target, pid_buffer, buffer_size);
+            } else if (strcasecmp(var_name, "HOME") == 0) {
+                char const *home_path = getenv("HOME");
+
+                if (home_path == NULL) {
+                    struct passwd *pw_data = getpwuid(getuid());
+
+                    if (unlikely(pw_data == NULL)) {
+                        return false;
                     }
+
+                    home_path = pw_data->pw_dir;
                 }
 
-                w = NULL;
-                source++;
+                appendStringSafe(target, home_path, buffer_size);
+                is_path = true;
+            } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
+                if (expandTemplatePath(target, "{HOME}", buffer_size - strlen(target)) == false) {
+                    return false;
+                }
 
-                continue;
+                appendCharSafe(target, '/', buffer_size);
+                appendStringSafe(target, ".cache", buffer_size);
+                is_path = true;
+#ifdef NUITKA_COMPANY_NAME
+            } else if (strcasecmp(var_name, "COMPANY") == 0) {
+                appendStringSafe(target, NUITKA_COMPANY_NAME, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_NAME
+            } else if (strcasecmp(var_name, "PRODUCT") == 0) {
+                appendStringSafe(target, NUITKA_PRODUCT_NAME, buffer_size);
+#endif
+#ifdef NUITKA_VERSION_COMBINED
+            } else if (strcasecmp(var_name, "VERSION") == 0) {
+                appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
+#endif
+            } else if (strcasecmp(var_name, "TIME") == 0) {
+                char time_buffer[1024];
+
+                struct timeval current_time;
+                gettimeofday(&current_time, NULL);
+                snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec, (long)current_time.tv_usec);
+
+                appendStringSafe(target, time_buffer, buffer_size);
+            } else {
+                return false;
             }
+            // Skip over appended stuff.
+            while (*target) {
+                target++;
+                buffer_size -= 1;
+            }
+
+            if (is_path) {
+                while (*(target - 1) == FILENAME_SEP_CHAR) {
+                    target--;
+                    *target = 0;
+                    buffer_size += 1;
+                }
+            }
+
+            w = NULL;
+            source++;
+
+            continue;
         }
 
         if (w != NULL) {
@@ -962,6 +981,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
     *target = 0;
 
+    assert(var_started == false);
     return true;
 }
 

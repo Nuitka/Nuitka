@@ -19,7 +19,9 @@
 #
 """ Test using matplotlib, should actually do something with it. """
 
-import matplotlib  # pylint:disable=unused-import
+import os
+
+from matplotlib import pyplot as plt
 
 # nuitka-skip-unless-imports: matplotlib
 
@@ -33,4 +35,11 @@ import matplotlib  # pylint:disable=unused-import
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
 # nuitka-project: --noinclude-custom-mode=IPython:error
 
+
+y = [0, 1, 2, 3]
+
+plt.plot(y, color="red", markersize=1, linestyle="-")
+
+if os.getenv("NUITKA_TEST_INTERACTIVE") == "1":
+    plt.show()
 print("OK.")

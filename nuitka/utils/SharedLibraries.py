@@ -283,7 +283,7 @@ def _getOToolCommandOutput(otool_option, filename):
     command = ("otool",) + _getMacOSArchOption() + (otool_option, filename)
 
     if otool_option == "-L":
-        cache_key = command, os.environ.get("DYLD_LIBRARY_PATH")
+        cache_key = command, os.getenv("DYLD_LIBRARY_PATH")
     else:
         cache_key = command
 

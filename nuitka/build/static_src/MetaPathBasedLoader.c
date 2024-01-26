@@ -1080,7 +1080,15 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
     PyObject *result = NULL;
 
     if (entry != NULL) {
+#ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
+        PyGC_Collect();
+#endif
+
         result = loadModule(tstate, module, module_name, entry);
+
+#ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
+        PyGC_Collect();
+#endif
 
         if (unlikely(result == NULL)) {
             return NULL;
@@ -1794,7 +1802,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 
     {"sys_path_hook", (PyCFunction)_nuitka_loader_sys_path_hook, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 
-    {NULL, NULL}
+    {NULL, NULL} // terminator
 };
 
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {

@@ -33,6 +33,11 @@ import sys
 os.chdir(os.path.dirname(__file__) or ".")
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
+# Disable setuptools warnings.
+import warnings
+
+warnings.filterwarnings("ignore", "")
+
 # isort:start
 
 import fnmatch
@@ -107,7 +112,7 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
 
 
 def addInlineCopy(name, do_byte_compile=True):
-    if int(os.environ.get("NUITKA_NO_INLINE_COPY", 0)) == 1:
+    if os.getenv("NUITKA_NO_INLINE_COPY", "0") == "1":
         return
 
     addDataFiles(
@@ -121,6 +126,7 @@ addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
 sdist_mode = "sdist" in sys.argv
+install_mode = "install" in sys.argv
 
 if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
@@ -348,7 +354,10 @@ class BinaryDistribution(Distribution):
 
     @staticmethod
     def has_ext_modules():
-        return True
+        # For "python setup.py install" this triggers an attempt to lookup
+        # package dependencies, which fails to work, since it's not yet
+        # installed and might not yet be in PyPI as well.
+        return not install_mode
 
 
 with open("README.rst", "rb") as input_file:
@@ -458,4 +467,5 @@ Python compiler with full language support and CPython compatibility""",
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,
+    verbose=0,
 )

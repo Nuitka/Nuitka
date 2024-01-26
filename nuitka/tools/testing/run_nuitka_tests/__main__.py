@@ -497,7 +497,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
 
 def publishCoverageData():
     def copyToGlobalCoverageData(source, target):
-        coverage_dir = os.environ.get("COVERAGE_DIR")
+        coverage_dir = os.getenv("COVERAGE_DIR")
 
         if coverage_dir is None:
             return
@@ -540,7 +540,7 @@ def publishCoverageData():
 
         putTextFileContents(filename, contents=data)
 
-    coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
+    coverage_file = os.getenv("COVERAGE_FILE", ".coverage")
 
     makeCoverageRelative(coverage_file)
     copyToGlobalCoverageData(coverage_file, "data.coverage." + suffix)
@@ -551,7 +551,7 @@ def main():
     # pylint: disable=too-many-branches,too-many-statements
 
     # Lets honor this Debian option here, spell-checker: ignore nocheck
-    if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
+    if "nocheck" in os.getenv("DEB_BUILD_OPTIONS", "").split():
         my_print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
         sys.exit(0)
 

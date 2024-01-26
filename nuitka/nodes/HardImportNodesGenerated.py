@@ -57,6 +57,7 @@ from nuitka.specs.HardImportSpecs import (
     os_listdir_spec,
     os_path_abspath_spec,
     os_path_basename_spec,
+    os_path_dirname_spec,
     os_path_exists_spec,
     os_path_isabs_spec,
     os_path_isdir_spec,
@@ -2030,6 +2031,87 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_basename_spec.isCompileTimeComputable(
+            (self.subnode_p,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsPathDirnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.path.dirname"""
+
+    kind = "EXPRESSION_OS_PATH_DIRNAME_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="dirname",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathDirnameCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathDirnameCall,
+            builtin_spec=os_path_dirname_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.dirname' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsPathDirnameRef] = os_path_dirname_spec
+
+
+class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
+    """Base class for OsPathDirnameCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("p",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_dirname_spec
+
+    def __init__(self, p, source_ref):
+        ChildHavingPMixin.__init__(
+            self,
+            p=p,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_dirname_spec.isCompileTimeComputable(
             (self.subnode_p,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

@@ -51,3 +51,16 @@ def extractModulesUsedByModule(compilation_report, module_name):
 
     # Not found, no usages, user needs to handle that.
     return None
+
+
+def _getResolvedCompilationPath(path, prefixes):
+    for prefix_name, prefix_path in prefixes:
+        path = path.replace(prefix_name, prefix_path)
+
+    return path
+
+
+def getCompilationOutputBinary(compilation_report, prefixes):
+    return _getResolvedCompilationPath(
+        path=compilation_report.find("output").attrib["run_filename"], prefixes=prefixes
+    )

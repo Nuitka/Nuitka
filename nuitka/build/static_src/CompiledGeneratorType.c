@@ -31,6 +31,12 @@
 #include <structmember.h>
 #endif
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Generator_Type;
+int count_allocated_Nuitka_Generator_Type;
+int count_released_Nuitka_Generator_Type;
+#endif
+
 // In a separate file, code to interact with uncompiled generators, that does
 // all the quirks necessary to get those working.
 #include "CompiledGeneratorTypeUncompiledIntegration.c"
@@ -1277,6 +1283,11 @@ static struct Nuitka_GeneratorObject *free_list_generators = NULL;
 static int free_list_generators_count = 0;
 
 static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Generator_Type -= 1;
+    count_released_Nuitka_Generator_Type += 1;
+#endif
+
     // Revive temporarily.
     assert(Py_REFCNT(generator) == 0);
     Py_SET_REFCNT(generator, 1);
@@ -1611,6 +1622,11 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 #endif
                                PyCodeObject *code_object, struct Nuitka_CellObject **closure, Py_ssize_t closure_given,
                                Py_ssize_t heap_storage_size) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Generator_Type += 1;
+    count_allocated_Nuitka_Generator_Type += 1;
+#endif
+
     struct Nuitka_GeneratorObject *result;
 
     // TODO: Change the var part of the type to 1 maybe

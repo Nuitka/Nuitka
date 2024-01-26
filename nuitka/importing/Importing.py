@@ -45,7 +45,6 @@ from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
@@ -68,6 +67,7 @@ from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
+from .StandardLibrary import isStandardLibraryPath
 
 # Debug traces, enabled via --explain-imports
 _debug_module_finding = None
@@ -220,7 +220,7 @@ def isIgnoreListedImportMaker(source_ref):
     if isNuitkaPython():
         return True
 
-    return StandardLibrary.isStandardLibraryPath(source_ref.getFilename())
+    return isStandardLibraryPath(source_ref.getFilename())
 
 
 def warnAboutNotFoundImport(importing, module_name, level, source_ref):
@@ -690,7 +690,7 @@ def _findModuleInPath(module_name):
     # executed, while we normally search in PYTHONPATH after it was executed,
     # and on some systems, that fails.
     if package_name is None and module_name == "site":
-        candidate = os.environ.get("NUITKA_SITE_FILENAME", "")
+        candidate = os.getenv("NUITKA_SITE_FILENAME")
 
         if candidate:
             return candidate, "py"

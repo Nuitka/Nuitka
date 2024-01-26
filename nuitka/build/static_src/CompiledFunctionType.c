@@ -32,9 +32,17 @@
 
 // spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Function_Type;
+int count_allocated_Nuitka_Function_Type;
+int count_released_Nuitka_Function_Type;
+#endif
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
+    CHECK_OBJECT((PyObject *)function);
+    assert(_PyObject_GC_IS_TRACKED(function));
 
 #if PYTHON_VERSION >= 0x300
     if (object == NULL || object == Py_None) {
@@ -630,6 +638,39 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
+    for (Py_ssize_t i = 0; i < function->m_closure_given; i++) {
+        assert(function->m_closure[i]);
+        Py_INCREF(function->m_closure[i]);
+    }
+
+    Py_INCREF(function->m_defaults);
+
+#if PYTHON_VERSION >= 0x300
+#if 0
+    PRINT_STRING("Nuitka_Function_clone:");
+    PRINT_ITEM((PyObject *)function);
+    PRINT_NEW_LINE();
+#endif
+
+    PyObject *annotations = function->m_annotations;
+    if (annotations != NULL) {
+        if (DICT_SIZE(annotations) != 0) {
+            annotations = DICT_COPY(annotations);
+        } else {
+            annotations = NULL;
+        }
+    }
+
+    PyObject *kwdefaults = function->m_kwdefaults;
+    if (kwdefaults != NULL) {
+        if (DICT_SIZE(kwdefaults) != 0) {
+            kwdefaults = DICT_COPY(kwdefaults);
+        } else {
+            kwdefaults = NULL;
+        }
+    }
+#endif
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(function->m_c_code, function->m_name,
 #if PYTHON_VERSION >= 0x300
@@ -637,7 +678,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
 #endif
                             function->m_code_object, function->m_defaults,
 #if PYTHON_VERSION >= 0x300
-                            function->m_kwdefaults, function->m_annotations,
+                            kwdefaults, annotations,
 #endif
                             function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
 
@@ -649,6 +690,11 @@ static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
 
 static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Function_Type -= 1;
+    count_released_Nuitka_Function_Type += 1;
+#endif
+
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
@@ -1140,6 +1186,11 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
                                                   struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #endif
 {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Function_Type += 1;
+    count_allocated_Nuitka_Function_Type += 1;
+#endif
+
     struct Nuitka_FunctionObject *result;
 
     // Macro to assign result memory from GC or free list.

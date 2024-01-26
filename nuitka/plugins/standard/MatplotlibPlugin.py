@@ -27,6 +27,7 @@ from nuitka.plugins.Plugins import (
 from nuitka.utils.Execution import NuitkaCalledProcessError
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Jinja2 import renderTemplateFromString
+from nuitka.utils.Utils import isMacOS
 
 # spell-checker: ignore matplotlib, scipy, scikit, matplotlibrc, matplotlibdata
 # spell-checker: ignore mpl_toolkits, tkagg, MPLBACKEND
@@ -214,3 +215,9 @@ os.environ["QT_API"] = "{{qt_binding_name}}"
                 code,
                 "Setting environment variables for 'matplotlib' to find package configuration.",
             )
+
+    def decideCompilation(self, module_name):
+        # The C code for macOS requires Python functions rather than compiled
+        # ones, let it have its way
+        if isMacOS() and module_name == "matplotlib.backend_bases":
+            return "bytecode"

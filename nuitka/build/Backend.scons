@@ -214,6 +214,9 @@ standalone_mode = getArgumentBool("standalone_mode", False)
 # Onefile mode
 onefile_mode = getArgumentBool("onefile_mode", False)
 
+# MacOS bundle
+macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
+
 # Onefile temp mode
 onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
 
@@ -224,7 +227,7 @@ forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
 
-if int(os.environ.get("NUITKA_QUIET", "0")):
+if int(os.getenv("NUITKA_QUIET", "0")):
     setQuiet()
 
 # Home of Python to be compiled against, used to find include files and
@@ -301,6 +304,9 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# gcc compiler cf_protection option
+cf_protection = getArgumentDefaulted("cf_protection", "auto")
+
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
 
@@ -337,7 +343,7 @@ if "CC" in os.environ:
 elif clangcl_mode:
     # If possible, add Clang directory from MSVC if available.
     addClangClPathFromMSVC(env=env)
-elif clang_mode:
+elif clang_mode and not mingw_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
 
@@ -380,6 +386,9 @@ env.clang_mode = clang_mode
 env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
+
+# gcc compiler cf_protection option
+env.cf_protection = cf_protection
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -526,6 +535,9 @@ if trace_mode:
 if env.standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
 
+if macos_bundle_mode:
+    env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE"])
+
 if onefile_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
 
@@ -619,22 +631,28 @@ def _detectPythonHeaderPath():
 
     for candidate in candidates:
         if os.path.exists(os.path.join(candidate, "Python.h")):
-            return candidate
-
-    if os.name == "nt":
-        scons_logger.sysexit(
-            """Error, you seem to be using the unsupported embeddable CPython distribution."""
-        )
+            yield candidate
+            break
     else:
-        scons_logger.sysexit(
-            """\
+        if os.name == "nt":
+            scons_logger.sysexit(
+                """\
+Error, you seem to be using the unsupported embeddable CPython distribution \
+use a full Python instead."""
+            )
+        else:
+            scons_logger.sysexit(
+                """\
 Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
-            % ("debug" if python_debug else "development", candidates)
-        )
+                % ("debug" if python_debug else "development", candidates)
+            )
+
+    if env.self_compiled_python_uninstalled:
+        yield python_prefix_external
 
 
-env.Append(CPPPATH=[_detectPythonHeaderPath()])
+env.Append(CPPPATH=list(_detectPythonHeaderPath()))
 
 # To support self-built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
@@ -644,18 +662,16 @@ if os.name == "nt":
     if os.path.exists(python_header_path):
         env.Append(CPPPATH=[python_header_path])
 
-
-def getWindowsPythonDLLPath():
-    return os.environ["NUITKA_PYTHON_DLL_PATH"]
-
-
 if env.nuitka_python:
     env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
 
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if env.static_libpython and (not os.name == "nt" or env.nuitka_python):
+# TODO: This ought to be decided outside of scons and per flavor maybe.
+if env.static_libpython and (
+    (not os.name == "nt" and not isMacOS()) or env.nuitka_python
+):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if os.name == "nt":
@@ -803,7 +819,12 @@ if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
 # We have include files in the build directory and the static include directory
 # that is located inside Nuitka installation.
 env.Append(
-    CPPPATH=[source_dir, nuitka_include, os.path.join(env.nuitka_src, "static_src")]
+    CPPPATH=[
+        source_dir,
+        nuitka_include,
+        os.path.join(env.nuitka_src, "static_src"),
+        os.path.join(env.nuitka_src, "inline_copy", "libbacktrace"),
+    ]
 )
 
 # Set load libpython from binary directory default
@@ -846,8 +867,8 @@ else:
         # For complete outputs, we have to match the C runtime of the Python DLL, if any,
         # for Nuitka-Python there is of course none.
         if not env.nuitka_python and (
-            forced_stdout_path not in ("%NONE%", "%NULL%", None)
-            or forced_stderr_path not in ("%NONE%", "%NULL%", None)
+            forced_stdout_path not in ("{NONE}", "{NULL}", None)
+            or forced_stderr_path not in ("{NONE}", "{NULL}", None)
         ):
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
         else:
@@ -965,17 +986,17 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
     if forced_stdout_path:
-        if forced_stdout_path == "%NONE%":
+        if forced_stdout_path == "{NONE}":
             build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
-        elif forced_stdout_path == "%NULL%":
+        elif forced_stdout_path == "{NULL}":
             build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
         else:
             build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
 
     if forced_stderr_path:
-        if forced_stderr_path == "%NONE%":
+        if forced_stderr_path == "{NONE}":
             build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
-        elif forced_stderr_path == "%NULL%":
+        elif forced_stderr_path == "{NULL}":
             build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
         else:
             build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path

@@ -257,4 +257,10 @@ NUITKA_MAY_BE_UNUSED static void DROP_GENERATOR_EXCEPTION(struct Nuitka_Generato
 #endif
 }
 
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Generator_Type;
+extern int count_allocated_Nuitka_Generator_Type;
+extern int count_released_Nuitka_Generator_Type;
+#endif
+
 #endif

@@ -36,7 +36,9 @@ from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContents
+from .Hashing import HashCRC32
 from .Importing import importFromInlineCopy
+from .ModuleNames import checkModuleName
 
 
 class PackageConfigYaml(object):
@@ -45,9 +47,11 @@ class PackageConfigYaml(object):
         "data",
     )
 
-    def __init__(self, name, data):
+    def __init__(self, name, file_data):
         self.name = name
 
+        assert type(file_data) is bytes
+        data = parseYaml(file_data)
         assert type(data) is list
 
         self.data = OrderedDict()
@@ -64,6 +68,12 @@ class PackageConfigYaml(object):
             if "/" in module_name:
                 general.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
+                    % (self.name, module_name)
+                )
+
+            if not checkModuleName(module_name):
+                general.sysexit(
+                    "Error, invalid module name in '%s' not valid '%s'."
                     % (self.name, module_name)
                 )
 
@@ -143,16 +153,26 @@ def parseYaml(data):
 _yaml_cache = {}
 
 
+def getYamlDataHash(data):
+    result = HashCRC32()
+    result.updateFromValues(data)
+
+    return result.asHexDigest()
+
+
 def parsePackageYaml(package_name, filename):
     key = package_name, filename
 
     if key not in _yaml_cache:
-        data = pkgutil.get_data(package_name, filename)
+        if package_name is None:
+            file_data = getFileContents(filename, mode="rb")
+        else:
+            file_data = pkgutil.get_data(package_name, filename)
 
-        if data is None:
+        if file_data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
 
-        _yaml_cache[key] = PackageConfigYaml(name=filename, data=parseYaml(data))
+        _yaml_cache[key] = PackageConfigYaml(name=filename, file_data=file_data)
 
     return _yaml_cache[key]
 
@@ -199,7 +219,7 @@ def getYamlPackageConfiguration():
             _package_config.update(
                 PackageConfigYaml(
                     name=user_yaml_filename,
-                    data=parseYaml(getFileContents(user_yaml_filename, mode="rb")),
+                    file_data=getFileContents(user_yaml_filename, mode="rb"),
                 )
             )
 

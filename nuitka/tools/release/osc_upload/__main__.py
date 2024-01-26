@@ -26,7 +26,7 @@ import os
 import shutil
 import sys
 
-from nuitka.tools.release.Documentation import createReleaseDocumentation
+from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.Version import getNuitkaVersion
 
@@ -38,7 +38,7 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
-    createReleaseDocumentation()
+    checkReleaseDocumentation()
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     # Upload stable releases to OpenSUSE Build Service:

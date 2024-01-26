@@ -218,6 +218,15 @@ def simpleFunction11():
     coro.close()
 
 
+def simpleFunction12():
+    def func(x):
+        x = [5, *x, 8]
+
+        return x
+
+    func([2, 3, 4])
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

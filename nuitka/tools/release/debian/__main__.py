@@ -15,7 +15,6 @@ from nuitka.tools.release.Debian import (
     runPy2dsc,
     shallNotIncludeInlineCopy,
 )
-from nuitka.tools.release.Documentation import makeManPages
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
@@ -117,8 +116,6 @@ def main():
         "debian", int("644", 8), int("755", 8), ignore_filenames=("rules",)
     )
     fixupPermissionsInplace("nuitka", int("644", 8), int("755", 8))
-
-    makeManPages()
 
     # Build the source distribution as per our setup, however that's not going
     # to be good enough for Debian packages. We may want to avoid inline copies

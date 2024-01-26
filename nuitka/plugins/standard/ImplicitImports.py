@@ -117,7 +117,14 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 else:
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()
 
-            if "*" in dependency or "?" in dependency:
+            if "(" in dependency:
+                yield self.evaluateExpression(
+                    full_name=full_name,
+                    expression=dependency,
+                    config_name="depends value",
+                    extra_context=None,
+                )
+            elif "*" in dependency or "?" in dependency:
                 for resolved in self._resolveModulePattern(dependency):
                     yield resolved
             else:
@@ -329,7 +336,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         module_filename = self.locateModule(module_name)
 
         if os.path.isfile(module_filename):
-            module_filename = yield os.path.dirname(module_filename)
+            module_filename = os.path.dirname(module_filename)
 
         for relative_path in config.get("global-sys-path", ()):
             candidate = os.path.abspath(os.path.join(module_filename, relative_path))
@@ -540,8 +547,45 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 ):
                     code = "\n".join(entry.get("pre-import-code"))
 
-                    # TODO: Add a description to the Yaml file.
-                    yield code, "According to Yaml configuration."
+        for entry in self.config.get(full_name, section="import-hacks"):
+            if "force-environment-variables" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    for (
+                        environment_variable_name,
+                        environment_variable_value,
+                    ) in entry.get("force-environment-variables").items():
+                        code = """\
+import os
+os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
+""" % {
+                            "environment_variable_name": environment_variable_name,
+                            "environment_variable_value": environment_variable_value,
+                        }
+                        yield code, """\
+According to Yaml 'force-environment-variables' configuration."""
+
+        for entry in self.config.get(full_name, section="import-hacks"):
+            if "overridden-environment-variables" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    for (
+                        environment_variable_name,
+                        environment_variable_value,
+                    ) in entry.get("overridden-environment-variables").items():
+                        code = """\
+import os
+if os.getenv("%(environment_variable_name)s") is not None:
+    os.environ["%(environment_variable_name)s" + "_OLD"] = os.getenv("%(environment_variable_name)s")
+os.environ['%(environment_variable_name)s'] = "%(environment_variable_value)s"
+""" % {
+                            "environment_variable_name": environment_variable_name,
+                            "environment_variable_value": environment_variable_value,
+                        }
+                        yield code, """\
+According to Yaml 'overridden-environment-variables' configuration."""
 
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
@@ -554,7 +598,30 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     code = "\n".join(entry.get("post-import-code"))
 
                     # TODO: Add a description to the Yaml file.
-                    yield code, "According to Yaml configuration."
+                    yield code, """\
+According to Yaml 'post-import-code' configuration."""
+
+        for entry in self.config.get(full_name, section="import-hacks"):
+            if "overridden-environment-variables" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    for environment_variable_name in entry.get(
+                        "overridden-environment-variables"
+                    ):
+                        code = """\
+import os
+if os.getenv("%(environment_variable_name)s" + "_OLD") is None:
+    del os.environ["%(environment_variable_name)s"]
+else:
+    os.environ["%(environment_variable_name)s"] = os.environ["%(environment_variable_name)s" + "_OLD"]
+    del os.environ["%(environment_variable_name)s" + "_OLD"]
+""" % {
+                            "environment_variable_name": environment_variable_name
+                        }
+
+                        yield code, """\
+According to Yaml 'overridden-environment-variables' configuration."""
 
     unworthy_namespaces = (
         "setuptools",  # Not performance relevant.

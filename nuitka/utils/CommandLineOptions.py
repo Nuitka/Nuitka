@@ -34,9 +34,14 @@ from optparse import SUPPRESS_HELP  # isort:skip pylint: disable=unused-import
 class OurOptionGroup(OptionGroup):
     def add_option(self, *args, **kwargs):
         require_compiling = kwargs.pop("require_compiling", True)
+        github_action = kwargs.pop("github_action", True)
+        github_action_default = kwargs.pop("github_action_default", None)
 
         result = OptionGroup.add_option(self, *args, **kwargs)
+
         result.require_compiling = require_compiling
+        result.github_action = github_action
+        result.github_action_default = github_action_default
 
         return result
 
@@ -93,9 +98,19 @@ class OurOptionParser(OptionParser):
 
     def add_option(self, *args, **kwargs):
         require_compiling = kwargs.pop("require_compiling", True)
+        github_action = kwargs.pop("github_action", True)
+        github_action_default = kwargs.pop("github_action_default", None)
+
+        default_values = self.get_default_values()
 
         result = OptionParser.add_option(self, *args, **kwargs)
         result.require_compiling = require_compiling
+        result.github_action = github_action
+        result.github_action_default = github_action_default
+
+        if result.dest is not None:
+            if hasattr(default_values, result.dest):
+                assert result.default == getattr(default_values, result.dest)
 
         return result
 
@@ -132,6 +147,14 @@ class OurOptionParser(OptionParser):
             # Need to use private option attribute, pylint: disable=protected-access
             if option_name in option._long_opts:
                 return option.action in ("store_true", "store_false")
+
+        return False
+
+    def isListOption(self, option_name):
+        for option in self.iterateOptions():
+            # Need to use private option attribute, pylint: disable=protected-access
+            if option_name in option._long_opts:
+                return option.action == "append"
 
         return False
 

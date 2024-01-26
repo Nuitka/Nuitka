@@ -49,6 +49,8 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
+    addModuleInfluencingParameter,
+    addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
 )
 from nuitka.Options import (
@@ -93,6 +95,7 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32Windows,
 )
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 _warned_unused_plugins = set()
 
@@ -102,6 +105,80 @@ _package_versions = {}
 # Populated during plugin instance creation from their tags given by
 # "getEvaluationConditionControlTags" value.
 control_tags = {}
+
+_context_dict = None
+
+
+def _getEvaluationContext():
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=global-statement
+    global _context_dict
+
+    if _context_dict is None:
+        _context_dict = {
+            "macos": isMacOS(),
+            "win32": isWin32Windows(),
+            "linux": isLinux(),
+            "android": isAndroidBasedLinux(),
+            "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
+            "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
+            "anaconda": isAnacondaPython(),
+            "is_conda_package": isDistributionCondaPackage,
+            "debian_python": isDebianPackagePython(),
+            "standalone": isStandaloneMode(),
+            "module_mode": shallMakeModule(),
+            "deployment": isDeploymentMode(),
+            # Querying package versions.
+            "version": _getPackageVersion,
+            "get_dist_name": _getDistributionNameFromPackageName,
+            "plugin": _isPluginActive,
+            "no_asserts": hasPythonFlagNoAsserts(),
+            "no_docstrings": hasPythonFlagNoDocStrings(),
+            "no_annotations": hasPythonFlagNoAnnotations(),
+            # Locating package directories
+            "_get_module_directory": _getModuleDirectory,
+            # Querying package properties
+            "has_builtin_module": isBuiltinModuleName,
+            # Architectures
+            "arch_x86": getArchitecture() == "x86",
+            "arch_amd64": getArchitecture() == "x86_64",
+            "arch_arm64": getArchitecture() == "arm64",
+            # Frequent used modules
+            "sys": sys,
+            "os": os,
+            # Builtins
+            "True": True,
+            "False": False,
+            "None": None,
+            "repr": repr,
+            "len": len,
+            "str": str,
+            "bool": bool,
+            "int": int,
+            "tuple": tuple,
+            "list": list,
+            "dict": dict,
+            "set": set,
+            "frozenset": frozenset,
+            "__import__": __import__,
+        }
+
+        versions = getTestExecutionPythonVersions()
+
+        for version in versions:
+            big, major = version.split(".")
+            numeric_version = int(big) * 256 + int(major) * 16
+            is_same_or_higher_version = python_version >= numeric_version
+
+            _context_dict[
+                "python" + big + major + "_or_higher"
+            ] = is_same_or_higher_version
+            _context_dict["before_python" + big + major] = not is_same_or_higher_version
+
+        _context_dict["before_python3"] = python_version < 0x300
+        _context_dict["python3_or_higher"] = python_version >= 0x300
+
+    return _context_dict
 
 
 def _convertVersionToTuple(version_str):
@@ -174,6 +251,16 @@ def _getPackageVersion(distribution_name):
         _package_versions[distribution_name] = result
 
     return _package_versions[distribution_name]
+
+
+def _getModuleDirectory(module_name):
+    from nuitka.importing.Importing import locateModule
+
+    _module_name, module_filename, _module_kind, _finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    return module_filename
 
 
 def _isPluginActive(plugin_name):
@@ -1052,7 +1139,8 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
-        info_name = self.plugin_name.replace("-", "_") + "_" + info_name
+        info_name = self.plugin_name + "_" + info_name
+        info_name = info_name.replace("-", "_").replace(".", "_")
 
         if info_name in self._runtime_information_cache:
             return self._runtime_information_cache[info_name]
@@ -1088,7 +1176,7 @@ except ImportError:
         }
 
         if shallShowExecutedCommands():
-            self.info("Executing query command:\n%s" % cmd)
+            self.info("Executing query command:\n%s" % cmd, keep_format=True)
 
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf8"
@@ -1182,6 +1270,91 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use
         return {}
 
+    def evaluateExpression(self, full_name, expression, config_name, extra_context):
+        context = TagContext(logger=self, full_name=full_name, config_name=config_name)
+        context.update(control_tags)
+
+        context.update(_getEvaluationContext())
+
+        variables = {}
+
+        def get_variable(variable_name):
+            assert type(variable_name) is str, variable_name
+
+            if not variables:
+                for count, variable_config in enumerate(
+                    self.config.get(full_name, section="variables")
+                ):
+                    setup_codes = variable_config.get("setup_code")
+                    declarations = variable_config.get("declarations")
+
+                    if self.evaluateCondition(
+                        full_name=full_name,
+                        condition=variable_config.get("when", "True"),
+                    ):
+                        info = self.queryRuntimeInformationMultiple(
+                            "%s_variables_%s" % (full_name.asString(), count),
+                            setup_codes=setup_codes,
+                            values=tuple(declarations.items()),
+                        )
+
+                        variables.update(info.asDict())
+
+            result = variables[variable_name]
+
+            addModuleInfluencingVariable(
+                module_name=full_name,
+                plugin_name=self.plugin_name,
+                variable_name=variable_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
+
+            return result
+
+        context["get_variable"] = get_variable
+
+        def get_parameter(parameter_name, default):
+            result = Options.getModuleParameter(full_name, parameter_name)
+
+            if result is None:
+                result = default
+
+            addModuleInfluencingParameter(
+                module_name=full_name,
+                plugin_name=self.plugin_name,
+                parameter_name=parameter_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
+
+            return result
+
+        context["get_parameter"] = get_parameter
+
+        if extra_context:
+            context.update(extra_context)
+
+        # We trust the yaml files, pylint: disable=eval-used
+        try:
+            result = eval(expression, context)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            if Options.is_debug:
+                raise
+
+            self.sysexit(
+                "Error, failed to evaluate expression %r in this context, exception was '%s'."
+                % (expression, e)
+            )
+
+        if type(result) is not str:
+            self.sysexit(
+                "Error, expression '%s' for module '%s' did not evaluate to str result."
+                % (expression, full_name)
+            )
+
+        return result
+
     def evaluateCondition(self, full_name, condition):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
@@ -1191,51 +1364,30 @@ except ImportError:
         if condition == "False":
             return False
 
-        context = TagContext(logger=self, full_name=full_name)
+        context = TagContext(
+            logger=self, full_name=full_name, config_name="'when' configuration"
+        )
         context.update(control_tags)
 
-        context.update(
-            {
-                "macos": isMacOS(),
-                "win32": isWin32Windows(),
-                "linux": isLinux(),
-                "android": isAndroidBasedLinux(),
-                "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
-                "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
-                "anaconda": isAnacondaPython(),
-                "is_conda_package": isDistributionCondaPackage,
-                "debian_python": isDebianPackagePython(),
-                "standalone": isStandaloneMode(),
-                "module_mode": shallMakeModule(),
-                "deployment": isDeploymentMode(),
-                # Querying package versions.
-                "version": _getPackageVersion,
-                "get_dist_name": _getDistributionNameFromPackageName,
-                "plugin": _isPluginActive,
-                "no_asserts": hasPythonFlagNoAsserts(),
-                "no_docstrings": hasPythonFlagNoDocStrings(),
-                "no_annotations": hasPythonFlagNoAnnotations(),
-                # Querying package properties
-                "has_builtin_module": isBuiltinModuleName,
-                # Architectures
-                "arch_x86": getArchitecture() == "x86",
-                "arch_amd64": getArchitecture() == "x86_64",
-                "arch_arm64": getArchitecture() == "arm64",
-            }
-        )
+        context.update(_getEvaluationContext())
 
-        versions = getTestExecutionPythonVersions()
+        def get_parameter(parameter_name, default):
+            result = Options.getModuleParameter(full_name, parameter_name)
 
-        for version in versions:
-            big, major = version.split(".")
-            numeric_version = int(big) * 256 + int(major) * 16
-            is_same_or_higher_version = python_version >= numeric_version
+            if result is None:
+                result = default
 
-            context["python" + big + major + "_or_higher"] = is_same_or_higher_version
-            context["before_python" + big + major] = not is_same_or_higher_version
+            addModuleInfluencingParameter(
+                module_name=full_name,
+                plugin_name=self.plugin_name,
+                parameter_name=parameter_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
 
-        context["before_python3"] = python_version < 0x300
-        context["python3_or_higher"] = python_version >= 0x300
+            return result
+
+        context["get_parameter"] = get_parameter
 
         # We trust the yaml files, pylint: disable=eval-used
         try:
@@ -1276,14 +1428,86 @@ except ImportError:
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
     @classmethod
-    def info(cls, message):
-        plugins_logger.info(cls.plugin_name + ": " + message)
+    def info(cls, message, keep_format=False):
+        plugins_logger.info(message, prefix=cls.plugin_name, keep_format=keep_format)
 
     @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
         plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
+
+
+class NuitkaYamlPluginBase(NuitkaPluginBase):
+    """Nuitka base class for all plugins that use yaml config"""
+
+    def __init__(self):
+        self.config = getYamlPackageConfiguration()
+
+    def getYamlConfigItem(
+        self, module_name, section, item_name, decide_relevant, default, recursive
+    ):
+        while True:
+            module_configs = self.config.get(module_name, section=section)
+
+            if module_configs is not None:
+                for module_config in module_configs:
+                    config_item = module_config.get(item_name, default)
+
+                    # Avoid condition, if the item is not relevant
+                    if decide_relevant is not None and not decide_relevant(config_item):
+                        continue
+
+                    if not self.evaluateCondition(
+                        full_name=module_name,
+                        condition=module_config.get("when", "True"),
+                    ):
+                        continue
+
+                    if recursive:
+                        yield module_name, config_item
+                    else:
+                        yield config_item
+
+            if not recursive:
+                break
+
+            module_name = module_name.getPackageName()
+            if not module_name:
+                break
+
+    def getYamlConfigItemItems(
+        self, module_name, section, item_name, decide_relevant, recursive
+    ):
+        def dict_decide_relevant(item_dict):
+            if not item_dict:
+                return False
+
+            if decide_relevant is None:
+                return True
+
+            for key, value in item_dict.items():
+                if decide_relevant(key, value):
+                    return True
+
+            return False
+
+        for item_config in self.getYamlConfigItem(
+            module_name=module_name,
+            section=section,
+            item_name=item_name,
+            decide_relevant=dict_decide_relevant,
+            default={},
+            recursive=recursive,
+        ):
+            if recursive:
+                for key, value in item_config[1].items():
+                    if decide_relevant(key, value):
+                        yield item_config[0], key, value
+            else:
+                for key, value in item_config.items():
+                    if decide_relevant(key, value):
+                        yield key, value
 
 
 def standalone_only(func):
@@ -1303,13 +1527,15 @@ def standalone_only(func):
 
 
 class TagContext(dict):
-    def __init__(self, logger, full_name, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
+    def __init__(self, logger, full_name, config_name):
+        dict.__init__(self)
 
         self.logger = logger
         self.full_name = full_name
+        self.config_name = config_name
 
         self.used_tags = OrderedSet()
+        self.used_variables = OrderedSet()
 
     def __getitem__(self, key):
         try:
@@ -1321,6 +1547,6 @@ class TagContext(dict):
                 return False
 
             self.logger.sysexit(
-                "Identifier '%s' in 'when' configuration of module '%s' is unknown."
-                % (key, self.full_name)
+                "Identifier '%s' in %s of module '%s' is unknown."
+                % (key, self.config_name, self.full_name)
             )

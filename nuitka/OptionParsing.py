@@ -30,6 +30,7 @@ pretty good.
 import os
 import re
 import sys
+from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
@@ -75,7 +76,7 @@ parser.add_option(
     dest="module_mode",
     default=False,
     help="""\
-Create an extension module executable instead of a program. Defaults to off.""",
+Create an importable binary extension module executable instead of a program. Defaults to off.""",
 )
 
 parser.add_option(
@@ -104,6 +105,7 @@ parser.add_option(
     action="store_true",
     dest="is_onefile",
     default=False,
+    github_action_default=True,
     help="""\
 On top of standalone mode, enable onefile mode. This means not a folder,
 but a compressed executable is created and used. Defaults to off.""",
@@ -115,16 +117,6 @@ parser.add_option(
     dest="is_onefile",
     default=False,
     help=SUPPRESS_HELP,
-)
-
-parser.add_option(
-    "--python-debug",
-    action="store_true",
-    dest="python_debug",
-    default=None,
-    help="""\
-Use debug version or not. Default uses what you are using to run Nuitka, most
-likely a non-debug version.""",
 )
 
 parser.add_option(
@@ -145,16 +137,29 @@ Default empty.""",
 )
 
 parser.add_option(
+    "--python-debug",
+    action="store_true",
+    dest="python_debug",
+    default=None,
+    help="""\
+Use debug version or not. Default uses what you are using to run Nuitka, most
+likely a non-debug version. Only for debugging and testing purposes.""",
+)
+
+parser.add_option(
     "--python-for-scons",
     action="store",
     dest="python_scons",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
-If using Python3.3 or Python3.4, provide the path of a Python binary to use
-for Scons. Otherwise Nuitka can use what you run Nuitka with or a Python
-installation from Windows registry. On Windows Python 3.5 or higher is
-needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
+When compiling with Python 3.4 provide the path of a
+Python binary to use for Scons. Otherwise Nuitka can
+use what you run Nuitka with, or find Python installation,
+e.g. from Windows registry. On Windows, a Python 3.5 or
+higher is needed. On non-Windows, a Python 2.6 or 2.7
+will do as well.""",
 )
 
 parser.add_option(
@@ -180,6 +185,7 @@ parser.add_option(
     action="store_true",
     dest="github_workflow_options",
     default=False,
+    github_action=False,
     help=SUPPRESS_HELP,
 )
 
@@ -329,9 +335,9 @@ onefile_group.add_option(
     default=None,
     help="""\
 Use this as a folder to unpack to in onefile mode. Defaults to
-'%TEMP%/onefile_%PID%_%TIME%', i.e. user temporary directory
+'{TEMP}/onefile_{PID}_{TIME}', i.e. user temporary directory
 and being non-static it's removed. Use e.g. a string like
-'%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%' which is a good
+'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a good
 static cache path, this will then not be removed.""",
 )
 
@@ -438,6 +444,19 @@ whole directory simply use 'package_name'. Default empty.""",
 )
 
 data_group.add_option(
+    "--include-onefile-external-data",
+    action="append",
+    dest="data_files_external",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Include the specified data file patterns outside of the onefile binary,
+rather than on the inside. Makes only sense in case of '--onefile'
+compilation. First files have to be specified as included somehow,
+then this refers to target paths. Default empty.""",
+)
+
+data_group.add_option(
     "--list-package-data",
     action="store",
     dest="list_package_data",
@@ -522,6 +541,7 @@ warnings_group.add_option(
     action="store_true",
     dest="assume_yes_for_downloads",
     default=False,
+    github_action_default=True,
     help="""\
 Allow Nuitka to download external code if necessary, e.g. dependency
 walker, ccache, and even gcc on Windows. To disable, redirect input
@@ -865,6 +885,7 @@ parser.add_option(
     action="store_false",
     dest="allow_reexecute",
     default=True,
+    github_action=False,
     help=SUPPRESS_HELP,
 )
 
@@ -952,6 +973,20 @@ Use static link library of Python. Allowed values are "yes", "no",
 and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
+c_compiler_group.add_option(
+    "--cf-protection",
+    action="store",
+    dest="cf_protection",
+    metavar="PROTECTION_MODE",
+    default="auto",
+    choices=("auto", "full", "branch", "return", "none", "check"),
+    help="""\
+This option is gcc specific. For the gcc compiler, select the
+"cf-protection" mode. Default "auto" is to use the gcc default
+value, but you can override it, e.g. to disable it with "none"
+value. Refer to gcc documentation for "-fcf-protection" for the
+details.""",
+)
 
 del c_compiler_group
 
@@ -1277,7 +1312,7 @@ os_group.add_option(
     help="""\
 Force standard output of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM_BASE%.out.txt', i.e. file near your program,
+Defaults to not active, use e.g. '{PROGRAM_BASE}.out.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
@@ -1291,7 +1326,7 @@ os_group.add_option(
     help="""\
 Force standard error of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM_BASE%.err.txt', i.e. file near your program,
+Defaults to not active, use e.g. '{PROGRAM_BASE}.err.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
@@ -1311,7 +1346,7 @@ windows_group.add_option(
 windows_group.add_option(
     "--windows-icon-from-ico",
     action="append",
-    dest="icon_path",
+    dest="windows_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="""\
@@ -1391,7 +1426,7 @@ is the only way to unlock disabling of console.Defaults to off.""",
 macos_group.add_option(
     "--macos-app-icon",
     action="append",
-    dest="icon_path",
+    dest="macos_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
@@ -1445,7 +1480,8 @@ macos_group.add_option(
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
 option your get to specify another identity to use. The signing of code is now
-mandatory on macOS and cannot be disabled. Default "ad-hoc" if not given.""",
+mandatory on macOS and cannot be disabled. Use "auto" to detect your only identity
+installed. Default "ad-hoc" if not given.""",
 )
 
 macos_group.add_option(
@@ -1496,7 +1532,7 @@ linux_group.add_option(
     "--linux-icon",
     "--linux-onefile-icon",
     action="append",
-    dest="icon_path",
+    dest="linux_icon_path",
     metavar="ICON_PATH",
     default=[],
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
@@ -1570,7 +1606,7 @@ version_group.add_option(
     metavar="COPYRIGHT_TEXT",
     default=None,
     help="""\
-Copyright used in version information. Windows only at this time. Defaults to not present.""",
+Copyright used in version information. Windows/macOS only at this time. Defaults to not present.""",
 )
 
 version_group.add_option(
@@ -1580,7 +1616,7 @@ version_group.add_option(
     metavar="TRADEMARK_TEXT",
     default=None,
     help="""\
-Trademark used in version information. Windows only at this time. Defaults to not present.""",
+Trademark used in version information. Windows/macOS only at this time. Defaults to not present.""",
 )
 
 
@@ -1646,13 +1682,29 @@ plugin_group.add_option(
 )
 
 plugin_group.add_option(
+    "--module-parameter",
+    action="append",
+    dest="module_parameters",
+    default=[],
+    help="""\
+Provide a module parameter. You are asked by some packages
+to provide extra decisions. Format is currently
+--module-parameter=module.name-option-name=value
+Default empty.""",
+)
+
+
+plugin_group.add_option(
     "--show-source-changes",
-    action="store_true",
+    action="append",
     dest="show_source_changes",
-    default=False,
+    default=[],
     help="""\
 Show source changes to original Python file content before compilation. Mostly
-intended for developing plugins. Default False.""",
+intended for developing plugins and Nuitka package configuration. Use e.g.
+'--show-source-changes=numpy.**' to see all changes below a given namespace
+or use '*' to see everything which can get a lot.
+Default empty.""",
 )
 
 del plugin_group
@@ -1695,6 +1747,33 @@ def _considerPluginOptions(logger):
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
+run_time_variable_names = (
+    "TEMP",
+    "PID",
+    "TIME",
+    "PROGRAM",
+    "PROGRAM_BASE",
+    "CACHE_DIR",
+    "COMPANY",
+    "PRODUCT",
+    "VERSION",
+    "HOME",
+    "NONE",
+    "NULL",
+)
+
+
+class _RetainingFormatter(Formatter):
+    def get_value(self, key, args, kwargs):
+        if isinstance(key, str):
+            try:
+                return kwargs[key]
+            except KeyError:
+                return "{%s}" % key
+        else:
+            return Formatter.get_value(self, key, args, kwargs)
+
+
 def _expandProjectArg(arg, filename_arg, for_eval):
     def wrap(value):
         if for_eval:
@@ -1723,7 +1802,14 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     if isWin32OrPosixWindows():
         values["WindowsRelease"] = getWindowsRelease()
 
-    arg = arg.format(**values)
+    values.update(
+        (
+            (run_time_variable_name, "{%s}" % run_time_variable_name)
+            for run_time_variable_name in run_time_variable_names
+        )
+    )
+
+    arg = _RetainingFormatter().format(arg, **values)
 
     return arg
 
@@ -1881,11 +1967,17 @@ def _considerGithubWorkflowOptions(phase):
 
         option_name = "--%s" % key
 
-        if parser.isBooleanOption("--%s" % key):
+        if parser.isBooleanOption(option_name):
             if value == "false":
                 continue
 
             options_added.append(option_name)
+        elif parser.isListOption(option_name):
+            for value in value.split("\n"):
+                if not value.strip():
+                    continue
+
+                options_added.append("%s=%s" % (option_name, value))
         else:
             # Boolean disabled options from inactive plugins that default to off.
             if value == "false":

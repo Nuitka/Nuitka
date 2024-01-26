@@ -59,21 +59,26 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         if support_info == "ignore":
             return
 
-        if condition != "True":
-            problem_desc = "incomplete support due untrue condition '%s'" % condition
-        else:
-            problem_desc = "incomplete support"
+        if support_info != "parameter":
+            if condition != "True":
+                problem_desc = (
+                    "incomplete support due to untrue condition '%s'" % condition
+                )
+            else:
+                problem_desc = "incomplete support"
 
-        message = "Using module '%s' (version %s) with %s: %s" % (
-            full_name,
-            ".".join(str(d) for d in self.getPackageVersion(full_name)),
-            problem_desc,
-            description,
-        )
+            message = "Using module '%s' (version %s) with %s: %s" % (
+                full_name,
+                ".".join(str(d) for d in self.getPackageVersion(full_name)),
+                problem_desc,
+                description,
+            )
+        else:
+            message = "Module has parameter: " + description
 
         if support_info == "error":
             self.sysexit(message)
-        elif support_info == "warning":
+        elif support_info in ("warning", "parameter"):
             self.warning(message)
         elif support_info == "info":
             self.info(message)
@@ -105,7 +110,7 @@ Otherwise a terminal window will open"""
                     """\
 Note, when using '%s', consider using '--disable-console' option. %s. However \
 for debugging, terminal output is the easiest way to see informative traceback \
-and error information, so delay this until your program working and remove \
+and error information, so delay this until your program is working and remove \
 once you find it non-working, and use '--enable-console' to make it explicit \
 and not see this message."""
                     % (full_name, downside_message)

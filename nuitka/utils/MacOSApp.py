@@ -62,7 +62,7 @@ def createPlistInfoFile(logger, onefile):
         ]
     )
 
-    icon_paths = Options.getIconPaths()
+    icon_paths = Options.getMacOSIconPaths()
 
     if icon_paths:
         assert len(icon_paths) == 1
@@ -106,6 +106,11 @@ def createPlistInfoFile(logger, onefile):
         infos["LSUIElement"] = True
     else:
         infos["NSHighResolutionCapable"] = True
+
+    legal_text = Options.getLegalInformation()
+
+    if legal_text is not None:
+        infos["NSHumanReadableCopyright"] = legal_text
 
     for resource_name, resource_desc in Options.getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:

@@ -36,12 +36,18 @@ from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.OptionParsing import parseOptions, runSpecialCommandsFromOptions
+from nuitka.OptionParsing import (
+    parseOptions,
+    run_time_variable_names,
+    runSpecialCommandsFromOptions,
+)
 from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
+    isCPythonOfficialPackage,
     isDebianPackagePython,
+    isManyLinuxPython,
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
@@ -93,71 +99,123 @@ is_report_missing = None
 is_verbose = None
 
 
+def _convertOldStylePathSpecQuotes(value):
+    quote = None
+
+    result = ""
+    for c in value:
+        if c == "%":
+            if quote is None:
+                quote = "{"
+                result += quote
+            elif quote == "{":
+                result += "}"
+                quote = None
+        else:
+            result += c
+
+    return result
+
+
 def checkPathSpec(value, arg_name, allow_disable):
     # There are never enough checks here, pylint: disable=too-many-branches
-
-    if "%NONE%" in value:
-        if not allow_disable:
-            Tracing.options_logger.sysexit(
-                "Using value '%%NONE%%' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "%NONE%":
-            Tracing.options_logger.sysexit(
-                "Using value '%%NONE%%' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "%NULL%" in value:
-        if not allow_disable:
-            Tracing.options_logger.sysexit(
-                "Using value '%%NULL%%' in '%s=%s' value is not allowed."
-                % (arg_name, value)
-            )
-
-        if value != "%NULL%":
-            Tracing.options_logger.sysexit(
-                "Using value '%%NULL%%' in '%s=%s' value does not allow anything else used too."
-                % (arg_name, value)
-            )
-
-    if "%COMPANY%" in value and not getCompanyName():
-        Tracing.options_logger.sysexit(
-            "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if "%PRODUCT%" in value and not getProductName():
-        Tracing.options_logger.sysexit(
-            "Using value '%%PRODUCT%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if "%VERSION%" in value and not (getFileVersion() or getProductVersion()):
-        Tracing.options_logger.sysexit(
-            "Using value '%%VERSION%%' in '%s=%s' value without being specified."
-            % (arg_name, value)
-        )
-
-    if value.count("%") % 2 != 0:
+    old = value
+    value = _convertOldStylePathSpecQuotes(value)
+    if old != value:
         Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '%s=%s' and may \
-not do what you want it to do."""
+            "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
+            % (arg_name, old, value)
+        )
+
+    if "{NONE}" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '{NONE}' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "{NONE}":
+            Tracing.options_logger.sysexit(
+                "Using value '{NONE}' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "{NULL}" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '{NULL}' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "{NULL}":
+            Tracing.options_logger.sysexit(
+                "Using value '{NULL}' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "{COMPANY}" in value and not getCompanyName():
+        Tracing.options_logger.sysexit(
+            "Using value '{COMPANY}' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
+
+    if "{PRODUCT}" in value and not getProductName():
+        Tracing.options_logger.sysexit(
+            "Using value '{PRODUCT}' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+    if "{VERSION}" in value and not (getFileVersion() or getProductVersion()):
+        Tracing.options_logger.sysexit(
+            "Using value '{VERSION}' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+    if value.count("{") != value.count("}"):
+        Tracing.options_logger.sysexit(
+            """Unmatched '{}' is wrong for '%s=%s' and may \
+definitely not do what you want it to do."""
+            % (arg_name, value)
+        )
+
+    # Catch nested or illegal variable names.
+    var_name = None
+    for c in value:
+        if c in "{":
+            if var_name is not None:
+                Tracing.options_logger.sysexit(
+                    """Nested '{' is wrong for '%s=%s'.""" % (arg_name, value)
+                )
+            var_name = ""
+        elif c == "}":
+            if var_name is None:
+                Tracing.options_logger.sysexit(
+                    """Stray '}' is wrong for '%s=%s'.""" % (arg_name, value)
+                )
+
+            if var_name not in run_time_variable_names:
+                Tracing.onefile_logger.sysexit(
+                    "Found unknown variable name '%s' in for '%s=%s'."
+                    "" % (var_name, arg_name, value)
+                )
+
+            var_name = None
+        else:
+            if var_name is not None:
+                var_name += c
 
     for candidate in (
-        "%PROGRAM%",
-        "%PROGRAM_BASE%",
-        "%CACHE_DIR%",
-        "%HOME%",
-        "%TEMP%",
+        "{PROGRAM}",
+        "{PROGRAM_BASE}",
+        "{CACHE_DIR}",
+        "{HOME}",
+        "{TEMP}",
     ):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
-                """Absolute run time path of '%s' can only be at the \
-start of '%s=%s', using it in the middle is not allowed."""
+                """\
+Absolute run time paths of '%s' can only be at the start of \
+'%s=%s', using it in the middle of it is not allowed."""
                 % (candidate, arg_name, value)
             )
 
@@ -168,9 +226,11 @@ start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
 
+    return value
+
 
 def _checkOnefileTargetSpec():
-    checkPathSpec(
+    options.onefile_tempdir_spec = checkPathSpec(
         options.onefile_tempdir_spec,
         arg_name="--onefile-tempdir-spec",
         allow_disable=False,
@@ -184,7 +244,7 @@ you cannot unpack the onefile payload into the same directory as the binary,
 as that would overwrite it and cause locking issues as well."""
         )
 
-    if options.onefile_tempdir_spec.count("%") == 0:
+    if options.onefile_tempdir_spec.count("{") == 0:
         Tracing.options_logger.warning(
             """Not using any variables for '--onefile-tempdir-spec' should only be \
 done if your program absolutely needs to be in the same path always: '%s'"""
@@ -193,16 +253,20 @@ done if your program absolutely needs to be in the same path always: '%s'"""
 
     if os.path.isabs(options.onefile_tempdir_spec):
         Tracing.options_logger.warning(
-            """Using an absolute path should be avoided unless you are targeting a \
-very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            """\
+Using an absolute path should be avoided unless you are targeting a \
+very well known environment: anchoring it with e.g. '{TEMP}', \
+'{CACHE_DIR}' is recommended: You seemingly gave the value '%s'"""
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
-        ("%TEMP%", "%HOME%", "%CACHE_DIR%")
+        ("{TEMP}", "{HOME}", "{CACHE_DIR}")
     ):
         Tracing.options_logger.warning(
-            """Using an relative to the executable should be avoided unless you are targeting a \
-very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            """\
+Using a relative to the onefile executable should be avoided \
+unless you are targeting a very well known environment, anchoring \
+it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
 
@@ -253,6 +317,16 @@ def printVersionInformation():
     )
 
 
+def _warnOnefileOnlyOption(option_name):
+    if not options.is_onefile:
+        Tracing.options_logger.warning(
+            """\
+Using onefile specific option '%s' has no effect \
+when '--onefile' is not specified."""
+            % option_name
+        )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -297,7 +371,7 @@ Error, the Python from Windows app store is not supported.""",
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
 
-    if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
+    if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
     def _quoteArg(arg):
@@ -320,7 +394,7 @@ Error, the Python from Windows app store is not supported.""",
             % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
         )
 
-    if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
+    if os.getenv("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )
@@ -379,12 +453,7 @@ Error, the Python from Windows app store is not supported.""",
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-tempdir-spec")
 
     # Check onefile splash image
     if options.splash_screen_image:
@@ -394,34 +463,27 @@ when '--onefile' is not specified."""
                 % options.splash_screen_image
             )
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
 
     if options.onefile_child_grace_time is not None:
         if not options.onefile_child_grace_time.isdigit():
             Tracing.options_logger.sysexit(
                 """\
-Error, value given for '--onefile-child-grace-time' must be integer."""
+Error, the value given for '--onefile-child-grace-time' must be integer."""
             )
 
-        if not options.is_onefile:
-            Tracing.options_logger.warning(
-                """\
-Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
-when '--onefile-child-grace-time' is not specified."""
-            )
+        _warnOnefileOnlyOption("--onefile-child-grace-time")
+
+    if getShallIncludeExternallyDataFilePatterns():
+        _warnOnefileOnlyOption("--include-onefile-external-data")
 
     if options.force_stdout_spec:
-        checkPathSpec(
+        options.force_stdout_spec = checkPathSpec(
             options.force_stdout_spec, "--force-stdout-spec", allow_disable=True
         )
 
     if options.force_stderr_spec:
-        checkPathSpec(
+        options.force_stderr_spec = checkPathSpec(
             options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
         )
 
@@ -513,18 +575,18 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     if isLinux():
-        if len(getIconPaths()) > 1:
+        if len(getLinuxIconPaths()) > 1:
             Tracing.options_logger.sysexit(
                 "Error, can only use one icon file on Linux."
             )
 
     if isMacOS():
-        if len(getIconPaths()) > 1:
+        if len(getMacOSIconPaths()) > 1:
             Tracing.options_logger.sysexit(
                 "Error, can only use one icon file on macOS."
             )
 
-    for icon_path in getIconPaths():
+    for icon_path in getWindowsIconPaths():
         if "#" in icon_path and isWin32Windows():
             icon_path, icon_index = icon_path.rsplit("#", 1)
 
@@ -533,13 +595,6 @@ it before using it: '%s' (from --output-filename='%s')."""
                     "Error, icon number in '%s#%s' not valid."
                     % (icon_path + "#" + icon_index)
                 )
-
-        if not os.path.exists(icon_path):
-            Tracing.options_logger.sysexit(
-                "Error, icon path '%s' does not exist." % icon_path
-            )
-
-        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
 
         if getWindowsIconExecutablePath():
             Tracing.options_logger.sysexit(
@@ -648,18 +703,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
         if data_file_desc.count("=") == 1:
             src, dst = data_file_desc.split("=", 1)
-
-            filenames = resolveShellPatternToFilenames(src)
-
-            if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
-                Tracing.options_logger.sysexit(
-                    "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
-                    % src
-                )
+            src = os.path.expanduser(src)
+            src_pattern = src
         else:
             src, dst, pattern = data_file_desc.split("=", 2)
+            src = os.path.expanduser(src)
+            src_pattern = os.path.join(src, pattern)
 
-            filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
+        filenames = resolveShellPatternToFilenames(src_pattern)
+
+        if len(filenames) > 1 and not dst.endswith(("/", os.path.sep)):
+            Tracing.options_logger.sysexit(
+                "Error, pattern '%s' matches more than one file, but target has no trailing slash, not a directory."
+                % src
+            )
 
         if not filenames:
             Tracing.options_logger.sysexit(
@@ -1033,7 +1090,7 @@ and not with the non-debug version.
         isMacOS()
         and shallCreateAppBundle()
         and shallDisableConsoleWindow()
-        and not getIconPaths()
+        and not getMacOSIconPaths()
     ):
         Tracing.general.warning(
             """\
@@ -1231,11 +1288,15 @@ def getShallIncludeDataFiles():
             src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
+                pattern = os.path.expanduser(pattern)
+
                 yield pattern, None, dest, data_file_desc
         else:
             src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
+                pattern = os.path.expanduser(pattern)
+
                 yield os.path.join(src, pattern), src, dest, data_file_desc
 
 
@@ -1251,6 +1312,12 @@ def getShallNotIncludeDataFilePatterns():
     """*list*, items of ``--noinclude-data-files=``"""
 
     return options.data_files_inhibited
+
+
+def getShallIncludeExternallyDataFilePatterns():
+    """*list*, items of ``--include-onefile-external-data=``"""
+
+    return options.data_files_external
 
 
 def getShallNotIncludeDllFilePatterns():
@@ -1405,6 +1472,18 @@ def _shallUseStaticLibPython():
 
         if isPyenvPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
+
+        if isManyLinuxPython():
+            return (
+                True,
+                """\
+Nuitka on 'manylinux' has no shared libraries. Use container with \
+the command 'RUN cd /opt/_internal && tar xf static-libs-for-embedding-only.tar.xz' \
+added to provide the static link library.""",
+            )
+
+        if isMacOS() and isCPythonOfficialPackage():
+            return True, None
 
     return options.static_libpython == "yes", None
 
@@ -1657,10 +1736,10 @@ def isOnefileTempDirMode():
     spec = getOnefileTempDirSpec()
 
     for candidate in (
-        "%PID",
-        "%TIME%",
-        "%PROGRAM%",
-        "%PROGRAM_BASE%",
+        "{PID}",
+        "{TIME}",
+        "{PROGRAM}",
+        "{PROGRAM_BASE}",
     ):
         if candidate in spec:
             return True
@@ -1697,9 +1776,7 @@ def getPgoExecutable():
 
     if options.pgo_executable and os.path.exists(options.pgo_executable):
         if not os.path.isabs(options.pgo_executable):
-            options.pgo_executable = os.path.normcase(
-                os.path.join(".", options.pgo_executable)
-            )
+            options.pgo_executable = os.path.join(".", options.pgo_executable)
 
     return options.pgo_executable
 
@@ -1712,7 +1789,7 @@ def getPythonPgoUnseenModulePolicy():
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
     result = (
-        options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+        options.onefile_tempdir_spec or "{TEMP}" + os.path.sep + "onefile_{PID}_{TIME}"
     )
 
     # This changes the '/' to '\' on Windows at least.
@@ -1738,10 +1815,26 @@ def shallOnefileAsArchive():
     return options.onefile_as_archive
 
 
-def getIconPaths():
-    """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
+def _checkIconPaths(icon_paths):
+    for icon_path in icon_paths:
+        if not os.path.exists(icon_path):
+            Tracing.options_logger.sysexit(
+                "Error, icon path '%s' does not exist." % icon_path
+            )
 
-    result = options.icon_path
+        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
+
+    return icon_paths
+
+
+def getWindowsIconPaths():
+    """*list of str*, values of ``--windows-icon-from-ico``"""
+    return _checkIconPaths(options.windows_icon_path)
+
+
+def getLinuxIconPaths():
+    """*list of str*, values of ``--linux-icon``"""
+    result = options.linux_icon_path
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
@@ -1757,7 +1850,12 @@ def getIconPaths():
                 result.append(icon)
                 break
 
-    return result
+    return _checkIconPaths(result)
+
+
+def getMacOSIconPaths():
+    """*list of str*, values of ``--macos-app-icon``"""
+    return _checkIconPaths(options.macos_icon_path)
 
 
 def getWindowsIconExecutablePath():
@@ -1773,6 +1871,28 @@ def shallAskForWindowsAdminRights():
 def shallAskForWindowsUIAccessRights():
     """*bool*, value of ``--windows-uac-uiaccess``"""
     return options.windows_uac_uiaccess
+
+
+def getLegalCopyright():
+    """*str* name of the product to use derived from ``--copyright``"""
+    return options.legal_copyright
+
+
+def getLegalTrademarks():
+    """*str* name of the product to use derived from ``--trademarks``"""
+    return options.legal_trademarks
+
+
+def getLegalInformation():
+    result = options.legal_copyright
+
+    if options.legal_trademarks:
+        if result is not None:
+            result += "\nTrademark information:" + options.legal_trademarks
+        else:
+            result = options.legal_trademarks
+
+    return result
 
 
 def getWindowsVersionInfoStrings():
@@ -1833,12 +1953,12 @@ def getWindowsSplashScreen():
 
 
 def getCompanyName():
-    """*str* name of the company to use"""
+    """*str* name of the company to use derived from ``--company-name``"""
     return options.company_name
 
 
 def getProductName():
-    """*str* name of the product to use"""
+    """*str* name of the product to use derived from ``--product-name``"""
     return options.product_name
 
 
@@ -2142,9 +2262,14 @@ def getForcedStderrPath():
     return result
 
 
-def shallShowSourceModifications():
+def shallShowSourceModifications(module_name):
     """*bool* display plugin source changes derived from --show-source-changes"""
-    return options is not None and options.show_source_changes
+    if options is None:
+        return False
+
+    result, _reason = module_name.matchesToShellPatterns(options.show_source_changes)
+
+    return result
 
 
 def isLowMemory():
@@ -2226,3 +2351,21 @@ def shallDisplayWarningMnemonic(mnemonic):
 
 def shallShowExecutedCommands():
     return isExperimental("show-commands")
+
+
+def getFcfProtectionMode():
+    """:returns: string derived from ``--fcf-protection``"""
+    return options.cf_protection
+
+
+def getModuleParameter(module_name, parameter_name):
+    """:returns: string derived from ``--module-parameter``"""
+    option_name = module_name.asString() + "-" + parameter_name
+
+    for module_option in options.module_parameters:
+        module_option_name, module_option_value = module_option.split("=", 1)
+
+        if option_name == module_option_name:
+            return module_option_value
+
+    return None

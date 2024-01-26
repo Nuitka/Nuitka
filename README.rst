@@ -40,15 +40,15 @@ C Compiler
 You need a C compiler with support for C11 or alternatively a C++
 compiler for C++03 [#]_.
 
-Currently this means, you need to use one of these compilers:
+Currently, this means, you need to use one of these compilers:
 
--  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
+-  The MinGW64 C11 compiler, on Windows, must be based on gcc 11.2 or
    higher. It will be *automatically* downloaded if no usable C compiler
    is found, which is the recommended way of installing it, as Nuitka
    will also upgrade it for you.
 
 -  Visual Studio 2022 or higher on Windows [#]_, older versions will
-   work but only supported for commercial users. Configure to use the
+   work, but only supported for commercial users. Configure to use the
    English language pack for best results (Nuitka filters away garbage
    outputs, but only for English language). It will be used by default
    if installed.
@@ -59,7 +59,7 @@ Currently this means, you need to use one of these compilers:
 
 -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
--  On Windows the ``clang-cl`` compiler on Windows can be used if
+-  On Windows, the ``clang-cl`` compiler on Windows can be used if
    provided by the Visual Studio installer.
 
 .. [#]
@@ -68,9 +68,9 @@ Currently this means, you need to use one of these compilers:
    version.
 
    The MSVC compiler doesn't do it yet. But as a workaround, as the C++03
-   language standard is very overlapping with C11, it is then used instead
-   where the C compiler is too old. Nuitka used to require a C++ compiler
-   in the past, but it changed.
+   language standard is significantly overlapping with C11, it is then used
+   instead where the C compiler is too old. Nuitka used to require a C++
+   compiler in the past, but it changed.
 
 .. [#]
 
@@ -78,7 +78,7 @@ Currently this means, you need to use one of these compilers:
    https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
    (the community editions work just fine).
 
-   The latest version is recommended but not required. On the other hand,
+   The latest version is recommended, but not required. On the other hand,
    there is no need to except to support pre-Windows 10 versions, and they
    might work for you, but support of these configurations is only
    available to commercial users.
@@ -99,8 +99,8 @@ not in this list, rest assured it is being worked on and will be added.
    as an internally used tool is not.
 
    For these versions, you *need* a Python2 or Python 3.5 or higher
-   installed as well, but only during the compile time only. That is for
-   use with Scons (which orchestrates the C compilation), which does not
+   installed as well, but only during the compile time. That is for use
+   with Scons (which orchestrates the C compilation), which does not
    support the same Python versions as Nuitka.
 
    In addition, on Windows, Python2 cannot be used because ``clcache``
@@ -129,16 +129,16 @@ not in this list, rest assured it is being worked on and will be added.
 
    The suffix for acceleration mode is added just to be sure that the
    original script name and the binary name do not ever collide, so we
-   can safely do an overwrite without destroying the original source
-   file.
+   can safely overwrite the binary without destroying the original
+   source file.
 
 .. admonition:: It **has to** be CPython, Anaconda Python, or Homebrew
 
    You need the standard Python implementation, called "CPython", to
-   execute Nuitka, because it is closely tied to implementation details
+   execute Nuitka because it is closely tied to implementation details
    of it.
 
-.. admonition:: It **cannot be** from Windows app store
+.. admonition:: It **cannot be** from the Windows app store
 
    It is known that Windows app store Python definitely does not work,
    it's checked against.
@@ -154,7 +154,7 @@ Operating System
 ================
 
 Supported Operating Systems: Linux, FreeBSD, NetBSD, macOS X, and
-Windows (32bits/64 bits/ARM).
+Windows (32 bits/64 bits/ARM).
 
 Others will work as well. The portability is expected to be generally
 good, but the e.g. Nuitka's internal Scons usage may have to be adapted
@@ -170,7 +170,7 @@ many more.
 Other architectures are expected to also work, out of the box, as Nuitka
 is generally not using any hardware specifics. These are just the ones
 tested and known to be good. Feedback is welcome. Generally, the
-architectures that Debian supports can be considered good and tested
+architectures that Debian supports can be considered good and tested,
 too.
 
 *******
@@ -226,6 +226,12 @@ For most systems, there will be packages on the `download page
 install it from source code as described above, but also like any other
 Python program it can be installed via the normal ``python setup.py
 install`` routine.
+
+Notice for integration with GitHub workflows there is this
+`Nuitka-Action <https://github.com/Nuitka/Nuitka-Action>`__ that you
+should use that makes it really easy to integrate. You ought to start
+with a local compilation though, but this will be easiest for cross
+platform compilation with Nuitka.
 
 License
 =======
@@ -316,7 +322,7 @@ Build it using
 
    This will prompt you to download a C caching tool (to speed up
    repeated compilation of generated C code) and a MinGW64 based C
-   compiler unless you have a suitable MSVC installed. Say ``yes`` to
+   compiler, unless you have a suitable MSVC installed. Say ``yes`` to
    both those questions.
 
 Run it
@@ -351,9 +357,9 @@ single file that is the main program, do it like this:
 
 .. note::
 
-   There are more fine grained controls than ``--follow-imports``
-   available. Consider the output of ``nuitka --help``. Including less
-   modules into the compilation, but instead using normal Python for it
+   There are more fine-grained controls than ``--follow-imports``
+   available. Consider the output of ``nuitka --help``. Including fewer
+   modules into the compilation, but instead using normal Python for it,
    will make it faster to compile.
 
 In case you have a source directory with dynamically loaded files, i.e.
@@ -421,7 +427,7 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   The option ``--follow-import-to`` and work as well, but the included
+   The option ``--follow-import-to`` works as well, but the included
    modules will only become importable *after* you imported the
    ``some_module`` name. If these kinds of imports are invisible to
    Nuitka, e.g. dynamically created, you can use ``--include-module`` or
@@ -450,9 +456,9 @@ also feasible, use Nuitka like this:
 
 .. note::
 
-   The inclusion of the package contents needs to be provided manually,
+   The inclusion of the package contents needs to be provided manually;
    otherwise, the package is mostly empty. You can be more specific if
-   you want, and only include part of it, or exclude part of it, e.g.
+   you like, and only include part of it, or exclude part of it, e.g.
    with ``--nofollow-import-to='*.tests'`` you would not include the
    unused test part of your code.
 
@@ -460,13 +466,13 @@ also feasible, use Nuitka like this:
 
    Data files located inside the package will not be embedded by this
    process, you need to copy them yourself with this approach.
-   Alternatively you can use the `file embedding of Nuitka commercial
+   Alternatively, you can use the `file embedding of Nuitka commercial
    <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
 Use Case 4 - Program Distribution
 =================================
 
-For distribution to other systems, there is the standalone mode which
+For distribution to other systems, there is the standalone mode, which
 produces a folder for which you can specify ``--standalone``.
 
 .. code:: bash
@@ -481,9 +487,9 @@ improve your compile time if done wisely.
 
 For data files to be included, use the option
 ``--include-data-files=<source>=<target>`` where the source is a file
-system path, but target has to be specified relative. For standalone you
-can also copy them manually, but this can do extra checks, and for
-onefile mode, there is no manual copying possible.
+system path, but the target has to be specified relative. For the
+standalone mode, you can also copy them manually, but this can do extra
+checks, and for the onefile mode, there is no manual copying possible.
 
 To copy some or all file in a directory, use the option
 ``--include-data-files=/etc/*.txt=etc/`` where you get to specify shell
@@ -496,8 +502,8 @@ including a potential subdirectory structure. You cannot filter here,
 i.e. if you want only a partial copy, remove the files beforehand.
 
 For package data, there is a better way, using
-``--include-package-data`` which detects data files of packages
-automatically and copies them over. It even accepts patterns in shell
+``--include-package-data``, which detects data files of packages
+automatically and copies them over. It even accepts patterns in a shell
 style. It spares you the need to find the package directory yourself and
 should be preferred whenever available.
 
@@ -523,52 +529,52 @@ Finding files`_ as well.
 
 .. note::
 
-   There are more platform specific options, e.g. related to icons,
+   There are more platform-specific options, e.g. related to icons,
    splash screen, and version information, consider the ``--help``
-   output for the details of these and check the section `Tweaks_`.
+   output for the details of these and check the section Tweaks_.
 
 For the unpacking, by default a unique user temporary path one is used,
 and then deleted, however this default
-``--onefile-tempdir-spec="%TEMP%/onefile_%PID%_%TIME%"`` can be
+``--onefile-tempdir-spec="{TEMP}/onefile_{PID}_{TIME}"`` can be
 overridden with a path specification that is using then using a cached
 path, avoiding repeated unpacking, e.g. with
-``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%"``
-which uses version information, and user specific cache directory.
+``--onefile-tempdir-spec="{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}"``
+which uses version information, and user-specific cache directory.
 
 .. note::
 
-   Using cached paths will e.g. be relevant too, when Windows Firewall
-   comes into play, because otherwise, the binary will be a different
-   one to it each time it is run.
+   Using cached paths will be relevant, e.g. when Windows Firewall comes
+   into play because otherwise, the binary will be a different one to it
+   each time it is run.
 
-Currently these expanded tokens are available:
+Currently, these expanded tokens are available:
 
 +----------------+-----------------------------------------------------------+---------------------------------------+
 | Token          | What this Expands to                                      | Example                               |
 +================+===========================================================+=======================================+
-| %TEMP%         | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
+| {TEMP}         | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PID%          | Process ID                                                | 2772                                  |
+| {PID}          | Process ID                                                | 2772                                  |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %TIME%         | Time in seconds since the epoch.                          | 1299852985                            |
+| {TIME}         | Time in seconds since the epoch.                          | 1299852985                            |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PROGRAM%      | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
+| {PROGRAM}      | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PROGRAM_BASE% | No-suffix of run-time filename of executable.             | C:\\SomeWhere\\YourOnefile            |
+| {PROGRAM_BASE} | No-suffix of run-time filename of executable.             | C:\\SomeWhere\\YourOnefile            |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %CACHE_DIR%    | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
+| {CACHE_DIR}    | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %COMPANY%      | Value given as ``--company-name``                         | YourCompanyName                       |
+| {COMPANY}      | Value given as ``--company-name``                         | YourCompanyName                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %PRODUCT%      | Value given as ``--product-name``                         | YourProductName                       |
+| {PRODUCT}      | Value given as ``--product-name``                         | YourProductName                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %VERSION%      | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
+| {VERSION}      | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %HOME%         | Home directory for the user.                              | /home/somebody                        |
+| {HOME}         | Home directory for the user.                              | /home/somebody                        |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %NONE%         | When provided for file outputs, ``None`` is used          | see notice below                      |
+| {NONE}         | When provided for file outputs, ``None`` is used          | see notice below                      |
 +----------------+-----------------------------------------------------------+---------------------------------------+
-| %NULL%         | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
+| {NULL}         | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
 +----------------+-----------------------------------------------------------+---------------------------------------+
 
 .. important::
@@ -578,7 +584,7 @@ Currently these expanded tokens are available:
    folder name is possible, it can cause locking issues in that case,
    where the program gets restarted.
 
-   Usually you need to use ``%TIME%`` or at least ``%PID%`` to make a
+   Usually, you need to use ``{TIME}`` or at least ``{PID}`` to make a
    path unique, and this is mainly intended for use cases, where e.g.
    you want things to reside in a place you choose or abide your naming
    conventions.
@@ -586,17 +592,17 @@ Currently these expanded tokens are available:
 .. important::
 
    For disabling output and stderr with ``--force-stdout-spec`` and
-   ``--force-stderr-spec`` the values ``%NONE%`` and ``%NULL%`` achieve
-   it, but with different effect. With ``%NONE%``the corresponding
-   handle becomes ``None``. As a result e.g. ``sys.stdout`` will be
-   ``None`` which is different from ``%NULL%`` where it will be backed
+   ``--force-stderr-spec`` the values ``{NONE}`` and ``{NULL}`` achieve
+   it, but with different effect. With ``{NONE}``, the corresponding
+   handle becomes ``None``. As a result, e.g. ``sys.stdout`` will be
+   ``None``, which is different from ``{NULL}`` where it will be backed
    by a file pointing to ``os.devnull``, i.e. you can write to it.
 
-   With ``%NONE%`` you may get ``RuntimeError: lost sys.stdout`` in case
-   it does get used, with ``%NULL%`` that never happens. However, some
-   libraries handle this as input for their logging mechanism, and on
-   Windows this is how you are compatible with ``pythonw.exe`` which is
-   behaving like ``%NONE%``.
+   With ``{NONE}``, you may e.g. get ``RuntimeError: lost sys.stdout``
+   in case it does get used; with ``{NULL}`` that never happens.
+   However, some libraries handle this as input for their logging
+   mechanism, and on Windows this is how you are compatible with
+   ``pythonw.exe`` which is behaving like ``{NONE}``.
 
 Use Case 5 - Setuptools Wheels
 ==============================
@@ -605,7 +611,7 @@ If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
 creation of wheels for your software in place, putting Nuitka to use is
 extremely easy.
 
-Lets start with the most common ``setuptools`` approach, you can -
+Let's start with the most common ``setuptools`` approach, you can,
 having Nuitka installed of course, simply execute the target
 ``bdist_nuitka`` rather than the ``bdist_wheel``. It takes all the
 options and allows you to specify some more, that are specific to
@@ -613,7 +619,7 @@ Nuitka.
 
 .. code:: python
 
-   # For setup.py if not you't use other build systems:
+   # For setup.py if you don't use other build systems:
    setup(
       # Data files are to be handled by setuptools and not Nuitka
       package_data={"some_package": ["some_file.txt"]},
@@ -671,17 +677,17 @@ can add this to your ``setup.py``.
 
 .. note::
 
-   To temporarily disable the compilation, you could remove above line,
-   or edit the value to ``False`` by or take its value from an
+   To temporarily disable the compilation, you could the remove above
+   line, or edit the value to ``False`` by or take its value from an
    environment variable if you so choose, e.g.
-   ``bool(os.environ.get("USE_NUITKA", "True"))``. This is up to you.
+   ``bool(os.getenv("USE_NUITKA", "True"))``. This is up to you.
 
 Or you could put it in your ``setup.cfg``
 
 .. code:: toml
 
    [metadata]
-   build_with_nuitka = True
+   build_with_nuitka = true
 
 And last, but not least, Nuitka also supports the new ``build`` meta, so
 when you have a ``pyproject.toml`` already, simple replace or add this
@@ -705,7 +711,7 @@ value:
    show-scons = true
 
    # options with single values, e.g. enable a plugin of Nuitka
-   enable-plugin = pyside2
+   enable-plugin = "pyside2"
 
    # options with several values, e.g. avoiding including modules, accepts
    # list argument.
@@ -720,18 +726,18 @@ value:
 .. note::
 
    Whatever approach you take, data files in these wheels are not
-   handled by Nuitka at all, but by setuptools. You can however use the
-   data file embedding of Nuitka commercial. In that case you actually
-   would embed the files inside the extension module itself, and not as
-   a file in the wheel.
+   handled by Nuitka at all, but by setuptools. You can, however, use
+   the data file embedding of Nuitka commercial. In that case, you
+   actually would embed the files inside the extension module itself,
+   and not as a file in the wheel.
 
 Use Case 6 - Multidist
 ======================
 
 If you have multiple programs, that each should be executable, in the
 past you had to compile multiple times, and deploy all of these. With
-standalone mode, this of course meant that you were fairly wasteful, as
-sharing the folders could be done, but wasn't really supported by
+standalone mode, this, of course, meant that you were fairly wasteful,
+as sharing the folders could be done, but wasn't really supported by
 Nuitka.
 
 Enter ``Multidist``. There is an option ``--main`` that replaces or adds
@@ -740,8 +746,8 @@ When given multiple times, Nuitka will create a binary that contains the
 code of all the programs given, but sharing modules used in them. They
 therefore do not have to be distributed multiple times.
 
-Lets call the basename of the main path, and entry point. The names of
-these must of course be different. Then the created binary can execute
+Let's call the basename of the main path, and entry point. The names of
+these must, of course, be different. Then the created binary can execute
 either entry point, and will react to what ``sys.argv[0]`` appears to
 it. So if executed in the right way (with something like ``subprocess``
 or OS API you can control this name), or by renaming or copying the
@@ -756,6 +762,81 @@ This allows to combine very different programs into one.
 
 This mode works with standalone, onefile, and mere acceleration. It does
 not work with module mode.
+
+Use Case 7 - Building with GitHub Workflows
+===========================================
+
+For integration with GitHub workflows there is this `Nuitka-Action
+<https://github.com/Nuitka/Nuitka-Action>`__ that you should use that
+makes it really easy to integrate. You ought to start with a local
+compilation though, but this will be easiest for cross platform
+compilation with Nuitka.
+
+This is an example workflow that builds on all 3 OSes
+
+.. code:: yaml
+
+   jobs:
+   build:
+      strategy:
+         matrix:
+         os: [macos-latest, ubuntu-latest, windows-latest]
+
+      runs-on: ${{ matrix.os }}
+
+      steps:
+         - name: Check-out repository
+         uses: actions/checkout@v3
+
+         - name: Setup Python
+         uses: actions/setup-python@v4
+         with:
+            python-version: '3.10'
+            cache: 'pip'
+            cache-dependency-path: |
+               **/requirements*.txt
+
+         - name: Install your Dependencies
+         run: |
+            pip install -r requirements.txt -r requirements-dev.txt
+
+         - name: Build Executable with Nuitka
+         uses: Nuitka/Nuitka-Action@main
+         with:
+            nuitka-version: main
+            script-name: your_main_program.py
+            # many more Nuitka options available, see action doc, but it's best
+            # to use nuitka-project: options in your code, so e.g. you can make
+            # a difference for macOS and create an app bundle there.
+            onefile: true
+
+         - name: Upload Artifacts
+         uses: actions/upload-artifact@v3
+         with:
+            name: ${{ runner.os }} Build
+            path: | # match what's created for the 3 OSes
+               build/*.exe
+               build/*.bin
+               build/*.app/**/*
+
+If you app is a GUI, e.g. ``your_main_program.py`` should contain these
+comments as explained in `Nuitka Options in the code`_ since on macOS
+this should then be a bundle.
+
+.. code:: python
+
+   # Compilation mode, standalone everywhere, except on macOS there app bundle
+   # nuitka-project-if: {OS} in ("Windows", "Linux", "FreeBSD"):
+   #    nuitka-project: --onefile
+   # nuitka-project-if: {OS} == "Darwin"
+   #    nuitka-project: --standalone
+   #    nuitka-project: --macos-create-app-bundle
+   #
+   # Debugging options, controlled via environment variable at compile time.
+   # nuitka-project-if: os.getenv("DEBUG_COMPILATION", "no") == "yes"
+   #     nuitka-project: --enable-console
+   # nuitka-project-else:
+   #     nuitka-project: --disable-console
 
 ********
  Tweaks
@@ -781,8 +862,8 @@ and may even be combined:
 
 .. note::
 
-   With Nuitka, you do not have to create platform specific icons, but
-   instead it will convert e.g. PNG, but also other format on the fly
+   With Nuitka, you do not have to create platform-specific icons, but
+   instead it will convert e.g. PNG, but also other formats on the fly
    during the build.
 
 MacOS Entitlements
@@ -829,20 +910,20 @@ Splash screen
 Splash screens are useful when program startup is slow. Onefile startup
 itself is not slow, but your program may be, and you cannot really know
 how fast the computer used will be, so it might be a good idea to have
-them. Luckily with Nuitka, they are easy to add for Windows.
+them. Luckily, with Nuitka, they are easy to add for Windows.
 
-For splash screen, you need to specify it as a PNG file, and then make
-sure to disable the splash screen when your program is ready, e.g. has
-complete the imports, prepared the window, connected to the database,
-and wants the splash screen to go away. Here we are using the project
-syntax to combine the code with the creation, compile this:
+For the splash screen, you need to specify it as a PNG file, and then
+make sure to disable the splash screen when your program is ready, e.g.
+has completed the imports, prepared the window, connected to the
+database, and wants the splash screen to go away. Here we are using the
+project syntax to combine the code with the creation, compile this:
 
 .. code:: python
 
    # nuitka-project: --onefile
    # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
 
-   # Whatever this is obviously
+   # Whatever this is, obviously
    print("Delaying startup by 10s...")
    import time, tempfile, os
    time.sleep(10)
@@ -866,9 +947,9 @@ Reports
 =======
 
 For analysis of your program and Nuitka packaging, there is the
-`Compilation Report`_ available. You can also make custom reports
-providing your own template, with a few of them built-in to Nuitka.
-These reports carry all the detail information, e.g. when a module was
+`Compilation Report`_ available. You can also make custom reports by
+providing your template, with a few of them built-in to Nuitka. These
+reports carry all the detail information, e.g. when a module was
 attempted to be imported, but not found, you can see where that happens.
 For bug reporting, it is very much recommended to provide the report.
 
@@ -878,7 +959,8 @@ Version Information
 You can attach copyright and trademark information, company name,
 product name, and so on to your compilation. This is then used in
 version information for the created binary on Windows, or application
-bundle on macOS. If you find something that is lacking, let us know.
+bundle on macOS. If you find something that is lacking, please let us
+know.
 
 ******************
  Typical Problems
@@ -996,12 +1078,45 @@ compensated to support Nuitka development for Linux, there you need to
 purchase it https://nuitka.net/doc/commercial.html but even a sponsor
 license will be cheaper than doing it yourself.
 
+Program crashes system (fork bombs)
+===================================
+
+A fork bomb is a program that starts itself over and over. This can
+easily happen, since ``sys.executable`` for compiled programs is not a
+Python interpreter, and packages that try to do multiprocessing in a
+better way, often relaunch themselves through this, and Nuitka needs and
+does have handling for these with known packages. However, you may
+encounter a situation where the detection of this fails. See deployment
+option above that is needed to disable this protection.
+
+When this fork bomb happens easily all memory, all CPU of the system
+that is available to the user is being used, and even the most powerful
+build system will go down in flames sometimes needing a hard reboot.
+
+For fork bombs, we can use ``--experimental=debug-self-forking`` and see
+what it does, and we have a trick, that prevents fork bombs from having
+any actual success in their bombing. Put this at the start of your
+program.
+
+.. code:: python
+
+   import os, sys
+
+   if "NUITKA_LAUNCH_TOKEN" not in os.environ:
+      sys.exit("Error, need launch token or else fork bomb suspected.")
+   else:
+      del os.environ["NUITKA_LAUNCH_TOKEN"]
+
+Actually Nuitka is trying to get ahold of them without the deployment
+option already, finding "-c" and "-m" options, but it may not be perfect
+or not work well with a package (anymore).
+
 Memory issues and compiler bugs
 ===============================
 
-Sometimes the C compilers will crash saying they cannot allocate memory
-or that some input was truncated, or similar error messages, clearly
-from it. There are several options you can explore here:
+In some cases, the C compilers will crash saying they cannot allocate
+memory or that some input was truncated, or similar error messages,
+clearly from it. There are several options you can explore here:
 
 Ask Nuitka to use less memory
 -----------------------------
@@ -1013,22 +1128,22 @@ at the cost of increased compile time.
 Avoid 32 bit C compiler/assembler memory limits
 -----------------------------------------------
 
-Do not use a 32 bits compiler, but a 64 bit one. If you are using Python
+Do not use a 32 bit compiler, but a 64 bit one. If you are using Python
 with 32 bits on Windows, you most definitely ought to use MSVC as the C
-compiler, and not MinGW64. The MSVC is a cross compiler, and can use
+compiler, and not MinGW64. The MSVC is a cross-compiler, and can use
 more memory than gcc on that platform. If you are not on Windows, that
-is not an option of course. Also using the 64 bits Python will work.
+is not an option, of course. Also, using the 64 bit Python will work.
 
 Use a minimal virtualenv
 ------------------------
 
 When you compile from a living installation, that may well have many
-optional dependencies of your software installed. Some software, will
+optional dependencies of your software installed. Some software will
 then have imports on these, and Nuitka will compile them as well. Not
-only may these be just the trouble makers, they also require more
-memory, so get rid of that. Of course you do have to check that your
-program has all needed dependencies before you attempt to compile, or
-else the compiled program will equally not run.
+only may these be just the troublemakers, they also require more memory,
+so get rid of that. Of course, you do have to check that your program
+has all the needed dependencies before you attempt to compile, or else
+the compiled program will equally not run.
 
 Use LTO compilation or not
 --------------------------
@@ -1064,13 +1179,13 @@ Limit the amount of compilation jobs
 With the ``--jobs`` option of Nuitka, it will not start many C compiler
 instances at once, each competing for the scarce resource of RAM. By
 picking a value of one, only one C compiler instance will be running,
-and on a 8 core system, that reduces the amount of memory by factor 8,
+and on an 8 core system, that reduces the amount of memory by factor 8,
 so that's a natural choice right there.
 
 Dynamic ``sys.path``
 ====================
 
-If your script modifies ``sys.path`` to e.g. insert directories with
+If your script modifies ``sys.path``, e.g. inserts directories with
 source code relative to it, Nuitka will not be able to see those.
 However, if you set the ``PYTHONPATH`` to the resulting value, it will
 be able to compile it and find the used modules from these paths as
@@ -1082,9 +1197,9 @@ Manual Python File Loading
 A very frequent pattern with private code is that it scans plugin
 directories of some kind, and e.g. uses ``os.listdir``, then considers
 Python filenames, and then opens a file and does ``exec`` on them. This
-approach is working for Python code, but for compiled code, you should
-use this much cleaner approach, that works for pure Python code and is a
-lot less vulnerable.
+approach works for Python code, but for compiled code, you should use
+this much cleaner approach, that works for pure Python code and is a lot
+less vulnerable.
 
 .. code:: python
 
@@ -1096,23 +1211,23 @@ lot less vulnerable.
       importlib.import_module(scan_package.__name__ + "." + item.name)
 
       # You may want to do it recursively, but we don't do this here in
-      # this example. If you want to, handle that in this kind of branch.
+      # this example. If you'd like to, handle that in this kind of branch.
       if item.ispkg:
          ...
 
 Missing data files in standalone
 ================================
 
-If your program fails to file data, it can cause all kinds of different
-behaviors, e.g. a package might complain it is not the right version,
-because a ``VERSION`` file check defaulted to unknown. The absence of
-icon files or help texts, may raise strange errors.
+If your program fails to find data file, it can cause all kinds of
+different behavior, e.g. a package might complain it is not the right
+version because a ``VERSION`` file check defaulted to an unknown. The
+absence of icon files or help texts, may raise strange errors.
 
 Often the error paths for files not being present are even buggy and
 will reveal programming errors like unbound local variables. Please look
-carefully at these exceptions keeping in mind that this can be the
+carefully at these exceptions, keeping in mind that this can be the
 cause. If your program works without standalone, chances are data files
-might be cause.
+might be the cause.
 
 The most common error indicating file absence is of course an uncaught
 ``FileNotFoundError`` with a filename. You should figure out what
@@ -1127,11 +1242,11 @@ Nuitka has plugins that deal with copying DLLs. For NumPy, SciPy,
 Tkinter, etc.
 
 These need special treatment to be able to run on other systems.
-Manually copying them is not enough and will given strange errors.
+Manually copying them is not enough and will give strange errors.
 Sometimes newer version of packages, esp. NumPy can be unsupported. In
-this case you will have to raise an issue, and use the older one.
+this case, you will have to raise an issue, and use the older one.
 
-If you want to manually add a DLL or an EXE, because it is your project
+If you want to manually add a DLL or an EXE because it is your project
 only, you will have to use user Yaml files describing where they can be
 found. This is described in detail with examples in the `Nuitka Package
 Configuration <https://nuitka.net/doc/nuitka-package-config.html>`__
@@ -1147,7 +1262,7 @@ imagine. Multiple frameworks for syntax highlighting everything
 imaginable take time.
 
 Nuitka will have to learn effective caching to deal with this in the
-future. Right now, you will have to deal with huge compilation times for
+future. Presently, you will have to deal with huge compilation times for
 these.
 
 A major weapon in fighting dependency creep should be applied, namely
@@ -1161,8 +1276,8 @@ can take for each module of your choice, e.g. forcing also that e.g.
 ``PyQt5`` is considered uninstalled for standalone mode.
 
 It's also driven by a configuration file, ``anti-bloat.yml`` that you
-can contribute to, removing typical bloat from packages. Feel free to
-enhance it and make PRs towards Nuitka with it.
+can contribute to, removing typical bloat from packages. Please don't
+hesitate to enhance it and make PRs towards Nuitka with it.
 
 Standalone: Finding files
 =========================
@@ -1183,13 +1298,27 @@ standalone binary.
    not make assumptions about the directory your program is started
    from.
 
+In case you mean to refer to the location of the ``.dist`` folder for
+files that are to reside near the binary, there is
+``__compiled__.containing_dir`` that also abstracts all differences with
+``--macos-create-app-bundle`` and the ``.app`` folder a having more
+nested structure.
+
+.. code:: python
+
+   # This will find a file *near* your app or dist folder
+   try:
+      open(os.path.join(__compiled__.containing_dir, "user-provided-file.txt"))
+   except NameError:
+      open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
+
 Onefile: Finding files
 ======================
 
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
-main module for onefile mode, that is caused by using a bootstrap to a
-temporary location. The first one will be the original executable path,
-whereas the second one will be the temporary or permanent path the
+main module for the onefile mode, that is caused by using a bootstrap to
+a temporary location. The first one will be the original executable
+path, whereas the second one will be the temporary or permanent path the
 bootstrap executable unpacks to. Data files will be in the later
 location, your original environment files will be in the former
 location.
@@ -1203,6 +1332,12 @@ which you expect to be inside the onefile binary, access them like this.
    open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
    # This will find a file *inside* your onefile.exe
    open(os.path.join(os.path.dirname(__file__), "user-provided-file.txt"))
+
+   # This will find a file *near* your onefile binary and work for standalone too
+   try:
+      open(os.path.join(__compiled__.containing_dir, "user-provided-file.txt"))
+   except NameError:
+      open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
 
 Windows Programs without console give no errors
 ===============================================
@@ -1266,12 +1401,14 @@ object for Python to use.
 Nuitka Options in the code
 ==========================
 
-There is support for conditional options, and options using pre-defined
+One clean way of providing options to Nuitka, that you will always use
+for your program, is to put them into the main file you compile. There
+is even support for conditional options, and options using pre-defined
 variables, this is an example:
 
 .. code:: python
 
-   # Compilation mode, support OS specific options
+   # Compilation mode, support OS-specific options
    # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
    #    nuitka-project: --onefile
    # nuitka-project-else:
@@ -1279,17 +1416,12 @@ variables, this is an example:
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2
-   # nuitka-project: --include-qt-plugins=sensible,qml
+   # nuitka-project: --include-qt-plugins=qml
 
-   # Debugging toggle
-   # nuitka-project-if: os.environ.get("DEBUG_COMPILATION", "no") == "yes"
-   #    nuitka-project: --debug
-   # nuitka-project-else:
-   #    nuitka-project: --deployment
-
-The comments must be a start of line, and indentation is to be used, to
-end a conditional block, much like in Python. There are currently no
-other keywords than the used ones demonstrated above.
+The comments must be at the start of lines, and indentation inside of
+them is to be used, to end a conditional block, much like in Python.
+There are currently no other keywords than the used ones demonstrated
+above.
 
 You can put arbitrary Python expressions there, and if you wanted to
 e.g. access a version information of a package, you could simply use
@@ -1349,10 +1481,10 @@ offer to download from an official source and it automatically. This is
 the recommended way of using it on Windows, as other versions can e.g.
 hang.
 
-Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and
-it will also be possible to provide if by setting
-``NUITKA_CCACHE_BINARY`` to the full path of the binary, this is for use
-in CI systems where things might be non-standard.
+Nuitka will pick up ``ccache`` if it's found in system ``PATH``, and it
+will also be possible to provide if by setting ``NUITKA_CCACHE_BINARY``
+to the full path of the binary, this is for use in CI systems where
+things might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
@@ -1401,7 +1533,7 @@ score. So it is recommended for use over MSVC. Using ``clang-cl.exe`` of
 Clang7 was faster than MSVC, but still significantly slower than
 MinGW64, and it will be harder to use, so it is not recommended.
 
-On Linux for ``pystone.bin`` the binary produced by ``clang6`` was
+On Linux, for ``pystone.bin``, the binary produced by ``clang6`` was
 faster than ``gcc-6.3``, but not by a significant margin. Since gcc is
 more often already installed, that is recommended to use for now.
 
@@ -1410,7 +1542,7 @@ Differences in C compilation times have not yet been examined.
 Unexpected Slowdowns
 ====================
 
-Using the Python DLL, like standard CPython does can lead to unexpected
+Using the Python DLL, like standard CPython does, can lead to unexpected
 slowdowns, e.g. in uncompiled code that works with Unicode strings. This
 is because calling to the DLL rather than residing in the DLL causes
 overhead, and this even happens to the DLL with itself, being slower,
@@ -1430,13 +1562,12 @@ Standalone executables and dependencies
 =======================================
 
 The process of making standalone executables for Windows traditionally
-involves using an external dependency walker in order to copy necessary
-libraries along with the compiled executables to the distribution
-folder.
+involves using an external dependency walker to copy necessary libraries
+along with the compiled executables to the distribution folder.
 
-There is plenty of ways to find that something is missing. Do not
+There are plenty of ways to find that something is missing. Do not
 manually copy things into the folder, esp. not DLLs, as that's not going
-to work. Instead make bug reports to get these handled by Nuitka
+to work. Instead, make bug reports to get these handled by Nuitka
 properly.
 
 Windows errors with resources
@@ -1464,7 +1595,7 @@ installing Visual C runtime libraries before executing a Nuitka
 standalone compiled program.
 
 Depending on the used C compiler, you'll need the following redist
-versions on the target machines. However notice that compilation using
+versions on the target machines. However, notice that compilation using
 the 14.3 based version is recommended.
 
 +------------------+-------------+-------------------------------+
@@ -1498,7 +1629,7 @@ compiled dist folder.
 Detecting Nuitka at run time
 ============================
 
-Nuitka does *not* ``sys.frozen`` unlike other tools, because it usually
+Nuitka does *not* ``sys.frozen`` unlike other tools because it usually
 triggers inferior code for no reason. For Nuitka, we have the module
 attribute ``__compiled__`` to test if a specific module was compiled,
 and the function attribute ``__compiled__`` to test if a specific
@@ -1509,22 +1640,22 @@ Providing extra Options to Nuitka C compilation
 
 Nuitka will apply values from the environment variables ``CCFLAGS``,
 ``LDFLAGS`` during the compilation on top of what it determines to be
-necessary. Beware of course, that is this is only useful if you know
-what you are doing, so should this pose an issues, raise them only with
+necessary. Beware, of course, that is this is only useful if you know
+what you are doing, so should this pose issues, raise them only with
 perfect information.
 
 Producing a 32 bit binary on a 64 bit Windows system
 ====================================================
 
 Nuitka will automatically target the architecture of the Python you are
-using. If this is 64 bits, it will create a 64 bits binary, if it is 32
-bits, it will create a 32 bits binary. You have the option to select the
+using. If this is 64 bit, it will create a 64 bit binary, if it is 32
+bit, it will create a 32 bit binary. You have the option to select the
 bits when you download the Python. In the output of ``python -m nuitka
---version`` there is a line for the architecture. It ``Arch: x86_64``
+--version`` there is a line for the architecture. It's ``Arch: x86_64``
 for 64 bits, and just ``Arch: x86`` for 32 bits.
 
 The C compiler will be picked to match that more or less automatically.
-If you specify it explicitly and it mismatches, you will get a warning
+If you specify it explicitly, and it mismatches, you will get a warning
 about the mismatch and informed that your compiler choice was rejected.
 
 ********************
@@ -1539,26 +1670,26 @@ data file paths, DLLs, and reasons why things are included or not.
 
 At this time, the report contains absolute paths in some places, with
 your private information. The goal is to make this blended out by
-default, because we also want to become able to compare compilation
+default because we also want to become able to compare compilation
 reports from different setups, e.g. with updated packages, and see the
-changes to Nuitka. The report is however recommended for your bug
+changes to Nuitka. The report is, however, recommended for your bug
 reporting.
 
 Also, another form is available, where the report is free form and
 according to a Jinja2 template of yours, and one that is included in
 Nuitka. The same information as used to produce the XML file is
-accessible. However, right now this is not yet documented, but we plan
-to add a table with the data. For reader of the source code that is
+accessible. However, right now, this is not yet documented, but we plan
+to add a table with the data. For a reader of the source code that is
 familiar with Jinja2, however, it will be easy to do it now already.
 
 If you have a template, you can use it like this
 ``--report-template=your_template.rst.j2:your_report.rst`` and of
 course, the usage of restructured text, is only an example. You can use
-markdown, your own XML, or whatever you see fit. Nuitka will just expand
+Markdown, your own XML, or whatever you see fit. Nuitka will just expand
 the template with the compilation report data.
 
-Currently the follow reports are included in Nuitka. You just use the
-name as a filename, and Nuitka will pick that one instead.
+Currently, the following reports are included in Nuitka. You just use
+the name as a filename, and Nuitka will pick that one instead.
 
 +---------------+--------------+--------------------------------------------------------+
 | Report Name   | Status       | Purpose                                                |
@@ -1614,7 +1745,7 @@ run is most meaningful, and eliminates usage spikes.
 ******************
 
 Remember, this project needs constant work. Although the Python
-compatibility is insanely high, and test suite works near perfectly,
+compatibility is insanely high, and the test suite works near perfectly,
 there is still more work needed, esp. to make it do more optimization.
 Try it out, and when popular packages do not work, please make reports
 on GitHub.
@@ -1641,17 +1772,17 @@ Best practices for reporting bugs:
 
 -  Please always include the following information in your report, for
    the underlying Python version. You can easily copy&paste this into
-   your report. It does contain more information that you think. Do not
-   write something manually. You may always add of course.
+   your report. It does contain more information than you think. Do not
+   write something manually. You may always add, of course,
 
    .. code:: bash
 
       python -m nuitka --version
 
 -  Try to make your example minimal. That is, try to remove code that
-   does not contribute to the issue as much as possible. Ideally come up
-   with a small reproducing program that illustrates the issue, using
-   ``print`` with different results when that programs runs compiled or
+   does not contribute to the issue as much as possible. Ideally, come
+   up with a small reproducing program that illustrates the issue, using
+   ``print`` with different results when the program runs compiled or
    native.
 
 -  If the problem occurs spuriously (i.e. not each time), try to set the
@@ -1686,7 +1817,7 @@ branches:
 
 -  ``main``
 
-   This branch contains the stable release to which only hotfixes for
+   This branch contains the stable release, to which only hotfixes for
    bugs will be done. It is supposed to work at all times and is
    supported.
 
@@ -1702,10 +1833,10 @@ branches:
    This branch contains unfinished and incomplete work. It is very
    frequently subject to ``git rebase`` and the public staging ground,
    where my work for develop branch lives first. It is intended for
-   testing only and recommended to base any of your own development on.
-   When updating it, you very often will get merge conflicts. Simply
-   resolve those by doing ``git fetch && git reset --hard
-   origin/factory`` and switch to the latest version.
+   testing only, and it's recommended to base any of your own
+   development on. When updating it, you will very often get merge
+   conflicts. Simply resolve those by doing ``git fetch && git reset
+   --hard origin/factory`` and switch to the latest version.
 
 .. note::
 
@@ -1763,9 +1894,9 @@ Constants currently recognized:
 
 Literals are the one obvious source of constants, but also most likely
 other optimization steps like constant propagation or function inlining
-will be. So this one should not be underestimated and a very important
-step of successful optimizations. Every option to produce a constant may
-impact the generated code quality a lot.
+will be. So this one should not be underestimated and a crucial step of
+successful optimizations. Every option to produce a constant may impact
+the generated code quality a lot.
 
 .. admonition:: Status
 
@@ -1797,7 +1928,7 @@ compile time. This can then be used as input to the constant folding.
 .. admonition:: Status
 
    From modules attributes, only ``__name__`` is currently actually
-   optimized. Also possible would be at least ``__doc__``. In the
+   optimized. At least ``__doc__`` would also be possible to. In the
    future, this may improve as SSA is expanded to module variables.
 
 Built-in Name Lookups
@@ -1830,7 +1961,7 @@ reduction.
 
 .. code:: python
 
-   type("string")  # predictable result, builtin type str.
+   type("string")  # predictable result, built-in type str.
    len([1, 2])  # predictable result
    range(3, 9, 2)  # predictable result
    range(3, 9, 0)  # predictable exception, range raises due to 0.
@@ -1860,7 +1991,7 @@ Conditional Statement Prediction
 
 For conditional statements, some branches may not ever be taken, because
 of the condition truth value being possible to predict. In these cases,
-the branch not taken and the condition check is removed.
+the branch is not taken, and the condition check is removed.
 
 This can typically predict code like this:
 
@@ -1912,22 +2043,22 @@ The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError``
 exception, which will be propagated through the ``+`` operation. That
 part is just Constant Propagation as normal.
 
-The call ``side_effect_having()`` will have to be retained though, but
+The call ``side_effect_having()`` will have to be retained, though, but
 the ``print`` does not and can be turned into an explicit raise. The
-statement sequence can then be aborted and as such the
+statement sequence can then be aborted, and as such the
 ``something_else`` call needs no code generation or consideration
 anymore.
 
 To that end, Nuitka works with a special node that raises an exception
-and is wrapped with a so-called "side_effects" expression, but yet can
-be used in the code as an expression having a value.
+and is wrapped with a so-called "side_effects" expression, yet can be
+used in the code as an expression having a value.
 
 .. admonition:: Status
 
    The propagation of exceptions is mostly implemented but needs
-   handling in every kind of operations, and not all of them might do it
+   handling in every kind of operation, and not all of them might do it
    already. As work progresses or examples arise, the coverage will be
-   extended. Feel free to generate bug reports with non-working
+   extended. You are welcome to generate bug reports with non-working
    examples.
 
 Exception Scope Reduction
@@ -1945,7 +2076,7 @@ Consider the following code:
        print(e)
 
 The ``try`` block is bigger than it needs to be. The statement ``b = 8``
-cannot cause a ``ValueError`` to be raised. As such it can be moved to
+cannot cause a ``ValueError`` to be raised. As such, it can be moved to
 outside the try without any risk.
 
 .. code:: python
@@ -1960,7 +2091,7 @@ outside the try without any risk.
 .. admonition:: Status
 
    This is considered done. For every kind of operation, we trace if it
-   may raise an exception. We do however *not* track properly yet, what
+   may raise an exception. We do however *not* properly track yet, what
    can do a ``ValueError`` and what cannot.
 
 Exception Block Inlining
@@ -2054,8 +2185,8 @@ assignments.
 This is of course only really safe if the left-hand side cannot raise an
 exception while building the assignment targets.
 
-We do this now, but only for constants, because we currently have no
-ability to predict if an expression can raise an exception or not.
+We do this now, but only for constants because we currently have no
+ability to predict whether an expression can raise an exception or not.
 
 .. admonition:: Status
 
@@ -2105,7 +2236,7 @@ differ.
 This will have to evaluate first ``get1()``, then ``get2()`` and only
 then ``get3()`` and then make the function call with these values.
 
-Therefore it will be necessary to have a staging of the parameters
+Therefore, it will be necessary to have a staging of the parameters
 before making the actual call, to avoid a re-ordering of the calls to
 ``get1()``, ``get2()``, and ``get3()``.
 
@@ -2129,7 +2260,7 @@ Consider that:
    for x in [a, b, c]:
        something(x)
 
-Can be optimized into this:
+This can be optimized into this:
 
 .. code:: python
 
@@ -2137,7 +2268,7 @@ Can be optimized into this:
        something(x)
 
 This allows for simpler, faster code to be generated, and fewer checks
-needed, because e.g. the ``tuple`` is clearly immutable, whereas the
+needed because e.g. the ``tuple`` is clearly immutable, whereas the
 ``list`` needs a check to assert that. This is also possible for sets.
 
 .. admonition:: Status
@@ -2148,7 +2279,7 @@ needed, because e.g. the ``tuple`` is clearly immutable, whereas the
    tuples, and not care about sets.
 
 In theory, something similar is also possible for ``dict``. For the
-later, it will be non-trivial though to maintain the order of execution
+latter, it will be non-trivial though to maintain the order of execution
 without temporary values introduced. The same thing is done for pure
 constants of these types, they change to ``tuple`` values when iterated.
 
@@ -2156,7 +2287,7 @@ Metadata calls at compile time
 ==============================
 
 Nuitka does not include metadata in the distribution. It's rather large,
-and the goal is to use it at compile time. Therefore information about
+and the goal is to use it at compile time. Therefore, information about
 entry points, version checks, etc. are all done at compile time rather
 than at run time. Not only is that faster, it also recognized problems
 sooner.
@@ -2179,7 +2310,7 @@ sooner.
 *************************
 
 This document is written in REST. That is an ASCII format which is
-readable to human, but easily used to generate PDF or HTML documents.
+readable by human, but easily used to generate PDF or HTML documents.
 
 You will find the current version at:
 https://nuitka.net/doc/user-manual.html

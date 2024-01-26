@@ -181,32 +181,40 @@ def _getPythonInstallPathsWindows(python_version):
             yield candidate
 
 
-def findPythons(python_version):
+def findPythons(python_version, module_name=None, module_version=None):
     """Find all Python installations for a specific version."""
 
-    if python_version in _installed_pythons:
-        return _installed_pythons[python_version]
+    if python_version not in _installed_pythons:
+        result = OrderedSet()
 
-    result = OrderedSet()
+        if python_version == python_version_str:
+            result.add(
+                InstalledPython(
+                    python_exe=sys.executable, python_version=python_version
+                )
+            )
 
-    if python_version == python_version_str:
-        result.add(
-            InstalledPython(python_exe=sys.executable, python_version=python_version)
+        if isWin32Windows():
+            result.update(
+                InstalledPython(python_exe=python_exe, python_version=python_version)
+                for python_exe in _getPythonInstallPathsWindows(python_version)
+            )
+
+        candidate = getExecutablePath("python" + python_version)
+        if candidate is not None:
+            result.add(
+                InstalledPython(python_exe=candidate, python_version=python_version)
+            )
+
+        _installed_pythons[python_version] = result
+
+    return tuple(
+        candidate
+        for candidate in _installed_pythons[python_version]
+        if candidate.checkUsability(
+            module_name=module_name, module_version=module_version
         )
-
-    if isWin32Windows():
-        result.update(
-            InstalledPython(python_exe=python_exe, python_version=python_version)
-            for python_exe in _getPythonInstallPathsWindows(python_version)
-        )
-
-    candidate = getExecutablePath("python" + python_version)
-    if candidate is not None:
-        result.add(InstalledPython(python_exe=candidate, python_version=python_version))
-
-    _installed_pythons[python_version] = result
-
-    return result
+    )
 
 
 def findInstalledPython(python_versions, module_name, module_version):

@@ -38,7 +38,7 @@ from nuitka.tools.testing.Valgrind import getBinarySizes, runValgrind
 
 input_file = sys.argv[1]
 
-nuitka_binary = os.environ.get(
+nuitka_binary = os.getenv(
     "NUITKA_BINARY", os.path.join(os.path.dirname(__file__), "../bin/nuitka")
 )
 nuitka_binary = os.path.normpath(nuitka_binary)
@@ -65,7 +65,7 @@ os.system(
         tempdir,
         "--unstriped",
         "--quiet",
-        os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
+        os.getenv("NUITKA_EXTRA_OPTIONS", ""),
         input_file,
     )
 )

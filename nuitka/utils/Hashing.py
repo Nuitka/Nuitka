@@ -43,22 +43,37 @@ class HashBase(object):
                 self.updateFromBytes(value)
             elif type(value) is bytes:
                 self.updateFromBytes(value)
+            elif type(value) is dict:
+                self.updateFromBytes(b"dict")
+                self.updateFromValues(*list(value.items()))
+            elif type(value) is tuple:
+                self.updateFromBytes(b"tuple")
+                self.updateFromValues(*value)
+            elif type(value) is list:
+                self.updateFromBytes(b"list")
+                self.updateFromValues(*value)
             else:
                 assert False, type(value)
 
-    def updateFromFile(self, filename):
-        # TODO: Read in chunks
+    def updateFromFile(self, filename, line_filter=None):
         with openTextFile(filename, "rb") as input_file:
-            self.updateFromFileHandle(input_file)
+            self.updateFromFileHandle(input_file, line_filter=line_filter)
 
-    def updateFromFileHandle(self, file_handle):
-        while 1:
-            chunk = file_handle.read(1024 * 64)
+    def updateFromFileHandle(self, file_handle, line_filter=None):
+        if line_filter is None:
+            while 1:
+                chunk = file_handle.read(1024 * 1024)
 
-            if not chunk:
-                break
+                if not chunk:
+                    break
 
-            self.updateFromBytes(chunk)
+                self.updateFromBytes(chunk)
+        else:
+            for line in file_handle:
+                line = line_filter(line)
+
+                if line is not None:
+                    self.updateFromBytes(line)
 
 
 class Hash(HashBase):
@@ -75,9 +90,9 @@ class Hash(HashBase):
         return self.hash.hexdigest()
 
 
-def getFileContentsHash(filename, as_string=True):
+def getFileContentsHash(filename, as_string=True, line_filter=None):
     result = Hash()
-    result.updateFromFile(filename=filename)
+    result.updateFromFile(filename=filename, line_filter=line_filter)
 
     if as_string:
         return result.asHexDigest()
@@ -85,11 +100,14 @@ def getFileContentsHash(filename, as_string=True):
         return result.asDigest()
 
 
-def getStringHash(value):
+def getStringHash(value, as_string=True):
     result = Hash()
     result.updateFromValues(value)
 
-    return result.asHexDigest()
+    if as_string:
+        return result.asHexDigest()
+    else:
+        return result.asDigest()
 
 
 def getHashFromValues(*values):
@@ -108,3 +126,6 @@ class HashCRC32(HashBase):
 
     def asDigest(self):
         return self.hash
+
+    def asHexDigest(self):
+        return hex(self.hash)[2:]

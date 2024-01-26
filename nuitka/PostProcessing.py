@@ -37,6 +37,8 @@ from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContents,
+    getFileSize,
+    hasFilenameExtension,
     makePath,
     putTextFileContents,
     removeFileExecutablePermission,
@@ -116,7 +118,7 @@ def _addWindowsIconFromIcons(onefile):
 
     result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
 
-    for icon_spec in Options.getIconPaths():
+    for icon_spec in Options.getWindowsIconPaths():
         if "#" in icon_spec:
             icon_path, icon_index = icon_spec.rsplit("#", 1)
             icon_index = int(icon_index)
@@ -124,9 +126,7 @@ def _addWindowsIconFromIcons(onefile):
             icon_path = icon_spec
             icon_index = None
 
-        icon_path = os.path.normcase(icon_path)
-
-        if not icon_path.endswith(".ico"):
+        if not hasFilenameExtension(icon_path, ".ico"):
             postprocessing_logger.info(
                 "File '%s' is not in Windows icon format, converting to it." % icon_path
             )
@@ -390,6 +390,7 @@ def executePostProcessing():
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
 set PYTHONHOME=%(python_home)s
+set NUITKA_PYTHONPATH=%(python_path)s
 %(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
             "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
@@ -397,6 +398,7 @@ set PYTHONHOME=%(python_home)s
             else "",
             "dll_directory": dll_directory,
             "python_home": sys.prefix,
+            "python_path": ";".join(sys.path),
             "exe_filename": os.path.basename(result_filename),
         }
 
@@ -434,4 +436,11 @@ __name__ = ...
                 )
             },
             encoding="utf-8",
+        )
+
+    if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:
+        postprocessing_logger.warning(
+            """\
+The created compiled binary is larger than 1.8GB and therefore may not be
+executable by Windows due to its limitations."""
         )

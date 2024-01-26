@@ -70,7 +70,7 @@ def import_re_callback(match):
 
 tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
-logging_info_re = re.compile(r"^Nuitka.*?:INFO")
+logging_info_re = re.compile(r"^Nuitka(-\w+)?:([-\w]+:)? ")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 
 # Python3.11 style traceback carets are not done by Nuitka (yet?)
@@ -135,6 +135,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         if line.startswith("Nuitka:WARNING: On Windows, support for input/output"):
             continue
         if line.startswith("Nuitka:WARNING:     Complex topic"):
+            continue
+        if line.startswith("Nuitka:WARNING:") and "matching checksum" in line:
             continue
 
         if syntax_error_caret_re.match(line):

@@ -462,6 +462,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
 
+    def getTypeShape(self):
+        return self.previous.getTypeShape()
+
     def mustHaveValue(self):
         return self.previous.mustHaveValue()
 

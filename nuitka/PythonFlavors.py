@@ -33,6 +33,7 @@ from nuitka.utils.FileOperations import (
     isFilenameSameAsOrBelowPath,
 )
 from nuitka.utils.Utils import (
+    isAlpineLinux,
     isAndroidBasedLinux,
     isArchBasedLinux,
     isFedoraBasedLinux,
@@ -130,8 +131,8 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.environ.get("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
-        path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
+    return os.getenv("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
+        path=os.getenv("PYENV_ROOT"), filename=getSystemPrefixPath()
     )
 
 
@@ -179,8 +180,10 @@ def isUninstalledPython():
         res = GetSystemDirectory(buf, MAX_PATH)
         assert res != 0
 
-        system_path = os.path.normcase(buf.value)
-        return not getRunningPythonDLLPath().startswith(system_path)
+        system_path = buf.value
+        return not isFilenameBelowPath(
+            path=system_path, filename=getRunningPythonDLLPath()
+        )
 
     return isAnacondaPython() or "WinPython" in sys.version
 
@@ -238,6 +241,16 @@ def isFedoraPackagePython():
     return system_prefix_path == "/usr"
 
 
+def isAlpinePackagePython():
+    """Is the Python from a Alpine package."""
+    if not isAlpineLinux():
+        return False
+
+    system_prefix_path = getSystemPrefixPath()
+
+    return system_prefix_path == "/usr"
+
+
 def isArchPackagePython():
     """Is the Python from a Fedora package."""
     if not isArchBasedLinux():
@@ -268,10 +281,45 @@ def isCPythonOfficialPackage():
     return False
 
 
+_is_self_compiled_python = None
+
+
+def isSelfCompiledPythonUninstalled():
+    # singleton, pylint: disable=global-statement
+    global _is_self_compiled_python
+
+    if _is_self_compiled_python is None:
+        sys_prefix = getSystemPrefixPath()
+
+        _is_self_compiled_python = os.path.isdir(os.path.join(sys_prefix, "PCbuild"))
+
+    return _is_self_compiled_python
+
+
+_is_manylinux_python = None
+
+
+def isManyLinuxPython():
+    if not isLinux():
+        return False
+
+    # singleton, pylint: disable=global-statement
+    global _is_manylinux_python
+
+    sys_prefix = getSystemPrefixPath()
+
+    if _is_manylinux_python is None:
+        _is_manylinux_python = os.path.isfile(
+            os.path.join(sys_prefix, "..", "static-libs-for-embedding-only.tar.xz")
+        )
+
+    return _is_manylinux_python
+
+
 def isGithubActionsPython():
-    return os.environ.get(
-        "GITHUB_ACTIONS", ""
-    ) == "true" and getSystemPrefixPath().startswith("/opt/hostedtoolcache/Python")
+    return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
+        "/opt/hostedtoolcache/Python"
+    )
 
 
 def getPythonFlavorName():
@@ -290,6 +338,8 @@ def getPythonFlavorName():
         return "Fedora Python"
     elif isArchPackagePython():
         return "Arch Python"
+    elif isAlpinePackagePython():
+        return "Alpine Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isApplePython():
@@ -304,7 +354,11 @@ def getPythonFlavorName():
         return "Android Termux"
     elif isCPythonOfficialPackage():
         return "CPython Official"
+    elif isSelfCompiledPythonUninstalled():
+        return "Self Compiled Uninstalled"
     elif isGithubActionsPython():
         return "GitHub Actions Python"
+    elif isManyLinuxPython():
+        return "Manylinux Python"
     else:
         return "Unknown"

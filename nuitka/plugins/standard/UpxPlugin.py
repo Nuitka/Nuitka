@@ -121,7 +121,7 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
         executeToolChecked(
             logger=self,
             command=command,
-            absence_message=None,
+            absence_message="UPX not found",
             stderr_filter=self._filterUpxError,
         )
 

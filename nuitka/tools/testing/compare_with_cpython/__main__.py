@@ -49,6 +49,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
+from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
 
@@ -143,7 +144,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
                 with open(element, "rb") as element_file:
                     command_hash.update(element_file.read())
 
-        hash_salt = os.environ.get("NUITKA_HASH_SALT", "")
+        hash_salt = os.getenv("NUITKA_HASH_SALT", "")
 
         if str is not bytes:
             hash_salt = hash_salt.encode("utf8")
@@ -236,7 +237,7 @@ def main():
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
     trace_command = (
-        hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
+        hasArg("trace_command") or os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
@@ -335,7 +336,7 @@ def main():
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
 
-    extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
+    extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
     if os.path.normcase(os.environ["PYTHON"]).endswith(("-dbg", "-debug", "_d.exe")):
         python_debug = True
@@ -496,6 +497,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if report:
         extra_options.append("--report=%s" % report)
+        deleteFile(report, must_exist=False)
 
     if nofollow_imports or (not follow_imports and not standalone_mode):
         extra_options.append("--nofollow-imports")
@@ -776,7 +778,7 @@ Stderr was:
                 trace_result=False
             )
 
-            if not int(os.environ.get("NUITKA_CPYTHON_NO_CACHE_UPDATE", "0")):
+            if not int(os.getenv("NUITKA_CPYTHON_NO_CACHE_UPDATE", "0")):
                 if exit_code_stdout or exit_code_stderr or exit_code_return:
                     old_stdout_cpython = stdout_cpython
                     old_stderr_cpython = stderr_cpython

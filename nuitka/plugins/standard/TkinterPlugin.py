@@ -166,7 +166,7 @@ The Tcl library dir. See comments for Tk library dir.""",
 
     def _getTclCandidatePaths(self):
         # Check typical locations of the dirs
-        yield os.environ.get("TCL_LIBRARY")
+        yield os.getenv("TCL_LIBRARY")
 
         # Inside the Python install, esp. on Windows.
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
@@ -186,7 +186,7 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib/tcl%s" % self.tk_inter_version
 
     def _getTkCandidatePaths(self):
-        yield os.environ.get("TK_LIBRARY")
+        yield os.getenv("TK_LIBRARY")
 
         for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
             yield os.path.join(sys_prefix_path, "tcl", "tk%s" % self.tk_inter_version)

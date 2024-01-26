@@ -237,6 +237,11 @@ static void PRINT_REFCOUNTS(void) {
 
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
+    PRINT_FORMAT("Compiled Functions: %d | %d | %d (module/class ownership may occur)\n",
+                 count_active_Nuitka_Function_Type, count_allocated_Nuitka_Function_Type,
+                 count_released_Nuitka_Function_Type);
+    PRINT_FORMAT("Compiled Generators: %d | %d | %d\n", count_active_Nuitka_Generator_Type,
+                 count_allocated_Nuitka_Generator_Type, count_released_Nuitka_Generator_Type);
 #if PYTHON_VERSION >= 0x350
     PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
                  count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
@@ -259,6 +264,8 @@ static void PRINT_REFCOUNTS(void) {
 
     PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
                  count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
+    PRINT_FORMAT("Compiled Cells: %d | %d | %d (function ownership may occur)\n", count_active_Nuitka_Cell_Type,
+                 count_allocated_Nuitka_Cell_Type, count_released_Nuitka_Cell_Type);
     PRINT_STRING("CACHED counts at program end:\n");
     PRINT_STRING("active | allocated | released | hits\n");
     PRINT_FORMAT("Cached Frames: %d | %d | %d | %d\n", count_active_frame_cache_instances,
@@ -1128,7 +1135,10 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
 #endif
-
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+    INIT_C_BACKTRACES();
+    DUMP_C_BACKTRACE();
+#endif
     // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
     atexit(Nuitka_at_exit);
@@ -1188,8 +1198,6 @@ int main(int argc, char **argv) {
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TIMING("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
-#else
-
 #endif
 
 #if _NUITKA_FROZEN > 0
@@ -1328,6 +1336,24 @@ orig_argv = argv;
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
+#else
+    {
+        environment_char_t const *python_path_cstr = getEnvironmentVariable("NUITKA_PYTHONPATH");
+
+        if (python_path_cstr != NULL) {
+            PyObject *python_path_str = Nuitka_String_FromFilename(python_path_cstr);
+#ifdef _WIN32
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ";");
+#else
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ":");
+#endif
+            Py_DECREF(python_path_str);
+
+            PySys_SetObject("path", python_path_list);
+
+            unsetEnvironmentVariable("NUITKA_PYTHONPATH");
+        }
+    }
 #endif
 
     /* Lie about it, believe it or not, there are "site" files, that check
