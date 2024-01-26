@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 2.0 (Draft)
-****************************
+********************
+ Nuitka Release 2.0
+********************
 
 This release had focus on new features and new optimization. There is a
 really large amount of compatibility with things newly added, but also
