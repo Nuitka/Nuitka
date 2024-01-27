@@ -2,11 +2,6 @@
  Nuitka Developer Manual
 #########################
 
-.. image:: doc/images/Nuitka-Logo-Symbol.png
-   :alt: Nuitka Logo
-
-.. contents::
-
 The purpose of this Developer Manual is to present the current design of
 Nuitka, the project rules, and the motivations for choices made. It is
 intended to be a guide to the source code, and to give explanations that
@@ -70,8 +65,8 @@ well as private conversations or issue tracker.
 *****************
 
 For Nuitka we use semantic versioning, initially with a leading zero
-still, once we pass release ``0.9``, the scheme will indicate the ``10``
-through using ``1.0``.
+still, once we pass release ``1.9``, the scheme will indicate the ``10``
+through using ``2.0``.
 
 ***************
  Current State
