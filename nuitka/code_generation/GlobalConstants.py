@@ -64,6 +64,7 @@ def getConstantDefaultPopulation():
         "__package__",
         "__metaclass__",
         "__abstractmethods__",
+        "__closure__",
         # TODO: For PyObject_IsSubClass one day
         # "__subclasscheck__",
         "__dict__",
