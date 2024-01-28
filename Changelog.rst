@@ -10,6 +10,29 @@ Nuitka blog.
  Nuitka Release 2.1 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Windows: Using older MSVC before 14.3 was not working anymore. Fixed
+   in 2.0.1 already.
+
+-  Compatibility: The ``dill-compat`` plugin didn't work for functions
+   with closure variables taken. Fixed in 2.0.1 already.
+
+   .. code:: python
+
+      def get_local_closure(b):
+        def _local_multiply(x, y):
+          return x * y + b
+        return _local_multiply
+
+      fn = get_local_closure(1)
+      fn2 = dill.loads(dill.dumps(fn))
+      print(fn2(2, 3))
+
+Summary
+=======
+
 This release is not done yet.
 
 ********************
