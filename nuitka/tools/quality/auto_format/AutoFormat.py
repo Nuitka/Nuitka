@@ -540,6 +540,25 @@ def _cleanupClangFormat(filename, trace):
         )
 
 
+def _cleanupPngImage(filename):
+    _optipng_path = getExecutablePath("optipng")
+
+    if _optipng_path:
+        check_call(_optipng_path, "-o7", "-zm1-9", filename)
+    else:
+        my_print("Cannot find 'optipng' binary to compress PNG image")
+
+
+def _cleanupJpegImage(filename):
+    # spell-checker: ignore jpegoptim
+    _jpegoptim_path = getExecutablePath("jpegoptim")
+
+    if _jpegoptim_path:
+        check_call(_jpegoptim_path, filename)
+    else:
+        my_print("Cannot find 'jpegoptim' binary to compress JPEG image")
+
+
 def _shouldNotFormatCode(filename):
     # return driven with more cases than necessary to group things
     # pylint:disable=too-many-return-statements
@@ -674,9 +693,12 @@ def autoFormatFile(
     is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
+    is_png = effective_filename.endswith(".png")
+    is_jpeg = effective_filename.endswith((".jpeg", ".jpg"))
+
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_cpp or is_txt or is_rst):
+    if not (is_python or is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg):
         my_print("Ignored file type.")
         return
 
@@ -774,6 +796,10 @@ def autoFormatFile(
                     formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
+        elif is_png:
+            _cleanupPngImage(tmp_filename)
+        elif is_jpeg:
+            _cleanupJpegImage(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
