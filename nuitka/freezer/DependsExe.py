@@ -137,8 +137,6 @@ def _parseDependsExeOutput2(lines):
             else:
                 continue
 
-        assert os.path.basename(dll_filename) != "kernel32.dll"
-
         # The executable itself is of course exempted. We cannot check its path
         # because depends.exe mistreats unicode paths.
         if first:
