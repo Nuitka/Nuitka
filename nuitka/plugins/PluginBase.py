@@ -1270,6 +1270,22 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use
         return {}
 
+    def isValueForEvaluation(self, expression):
+        return '"' in expression or "'" in expression or "(" in expression
+
+    def evaluateExpressionOrConstant(
+        self, full_name, expression, config_name, extra_context
+    ):
+        if self.isValueForEvaluation(expression):
+            return self.evaluateExpression(
+                full_name=full_name,
+                expression=expression,
+                config_name=config_name,
+                extra_context=extra_context,
+            )
+        else:
+            return expression
+
     def evaluateExpression(self, full_name, expression, config_name, extra_context):
         context = TagContext(logger=self, full_name=full_name, config_name=config_name)
         context.update(control_tags)
@@ -1287,18 +1303,23 @@ except ImportError:
                 ):
                     setup_codes = variable_config.get("setup_code")
                     declarations = variable_config.get("declarations")
+                    constants = variable_config.get("constants")
 
                     if self.evaluateCondition(
                         full_name=full_name,
                         condition=variable_config.get("when", "True"),
                     ):
-                        info = self.queryRuntimeInformationMultiple(
-                            "%s_variables_%s" % (full_name.asString(), count),
-                            setup_codes=setup_codes,
-                            values=tuple(declarations.items()),
-                        )
+                        if declarations:
+                            info = self.queryRuntimeInformationMultiple(
+                                "%s_variables_%s" % (full_name.asString(), count),
+                                setup_codes=setup_codes,
+                                values=tuple(declarations.items()),
+                            )
 
-                        variables.update(info.asDict())
+                            variables.update(info.asDict())
+
+                        if constants:
+                            variables.update(constants)
 
             result = variables[variable_name]
 
