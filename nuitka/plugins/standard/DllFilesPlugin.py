@@ -66,7 +66,14 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         ):
             return
 
-        relative_path = dll_config.get("relative_path", ".")
+        config_name = "module '%s' DLL config" % full_name
+
+        relative_path = self.evaluateExpressionOrConstant(
+            full_name=full_name,
+            expression=dll_config.get("relative_path", "."),
+            config_name=config_name,
+            extra_context=None,
+        )
 
         module_filename = self.locateModule(full_name)
 
