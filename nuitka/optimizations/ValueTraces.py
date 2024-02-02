@@ -89,8 +89,14 @@ class ValueTraceBase(object):
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.owner.getCodeName())
 
-    def dump(self, indent):
+    def dump(self, indent="  "):
         my_print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+
+        if type(self.previous) is tuple:
+            for trace in self.previous:
+                trace.dump(indent + "  ")
+        elif self.previous is not None:
+            self.previous.dump(indent + "  ")
 
     def getOwner(self):
         return self.owner
@@ -446,6 +452,12 @@ class ValueTraceUnknown(ValueTraceBase):
 class ValueTraceEscaped(ValueTraceUnknown):
     __slots__ = ()
 
+    def __init__(self, owner, previous):
+        if previous.isMergeTrace():
+            assert self not in previous.previous
+
+        ValueTraceUnknown.__init__(self, owner=owner, previous=previous)
+
     def addUsage(self):
         self.usage_count += 1
 
@@ -651,12 +663,6 @@ class ValueTraceMergeBase(ValueTraceBase):
     def addMergeUsage(self):
         self.addUsage()
         self.merge_usage_count += 1
-
-    def dump(self, indent):
-        ValueTraceBase.dump(self, indent)
-
-        for trace in self.previous:
-            trace.dump(indent + "  ")
 
 
 class ValueTraceMerge(ValueTraceMergeBase):
