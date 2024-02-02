@@ -30,6 +30,46 @@ Bug Fixes
       fn2 = dill.loads(dill.dumps(fn))
       print(fn2(2, 3))
 
+-  Windows: Fix, sometimes ``kernel32.dll`` is actually reported as a
+   dependency, remove assertion against that. Fixed in 2.0.1 already.
+
+-  UI: The help output for ``--output-filename`` was not formatted
+   properly. Fixed in 2.0.1 already.
+
+New Features
+============
+
+-  Plugins: Added support for ``constants`` in Nuitka package
+   configurations. We can now using ``when`` clauses, define variable
+   values to be defined, e.g. to specify the DLL suffix, or the DLL
+   path, based on platform dependent properties.
+
+-  Plugins: Make ``relative_path``, ``suffix``, ``prefix`` in DLL Nuitka
+   package configurations allowed to be an expression rather than just a
+   constant value.
+
+Optimization
+============
+
+-  Scalability: The code trying avoid merge traces of merge traces, and
+   to instead flatten merge traces was only handling part of these
+   correctly, and correcting it reduced optimization time for some
+   functions from infinite to instant. Less memory usage should also
+   come out of this, even where this was not affecting compile time as
+   much. Added in 2.0.1 already.
+
+Organisational
+==============
+
+-  Quality: Added auto-format of PNG and JPEG images. This aims at
+   making it simpler to add images to our repositories, esp. Nuitka
+   Website. This now makes ``optipng`` and ``jpegoptim`` calls as
+   necessary. Previously this was manual steps for the website to be
+   applied.
+
+-  Release: Remove month from manpage generation, that's only noise in
+   diffs.
+
 Summary
 =======
 
