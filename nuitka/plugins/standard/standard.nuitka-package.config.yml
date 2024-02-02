@@ -3128,6 +3128,13 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'pyarrow' # checksum: cb0be8d
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools_scm': ''
+      when: 'not use_setuptools'
+
 - module-name: 'pyarrow.lib' # checksum: 302be0c2
   implicit-imports:
     - depends:
