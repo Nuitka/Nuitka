@@ -33,10 +33,16 @@ import sys
 os.chdir(os.path.dirname(__file__) or ".")
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
-# Disable setuptools warnings.
+# Disable setuptools warnings before importing it.
 import warnings
 
 warnings.filterwarnings("ignore", "")
+
+# Don't allow importing this, and make recognizable that
+# the above imports are not to follow. Sometimes code imports
+# setup and then Nuitka ends up including itself.
+if __name__ != "__main__":
+    sys.exit("Cannot import 'setup' module of Nuitka")
 
 # isort:start
 
@@ -46,12 +52,9 @@ import re
 from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
-# TODO: We need a better solution for this, probably error exit, once sys.exit
-# is optimized for. This is to avoid descending into Nuitka through distutils.
-if __name__ == "__main__":
-    from nuitka.PythonFlavors import isMSYS2MingwPython
-    from nuitka.utils.FileOperations import getFileList
-    from nuitka.Version import getNuitkaVersion
+from nuitka.PythonFlavors import isMSYS2MingwPython
+from nuitka.utils.FileOperations import getFileList
+from nuitka.Version import getNuitkaVersion
 
 scripts = []
 

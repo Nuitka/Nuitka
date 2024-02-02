@@ -69,11 +69,13 @@ from nuitka.specs.HardImportSpecs import (
     pkg_resources_resource_stream_spec,
     pkg_resources_resource_string_spec,
     pkgutil_get_data_spec,
+    sys_exit_spec,
 )
 
 from .ChildrenHavingMixins import (
     ChildHavingDistMixin,
     ChildHavingDistributionNameMixin,
+    ChildHavingExitCodeOptionalMixin,
     ChildHavingPackageMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
@@ -3083,6 +3085,88 @@ class ExpressionPkgutilGetDataCallBase(
                 self.subnode_package,
                 self.subnode_resource,
             )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionSysExitRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference sys.exit"""
+
+    kind = "EXPRESSION_SYS_EXIT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="sys",
+            import_name="exit",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import makeExpressionSysExitCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeExpressionSysExitCall,
+            builtin_spec=sys_exit_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'sys.exit' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionSysExitRef] = sys_exit_spec
+
+
+class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase):
+    """Base class for SysExitCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("exit_code|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = sys_exit_spec
+
+    def __init__(self, exit_code, source_ref):
+        ChildHavingExitCodeOptionalMixin.__init__(
+            self,
+            exit_code=exit_code,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not sys_exit_spec.isCompileTimeComputable(
+            (self.subnode_exit_code,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
