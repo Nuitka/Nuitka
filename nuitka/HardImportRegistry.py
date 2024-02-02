@@ -165,6 +165,7 @@ module_sys_trust = {
     "builtin_module_names": trust_constant,
     "stdout": trust_exist,
     "stderr": trust_exist,
+    "exit": trust_node,
 }
 
 if python_version < 0x270:

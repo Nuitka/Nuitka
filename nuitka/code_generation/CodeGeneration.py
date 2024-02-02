@@ -912,6 +912,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_BEFORE310_CALL": generateImportlibMetadataEntryPointsSince310CallCode,
         "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_SINCE310_CALL": generateImportlibMetadataEntryPointsSince310CallCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_CALL": generateImportlibMetadataBackportEntryPointsCallCode,
+        "EXPRESSION_SYS_EXIT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_LISTDIR_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_EXISTS_REF": generateImportModuleNameHardCode,

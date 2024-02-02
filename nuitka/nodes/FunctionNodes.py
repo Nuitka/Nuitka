@@ -568,7 +568,7 @@ class ExpressionFunctionBody(
     ExpressionFunctionEntryPointBase,
 ):
     # TODO: There should be more special ones than this general type in order to
-    # not cover exec ones in the same object. pylint: disable=too-many-instance-attributes
+    # not cover exec ones in the same object.
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
