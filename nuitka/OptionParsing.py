@@ -684,8 +684,7 @@ choice, also not for standalone mode and using it will be an error. This may
 include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
-    % "<program_name>"
-    + (".exe" if isWin32OrPosixWindows() else ".bin"),
+    % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
 )
 
 output_group.add_option(

@@ -354,7 +354,7 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return 0
+            return ""
         else:
             logger.sysexit(absence_message)
 
