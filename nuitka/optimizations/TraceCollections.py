@@ -802,7 +802,7 @@ class TraceCollectionBase(object):
 
                 if trace1.isEscapeTrace() and trace1.previous is trace2:
                     version = versions[0]
-                elif trace2 is trace1.isEscapeTrace() and trace2.previous is trace1:
+                elif trace2.isEscapeTrace() and trace2.previous is trace1:
                     version = versions[1]
                 else:
                     version = self.addVariableMergeMultipleTrace(
