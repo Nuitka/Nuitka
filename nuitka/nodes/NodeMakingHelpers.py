@@ -43,7 +43,7 @@ def makeConstantReplacementNode(constant, node, user_provided):
 
 
 def makeRaiseExceptionReplacementExpression(
-    expression, exception_type, exception_value
+    expression, exception_type, exception_value, no_warning=False
 ):
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
     from .ExceptionNodes import ExpressionRaiseException
@@ -52,7 +52,7 @@ def makeRaiseExceptionReplacementExpression(
 
     assert type(exception_type) is str
 
-    if Options.shallWarnImplicitRaises():
+    if not no_warning and Options.shallWarnImplicitRaises():
         unusual_logger.warning(
             '%s: Will always raise exception: "%s(%s)"'
             % (

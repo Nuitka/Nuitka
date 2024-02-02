@@ -735,6 +735,7 @@ def addFromNodes():
     node_factory_translations[
         "ExpressionBuiltinsOpenCall"
     ] = "makeExpressionBuiltinsOpenCall"
+    node_factory_translations["ExpressionSysExitCall"] = "makeExpressionSysExitCall"
 
 
 addFromNodes()

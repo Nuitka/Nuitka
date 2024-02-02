@@ -29,7 +29,10 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
 )
 
-from .BuiltinParameterSpecs import BuiltinParameterSpec
+from .BuiltinParameterSpecs import (
+    BuiltinParameterSpec,
+    BuiltinParameterSpecNoKeywords,
+)
 
 # Metadata:
 
@@ -128,7 +131,7 @@ importlib_resources_backport_files_spec = BuiltinParameterSpec(
 )
 
 
-# os/sys functions:
+# os functions:
 os_uname_spec = BuiltinParameterSpec(
     "os.uname",
     (),
@@ -180,4 +183,8 @@ builtins_open_since_3_spec = BuiltinParameterSpec(
     "builtins.open",
     ("file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"),
     default_count=7,
+)
+
+sys_exit_spec = BuiltinParameterSpecNoKeywords(
+    "sys.exit", ("exit_code",), default_count=1
 )

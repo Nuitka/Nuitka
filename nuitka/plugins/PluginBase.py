@@ -1270,7 +1270,8 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use
         return {}
 
-    def isValueForEvaluation(self, expression):
+    @staticmethod
+    def isValueForEvaluation(expression):
         return '"' in expression or "'" in expression or "(" in expression
 
     def evaluateExpressionOrConstant(

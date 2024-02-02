@@ -61,7 +61,10 @@ def save_compiled_method(pickler, obj):
 if str is bytes:
 
     def _create_compiled_function2(module_name, func_values, func_dict, func_defaults):
-        if module_name not in compiled_function_tables:
+        if (
+            module_name
+            not in compiled_function_tables  # pylint: disable=used-before-assignment
+        ):
             __import__(module_name)
 
         # This gets the "_create_compiled_function" of the module and calls it.
