@@ -60,6 +60,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         return isStandaloneMode()
 
     def _handleDllConfigFromFilenames(self, dest_path, dll_config, full_name):
+        # A lot of details here, pylint: disable=too-many-locals
+
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
             full_name=full_name, condition=dll_config.get("when", "True")
@@ -93,11 +95,27 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         if os.path.exists(dll_dir):
             exe = dll_config.get("executable", "no") == "yes"
 
-            suffixes = dll_config.get("suffixes")
-            if suffixes is not None:
-                suffixes = tuple(suffix.lstrip(".") for suffix in suffixes)
+            suffixes = tuple(
+                self.evaluateExpressionOrConstant(
+                    full_name=full_name,
+                    expression=suffix,
+                    config_name=config_name,
+                    extra_context=None,
+                ).lstrip(".")
+                for suffix in dll_config.get("suffixes", ())
+            )
 
-            for prefix in dll_config.get("prefixes"):
+            prefixes = tuple(
+                self.evaluateExpressionOrConstant(
+                    full_name=full_name,
+                    expression=prefix,
+                    config_name=config_name,
+                    extra_context=None,
+                ).lstrip(".")
+                for prefix in dll_config.get("prefixes", ())
+            )
+
+            for prefix in prefixes:
                 if exe:
                     for exe_filename, filename in listExeFilesFromDirectory(
                         dll_dir, prefix=prefix, suffixes=suffixes
