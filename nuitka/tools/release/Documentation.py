@@ -144,6 +144,22 @@ def updateManPages():
     for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
         manpage_contents = getFileContents(manpage).splitlines()
 
+        for month in (
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ):
+            manpage_contents[1] = manpage_contents[1].replace(month + " ", "")
+
         new_contents = []
         mark = False
 
