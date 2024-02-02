@@ -1097,7 +1097,7 @@ int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
 struct Nuitka_FunctionObject *
 Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
                                            PyObject *code_object_desc, PyObject *constant_return_value,
-                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc,
+                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
                                            function_impl_code const *function_table, int function_table_size) {
     int offset = PyLong_AsLong(function_index);
 
@@ -1131,6 +1131,20 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
                          0  // TODO: Missing pos_only_count
         );
 
+    Py_ssize_t closure_size;
+
+    if (closure != Py_None) {
+        closure_size = PyTuple_GET_SIZE(closure);
+    } else {
+        closure_size = 0;
+    }
+
+    NUITKA_DYNAMIC_ARRAY_DECL(closure_cells, struct Nuitka_CellObject *, closure_size);
+
+    for (Py_ssize_t i = 0; i < closure_size; i++) {
+        closure_cells[i] = Nuitka_Cell_New0(PyTuple_GET_ITEM(closure, i));
+    }
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(offset >= 0 ? function_table[offset] : NULL, code_object->co_name,
 #if PYTHON_VERSION >= 0x300
@@ -1141,7 +1155,7 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
                             kw_defaults,
                             NULL, // TODO: Not transferring annotations
 #endif
-                            module, doc, NULL, 0);
+                            module, doc, closure_cells, closure_size);
 
     CHECK_OBJECT(result);
 
