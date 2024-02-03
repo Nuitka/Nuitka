@@ -55,7 +55,7 @@ def getDownload(name, url, download_path):
 
 
 def getDownloadCacheDir():
-    return os.path.join(getCacheDir(), "downloads")
+    return getCacheDir("downloads")
 
 
 def getCachedDownload(
