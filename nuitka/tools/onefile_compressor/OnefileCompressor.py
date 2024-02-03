@@ -214,7 +214,7 @@ def _getCacheFilename(binary_filename, low_memory):
 
     hash_value.updateFromValues(__version__, getCompressorLevel(low_memory))
 
-    cache_dir = os.path.join(getCacheDir(), "onefile-compression")
+    cache_dir = getCacheDir("onefile-compression")
     makePath(cache_dir)
 
     return os.path.join(cache_dir, hash_value.asHexDigest())

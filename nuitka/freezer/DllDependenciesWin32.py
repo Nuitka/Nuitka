@@ -200,7 +200,7 @@ def _getCacheFilename(
     # Take Nuitka version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string)
 
-    cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
+    cache_dir = os.path.join(getCacheDir("library_dependencies"), dependency_tool)
     makePath(cache_dir)
 
     return os.path.join(cache_dir, hash_value.asHexDigest())

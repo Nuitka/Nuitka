@@ -41,9 +41,7 @@ def _cleanCacheDirectory(cache_name, cache_dir):
 
 
 def cleanCaches():
-    _cleanCacheDirectory("ccache", os.path.join(getCacheDir(), "ccache"))
-    _cleanCacheDirectory("clcache", os.path.join(getCacheDir(), "clcache"))
+    _cleanCacheDirectory("ccache", getCacheDir("ccache"))
+    _cleanCacheDirectory("clcache", getCacheDir("clcache"))
     _cleanCacheDirectory("bytecode", getBytecodeCacheDir())
-    _cleanCacheDirectory(
-        "dll-dependencies", os.path.join(getCacheDir(), "library_dependencies")
-    )
+    _cleanCacheDirectory("dll-dependencies", getCacheDir("library_dependencies"))

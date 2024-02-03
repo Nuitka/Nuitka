@@ -43,7 +43,7 @@ if appdirs is None:
 _cache_dir = None
 
 
-def getCacheDir():
+def _getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
 
     if _cache_dir is None:
@@ -78,3 +78,13 @@ please consider making a PR for a general solution that adds support for it, or 
             )
 
     return _cache_dir
+
+
+def getCacheDir(cache_basename):
+    env_name = cache_basename.replace("-", "_").upper()
+
+    cache_dir = os.getenv("NUITKA_CACHE_DIR_" + env_name)
+    if cache_dir is None:
+        cache_dir = os.path.join(_getCacheDir(), cache_basename)
+
+    return cache_dir

@@ -178,7 +178,7 @@ def enableCcache(
 
     # Unless asked to do otherwise, store ccache files in our own directory.
     if "CCACHE_DIR" not in os.environ:
-        ccache_dir = os.path.join(getCacheDir(), "ccache")
+        ccache_dir = getCacheDir("ccache")
         makePath(ccache_dir)
         ccache_dir = getExternalUsePath(ccache_dir)
         setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
@@ -251,7 +251,7 @@ def enableClcache(env, source_dir):
 
     # Unless asked to do otherwise, store ccache files in our own directory.
     if "CLCACHE_DIR" not in os.environ:
-        clcache_dir = os.path.join(getCacheDir(), "clcache")
+        clcache_dir = getCacheDir("clcache")
         makePath(clcache_dir)
         clcache_dir = getExternalUsePath(clcache_dir)
         setEnvironmentVariable(env, "CLCACHE_DIR", clcache_dir)

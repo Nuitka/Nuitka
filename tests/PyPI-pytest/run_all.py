@@ -86,7 +86,7 @@ def main():
     setup(suite="pypi")
 
     # cache_dir is where the git clones are cached
-    cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
+    cache_dir = getCacheDir("pypi-git-clones")
     base_dir = os.getcwd()
 
     if not os.path.isdir(cache_dir):

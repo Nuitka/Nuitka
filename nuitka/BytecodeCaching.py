@@ -36,8 +36,7 @@ from nuitka.Version import version_string
 
 
 def getBytecodeCacheDir():
-    module_cache_dir = os.path.join(getCacheDir(), "module-cache")
-    return module_cache_dir
+    return getCacheDir("module-cache")
 
 
 def _getCacheFilename(module_name, extension):
