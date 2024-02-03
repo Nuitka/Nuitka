@@ -604,7 +604,7 @@ def _unpackPathElement(path_entry):
             if path_entry not in _egg_files:
                 checksum = getFileContentsHash(path_entry)
 
-                target_dir = os.path.join(getCacheDir(), "egg-content", checksum)
+                target_dir = os.path.join(getCacheDir("egg-content"), checksum)
 
                 if not os.path.exists(target_dir):
                     try:

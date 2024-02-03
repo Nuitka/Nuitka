@@ -97,7 +97,7 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
             upx_hash.updateFromFile(filename)
 
             # TODO: Repeating pattern
-            upx_cache_dir = os.path.join(getCacheDir(), "upx")
+            upx_cache_dir = getCacheDir("upx")
             makePath(upx_cache_dir)
 
             upx_cache_filename = os.path.join(

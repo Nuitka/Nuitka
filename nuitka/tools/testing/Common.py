@@ -1178,19 +1178,15 @@ def async_iterate(g):
 
 
 def getTestingCacheDir():
-    cache_dir = getCacheDir()
-
-    result = os.path.join(cache_dir, "tests_state")
-    makePath(result)
-    return result
+    cache_dir = getCacheDir("tests_state")
+    makePath(cache_dir)
+    return cache_dir
 
 
 def getTestingCPythonOutputsCacheDir():
-    cache_dir = getCacheDir()
+    cache_dir = getCacheDir("cpython_outputs")
 
-    result = os.path.join(
-        cache_dir, "cpython_outputs", os.getenv("NUITKA_TEST_SUITE", "")
-    )
+    result = os.path.join(cache_dir, os.getenv("NUITKA_TEST_SUITE", ""))
 
     makePath(result)
     return result
