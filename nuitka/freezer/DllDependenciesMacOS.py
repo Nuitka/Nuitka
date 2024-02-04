@@ -219,18 +219,28 @@ def _resolveBinaryPathDLLsMacOS(
         # Sometimes self-dependencies are on a numbered version, but deployed is
         # one version without it. The macOS just ignores that, and so we do.
         if not os.path.exists(resolved_path):
-            match = re.match(r"^(.*)\.\d+\.dylib$", resolved_path)
+            if os.path.basename(resolved_path) == os.path.basename(binary_filename):
+                resolved_path = binary_filename
+            else:
+                match = re.match(r"^(.*?)(\.\d+)+\.dylib$", resolved_path)
 
-            if match:
-                candidate = match.group(1) + ".dylib"
-
-                if os.path.exists(candidate):
-                    resolved_path = candidate
-                else:
-                    candidate = os.path.join(original_dir, os.path.basename(candidate))
+                if match:
+                    candidate = match.group(1) + ".dylib"
 
                     if os.path.exists(candidate):
                         resolved_path = candidate
+                    else:
+                        candidate = os.path.join(
+                            original_dir, os.path.basename(candidate)
+                        )
+
+                        if os.path.exists(candidate):
+                            resolved_path = candidate
+                        elif os.path.basename(candidate) == os.path.basename(
+                            binary_filename
+                        ):
+                            # Versioned dependency on itself in non-existent path.
+                            resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
