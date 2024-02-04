@@ -544,7 +544,7 @@ def _cleanupPngImage(filename):
     _optipng_path = getExecutablePath("optipng")
 
     if _optipng_path:
-        check_call(_optipng_path, "-o7", "-zm1-9", filename)
+        check_call([_optipng_path, "-o7", "-zm1-9", filename])
     else:
         my_print("Cannot find 'optipng' binary to compress PNG image")
 
@@ -554,7 +554,7 @@ def _cleanupJpegImage(filename):
     _jpegoptim_path = getExecutablePath("jpegoptim")
 
     if _jpegoptim_path:
-        check_call(_jpegoptim_path, filename)
+        check_call([_jpegoptim_path, filename])
     else:
         my_print("Cannot find 'jpegoptim' binary to compress JPEG image")
 
