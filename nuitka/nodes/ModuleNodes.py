@@ -57,6 +57,7 @@ class PythonModuleBase(NodeBase):
 
     def __init__(self, module_name, reason, source_ref):
         assert type(module_name) is ModuleName, module_name
+        assert module_name != "", source_ref
 
         NodeBase.__init__(self, source_ref=source_ref)
 
@@ -204,6 +205,13 @@ class PythonModuleBase(NodeBase):
                 current = os.path.dirname(current)
 
                 result = os.path.join(os.path.basename(current), result)
+
+            # Avoid unnecessary unicode path values
+            if str is not bytes:
+                try:
+                    result = str(result)
+                except UnicodeDecodeError:
+                    pass
 
             return result
 
