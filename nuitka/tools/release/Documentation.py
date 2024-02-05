@@ -159,6 +159,7 @@ def updateManPages():
             "December",
         ):
             manpage_contents[1] = manpage_contents[1].replace(month + " ", "")
+        manpage_contents[1] = manpage_contents[1].replace("rc0", "")
 
         new_contents = []
         mark = False
