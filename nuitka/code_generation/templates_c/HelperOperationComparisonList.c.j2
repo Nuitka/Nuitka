@@ -23,12 +23,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
-    Py_ssize_t len_a = Py_SIZE(a);
-    Py_ssize_t len_b = Py_SIZE(b);
-
 {# Shortcut for equality, driven by length check. #}
 {% if operand in ("==", "!=") %}
-    if (len_a != len_b) {
+    if (Py_SIZE(a) != Py_SIZE(b)) {
 {% if operand == "==" %}
         bool r = false;
 {% else %}
@@ -49,7 +46,7 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
     nuitka_bool res = NUITKA_BOOL_TRUE;
 
     Py_ssize_t i;
-    for (i = 0; i < len_a && i < len_b; i++) {
+    for (i = 0; i < Py_SIZE(a) && i < Py_SIZE(b); i++) {
         PyObject *aa = a->ob_item[i];
         PyObject *bb = b->ob_item[i];
 
@@ -57,7 +54,11 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
             continue;
         }
 
+        Py_INCREF(aa);
+        Py_INCREF(bb);
         res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(aa, bb);
+        Py_DECREF(aa);
+        Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
             return {{target.getExceptionResultIndicatorValue()}};
@@ -74,7 +75,7 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
 {# If size mismatches, but all is equal at the start, compare sizes to order lists. #}
 {% if operand not in ("==", "!=") %}
     if (found == false) {
-        bool r = len_a {{operand}} len_b;
+        bool r = Py_SIZE(a) {{operand}} Py_SIZE(b);
 
         // Convert to target type.
         {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
@@ -85,9 +86,20 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
     return RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
 {% else %}
 {% if operand == "==" %}
-    bool r = res == NUITKA_BOOL_TRUE;
+    bool r;
+    if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
+        r = Py_SIZE(a) {{operand}} Py_SIZE(b);
+    } else {
+        r = res == NUITKA_BOOL_TRUE;
+    }
 {% else %}
-    bool r = res == NUITKA_BOOL_FALSE;
+    bool r;
+
+    if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
+        r = Py_SIZE(a) {{operand}} Py_SIZE(b);
+    } else {
+        r = res == NUITKA_BOOL_FALSE;
+    }
 {% endif %}
 
     // Convert to target type.
