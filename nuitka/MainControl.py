@@ -812,6 +812,15 @@ assert os.path.normcase(os.path.abspath(os.path.normpath(\
 importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
 'Error, cannot launch extension module %(module_name)s, original package is in the way.'"""
 
+    output_dir = os.path.normpath(Options.getOutputDir())
+    if output_dir != ".":
+        python_command_template = (
+            """\
+import sys; sys.path.insert(0, %(output_dir)r)
+"""
+            + python_command_template
+        )
+
     python_command_template += ";__import__('%(module_name)s')"
 
     python_command = python_command_template % {
@@ -821,6 +830,7 @@ importlib.util.find_spec('%(module_name)s').origin))) == %(expected_filename)r,\
                 os.path.normpath(OutputDirectories.getResultFullpath(onefile=False))
             )
         ),
+        "output_dir": output_dir,
     }
 
     if Options.shallRunInDebugger():
