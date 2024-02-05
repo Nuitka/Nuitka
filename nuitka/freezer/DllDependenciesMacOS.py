@@ -28,7 +28,11 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.FileOperations import areSamePaths, isFilenameBelowPath
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getReportPath,
+    isFilenameBelowPath,
+)
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import (
@@ -328,7 +332,7 @@ def fixupBinaryDLLPathsMacOS(
                 inclusion_logger.sysexit(
                     """\
     Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                    % (original_location, rpath_filename)
+                    % (getReportPath(original_location), rpath_filename)
                 )
 
             mapping.append((rpath_filename, "@executable_path/" + dist_path))
