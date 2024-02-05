@@ -165,6 +165,20 @@ def updateManPages():
         mark = False
 
         for count, line in enumerate(manpage_contents):
+            if line.startswith(
+                (
+                    "Python:",
+                    "Commercial:",
+                    "Flavor:",
+                    "Executable:",
+                    "OS:",
+                    "Arch:",
+                    "Distribution:",
+                    "Version C compiler:",
+                )
+            ):
+                continue
+
             if mark:
                 line = ".SS " + line + ".BR\n"
                 mark = False
