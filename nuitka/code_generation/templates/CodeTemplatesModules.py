@@ -517,9 +517,10 @@ template_module_external_entry_point = r"""
 #define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
 #endif
 
+static PyObject *orig_dunder_file_value;
+
 #if PYTHON_VERSION >= 0x300
 static setattrofunc orig_PyModule_Type_tp_setattro;
-static PyObject *orig_dunder_file_value;
 
 /* This is used one time only. */
 static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
@@ -566,6 +567,18 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
 // Actual name might be different when loaded as a package.
 static char const *module_full_name = %(module_name_cstr)s;
 
+#if PYTHON_VERSION < 0x300
+static void onModuleFileValueRelease(void *v) {
+    if (orig_dunder_file_value != NULL) {
+        UPDATE_STRING_DICT0(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___file__,
+            orig_dunder_file_value
+        );
+    }
+}
+#endif
+
 MOD_INIT_DECL(%(module_identifier)s) {
     if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;
@@ -598,9 +611,21 @@ MOD_INIT_DECL(%(module_identifier)s) {
 #if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(tstate, module, NULL);
 
-    // TODO: Our "__file__" value will not be respected by CPython and one
-    // way we could avoid it, is by having a capsule type, that when it gets
-    // released, we are called.
+    // Our "__file__" value will not be respected by CPython and one
+    // way we can avoid it, is by having a capsule type, that when
+    // it gets released, we are called and repair the value.
+
+    if (HAS_ERROR_OCCURRED(tstate) == false) {
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+
+        PyObject *fake_file_value = PyCObject_FromVoidPtr(NULL, onModuleFileValueRelease);
+
+        UPDATE_STRING_DICT1(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___file__,
+            fake_file_value
+        );
+    }
 #else
     PyObject *result = modulecode_%(module_identifier)s(tstate, module, NULL);
 
