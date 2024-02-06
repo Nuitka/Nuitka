@@ -17,7 +17,8 @@
 #
 # Plugin dill-compat has this as post load code for the "dill" package.
 # Not supposed to be good code,
-# pylint: disable=invalid-name,missing-module-docstring,protected-access,too-many-branches,too-many-statements
+# pylint: disable=invalid-name,missing-module-docstring,protected-access
+# pylint: disable=too-many-branches,too-many-statements,used-before-assignment
 from types import CodeType
 
 # spell-checker: ignore kwdefaults,globalvars
@@ -61,10 +62,7 @@ def save_compiled_method(pickler, obj):
 if str is bytes:
 
     def _create_compiled_function2(module_name, func_values, func_dict, func_defaults):
-        if (
-            module_name
-            not in compiled_function_tables  # pylint: disable=used-before-assignment
-        ):
+        if module_name not in compiled_function_tables:
             __import__(module_name)
 
         # This gets the "_create_compiled_function" of the module and calls it.
