@@ -5700,6 +5700,11 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'tiktoken.registry' # checksum: 6350df24
+  implicit-imports:
+    - depends:
+        - 'tiktoken_ext.*'
+
 - module-name: 'timm.models.hrnet' # checksum: fdbe0e63
   anti-bloat:
     - replacements_plain:
