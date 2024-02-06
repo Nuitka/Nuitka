@@ -1721,7 +1721,7 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     return result;
 }
 
-static char const *_kw_list_sys_path_hook[] = {"context", NULL};
+static char const *_kw_list_sys_path_hook[] = {"path", NULL};
 
 static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *path;
