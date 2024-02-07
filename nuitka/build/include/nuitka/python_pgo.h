@@ -26,6 +26,8 @@
 
 #if _NUITKA_PGO_PYTHON
 
+#include <stdint.h>
+
 // Initialize PGO data collection.
 extern void PGO_Initialize(void);
 
