@@ -1338,6 +1338,13 @@
         'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
       when: 'not use_unittest'
 
+- module-name: 'gmsh' # checksum: 713accff
+  dlls:
+    - by_code:
+        setup_code: 'import gmsh'
+        filename_code: 'gmsh.libpath'
+      dest_path: 'lib'
+
 - module-name: 'gooey' # checksum: 3e8811a7
   data-files:
     dirs:
