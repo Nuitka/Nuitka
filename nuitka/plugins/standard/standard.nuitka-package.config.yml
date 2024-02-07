@@ -4729,6 +4729,19 @@
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
+- module-name: 'speech_recognition' # checksum: 1b8b6249
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'flac-win32'
+        executable: 'yes'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'flac-linux'
+        executable: 'yes'
+      when: 'linux'
+
 - module-name: 'sphinx.util.docutils' # checksum: 6b3e2205
   anti-bloat:
     - description: 'remove useless distutils usage'
