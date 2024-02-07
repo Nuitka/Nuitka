@@ -3857,7 +3857,11 @@
           - 'libspatialindex'
       when: 'not win32'
 
-- module-name: 'scipy' # checksum: 9a7956b3
+- module-name: 'scipy' # checksum: 2e8d63ef
+  data-files:
+    patterns:
+      - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
+
   dlls:
     - from_filenames:
         relative_path: '.libs'
