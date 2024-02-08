@@ -3103,6 +3103,15 @@
         'polyfactory.pytest_plugin': 'ignore'
       when: 'not use_pytest'
 
+- module-name: 'pony' # checksum: 2a40ab64
+  implicit-imports:
+    - depends:
+        - 'pony.orm.dbproviders'
+        - 'pony.orm.dbproviders.sqlite'
+        - 'pony.orm.dbproviders.mysql'
+        - 'pony.orm.dbproviders.postgres'
+        - 'pony.orm.dbproviders.oracle'
+
 - module-name: 'pooch' # checksum: e07f91ff
   anti-bloat:
     - description: 'remove pytest reference'
