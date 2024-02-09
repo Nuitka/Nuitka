@@ -22,6 +22,9 @@ from PyQt6 import QtGui
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=pyqt6
 
+# nuitka-project-if: {OS} == "Darwin":
+#   nuitka-project: --macos-create-app-bundle
+
 # nuitka-skip-unless-imports: PyQt6.QtGui
 
 print(QtGui.QImageReader.supportedImageFormats())
