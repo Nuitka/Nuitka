@@ -1854,6 +1854,19 @@ static PyObject *getDllDirectoryObject(void) {
         filename_char_t const *dll_directory_filename = getDllDirectory();
 
         dll_directory = Nuitka_String_FromFilename(dll_directory_filename);
+
+#if PYTHON_VERSION < 0x300
+        // Avoid unnecessary unicode values.
+        PyObject *decoded_dll_directory = PyObject_Str(dll_directory);
+
+        if (decoded_dll_directory == NULL) {
+            PyThreadState *tstate = PyThreadState_GET();
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
+            Py_DECREF(dll_directory);
+            dll_directory = decoded_dll_directory;
+        }
+#endif
     }
 
     CHECK_OBJECT(dll_directory);
