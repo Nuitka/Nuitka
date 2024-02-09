@@ -10279,10 +10279,7 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
-    Py_ssize_t len_a = Py_SIZE(a);
-    Py_ssize_t len_b = Py_SIZE(b);
-
-    if (len_a != len_b) {
+    if (Py_SIZE(a) != Py_SIZE(b)) {
         bool r = true;
 
         // Convert to target type.
@@ -10294,7 +10291,7 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
     nuitka_bool res = NUITKA_BOOL_TRUE;
 
     Py_ssize_t i;
-    for (i = 0; i < len_a && i < len_b; i++) {
+    for (i = 0; i < Py_SIZE(a) && i < Py_SIZE(b); i++) {
         PyObject *aa = a->ob_item[i];
         PyObject *bb = b->ob_item[i];
 
@@ -10302,7 +10299,11 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
             continue;
         }
 
+        Py_INCREF(aa);
+        Py_INCREF(bb);
         res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(aa, bb);
+        Py_DECREF(aa);
+        Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
             return NULL;
@@ -10313,7 +10314,13 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
         }
     }
 
-    bool r = res == NUITKA_BOOL_FALSE;
+    bool r;
+
+    if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
+        r = Py_SIZE(a) != Py_SIZE(b);
+    } else {
+        r = res == NUITKA_BOOL_FALSE;
+    }
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
@@ -10919,10 +10926,7 @@ static nuitka_bool COMPARE_NE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
     PyListObject *a = (PyListObject *)operand1;
     PyListObject *b = (PyListObject *)operand2;
 
-    Py_ssize_t len_a = Py_SIZE(a);
-    Py_ssize_t len_b = Py_SIZE(b);
-
-    if (len_a != len_b) {
+    if (Py_SIZE(a) != Py_SIZE(b)) {
         bool r = true;
 
         // Convert to target type.
@@ -10934,7 +10938,7 @@ static nuitka_bool COMPARE_NE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
     nuitka_bool res = NUITKA_BOOL_TRUE;
 
     Py_ssize_t i;
-    for (i = 0; i < len_a && i < len_b; i++) {
+    for (i = 0; i < Py_SIZE(a) && i < Py_SIZE(b); i++) {
         PyObject *aa = a->ob_item[i];
         PyObject *bb = b->ob_item[i];
 
@@ -10942,7 +10946,11 @@ static nuitka_bool COMPARE_NE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
             continue;
         }
 
+        Py_INCREF(aa);
+        Py_INCREF(bb);
         res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(aa, bb);
+        Py_DECREF(aa);
+        Py_DECREF(bb);
 
         if (res == NUITKA_BOOL_EXCEPTION) {
             return NUITKA_BOOL_EXCEPTION;
@@ -10953,7 +10961,13 @@ static nuitka_bool COMPARE_NE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *oper
         }
     }
 
-    bool r = res == NUITKA_BOOL_FALSE;
+    bool r;
+
+    if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
+        r = Py_SIZE(a) != Py_SIZE(b);
+    } else {
+        r = res == NUITKA_BOOL_FALSE;
+    }
 
     // Convert to target type.
     nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;

@@ -257,6 +257,11 @@ exceeded while calling a Python object' in \
             "super() argument 1 must be a type", "super() argument 1 must be type"
         )
 
+        # Ignore logger message on macOS that will have timestamps and program name
+        # that differ without forcing logger config to avoid it.
+        if "XType: Using static font registry" in line:
+            continue
+
         result.append(line)
 
     return result
