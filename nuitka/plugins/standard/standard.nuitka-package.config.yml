@@ -3507,17 +3507,17 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: 5b277431
+- module-name: 'PySide2' # checksum: 4e71be92
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver=None):
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+          def patched_disconnect(self, slot=None):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(receiver)
+                      patched_disconnect._protected.append(slot)
 
-              return orig_disconnect(self, receiver)
+              return orig_disconnect(self, slot)
 
           from PySide2 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
@@ -3535,29 +3535,29 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: d718f67
+- module-name: 'PySide6' # checksum: f259f70e
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver=None):
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+          def patched_disconnect(self, slot=None):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(receiver)
+                      patched_disconnect._protected.append(slot)
 
-              return orig_disconnect(self, receiver)
+              return orig_disconnect(self, slot)
 
-          def patched_connect(self, receiver, type=None):
+          def patched_connect(self, slot, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
+                      patched_connect._protected.append(slot)
 
-                      if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
-                        receiver.im_func.__name__ = "_pyside6_workaround_" + receiver.im_func.__name__
+                      if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
+                        slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
 
-              return orig_connect(self, receiver, type)
+              return orig_connect(self, slot, type)
 
           from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
