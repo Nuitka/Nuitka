@@ -326,6 +326,11 @@
     - depends:
         - '._common'
 
+- module-name: 'betterproto' # checksum: c9dc915d
+  data-files:
+    patterns:
+      - 'templates/*.j2'
+
 - module-name: 'bitarray' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -639,6 +644,16 @@
   data-files:
     empty_dirs:
       - '.'
+
+- module-name: 'cryptoauthlib' # checksum: e97d909e
+  data-files:
+    patterns:
+      - '*.json'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'cryptoauth'
 
 - module-name: 'Cryptodome.Util._raw_api' # checksum: 6e46e262
   data-files:
@@ -3707,6 +3722,19 @@
           - 'libiconv'
           - 'libzbar'
 
+- module-name: 'qt_material' # checksum: 136a33c2
+  data-files:
+    dirs:
+      - 'fonts'
+      - 'resources'
+      - 'themes'
+    patterns:
+      - '*.ui'
+      - '*.xml'
+      - '*.svg'
+      - '*.template'
+      - '*.ttf'
+
 - module-name: 'qtawesome' # checksum: 2c2a9970
   data-files:
     dirs:
@@ -4593,7 +4621,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: 6f539c61
+- module-name: 'sklearn.utils' # checksum: e48286a
+  data-files:
+    patterns:
+      - '*.css'
   anti-bloat:
     - description: 'pandas check should not cause pandas usage'
       no-auto-follow:
@@ -6197,6 +6228,11 @@
   anti-bloat:
     - no-auto-follow:
         'pandas': 'ignore'
+
+- module-name: 'tracerite' # checksum: 6fffa63e
+  data-files:
+    patterns:
+      - '*.css'
 
 - module-name: 'transformers' # checksum: 81d84f69
   data-files:
