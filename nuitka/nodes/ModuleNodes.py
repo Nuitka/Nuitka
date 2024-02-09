@@ -194,7 +194,10 @@ class PythonModuleBase(NodeBase):
             current = filename
 
             levels = full_name.count(".")
-            if self.isCompiledPythonPackage():
+            if (
+                self.isCompiledPythonPackage()
+                and not self.isCompiledPythonNamespacePackage()
+            ):
                 levels += 1
 
             for _i in range(levels):
@@ -712,6 +715,10 @@ class CompiledPythonPackage(CompiledPythonModule):
             source_ref=source_ref,
         )
 
+    @staticmethod
+    def isCompiledPythonPackage():
+        return True
+
     def getOutputFilename(self):
         result = self.getFilename()
 
@@ -723,6 +730,14 @@ class CompiledPythonPackage(CompiledPythonModule):
     @staticmethod
     def canHaveExternalImports():
         return not hasPythonFlagIsolated()
+
+
+class CompiledPythonNamespacePackage(CompiledPythonPackage):
+    kind = "COMPILED_PYTHON_NAMESPACE_PACKAGE"
+
+    @staticmethod
+    def isCompiledPythonNamespacePackage():
+        return True
 
 
 def makeUncompiledPythonModule(

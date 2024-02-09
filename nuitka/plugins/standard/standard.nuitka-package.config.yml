@@ -326,6 +326,11 @@
     - depends:
         - '._common'
 
+- module-name: 'betterproto' # checksum: c9dc915d
+  data-files:
+    patterns:
+      - 'templates/*.j2'
+
 - module-name: 'bitarray' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -639,6 +644,16 @@
   data-files:
     empty_dirs:
       - '.'
+
+- module-name: 'cryptoauthlib' # checksum: e97d909e
+  data-files:
+    patterns:
+      - '*.json'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'cryptoauth'
 
 - module-name: 'Cryptodome.Util._raw_api' # checksum: 6e46e262
   data-files:
@@ -1337,6 +1352,13 @@
       replacements_plain:
         'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
       when: 'not use_unittest'
+
+- module-name: 'gmsh' # checksum: 713accff
+  dlls:
+    - by_code:
+        setup_code: 'import gmsh'
+        filename_code: 'gmsh.libpath'
+      dest_path: 'lib'
 
 - module-name: 'gooey' # checksum: 3e8811a7
   data-files:
@@ -3103,6 +3125,11 @@
         'polyfactory.pytest_plugin': 'ignore'
       when: 'not use_pytest'
 
+- module-name: 'pony' # checksum: 3776d9aa
+  implicit-imports:
+    - depends:
+        - 'pony.orm.dbproviders.*'
+
 - module-name: 'pooch' # checksum: e07f91ff
   anti-bloat:
     - description: 'remove pytest reference'
@@ -3707,6 +3734,19 @@
           - 'libiconv'
           - 'libzbar'
 
+- module-name: 'qt_material' # checksum: 136a33c2
+  data-files:
+    dirs:
+      - 'fonts'
+      - 'resources'
+      - 'themes'
+    patterns:
+      - '*.ui'
+      - '*.xml'
+      - '*.svg'
+      - '*.template'
+      - '*.ttf'
+
 - module-name: 'qtawesome' # checksum: 2c2a9970
   data-files:
     dirs:
@@ -3857,7 +3897,16 @@
           - 'libspatialindex'
       when: 'not win32'
 
-- module-name: 'scipy' # checksum: 9a7956b3
+- module-name: 'scapy.all' # checksum: 8a9944ce
+  implicit-imports:
+    - depends:
+        - 'scapy.layers.*'
+
+- module-name: 'scipy' # checksum: 2e8d63ef
+  data-files:
+    patterns:
+      - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
+
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -4589,7 +4638,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: 6f539c61
+- module-name: 'sklearn.utils' # checksum: e48286a
+  data-files:
+    patterns:
+      - '*.css'
   anti-bloat:
     - description: 'pandas check should not cause pandas usage'
       no-auto-follow:
@@ -4724,6 +4776,19 @@
       - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'."
         support_info: 'warning'
         when: 'not use_numba and standalone'
+
+- module-name: 'speech_recognition' # checksum: 1b8b6249
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'flac-win32'
+        executable: 'yes'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'flac-linux'
+        executable: 'yes'
+      when: 'linux'
 
 - module-name: 'sphinx.util.docutils' # checksum: 6b3e2205
   anti-bloat:
@@ -5707,6 +5772,11 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'tiktoken.registry' # checksum: 6350df24
+  implicit-imports:
+    - depends:
+        - 'tiktoken_ext.*'
+
 - module-name: 'timm.models.hrnet' # checksum: fdbe0e63
   anti-bloat:
     - replacements_plain:
@@ -6175,6 +6245,11 @@
   anti-bloat:
     - no-auto-follow:
         'pandas': 'ignore'
+
+- module-name: 'tracerite' # checksum: 6fffa63e
+  data-files:
+    patterns:
+      - '*.css'
 
 - module-name: 'transformers' # checksum: 81d84f69
   data-files:

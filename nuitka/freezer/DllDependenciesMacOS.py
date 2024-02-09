@@ -28,7 +28,11 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.FileOperations import areSamePaths, isFilenameBelowPath
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getReportPath,
+    isFilenameBelowPath,
+)
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import (
@@ -219,18 +223,28 @@ def _resolveBinaryPathDLLsMacOS(
         # Sometimes self-dependencies are on a numbered version, but deployed is
         # one version without it. The macOS just ignores that, and so we do.
         if not os.path.exists(resolved_path):
-            match = re.match(r"^(.*)\.\d+\.dylib$", resolved_path)
+            if os.path.basename(resolved_path) == os.path.basename(binary_filename):
+                resolved_path = binary_filename
+            else:
+                match = re.match(r"^(.*?)(\.\d+)+\.dylib$", resolved_path)
 
-            if match:
-                candidate = match.group(1) + ".dylib"
-
-                if os.path.exists(candidate):
-                    resolved_path = candidate
-                else:
-                    candidate = os.path.join(original_dir, os.path.basename(candidate))
+                if match:
+                    candidate = match.group(1) + ".dylib"
 
                     if os.path.exists(candidate):
                         resolved_path = candidate
+                    else:
+                        candidate = os.path.join(
+                            original_dir, os.path.basename(candidate)
+                        )
+
+                        if os.path.exists(candidate):
+                            resolved_path = candidate
+                        elif os.path.basename(candidate) == os.path.basename(
+                            binary_filename
+                        ):
+                            # Versioned dependency on itself in non-existent path.
+                            resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
@@ -318,7 +332,7 @@ def fixupBinaryDLLPathsMacOS(
                 inclusion_logger.sysexit(
                     """\
     Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                    % (original_location, rpath_filename)
+                    % (getReportPath(original_location), rpath_filename)
                 )
 
             mapping.append((rpath_filename, "@executable_path/" + dist_path))
