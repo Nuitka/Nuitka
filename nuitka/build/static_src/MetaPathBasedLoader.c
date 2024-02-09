@@ -604,6 +604,15 @@ static void setModuleFileValue(PyThreadState *tstate, PyObject *module, char con
 
     PyObject *existing_file_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
 
+#if PYTHON_VERSION < 0x300
+    if (existing_file_value != NULL) {
+        if (PyCObject_Check(existing_file_value)) {
+            PyObject_DelAttr(module, const_str_plain___file__);
+            existing_file_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
+        }
+    }
+#endif
+
     if (existing_file_value == NULL) {
         CLEAR_ERROR_OCCURRED(tstate);
         needs_update = true;
