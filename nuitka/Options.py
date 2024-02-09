@@ -1415,9 +1415,11 @@ def getMainEntryPointFilenames():
         if len(options.mains) == 1:
             assert not positional_args
 
-        return tuple(options.mains)
+        result = tuple(options.mains)
     else:
-        return [positional_args[0]]
+        result = (positional_args[0],)
+
+    return tuple(os.path.normpath(r).rstrip(os.path.sep) for r in result)
 
 
 def shallOptimizeStringExec():
