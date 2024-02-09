@@ -20,6 +20,9 @@
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=pyqt6
 
+# nuitka-project-if: {OS} == "Darwin":
+#   nuitka-project: --macos-create-app-bundle
+
 # nuitka-skip-unless-imports: PyQt6.QtGui
 
 from __future__ import print_function
