@@ -52,12 +52,15 @@ def main():
     if "NUITKA_BINARY_NAME" in os.environ:
         sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
 
-    if "NUITKA_PYTHONPATH" in os.environ:
+    if "NUITKA_PYTHONPATH_AST" in os.environ:
         # Restore the PYTHONPATH gained from the site module, that we chose not
-        # to have imported during compilation. For loading ast module, we need
-        # one element, that is not necessarily in our current path.
+        # to have imported during compilation. For loading "ast" module, we need
+        # one element, that is not necessarily in our current path, but we use
+        # that to evaluate the current path.
         sys.path = [os.environ["NUITKA_PYTHONPATH_AST"]]
         import ast
+
+        del os.environ["NUITKA_PYTHONPATH_AST"]
 
         sys.path = ast.literal_eval(os.environ["NUITKA_PYTHONPATH"])
         del os.environ["NUITKA_PYTHONPATH"]
