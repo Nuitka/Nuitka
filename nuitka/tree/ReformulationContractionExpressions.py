@@ -261,7 +261,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     # Some of the newly allowed stuff in 3.7 fails to set the async flag.
     if not is_async and python_version >= 0x370:
-        is_async = detectFunctionBodyKind(nodes=node.generators)[0] in (
+        is_async = detectFunctionBodyKind(nodes=node.generators + [node.elt])[0] in (
             "Asyncgen",
             "Coroutine",
         )

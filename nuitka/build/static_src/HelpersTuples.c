@@ -39,12 +39,16 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
 
     struct _Py_tuple_state *state = _Nuitka_Py_get_tuple_state();
 
-    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = state->free_list[size]) != NULL) {
-        state->free_list[size] = (PyTupleObject *)result_tuple->ob_item[0];
-        state->numfree[size] -= 1;
+#if PYTHON_VERSION < 0x3b0
+    Py_ssize_t index = size;
+#else
+    Py_ssize_t index = size - 1;
+#endif
 
-        // TODO: At least 3.11.0 corrupted this.
-        Py_SET_SIZE(result_tuple, size);
+    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = state->free_list[index]) != NULL) {
+        state->free_list[index] = (PyTupleObject *)result_tuple->ob_item[0];
+        state->numfree[index] -= 1;
+
         assert(Py_SIZE(result_tuple) == size);
         assert(Py_TYPE(result_tuple) == &PyTuple_Type);
 
@@ -69,6 +73,9 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     }
 
     Nuitka_GC_Track(result_tuple);
+
+    assert(PyTuple_CheckExact(result_tuple));
+    assert(PyTuple_GET_SIZE(result_tuple) == size);
 
     return (PyObject *)result_tuple;
 }

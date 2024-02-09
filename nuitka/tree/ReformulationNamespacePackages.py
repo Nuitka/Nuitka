@@ -16,13 +16,12 @@
 #     limitations under the License.
 #
 """
-Namespace packages of Python3.3 or higher
+Namespace packages of Python3
 
 """
 
 import os
 
-from nuitka import Options
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -38,8 +37,9 @@ from nuitka.nodes.ImportNodes import (
     makeExpressionImportModuleNameHard,
 )
 from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
-from nuitka.nodes.ModuleNodes import CompiledPythonPackage
+from nuitka.nodes.ModuleNodes import CompiledPythonNamespacePackage
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
+from nuitka.Options import getFileReferenceMode
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import makeStatementsSequenceFromStatement
@@ -68,7 +68,7 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
 def getNameSpacePathExpression(package, source_ref):
     """Create the __path__ expression for a package."""
 
-    reference_mode = Options.getFileReferenceMode()
+    reference_mode = getFileReferenceMode()
 
     if reference_mode == "original":
         return makeConstantRefNode(
@@ -81,30 +81,33 @@ def getNameSpacePathExpression(package, source_ref):
             source_ref=source_ref,
         )
     else:
-        elements = [
-            ExpressionCallNoKeywords(
-                called=makeExpressionAttributeLookup(
-                    expression=makeExpressionImportModuleNameHard(
-                        module_name="os",
-                        import_name="path",
-                        module_guaranteed=True,
-                        source_ref=source_ref,
-                    ),
-                    attribute_name="dirname",
-                    source_ref=source_ref,
-                ),
-                args=makeExpressionMakeTuple(
-                    elements=(
-                        ExpressionModuleAttributeFileRef(
-                            variable=package.getVariableForReference("__file__"),
+        file_ref_node = ExpressionModuleAttributeFileRef(
+            variable=package.getVariableForReference("__file__"),
+            source_ref=source_ref,
+        )
+
+        if package.isCompiledPythonNamespacePackage():
+            elements = [file_ref_node]
+        else:
+            elements = [
+                ExpressionCallNoKeywords(
+                    called=makeExpressionAttributeLookup(
+                        expression=makeExpressionImportModuleNameHard(
+                            module_name="os",
+                            import_name="path",
+                            module_guaranteed=True,
                             source_ref=source_ref,
                         ),
+                        attribute_name="dirname",
+                        source_ref=source_ref,
+                    ),
+                    args=makeExpressionMakeTuple(
+                        elements=(file_ref_node,),
+                        source_ref=source_ref,
                     ),
                     source_ref=source_ref,
-                ),
-                source_ref=source_ref,
-            )
-        ]
+                )
+            ]
 
         if package.canHaveExternalImports():
             parts = package.getFullName().asString().split(".")
@@ -191,7 +194,7 @@ def createPython3NamespacePath(package, source_ref):
 
 
 def createNamespacePackage(module_name, reason, is_top, source_ref):
-    package = CompiledPythonPackage(
+    package = CompiledPythonNamespacePackage(
         module_name=module_name,
         reason=reason,
         is_top=is_top,

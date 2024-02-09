@@ -1173,10 +1173,10 @@ def getExternalUsePath(filename, only_dirname=False):
     filename = os.path.abspath(filename)
 
     if os.name == "nt":
+        key = filename, only_dirname
+
         if filename not in _external_use_path_cache:
             filename = getFilenameRealPath(filename)
-
-            asked_filename = filename
 
             if only_dirname:
                 dirname = getWindowsShortPathName(os.path.dirname(filename))
@@ -1185,10 +1185,13 @@ def getExternalUsePath(filename, only_dirname=False):
             else:
                 filename = getWindowsShortPathName(filename)
 
-            _external_use_path_cache[asked_filename] = filename
-            _external_use_path_cache[filename] = filename
+            _external_use_path_cache[key] = filename
 
-        return _external_use_path_cache[filename]
+            # Looking up again should give same result immediately.
+            key = filename, only_dirname
+            _external_use_path_cache[key] = filename
+
+        return _external_use_path_cache[key]
     else:
         return filename
 
