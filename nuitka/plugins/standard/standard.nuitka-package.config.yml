@@ -3864,6 +3864,11 @@
           - 'libspatialindex'
       when: 'not win32'
 
+- module-name: 'scapy.all' # checksum: 8a9944ce
+  implicit-imports:
+    - depends:
+        - 'scapy.layers.*'
+
 - module-name: 'scipy' # checksum: 2e8d63ef
   data-files:
     patterns:
