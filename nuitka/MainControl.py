@@ -566,7 +566,7 @@ def _runPythonPgoBinary():
 
     if not os.path.exists(pgo_filename):
         general.sysexit(
-            "Error, no Python PGO information produced, did the created binary (exit code %d) as expected?"
+            "Error, no Python PGO information produced, did the created binary run (exit code %d) as expected?"
             % exit_code
         )
 
