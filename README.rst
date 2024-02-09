@@ -1116,7 +1116,18 @@ Memory issues and compiler bugs
 
 In some cases, the C compilers will crash saying they cannot allocate
 memory or that some input was truncated, or similar error messages,
-clearly from it. There are several options you can explore here:
+clearly from it. These are example error messages, that are a sure sign
+of too low memory, there is no end to them.
+
+.. code::
+
+   # gcc
+   fatal error: error writing to -: Invalid argument
+   # MSVC
+   fatal error C1002: compiler is out of heap space in pass 2
+   fatal error C1001: Internal compiler error
+
+There are several options you can explore here.
 
 Ask Nuitka to use less memory
 -----------------------------
