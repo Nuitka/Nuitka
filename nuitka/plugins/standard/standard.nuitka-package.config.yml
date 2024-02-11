@@ -3353,12 +3353,15 @@
     - acceptable-missing-dlls:
         - 'libqpdf'
 
-- module-name: 'PyQt6' # checksum: e4e1bada
+- module-name: 'PyQt6' # checksum: 884033ec
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         console: 'recommend'
         when: 'use_pyqt6'
+      - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
+        support_info: 'error'
+        when: 'macos and use_pyqt6'
 
 - module-name: 'pyqtgraph' # checksum: 1d763dc
   data-files:
