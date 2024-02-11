@@ -179,20 +179,7 @@ class StatementAssignmentVariableMixin(object):
         # is such a code for the type shape.
         return True
 
-    def _transferState(self, result):
-        self.variable_trace.assign_node = result
-        result.variable_trace = self.variable_trace
-        self.variable_trace = None
-        result.parent = self.parent
-
-    def _considerSpecialization(self, old_source):
-        # Specialize if possible, might have become that way only recently.
-        # return driven, pylint: disable=too-many-return-statements
-        source = self.subnode_source
-
-        if source is old_source:
-            return self, None, None
-
+    def _considerSpecialization(self, old_source, source):
         if source.isCompileTimeConstant():
             result = makeStatementAssignmentVariableConstant(
                 source=source,
@@ -201,8 +188,6 @@ class StatementAssignmentVariableMixin(object):
                 very_trusted=old_source.isExpressionImportName(),
                 source_ref=self.source_ref,
             )
-
-            self._transferState(result)
 
             return (
                 result,
@@ -219,8 +204,6 @@ class StatementAssignmentVariableMixin(object):
                 source_ref=self.source_ref,
             )
 
-            self._transferState(result)
-
             return (
                 result,
                 "new_statements",
@@ -234,8 +217,6 @@ class StatementAssignmentVariableMixin(object):
                 variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
-
-            self._transferState(result)
 
             return (
                 result,
@@ -251,8 +232,6 @@ class StatementAssignmentVariableMixin(object):
                 source_ref=self.source_ref,
             )
 
-            self._transferState(result)
-
             return (
                 result,
                 "new_statements",
@@ -266,8 +245,6 @@ class StatementAssignmentVariableMixin(object):
                 variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
-
-            self._transferState(result)
 
             return (
                 result,
@@ -284,6 +261,10 @@ class StatementAssignmentVariableMixin(object):
     @abstractmethod
     def hasVeryTrustedValue(self):
         """Does this assignment node have a very trusted value."""
+
+    @abstractmethod
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
+        """Set the value trace for the assignment form."""
 
 
 class StatementAssignmentVariableGeneric(
@@ -404,16 +385,25 @@ Removed assignment of %s from itself which is known to be defined."""
                     % variable.getDescription(),
                 )
 
+        if source is old_source:
+            result = self, None, None
+        else:
+            result = self._considerSpecialization(old_source, source)
+            result[0].parent = self.parent
+
+        result[0].computeStatementAssignmentTraceUpdate(trace_collection, source)
+
+        return result
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
+            variable=self.variable, version=self.variable_version, assign_node=self
         )
 
         # TODO: Determine from future use of assigned variable, if this is needed at all.
         trace_collection.removeKnowledge(source)
-
-        return self._considerSpecialization(old_source)
 
     def hasVeryTrustedValue(self):
         """Does this assignment node have a very trusted value."""
@@ -594,11 +584,17 @@ Assignment raises exception in assigned value, removed assignment.""",
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
+        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSet(
             variable=variable, version=self.variable_version, assign_node=self
         )
 
         return self, None, None
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=self.variable, version=self.variable_version, assign_node=self
+        )
 
     @staticmethod
     def hasVeryTrustedValue():
@@ -642,6 +638,7 @@ class StatementAssignmentVariableConstantMutable(
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
+        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSet(
             variable=variable, version=self.variable_version, assign_node=self
         )
@@ -681,6 +678,11 @@ class StatementAssignmentVariableConstantMutable(
                     # Can safely forward propagate only non-mutable constants.
 
         return self, None, None
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=self.variable, version=self.variable_version, assign_node=self
+        )
 
     @staticmethod
     def hasVeryTrustedValue():
@@ -785,11 +787,17 @@ class StatementAssignmentVariableConstantImmutable(
                         % self.getVariableName(),
                     )
 
+        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToUnescapableValue(
             variable=variable, version=self.variable_version, assign_node=self
         )
 
         return self, None, None
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
+        self.variable_trace = trace_collection.onVariableSetToUnescapableValue(
+            variable=self.variable, version=self.variable_version, assign_node=self
+        )
 
     @staticmethod
     def hasVeryTrustedValue():
@@ -868,11 +876,17 @@ class StatementAssignmentVariableHardValue(
 Assignment raises exception in assigned value, removed assignment.""",
             )
 
+        # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToVeryTrustedValue(
             variable=variable, version=self.variable_version, assign_node=self
         )
 
         return self, None, None
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
+        self.variable_trace = trace_collection.onVariableSetToVeryTrustedValue(
+            variable=self.variable, version=self.variable_version, assign_node=self
+        )
 
     @staticmethod
     def hasVeryTrustedValue():
@@ -947,9 +961,20 @@ Removed assignment of %s from itself which is known to be defined."""
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
+        if source is old_source:
+            result = self, None, None
+        else:
+            result = self._considerSpecialization(old_source, source)
+            result[0].parent = self.parent
+
+        result[0].computeStatementAssignmentTraceUpdate(trace_collection, source)
+
+        return result
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
         if source.isExpressionVariableRef():
             self.variable_trace = trace_collection.onVariableSetAliasing(
-                variable=variable,
+                variable=self.variable,
                 version=self.variable_version,
                 assign_node=self,
                 source=source,
@@ -970,13 +995,11 @@ Assignment raises exception in assigned variable access, removed assignment.""",
             # Set-up the trace to the trace collection, so future references will
             # find this assignment.
             self.variable_trace = trace_collection.onVariableSet(
-                variable=variable, version=self.variable_version, assign_node=self
+                variable=self.variable, version=self.variable_version, assign_node=self
             )
 
             # TODO: Determine from future use of assigned variable, if this is needed at all.
             trace_collection.removeKnowledge(source)
-
-        return self._considerSpecialization(old_source)
 
     @staticmethod
     def hasVeryTrustedValue():
@@ -1033,16 +1056,25 @@ Removed assignment of %s from itself which is known to be defined."""
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
 
+        if source is old_source:
+            result = self, None, None
+        else:
+            result = self._considerSpecialization(old_source, source)
+            result[0].parent = self.parent
+
+        result[0].computeStatementAssignmentTraceUpdate(trace_collection, source)
+
+        return result
+
+    def computeStatementAssignmentTraceUpdate(self, trace_collection, source):
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
+            variable=self.variable, version=self.variable_version, assign_node=self
         )
 
         # TODO: Determine from future use of assigned variable, if this is needed at all.
         trace_collection.removeKnowledge(source)
-
-        return self._considerSpecialization(old_source)
 
     @staticmethod
     def hasVeryTrustedValue():
