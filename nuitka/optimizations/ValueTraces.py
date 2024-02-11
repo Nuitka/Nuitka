@@ -159,6 +159,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isAssignTraceVeryTrusted():
+        return False
+
+    @staticmethod
     def isUnknownOrVeryTrustedTrace():
         return False
 
@@ -618,6 +622,10 @@ class ValueTraceAssignUnescapable(ValueTraceAssign):
 
 
 class ValueTraceAssignVeryTrusted(ValueTraceAssignUnescapable):
+    @staticmethod
+    def isAssignTraceVeryTrusted():
+        return True
+
     @staticmethod
     def isUnknownOrVeryTrustedTrace():
         return True
