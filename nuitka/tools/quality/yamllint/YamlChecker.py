@@ -17,6 +17,8 @@
 #
 """ Check and update Yaml checksum if possible."""
 
+from posixpath import normpath
+
 from nuitka.utils.FileOperations import (
     getFileContents,
     openTextFile,
@@ -62,6 +64,8 @@ def checkSchema(logger, document):
 
 
 def _checkValues(logger, filename, module_name, section, value):
+    result = True
+
     if type(value) is dict:
         for k, v in value.items():
             if k == "description" and v != v.strip():
@@ -69,11 +73,23 @@ def _checkValues(logger, filename, module_name, section, value):
                     "%s: %s config value of %s %s should not contain trailing or leading spaces"
                     % (filename, module_name, section, k)
                 )
+                result = False
 
-            _checkValues(logger, filename, module_name, section, v)
+            if k in ("dest_path", "relative_path") and v != normpath(v):
+                logger.info(
+                    "%s: %s config value of %s %s should be normalized posix path, with '/' style slashes."
+                    % (filename, module_name, section, k)
+                )
+                result = False
+
+            if not _checkValues(logger, filename, module_name, section, v):
+                result = False
     elif type(value) in (list, tuple):
         for item in value:
-            _checkValues(logger, filename, module_name, section, item)
+            if not _checkValues(logger, filename, module_name, section, item):
+                result = False
+
+    return result
 
 
 def checkValues(logger, filename):
@@ -82,11 +98,16 @@ def checkValues(logger, filename):
         file_data=getFileContents(filename, mode="rb"),
     )
 
+    result = True
     for module_name, config in yaml.items():
         for section, section_config in config.items():
-            _checkValues(logger, filename, module_name, section, section_config)
+            if not _checkValues(logger, filename, module_name, section, section_config):
+                result = False
 
-    logger.info("OK, manual value tests passed.", style="blue")
+    if result:
+        logger.info("OK, manual value tests passed.", style="blue")
+    else:
+        logger.sysexit("Error, manual value checks are not clean.")
 
 
 def checkYamllint(logger, document):

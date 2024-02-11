@@ -1609,9 +1609,9 @@
       replacements_plain:
         'warnings.warn': ''
 
-- module-name: 'jpype' # checksum: f58c2b1d
+- module-name: 'jpype' # checksum: f75160d3
   data-files:
-    dest_path: './jpype'
+    dest_path: 'jpype'
     patterns:
       - '../org.jpype.jar'
     when: 'is_conda_package("jpype")'
