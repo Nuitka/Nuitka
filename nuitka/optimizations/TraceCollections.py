@@ -1073,7 +1073,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         if trusted_node is None:
             return CollectionStartPointMixin.initVariableModule(self, variable)
 
-        assign_trace = ValueTraceAssign(
+        assign_trace = ValueTraceAssignVeryTrusted(
             self.owner, assign_node=trusted_node.getParent(), previous=None
         )
 
