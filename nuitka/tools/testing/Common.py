@@ -1186,9 +1186,7 @@ def getTestingCacheDir():
 def getTestingCPythonOutputsCacheDir():
     cache_dir = getCacheDir("cpython_outputs")
 
-    result = os.path.join(
-        cache_dir, os.getenv("NUITKA_TEST_SUITE", "")
-    )
+    result = os.path.join(cache_dir, os.getenv("NUITKA_TEST_SUITE", ""))
 
     makePath(result)
     return result
