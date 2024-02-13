@@ -384,6 +384,10 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
     def isExpressionVariableRef():
         return True
 
+    @staticmethod
+    def isExpressionVariableRefOrTempVariableRef():
+        return True
+
     def getDetails(self):
         return {"variable": self.variable}
 
@@ -708,6 +712,10 @@ class ExpressionTempVariableRef(
 
     @staticmethod
     def isExpressionTempVariableRef():
+        return True
+
+    @staticmethod
+    def isExpressionVariableRefOrTempVariableRef():
         return True
 
     @classmethod
