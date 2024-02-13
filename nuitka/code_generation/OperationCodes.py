@@ -243,10 +243,7 @@ def _getBinaryOperationCode(
         if left.isExpressionVariableRef() and left.getVariable().isModuleVariable():
             emit("%s = %s;" % (context.getInplaceLeftName(), left_name))
 
-        if (
-            not left.isExpressionVariableRef()
-            and not left.isExpressionTempVariableRef()
-        ):
+        if not left.isExpressionVariableRefOrTempVariableRef():
             if not context.needsCleanup(left_name):
                 getTakeReferenceCode(left_name, emit)
 
@@ -262,10 +259,7 @@ def _getBinaryOperationCode(
 
         emit("%s = %s;" % (to_name, left_name))
 
-        if (
-            not left.isExpressionVariableRef()
-            and not left.isExpressionTempVariableRef()
-        ):
+        if not left.isExpressionVariableRefOrTempVariableRef():
             context.addCleanupTempName(to_name)
     else:
         if needs_argument_swap:
