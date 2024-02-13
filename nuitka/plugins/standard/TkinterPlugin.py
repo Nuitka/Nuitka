@@ -17,11 +17,13 @@
 #
 """ Details see below in class definition.
 """
+
 import os
 import sys
 
 from nuitka.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Utils import isMacOS, isWin32Windows
@@ -32,6 +34,17 @@ from nuitka.utils.Utils import isMacOS, isWin32Windows
 def _isTkInterModule(module):
     full_name = module.getFullName()
     return full_name in ("Tkinter", "tkinter", "PySimpleGUI", "PySimpleGUI27")
+
+
+def _getHomebrewPrefix(logger):
+    result = os.path.normpath(
+        os.path.join(getSystemPrefixPath(), "..", "..", "..", "..", "..", "..", "..")
+    )
+
+    if not os.path.isdir(result):
+        logger.sysexit("Error, failed to determine Homebrew prefix, report this bug.")
+
+    return result
 
 
 class NuitkaPluginTkinter(NuitkaPluginBase):
@@ -185,6 +198,15 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/lib64/tcl/tcl%s" % self.tk_inter_version
             yield "/usr/lib/tcl%s" % self.tk_inter_version
 
+        if isHomebrewPython():
+            yield os.path.normpath(
+                os.path.join(
+                    _getHomebrewPrefix(self),
+                    "lib",
+                    "tcl%s" % self.tk_inter_version,
+                )
+            )
+
     def _getTkCandidatePaths(self):
         yield os.getenv("TK_LIBRARY")
 
@@ -202,6 +224,15 @@ The Tcl library dir. See comments for Tk library dir.""",
             yield "/usr/share/tk%s" % self.tk_inter_version
             yield "/usr/lib64/tcl/tk%s" % self.tk_inter_version
             yield "/usr/lib/tk%s" % self.tk_inter_version
+
+        if isHomebrewPython():
+            yield os.path.normpath(
+                os.path.join(
+                    _getHomebrewPrefix(self),
+                    "lib",
+                    "tk%s" % self.tk_inter_version,
+                )
+            )
 
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.
@@ -266,9 +297,9 @@ that works, report a bug."""
         )
         yield self.makeIncludedDataDirectory(
             source_path=tcl_library_dir,
-            ignore_dirs=("opt0.4", "http1.0")
-            if isMacOS() and shallCreateAppBundle()
-            else (),
+            ignore_dirs=(
+                ("opt0.4", "http1.0") if isMacOS() and shallCreateAppBundle() else ()
+            ),
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",
             tags="tcl",
