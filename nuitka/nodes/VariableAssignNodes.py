@@ -955,6 +955,18 @@ Removed assignment of %s from itself which is known to be defined."""
                 source=source,
             )
         else:
+            if source.willRaiseAnyException():
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression=source, node=self
+                )
+
+                return (
+                    result,
+                    "new_raise",
+                    """\
+Assignment raises exception in assigned variable access, removed assignment.""",
+                )
+
             # Set-up the trace to the trace collection, so future references will
             # find this assignment.
             self.variable_trace = trace_collection.onVariableSet(
