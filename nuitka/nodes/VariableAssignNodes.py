@@ -930,7 +930,9 @@ class StatementAssignmentVariableFromVariable(
 
         # Assigning from and to the same variable, can be optimized away
         # immediately, there is no point in doing it. Exceptions are of course
-        # module variables that collide with built-in names.
+        # module variables that collide with built-in names. TODO: In
+        # specialization this could be considered right away as its own node
+        # type, waiting for it to compute like this.
         if not variable.isModuleVariable() and old_source.getVariable() is variable:
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
@@ -964,6 +966,18 @@ Removed assignment of %s from itself which is known to be defined."""
         if source is old_source:
             result = self, None, None
         else:
+            if source.willRaiseAnyException():
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression=source, node=self
+                )
+
+                return (
+                    result,
+                    "new_raise",
+                    """\
+Assignment raises exception in assigned variable access, removed assignment.""",
+                )
+
             result = self._considerSpecialization(old_source, source)
             result[0].parent = self.parent
 
@@ -993,7 +1007,9 @@ Assignment raises exception in assigned variable access, removed assignment.""",
                 )
 
             # Set-up the trace to the trace collection, so future references will
-            # find this assignment.
+            # find this assignment. TODO: We should for non-variables make sure we do
+            # always specialize, since this is no longer a variable once it was
+            # resolved.
             self.variable_trace = trace_collection.onVariableSet(
                 variable=self.variable, version=self.variable_version, assign_node=self
             )
