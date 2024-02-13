@@ -118,10 +118,7 @@ class FinalizeMarkups(VisitorNoopMixin):
             if assign_source.isExpressionOperationBinary():
                 left_arg = assign_source.subnode_left
 
-                if (
-                    left_arg.isExpressionVariableRef()
-                    or left_arg.isExpressionTempVariableRef()
-                ):
+                if left_arg.isExpressionVariableRefOrTempVariableRef():
                     if assign_source.subnode_left.getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()

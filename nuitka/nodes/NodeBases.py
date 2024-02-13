@@ -381,6 +381,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionVariableRefOrTempVariableRef():
+        return False
+
+    @staticmethod
     def isNumberConstant():
         return False
 
@@ -467,7 +471,7 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def needsFrame(self):
-        """Unless we are tolder otherwise, this depends on exception raise."""
+        """Unless we are told otherwise, this depends on exception raise."""
 
         return self.mayRaiseException(BaseException)
 
