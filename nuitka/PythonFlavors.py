@@ -202,7 +202,7 @@ def isWinPython():
     if _is_win_python is None:
         for element in sys.path:
             if os.path.basename(element) == "site-packages":
-                if os.path.exists(os.path.join(element, "winpython")):
+                if os.path.exists(os.path.join(element, "WinPython")):
                     _is_win_python = True
                     break
         else:
@@ -317,6 +317,8 @@ def isManyLinuxPython():
 
 
 def isGithubActionsPython():
+    # spell-checker: ignore hostedtoolcache
+
     return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
         "/opt/hostedtoolcache/Python"
     )

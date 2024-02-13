@@ -197,6 +197,7 @@
         "longlong",
         "LPWSTR",
         "lxml",
+        "manylinux",
         "Matmult",
         "mdef",
         "metaclass",
