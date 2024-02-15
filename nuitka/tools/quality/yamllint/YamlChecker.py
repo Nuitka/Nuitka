@@ -70,7 +70,8 @@ def _checkValues(logger, filename, module_name, section, value):
         for k, v in value.items():
             if k == "description" and v != v.strip():
                 logger.info(
-                    "%s: %s config value of %s %s should not contain trailing or leading spaces"
+                    """\
+%s: %s config value of %s %s should not contain trailing or leading spaces"""
                     % (filename, module_name, section, k)
                 )
                 result = False
@@ -81,6 +82,17 @@ def _checkValues(logger, filename, module_name, section, value):
                     % (filename, module_name, section, k)
                 )
                 result = False
+
+            if k == "no-auto-follow":
+                for m, d in v.items():
+                    if d == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
+if you want no message."""
+                            % (filename, module_name, section, k, m)
+                        )
+                        result = False
 
             if not _checkValues(logger, filename, module_name, section, v):
                 result = False
