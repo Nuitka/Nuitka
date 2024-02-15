@@ -258,12 +258,26 @@ def addModuleInfluencingVariable(
 
 
 def addModuleInfluencingParameter(
-    module_name, plugin_name, parameter_name, control_tags, result
+    module_name, plugin_name, parameter_name, condition_tags_used, result
 ):
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
     module_influencing_plugins[module_name].add(
-        (plugin_name, "parameter-used", (parameter_name, tuple(control_tags), result))
+        (
+            plugin_name,
+            "parameter-used",
+            (parameter_name, tuple(condition_tags_used), result),
+        )
+    )
+
+
+def addModuleInfluencingDetection(
+    module_name, plugin_name, detection_name, detection_value
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "detection", (detection_name, detection_value))
     )
 
 
