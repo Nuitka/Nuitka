@@ -3233,6 +3233,15 @@
     - depends:
         - 'typing_extensions'
 
+- module-name: 'pydantic.v1.version' # checksum: e038cd11
+  anti-bloat:
+    - description: 'remove setuptools usage via cython'
+      append_plain: |
+        compiled = True
+      no-auto-follow:
+        'cython': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'pyfiglet' # checksum: b8621a7d
   implicit-imports:
     - depends:
