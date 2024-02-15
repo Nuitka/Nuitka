@@ -95,6 +95,22 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["Cython"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["cython"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["pyximport"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["paddle.utils.cpp_extension"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
