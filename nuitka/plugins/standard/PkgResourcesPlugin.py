@@ -26,6 +26,7 @@ that need special case, e.g. the registration of the loader class.
 import re
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import withNoDeprecationWarning
 
 
@@ -43,11 +44,14 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 self.pkg_resources = pkg_resources
 
         try:
-            import importlib_metadata
+            if python_version >= 0x380:
+                from importlib import metadata
+            else:
+                import importlib_metadata as metadata
         except (ImportError, SyntaxError, RuntimeError):
             self.metadata = None
         else:
-            self.metadata = importlib_metadata
+            self.metadata = metadata
 
     @staticmethod
     def isAlwaysEnabled():
