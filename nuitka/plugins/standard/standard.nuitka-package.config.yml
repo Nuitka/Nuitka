@@ -5880,14 +5880,14 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: 3d34027f
+- module-name: 'toga' # checksum: 575aecbd
   data-files:
     include-metadata:
       - 'toga-core'
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
-        'setuptools_scm': ''
+        'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'toga.platform' # checksum: 4db91cac
@@ -5973,11 +5973,11 @@
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
-- module-name: 'torch._dynamo.logging' # checksum: 1d305809
+- module-name: 'torch._dynamo.logging' # checksum: 4fad04bc
   anti-bloat:
     - description: 'remove setuptools usage via triton'
       no-auto-follow:
-        'triton': ''
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._dynamo.skipfiles' # checksum: 120e0012
@@ -6411,11 +6411,11 @@
         # TODO: Forcing inline of this will be better solution.
         'require_version_core': "'(lambda requirement: None)'"
 
-- module-name: 'travertino' # checksum: cb0be8d
+- module-name: 'travertino' # checksum: 9da51f71
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
-        'setuptools_scm': ''
+        'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'trimesh.viewer.notebook' # checksum: d055e332
