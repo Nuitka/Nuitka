@@ -1104,6 +1104,13 @@
         - 'fiona.schema'
         - 'fiona._shim'
 
+- module-name: 'fire' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'fitz.fitz' # checksum: d0a93b71
   implicit-imports:
     - depends:
