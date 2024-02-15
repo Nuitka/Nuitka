@@ -49,6 +49,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
+    addModuleInfluencingDetection,
     addModuleInfluencingParameter,
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
@@ -1343,11 +1344,10 @@ except ImportError:
             if result is None:
                 result = default
 
-            addModuleInfluencingParameter(
+            self.addModuleInfluencingParameter(
                 module_name=full_name,
-                plugin_name=self.plugin_name,
                 parameter_name=parameter_name,
-                control_tags=context.used_tags,
+                condition_tags_used=context.used_tags,
                 result=result,
             )
 
@@ -1401,11 +1401,10 @@ except ImportError:
             if result is None:
                 result = default
 
-            addModuleInfluencingParameter(
+            self.addModuleInfluencingParameter(
                 module_name=full_name,
-                plugin_name=self.plugin_name,
                 parameter_name=parameter_name,
-                control_tags=context.used_tags,
+                condition_tags_used=context.used_tags,
                 result=result,
             )
 
@@ -1441,6 +1440,27 @@ except ImportError:
         )
 
         return result
+
+    def addModuleInfluencingParameter(
+        self, module_name, parameter_name, condition_tags_used, result
+    ):
+        addModuleInfluencingParameter(
+            module_name=module_name,
+            plugin_name=self.plugin_name,
+            parameter_name=parameter_name,
+            condition_tags_used=condition_tags_used,
+            result=result,
+        )
+
+    def addModuleInfluencingDetection(
+        self, module_name, detection_name, detection_value
+    ):
+        addModuleInfluencingDetection(
+            module_name=module_name,
+            plugin_name=self.plugin_name,
+            detection_name=detection_name,
+            detection_value=detection_value,
+        )
 
     @classmethod
     def warning(cls, message, **kwargs):

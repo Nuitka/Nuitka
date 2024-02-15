@@ -119,9 +119,10 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         self.dll_directories[module_name] = self.dll_directory
 
         if self.dll_directories[module_name]:
-            self.info(
-                "Detected usage of 'delvewheel' version '%s' in module '%s'."
-                % (delvewheel_version, module_name.asString())
+            self.addModuleInfluencingDetection(
+                module_name=module_name,
+                detection_name="delvewheel_version",
+                detection_value=delvewheel_version,
             )
 
     def getExtraDlls(self, module):
