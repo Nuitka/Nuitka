@@ -6268,6 +6268,13 @@
     - no-auto-follow:
         'pandas': 'ignore'
 
+- module-name: 'tqdm.version' # checksum: 6b612ba4
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'tracerite' # checksum: 6fffa63e
   data-files:
     patterns:
