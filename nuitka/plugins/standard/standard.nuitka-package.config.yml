@@ -6911,6 +6911,36 @@
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
 
+- module-name: 'zaber_motion' # checksum: 793b2dd4
+  implicit-imports:
+    - depends:
+        - 'zaber_motion_bindings_windows'
+      when: 'win32'
+    - depends:
+        - 'zaber_motion_bindings_linux'
+      when: 'linux'
+    - depends:
+        - 'zaber_motion_bindings_darwin'
+      when: 'macos'
+
+- module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+
+- module-name: 'zaber_motion_bindings_linux' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+
+- module-name: 'zaber_motion_bindings_windows' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+
 - module-name: 'zmq' # checksum: b0320bcc
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
