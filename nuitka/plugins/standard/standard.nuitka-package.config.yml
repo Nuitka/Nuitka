@@ -2525,6 +2525,82 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
+- module-name: 'paddle' # checksum: 11103e47
+  dlls:
+    - from_filenames:
+        relative_path: 'libs'
+        prefixes:
+          - 'lib'
+          - 'mkl'
+          - 'war'
+          - 'common'
+
+- module-name: 'paddle.base.core' # checksum: a81e13c9
+  anti-bloat:
+    - replacements_plain:
+        "third_lib_path = current_path + os.sep + '..' + os.sep + 'libs'": "third_lib_path = os.path.normpath(current_path + os.sep + '..' + os.sep + 'libs')"
+      change_function:
+        'set_paddle_lib_path': "'(lambda: None)'"
+
+- module-name: 'paddle.distributed.fleet.launch_utils' # checksum: 69fc840a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import paddle.utils.cpp_extension.extension_utils as utils': ''
+      replacements:
+        "utils.OS_NAME.startswith('darwin')": 'repr(macos)'
+        'utils.IS_WINDOWS': 'repr(win32)'
+      when: 'not use_setuptools'
+
+- module-name: 'paddle.fluid.core' # checksum: a81e13c9
+  anti-bloat:
+    - replacements_plain:
+        "third_lib_path = current_path + os.sep + '..' + os.sep + 'libs'": "third_lib_path = os.path.normpath(current_path + os.sep + '..' + os.sep + 'libs')"
+      change_function:
+        'set_paddle_lib_path': "'(lambda: None)'"
+
+- module-name: 'paddle.jit.sot.opcode_translator.skip_files' # checksum: 5721def1
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import setuptools': ''
+        'setuptools,': ''
+      when: 'not use_setuptools'
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+        'unittest,': ''
+      when: 'not use_unittest'
+
+- module-name: 'paddle.utils' # checksum: 9f797eec
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      # TODO: We need a special form of removing import assignments
+      replacements_plain:
+        'cpp_extension,': ''
+      when: 'not use_setuptools'
+
+- module-name: 'paddleocr' # checksum: 90264499
+  import-hacks:
+    - global-sys-path:
+          # This package forces itself into "sys.path" and expects absolute
+          # imports from all of these to be available.
+        - ''
+        - 'ppstructure'
+        - 'tools/infer'
+        - 'ppocr/postprocess'
+        - 'ppocr'
+        - 'ppocr/utils/e2e_utils'
+        - 'ppocr/utils'
+        - 'ppstructure/layout'
+        - 'ppstructure/table'
+
+- module-name: 'paddleocr.paddleocr' # checksum: 8cf243fc
+  anti-bloat:
+    - replacements_plain:
+        'tools = _import_file(': ''
+        "    'tools', os.path.join(__dir__, 'tools/__init__.py'), make_importable=True)": 'from . import tools'
+
 - module-name: 'panda3d' # checksum: ed772c0a
   data-files:
     dest_path: '.'
@@ -3182,6 +3258,17 @@
       change_function:
         'test': 'un-callable'
       when: 'not use_pytest'
+
+- module-name: 'ppocr.utils.e2e_utils.pgnet_pp_utils' # checksum: 935978cf
+  anti-bloat:
+    - replacements_plain:
+        'from extract_textpoint_slow import *': 'from .extract_textpoint_slow import *'
+        'from extract_textpoint_fast import generate_pivot_list_fast, restore_poly': 'from .extract_textpoint_fast import generate_pivot_list_fast, restore_poly'
+  import-hacks:
+    - global-sys-path:
+          # This package forces itself into "sys.path" and expects absolute
+          # imports to be available.
+        - ''
 
 - module-name: 'psutil' # checksum: 24d7eb52
   anti-bloat:
