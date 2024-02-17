@@ -1696,10 +1696,6 @@ def enableExperimental(indication):
     _experimental.add(indication)
 
 
-def disableExperimental(indication):
-    _experimental.remove(indication)
-
-
 def getExperimentalIndications():
     """*tuple*, items of ``--experimental=``"""
     if hasattr(options, "experimental"):
