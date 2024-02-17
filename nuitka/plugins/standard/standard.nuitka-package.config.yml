@@ -1441,6 +1441,16 @@
                 sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
       when: 'not deployment'
 
+- module-name: 'h2o' # checksum: 416e6006
+  data-files:
+    dirs:
+      - 'h2o_data'
+      - 'backend/bin'
+    patterns:
+      - '*.txt'
+      - '*.csv'
+      - '*.jar'
+
 - module-name: 'h5py' # checksum: 5a8caf97
   anti-bloat:
     - description: 'remove IPython reference'
