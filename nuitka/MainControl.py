@@ -583,6 +583,7 @@ def runSconsBackend():
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
+        "debugger_mode": asBoolStr(Options.shallRunInDebugger()),
         "python_debug": asBoolStr(Options.shallUsePythonDebug()),
         "module_mode": asBoolStr(Options.shallMakeModule()),
         "full_compat": asBoolStr(Options.is_full_compat),

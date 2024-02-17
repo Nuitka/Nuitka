@@ -140,6 +140,10 @@ module_mode = getArgumentBool("module_mode", False)
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
 
+# Debugger mode: Debug information in the resulting binary and intention to run
+# in debugger.
+debugger_mode = getArgumentBool("debugger_mode", False)
+
 # Profiling mode: Outputs vmprof based information from program run.
 profile_mode = getArgumentBool("profile_mode", False)
 
@@ -474,7 +478,7 @@ if env.debug_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
 
-        if "allow-c-warnings" not in env.experimental_flags:
+        if "allow-c-warnings" not in env.experimental_flags and not debugger_mode:
             env.Append(
                 CCFLAGS=[
                     "-Wall",
