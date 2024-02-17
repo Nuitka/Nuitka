@@ -896,6 +896,13 @@
     - depends:
         - 'dependency_injector.errors'
 
+- module-name: 'diatheke' # checksum: ad402cfe
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
+        - ''
+
 - module-name: 'dipy' # checksum: 6059075a
   anti-bloat:
     - description: 'remove dipy and numpy testing framework'
