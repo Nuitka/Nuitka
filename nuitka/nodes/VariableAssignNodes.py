@@ -994,18 +994,6 @@ Assignment raises exception in assigned variable access, removed assignment.""",
                 source=source,
             )
         else:
-            if source.willRaiseAnyException():
-                result = makeStatementExpressionOnlyReplacementNode(
-                    expression=source, node=self
-                )
-
-                return (
-                    result,
-                    "new_raise",
-                    """\
-Assignment raises exception in assigned variable access, removed assignment.""",
-                )
-
             # Set-up the trace to the trace collection, so future references will
             # find this assignment. TODO: We should for non-variables make sure we do
             # always specialize, since this is no longer a variable once it was
