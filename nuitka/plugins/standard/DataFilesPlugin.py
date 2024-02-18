@@ -54,7 +54,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
     def _considerDataFiles(self, module, data_file_config):
         # Many details and cases to deal with
-        # pylint: disable=too-many-branches,too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
@@ -83,6 +83,13 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
             # TODO: Pattern should be data file kind potentially.
             for pattern in patterns:
+                pattern = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=pattern,
+                    config_name="data file pattern for '%s'" % module_name,
+                    extra_context=None,
+                )
+
                 pattern = os.path.join(module_folder, pattern)
 
                 for filename in resolveShellPatternToFilenames(pattern):
