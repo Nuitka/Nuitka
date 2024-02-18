@@ -44,6 +44,20 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
 Extending "dill" for compiled types to be pickle-able as well.""",
             )
 
+        if shallMakeModule() and module.isTopModule():
+            return (
+                """\
+import sys
+sys.modules["%(module_name)s"]._create_compiled_function%(version)s = \
+    sys.modules["%(module_name)s-preLoad"]._create_compiled_function%(version)s
+sys.modules["%(module_name)s"]._create_compiled_function%(version)s.__module__ = \
+    "%(module_name)s"
+"""
+                % {"module_name": full_name, "version": "2" if str is bytes else "3"},
+                """
+Extending "dill" for compiled types to be pickle-able as well.""",
+            )
+
     def createPreModuleLoadCode(self, module):
         if shallMakeModule() and module.isTopModule():
             return (

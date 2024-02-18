@@ -1009,11 +1009,11 @@ Misleading Messages
 -------------------
 
 Some packages output what they think is helpful information about what
-the reason of a failed import might me. With compiled programs there are
-very often just plain wrong. We try and repair those in non-deployment
-mode. Here is an example, where we change a message that asks to pip
-install (which is not the issue) to point the user to the include
-command that makes an ``imageio`` plugin work.
+the reason of a failed import might mean. With compiled programs there
+are very often just plain wrong. We try and repair those in
+non-deployment mode. Here is an example, where we change a message that
+asks to pip install (which is not the issue) to point the user to the
+include command that makes an ``imageio`` plugin work.
 
 .. code:: yaml
 

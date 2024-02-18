@@ -234,6 +234,10 @@ def main():
             if filename != "PySide6":
                 extra_flags.append("ignore_warnings")
 
+        if filename.startswith("PyQt6") and isMacOS():
+            reportSkip("not currently supported", ".", filename)
+            continue
+
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
         )
