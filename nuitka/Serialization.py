@@ -43,7 +43,7 @@ from nuitka.Builtins import (
 from nuitka.code_generation.Namify import namifyConstant
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import openPickleFile
 
 
 class BuiltinAnonValue(object):
@@ -140,13 +140,7 @@ class ConstantStreamWriter(object):
         self.count = 0
 
         filename = os.path.join(OutputDirectories.getSourceDirectoryPath(), filename)
-        self.file = openTextFile(filename, "wb")
-        if python_version < 0x300:
-            self.pickle = pickle.Pickler(self.file, -1)
-        else:
-            self.pickle = pickle._Pickler(  # pylint: disable=I0021,protected-access
-                self.file, -1
-            )
+        self.file, self.pickle = openPickleFile(filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues
         self.pickle.dispatch[type(Ellipsis)] = _pickleAnonValues

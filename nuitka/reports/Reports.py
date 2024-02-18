@@ -29,6 +29,7 @@ import traceback
 from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
+from nuitka.build.SconsUtils import readSconsErrorReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -47,7 +48,10 @@ from nuitka.Options import (
     isOnefileMode,
     shallCreateDiffableCompilationReport,
 )
-from nuitka.OutputDirectories import getResultRunFilename
+from nuitka.OutputDirectories import (
+    getResultRunFilename,
+    getSourceDirectoryPath,
+)
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
@@ -202,6 +206,8 @@ def _getReportInputData(aborted):
     data_composer = getDataComposerReportValues()
 
     output_run_filename = os.path.abspath(getResultRunFilename(onefile=isOnefileMode()))
+
+    scons_error_report_data = readSconsErrorReport(source_dir=getSourceDirectoryPath())
 
     return dict(
         (var_name, var_value)
@@ -450,6 +456,45 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
         exception_xml_node.text = "\n" + traceback.format_exc()
 
+    if report_input_data["scons_error_report_data"]:
+        scons_error_reports_node = TreeXML.appendTreeElement(
+            root, "scons_error_reports"
+        )
+
+        for cmd, (stdout, stderr) in report_input_data[
+            "scons_error_report_data"
+        ].items():
+            scons_error_report_node = TreeXML.appendTreeElement(
+                scons_error_reports_node, "scons_error_report"
+            )
+
+            TreeXML.appendTreeElement(
+                scons_error_report_node,
+                "command",
+            ).text = cmd
+
+            if stdout:
+                if not stdout.startswith("\n"):
+                    stdout = "\n" + stdout
+
+                stdout = stdout.rstrip("\n") + "\n"
+
+                TreeXML.appendTreeElement(
+                    scons_error_report_node,
+                    "stdout",
+                ).text = stdout
+
+            if stderr:
+                if not stderr.startswith("\n"):
+                    stderr = "\n" + stderr
+
+                stderr = stderr.rstrip("\n") + "\n"
+
+                TreeXML.appendTreeElement(
+                    scons_error_report_node,
+                    "stderr",
+                ).text = stderr
+
     _addModulesToReport(
         root=root, report_input_data=report_input_data, diffable=diffable
     )
@@ -625,9 +670,10 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         if _crash_report_filename == report_filename:
             _crash_report_filename = None
     else:
-        reports_logger.info(
-            "Compilation report written to file '%s'." % report_filename
-        )
+        if _crash_report_filename != report_filename:
+            reports_logger.info(
+                "Compilation report written to file '%s'." % report_filename
+            )
 
 
 def writeCompilationReportFromTemplate(

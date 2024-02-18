@@ -188,6 +188,10 @@ def _getTerminalSize():
 
 
 def _aliasStyle(style):
+    """Map named styles to concrete colors."""
+
+    # return driven, pylint: disable=too-many-return-statements
+
     if style == "test-prepare":
         return "pink"
     if style == "test-progress":
@@ -196,6 +200,12 @@ def _aliasStyle(style):
         return "bold"
     if style == "link":
         return "blue"
+    if style == "warning":
+        return "yellow"
+    if style == "scons-unexpected":
+        return "yellow"
+    if style == "error":
+        return "red"
     else:
         return style
 
@@ -369,9 +379,11 @@ class OurLogger(object):
     def info(self, message, style=None, mnemonic=None, prefix=None, keep_format=False):
         if not self.isQuiet():
             self._printFormatted(
-                prefix="%s: " % self.name
-                if prefix is None
-                else "%s:%s: " % (self.name, prefix),
+                prefix=(
+                    "%s: " % self.name
+                    if prefix is None
+                    else "%s:%s: " % (self.name, prefix)
+                ),
                 message=message,
                 style=style,
                 keep_format=keep_format,
