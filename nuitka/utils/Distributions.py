@@ -148,7 +148,7 @@ def _initPackageToDistributionName():
         except ImportError:
             from importlib_metadata import distributions
 
-    except (ImportError, SyntaxError):
+    except (ImportError, SyntaxError, RuntimeError):
         try:
             distributions = _get_pkg_resource_distributions()
         except ImportError:

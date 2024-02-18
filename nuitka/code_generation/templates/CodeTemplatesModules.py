@@ -471,6 +471,13 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     // Report to PGO about leaving the module without error.
     PGO_onModuleExit("%(module_identifier)s", false);
 
+#if defined(_NUITKA_MODULE) && %(is_top)d
+    PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
+    if (post_load == NULL) {
+        return NULL;
+    }
+#endif
+
     Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
 %(module_exit)s
