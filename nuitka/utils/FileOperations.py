@@ -28,6 +28,7 @@ import errno
 import fnmatch
 import glob
 import os
+import pickle
 import shutil
 import stat
 import sys
@@ -1406,3 +1407,14 @@ def isFilesystemEncodable(filename):
         return value == filename
     else:
         return True
+
+
+def openPickleFile(filename, mode, protocol=-1):
+    file_handle = openTextFile(filename, mode)
+
+    if python_version < 0x300:
+        return file_handle, pickle.Pickler(file_handle, protocol)
+    else:
+        return file_handle, pickle._Pickler(  # pylint: disable=protected-access
+            file_handle, protocol
+        )
