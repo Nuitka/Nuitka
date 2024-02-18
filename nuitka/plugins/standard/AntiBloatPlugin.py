@@ -37,7 +37,7 @@ _mode_choices = ("error", "warning", "nofollow", "allow")
 
 
 class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
-    # Lots of details, a bunch of state is cached
+    # Lots of details, a bunch of state is cached, pylint: disable=too-many-instance-attributes
 
     plugin_name = "anti-bloat"
     plugin_desc = (
@@ -209,6 +209,9 @@ form 'module_name:[%s]'."""
         # Keep track of modules prevented from automatically following and the
         # information given for that.
         self.no_auto_follows = {}
+
+        # Keep track of modules prevented from being followed at all.
+        self.no_follows = OrderedDict()
 
         # Cache execution context for anti-bloat configs.
         self.context_codes = {}
@@ -559,7 +562,22 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         source_ref,
         reason,
     ):
-        # Quite a few special cases, but not really complex. pylint: disable=too-many-branches
+        # Quite a few special cases, but not really complex.
+        # pylint: disable=too-many-branches,too-many-locals
+
+        # First off, activate "no-follow" configurations.
+        for (
+            config_of_module_name,
+            no_follow,
+            description,
+        ) in self.getYamlConfigItemItems(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="no-follow",
+            decide_relevant=lambda key, value: True,
+            recursive=True,
+        ):
+            self.no_follows[no_follow] = (config_of_module_name, description)
 
         # Do not even look at these. It's either included by a module that is in standard
         # library, or included for a module in standard library.
@@ -660,7 +678,7 @@ slow down compilation."""
         if using_module_name is not None:
 
             def decideRelevant(key, value):
-                # Only checking key, pylint: disable=unused-argument
+                # Only checking keys of configs, pylint: disable=unused-argument
 
                 return module_name.hasNamespace(key)
 
@@ -683,6 +701,17 @@ slow down compilation."""
                     False,
                     "according to yaml 'no-auto-follow' configuration of '%s' for '%s'"
                     % (config_of_module_name, no_auto_follow),
+                )
+
+        for no_follow_pattern, (
+            config_of_module_name,
+            description,
+        ) in self.no_follows.items():
+            if module_name.matchesToShellPattern(no_follow_pattern)[0]:
+                return (
+                    False,
+                    "according to yaml 'no-follow' configuration of '%s' for '%s'"
+                    % (config_of_module_name, no_follow_pattern),
                 )
 
         # Do not provide an opinion about it.
