@@ -47,6 +47,7 @@ from nuitka.PythonFlavors import (
     isApplePython,
     isCPythonOfficialPackage,
     isDebianPackagePython,
+    isHomebrewPython,
     isManyLinuxPython,
     isMSYS2MingwPython,
     isNuitkaPython,
@@ -1444,7 +1445,10 @@ def _shallUseStaticLibPython():
     if options.static_libpython == "auto":
         # Nuitka-Python is good to to static linking.
         if isNuitkaPython():
-            return True, "Nuitka-Python is broken."
+            return True, "Nuitka-Python is unexpectedly broken."
+
+        if isHomebrewPython():
+            return True, "Homebrew Python is unexpectedly broken."
 
         # Debian packages with are usable if the OS is new enough
         from nuitka.utils.StaticLibraries import (
@@ -1694,10 +1698,6 @@ def isExperimental(indication):
 
 def enableExperimental(indication):
     _experimental.add(indication)
-
-
-def disableExperimental(indication):
-    _experimental.remove(indication)
 
 
 def getExperimentalIndications():
