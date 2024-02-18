@@ -140,6 +140,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"no_asserts", (char *)"boolean indicating --python-flag=no_asserts usage"},
         {(char *)"no_docstrings", (char *)"boolean indicating --python-flag=no_docstrings usage"},
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
+        {(char *)"module", (char *)"boolean indicating --module usage"},
         {0}
     };
 
@@ -215,6 +216,13 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *is_no_annotations = Py_False;
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 10, is_no_annotations);
+
+#ifdef _NUITKA_MODULE
+    PyObject *is_module_mode = Py_True;
+#else
+    PyObject *is_module_mode = Py_False;
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

@@ -94,6 +94,7 @@ from nuitka.utils.Utils import (
     isLinux,
     isMacOS,
     isWin32Windows,
+    withNoWarning,
 )
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
@@ -1335,17 +1336,18 @@ except ImportError:
         if extra_context:
             context.update(extra_context)
 
-        # We trust the yaml files, pylint: disable=eval-used
-        try:
-            result = eval(expression, context)
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            if Options.is_debug:
-                raise
+        with withNoWarning():
+            # We trust the yaml files, pylint: disable=eval-used
+            try:
+                result = eval(expression, context)
+            except Exception as e:  # Catch all the things, pylint: disable=broad-except
+                if Options.is_debug:
+                    raise
 
-            self.sysexit(
-                "Error, failed to evaluate expression %r in this context, exception was '%s'."
-                % (expression, e)
-            )
+                self.sysexit(
+                    "Error, failed to evaluate expression %r in this context, exception was '%s'."
+                    % (expression, e)
+                )
 
         if type(result) is not str:
             self.sysexit(
@@ -1389,17 +1391,18 @@ except ImportError:
 
         context["get_parameter"] = get_parameter
 
-        # We trust the yaml files, pylint: disable=eval-used
-        try:
-            result = eval(condition, context)
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            if Options.is_debug:
-                raise
+        with withNoWarning():
+            # We trust the yaml files, pylint: disable=eval-used
+            try:
+                result = eval(condition, context)
+            except Exception as e:  # Catch all the things, pylint: disable=broad-except
+                if Options.is_debug:
+                    raise
 
-            self.sysexit(
-                "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
-                % (condition, e)
-            )
+                self.sysexit(
+                    "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
+                    % (condition, e)
+                )
 
         if type(result) is not bool:
             self.sysexit(
