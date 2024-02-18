@@ -1104,6 +1104,13 @@
         - 'fiona.schema'
         - 'fiona._shim'
 
+- module-name: 'fire' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'fitz.fitz' # checksum: d0a93b71
   implicit-imports:
     - depends:
@@ -1440,6 +1447,16 @@
                 import sys
                 sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
       when: 'not deployment'
+
+- module-name: 'h2o' # checksum: 416e6006
+  data-files:
+    dirs:
+      - 'h2o_data'
+      - 'backend/bin'
+    patterns:
+      - '*.txt'
+      - '*.csv'
+      - '*.jar'
 
 - module-name: 'h5py' # checksum: 5a8caf97
   anti-bloat:
@@ -3223,6 +3240,15 @@
     - depends:
         - 'typing_extensions'
 
+- module-name: 'pydantic.v1.version' # checksum: e038cd11
+  anti-bloat:
+    - description: 'remove setuptools usage via cython'
+      append_plain: |
+        compiled = True
+      no-auto-follow:
+        'cython': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'pyfiglet' # checksum: b8621a7d
   implicit-imports:
     - depends:
@@ -3353,12 +3379,15 @@
     - acceptable-missing-dlls:
         - 'libqpdf'
 
-- module-name: 'PyQt6' # checksum: e4e1bada
+- module-name: 'PyQt6' # checksum: 884033ec
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         console: 'recommend'
         when: 'use_pyqt6'
+      - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
+        support_info: 'error'
+        when: 'macos and use_pyqt6'
 
 - module-name: 'pyqtgraph' # checksum: 1d763dc
   data-files:
@@ -3504,17 +3533,17 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: 5b277431
+- module-name: 'PySide2' # checksum: 4e71be92
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver=None):
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+          def patched_disconnect(self, slot=None):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(receiver)
+                      patched_disconnect._protected.append(slot)
 
-              return orig_disconnect(self, receiver)
+              return orig_disconnect(self, slot)
 
           from PySide2 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
@@ -3532,29 +3561,29 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: d718f67
+- module-name: 'PySide6' # checksum: f259f70e
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, receiver=None):
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+          def patched_disconnect(self, slot=None):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(receiver)
+                      patched_disconnect._protected.append(slot)
 
-              return orig_disconnect(self, receiver)
+              return orig_disconnect(self, slot)
 
-          def patched_connect(self, receiver, type=None):
+          def patched_connect(self, slot, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(receiver, "im_func"):
-                  if hasattr(receiver.im_func, "__compiled__"):
+              if hasattr(slot, "im_func"):
+                  if hasattr(slot.im_func, "__compiled__"):
                       patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(receiver)
+                      patched_connect._protected.append(slot)
 
-                      if not receiver.im_func.__name__.startswith("_pyside6_workaround_"):
-                        receiver.im_func.__name__ = "_pyside6_workaround_" + receiver.im_func.__name__
+                      if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
+                        slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
 
-              return orig_connect(self, receiver, type)
+              return orig_connect(self, slot, type)
 
           from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
@@ -5261,7 +5290,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 8a5551ae
+- module-name: 'tensorflow' # checksum: 3e41f159
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5290,6 +5319,11 @@
         sys.modules["tensorflow.keras.activations"] = keras.activations
         sys.modules["tensorflow.keras.models"] = keras.models
       when: 'standalone'
+    - description: 'remove kubernetes as default dependency'
+      no-auto-follow:
+        'kubernetes': 'tensorflow clustering with kubernetes not available'
+      when: 'standalone'
+
   implicit-imports:
     - depends:
         - 'tensorboard'
@@ -5846,14 +5880,14 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: 3d34027f
+- module-name: 'toga' # checksum: 575aecbd
   data-files:
     include-metadata:
       - 'toga-core'
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
-        'setuptools_scm': ''
+        'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'toga.platform' # checksum: 4db91cac
@@ -5939,11 +5973,11 @@
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
-- module-name: 'torch._dynamo.logging' # checksum: 1d305809
+- module-name: 'torch._dynamo.logging' # checksum: 4fad04bc
   anti-bloat:
     - description: 'remove setuptools usage via triton'
       no-auto-follow:
-        'triton': ''
+        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._dynamo.skipfiles' # checksum: 120e0012
@@ -6239,6 +6273,13 @@
     - no-auto-follow:
         'pandas': 'ignore'
 
+- module-name: 'tqdm.version' # checksum: 6b612ba4
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'tracerite' # checksum: 6fffa63e
   data-files:
     patterns:
@@ -6370,11 +6411,11 @@
         # TODO: Forcing inline of this will be better solution.
         'require_version_core': "'(lambda requirement: None)'"
 
-- module-name: 'travertino' # checksum: cb0be8d
+- module-name: 'travertino' # checksum: 9da51f71
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
-        'setuptools_scm': ''
+        'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'trimesh.viewer.notebook' # checksum: d055e332
@@ -6907,6 +6948,36 @@
     patterns:
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
+
+- module-name: 'zaber_motion' # checksum: 793b2dd4
+  implicit-imports:
+    - depends:
+        - 'zaber_motion_bindings_windows'
+      when: 'win32'
+    - depends:
+        - 'zaber_motion_bindings_linux'
+      when: 'linux'
+    - depends:
+        - 'zaber_motion_bindings_darwin'
+      when: 'macos'
+
+- module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+
+- module-name: 'zaber_motion_bindings_linux' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+
+- module-name: 'zaber_motion_bindings_windows' # checksum: dbde56ea
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
 
 - module-name: 'zmq' # checksum: b0320bcc
   dlls:
