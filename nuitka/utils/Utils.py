@@ -345,6 +345,12 @@ def withNoSyntaxWarning():
         yield
 
 
+@contextmanager
+def withNoWarning():
+    with withWarningRemoved(Warning):
+        yield
+
+
 def decoratorRetries(
     logger, purpose, consequence, attempts=5, sleep_time=1, exception_type=OSError
 ):
