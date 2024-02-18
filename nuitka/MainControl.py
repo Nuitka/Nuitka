@@ -990,7 +990,11 @@ def _main():
 
     # Exit if compilation failed.
     if not result:
-        general.sysexit(exit_code=1, reporting=True)
+        general.sysexit(
+            message="Failed unexpectedly in Scons C backend compilation.",
+            mnemonic="scons-backend-failure",
+            reporting=True,
+        )
 
     # Relaunch in case of Python PGO input to be produced.
     if Options.shallCreatePgoInput():
