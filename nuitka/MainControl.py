@@ -28,7 +28,11 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
+from nuitka.build.SconsUtils import (
+    getSconsReportValue,
+    readSconsErrorReport,
+    readSconsReport,
+)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -1059,6 +1063,8 @@ def _main():
 
         # Make sure the scons report is cached before deleting it.
         readSconsReport(source_dir)
+        readSconsErrorReport(source_dir)
+
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:

@@ -1070,10 +1070,7 @@ if env.msvc_mode and not disable_ccache:
         source_dir=source_dir,
     )
 
-writeSconsReport(
-    env=env,
-    source_dir=source_dir,
-)
+writeSconsReport(env)
 
 setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_files))
 
