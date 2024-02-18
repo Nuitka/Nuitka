@@ -79,7 +79,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
 )
-from nuitka.utils.Importing import isBuiltinModuleName
+from nuitka.utils.Importing import getSharedLibrarySuffix, isBuiltinModuleName
 from nuitka.utils.ModuleNames import (
     ModuleName,
     makeTriggerModuleName,
@@ -178,6 +178,9 @@ def _getEvaluationContext():
 
         _context_dict["before_python3"] = python_version < 0x300
         _context_dict["python3_or_higher"] = python_version >= 0x300
+
+        _context_dict["extension_std_suffix"] = getSharedLibrarySuffix(preferred=True)
+        _context_dict["extension_suffix"] = getSharedLibrarySuffix(preferred=False)
 
     return _context_dict
 
