@@ -133,6 +133,15 @@
     dirs:
       - 'resources'
 
+- module-name: 'aspose' # checksum: 4f20a71e
+  data-files:
+    patterns:
+      - '"**/*"+extension_std_suffix'
+      - '**/*.dll'
+  anti-bloat:
+    - no-follow:
+        'aspose.*': 'workaround for aspose needing to load its submodules'
+
 - module-name: 'astor' # checksum: 85584475
   data-files:
     patterns:
