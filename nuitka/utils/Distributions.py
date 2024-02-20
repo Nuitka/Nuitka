@@ -181,6 +181,21 @@ def _initPackageToDistributionName():
     for distribution in distributions():
         distribution_name = getDistributionName(distribution)
 
+        if distribution_name is None:
+            metadata_logger.warning(
+                """\
+Error, failure to detect name of distribution '%s', path '%s', this \
+is typically caused by corruption of its installation."""
+                % (distribution, _getDistributionPath(distribution))
+            )
+            continue
+
+        assert isValidDistributionName(distribution_name), (
+            distribution,
+            distribution_name,
+            _getDistributionPath(distribution),
+        )
+
         for package_name in getDistributionTopLevelPackageNames(distribution):
             # Protect against buggy packages.
             if not checkModuleName(package_name):
@@ -403,11 +418,6 @@ def getDistributionName(distribution):
     else:
         result = distribution.project_name
 
-    assert isValidDistributionName(result), (
-        distribution,
-        result,
-        _getDistributionPath(distribution),
-    )
     return result
 
 
