@@ -31,6 +31,7 @@ from nuitka.PythonFlavors import (
     isPosixWindows,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import metadata_logger
 
 from .FileOperations import searchPrefixPath
 from .Importing import getModuleNameAndKindFromFilenameSuffix
@@ -76,6 +77,14 @@ def _getDistributionMetadataFileContents(distribution, filename):
 
         return result
     except (FileNotFoundError, KeyError):
+        return None
+    except OSError:
+        metadata_logger.warning(
+            """\
+Error, failure to access '%s' of distribution '%s', path '%s', this \
+is typically caused by corruption of its installation."""
+            % (filename, distribution, _getDistributionPath(distribution))
+        )
         return None
 
 
@@ -302,8 +311,12 @@ def isDistributionSystemPackage(distribution_name):
 _pdm_dir_cache = {}
 
 
+def _getDistributionPath(distribution):
+    return getattr(distribution, "_path", None)
+
+
 def isPdmPackageInstallation(distribution):
-    distribution_path = getattr(distribution, "_path", None)
+    distribution_path = _getDistributionPath(distribution)
     if distribution_path is None:
         return False
 
@@ -311,6 +324,7 @@ def isPdmPackageInstallation(distribution):
     if site_packages_path is None:
         return False
 
+    # spell-checker: ignore pyvenv
     candidate = os.path.join(site_packages_path, "..", "..", "pyvenv.cfg")
 
     result = _pdm_dir_cache.get(candidate)
@@ -349,16 +363,15 @@ def getDistributionInstallerName(distribution_name):
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):
-                return "pip"
+                _distribution_to_installer[distribution_name] = "pip"
             elif isMSYS2MingwPython():
-                return "MSYS2 MinGW"
+                _distribution_to_installer[distribution_name] = "MSYS2 MinGW"
             elif isPosixWindows():
-                return "MSYS2 Posix"
+                _distribution_to_installer[distribution_name] = "MSYS2 Posix"
             else:
-                if hasattr(distribution, "_path"):
-                    distribution_path_parts = str(getattr(distribution, "_path")).split(
-                        "/"
-                    )
+                distribution_path = _getDistributionPath(distribution)
+                if distribution_path is not None:
+                    distribution_path_parts = str(distribution_path).split("/")
 
                     if (
                         "dist-packages" in distribution_path_parts
@@ -393,7 +406,7 @@ def getDistributionName(distribution):
     assert isValidDistributionName(result), (
         distribution,
         result,
-        getattr(distribution, "_path", "no path"),
+        _getDistributionPath(distribution),
     )
     return result
 
