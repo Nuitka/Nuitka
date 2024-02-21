@@ -1399,6 +1399,18 @@ del windows_group
 macos_group = parser.add_option_group("macOS specific controls")
 
 macos_group.add_option(
+    "--macos-create-app-bundle",
+    action="store_true",
+    dest="macos_create_bundle",
+    default=False,
+    help="""\
+When compiling for macOS, create a bundle rather than a plain binary
+application. This is the only way to unlock the disabling of console,
+get high DPI graphics, etc. and implies standalone mode. Defaults to
+off.""",
+)
+
+macos_group.add_option(
     "--macos-target-arch",
     action="store",
     dest="macos_target_arch",
@@ -1409,17 +1421,6 @@ macos_group.add_option(
 What architectures is this to supposed to run on. Default and limit
 is what the running Python allows for. Default is "native" which is
 the architecture the Python is run with.""",
-)
-
-macos_group.add_option(
-    "--macos-create-app-bundle",
-    action="store_true",
-    dest="macos_create_bundle",
-    default=False,
-    help="""\
-When compiling for macOS, create a bundle rather than a plain binary
-application. Currently experimental and incomplete. Currently this
-is the only way to unlock disabling of console.Defaults to off.""",
 )
 
 macos_group.add_option(
