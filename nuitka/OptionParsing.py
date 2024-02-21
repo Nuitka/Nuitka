@@ -2020,12 +2020,15 @@ def parseOptions(logger):
     filename_args = []
     module_mode = False
 
+    # Options may be coming from GitHub workflow configuration as well.
+    _considerGithubWorkflowOptions(phase="early")
+
     for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
 
-        if arg.startswith("--main="):
-            filename_args.append(arg)
+        if arg.startswith(("--main=", "--script-name=")):
+            filename_args.append(arg.split("=", 1)[1])
 
         if arg == "--module":
             module_mode = True
@@ -2040,9 +2043,6 @@ def parseOptions(logger):
             + list(getNuitkaProjectOptions(logger, filename, module_mode))
             + sys.argv[1:]
         )
-
-    # Options may be coming from GitHub workflow configuration as well.
-    _considerGithubWorkflowOptions(phase="early")
 
     # Next, lets activate plugins early, so they can inject more options to the parser.
     _considerPluginOptions(logger)
