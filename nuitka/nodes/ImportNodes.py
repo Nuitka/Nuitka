@@ -563,6 +563,8 @@ class ExpressionImportModuleHard(
                         )
 
                         if finding != "not-found":
+                            trace_collection.onExceptionRaiseExit(ImportError)
+
                             result = makeExpressionImportModuleFixed(
                                 using_module_name=self.getParentModule().getFullName(),
                                 module_name=full_name,
@@ -573,7 +575,7 @@ class ExpressionImportModuleHard(
                             return (
                                 result,
                                 "new_expression",
-                                "Attribute lookup '%s* of hard module *%s* becomes hard module name import."
+                                "Attribute lookup '%s' of hard module '%s' becomes hard module name import."
                                 % (self.value_name, attribute_name),
                             )
 
