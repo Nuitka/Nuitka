@@ -425,9 +425,8 @@ data_group.add_option(
 Include data files from complete directory in the distribution. This is
 recursive. Check '--include-data-files' with patterns if you want non-recursive
 inclusion. An example would be '--include-data-dir=/path/some_dir=data/some_dir'
-for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand, or use '--noinclude-data-files'
-option to remove them. Default empty.""",
+for plain copy, of the whole directory. All non-code files are copied, if you
+want to use '--noinclude-data-files' option to remove them. Default empty.""",
 )
 
 data_group.add_option(

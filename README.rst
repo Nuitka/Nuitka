@@ -497,15 +497,17 @@ patterns for the files, and a subdirectory where to put them, indicated
 by the trailing slash.
 
 To copy a whole folder with all files, you can use
-``--include-data-dir=/path/to/images=images`` which will copy all files
-including a potential subdirectory structure. You cannot filter here,
-i.e. if you want only a partial copy, remove the files beforehand.
+``--include-data-dir=/path/to/images=images`` which will copy non-code
+files are copied, if you want to use '--noinclude-data-files' option to
+remove them. Code files are DLLs, executables, Python files, etc. and
+will be ignored. For those you can use the
+``--include-data-files=/binaries/*.exe=binary/`` form.
 
 For package data, there is a better way, using
-``--include-package-data``, which detects data files of packages
-automatically and copies them over. It even accepts patterns in a shell
-style. It spares you the need to find the package directory yourself and
-should be preferred whenever available.
+``--include-package-data``, which detects non-code data files of
+packages automatically and copies them over. It even accepts patterns in
+a shell style. It spares you the need to find the package directory
+yourself and should be preferred whenever available.
 
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
