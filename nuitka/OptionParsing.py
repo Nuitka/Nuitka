@@ -723,6 +723,34 @@ Defaults to off.""",
 
 del output_group
 
+deployment_group = parser.add_option_group("Deployment control")
+
+deployment_group.add_option(
+    "--deployment",
+    action="store_true",
+    dest="is_deployment",
+    default=False,
+    help="""\
+Disable code aimed at making finding compatibility issues easier. This
+will e.g. prevent execution with "-c" argument, which is often used by
+code that attempts run a module, and causes a program to start itself
+over and over potentially. Disable once you deploy to end users, for
+finding typical issues, this is very helpful during development. Default
+off.""",
+)
+
+deployment_group.add_option(
+    "--no-deployment-flag",
+    action="append",
+    dest="no_deployment_flags",
+    metavar="FLAG",
+    default=[],
+    help="""\
+Keep deployment mode, but disable selectively parts of it. Errors from
+deployment mode will output these identifiers. Default empty.""",
+)
+
+del deployment_group
 
 debug_group = parser.add_option_group("Debug features")
 
@@ -752,6 +780,7 @@ debug_group.add_option(
     action="store_true",
     dest="profile",
     default=False,
+    github_action=False,
     help="""\
 Enable vmprof based profiling of time spent. Not working currently. Defaults to off.""",
 )
@@ -761,6 +790,7 @@ debug_group.add_option(
     action="store_true",
     dest="internal_graph",
     default=False,
+    github_action=False,
     help="""\
 Create graph of optimization process internals, do not use for whole programs, but only
 for small test cases. Defaults to off.""",
@@ -781,6 +811,7 @@ debug_group.add_option(
     action="store_true",
     dest="recompile_c_only",
     default=False,
+    github_action=False,
     help="""\
 This is not incremental compilation, but for Nuitka development only. Takes
 existing files and simply compile them as C again. Allows compiling edited
@@ -796,29 +827,6 @@ debug_group.add_option(
     metavar="XML_FILENAME",
     default=None,
     help="Write the internal program structure, result of optimization in XML form to given filename.",
-)
-
-debug_group.add_option(
-    "--deployment",
-    action="store_true",
-    dest="is_deployment",
-    default=False,
-    help="""\
-Disable code aimed at making finding compatibility issues easier. This
-will e.g. prevent execution with "-c" argument, which is often used by
-code that attempts run a module, and causes a program to start itself
-over and over potentially. Default off.""",
-)
-
-debug_group.add_option(
-    "--no-deployment-flag",
-    action="append",
-    dest="no_deployment_flags",
-    metavar="FLAG",
-    default=[],
-    help="""\
-Keep deployment mode, but disable selectively parts of it. Errors from
-deployment mode will output these identifiers. Default empty.""",
 )
 
 debug_group.add_option(
@@ -868,6 +876,7 @@ debug_group.add_option(
     action="store_true",
     dest="generate_c_only",
     default=False,
+    github_action=False,
     help="""\
 Generate only C source code, and do not compile it to binary or module. This
 is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
