@@ -346,6 +346,22 @@ Do not create a '.pyi' file for extension modules
 created by Nuitka. This is used to detect implicit
 imports. Defaults to off.
 .IP
+Deployment control:
+.TP
+\fB\-\-deployment\fR
+Disable code aimed at making finding compatibility
+issues easier. This will e.g. prevent execution with
+"\-c" argument, which is often used by code that
+attempts run a module, and causes a program to start
+itself over and over potentially. Disable once you
+deploy to end users, for finding typical issues, this
+is very helpful during development. Default off.
+.TP
+\fB\-\-no\-deployment\-flag\fR=\fI\,FLAG\/\fR
+Keep deployment mode, but disable selectively parts of
+it. Errors from deployment mode will output these
+identifiers. Default empty.
+.IP
 Debug features:
 .TP
 \fB\-\-debug\fR
@@ -382,18 +398,6 @@ at.
 \fB\-\-xml\fR=\fI\,XML_FILENAME\/\fR
 Write the internal program structure, result of
 optimization in XML form to given filename.
-.TP
-\fB\-\-deployment\fR
-Disable code aimed at making finding compatibility
-issues easier. This will e.g. prevent execution with
-"\-c" argument, which is often used by code that
-attempts run a module, and causes a program to start
-itself over and over potentially. Default off.
-.TP
-\fB\-\-no\-deployment\-flag\fR=\fI\,FLAG\/\fR
-Keep deployment mode, but disable selectively parts of
-it. Errors from deployment mode will output these
-identifiers. Default empty.
 .TP
 \fB\-\-experimental\fR=\fI\,FLAG\/\fR
 Use features declared as 'experimental'. May have no
