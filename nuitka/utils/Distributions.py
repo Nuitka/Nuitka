@@ -41,7 +41,18 @@ _package_to_distribution = None
 
 
 def getDistributionFiles(distribution):
-    if hasattr(distribution, "files"):
+    try:
+        hasattr_files = hasattr(distribution, "files")
+    except OSError:
+        metadata_logger.warning(
+            """\
+Error, failure to access '.files()' of distribution '%s', path '%s', this \
+is typically caused by corruption of its installation."""
+            % (distribution, _getDistributionPath(distribution))
+        )
+        hasattr_files = False
+
+    if hasattr_files:
         for filename in distribution.files or ():
             filename = filename.as_posix()
 
