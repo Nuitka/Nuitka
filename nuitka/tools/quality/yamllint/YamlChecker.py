@@ -17,6 +17,7 @@
 #
 """ Check and update Yaml checksum if possible."""
 
+import ast
 from posixpath import normpath
 
 from nuitka.utils.FileOperations import (
@@ -64,6 +65,8 @@ def checkSchema(logger, document):
 
 
 def _checkValues(logger, filename, module_name, section, value):
+    # many checks of course, pylint: disable=too-many-branches
+
     result = True
 
     if type(value) is dict:
@@ -75,6 +78,17 @@ def _checkValues(logger, filename, module_name, section, value):
                     % (filename, module_name, section, k)
                 )
                 result = False
+
+            if k == "when":
+                try:
+                    ast.parse(v)
+                except (SyntaxError, IndentationError):
+                    logger.info(
+                        """\
+%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
+                        % (filename, module_name, section, k, v)
+                    )
+                    result = False
 
             if k in ("dest_path", "relative_path") and v != normpath(v):
                 logger.info(
