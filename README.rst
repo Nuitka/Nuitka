@@ -496,22 +496,74 @@ To copy some or all file in a directory, use the option
 patterns for the files, and a subdirectory where to put them, indicated
 by the trailing slash.
 
-To copy a whole folder with all files, you can use
-``--include-data-dir=/path/to/images=images`` which will copy non-code
-files are copied, if you want to use '--noinclude-data-files' option to
-remove them. Code files are DLLs, executables, Python files, etc. and
-will be ignored. For those you can use the
-``--include-data-files=/binaries/*.exe=binary/`` form.
+.. important::
 
-For package data, there is a better way, using
-``--include-package-data``, which detects non-code data files of
+   Nuitka does not consider data files code, do not include DLLs, or
+   Python files as data files, and expect them to work, they will not,
+   unless you really know what you are doing.
+
+In the following, non-code data files are all files, not matching on of
+these criterions.
+
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| Suffix     | Rationale                                                                              | Solution                                                                                               |
++============+========================================================================================+========================================================================================================+
+| ``.py``    | Nuitka trims even the stdlib modules to be included. If it doesn't see Python code,    | Use ``--include-module`` on them instead                                                               |
+|            | there is no dependencies analyzed, and as a result it will just not work.              |                                                                                                        |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.pyc``   | Same as ``.py``.                                                                       | Use ``--include-module`` on them from their source code instead.                                       |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.pyo``   | Same as ``.pyc``.                                                                      | Use ``--include-module`` on them from their source code instead.                                       |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.pyw``   | Same as ``.py``.                                                                       | For including multiple programs, use multiple ``--main`` arguments instead.                            |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.pyi``   | These are ignored, because they are code-like and not needed at run time. For the      | Raise an issue if 3rd part software needs it.                                                          |
+|            | ``lazy`` package that actually would depend on them, we made a compile time solution   |                                                                                                        |
+|            | that removes the need.                                                                 |                                                                                                        |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.pyx``   | These are ignored, because they are Cython source code not used at run time            |                                                                                                        |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.dll``   | These are ignored, since they **usually** are not data files. For the cases where 3rd  | Create Nuitka Package configuration for those, with ``dll`` section for the package that uses them.    |
+|            | party packages do actually used them as data, e.g. ``.NET`` packages, we solve that in | For rare cases, data-files section with special configuration might be the correct thing to do.        |
+|            | package configuration for it.                                                          |                                                                                                        |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.dylib`` | These are ignored, since they macOS extension modules or DLLs.                         | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.so``    | These are ignored, since they Linux, BSD, etc. extension modules or DLLs.              | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.exe``   | The are binaries to Windows.                                                           | You can add Nuitka Package configuration to include those as DLLs and mark them as ``executable: yes`` |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+| ``.bin``   | The are binaries to non-Windows, otherwise same as ``.exe``.                           |                                                                                                        |
++------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
+
+Also folders are ignored, these are ``site-packages``, ``dist-packages``
+and ``vendor-packages`` which would otherwise include a full virtualenv,
+which is never a good thing to happen. And the ``__pycache__`` folder is
+also always ignored. On non-MacOS the file ``.DS_Store`` is ignored too,
+and ``py.typed`` folders have only meaning to IDEs, and are ignored like
+``.pyi`` files .
+
+To copy a whole folder with all non-code files, you can use
+``--include-data-dir=/path/to/images=images`` which will place those in
+the destination, and if you want to use the ``--noinclude-data-files``
+option to remove them. Code files are as detailed above DLLs,
+executables, Python files, etc. and will be ignored. For those you can
+use the ``--include-data-files=/binaries/*.exe=binary/`` form to force
+them, but that is not recommended and known to cause issues at run-time.
+
+For package data, there is a better way, namely using
+``--include-package-data``, which detects all non-code data files of
 packages automatically and copies them over. It even accepts patterns in
 a shell style. It spares you the need to find the package directory
-yourself and should be preferred whenever available.
+yourself and should be preferred whenever available. Functionally it's
+very similar to ``--include-data-dir`` but it has the benefit to locate
+the correct folder for you.
 
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
-issues if you encounter something in these.
+issues if you encounter something in these. Even better, raise PRs with
+enhancements to the Nuitka package configuration. With want 3rd party
+software to just work out of the box.
 
 When that is working, you can use the onefile mode if you so desire.
 
