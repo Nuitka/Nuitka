@@ -445,6 +445,29 @@ Error, the Python from Windows app store is not supported.""",
     if shallCreateAppBundle():
         options.is_standalone = True
 
+    if isMacOS():
+        macos_target_arch = getMacOSTargetArch()
+
+        if macos_target_arch == "universal":
+            Tracing.options_logger.sysexit(
+                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
+            )
+
+        if (options.macos_target_arch or "native") != "native":
+            from nuitka.utils.SharedLibraries import (
+                hasUniversalOrMatchingMacOSArchitecture,
+            )
+
+            if not hasUniversalOrMatchingMacOSArchitecture(
+                os.path.realpath(sys.executable)
+            ):
+                Tracing.options_logger.sysexit(
+                    """\
+Cannot cross compile to other arch, using non-universal Python binaries \
+for macOS. Please install the "universal" Python package as offered on \
+the Python download page."""
+                )
+
     # Standalone implies no_site build unless overridden, therefore put it
     # at start of flags, so "site" can override it.
     if options.is_standalone:
