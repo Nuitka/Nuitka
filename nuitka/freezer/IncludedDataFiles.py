@@ -201,6 +201,8 @@ default_ignored_suffixes = (
     ".pyx",
     ".dll",
     ".dylib",
+    ".exe",
+    ".bin",
 )
 
 default_ignored_suffixes += getSharedLibrarySuffixes()
@@ -208,6 +210,7 @@ default_ignored_suffixes += getSharedLibrarySuffixes()
 default_ignored_dirs = (
     "__pycache__",
     "site-packages",
+    "dist-packages",
     "vendor-packages",
 )
 
