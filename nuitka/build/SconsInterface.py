@@ -456,14 +456,7 @@ def setCommonSconsOptions(options):
 
         options["macos_min_version"] = macos_min_version
 
-        macos_target_arch = Options.getMacOSTargetArch()
-
-        if macos_target_arch == "universal":
-            Tracing.general.sysexit(
-                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
-            )
-
-        options["macos_target_arch"] = macos_target_arch
+        options["macos_target_arch"] = Options.getMacOSTargetArch()
 
     options["target_arch"] = getArchitecture()
 
