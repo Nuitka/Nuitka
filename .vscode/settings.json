@@ -184,6 +184,7 @@
         "iternextfunc",
         "itervalues",
         "joinpath",
+        "jsonschema",
         "Kivy",
         "kwargs",
         "kwds",
