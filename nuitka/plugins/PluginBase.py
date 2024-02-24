@@ -69,6 +69,7 @@ from nuitka.PythonVersions import (
     python_version,
 )
 from nuitka.Tracing import plugins_logger
+from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
     getDistributionFromModuleName,
     getDistributionName,
@@ -147,6 +148,7 @@ def _getEvaluationContext():
             # Frequent used modules
             "sys": sys,
             "os": os,
+            "appdirs": getAppdirsModule(),
             # Builtins
             "True": True,
             "False": False,
