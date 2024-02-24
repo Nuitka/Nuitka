@@ -846,30 +846,39 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
         self.finding = None
 
-    def _attemptFollow(self, module_name):
-        # Complex stuff, pylint: disable=too-many-branches,too-many-locals
-
+    def _getLevelValue(self):
         parent_module = self.getParentModule()
-
         level = self.subnode_level
 
         if level is None:
-            level = 0 if parent_module.getFutureSpec().isAbsoluteImport() else -1
+            return 0 if parent_module.getFutureSpec().isAbsoluteImport() else -1
         elif not level.isCompileTimeConstant():
-            return
+            return None
         else:
-            level = level.getCompileTimeConstant()
+            level_value = level.getCompileTimeConstant()
 
-        if level != 0:
+            # TODO: Catch this as a static error maybe.
+            if type(level_value) not in (int, long):
+                return None
+
+            return level_value
+
+    def _attemptFollow(self, module_name):
+        # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+
+        # Without the level value, we don't know what it is.
+        level_value = self._getLevelValue()
+        if level_value is None:
+            return
+
+        parent_module = self.getParentModule()
+
+        if level_value != 0:
             parent_package = parent_module.getFullName()
             if not parent_module.isCompiledPythonPackage():
                 parent_package = parent_package.getPackageName()
         else:
             parent_package = None
-
-        # TODO: Catch this as a static error maybe.
-        if type(level) not in (int, long):
-            return None
 
         module_name_resolved = resolveModuleName(module_name)
         if module_name_resolved != module_name:
@@ -887,7 +896,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         module_name_found, module_filename, module_kind, self.finding = locateModule(
             module_name=ModuleName(module_name),
             parent_package=parent_package,
-            level=level,
+            level=level_value,
         )
 
         self.used_modules = [
@@ -896,7 +905,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 filename=module_filename,
                 module_kind=module_kind,
                 finding=self.finding,
-                level=level,
+                level=level_value,
                 source_ref=self.source_ref,
                 reason="import",
             )
@@ -962,7 +971,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 ) = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
-                    level=level,
+                    level=level_value,
                 )
 
                 self.used_modules.append(
@@ -971,7 +980,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         filename=module_filename,
                         module_kind=module_kind,
                         finding=finding,
-                        level=level,
+                        level=level_value,
                         source_ref=self.source_ref,
                         reason="import",
                     )
@@ -1028,6 +1037,55 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
             if type(imported_module_name) in (str, unicode):
+                if self.finding == "relative":
+                    parent_module = self.getParentModule()
+
+                    parent_package = parent_module.getFullName()
+                    if not parent_module.isCompiledPythonPackage():
+                        parent_package = parent_package.getPackageName()
+
+                    level_value = abs(self._getLevelValue())
+                    level_value -= 1
+
+                    while level_value > 0:
+                        parent_package = parent_package.getPackageName()
+                        level_value -= 1
+
+                    if imported_module_name != "":
+                        candidate_module_name = parent_package.getChildNamed(
+                            imported_module_name
+                        )
+                    else:
+                        candidate_module_name = parent_package
+
+                    if (
+                        candidate_module_name in hard_modules_non_stdlib
+                        or module_filename is None
+                        or isStandardLibraryPath(module_filename)
+                    ):
+                        result = ExpressionImportModuleHard(
+                            using_module_name=self.getParentModule().getFullName(),
+                            module_name=candidate_module_name,
+                            value_name=self._getImportedValueName(
+                                candidate_module_name
+                            ),
+                            source_ref=self.source_ref,
+                        )
+
+                        return (
+                            result,
+                            "new_expression",
+                            "Lowered import %s module '%s' to hard import."
+                            % (
+                                (
+                                    "hard import"
+                                    if candidate_module_name in hard_modules_non_stdlib
+                                    else "standard library"
+                                ),
+                                candidate_module_name.asString(),
+                            ),
+                        )
+
                 imported_module_name = resolveModuleName(imported_module_name)
 
                 if self.finding == "absolute" and isHardModule(imported_module_name):
