@@ -214,6 +214,7 @@ def _cleanupPyLintComments(filename, effective_filename):
 
     def replacer(part):
         def changePyLintTagName(pylint_token):
+            pylint_token = pylint_token.strip()
             # Save line length for this until isort is better at long lines.
             if pylint_token == "useless-suppression":
                 return "I0021"
