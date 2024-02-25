@@ -954,7 +954,7 @@ class PythonMainModule(CompiledPythonModule):
             )
 
             # Technically required, but not found must not happen
-            assert finding != "not-found"
+            assert finding != "not-found", early_module_name
 
             self.standard_library_modules.add(
                 makeModuleUsageAttempt(
