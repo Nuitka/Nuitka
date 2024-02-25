@@ -1,5 +1,17 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from __future__ import print_function
+
+print("Clash in constants reveals order:")
+x = {True, 1}
+print(x)
+
+print("Complex constant using sets with clashes at run time:")
+y = True
+x = ({1}, {1, True}, {1, 1.0}, {1, y})
+print(x)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,14 +26,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from __future__ import print_function
-
-print("Clash in constants reveals order:")
-x = {True, 1}
-print(x)
-
-print("Complex constant using sets with clashes at run time:")
-y = True
-x = ({1}, {1, True}, {1, 1.0}, {1, y})
-print(x)

@@ -1,5 +1,15 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+def g():
+    for a in range(3):
+        yield a
+
+    return 7
+
+
+print("Yielder with return value", list(g()))
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,12 +24,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-def g():
-    for a in range(3):
-        yield a
-
-    return 7
-
-
-print("Yielder with return value", list(g()))

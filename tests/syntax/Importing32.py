@@ -1,5 +1,18 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+def starImportFailure():
+    from doctest import *
+
+    try:
+        sys
+        print("but it does not")
+    except NameError:
+        print("and it does")
+
+
+print("Star import needs to respect __all__", starImportFailure())
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,15 +27,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-def starImportFailure():
-    from doctest import *
-
-    try:
-        sys
-        print("but it does not")
-    except NameError:
-        print("and it does")
-
-
-print("Star import needs to respect __all__", starImportFailure())

@@ -1,5 +1,12 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+import some_package.some_module
+import some_package.sub_package.some_sub_module
+
+print(some_package.__package__)
+print(some_package.sub_package.__package__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,9 +21,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-import some_package.some_module
-import some_package.sub_package.some_sub_module
-
-print(some_package.__package__)
-print(some_package.sub_package.__package__)

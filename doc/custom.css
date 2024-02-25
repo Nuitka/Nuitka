@@ -1,6 +1,14 @@
 /**********************************************************************
-    Copyright 2023, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
+    Copyright 2024, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in> find license text at end of file
+/**********************************************************************
 
+/* Override Nuitka logo size */
+#projectlogo img {
+    max-width: 50px;
+    padding: 5px;
+}
+
+/**********************************************************************
     Part of "Nuitka", an optimizing Python compiler that is compatible and
     integrates with CPython, but also works on its own.
 
@@ -15,11 +23,4 @@
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-
 /**********************************************************************
-
-/* Override Nuitka logo size */
-#projectlogo img {
-    max-width: 50px;
-    padding: 5px;
-}
