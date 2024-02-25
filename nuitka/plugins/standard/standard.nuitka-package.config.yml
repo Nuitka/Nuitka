@@ -3110,6 +3110,21 @@
         'plumbum.colorlib._ipython_ext': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'plyer' # checksum: c06d8897
+  implicit-imports:
+    - depends:
+        - 'plyer.platforms.win.*'
+      when: 'win32'
+    - depends:
+        - 'plyer.platforms.linux.*'
+      when: 'linux'
+    - depends:
+        - 'plyer.platforms.macosx.*'
+      when: 'macos'
+    - depends:
+        - 'plyer.platforms.android.*'
+      when: 'android'
+
 - module-name: 'polars.lazyframe.frame' # checksum: e9afa6bc
   anti-bloat:
     - description: 'remove IPython reference'
