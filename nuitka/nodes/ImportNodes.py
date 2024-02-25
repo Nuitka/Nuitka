@@ -563,6 +563,8 @@ class ExpressionImportModuleHard(
                         )
 
                         if finding != "not-found":
+                            trace_collection.onExceptionRaiseExit(ImportError)
+
                             result = makeExpressionImportModuleFixed(
                                 using_module_name=self.getParentModule().getFullName(),
                                 module_name=full_name,
@@ -573,7 +575,7 @@ class ExpressionImportModuleHard(
                             return (
                                 result,
                                 "new_expression",
-                                "Attribute lookup '%s* of hard module *%s* becomes hard module name import."
+                                "Attribute lookup '%s' of hard module '%s' becomes hard module name import."
                                 % (self.value_name, attribute_name),
                             )
 
@@ -1026,6 +1028,55 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
             if type(imported_module_name) in (str, unicode):
+                if self.finding == "relative":
+                    parent_module = self.getParentModule()
+
+                    parent_package = parent_module.getFullName()
+                    if not parent_module.isCompiledPythonPackage():
+                        parent_package = parent_package.getPackageName()
+
+                    level = self.subnode_level.getCompileTimeConstant()
+                    level -= 1
+
+                    while level > 0:
+                        parent_package = parent_package.getPackageName()
+                        level -= 1
+
+                    if imported_module_name != "":
+                        candidate_module_name = parent_package.getChildNamed(
+                            imported_module_name
+                        )
+                    else:
+                        candidate_module_name = parent_package
+
+                    if (
+                        candidate_module_name in hard_modules_non_stdlib
+                        or module_filename is None
+                        or isStandardLibraryPath(module_filename)
+                    ):
+                        result = ExpressionImportModuleHard(
+                            using_module_name=self.getParentModule().getFullName(),
+                            module_name=candidate_module_name,
+                            value_name=self._getImportedValueName(
+                                candidate_module_name
+                            ),
+                            source_ref=self.source_ref,
+                        )
+
+                        return (
+                            result,
+                            "new_expression",
+                            "Lowered import %s module '%s' to hard import."
+                            % (
+                                (
+                                    "hard import"
+                                    if candidate_module_name in hard_modules_non_stdlib
+                                    else "standard library"
+                                ),
+                                candidate_module_name.asString(),
+                            ),
+                        )
+
                 imported_module_name = resolveModuleName(imported_module_name)
 
                 if self.finding == "absolute" and isHardModule(imported_module_name):

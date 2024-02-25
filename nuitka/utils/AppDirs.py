@@ -40,6 +40,11 @@ appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
 if appdirs is None:
     import appdirs  # pylint: disable=I0021,import-error
 
+
+def getAppdirsModule():
+    return appdirs
+
+
 _cache_dir = None
 
 

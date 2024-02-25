@@ -331,6 +331,13 @@
     patterns:
       - 'templates/*.j2'
 
+- module-name: 'bindings' # checksum: 7e84029d
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+      when: 'None is not version("zaber_motion") >= (5,1,2)'
+
 - module-name: 'bitarray' # checksum: b157a72f
   anti-bloat:
     - description: 'remove unittest reference'
@@ -888,6 +895,13 @@
   implicit-imports:
     - depends:
         - 'dependency_injector.errors'
+
+- module-name: 'diatheke' # checksum: ad402cfe
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
+        - ''
 
 - module-name: 'dipy' # checksum: 6059075a
   anti-bloat:
@@ -2511,6 +2525,82 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
+- module-name: 'paddle' # checksum: 11103e47
+  dlls:
+    - from_filenames:
+        relative_path: 'libs'
+        prefixes:
+          - 'lib'
+          - 'mkl'
+          - 'war'
+          - 'common'
+
+- module-name: 'paddle.base.core' # checksum: a81e13c9
+  anti-bloat:
+    - replacements_plain:
+        "third_lib_path = current_path + os.sep + '..' + os.sep + 'libs'": "third_lib_path = os.path.normpath(current_path + os.sep + '..' + os.sep + 'libs')"
+      change_function:
+        'set_paddle_lib_path': "'(lambda: None)'"
+
+- module-name: 'paddle.distributed.fleet.launch_utils' # checksum: 69fc840a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import paddle.utils.cpp_extension.extension_utils as utils': ''
+      replacements:
+        "utils.OS_NAME.startswith('darwin')": 'repr(macos)'
+        'utils.IS_WINDOWS': 'repr(win32)'
+      when: 'not use_setuptools'
+
+- module-name: 'paddle.fluid.core' # checksum: a81e13c9
+  anti-bloat:
+    - replacements_plain:
+        "third_lib_path = current_path + os.sep + '..' + os.sep + 'libs'": "third_lib_path = os.path.normpath(current_path + os.sep + '..' + os.sep + 'libs')"
+      change_function:
+        'set_paddle_lib_path': "'(lambda: None)'"
+
+- module-name: 'paddle.jit.sot.opcode_translator.skip_files' # checksum: 5721def1
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import setuptools': ''
+        'setuptools,': ''
+      when: 'not use_setuptools'
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+        'unittest,': ''
+      when: 'not use_unittest'
+
+- module-name: 'paddle.utils' # checksum: 9f797eec
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      # TODO: We need a special form of removing import assignments
+      replacements_plain:
+        'cpp_extension,': ''
+      when: 'not use_setuptools'
+
+- module-name: 'paddleocr' # checksum: 90264499
+  import-hacks:
+    - global-sys-path:
+          # This package forces itself into "sys.path" and expects absolute
+          # imports from all of these to be available.
+        - ''
+        - 'ppstructure'
+        - 'tools/infer'
+        - 'ppocr/postprocess'
+        - 'ppocr'
+        - 'ppocr/utils/e2e_utils'
+        - 'ppocr/utils'
+        - 'ppstructure/layout'
+        - 'ppstructure/table'
+
+- module-name: 'paddleocr.paddleocr' # checksum: 8cf243fc
+  anti-bloat:
+    - replacements_plain:
+        'tools = _import_file(': ''
+        "    'tools', os.path.join(__dir__, 'tools/__init__.py'), make_importable=True)": 'from . import tools'
+
 - module-name: 'panda3d' # checksum: ed772c0a
   data-files:
     dest_path: '.'
@@ -3110,6 +3200,21 @@
         'plumbum.colorlib._ipython_ext': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'plyer' # checksum: c06d8897
+  implicit-imports:
+    - depends:
+        - 'plyer.platforms.win.*'
+      when: 'win32'
+    - depends:
+        - 'plyer.platforms.linux.*'
+      when: 'linux'
+    - depends:
+        - 'plyer.platforms.macosx.*'
+      when: 'macos'
+    - depends:
+        - 'plyer.platforms.android.*'
+      when: 'android'
+
 - module-name: 'polars.lazyframe.frame' # checksum: e9afa6bc
   anti-bloat:
     - description: 'remove IPython reference'
@@ -3153,6 +3258,17 @@
       change_function:
         'test': 'un-callable'
       when: 'not use_pytest'
+
+- module-name: 'ppocr.utils.e2e_utils.pgnet_pp_utils' # checksum: 935978cf
+  anti-bloat:
+    - replacements_plain:
+        'from extract_textpoint_slow import *': 'from .extract_textpoint_slow import *'
+        'from extract_textpoint_fast import generate_pivot_list_fast, restore_poly': 'from .extract_textpoint_fast import generate_pivot_list_fast, restore_poly'
+  import-hacks:
+    - global-sys-path:
+          # This package forces itself into "sys.path" and expects absolute
+          # imports to be available.
+        - ''
 
 - module-name: 'psutil' # checksum: 24d7eb52
   anti-bloat:
@@ -3379,7 +3495,7 @@
     - acceptable-missing-dlls:
         - 'libqpdf'
 
-- module-name: 'PyQt6' # checksum: ba6b9d0b
+- module-name: 'PyQt6' # checksum: 884033ec
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
@@ -3387,7 +3503,7 @@
         when: 'use_pyqt6'
       - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
         support_info: 'error'
-        when: 'macos and use use_pyqt6'
+        when: 'macos and use_pyqt6'
 
 - module-name: 'pyqtgraph' # checksum: 1d763dc
   data-files:
@@ -6949,17 +7065,26 @@
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
 
-- module-name: 'zaber_motion' # checksum: 793b2dd4
+- module-name: 'zaber_motion' # checksum: 7af9b202
   implicit-imports:
     - depends:
         - 'zaber_motion_bindings_windows'
-      when: 'win32'
+      when: 'win32 and version("zaber_motion") < (5,1,2)'
     - depends:
         - 'zaber_motion_bindings_linux'
-      when: 'linux'
+      when: 'linux and version("zaber_motion") < (5,1,2)'
     - depends:
         - 'zaber_motion_bindings_darwin'
-      when: 'macos'
+      when: 'macos and version("zaber_motion") < (5,1,2)'
+    - depends:
+        - 'bindings'
+      when: 'version("zaber_motion") >= (5,1,2)'
+
+- module-name: 'zaber_motion.bindings' # checksum: ebad5220
+  anti-bloat:
+    - description: 'normalize path for DLLs'
+      replacements_plain:
+        'os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name)': 'os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name))'
 
 - module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea
   dlls:
