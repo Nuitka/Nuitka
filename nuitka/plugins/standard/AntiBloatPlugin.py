@@ -37,7 +37,8 @@ _mode_choices = ("error", "warning", "nofollow", "allow")
 
 
 class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
-    # Lots of details, a bunch of state is cached, pylint: disable=too-many-instance-attributes
+    # Lots of details, a bunch of state is cached and tracked across functions
+    # pylint: disable=too-many-instance-attributes
 
     plugin_name = "anti-bloat"
     plugin_desc = (
@@ -569,19 +570,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return None
 
-    def onModuleRecursion(
-        self,
-        module_name,
-        module_filename,
-        module_kind,
-        using_module_name,
-        source_ref,
-        reason,
-    ):
-        # Quite a few special cases, but not really complex.
-        # pylint: disable=too-many-branches,too-many-locals
-
-        # First off, activate "no-follow" configurations.
+    def _applyNoFollowConfiguration(self, module_name):
         for (
             config_of_module_name,
             no_follow,
@@ -594,6 +583,20 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             recursive=True,
         ):
             self.no_follows[no_follow] = (config_of_module_name, description)
+
+    def onModuleRecursion(
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
+    ):
+        # pylint: disable=too-many-branches
+
+        # First off, activate "no-follow" configurations of this module.
+        self._applyNoFollowConfiguration(module_name=module_name)
 
         # Do not even look at these. It's either included by a module that is in standard
         # library, or included for a module in standard library.
