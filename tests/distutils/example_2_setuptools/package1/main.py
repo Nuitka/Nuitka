@@ -1,5 +1,19 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from package1.module1 import module1_f1
+from package1.module2 import module2_f1
+from package1.subpackage1.submodule11 import submodule11_f2
+from package1.subpackage2.submodule21 import submodule21_f1
+
+
+def main():
+    module1_f1("package1.main.py")
+    module2_f1("package1.main.py")
+    submodule11_f2("package1.main.py")
+    submodule21_f1("package1.main.py")
+
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be
@@ -16,15 +30,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from package1.module1 import module1_f1
-from package1.module2 import module2_f1
-from package1.subpackage1.submodule11 import submodule11_f2
-from package1.subpackage2.submodule21 import submodule21_f1
-
-
-def main():
-    module1_f1("package1.main.py")
-    module2_f1("package1.main.py")
-    submodule11_f2("package1.main.py")
-    submodule21_f1("package1.main.py")

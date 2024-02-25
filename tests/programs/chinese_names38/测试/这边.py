@@ -1,5 +1,13 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+def 为什么呢():
+    print(
+        "这里有个测试"
+        "here is a test in a chinese module with a chinese file name with a chinese function name"
+    )
+
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,9 +22,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-def 为什么呢():
-    print(
-        "这里有个测试"
-        "here is a test in a chinese module with a chinese file name with a chinese function name"
-    )

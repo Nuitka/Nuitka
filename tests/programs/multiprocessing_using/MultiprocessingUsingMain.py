@@ -1,5 +1,17 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+""" Test that checks that accelerated mode usage of multiprocessing works too. """
+
+from multiprocessing import freeze_support
+
+if __name__ == "__main__":
+    freeze_support()
+
+    from foo import entry
+
+    entry.main()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,14 +26,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-""" Test that checks that accelerated mode usage of multiprocessing works too. """
-
-from multiprocessing import freeze_support
-
-if __name__ == "__main__":
-    freeze_support()
-
-    from foo import entry
-
-    entry.main()

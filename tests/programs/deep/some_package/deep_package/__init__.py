@@ -1,5 +1,13 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from __future__ import print_function
+
+import sys
+
+print("The deep package has __package__", __package__)
+print("The deep package has __package__", sys.modules[__name__].__package__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,10 +22,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from __future__ import print_function
-
-import sys
-
-print("The deep package has __package__", __package__)
-print("The deep package has __package__", sys.modules[__name__].__package__)

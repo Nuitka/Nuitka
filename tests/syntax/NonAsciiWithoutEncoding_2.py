@@ -1,5 +1,10 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+# No encoding declared, but non-ASCII in that string.
+
+s = "'\0\"\n\r\t abcd\x85é\U00012fff\uD800\U0001D121xxx."
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,7 +19,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-# No encoding declared, but non-ASCII in that string.
-
-s = "'\0\"\n\r\t abcd\x85é\U00012fff\uD800\U0001D121xxx."

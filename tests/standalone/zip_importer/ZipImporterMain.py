@@ -1,5 +1,22 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+# nuitka-project: --standalone
+# nuitka-project: --include-data-file={MAIN_DIRECTORY}/for_import.zip=for_import.zip
+
+# isort:start
+
+import os
+import sys
+
+zip_filename = os.path.join(os.path.dirname(__file__) or ".", "for_import.zip")
+
+assert os.path.exists(zip_filename)
+sys.path.insert(0, zip_filename)
+
+# Import after it can work now.
+import zip_module  # isort:skip
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be
@@ -16,19 +33,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-# nuitka-project: --standalone
-# nuitka-project: --include-data-file={MAIN_DIRECTORY}/for_import.zip=for_import.zip
-
-# isort:start
-
-import os
-import sys
-
-zip_filename = os.path.join(os.path.dirname(__file__) or ".", "for_import.zip")
-
-assert os.path.exists(zip_filename)
-sys.path.insert(0, zip_filename)
-
-# Import after it can work now.
-import zip_module  # isort:skip
