@@ -174,6 +174,9 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
                 closeSconsProgressBar()
                 raise exception
 
+        if rv != 0:
+            closeSconsProgressBar()
+
         if cmd == "link":
             data = _filterMsvcLinkOutput(
                 env=env, module_mode=module_mode, data=data, exit_code=rv
@@ -398,8 +401,10 @@ def _getWrappedSpawnFunction(env):
 
         if exception:
             closeSconsProgressBar()
-
             raise exception
+
+        if result != 0:
+            closeSconsProgressBar()
 
         # Segmentation fault should give a clear error.
         if result == -11:
