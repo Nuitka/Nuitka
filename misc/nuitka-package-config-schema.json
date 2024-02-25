@@ -193,6 +193,9 @@
                         "append_plain": {
                             "type": "string"
                         },
+                        "no-follow": {
+                            "type": "object"
+                        },
                         "no-auto-follow": {
                             "type": "object"
                         },
