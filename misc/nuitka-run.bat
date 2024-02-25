@@ -1,6 +1,13 @@
 @echo off
-rem     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-rem 
+rem     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+setlocal
+
+"%~dp0nuitka.bat --run %*"
+
+endlocal
+
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.
 rem 
@@ -15,10 +22,3 @@ rem     distributed under the License is distributed on an "AS IS" BASIS,
 rem     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 rem     See the License for the specific language governing permissions and
 rem     limitations under the License.
-rem 
-
-setlocal
-
-"%~dp0nuitka.bat --run %*"
-
-endlocal

@@ -1,5 +1,17 @@
-//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-//
+//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+#ifndef __NUITKA_HELPER_RICHCOMPARISONS_H__
+#define __NUITKA_HELPER_RICHCOMPARISONS_H__
+
+#include "nuitka/helper/comparisons_eq.h"
+#include "nuitka/helper/comparisons_ge.h"
+#include "nuitka/helper/comparisons_gt.h"
+#include "nuitka/helper/comparisons_le.h"
+#include "nuitka/helper/comparisons_lt.h"
+#include "nuitka/helper/comparisons_ne.h"
+
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
@@ -14,15 +26,3 @@
 //     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
-//
-#ifndef __NUITKA_HELPER_RICHCOMPARISONS_H__
-#define __NUITKA_HELPER_RICHCOMPARISONS_H__
-
-#include "nuitka/helper/comparisons_eq.h"
-#include "nuitka/helper/comparisons_ge.h"
-#include "nuitka/helper/comparisons_gt.h"
-#include "nuitka/helper/comparisons_le.h"
-#include "nuitka/helper/comparisons_lt.h"
-#include "nuitka/helper/comparisons_ne.h"
-
-#endif

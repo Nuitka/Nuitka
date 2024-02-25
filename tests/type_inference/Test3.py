@@ -1,5 +1,18 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+def f(cond):
+    y = 3
+
+    if cond:
+        x = 1
+    else:
+        x = 2
+
+    return x < y
+
+print f(0), f(1)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,15 +27,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-def f(cond):
-    y = 3
-
-    if cond:
-        x = 1
-    else:
-        x = 2
-
-    return x < y
-
-print f(0), f(1)

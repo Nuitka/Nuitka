@@ -1,5 +1,20 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+""" Deprecated trio plugin.
+"""
+from nuitka.plugins.PluginBase import NuitkaPluginBase
+
+
+class NuitkaPluginTrio(NuitkaPluginBase):
+    plugin_name = "trio"
+    plugin_desc = "Deprecated, was once required by the 'trio' package"
+
+    @classmethod
+    def isDeprecated(cls):
+        return True
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
@@ -14,16 +29,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-""" Deprecated trio plugin.
-"""
-from nuitka.plugins.PluginBase import NuitkaPluginBase
-
-
-class NuitkaPluginTrio(NuitkaPluginBase):
-    plugin_name = "trio"
-    plugin_desc = "Deprecated, was once required by the 'trio' package"
-
-    @classmethod
-    def isDeprecated(cls):
-        return True

@@ -1,5 +1,16 @@
-//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-//
+//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+#ifndef __NUITKA_HELPER_SEQUENCES_H__
+#define __NUITKA_HELPER_SEQUENCES_H__
+
+// TODO: Provide enhanced form of PySequence_Contains with less overhead as well.
+
+extern bool SEQUENCE_SET_ITEM(PyObject *sequence, Py_ssize_t index, PyObject *value);
+
+extern Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence);
+
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
@@ -14,14 +25,3 @@
 //     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
-//
-#ifndef __NUITKA_HELPER_SEQUENCES_H__
-#define __NUITKA_HELPER_SEQUENCES_H__
-
-// TODO: Provide enhanced form of PySequence_Contains with less overhead as well.
-
-extern bool SEQUENCE_SET_ITEM(PyObject *sequence, Py_ssize_t index, PyObject *value);
-
-extern Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence);
-
-#endif

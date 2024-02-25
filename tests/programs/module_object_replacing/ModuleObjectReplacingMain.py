@@ -1,5 +1,20 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+# nuitka-project: --follow-import-to=SelfReplacingModule
+
+from __future__ import print_function
+
+import SelfReplacingModule
+
+print("Valid", SelfReplacingModule.valid)
+try:
+    print("InValid", SelfReplacingModule.invalid)
+except Exception as e:
+    print("Occurred", repr(e))
+else:
+    print("No Exception!")
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,17 +29,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-# nuitka-project: --follow-import-to=SelfReplacingModule
-
-from __future__ import print_function
-
-import SelfReplacingModule
-
-print("Valid", SelfReplacingModule.valid)
-try:
-    print("InValid", SelfReplacingModule.invalid)
-except Exception as e:
-    print("Occurred", repr(e))
-else:
-    print("No Exception!")

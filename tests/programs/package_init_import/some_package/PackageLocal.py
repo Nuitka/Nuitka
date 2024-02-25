@@ -1,5 +1,19 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from __future__ import print_function
+
+import sys
+
+print(
+    "Imported PackageLocal",
+    __name__,
+    "in",
+    __package__
+    if __package__ is not None or sys.version_info[:2] != (3, 2)
+    else ".".join(__name__.split(".")[:-1]),
+)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,16 +28,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from __future__ import print_function
-
-import sys
-
-print(
-    "Imported PackageLocal",
-    __name__,
-    "in",
-    __package__
-    if __package__ is not None or sys.version_info[:2] != (3, 2)
-    else ".".join(__name__.split(".")[:-1]),
-)

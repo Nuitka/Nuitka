@@ -1,5 +1,20 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+""" Tests that reads a data file via path"""
+# nuitka-project: --include-package=some_package
+
+# print(get_resource_reader(some_package).get_path("DATA_FILE.txt"))
+
+from importlib.resources import path
+
+# Wrong kind of use of course.
+with path("some_package", "DATA_FILE.txt") as data_path:
+    with open(data_path, encoding="utf8") as data_file:
+        print("RES", data_file.read())
+
+print("OK.")
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,17 +29,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-""" Tests that reads a data file via path"""
-# nuitka-project: --include-package=some_package
-
-# print(get_resource_reader(some_package).get_path("DATA_FILE.txt"))
-
-from importlib.resources import path
-
-# Wrong kind of use of course.
-with path("some_package", "DATA_FILE.txt") as data_path:
-    with open(data_path, encoding="utf8") as data_file:
-        print("RES", data_file.read())
-
-print("OK.")
