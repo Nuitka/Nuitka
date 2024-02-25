@@ -626,17 +626,18 @@ only). Defaults to off.
 .IP
 macOS specific controls:
 .TP
+\fB\-\-macos\-create\-app\-bundle\fR
+When compiling for macOS, create a bundle rather than
+a plain binary application. This is the only way to
+unlock the disabling of console, get high DPI
+graphics, etc. and implies standalone mode. Defaults
+to off.
+.TP
 \fB\-\-macos\-target\-arch\fR=\fI\,MACOS_TARGET_ARCH\/\fR
 What architectures is this to supposed to run on.
 Default and limit is what the running Python allows
 for. Default is "native" which is the architecture the
 Python is run with.
-.TP
-\fB\-\-macos\-create\-app\-bundle\fR
-When compiling for macOS, create a bundle rather than
-a plain binary application. Currently experimental and
-incomplete. Currently this is the only way to unlock
-disabling of console.Defaults to off.
 .TP
 \fB\-\-macos\-app\-icon\fR=\fI\,ICON_PATH\/\fR
 Add icon for the application bundle to use. Can be
