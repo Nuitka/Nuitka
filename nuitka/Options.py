@@ -462,7 +462,10 @@ Error, the Python from Windows app store is not supported.""",
                 os.path.realpath(sys.executable)
             ):
                 Tracing.options_logger.sysexit(
-                    "Cannot cross compile from non-universal macOS binaries."
+                    """\
+Cannot cross compile to other arch, using non-universal Python binaries \
+for macOS. Please install the "universal" Python package as offered on \
+the Python download page."""
                 )
 
     # Standalone implies no_site build unless overridden, therefore put it
