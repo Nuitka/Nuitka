@@ -6074,7 +6074,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: ac3832ce
+- module-name: 'torch' # checksum: 5dee33ed
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -6094,6 +6094,14 @@
       bloat-mode-overrides:
         'unittest': 'allow'
       when: 'not use_unittest'
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove numba reference'
+      no-auto-follow:
+        'numba': 'ignore'
+      when: 'not use_numba and standalone'
 
   options:
     checks:
@@ -6105,13 +6113,6 @@
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
-- module-name: 'torch._dynamo.logging' # checksum: 4fad04bc
-  anti-bloat:
-    - description: 'remove setuptools usage via triton'
-      no-auto-follow:
-        'triton': 'ignore'
-      when: 'not use_setuptools'
-
 - module-name: 'torch._dynamo.skipfiles' # checksum: 120e0012
   anti-bloat:
     # When calling inspect.getfile() on Nuitka's loader, it will yield
@@ -6121,22 +6122,20 @@
       replacements_plain:
         'if inspect.isclass(obj)': 'if inspect.isclass(obj) and obj is not __loader__'
 
-- module-name: 'torch._inductor.codecache' # checksum: 3831aa8d
+- module-name: 'torch._dynamo.variables.builder' # checksum: 6ef7624b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'has_triton()': 'False'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.codecache' # checksum: bb14e715
   anti-bloat:
     - description: 'remove setuptools usage'
       replacements_plain:
         'from torch.utils import cpp_extension': ''
       change_function:
         'get_include_and_linking_paths': 'un-callable'
-      no-auto-follow:
-        'triton': 'ignore'
-      when: 'not use_setuptools'
-
-- module-name: 'torch._inductor.codegen.autotuner' # checksum: be659fee
-  anti-bloat:
-    - description: 'remove setuptools usage'
-      no-auto-follow:
-        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.codegen.common' # checksum: 5d438f8d
@@ -6145,20 +6144,6 @@
       replacements_plain:
         'from .cpp import DTYPE_TO_CPP, INDEX_TYPE': 'raise ImportError'
         'from .cpp import DTYPE_TO_CPP': 'raise ImportError'
-      when: 'not use_setuptools'
-
-- module-name: 'torch._inductor.codegen.triton' # checksum: be659fee
-  anti-bloat:
-    - description: 'remove setuptools usage'
-      no-auto-follow:
-        'triton': 'ignore'
-      when: 'not use_setuptools'
-
-- module-name: 'torch._inductor.codegen.triton_utils' # checksum: be659fee
-  anti-bloat:
-    - description: 'remove setuptools usage'
-      no-auto-follow:
-        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.coordinate_descent_tuner' # checksum: 3a49d1a
@@ -6213,16 +6198,12 @@
         'if has_triton()': 'if False'
       when: 'not use_setuptools'
 
-- module-name: 'torch._inductor.triton_ops.autotune' # checksum: 6eadc654
+- module-name: 'torch._inductor.triton_ops.autotune' # checksum: f3c779b5
   anti-bloat:
     - description: 'remove setuptools usage'
       replacements_plain:
         'from ..codecache import cache_dir': ''
         'cache_dir()': '__nuitka_binary_dir, ".cache"'
-      when: 'not use_setuptools'
-    - description: 'remove setuptools usage via triton'
-      no-auto-follow:
-        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._inductor.triton_ops.conv' # checksum: 6185b84c
@@ -6239,14 +6220,7 @@
         'has_triton()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'torch._inductor.triton_ops.conv_perf_model' # checksum: 4fad04bc
-  anti-bloat:
-    - description: 'remove setuptools usage via triton'
-      no-auto-follow:
-        'triton': 'ignore'
-      when: 'not use_setuptools'
-
-- module-name: 'torch._inductor.utils' # checksum: 8eabbe28
+- module-name: 'torch._inductor.utils' # checksum: 7dd0005
   anti-bloat:
     - description: 'remove setuptools usage via triton'
       replacements_plain:
@@ -6256,8 +6230,6 @@
         'do_bench': 'un-callable'
         'get_device_tflops': 'un-callable'
         'get_gpu_dram_gbps': 'un-callable'
-      no-auto-follow:
-        'triton': 'ignore'
       when: 'not use_setuptools'
 
 - module-name: 'torch._jit_internal' # checksum: f49ee799
@@ -6281,11 +6253,12 @@
         - 'torch.onnx.symbolic_opset14'
         - 'torch.onnx.symbolic_opset15'
 
-- module-name: 'torch.sparse._triton_ops' # checksum: b4a47eb
+- module-name: 'torch.sparse._triton_ops' # checksum: 8eb5107d
   anti-bloat:
     - description: 'remove setuptools usage via triton'
       replacements_plain:
         'if _has_triton()': 'if False'
+        'if has_triton()': 'if False'
       change_function:
         '_has_triton': "'(lambda: False)'"
       when: 'not use_setuptools'

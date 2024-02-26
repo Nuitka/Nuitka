@@ -613,9 +613,9 @@ compilation_group.add_option(
     metavar="YAML_FILENAME",
     help="""\
 User provided Yaml file with package configuration. You can include DLLs,
-remove bloat, add hidden dependencies. Check User Manual for a complete
-description of the format to use. Can be given multiple times. Defaults
-to empty.""",
+remove bloat, add hidden dependencies. Check the Nuitka Package Configuration
+Manual for a complete description of the format to use. Can be given
+multiple times. Defaults to empty.""",
 )
 
 compilation_group.add_option(
