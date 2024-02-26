@@ -346,6 +346,7 @@
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
             "*.nuitka-package.config.yml",
+            "*.nuitka-package.config.yaml",
         ]
     },
     "yaml.maxItemsComputed": 10000,
