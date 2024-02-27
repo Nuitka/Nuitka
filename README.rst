@@ -1177,6 +1177,7 @@ of too low memory, there is no end to them.
 
    # gcc
    fatal error: error writing to -: Invalid argument
+   Killed signal terminated program
    # MSVC
    fatal error C1002: compiler is out of heap space in pass 2
    fatal error C1001: Internal compiler error
