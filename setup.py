@@ -42,13 +42,6 @@ from nuitka.PythonFlavors import isMSYS2MingwPython
 from nuitka.utils.FileOperations import getFileList
 from nuitka.Version import getNuitkaVersion
 
-scripts = []
-
-# For Windows, there are batch files to launch Nuitka.
-if os.name == "nt" and not isMSYS2MingwPython():
-    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
-
-
 version = getNuitkaVersion()
 
 
@@ -241,8 +234,8 @@ runner_script_template = """\
 # -*- coding: utf-8 -*-
 # Launcher for Nuitka
 
-import nuitka.__main__
-nuitka.__main__.main()
+import %(package_name)s
+%(package_name)s.%(function_name)s()
 """
 
 
@@ -259,8 +252,13 @@ def get_args(cls, dist, header=None):
     for type_ in "console", "gui":
         group = type_ + "_scripts"
 
-        for name, _ep in dist.get_entry_map(group).items():
-            script_text = runner_script_template
+        for name, ep in dist.get_entry_map(group).items():
+            package_name, function_name = str(ep).split("=")[1].strip().split(":")
+
+            script_text = runner_script_template % {
+                "package_name": package_name,
+                "function_name": function_name,
+            }
 
             args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
@@ -335,6 +333,20 @@ else:
         "nuitka%s = nuitka.__main__:main" % binary_suffix,
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
+
+    if "nuitka.plugins.commercial" in nuitka_packages:
+        console_scripts.append(
+            "nuitka-decrypt = nuitka.tools.commercial.decrypt.__main__:main"
+        )
+
+scripts = []
+
+# For Windows, there are batch files to launch Nuitka.
+if os.name == "nt" and not isMSYS2MingwPython():
+    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
+
+    if "nuitka.plugins.commercial" in nuitka_packages:
+        scripts.append("misc/nuitka-decrypt.bat")
 
 
 # With this, we can enforce a binary package.

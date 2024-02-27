@@ -1579,6 +1579,24 @@ override it with setting the environment variable ``NUITKA_CACHE_DIR``
 to a base directory. This is for use in environments where the home
 directory is not persisted, but other paths are.
 
+There is also per cache control of these caches, here is a table of
+environment variables that you can set before starting the compilation,
+to make Nuitka store some of these caches in an entirely separate space.
+
++------------------+-----------------------------------+----------------------------------------+
+| Cache name       | Environment Variable              | Data Put there                         |
++==================+===================================+========================================+
+| downloads        | NUITKA_CACHE_DIR_DOWNLOADS        | Downloads made, e.g. dependency walker |
++------------------+-----------------------------------+----------------------------------------+
+| ccache           | NUITKA_CACHE_DIR_CCACHE           | Object files created by gcc            |
++------------------+-----------------------------------+----------------------------------------+
+| clcache          | NUITKA_CACHE_DIR_CLCACHE          | Object files created by MSVC           |
++------------------+-----------------------------------+----------------------------------------+
+| bytecode         | NUITKA_CACHE_DIR_BYTECODE         | Bytecode of demoted modules            |
++------------------+-----------------------------------+----------------------------------------+
+| dll-dependencies | NUITKA_CACHE_DIR_DLL_DEPENDENCIES | DLL dependencies                       |
++------------------+-----------------------------------+----------------------------------------+
+
 Runners
 =======
 

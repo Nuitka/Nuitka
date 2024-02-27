@@ -141,7 +141,7 @@ def check_call(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
         subprocess.check_call(*popenargs, **kwargs)
@@ -156,7 +156,7 @@ def callProcess(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     return subprocess.call(*popenargs, **kwargs)
 
@@ -179,7 +179,9 @@ def withEnvironmentPathAdded(env_var_name, *paths, **kw):
         if env_var_name in os.environ:
             old_path = os.environ[env_var_name]
 
-            if prefix:
+            if not old_path:
+                os.environ[env_var_name] = path
+            elif prefix:
                 os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
             else:
                 os.environ[env_var_name] += os.pathsep + path
