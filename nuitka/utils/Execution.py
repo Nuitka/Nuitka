@@ -179,7 +179,9 @@ def withEnvironmentPathAdded(env_var_name, *paths, **kw):
         if env_var_name in os.environ:
             old_path = os.environ[env_var_name]
 
-            if prefix:
+            if not old_path:
+                os.environ[env_var_name] = path
+            elif prefix:
                 os.environ[env_var_name] = path + os.pathsep + os.environ[env_var_name]
             else:
                 os.environ[env_var_name] += os.pathsep + path
