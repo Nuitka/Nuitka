@@ -326,7 +326,7 @@ def parsePyIFile(module_name, pyi_filename):
     in_import_part = ""
     in_quote = None
 
-    for line_number, line in enumerate(getFileContentByLine(pyi_filename), start=1):
+    for line in getFileContentByLine(pyi_filename):
         line = line.strip()
 
         if in_quote:
@@ -351,7 +351,8 @@ def parsePyIFile(module_name, pyi_filename):
             elif line.startswith("from "):
                 parts = line.split(None, 3)
                 assert parts[0] == "from"
-                assert parts[2] == "import", (line, pyi_filename, line_number)
+                if parts[2] != "import":
+                    continue
 
                 origin_name = parts[1]
 
