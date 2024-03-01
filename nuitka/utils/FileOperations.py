@@ -298,7 +298,19 @@ def getFilenameRealPath(path):
         doesn't handle file symlinks at the end on older Python currently, but
         we shouldn't deal with those.
     """
+    orig_path = path
     path = os.path.realpath(path)
+
+    # Avoid network mounts being converted to UNC shared paths ny newer
+    # Python versions, many tools won't work with those.
+    if os.name == "nt" and path.startswith("\\\\"):
+        drive, _remaining_path = os.path.splitdrive(orig_path)
+
+        if drive:
+            drive_real_path = os.path.realpath(drive + "\\")
+            assert path.startswith(drive_real_path)
+
+            path = drive + path[len(drive_real_path) :]
 
     # Attempt to resolve Windows symlinks older Python
     if os.name == "nt":
@@ -317,7 +329,7 @@ def getFilenameRealPath(path):
                 if os.path.sep not in dirname:
                     dirname = dirname + os.path.sep
 
-                return os.path.normpath(os.path.join(dirname, filename))
+                path = os.path.normpath(os.path.join(dirname, filename))
 
     return path
 
