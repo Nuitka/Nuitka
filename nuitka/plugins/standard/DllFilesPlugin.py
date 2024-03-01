@@ -61,6 +61,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             expression=dll_config.get("relative_path", "."),
             config_name=config_name,
             extra_context=None,
+            single_value=True,
         )
 
         module_filename = self.locateModule(full_name)
@@ -87,6 +88,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                     expression=suffix,
                     config_name=config_name,
                     extra_context=None,
+                    single_value=True,
                 ).lstrip(".")
                 for suffix in dll_config.get("suffixes", ())
             )
@@ -97,6 +99,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                     expression=prefix,
                     config_name=config_name,
                     extra_context=None,
+                    single_value=True,
                 ).lstrip(".")
                 for prefix in dll_config.get("prefixes", ())
             )

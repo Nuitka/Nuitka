@@ -12,7 +12,7 @@ import ast
 import fnmatch
 import os
 
-from nuitka.__past__ import iter_modules
+from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -104,12 +104,19 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()
 
             if "(" in dependency:
-                yield self.evaluateExpression(
+                value = self.evaluateExpression(
                     full_name=full_name,
                     expression=dependency,
                     config_name="depends value",
                     extra_context=None,
+                    single_value=False,
                 )
+
+                if type(value) in (str, unicode):
+                    value = (value,)
+
+                for v in value:
+                    yield v
             elif "*" in dependency or "?" in dependency:
                 for resolved in self._resolveModulePattern(dependency):
                     yield resolved

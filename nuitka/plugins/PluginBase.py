@@ -14,11 +14,13 @@ it being used.
 
 import ast
 import functools
+import importlib
 import inspect
 import os
 import sys
 
 from nuitka import Options
+from nuitka.__past__ import iter_modules, unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
@@ -54,6 +56,8 @@ from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
     python_version,
+    python_version_full_str,
+    python_version_str,
 )
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
@@ -124,6 +128,8 @@ def _getEvaluationContext():
             "no_asserts": hasPythonFlagNoAsserts(),
             "no_docstrings": hasPythonFlagNoDocStrings(),
             "no_annotations": hasPythonFlagNoAnnotations(),
+            # Iterating packages
+            "iterate_modules": _iterate_module_names,
             # Locating package directories
             "_get_module_directory": _getModuleDirectory,
             # Querying package properties
@@ -135,7 +141,11 @@ def _getEvaluationContext():
             # Frequent used modules
             "sys": sys,
             "os": os,
+            "importlib": importlib,
             "appdirs": getAppdirsModule(),
+            # Python version string
+            "python_version_str": python_version_str,
+            "python_version_full_str": python_version_full_str,
             # Builtins
             "True": True,
             "False": False,
@@ -149,6 +159,8 @@ def _getEvaluationContext():
             "list": list,
             "dict": dict,
             "set": set,
+            "getattr": getattr,
+            "hasattr": hasattr,
             "frozenset": frozenset,
             "__import__": __import__,
         }
@@ -254,6 +266,22 @@ def _getModuleDirectory(module_name):
     )
 
     return module_filename
+
+
+def _iterate_module_names(package_name):
+    package_name = ModuleName(package_name)
+    package_path = _getModuleDirectory(module_name=package_name)
+
+    result = []
+
+    for module_info in iter_modules([package_path]):
+        module_name = package_name.getChildNamed(module_info.name)
+        result.append(module_name.asString())
+
+        if module_info.ispkg:
+            result.extend(_iterate_module_names(package_name=module_name))
+
+    return result
 
 
 def _isPluginActive(plugin_name):
@@ -1268,7 +1296,7 @@ except ImportError:
         return '"' in expression or "'" in expression or "(" in expression
 
     def evaluateExpressionOrConstant(
-        self, full_name, expression, config_name, extra_context
+        self, full_name, expression, config_name, extra_context, single_value
     ):
         if self.isValueForEvaluation(expression):
             return self.evaluateExpression(
@@ -1276,11 +1304,14 @@ except ImportError:
                 expression=expression,
                 config_name=config_name,
                 extra_context=extra_context,
+                single_value=single_value,
             )
         else:
             return expression
 
-    def evaluateExpression(self, full_name, expression, config_name, extra_context):
+    def evaluateExpression(
+        self, full_name, expression, config_name, extra_context, single_value
+    ):
         context = TagContext(logger=self, full_name=full_name, config_name=config_name)
         context.update(control_tags)
 
@@ -1313,7 +1344,16 @@ except ImportError:
                             variables.update(info.asDict())
 
                         if constants:
-                            variables.update(constants)
+                            for constant_name, constant_value in constants.items():
+                                variables[
+                                    constant_name
+                                ] = self.evaluateExpressionOrConstant(
+                                    full_name=full_name,
+                                    expression=constant_value,
+                                    config_name="constants config",
+                                    extra_context=None,
+                                    single_value=False,
+                                )
 
             result = variables[variable_name]
 
@@ -1362,11 +1402,31 @@ except ImportError:
                     % (expression, e)
                 )
 
-        if type(result) is not str:
-            self.sysexit(
-                "Error, expression '%s' for module '%s' did not evaluate to str result."
-                % (expression, full_name)
-            )
+        if type(result) not in (str, unicode):
+            if single_value:
+                self.sysexit(
+                    """\
+Error, expression '%s' for module '%s' did not evaluate to 'str' result."""
+                    % (expression, full_name)
+                )
+            else:
+                if type(result) not in (tuple, list):
+                    self.sysexit(
+                        """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+                        % (expression, full_name)
+                    )
+
+                for v in result:
+                    if type(v) not in (str, unicode):
+                        self.sysexit(
+                            """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+                            % (expression, full_name)
+                        )
+
+                # Make it immutable in case it's a list.
+                result = tuple(result)
 
         return result
 
