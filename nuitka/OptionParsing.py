@@ -1206,6 +1206,7 @@ tracing_group.add_option(
     action="store_false",
     dest="progress_bar",
     default=True,
+    github_action=False,
     help="""Disable progress bars. Defaults to off.""",
 )
 
@@ -1214,6 +1215,7 @@ tracing_group.add_option(
     action="store_true",
     dest="show_progress",
     default=False,
+    github_action=False,
     help="""Obsolete: Provide progress information and statistics.
 Disables normal progress bar. Defaults to off.""",
 )
@@ -1232,6 +1234,7 @@ tracing_group.add_option(
     action="store_true",
     dest="show_inclusion",
     default=False,
+    github_action=False,
     help="""\
 Provide information for included modules and DLLs
 Obsolete: You should use '--report' file instead. Defaults to off.""",
@@ -1243,6 +1246,7 @@ tracing_group.add_option(
     dest="show_inclusion_output",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
 Where to output '--show-modules', should be a filename. Default is standard output.""",
 )
@@ -1252,6 +1256,7 @@ tracing_group.add_option(
     action="store_true",
     dest="verbose",
     default=False,
+    github_action=False,
     help="""\
 Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off.""",
@@ -1263,6 +1268,7 @@ tracing_group.add_option(
     dest="verbose_output",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
 Where to output from '--verbose', should be a filename. Default is standard output.""",
 )
