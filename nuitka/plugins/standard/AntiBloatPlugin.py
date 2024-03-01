@@ -98,6 +98,10 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["torch.utils.cpp_extension"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
@@ -378,6 +382,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                     extra_context=self._getContextCode(
                         module_name=module_name, anti_bloat_config=anti_bloat_config
                     ),
+                    single_value=True,
                 )
             else:
                 replace_dst = ""
@@ -418,6 +423,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 extra_context=self._getContextCode(
                     module_name=module_name, anti_bloat_config=anti_bloat_config
                 ),
+                single_value=True,
             )
 
             source_code += "\n" + append_result
@@ -487,6 +493,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             extra_context=self._getContextCode(
                 module_name=module_name, anti_bloat_config=anti_bloat_config
             ),
+            single_value=True,
         )
 
         # Single node is required, extract the generated module body with
