@@ -74,6 +74,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     expression=pattern,
                     config_name="data file pattern for '%s'" % module_name,
                     extra_context=None,
+                    single_value=True,
                 )
 
                 pattern = os.path.join(module_folder, pattern)
