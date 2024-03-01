@@ -47,11 +47,9 @@ Currently, this means, you need to use one of these compilers:
    is found, which is the recommended way of installing it, as Nuitka
    will also upgrade it for you.
 
--  Visual Studio 2022 or higher on Windows [#]_, older versions will
-   work, but only supported for commercial users. Configure to use the
-   English language pack for best results (Nuitka filters away garbage
-   outputs, but only for English language). It will be used by default
-   if installed.
+-  Visual Studio 2022 or higher on Windows [#]_. English language pack
+   for best results (Nuitka filters away garbage outputs, but only for
+   English language). It will be used by default if installed.
 
 -  On all other platforms, the ``gcc`` compiler of at least version 5.1,
    and below that the ``g++`` compiler of at least version 4.4 as an
@@ -67,10 +65,9 @@ Currently, this means, you need to use one of these compilers:
    Support for this C11 is given with gcc 5.x or higher or any clang
    version.
 
-   The MSVC compiler doesn't do it yet. But as a workaround, as the C++03
-   language standard is significantly overlapping with C11, it is then used
-   instead where the C compiler is too old. Nuitka used to require a C++
-   compiler in the past, but it changed.
+   The older MSVC compilers don't do it yet. But as a workaround, with
+   Python 3.10 or older, the C++03 language standard is significantly
+   overlapping with C11, it is then used instead.
 
 .. [#]
 
