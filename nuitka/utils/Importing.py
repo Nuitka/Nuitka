@@ -150,6 +150,9 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         del sys.path[0]
 
 
+_deleted_modules = {}
+
+
 def importFromInlineCopy(module_name, must_exist, delete_module=False):
     """Import a module from the inline copy stage."""
 
@@ -177,7 +180,15 @@ def importFromInlineCopy(module_name, must_exist, delete_module=False):
     )
 
     if delete_module and module_name in sys.modules:
-        del sys.modules[module_name]
+        delete_module_names = set([module_name])
+
+        for m in sys.modules:
+            if m.startswith(module_name + "."):
+                delete_module_names.add(m)
+
+        for delete_module_name in delete_module_names:
+            _deleted_modules[delete_module_name] = sys.modules[delete_module_name]
+            del sys.modules[delete_module_name]
 
     return module
 
