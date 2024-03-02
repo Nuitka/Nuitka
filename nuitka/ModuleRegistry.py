@@ -239,7 +239,11 @@ def addModuleInfluencingVariable(
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
     module_influencing_plugins[module_name].add(
-        (plugin_name, "variable-used", (variable_name, tuple(control_tags), result))
+        (
+            plugin_name,
+            "variable-used",
+            (variable_name, tuple(control_tags), repr(result)),
+        )
     )
 
 

@@ -101,6 +101,10 @@ control_tags = {}
 
 _context_dict = None
 
+# Populated when "constants" and "variables" yaml sections get evaluated.
+_module_config_constants = {}
+_module_config_variables = {}
+
 
 def _getEvaluationContext():
     # Using global here, as this is really a singleton, in the form of a module,
@@ -1309,6 +1313,69 @@ except ImportError:
         else:
             return expression
 
+    def getExpressionConstants(self, full_name):
+        if full_name not in _module_config_constants:
+            constants = {}
+
+            for count, constant_config in enumerate(
+                self.config.get(full_name, section="constants"), start=1
+            ):
+                declarations = constant_config.get("declarations")
+
+                if declarations and self.evaluateCondition(
+                    full_name=full_name,
+                    condition=constant_config.get("when", "True"),
+                ):
+                    for constant_name, constant_value in declarations.items():
+                        constants[constant_name] = self.evaluateExpressionOrConstant(
+                            full_name=full_name,
+                            expression=constant_value,
+                            config_name="constants config #%d" % count,
+                            extra_context=None,
+                            single_value=False,
+                        )
+
+            _module_config_constants[full_name] = constants
+
+        return _module_config_constants[full_name]
+
+    def getExpressionVariables(self, full_name):
+        if full_name not in _module_config_variables:
+            variables = {}
+
+            for count, variable_config in enumerate(
+                self.config.get(full_name, section="variables")
+            ):
+                setup_codes = variable_config.get("setup_code")
+                declarations = variable_config.get("declarations")
+
+                if declarations and self.evaluateCondition(
+                    full_name=full_name,
+                    condition=variable_config.get("when", "True"),
+                ):
+                    if type(setup_codes) is str:
+                        setup_codes = setup_codes.splitlines()
+
+                    setup_codes.extend(
+                        "%s=%r" % (constant_name, constant_value)
+                        for (
+                            constant_name,
+                            constant_value,
+                        ) in self.getExpressionConstants(full_name=full_name).items()
+                    )
+
+                    info = self.queryRuntimeInformationMultiple(
+                        "%s_variables_%s" % (full_name.asString(), count),
+                        setup_codes=setup_codes,
+                        values=tuple(declarations.items()),
+                    )
+
+                    variables.update(info.asDict())
+
+            _module_config_variables[full_name] = variables
+
+        return _module_config_variables[full_name]
+
     def evaluateExpression(
         self, full_name, expression, config_name, extra_context, single_value
     ):
@@ -1317,45 +1384,10 @@ except ImportError:
 
         context.update(_getEvaluationContext())
 
-        variables = {}
-
         def get_variable(variable_name):
             assert type(variable_name) is str, variable_name
 
-            if not variables:
-                for count, variable_config in enumerate(
-                    self.config.get(full_name, section="variables")
-                ):
-                    setup_codes = variable_config.get("setup_code")
-                    declarations = variable_config.get("declarations")
-                    constants = variable_config.get("constants")
-
-                    if self.evaluateCondition(
-                        full_name=full_name,
-                        condition=variable_config.get("when", "True"),
-                    ):
-                        if declarations:
-                            info = self.queryRuntimeInformationMultiple(
-                                "%s_variables_%s" % (full_name.asString(), count),
-                                setup_codes=setup_codes,
-                                values=tuple(declarations.items()),
-                            )
-
-                            variables.update(info.asDict())
-
-                        if constants:
-                            for constant_name, constant_value in constants.items():
-                                variables[
-                                    constant_name
-                                ] = self.evaluateExpressionOrConstant(
-                                    full_name=full_name,
-                                    expression=constant_value,
-                                    config_name="constants config",
-                                    extra_context=None,
-                                    single_value=False,
-                                )
-
-            result = variables[variable_name]
+            result = self.getExpressionVariables(full_name=full_name)[variable_name]
 
             addModuleInfluencingVariable(
                 module_name=full_name,
@@ -1367,7 +1399,17 @@ except ImportError:
 
             return result
 
+        def get_constant(constant_name):
+            assert type(constant_name) is str, constant_name
+
+            result = self.getExpressionConstants(full_name=full_name)[constant_name]
+
+            # TODO: Record the constant value in report.
+
+            return result
+
         context["get_variable"] = get_variable
+        context["get_constant"] = get_constant
 
         def get_parameter(parameter_name, default):
             result = Options.getModuleParameter(full_name, parameter_name)
