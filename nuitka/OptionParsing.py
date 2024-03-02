@@ -1925,7 +1925,14 @@ def _considerGithubWorkflowOptions(phase):
 
     import json
 
-    early_names = "main", "script-name", "enable-plugins", "disable-plugins"
+    early_names = (
+        "main",
+        "script-name",
+        "enable-plugin",
+        "enable-plugins",
+        "disable-plugin",
+        "disable-plugins",
+    )
 
     def filterByName(key):
         # Not for Nuitka at all.
