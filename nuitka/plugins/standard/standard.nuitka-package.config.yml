@@ -6276,18 +6276,23 @@
         'get_pytest_test_cases': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'torch.utils._config_module' # checksum: 44148534
+- module-name: 'torch.utils._config_module' # checksum: 95196bd9
+  constants:
+    declarations:
+      'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config")]'
   variables:
-    constants:
-      'torch_config_modules': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config") and hasattr(importlib.import_module(m), "_compile_ignored_keys")]'
+    setup_code: 'import importlib'
+    declarations:
+      'torch_config_modules': 'dict((m,importlib.import_module(m)._compile_ignored_keys) for m in torch_config_module_candidates if hasattr(importlib.import_module(m), "_compile_ignored_keys"))'
+
   anti-bloat:
     - description: 'workaround for torch config modules'
       append_result: |
-        """_static_compile_ignored_keys = %r
+        """_static_compile_ignored_keys = %s
 
         def get_assignments_with_compile_ignored_comments(module):
           return _static_compile_ignored_keys[module.__name__]
-        """ % dict((name, importlib.import_module(name)._compile_ignored_keys) for name in get_variable("torch_config_modules"))
+        """ % repr(get_variable("torch_config_modules"))
 
 - module-name: 'torch.utils.data._typing' # checksum: f6ea0eb5
   anti-bloat:
