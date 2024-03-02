@@ -50,6 +50,15 @@ def checkSchema(logger, document):
                 logger.info("OK, schema validated.", style="blue")
 
 
+def _isParsable(value):
+    try:
+        ast.parse(value)
+    except (SyntaxError, IndentationError):
+        return False
+    else:
+        return True
+
+
 def _checkValues(logger, filename, module_name, section, value):
     # many checks of course, pylint: disable=too-many-branches
 
@@ -65,14 +74,13 @@ def _checkValues(logger, filename, module_name, section, value):
                 )
                 result = False
 
-            if k == "when":
-                try:
-                    ast.parse(v)
-                except (SyntaxError, IndentationError):
+            if k in ("when", "append_result"):
+                if not _isParsable(v):
                     logger.info(
                         """\
 %s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
-                        % (filename, module_name, section, k, v)
+                        % (filename, module_name, section, k, v),
+                        keep_format=True,
                     )
                     result = False
 
@@ -91,6 +99,32 @@ def _checkValues(logger, filename, module_name, section, value):
 %s: %s config value of %s %s should not use empty value for %s, use 'ignore' \
 if you want no message."""
                             % (filename, module_name, section, k, m)
+                        )
+                        result = False
+
+            if k == "declarations":
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s should not use empty value for declaration name."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+
+                    if d == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s should not use empty value for declaration name."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+                    elif not _isParsable(d):
+                        logger.info(
+                            """\
+%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
+                            % (filename, module_name, section, k, v),
+                            keep_format=True,
                         )
                         result = False
 
