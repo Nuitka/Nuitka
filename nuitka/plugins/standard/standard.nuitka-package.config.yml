@@ -3401,6 +3401,11 @@
       - description: 'PyGame is a GUI framework'
         console: 'recommend'
 
+- module-name: 'pygame_menu' # checksum: 3f9f0b7d
+  data-files:
+    dirs:
+      - 'resources'
+
 - module-name: 'pygeos._geometry' # checksum: 6a3a4737
   implicit-imports:
     - depends:
