@@ -1520,6 +1520,12 @@
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'huggingface_hub._snapshot_download' # checksum: 94377758
+  anti-bloat:
+    - description: 'workaround hard module import attribute bug'
+      replacements_plain:
+        'from .utils import tqdm as hf_tqdm': 'from .utils.tqdm import tqdm as hf_tqdm'
+
 - module-name: 'huggingface_hub.commands.user' # checksum: 3c12cb9a
   anti-bloat:
     - description: 'remove IPython reference'
