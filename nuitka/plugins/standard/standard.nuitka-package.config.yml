@@ -6012,11 +6012,10 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: 5696b905
+- module-name: 'toga' # checksum: 575aecbd
   data-files:
     include-metadata:
       - 'toga-core'
-      - 'toga-winforms'
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
@@ -6032,15 +6031,19 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_gtk' # checksum: 3f9f0b7d
+- module-name: 'toga_gtk' # checksum: 1577803b
   data-files:
     dirs:
       - 'resources'
+    include-metadata:
+      - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 286969f5
+- module-name: 'toga_winforms' # checksum: 5dda2bcf
   data-files:
     dirs:
       - 'resources'
+    include-metadata:
+      - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
