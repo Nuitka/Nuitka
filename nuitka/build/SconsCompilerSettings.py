@@ -368,21 +368,15 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             the_cc_name = os.path.basename(compiler_path)
 
             if isGccName(the_cc_name):
-                gcc_version = myDetectVersion(env, compiler_path)
-
-                min_version = (11, 2)
-                if gcc_version is not None and (
-                    gcc_version < min_version
-                    or "force-winlibs-gcc" in env.experimental_flags
-                ):
+                if "force-accept-windows-gcc" not in env.experimental_flags:
                     scons_logger.info(
-                        "Too old gcc '%s' (%r < %r) ignored!"
-                        % (compiler_path, gcc_version, min_version)
+                        "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
+                        % (compiler_path,)
                     )
 
-                    # This also will trigger using it to use our own gcc in branch below.
-                    compiler_path = None
-                    env["CC"] = None
+                # This also will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
             scons_details_logger.info(
