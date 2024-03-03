@@ -2,18 +2,20 @@
  Nuitka User Manual
 ####################
 
-**********
- Overview
-**********
+This document is the recommended first read when you start using
+**Nuitka**. On this page, you will learn more about **Nuitka**
+fundamentals, such as license type, use cases, requirements, and
+credits.
 
-This document is the recommended first read if you are interested in
-using Nuitka, understand its use cases, check what you can expect,
-license, requirements, credits, etc.
+.. contents:: Table of Contents
+   :depth: 1
+   :local:
+   :class: page-toc
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that CPython 2.6, 2.7, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9,
-3.10, 3.11 have, when itself run with that Python version.
+**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.11)
+have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -33,6 +35,13 @@ full compatibility mode to disable even that.
 **************
  Requirements
 **************
+
+To ensure smooth operation of **Nuitka**, make sure to follow system
+requirements, that include the following components:
+
+.. contents::
+   :depth: 1
+   :local:
 
 C Compiler
 ==========
@@ -83,9 +92,9 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-Python Version 2.6, 2.7 or 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 are
-supported. If at any moment, there is a stable Python release that is
-not in this list, rest assured it is being worked on and will be added.
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.11) are supported. If
+at any moment, there is a stable Python release that is not in this
+list, rest assured it is being worked on and will be added.
 
 .. important::
 
@@ -150,8 +159,8 @@ not in this list, rest assured it is being worked on and will be added.
 Operating System
 ================
 
-Supported Operating Systems: Linux, FreeBSD, NetBSD, macOS X, and
-Windows (32 bits/64 bits/ARM).
+Supported Operating Systems: Linux, FreeBSD, NetBSD, macOS, and Windows
+(32 bits/64 bits/ARM).
 
 Others will work as well. The portability is expected to be generally
 good, but the e.g. Nuitka's internal Scons usage may have to be adapted
@@ -342,7 +351,7 @@ will make the debugging only harder, e.g. in case of missing data files.
  Use Cases
 ***********
 
-Use Case 1 - Program compilation with all modules embedded
+Use Case 1 — Program compilation with all modules embedded
 ==========================================================
 
 If you want to compile a whole program recursively, and not only the
@@ -395,7 +404,7 @@ executable:
    execute the ``program.exe`` (Windows) or ``program`` (other
    platforms) put inside.
 
-Use Case 2 - Extension Module compilation
+Use Case 2 — Extension Module compilation
 =========================================
 
 If you want to compile a single extension module, all you have to do is
@@ -441,7 +450,7 @@ The resulting file ``some_module.so`` can then be used instead of
    The resulting extension module can only be loaded into a CPython of
    the same version and doesn't include other extension modules.
 
-Use Case 3 - Package compilation
+Use Case 3 — Package compilation
 ================================
 
 If you need to compile a whole package and embed all modules, that is
@@ -466,7 +475,7 @@ also feasible, use Nuitka like this:
    Alternatively, you can use the `file embedding of Nuitka commercial
    <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
-Use Case 4 - Program Distribution
+Use Case 4 — Program Distribution
 =================================
 
 For distribution to other systems, there is the standalone mode, which
@@ -655,7 +664,7 @@ Currently, these expanded tokens are available:
    mechanism, and on Windows this is how you are compatible with
    ``pythonw.exe`` which is behaving like ``{NONE}``.
 
-Use Case 5 - Setuptools Wheels
+Use Case 5 — Setuptools Wheels
 ==============================
 
 If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
@@ -782,7 +791,7 @@ value:
    actually would embed the files inside the extension module itself,
    and not as a file in the wheel.
 
-Use Case 6 - Multidist
+Use Case 6 — Multidist
 ======================
 
 If you have multiple programs, that each should be executable, in the
@@ -814,7 +823,7 @@ This allows to combine very different programs into one.
 This mode works with standalone, onefile, and mere acceleration. It does
 not work with module mode.
 
-Use Case 7 - Building with GitHub Workflows
+Use Case 7 — Building with GitHub Workflows
 ===========================================
 
 For integration with GitHub workflows there is this `Nuitka-Action
@@ -1823,27 +1832,6 @@ run is most meaningful, and eliminates usage spikes.
 | Nuitka Python 2.7 | 144074.78 (1.048) | 479271.51 (3.486)    | 511247.44 (3.718)   |
 +-------------------+-------------------+----------------------+---------------------+
 
-******************
- Where to go next
-******************
-
-Remember, this project needs constant work. Although the Python
-compatibility is insanely high, and the test suite works near perfectly,
-there is still more work needed, esp. to make it do more optimization.
-Try it out, and when popular packages do not work, please make reports
-on GitHub.
-
-Follow me on Mastodon and Twitter
-=================================
-
-Nuitka announcements and interesting stuff is pointed to on both the
-Mastodon and Twitter accounts, but obviously with not too many details,
-usually pointing to the website, but sometimes I also ask questions
-there.
-
-`@KayHayen on Mastodon <https://fosstodon.org/@kayhayen>`_. `@KayHayen
-on Twitter <https://twitter.com/KayHayen>`_.
-
 Report issues or bugs
 =====================
 
@@ -1881,62 +1869,6 @@ Best practices for reporting bugs:
 -  Do not send screenshots of text, that is bad and lazy. Instead,
    capture text outputs from the console.
 
-Word of Warning
-===============
-
-Consider using this software with caution. Even though many tests are
-applied before releases, things are potentially breaking. Your feedback
-and patches to Nuitka are very welcome.
-
-*************
- Join Nuitka
-*************
-
-You are more than welcome to join Nuitka development and help to
-complete the project in all minor and major ways.
-
-The development of Nuitka occurs in git. We currently have these 3
-branches:
-
--  ``main``
-
-   This branch contains the stable release, to which only hotfixes for
-   bugs will be done. It is supposed to work at all times and is
-   supported.
-
--  ``develop``
-
-   This branch contains the ongoing development. It may at times contain
-   little regressions, but also new features. On this branch, the
-   integration work is done, whereas new features might be developed on
-   feature branches.
-
--  ``factory``
-
-   This branch contains unfinished and incomplete work. It is very
-   frequently subject to ``git rebase`` and the public staging ground,
-   where my work for develop branch lives first. It is intended for
-   testing only, and it's recommended to base any of your own
-   development on. When updating it, you will very often get merge
-   conflicts. Simply resolve those by doing ``git fetch && git reset
-   --hard origin/factory`` and switch to the latest version.
-
-.. note::
-
-   The `Developer Manual
-   <https://nuitka.net/doc/developer-manual.html>`__ explains the coding
-   rules, branching model used, with feature branches and hotfix
-   releases, the Nuitka design and much more. Consider reading it to
-   become a contributor. This document is intended for Nuitka users.
-
-***********
- Donations
-***********
-
-Should you feel that you cannot help Nuitka directly, but still want to
-support, please consider `making a donation
-<https://nuitka.net/pages/donations.html>`__ and help this way.
-
 ***************************
  Unsupported functionality
 ***************************
@@ -1952,448 +1884,3 @@ PDB
 ===
 
 There is no tracing of compiled functions to attach a debugger to.
-
-**************
- Optimization
-**************
-
-Constant Folding
-================
-
-The most important form of optimization is the constant folding. This is
-when an operation can be fully predicted at compile time. Currently,
-Nuitka does these for some built-ins (but not all yet, somebody to look
-at this more closely will be very welcome!), and it does it e.g. for
-binary/unary operations and comparisons.
-
-Constants currently recognized:
-
-.. code:: python
-
-   5 + 6  # binary operations
-   not 7  # unary operations
-   5 < 6  # comparisons
-   range(3)  # built-ins
-
-Literals are the one obvious source of constants, but also most likely
-other optimization steps like constant propagation or function inlining
-will be. So this one should not be underestimated and a crucial step of
-successful optimizations. Every option to produce a constant may impact
-the generated code quality a lot.
-
-.. admonition:: Status
-
-   The folding of constants is considered implemented, but it might be
-   incomplete in that not all possible cases are caught. Please report
-   it as a bug when you find an operation in Nuitka that has only
-   constants as input and is not folded.
-
-Constant Propagation
-====================
-
-At the core of optimizations, there is an attempt to determine the
-values of variables at run time and predictions of assignments. It
-determines if their inputs are constants or of similar values. An
-expression, e.g. a module variable access, an expensive operation, may
-be constant across the module of the function scope and then there needs
-to be none or no repeated module variable look-up.
-
-Consider e.g. the module attribute ``__name__`` which likely is only
-ever read, so its value could be predicted to a constant string known at
-compile time. This can then be used as input to the constant folding.
-
-.. code:: python
-
-   if __name__ == "__main__":
-       # Your test code might be here
-       use_something_not_use_by_program()
-
-.. admonition:: Status
-
-   From modules attributes, only ``__name__`` is currently actually
-   optimized. At least ``__doc__`` would also be possible to. In the
-   future, this may improve as SSA is expanded to module variables.
-
-Built-in Name Lookups
-=====================
-
-Also, built-in exception name references are optimized if they are used
-as a module level read-only variables:
-
-.. code:: python
-
-   try:
-       something()
-   except ValueError:  # The ValueError is a slow global name lookup normally.
-       pass
-
-.. admonition:: Status
-
-   This works for all built-in names. When an assignment is done to such
-   a name, or it's even local, then, of course, it is not done.
-
-Built-in Call Prediction
-========================
-
-For built-in calls like ``type``, ``len``, or ``range`` it is often
-possible to predict the result at compile time, esp. for constant inputs
-the resulting value often can be precomputed by Nuitka. It can simply
-determine the result or the raised exception and replace the built-in
-call with that value, allowing for more constant folding or code path
-reduction.
-
-.. code:: python
-
-   type("string")  # predictable result, built-in type str.
-   len([1, 2])  # predictable result
-   range(3, 9, 2)  # predictable result
-   range(3, 9, 0)  # predictable exception, range raises due to 0.
-
-.. admonition:: Status
-
-   The built-in call prediction is considered implemented. We can simply
-   during compile time emulate the call and use its result or raised
-   exception. But we may not cover all the built-ins there are yet.
-
-Sometimes the result of a built-in should not be predicted when the
-result is big. A ``range()`` call e.g. may give too big values to
-include the result in the binary. Then it is not done.
-
-.. code:: python
-
-   range(100000)  # We do not want this one to be expanded
-
-.. admonition:: Status
-
-   This is considered mostly implemented. Please file bugs for built-ins
-   that are pre-computed, but should not be computed by Nuitka at
-   compile time with specific values.
-
-Conditional Statement Prediction
-================================
-
-For conditional statements, some branches may not ever be taken, because
-of the condition truth value being possible to predict. In these cases,
-the branch is not taken, and the condition check is removed.
-
-This can typically predict code like this:
-
-.. code:: python
-
-   if __name__ == "__main__":
-       # Your test code might be here
-       use_something_not_use_by_program()
-
-or
-
-.. code:: python
-
-   if False:
-       # Your deactivated code might be here
-       use_something_not_use_by_program()
-
-It will also benefit from constant propagations, or enable them because
-once some branches have been removed, other things may become more
-predictable, so this can trigger other optimization to become possible.
-
-Every branch removed makes optimization more likely. With some code
-branches removed, access patterns may be more friendly. Imagine e.g.
-that a function is only called in a removed branch. It may be possible
-to remove it entirely, and that may have other consequences too.
-
-.. admonition:: Status
-
-   This is considered implemented, but for the maximum benefit, more
-   constants need to be determined at compile time.
-
-Exception Propagation
-=====================
-
-For exceptions that are determined at compile time, there is an
-expression that will simply do raise the exception. These can be
-propagated upwards, collecting potentially "side effects", i.e. parts of
-expressions that were executed before it occurred, and still have to be
-executed.
-
-Consider the following code:
-
-.. code:: python
-
-   print(side_effect_having() + (1 / 0))
-   print(something_else())
-
-The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError``
-exception, which will be propagated through the ``+`` operation. That
-part is just Constant Propagation as normal.
-
-The call ``side_effect_having()`` will have to be retained, though, but
-the ``print`` does not and can be turned into an explicit raise. The
-statement sequence can then be aborted, and as such the
-``something_else`` call needs no code generation or consideration
-anymore.
-
-To that end, Nuitka works with a special node that raises an exception
-and is wrapped with a so-called "side_effects" expression, yet can be
-used in the code as an expression having a value.
-
-.. admonition:: Status
-
-   The propagation of exceptions is mostly implemented but needs
-   handling in every kind of operation, and not all of them might do it
-   already. As work progresses or examples arise, the coverage will be
-   extended. You are welcome to generate bug reports with non-working
-   examples.
-
-Exception Scope Reduction
-=========================
-
-Consider the following code:
-
-.. code:: python
-
-   try:
-       b = 8
-       print(range(3, b, 0))
-       print("Will not be executed")
-   except ValueError as e:
-       print(e)
-
-The ``try`` block is bigger than it needs to be. The statement ``b = 8``
-cannot cause a ``ValueError`` to be raised. As such, it can be moved to
-outside the try without any risk.
-
-.. code:: python
-
-   b = 8
-   try:
-       print(range(3, b, 0))
-       print("Will not be executed")
-   except ValueError as e:
-       print(e)
-
-.. admonition:: Status
-
-   This is considered done. For every kind of operation, we trace if it
-   may raise an exception. We do however *not* properly track yet, what
-   can do a ``ValueError`` and what cannot.
-
-Exception Block Inlining
-========================
-
-With the exception propagation, it then becomes possible to transform
-this code:
-
-.. code:: python
-
-   try:
-       b = 8
-       print(range(3, b, 0))
-       print("Will not be executed!")
-   except ValueError as e:
-       print(e)
-
-.. code:: python
-
-   try:
-       raise ValueError("range() step argument must not be zero")
-   except ValueError as e:
-       print(e)
-
-Which then can be lowered in complexity by avoiding the raise and catch
-of the exception, making it:
-
-.. code:: python
-
-   e = ValueError("range() step argument must not be zero")
-   print(e)
-
-.. admonition:: Status
-
-   This is not implemented yet.
-
-Empty Branch Removal
-====================
-
-For loops and conditional statements that contain only code without
-effect, it should be possible to remove the whole construct:
-
-.. code:: python
-
-   for i in range(1000):
-       pass
-
-The loop could be removed, at maximum, it should be considered an
-assignment of variable ``i`` to ``999`` and no more.
-
-.. admonition:: Status
-
-   This is not implemented yet, as it requires us to track iterators,
-   and their side effects, as well as loop values, and exit conditions.
-   Too much yet, but we will get there.
-
-Another example:
-
-.. code:: python
-
-   if side_effect_free:
-       pass
-
-The condition check should be removed in this case, as its evaluation is
-not needed. It may be difficult to predict that ``side_effect_free`` has
-no side effects, but many times this might be possible.
-
-.. admonition:: Status
-
-   This is considered implemented. The conditional statement nature is
-   removed if both branches are empty, only the condition is evaluated
-   and checked for truth (in cases that could raise an exception).
-
-Unpacking Prediction
-====================
-
-When the length of the right-hand side of an assignment to a sequence
-can be predicted, the unpacking can be replaced with multiple
-assignments.
-
-.. code:: python
-
-   a, b, c = 1, side_effect_free(), 3
-
-.. code:: python
-
-   a = 1
-   b = side_effect_free()
-   c = 3
-
-This is of course only really safe if the left-hand side cannot raise an
-exception while building the assignment targets.
-
-We do this now, but only for constants because we currently have no
-ability to predict whether an expression can raise an exception or not.
-
-.. admonition:: Status
-
-   This is partially implemented. We are working on unpacking
-   enhancements, that will recognize where index access is available.
-   This faster access will then avoid tuples and iteration, then this
-   will be perfect.
-
-Built-in Type Inference
-=======================
-
-When a construct like ``in xrange()`` or ``in range()`` is used, it is
-possible to know what the iteration does and represent that so that
-iterator users can use that instead.
-
-I consider that:
-
-.. code:: python
-
-   for i in xrange(1000):
-       something(i)
-
-could translate ``xrange(1000)`` into an object of a special class that
-does the integer looping more efficiently. In case ``i`` is only
-assigned from there, this could be a nice case for a dedicated class.
-
-.. admonition:: Status
-
-   Future work, not even started.
-
-Quicker Function Calls
-======================
-
-Functions are structured so that their parameter parsing and ``tp_call``
-interface is separate from the actual function code. This way the call
-can be optimized away. One problem is that the evaluation order can
-differ.
-
-.. code:: python
-
-   def f(a, b, c):
-       return a, b, c
-
-
-   f(c=get1(), b=get2(), a=get3())
-
-This will have to evaluate first ``get1()``, then ``get2()`` and only
-then ``get3()`` and then make the function call with these values.
-
-Therefore, it will be necessary to have a staging of the parameters
-before making the actual call, to avoid a re-ordering of the calls to
-``get1()``, ``get2()``, and ``get3()``.
-
-.. admonition:: Status
-
-   Not even started. A re-formulation that avoids the dictionary to call
-   the function, and instead uses temporary variables appears to be
-   relatively straightforward once we do that kind of parameter
-   analysis.
-
-Lowering of iterated Container Types
-====================================
-
-In some cases, accesses to ``list`` constants can become ``tuple``
-constants instead.
-
-Consider that:
-
-.. code:: python
-
-   for x in [a, b, c]:
-       something(x)
-
-This can be optimized into this:
-
-.. code:: python
-
-   for x in (a, b, c):
-       something(x)
-
-This allows for simpler, faster code to be generated, and fewer checks
-needed because e.g. the ``tuple`` is clearly immutable, whereas the
-``list`` needs a check to assert that. This is also possible for sets.
-
-.. admonition:: Status
-
-   Implemented, even works for non-constants. Needs other optimization
-   to become generally useful, and will itself help other optimization
-   to become possible. This allows us to e.g. only treat iteration over
-   tuples, and not care about sets.
-
-In theory, something similar is also possible for ``dict``. For the
-latter, it will be non-trivial though to maintain the order of execution
-without temporary values introduced. The same thing is done for pure
-constants of these types, they change to ``tuple`` values when iterated.
-
-Metadata calls at compile time
-==============================
-
-Nuitka does not include metadata in the distribution. It's rather large,
-and the goal is to use it at compile time. Therefore, information about
-entry points, version checks, etc. are all done at compile time rather
-than at run time. Not only is that faster, it also recognized problems
-sooner.
-
-.. code:: python
-
-   pkg_resources.require("lxml")
-   importlib.metadata.version("lxml")
-   ...
-
-.. admonition:: Status
-
-   This is considered complete. The coverage of the APIs is very good,
-   but naturally this will always have to be code that uses compile time
-   values, but that is nearly never an issue, and where it happens, we
-   use "anti-bloat" patches to deal with these in 3rd party packages.
-
-*************************
- Updates for this Manual
-*************************
-
-This document is written in REST. That is an ASCII format which is
-readable by human, but easily used to generate PDF or HTML documents.
-
-You will find the current version at:
-https://nuitka.net/doc/user-manual.html
