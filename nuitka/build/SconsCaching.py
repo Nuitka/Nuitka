@@ -24,7 +24,7 @@ from nuitka.utils.FileOperations import (
     makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS, isWin32Windows
+from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS
 
 from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
@@ -49,15 +49,7 @@ def _getPythonDirCandidates(python_prefix):
 
 
 def _getCcacheGuessedPaths(python_prefix):
-    if isWin32Windows():
-        # Search the compiling Python, the Scons Python (likely the same, but not necessarily)
-        # and then Anaconda, if an environment variable present from activated, or installed in
-        # CI like GitHub actions.
-        for python_dir in _getPythonDirCandidates(python_prefix):
-            yield os.path.join(python_dir, "bin", "ccache.exe")
-            yield os.path.join(python_dir, "scripts", "ccache.exe")
-
-    elif isMacOS():
+    if isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
         for python_dir in _getPythonDirCandidates(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache")
@@ -89,20 +81,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                     break
 
         if ccache_binary is None:
-            if isWin32Windows():
-                url = "https://github.com/ccache/ccache/releases/download/v4.6/ccache-4.6-windows-32.zip"
-                ccache_binary = getCachedDownload(
-                    name="ccache",
-                    url=url,
-                    is_arch_specific=False,
-                    specificity=url.rsplit("/", 2)[1],
-                    flatten=True,
-                    binary="ccache.exe",
-                    message="Nuitka will make use of ccache to speed up repeated compilation.",
-                    reject=None,
-                    assume_yes_for_downloads=assume_yes_for_downloads,
-                )
-            elif hasMacOSIntelSupport():
+            if hasMacOSIntelSupport():
                 # The 10.14 is the minimum we managed to compile ccache for.
                 if tuple(int(d) for d in platform.release().split(".")) >= (18, 2):
                     url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
