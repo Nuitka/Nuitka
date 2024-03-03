@@ -1184,7 +1184,7 @@ def scanDirectoryForTestCases(dirname, template_context=None):
     filenames = [
         filename
         for filename in filenames
-        if (filename.endswith(".py") and not filename + ".j2" in filenames)
+        if (filename.endswith(".py") and filename + ".j2" not in filenames)
         or filename.endswith(".j2")
     ]
 
