@@ -1242,7 +1242,7 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
-                    if (for_onefile and not "onefile_" in key) or (
+                    if (for_onefile and "onefile_" not in key) or (
                         not for_onefile and "onefile_" in key
                     ):
                         continue

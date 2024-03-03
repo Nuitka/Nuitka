@@ -100,7 +100,7 @@ class NodeCheckMetaClass(ABCMeta):
 
             assert type(kind) is str, name
 
-            if kind in NodeCheckMetaClass.kinds and not "replaces" in dictionary:
+            if kind in NodeCheckMetaClass.kinds and "replaces" not in dictionary:
                 raise NuitkaNodeDesignError(
                     name, "Duplicate nodes for kind '%s'" % kind
                 )
