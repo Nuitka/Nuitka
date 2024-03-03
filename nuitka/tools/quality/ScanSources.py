@@ -21,7 +21,8 @@ def _addFromDirectory(path, suffixes, ignore_list):
             dirname
             for dirname in dirnames
             if dirname not in _default_ignore_list
-            if not dirname.endswith((".build", ".dist"))
+            if not dirname.endswith((".build", ".dist", ".egg-info"))
+            if not dirname.startswith("CPython")
         ]
 
         filenames.sort()
@@ -75,11 +76,10 @@ def isPythonFile(filename, effective_filename=None):
     if effective_filename is None:
         effective_filename = filename
 
-    if os.path.isdir(filename):
-        return False
-
     if effective_filename.endswith((".py", ".pyw", ".scons")):
         return True
+    elif os.path.isdir(filename):
+        return False
     else:
         shebang = getShebangFromFile(filename)
 
