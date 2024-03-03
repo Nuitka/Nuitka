@@ -6012,10 +6012,11 @@
           - 'dylib'
       when: 'macos'
 
-- module-name: 'toga' # checksum: 575aecbd
+- module-name: 'toga' # checksum: 5696b905
   data-files:
     include-metadata:
       - 'toga-core'
+      - 'toga-winforms'
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
