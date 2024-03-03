@@ -635,8 +635,6 @@ def autoFormatFile(
     filename = os.path.normpath(filename)
     effective_filename = os.path.normpath(effective_filename)
 
-    is_python = isPythonFile(filename, effective_filename)
-
     is_c = effective_filename.endswith((".c", ".h"))
     is_cpp = effective_filename.endswith((".cpp", ".h"))
 
@@ -681,6 +679,10 @@ def autoFormatFile(
 
     is_png = effective_filename.endswith(".png")
     is_jpeg = effective_filename.endswith((".jpeg", ".jpg"))
+
+    is_python = not (
+        is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg
+    ) and isPythonFile(filename=filename, effective_filename=effective_filename)
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
