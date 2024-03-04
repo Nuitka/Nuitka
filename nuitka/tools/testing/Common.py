@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Common test infrastructure functions. To be used by test runners. """
 
 import ast
@@ -1178,19 +1164,15 @@ def async_iterate(g):
 
 
 def getTestingCacheDir():
-    cache_dir = getCacheDir()
-
-    result = os.path.join(cache_dir, "tests_state")
-    makePath(result)
-    return result
+    cache_dir = getCacheDir("tests_state")
+    makePath(cache_dir)
+    return cache_dir
 
 
 def getTestingCPythonOutputsCacheDir():
-    cache_dir = getCacheDir()
+    cache_dir = getCacheDir("cpython_outputs")
 
-    result = os.path.join(
-        cache_dir, "cpython_outputs", os.getenv("NUITKA_TEST_SUITE", "")
-    )
+    result = os.path.join(cache_dir, os.getenv("NUITKA_TEST_SUITE", ""))
 
     makePath(result)
     return result
@@ -1202,7 +1184,7 @@ def scanDirectoryForTestCases(dirname, template_context=None):
     filenames = [
         filename
         for filename in filenames
-        if (filename.endswith(".py") and not filename + ".j2" in filenames)
+        if (filename.endswith(".py") and filename + ".j2" not in filenames)
         or filename.endswith(".j2")
     ]
 
@@ -1934,3 +1916,19 @@ def extractNuitkaVersionFromFilePath(version_filename):
     (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
 
     return version_line[8:].rstrip()
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

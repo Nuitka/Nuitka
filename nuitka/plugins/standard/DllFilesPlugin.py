@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Standard plug-in to tell Nuitka about DLLs needed for standalone imports.
 
 When DLLs are imported, we cannot see this and need to be told that. This
@@ -60,13 +46,23 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         return isStandaloneMode()
 
     def _handleDllConfigFromFilenames(self, dest_path, dll_config, full_name):
+        # A lot of details here, pylint: disable=too-many-locals
+
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
             full_name=full_name, condition=dll_config.get("when", "True")
         ):
             return
 
-        relative_path = dll_config.get("relative_path", ".")
+        config_name = "module '%s' DLL config" % full_name
+
+        relative_path = self.evaluateExpressionOrConstant(
+            full_name=full_name,
+            expression=dll_config.get("relative_path", "."),
+            config_name=config_name,
+            extra_context=None,
+            single_value=True,
+        )
 
         module_filename = self.locateModule(full_name)
 
@@ -86,11 +82,29 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         if os.path.exists(dll_dir):
             exe = dll_config.get("executable", "no") == "yes"
 
-            suffixes = dll_config.get("suffixes")
-            if suffixes is not None:
-                suffixes = tuple(suffix.lstrip(".") for suffix in suffixes)
+            suffixes = tuple(
+                self.evaluateExpressionOrConstant(
+                    full_name=full_name,
+                    expression=suffix,
+                    config_name=config_name,
+                    extra_context=None,
+                    single_value=True,
+                ).lstrip(".")
+                for suffix in dll_config.get("suffixes", ())
+            )
 
-            for prefix in dll_config.get("prefixes"):
+            prefixes = tuple(
+                self.evaluateExpressionOrConstant(
+                    full_name=full_name,
+                    expression=prefix,
+                    config_name=config_name,
+                    extra_context=None,
+                    single_value=True,
+                ).lstrip(".")
+                for prefix in dll_config.get("prefixes", ())
+            )
+
+            for prefix in prefixes:
                 if exe:
                     for exe_filename, filename in listExeFilesFromDirectory(
                         dll_dir, prefix=prefix, suffixes=suffixes
@@ -421,3 +435,19 @@ conditions are missing, or this version of the module needs treatment added."""
             return False
         else:
             return None
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

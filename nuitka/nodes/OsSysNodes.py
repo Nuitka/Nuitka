@@ -1,26 +1,14 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Nodes the represent ways to access os and sys functions. """
 
 
 import os
 
+from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from .ConstantRefNodes import makeConstantRefNode
+from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
     ExpressionOsListdirCallBase,
@@ -150,3 +138,32 @@ class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+def makeExpressionSysExitCall(exit_code, source_ref):
+    if exit_code is None:
+        exit_code = makeConstantRefNode(constant=None, source_ref=source_ref)
+
+    return ExpressionRaiseException(
+        exception_type=ExpressionBuiltinExceptionRef(
+            exception_name="SystemExit", source_ref=source_ref
+        ),
+        exception_value=exit_code,
+        source_ref=source_ref,
+    )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Generation of Nuitka documentation.
 
 """
@@ -144,10 +130,41 @@ def updateManPages():
     for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
         manpage_contents = getFileContents(manpage).splitlines()
 
+        for month in (
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ):
+            manpage_contents[1] = manpage_contents[1].replace(month + " ", "")
+        manpage_contents[1] = manpage_contents[1].replace("rc0", "")
+
         new_contents = []
         mark = False
 
         for count, line in enumerate(manpage_contents):
+            if line.startswith(
+                (
+                    "Python:",
+                    "Commercial:",
+                    "Flavor:",
+                    "Executable:",
+                    "OS:",
+                    "Arch:",
+                    "Distribution:",
+                    "Version C compiler:",
+                )
+            ):
+                continue
+
             if mark:
                 line = ".SS " + line + ".BR\n"
                 mark = False
@@ -176,3 +193,19 @@ def checkReleaseDocumentation():
 
     for document in documents:
         checkRstLint(document)
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

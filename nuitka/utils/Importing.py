@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Helper to import a file as a module.
 
 Used for Nuitka plugins and for test code.
@@ -164,6 +150,9 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
         del sys.path[0]
 
 
+_deleted_modules = {}
+
+
 def importFromInlineCopy(module_name, must_exist, delete_module=False):
     """Import a module from the inline copy stage."""
 
@@ -191,7 +180,15 @@ def importFromInlineCopy(module_name, must_exist, delete_module=False):
     )
 
     if delete_module and module_name in sys.modules:
-        del sys.modules[module_name]
+        delete_module_names = set([module_name])
+
+        for m in sys.modules:
+            if m.startswith(module_name + "."):
+                delete_module_names.add(m)
+
+        for delete_module_name in delete_module_names:
+            _deleted_modules[delete_module_name] = sys.modules[delete_module_name]
+            del sys.modules[delete_module_name]
 
     return module
 
@@ -308,3 +305,19 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
             )
 
     return None, None
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

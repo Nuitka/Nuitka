@@ -1,5 +1,18 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+# In Python2, it is not allowed to take closure variables, in a function that
+# has an "exec". For Python3, the problem doesn't exist, as there is no exec
+# statement anymore.
+
+def someFunctionWithUnqualifiedExecAndCallback():
+    exec "def f(): pass"
+
+    def callback():
+        return nested
+
+someFunctionWithUnqualifiedExecAndCallback()
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,16 +27,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-
-# In Python2, it is not allowed to take closure variables, in a function that
-# has an "exec". For Python3, the problem doesn't exist, as there is no exec
-# statement anymore.
-
-def someFunctionWithUnqualifiedExecAndCallback():
-    exec "def f(): pass"
-
-    def callback():
-        return nested
-
-someFunctionWithUnqualifiedExecAndCallback()

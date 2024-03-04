@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Nuitka watch main part.
 
 This tool is used to monitor effect of PyPI changes on Nuitka and effect
@@ -168,14 +154,14 @@ def _updatePipenvFile(installed_python, case_data, dry_run, result_path):
         requirement = requirement.replace(" ", "")
 
         if all(char not in requirement for char in "=><"):
-            pipenv_package_requirements.append('%s = "*"' % requirement)
+            pipenv_package_requirements.append('"%s" = "*"' % requirement)
         else:
             operator_index = min(
                 requirement.find(char) for char in "=><" if char in requirement
             )
 
             pipenv_package_requirements.append(
-                '%s = "%s"'
+                '"%s" = "%s"'
                 % (requirement[:operator_index], requirement[operator_index:])
             )
 
@@ -655,3 +641,18 @@ PR to create. Default not making a PR.""",
 
 if __name__ == "__main__":
     main()
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

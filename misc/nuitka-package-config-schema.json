@@ -27,6 +27,18 @@
                     "required" : ["name", "values"]
                 }
             },
+            "constants": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "declarations": {
+                        "type": "object",
+                        "additionalProperties": {
+                                "type": "string"
+                        }
+                    }
+                }
+            },
             "variables": {
                 "type": "object",
                 "additionalProperties": false,

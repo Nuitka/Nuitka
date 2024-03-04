@@ -1,5 +1,11 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+try:
+    from sys import not_there, * # isort:skip
+except Exception as e:
+    print( "Star import with extra stuff not present gave", e )
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,9 +20,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-
-try:
-    from sys import not_there, * # isort:skip
-except Exception as e:
-    print( "Star import with extra stuff not present gave", e )

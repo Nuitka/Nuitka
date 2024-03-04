@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Standard plug-in to find data files.
 
 """
@@ -54,7 +40,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
     def _considerDataFiles(self, module, data_file_config):
         # Many details and cases to deal with
-        # pylint: disable=too-many-branches,too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
@@ -83,6 +69,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
             # TODO: Pattern should be data file kind potentially.
             for pattern in patterns:
+                pattern = self.evaluateExpressionOrConstant(
+                    full_name=module_name,
+                    expression=pattern,
+                    config_name="data file pattern for '%s'" % module_name,
+                    extra_context=None,
+                    single_value=True,
+                )
+
                 pattern = os.path.join(module_folder, pattern)
 
                 for filename in resolveShellPatternToFilenames(pattern):
@@ -273,3 +267,19 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                 reason="Subdirectories of module %s" % module.getFullName(),
                 tags="config",
             )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

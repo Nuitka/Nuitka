@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ This is the main actions of Nuitka.
 
 This can do all the steps to translate one module to a target language using
@@ -28,7 +14,11 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
+from nuitka.build.SconsUtils import (
+    getSconsReportValue,
+    readSconsErrorReport,
+    readSconsReport,
+)
 from nuitka.code_generation.ConstantCodes import (
     addDistributionMetadataValue,
     getDistributionMetadataValues,
@@ -990,7 +980,11 @@ def _main():
 
     # Exit if compilation failed.
     if not result:
-        general.sysexit(exit_code=1, reporting=True)
+        general.sysexit(
+            message="Failed unexpectedly in Scons C backend compilation.",
+            mnemonic="scons-backend-failure",
+            reporting=True,
+        )
 
     # Relaunch in case of Python PGO input to be produced.
     if Options.shallCreatePgoInput():
@@ -1055,6 +1049,8 @@ def _main():
 
         # Make sure the scons report is cached before deleting it.
         readSconsReport(source_dir)
+        readSconsErrorReport(source_dir)
+
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:
@@ -1144,3 +1140,19 @@ Report writing was prevented by exception %r, use option \
                 raise
 
         raise
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

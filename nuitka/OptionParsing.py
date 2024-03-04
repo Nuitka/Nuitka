@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Command line options of Nuitka.
 
 These provide only the optparse options to use, and the mechanic to actually
@@ -425,9 +411,8 @@ data_group.add_option(
 Include data files from complete directory in the distribution. This is
 recursive. Check '--include-data-files' with patterns if you want non-recursive
 inclusion. An example would be '--include-data-dir=/path/some_dir=data/some_dir'
-for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand, or use '--noinclude-data-files'
-option to remove them. Default empty.""",
+for plain copy, of the whole directory. All non-code files are copied, if you
+want to use '--noinclude-data-files' option to remove them. Default empty.""",
 )
 
 data_group.add_option(
@@ -723,6 +708,34 @@ Defaults to off.""",
 
 del output_group
 
+deployment_group = parser.add_option_group("Deployment control")
+
+deployment_group.add_option(
+    "--deployment",
+    action="store_true",
+    dest="is_deployment",
+    default=False,
+    help="""\
+Disable code aimed at making finding compatibility issues easier. This
+will e.g. prevent execution with "-c" argument, which is often used by
+code that attempts run a module, and causes a program to start itself
+over and over potentially. Disable once you deploy to end users, for
+finding typical issues, this is very helpful during development. Default
+off.""",
+)
+
+deployment_group.add_option(
+    "--no-deployment-flag",
+    action="append",
+    dest="no_deployment_flags",
+    metavar="FLAG",
+    default=[],
+    help="""\
+Keep deployment mode, but disable selectively parts of it. Errors from
+deployment mode will output these identifiers. Default empty.""",
+)
+
+del deployment_group
 
 debug_group = parser.add_option_group("Debug features")
 
@@ -752,6 +765,7 @@ debug_group.add_option(
     action="store_true",
     dest="profile",
     default=False,
+    github_action=False,
     help="""\
 Enable vmprof based profiling of time spent. Not working currently. Defaults to off.""",
 )
@@ -761,6 +775,7 @@ debug_group.add_option(
     action="store_true",
     dest="internal_graph",
     default=False,
+    github_action=False,
     help="""\
 Create graph of optimization process internals, do not use for whole programs, but only
 for small test cases. Defaults to off.""",
@@ -781,6 +796,7 @@ debug_group.add_option(
     action="store_true",
     dest="recompile_c_only",
     default=False,
+    github_action=False,
     help="""\
 This is not incremental compilation, but for Nuitka development only. Takes
 existing files and simply compile them as C again. Allows compiling edited
@@ -796,29 +812,6 @@ debug_group.add_option(
     metavar="XML_FILENAME",
     default=None,
     help="Write the internal program structure, result of optimization in XML form to given filename.",
-)
-
-debug_group.add_option(
-    "--deployment",
-    action="store_true",
-    dest="is_deployment",
-    default=False,
-    help="""\
-Disable code aimed at making finding compatibility issues easier. This
-will e.g. prevent execution with "-c" argument, which is often used by
-code that attempts run a module, and causes a program to start itself
-over and over potentially. Default off.""",
-)
-
-debug_group.add_option(
-    "--no-deployment-flag",
-    action="append",
-    dest="no_deployment_flags",
-    metavar="FLAG",
-    default=[],
-    help="""\
-Keep deployment mode, but disable selectively parts of it. Errors from
-deployment mode will output these identifiers. Default empty.""",
 )
 
 debug_group.add_option(
@@ -868,6 +861,7 @@ debug_group.add_option(
     action="store_true",
     dest="generate_c_only",
     default=False,
+    github_action=False,
     help="""\
 Generate only C source code, and do not compile it to binary or module. This
 is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
@@ -1212,6 +1206,7 @@ tracing_group.add_option(
     action="store_false",
     dest="progress_bar",
     default=True,
+    github_action=False,
     help="""Disable progress bars. Defaults to off.""",
 )
 
@@ -1220,6 +1215,7 @@ tracing_group.add_option(
     action="store_true",
     dest="show_progress",
     default=False,
+    github_action=False,
     help="""Obsolete: Provide progress information and statistics.
 Disables normal progress bar. Defaults to off.""",
 )
@@ -1238,6 +1234,7 @@ tracing_group.add_option(
     action="store_true",
     dest="show_inclusion",
     default=False,
+    github_action=False,
     help="""\
 Provide information for included modules and DLLs
 Obsolete: You should use '--report' file instead. Defaults to off.""",
@@ -1249,6 +1246,7 @@ tracing_group.add_option(
     dest="show_inclusion_output",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
 Where to output '--show-modules', should be a filename. Default is standard output.""",
 )
@@ -1258,6 +1256,7 @@ tracing_group.add_option(
     action="store_true",
     dest="verbose",
     default=False,
+    github_action=False,
     help="""\
 Output details of actions taken, esp. in optimizations. Can become a lot.
 Defaults to off.""",
@@ -1269,6 +1268,7 @@ tracing_group.add_option(
     dest="verbose_output",
     metavar="PATH",
     default=None,
+    github_action=False,
     help="""\
 Where to output from '--verbose', should be a filename. Default is standard output.""",
 )
@@ -2123,3 +2123,19 @@ def runSpecialCommandsFromOptions(options):
             report_filename=os.path.expanduser(options.compilation_report_filename),
         )
         sys.exit(0)
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

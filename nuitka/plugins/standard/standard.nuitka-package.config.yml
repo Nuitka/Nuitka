@@ -133,6 +133,15 @@
     dirs:
       - 'resources'
 
+- module-name: 'aspose' # checksum: 4f20a71e
+  data-files:
+    patterns:
+      - '"**/*"+extension_std_suffix'
+      - '**/*.dll'
+  anti-bloat:
+    - no-follow:
+        'aspose.*': 'workaround for aspose needing to load its submodules'
+
 - module-name: 'astor' # checksum: 85584475
   data-files:
     patterns:
@@ -1511,12 +1520,23 @@
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'huggingface_hub._snapshot_download' # checksum: 94377758
+  anti-bloat:
+    - description: 'workaround hard module import attribute bug'
+      replacements_plain:
+        'from .utils import tqdm as hf_tqdm': 'from .utils.tqdm import tqdm as hf_tqdm'
+
 - module-name: 'huggingface_hub.commands.user' # checksum: 3c12cb9a
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'huggingface_hub.file_download' # checksum: da417692
+  anti-bloat:
+    - description: 'workaround hard module import attribute bug'
+      append_plain: 'from .utils.tqdm import tqdm'
 
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
@@ -1623,9 +1643,9 @@
       replacements_plain:
         'warnings.warn': ''
 
-- module-name: 'jpype' # checksum: f58c2b1d
+- module-name: 'jpype' # checksum: f75160d3
   data-files:
-    dest_path: './jpype'
+    dest_path: 'jpype'
     patterns:
       - '../org.jpype.jar'
     when: 'is_conda_package("jpype")'
@@ -3287,6 +3307,13 @@
         'from ._common import POSIX': "'POSIX = %r' % psutil.POSIX"
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
+
+- module-name: 'pyarrow' # checksum: 9da51f71
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'pyarrow.lib' # checksum: 302be0c2
   implicit-imports:
@@ -6259,6 +6286,24 @@
         'run_tests': 'un-callable'
         'get_pytest_test_cases': 'un-callable'
       when: 'not use_pytest'
+
+- module-name: 'torch.utils._config_module' # checksum: 95196bd9
+  constants:
+    declarations:
+      'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config")]'
+  variables:
+    setup_code: 'import importlib'
+    declarations:
+      'torch_config_modules': 'dict((m,importlib.import_module(m)._compile_ignored_keys) for m in torch_config_module_candidates if hasattr(importlib.import_module(m), "_compile_ignored_keys"))'
+
+  anti-bloat:
+    - description: 'workaround for torch config modules'
+      append_result: |
+        """_static_compile_ignored_keys = %s
+
+        def get_assignments_with_compile_ignored_comments(module):
+          return _static_compile_ignored_keys[module.__name__]
+        """ % repr(get_variable("torch_config_modules"))
 
 - module-name: 'torch.utils.data._typing' # checksum: f6ea0eb5
   anti-bloat:

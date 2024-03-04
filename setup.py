@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Setup file for Nuitka.
 
 This applies a few tricks. First, the Nuitka version is read from
@@ -33,10 +19,16 @@ import sys
 os.chdir(os.path.dirname(__file__) or ".")
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
-# Disable setuptools warnings.
+# Disable setuptools warnings before importing it.
 import warnings
 
 warnings.filterwarnings("ignore", "")
+
+# Don't allow importing this, and make recognizable that
+# the above imports are not to follow. Sometimes code imports
+# setup and then Nuitka ends up including itself.
+if __name__ != "__main__":
+    sys.exit("Cannot import 'setup' module of Nuitka")
 
 # isort:start
 
@@ -46,19 +38,9 @@ import re
 from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
-# TODO: We need a better solution for this, probably error exit, once sys.exit
-# is optimized for. This is to avoid descending into Nuitka through distutils.
-if __name__ == "__main__":
-    from nuitka.PythonFlavors import isMSYS2MingwPython
-    from nuitka.utils.FileOperations import getFileList
-    from nuitka.Version import getNuitkaVersion
-
-scripts = []
-
-# For Windows, there are batch files to launch Nuitka.
-if os.name == "nt" and not isMSYS2MingwPython():
-    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
-
+from nuitka.PythonFlavors import isMSYS2MingwPython
+from nuitka.utils.FileOperations import getFileList
+from nuitka.Version import getNuitkaVersion
 
 version = getNuitkaVersion()
 
@@ -252,8 +234,8 @@ runner_script_template = """\
 # -*- coding: utf-8 -*-
 # Launcher for Nuitka
 
-import nuitka.__main__
-nuitka.__main__.main()
+import %(package_name)s
+%(package_name)s.%(function_name)s()
 """
 
 
@@ -270,8 +252,13 @@ def get_args(cls, dist, header=None):
     for type_ in "console", "gui":
         group = type_ + "_scripts"
 
-        for name, _ep in dist.get_entry_map(group).items():
-            script_text = runner_script_template
+        for name, ep in dist.get_entry_map(group).items():
+            package_name, function_name = str(ep).split("=")[1].strip().split(":")
+
+            script_text = runner_script_template % {
+                "package_name": package_name,
+                "function_name": function_name,
+            }
 
             args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
@@ -346,6 +333,20 @@ else:
         "nuitka%s = nuitka.__main__:main" % binary_suffix,
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
+
+    if "nuitka.plugins.commercial" in nuitka_packages:
+        console_scripts.append(
+            "nuitka-decrypt = nuitka.tools.commercial.decrypt.__main__:main"
+        )
+
+scripts = []
+
+# For Windows, there are batch files to launch Nuitka.
+if os.name == "nt" and not isMSYS2MingwPython():
+    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
+
+    if "nuitka.plugins.commercial" in nuitka_packages:
+        scripts.append("misc/nuitka-decrypt.bat")
 
 
 # With this, we can enforce a binary package.
@@ -469,3 +470,18 @@ Python compiler with full language support and CPython compatibility""",
     distclass=BinaryDistribution,
     verbose=0,
 )
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

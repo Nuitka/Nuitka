@@ -1,5 +1,17 @@
-//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-//
+//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+#ifndef __NUITKA_HELPER_BYTES_H__
+#define __NUITKA_HELPER_BYTES_H__
+
+#if PYTHON_VERSION >= 0x3a0
+#define NUITKA_BYTES_HAS_FREELIST 1
+extern PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size);
+#else
+#define NUITKA_BYTES_HAS_FREELIST 0
+#define Nuitka_Bytes_FromStringAndSize PyBytes_FromStringAndSize
+#endif
+
+#endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
@@ -14,16 +26,3 @@
 //     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
-//
-#ifndef __NUITKA_HELPER_BYTES_H__
-#define __NUITKA_HELPER_BYTES_H__
-
-#if PYTHON_VERSION >= 0x3a0
-#define NUITKA_BYTES_HAS_FREELIST 1
-extern PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size);
-#else
-#define NUITKA_BYTES_HAS_FREELIST 0
-#define Nuitka_Bytes_FromStringAndSize PyBytes_FromStringAndSize
-#endif
-
-#endif

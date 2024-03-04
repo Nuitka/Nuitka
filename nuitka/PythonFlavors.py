@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Python flavors specifics.
 
 This abstracts the Python variants from different people. There is not just
@@ -202,7 +188,7 @@ def isWinPython():
     if _is_win_python is None:
         for element in sys.path:
             if os.path.basename(element) == "site-packages":
-                if os.path.exists(os.path.join(element, "winpython")):
+                if os.path.exists(os.path.join(element, "WinPython")):
                     _is_win_python = True
                     break
         else:
@@ -317,6 +303,8 @@ def isManyLinuxPython():
 
 
 def isGithubActionsPython():
+    # spell-checker: ignore hostedtoolcache
+
     return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
         "/opt/hostedtoolcache/Python"
     )
@@ -362,3 +350,19 @@ def getPythonFlavorName():
         return "Manylinux Python"
     else:
         return "Unknown"
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

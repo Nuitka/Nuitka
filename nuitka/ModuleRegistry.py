@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ This to keep track of used modules.
 
     There is a set of root modules, which are user specified, and must be
@@ -253,17 +239,35 @@ def addModuleInfluencingVariable(
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
     module_influencing_plugins[module_name].add(
-        (plugin_name, "variable-used", (variable_name, tuple(control_tags), result))
+        (
+            plugin_name,
+            "variable-used",
+            (variable_name, tuple(control_tags), repr(result)),
+        )
     )
 
 
 def addModuleInfluencingParameter(
-    module_name, plugin_name, parameter_name, control_tags, result
+    module_name, plugin_name, parameter_name, condition_tags_used, result
 ):
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
     module_influencing_plugins[module_name].add(
-        (plugin_name, "parameter-used", (parameter_name, tuple(control_tags), result))
+        (
+            plugin_name,
+            "parameter-used",
+            (parameter_name, tuple(condition_tags_used), result),
+        )
+    )
+
+
+def addModuleInfluencingDetection(
+    module_name, plugin_name, detection_name, detection_value
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "detection", (detection_name, detection_value))
     )
 
 
@@ -289,3 +293,19 @@ def addModuleOptimizationTimeInformation(module_name, pass_number, time_used):
 
 def getModuleOptimizationTimingInfos(module_name):
     return module_timing_infos.get(module_name, ())
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
