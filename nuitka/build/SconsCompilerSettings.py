@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ This contains the tuning of the compilers towards defined goals.
 
 """
@@ -382,21 +368,15 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             the_cc_name = os.path.basename(compiler_path)
 
             if isGccName(the_cc_name):
-                gcc_version = myDetectVersion(env, compiler_path)
-
-                min_version = (11, 2)
-                if gcc_version is not None and (
-                    gcc_version < min_version
-                    or "force-winlibs-gcc" in env.experimental_flags
-                ):
+                if "force-accept-windows-gcc" not in env.experimental_flags:
                     scons_logger.info(
-                        "Too old gcc '%s' (%r < %r) ignored!"
-                        % (compiler_path, gcc_version, min_version)
+                        "Non downloaded winlibs-gcc '%s' is being ignored, Nuitka is very dependent on the precise one."
+                        % (compiler_path,)
                     )
 
-                    # This also will trigger using it to use our own gcc in branch below.
-                    compiler_path = None
-                    env["CC"] = None
+                # This also will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
             scons_details_logger.info(
@@ -1032,3 +1012,19 @@ def importEnvironmentVariableSettings(env):
             "Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"]
         )
         env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

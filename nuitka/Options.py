@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Options module
 
 This exposes the choices made by the user. Defaults will be applied here, and
@@ -444,6 +430,29 @@ Error, the Python from Windows app store is not supported.""",
     # macOS bundle implies standalone build.
     if shallCreateAppBundle():
         options.is_standalone = True
+
+    if isMacOS():
+        macos_target_arch = getMacOSTargetArch()
+
+        if macos_target_arch == "universal":
+            Tracing.options_logger.sysexit(
+                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
+            )
+
+        if (options.macos_target_arch or "native") != "native":
+            from nuitka.utils.SharedLibraries import (
+                hasUniversalOrMatchingMacOSArchitecture,
+            )
+
+            if not hasUniversalOrMatchingMacOSArchitecture(
+                os.path.realpath(sys.executable)
+            ):
+                Tracing.options_logger.sysexit(
+                    """\
+Cannot cross compile to other arch, using non-universal Python binaries \
+for macOS. Please install the "universal" Python package as offered on \
+the Python download page."""
+                )
 
     # Standalone implies no_site build unless overridden, therefore put it
     # at start of flags, so "site" can override it.
@@ -2371,3 +2380,19 @@ def getModuleParameter(module_name, parameter_name):
             return module_option_value
 
     return None
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Collection of information for reports and their writing.
 
 These reports are in XML form, and with Jinja2 templates in any form you like.
@@ -29,6 +15,7 @@ import traceback
 from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
+from nuitka.build.SconsUtils import readSconsErrorReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -47,7 +34,10 @@ from nuitka.Options import (
     isOnefileMode,
     shallCreateDiffableCompilationReport,
 )
-from nuitka.OutputDirectories import getResultRunFilename
+from nuitka.OutputDirectories import (
+    getResultRunFilename,
+    getSourceDirectoryPath,
+)
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
@@ -203,6 +193,8 @@ def _getReportInputData(aborted):
 
     output_run_filename = os.path.abspath(getResultRunFilename(onefile=isOnefileMode()))
 
+    scons_error_report_data = readSconsErrorReport(source_dir=getSourceDirectoryPath())
+
     return dict(
         (var_name, var_value)
         for var_name, var_value in locals().items()
@@ -296,6 +288,11 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["value"] = repr(parameter_value)
+            elif influence == "detection":
+                detection_name, detection_value = detail
+
+                influence_xml_node.attrib["detection"] = detection_name
+                influence_xml_node.attrib["value"] = repr(detection_value)
             else:
                 assert False, influence
 
@@ -444,6 +441,45 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         )
 
         exception_xml_node.text = "\n" + traceback.format_exc()
+
+    if report_input_data["scons_error_report_data"]:
+        scons_error_reports_node = TreeXML.appendTreeElement(
+            root, "scons_error_reports"
+        )
+
+        for cmd, (stdout, stderr) in report_input_data[
+            "scons_error_report_data"
+        ].items():
+            scons_error_report_node = TreeXML.appendTreeElement(
+                scons_error_reports_node, "scons_error_report"
+            )
+
+            TreeXML.appendTreeElement(
+                scons_error_report_node,
+                "command",
+            ).text = cmd
+
+            if stdout:
+                if not stdout.startswith("\n"):
+                    stdout = "\n" + stdout
+
+                stdout = stdout.rstrip("\n") + "\n"
+
+                TreeXML.appendTreeElement(
+                    scons_error_report_node,
+                    "stdout",
+                ).text = stdout
+
+            if stderr:
+                if not stderr.startswith("\n"):
+                    stderr = "\n" + stderr
+
+                stderr = stderr.rstrip("\n") + "\n"
+
+                TreeXML.appendTreeElement(
+                    scons_error_report_node,
+                    "stderr",
+                ).text = stderr
 
     _addModulesToReport(
         root=root, report_input_data=report_input_data, diffable=diffable
@@ -620,9 +656,10 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         if _crash_report_filename == report_filename:
             _crash_report_filename = None
     else:
-        reports_logger.info(
-            "Compilation report written to file '%s'." % report_filename
-        )
+        if _crash_report_filename != report_filename:
+            reports_logger.info(
+                "Compilation report written to file '%s'." % report_filename
+            )
 
 
 def writeCompilationReportFromTemplate(
@@ -745,3 +782,19 @@ def writeCompilationReports(aborted):
                 report_filename=report_filename,
                 report_input_data=report_input_data,
             )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

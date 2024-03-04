@@ -1,5 +1,12 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from __future__ import print_function
+
+print("*** some_package: Coming from '%s'" % __file__.replace(".pyc", ".py"))
+print("*** some_package: Path is '%s'" % __path__)
+print("*** some_package: Package is '%s'" % __package__)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,9 +21,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from __future__ import print_function
-
-print("*** some_package: Coming from '%s'" % __file__.replace(".pyc", ".py"))
-print("*** some_package: Path is '%s'" % __path__)
-print("*** some_package: Package is '%s'" % __package__)

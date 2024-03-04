@@ -930,10 +930,6 @@ the commands are also replicated here:
    convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png
    convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png
 
-   optipng -o2 doc/images/Nuitka-Logo-Symbol.png
-   optipng -o2 doc/images/Nuitka-Logo-Vertical.png
-   optipng -o2 doc/images/Nuitka-Logo-Horizontal.png
-
 Choice of the Target Language
 =============================
 
