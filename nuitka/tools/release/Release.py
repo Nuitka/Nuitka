@@ -12,7 +12,6 @@ from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileFirstLine,
-    openTextFile,
     withDirectoryChange,
 )
 from nuitka.Version import getNuitkaVersion
@@ -124,23 +123,6 @@ def getBranchCategory(branch_name):
         assert False
 
     return category
-
-
-def checkNuitkaChangelog():
-    with openTextFile("Changelog.rst", "r") as f:
-        # First paragraph doesn't count
-        while True:
-            line = f.readline().strip()
-            if line.startswith("***") and line.endswith("***"):
-                break
-
-        # Second line is the actual title.
-        line = f.readline()
-
-    if "(Draft)" in line:
-        return "draft"
-    else:
-        return "final"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
