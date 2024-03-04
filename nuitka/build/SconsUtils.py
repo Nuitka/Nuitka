@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Helper functions for the scons file.
 
 """
@@ -22,6 +8,7 @@
 from __future__ import print_function
 
 import os
+import pickle
 import shutil
 import signal
 import sys
@@ -35,7 +22,9 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
+    openPickleFile,
     openTextFile,
+    withFileLock,
 )
 from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
@@ -370,9 +359,9 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(env, source_dir):
+def writeSconsReport(env):
     with openTextFile(
-        os.path.join(source_dir, "scons-report.txt"), "w", encoding="utf8"
+        _getSconsReportFilename(env.source_dir), "w", encoding="utf8"
     ) as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
@@ -403,11 +392,30 @@ def writeSconsReport(env, source_dir):
         print("PATH=%s" % os.environ["PATH"], file=report_file)
 
 
+def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
+    with withFileLock("writing scons error report"):
+        file_handle, pickler = openPickleFile(
+            _getSconsErrorReportFilename(env.source_dir), "ab", protocol=2
+        )
+        pickler.dump((cmdline, stdout, stderr))
+        file_handle.close()
+
+
 _scons_reports = {}
+_scons_error_reports = {}
 
 
 def flushSconsReports():
     _scons_reports.clear()
+    _scons_error_reports.clear()
+
+
+def _getSconsReportFilename(source_dir):
+    return os.path.join(source_dir, "scons-report.txt")
+
+
+def _getSconsErrorReportFilename(source_dir):
+    return os.path.join(source_dir, "scons-error-report.txt")
 
 
 def readSconsReport(source_dir):
@@ -415,7 +423,7 @@ def readSconsReport(source_dir):
         scons_report = OrderedDict()
 
         for line in getFileContentByLine(
-            os.path.join(source_dir, "scons-report.txt"), encoding="utf8"
+            _getSconsReportFilename(source_dir), encoding="utf8"
         ):
             if "=" not in line:
                 continue
@@ -431,6 +439,47 @@ def readSconsReport(source_dir):
 
 def getSconsReportValue(source_dir, key):
     return readSconsReport(source_dir).get(key)
+
+
+def readSconsErrorReport(source_dir):
+    if source_dir not in _scons_error_reports:
+        scons_error_report = OrderedDict()
+
+        scons_error_report_filename = _getSconsErrorReportFilename(source_dir)
+        if os.path.exists(scons_error_report_filename):
+            file_handle = openTextFile(scons_error_report_filename, "rb")
+            try:
+                while True:
+                    try:
+                        cmd, stdout, stderr = pickle.load(file_handle)
+                    except EOFError:
+                        break
+
+                    if type(cmd) in (tuple, list):
+                        cmd = " ".join(cmd)
+
+                    if cmd not in scons_error_report:
+                        scons_error_report[cmd] = ["", ""]
+
+                    if type(stdout) in (tuple, list):
+                        stdout = "\n".join(stdout)
+
+                    if type(stderr) in (tuple, list):
+                        stderr = "\n".join(stderr)
+
+                    if stdout:
+                        stdout = stdout.replace("\n\r", "\n")
+                        scons_error_report[cmd][0] += stdout
+                    if stderr:
+                        stderr = stderr.replace("\n\r", "\n")
+                        scons_error_report[cmd][1] += stderr
+
+            finally:
+                file_handle.close()
+
+        _scons_error_reports[source_dir] = scons_error_report
+
+    return _scons_error_reports[source_dir]
 
 
 def addClangClPathFromMSVC(env):
@@ -783,3 +832,19 @@ def addBinaryBlobSection(env, blob_filename, section_name):
         )
     else:
         assert False
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

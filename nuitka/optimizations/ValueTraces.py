@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Value trace objects.
 
 Value traces indicate the flow of values and merges their versions for
@@ -89,8 +75,14 @@ class ValueTraceBase(object):
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.owner.getCodeName())
 
-    def dump(self, indent):
+    def dump(self, indent="  "):
         my_print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+
+        if type(self.previous) is tuple:
+            for trace in self.previous:
+                trace.dump(indent + "  ")
+        elif self.previous is not None:
+            self.previous.dump(indent + "  ")
 
     def getOwner(self):
         return self.owner
@@ -150,6 +142,10 @@ class ValueTraceBase(object):
 
     @staticmethod
     def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isAssignTraceVeryTrusted():
         return False
 
     @staticmethod
@@ -446,6 +442,12 @@ class ValueTraceUnknown(ValueTraceBase):
 class ValueTraceEscaped(ValueTraceUnknown):
     __slots__ = ()
 
+    def __init__(self, owner, previous):
+        if previous.isMergeTrace():
+            assert self not in previous.previous
+
+        ValueTraceUnknown.__init__(self, owner=owner, previous=previous)
+
     def addUsage(self):
         self.usage_count += 1
 
@@ -607,6 +609,10 @@ class ValueTraceAssignUnescapable(ValueTraceAssign):
 
 class ValueTraceAssignVeryTrusted(ValueTraceAssignUnescapable):
     @staticmethod
+    def isAssignTraceVeryTrusted():
+        return True
+
+    @staticmethod
     def isUnknownOrVeryTrustedTrace():
         return True
 
@@ -651,12 +657,6 @@ class ValueTraceMergeBase(ValueTraceBase):
     def addMergeUsage(self):
         self.addUsage()
         self.merge_usage_count += 1
-
-    def dump(self, indent):
-        ValueTraceBase.dump(self, indent)
-
-        for trace in self.previous:
-            trace.dump(indent + "  ")
 
 
 class ValueTraceMerge(ValueTraceMergeBase):
@@ -914,3 +914,19 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getComparisonValue():
         return False, None
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Wrapper around appdirs from PyPI
 
 We do not assume to be installed and fallback to an inline copy and if that
@@ -48,7 +34,7 @@ def getAppdirsModule():
 _cache_dir = None
 
 
-def getCacheDir():
+def _getCacheDir():
     global _cache_dir  # singleton, pylint: disable=global-statement
 
     if _cache_dir is None:
@@ -83,3 +69,29 @@ please consider making a PR for a general solution that adds support for it, or 
             )
 
     return _cache_dir
+
+
+def getCacheDir(cache_basename):
+    env_name = cache_basename.replace("-", "_").upper()
+
+    cache_dir = os.getenv("NUITKA_CACHE_DIR_" + env_name)
+    if cache_dir is None:
+        cache_dir = os.path.join(_getCacheDir(), cache_basename)
+
+    return cache_dir
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

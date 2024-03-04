@@ -1,5 +1,17 @@
-//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-//
+//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+#ifndef __NUITKA_CHECKSUM_TOOLS_H__
+#define __NUITKA_CHECKSUM_TOOLS_H__
+
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
+extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);
+
+#endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
@@ -14,16 +26,3 @@
 //     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
-//
-#ifndef __NUITKA_CHECKSUM_TOOLS_H__
-#define __NUITKA_CHECKSUM_TOOLS_H__
-
-// This file is included from another C file, help IDEs to still parse it on
-// its own.
-#ifdef __IDE_ONLY__
-#include "nuitka/prelude.h"
-#endif
-
-extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);
-
-#endif

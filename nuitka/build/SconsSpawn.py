@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Spawning processes.
 
 This is to replace the standard spawn implementation with one that tracks the
@@ -36,7 +22,7 @@ from .SconsProgress import (
     reportSlowCompilation,
     updateSconsProgressBar,
 )
-from .SconsUtils import decodeData
+from .SconsUtils import decodeData, reportSconsUnexpectedOutput
 
 
 # Thread class to run a command
@@ -198,13 +184,17 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             )
 
         if data is not None and data.rstrip():
-            my_print("Unexpected output from this command:", style="yellow")
-            my_print(cmdline, style="yellow")
+            my_print("Unexpected output from this command:", style="scons-unexpected")
+            my_print(cmdline, style="scons-unexpected")
 
             if str is not bytes:
                 data = decodeData(data)
 
-            my_print(data, style="yellow", end="" if data.endswith("\n") else "\n")
+            my_print(
+                data, style="scons-unexpected", end="" if data.endswith("\n") else "\n"
+            )
+
+            reportSconsUnexpectedOutput(env, cmdline, stdout=data, stderr=None)
 
         if err:
             if str is not bytes:
@@ -228,7 +218,9 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
                     _raiseCorruptedObjectFilesExit(cache_name="ccache")
 
                 err += "\r\n"
-                my_print(err, style="yellow", end="")
+                my_print(err, style="scons-unexpected", end="")
+
+                reportSconsUnexpectedOutput(env, cmdline, stdout=None, stderr=err)
 
         return rv
 
@@ -306,11 +298,11 @@ length parameter; this could be due to transposed parameters"""
     return False
 
 
-def subprocess_spawn(args):
-    sh, _cmd, args, env = args
+def subprocess_spawn(env, args):
+    sh, _cmd, args, os_env = args
 
     _stdout, stderr, exit_code = executeProcess(
-        command=[sh, "-c", " ".join(args)], env=env
+        command=[sh, "-c", " ".join(args)], env=os_env
     )
 
     if str is not bytes:
@@ -333,15 +325,18 @@ def subprocess_spawn(args):
         if exit_code != 0 and "terminated with signal 11" in line:
             exit_code = -11
 
-        my_print(line, style="yellow", file=sys.stderr)
+        my_print(line, style="scons-unexpected", file=sys.stderr)
+
+        reportSconsUnexpectedOutput(env, args, stdout=None, stderr=line)
 
     return exit_code
 
 
 class SpawnThread(threading.Thread):
-    def __init__(self, *args):
+    def __init__(self, env, *args):
         threading.Thread.__init__(self)
 
+        self.env = env
         self.args = args
 
         self.timer_report = TimerReport(
@@ -362,7 +357,7 @@ class SpawnThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.result = subprocess_spawn(self.args)
+                self.result = subprocess_spawn(env=self.env, args=self.args)
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -371,7 +366,7 @@ class SpawnThread(threading.Thread):
 
 
 def _runSpawnMonitored(env, sh, cmd, args, os_env):
-    thread = SpawnThread(sh, cmd, args, os_env)
+    thread = SpawnThread(env, sh, cmd, args, os_env)
     thread.start()
 
     # Allow 6 minutes before warning for long compile time.
@@ -427,3 +422,19 @@ def enableSpawnMonitoring(env, module_mode, source_files):
         )
     else:
         env["SPAWN"] = _getWrappedSpawnFunction(env=env)
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

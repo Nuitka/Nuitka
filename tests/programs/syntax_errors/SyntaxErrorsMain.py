@@ -1,5 +1,20 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+from __future__ import print_function
+
+try:
+    from SyntaxErroring import x
+except Exception as e:
+    print("Importing with syntax error gave:", type(e), e)
+
+try:
+    from IndentationErroring import x
+except Exception as e:
+    print("Importing with indentation error gave:", type(e), e)
+
+print("Finished.")
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,17 +29,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-from __future__ import print_function
-
-try:
-    from SyntaxErroring import x
-except Exception as e:
-    print("Importing with syntax error gave:", type(e), e)
-
-try:
-    from IndentationErroring import x
-except Exception as e:
-    print("Importing with indentation error gave:", type(e), e)
-
-print("Finished.")

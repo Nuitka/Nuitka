@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """
 
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
@@ -1256,7 +1242,7 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
-                    if (for_onefile and not "onefile_" in key) or (
+                    if (for_onefile and "onefile_" not in key) or (
                         not for_onefile and "onefile_" in key
                     ):
                         continue
@@ -1778,3 +1764,19 @@ def replaceTriggerModule(old, new):
 def isTriggerModule(module):
     """Decide of a module is a trigger module."""
     return module in pre_modules.values() or module in post_modules.values()
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

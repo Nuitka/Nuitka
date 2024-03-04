@@ -1,5 +1,16 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+""" Just something to allow the plugin to look at.
+
+"""
+
+from __future__ import print_function
+
+import math
+
+print(math.pi)
+
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
 #     it's copied from other people. In these cases, that will normally be
@@ -16,13 +27,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-""" Just something to allow the plugin to look at.
-
-"""
-
-from __future__ import print_function
-
-import math
-
-print(math.pi)

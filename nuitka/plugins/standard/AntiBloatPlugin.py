@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """ Standard plug-in to avoid bloat at compile time.
 
 Nuitka hard codes stupid monkey patching normally not needed here and avoids
@@ -37,7 +23,8 @@ _mode_choices = ("error", "warning", "nofollow", "allow")
 
 
 class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
-    # Lots of details, a bunch of state is cached, pylint: disable=too-many-instance-attributes
+    # Lots of details, a bunch of state is cached and tracked across functions
+    # pylint: disable=too-many-instance-attributes
 
     plugin_name = "anti-bloat"
     plugin_desc = (
@@ -92,6 +79,26 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 "setuptools",
             )
             self.handled_modules["triton"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["Cython"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["cython"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["pyximport"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["paddle.utils.cpp_extension"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["torch.utils.cpp_extension"] = (
                 noinclude_setuptools_mode,
                 "setuptools",
             )
@@ -375,6 +382,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                     extra_context=self._getContextCode(
                         module_name=module_name, anti_bloat_config=anti_bloat_config
                     ),
+                    single_value=True,
                 )
             else:
                 replace_dst = ""
@@ -415,6 +423,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 extra_context=self._getContextCode(
                     module_name=module_name, anti_bloat_config=anti_bloat_config
                 ),
+                single_value=True,
             )
 
             source_code += "\n" + append_result
@@ -484,6 +493,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             extra_context=self._getContextCode(
                 module_name=module_name, anti_bloat_config=anti_bloat_config
             ),
+            single_value=True,
         )
 
         # Single node is required, extract the generated module body with
@@ -553,19 +563,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return None
 
-    def onModuleRecursion(
-        self,
-        module_name,
-        module_filename,
-        module_kind,
-        using_module_name,
-        source_ref,
-        reason,
-    ):
-        # Quite a few special cases, but not really complex.
-        # pylint: disable=too-many-branches,too-many-locals
-
-        # First off, activate "no-follow" configurations.
+    def _applyNoFollowConfiguration(self, module_name):
         for (
             config_of_module_name,
             no_follow,
@@ -578,6 +576,20 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             recursive=True,
         ):
             self.no_follows[no_follow] = (config_of_module_name, description)
+
+    def onModuleRecursion(
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
+    ):
+        # pylint: disable=too-many-branches
+
+        # First off, activate "no-follow" configurations of this module.
+        self._applyNoFollowConfiguration(module_name=module_name)
 
         # Do not even look at these. It's either included by a module that is in standard
         # library, or included for a module in standard library.
@@ -746,3 +758,19 @@ slow down compilation."""
 Not including '%s' automatically in order to avoid bloat, but this may cause: %s."""
                     % (module_name, description)
                 )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

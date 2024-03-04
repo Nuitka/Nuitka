@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,too-many-lines
 # pylint: disable=I0021,line-too-long
@@ -6190,6 +6176,113 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionRaiseExceptionMixin = ChildrenHavingExceptionTypeExceptionValueMixin
+
+
+class ChildHavingExitCodeOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionSysExit
+
+    def __init__(
+        self,
+        exit_code,
+    ):
+        if exit_code is not None:
+            exit_code.parent = self
+
+        self.subnode_exit_code = exit_code
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        value = self.subnode_exit_code
+
+        if value is None:
+            return ()
+        else:
+            return (value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("exit_code", self.subnode_exit_code),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_exit_code
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_exit_code = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "exit_code": self.subnode_exit_code.makeClone()
+            if self.subnode_exit_code is not None
+            else None,
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_exit_code is not None:
+            self.subnode_exit_code.finalize()
+        del self.subnode_exit_code
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = self.subnode_exit_code
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_exit_code = self.subnode_exit_code
+
+        if subnode_exit_code is not None:
+            self.subnode_exit_code.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionSysExitMixin = ChildHavingExitCodeOptionalMixin
 
 
 class ChildHavingExpressionMixin(object):
@@ -20335,3 +20428,18 @@ class ChildHavingValuesTupleMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionStringConcatenationMixin = ChildHavingValuesTupleMixin
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

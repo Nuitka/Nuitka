@@ -1,20 +1,6 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
 """
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
@@ -28,11 +14,13 @@ it being used.
 
 import ast
 import functools
+import importlib
 import inspect
 import os
 import sys
 
 from nuitka import Options
+from nuitka.__past__ import iter_modules, unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
@@ -49,6 +37,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 )
 from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
+    addModuleInfluencingDetection,
     addModuleInfluencingParameter,
     addModuleInfluencingVariable,
     getModuleInclusionInfoByName,
@@ -67,6 +56,8 @@ from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
     python_version,
+    python_version_full_str,
+    python_version_str,
 )
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
@@ -110,6 +101,10 @@ control_tags = {}
 
 _context_dict = None
 
+# Populated when "constants" and "variables" yaml sections get evaluated.
+_module_config_constants = {}
+_module_config_variables = {}
+
 
 def _getEvaluationContext():
     # Using global here, as this is really a singleton, in the form of a module,
@@ -137,6 +132,8 @@ def _getEvaluationContext():
             "no_asserts": hasPythonFlagNoAsserts(),
             "no_docstrings": hasPythonFlagNoDocStrings(),
             "no_annotations": hasPythonFlagNoAnnotations(),
+            # Iterating packages
+            "iterate_modules": _iterate_module_names,
             # Locating package directories
             "_get_module_directory": _getModuleDirectory,
             # Querying package properties
@@ -148,7 +145,11 @@ def _getEvaluationContext():
             # Frequent used modules
             "sys": sys,
             "os": os,
+            "importlib": importlib,
             "appdirs": getAppdirsModule(),
+            # Python version string
+            "python_version_str": python_version_str,
+            "python_version_full_str": python_version_full_str,
             # Builtins
             "True": True,
             "False": False,
@@ -162,6 +163,8 @@ def _getEvaluationContext():
             "list": list,
             "dict": dict,
             "set": set,
+            "getattr": getattr,
+            "hasattr": hasattr,
             "frozenset": frozenset,
             "__import__": __import__,
         }
@@ -267,6 +270,22 @@ def _getModuleDirectory(module_name):
     )
 
     return module_filename
+
+
+def _iterate_module_names(package_name):
+    package_name = ModuleName(package_name)
+    package_path = _getModuleDirectory(module_name=package_name)
+
+    result = []
+
+    for module_info in iter_modules([package_path]):
+        module_name = package_name.getChildNamed(module_info.name)
+        result.append(module_name.asString())
+
+        if module_info.ispkg:
+            result.extend(_iterate_module_names(package_name=module_name))
+
+    return result
 
 
 def _isPluginActive(plugin_name):
@@ -1276,37 +1295,99 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use
         return {}
 
-    def evaluateExpression(self, full_name, expression, config_name, extra_context):
+    @staticmethod
+    def isValueForEvaluation(expression):
+        return '"' in expression or "'" in expression or "(" in expression
+
+    def evaluateExpressionOrConstant(
+        self, full_name, expression, config_name, extra_context, single_value
+    ):
+        if self.isValueForEvaluation(expression):
+            return self.evaluateExpression(
+                full_name=full_name,
+                expression=expression,
+                config_name=config_name,
+                extra_context=extra_context,
+                single_value=single_value,
+            )
+        else:
+            return expression
+
+    def getExpressionConstants(self, full_name):
+        if full_name not in _module_config_constants:
+            constants = {}
+
+            for count, constant_config in enumerate(
+                self.config.get(full_name, section="constants"), start=1
+            ):
+                declarations = constant_config.get("declarations")
+
+                if declarations and self.evaluateCondition(
+                    full_name=full_name,
+                    condition=constant_config.get("when", "True"),
+                ):
+                    for constant_name, constant_value in declarations.items():
+                        constants[constant_name] = self.evaluateExpressionOrConstant(
+                            full_name=full_name,
+                            expression=constant_value,
+                            config_name="constants config #%d" % count,
+                            extra_context=None,
+                            single_value=False,
+                        )
+
+            _module_config_constants[full_name] = constants
+
+        return _module_config_constants[full_name]
+
+    def getExpressionVariables(self, full_name):
+        if full_name not in _module_config_variables:
+            variables = {}
+
+            for count, variable_config in enumerate(
+                self.config.get(full_name, section="variables")
+            ):
+                setup_codes = variable_config.get("setup_code")
+                declarations = variable_config.get("declarations")
+
+                if declarations and self.evaluateCondition(
+                    full_name=full_name,
+                    condition=variable_config.get("when", "True"),
+                ):
+                    if type(setup_codes) is str:
+                        setup_codes = setup_codes.splitlines()
+
+                    setup_codes.extend(
+                        "%s=%r" % (constant_name, constant_value)
+                        for (
+                            constant_name,
+                            constant_value,
+                        ) in self.getExpressionConstants(full_name=full_name).items()
+                    )
+
+                    info = self.queryRuntimeInformationMultiple(
+                        "%s_variables_%s" % (full_name.asString(), count),
+                        setup_codes=setup_codes,
+                        values=tuple(declarations.items()),
+                    )
+
+                    variables.update(info.asDict())
+
+            _module_config_variables[full_name] = variables
+
+        return _module_config_variables[full_name]
+
+    def evaluateExpression(
+        self, full_name, expression, config_name, extra_context, single_value
+    ):
         context = TagContext(logger=self, full_name=full_name, config_name=config_name)
         context.update(control_tags)
 
         context.update(_getEvaluationContext())
 
-        variables = {}
-
         def get_variable(variable_name):
             assert type(variable_name) is str, variable_name
 
-            if not variables:
-                for count, variable_config in enumerate(
-                    self.config.get(full_name, section="variables")
-                ):
-                    setup_codes = variable_config.get("setup_code")
-                    declarations = variable_config.get("declarations")
-
-                    if self.evaluateCondition(
-                        full_name=full_name,
-                        condition=variable_config.get("when", "True"),
-                    ):
-                        info = self.queryRuntimeInformationMultiple(
-                            "%s_variables_%s" % (full_name.asString(), count),
-                            setup_codes=setup_codes,
-                            values=tuple(declarations.items()),
-                        )
-
-                        variables.update(info.asDict())
-
-            result = variables[variable_name]
+            result = self.getExpressionVariables(full_name=full_name)[variable_name]
 
             addModuleInfluencingVariable(
                 module_name=full_name,
@@ -1318,7 +1399,17 @@ except ImportError:
 
             return result
 
+        def get_constant(constant_name):
+            assert type(constant_name) is str, constant_name
+
+            result = self.getExpressionConstants(full_name=full_name)[constant_name]
+
+            # TODO: Record the constant value in report.
+
+            return result
+
         context["get_variable"] = get_variable
+        context["get_constant"] = get_constant
 
         def get_parameter(parameter_name, default):
             result = Options.getModuleParameter(full_name, parameter_name)
@@ -1326,11 +1417,10 @@ except ImportError:
             if result is None:
                 result = default
 
-            addModuleInfluencingParameter(
+            self.addModuleInfluencingParameter(
                 module_name=full_name,
-                plugin_name=self.plugin_name,
                 parameter_name=parameter_name,
-                control_tags=context.used_tags,
+                condition_tags_used=context.used_tags,
                 result=result,
             )
 
@@ -1354,11 +1444,31 @@ except ImportError:
                     % (expression, e)
                 )
 
-        if type(result) is not str:
-            self.sysexit(
-                "Error, expression '%s' for module '%s' did not evaluate to str result."
-                % (expression, full_name)
-            )
+        if type(result) not in (str, unicode):
+            if single_value:
+                self.sysexit(
+                    """\
+Error, expression '%s' for module '%s' did not evaluate to 'str' result."""
+                    % (expression, full_name)
+                )
+            else:
+                if type(result) not in (tuple, list):
+                    self.sysexit(
+                        """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+                        % (expression, full_name)
+                    )
+
+                for v in result:
+                    if type(v) not in (str, unicode):
+                        self.sysexit(
+                            """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+                            % (expression, full_name)
+                        )
+
+                # Make it immutable in case it's a list.
+                result = tuple(result)
 
         return result
 
@@ -1384,11 +1494,10 @@ except ImportError:
             if result is None:
                 result = default
 
-            addModuleInfluencingParameter(
+            self.addModuleInfluencingParameter(
                 module_name=full_name,
-                plugin_name=self.plugin_name,
                 parameter_name=parameter_name,
-                control_tags=context.used_tags,
+                condition_tags_used=context.used_tags,
                 result=result,
             )
 
@@ -1424,6 +1533,27 @@ except ImportError:
         )
 
         return result
+
+    def addModuleInfluencingParameter(
+        self, module_name, parameter_name, condition_tags_used, result
+    ):
+        addModuleInfluencingParameter(
+            module_name=module_name,
+            plugin_name=self.plugin_name,
+            parameter_name=parameter_name,
+            condition_tags_used=condition_tags_used,
+            result=result,
+        )
+
+    def addModuleInfluencingDetection(
+        self, module_name, detection_name, detection_value
+    ):
+        addModuleInfluencingDetection(
+            module_name=module_name,
+            plugin_name=self.plugin_name,
+            detection_name=detection_name,
+            detection_value=detection_value,
+        )
 
     @classmethod
     def warning(cls, message, **kwargs):
@@ -1558,3 +1688,19 @@ class TagContext(dict):
                 "Identifier '%s' in %s of module '%s' is unknown."
                 % (key, self.config_name, self.full_name)
             )
+
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

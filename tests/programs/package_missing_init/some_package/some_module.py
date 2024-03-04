@@ -1,5 +1,20 @@
-#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
-#
+#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+import sys
+
+print("This must be Python3 which no longer needs __init__.py to accept a package.")
+
+
+print("The parent path is", sys.modules["some_package"].__path__)
+
+
+def f():
+    pass
+
+
+print(f)
+
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
 #
@@ -14,17 +29,3 @@
 #     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
-#
-import sys
-
-print("This must be Python3 which no longer needs __init__.py to accept a package.")
-
-
-print("The parent path is", sys.modules["some_package"].__path__)
-
-
-def f():
-    pass
-
-
-print(f)
