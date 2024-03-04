@@ -154,14 +154,14 @@ def _updatePipenvFile(installed_python, case_data, dry_run, result_path):
         requirement = requirement.replace(" ", "")
 
         if all(char not in requirement for char in "=><"):
-            pipenv_package_requirements.append('%s = "*"' % requirement)
+            pipenv_package_requirements.append('"%s" = "*"' % requirement)
         else:
             operator_index = min(
                 requirement.find(char) for char in "=><" if char in requirement
             )
 
             pipenv_package_requirements.append(
-                '%s = "%s"'
+                '"%s" = "%s"'
                 % (requirement[:operator_index], requirement[operator_index:])
             )
 
