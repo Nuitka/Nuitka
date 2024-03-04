@@ -20,11 +20,7 @@ from optparse import OptionParser
 
 from nuitka.tools.release.Debian import checkChangeLog
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
-from nuitka.tools.release.Release import (
-    checkAtHome,
-    checkBranchName,
-    checkNuitkaChangelog,
-)
+from nuitka.tools.release.Release import checkAtHome, checkBranchName
 from nuitka.Version import getNuitkaVersion
 
 parser = OptionParser()
@@ -50,10 +46,8 @@ if (
     else:
         assert checkChangeLog("New upstream hotfix release.")
 
-    assert checkNuitkaChangelog() == "final", checkNuitkaChangelog()
 else:
     assert checkChangeLog("New upstream pre-release."), branch_name
-    assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
 
 shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)

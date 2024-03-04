@@ -17,10 +17,9 @@ from nuitka.utils.FileOperations import (
     openTextFile,
 )
 
-from .Release import checkNuitkaChangelog
-
 
 def _callDebchange(*args):
+    # spell-checker: ignore debchange
     args = ["debchange"] + list(args)
 
     os.environ["EDITOR"] = ""
@@ -68,33 +67,6 @@ def updateDebianChangelog(old_version, new_version, distribution):
             _discardDebianChangelogLastEntry()
 
         message = "New upstream pre-release."
-
-        if checkNuitkaChangelog() != "draft":
-            changelog = getFileContents("Changelog.rst")
-
-            title = "Nuitka Release " + new_version[:-3] + " (Draft)"
-
-            found = False
-            with openTextFile("Changelog.rst", "w") as changelog_file:
-                for line in changelog.splitlines():
-                    if not found:
-                        if line.startswith("***") and line.endswith("***"):
-                            found = True
-
-                            marker = "*" * (len(title) + 2)
-
-                            changelog_file.write(
-                                marker + "\n " + title + "\n" + marker + "\n\n"
-                            )
-                            changelog_file.write("This release is not done yet.\n\n")
-                            changelog_file.write(line + "\n")
-
-                            continue
-
-                    changelog_file.write(line + "\n")
-
-            assert found
-
     else:
         if "rc" in old_version:
             # Initial final release after pre-releases.
