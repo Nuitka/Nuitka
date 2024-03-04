@@ -1533,6 +1533,11 @@
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'huggingface_hub.file_download' # checksum: da417692
+  anti-bloat:
+    - description: 'workaround hard module import attribute bug'
+      append_plain: 'from .utils.tqdm import tqdm'
+
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
     - replacements_plain:
@@ -6042,19 +6047,15 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_gtk' # checksum: 1577803b
+- module-name: 'toga_gtk' # checksum: 3f9f0b7d
   data-files:
     dirs:
       - 'resources'
-    include-metadata:
-      - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 5dda2bcf
+- module-name: 'toga_winforms' # checksum: 286969f5
   data-files:
     dirs:
       - 'resources'
-    include-metadata:
-      - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
