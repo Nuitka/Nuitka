@@ -762,6 +762,9 @@ elif not module_mode:
                 env.Append(LIBS=["expat"])
 
             env.Append(LINKFLAGS=["-Xlinker", "-export-dynamic", "-rdynamic"])
+
+        if env.arch_python:
+            env.Append(LINKFLAGS=["-rdynamic"])
     else:
         # Fedora, Debian and Ubuntu distinguish the system libraries like this.
         if (
