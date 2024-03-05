@@ -31,6 +31,7 @@ from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
+    isArchPackagePython,
     isCPythonOfficialPackage,
     isDebianPackagePython,
     isHomebrewPython,
@@ -1506,6 +1507,9 @@ added to provide the static link library.""",
             )
 
         if isMacOS() and isCPythonOfficialPackage():
+            return True, None
+
+        if isArchPackagePython():
             return True, None
 
     return options.static_libpython == "yes", None
