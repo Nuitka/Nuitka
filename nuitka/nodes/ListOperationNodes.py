@@ -3,7 +3,6 @@
 
 """ Nodes that build and operate on lists."""
 
-
 # from .ExpressionBasesGenerated import ChildrenExpressionListOperationExtendMixin
 from .ChildrenHavingMixins import (
     ChildHavingListArgMixin,
@@ -277,17 +276,28 @@ class ExpressionListOperationInsert(
         # This lets the value added to the list escape.
         self.subnode_item.onContentEscapes(trace_collection)
 
+        # Could raise TypeError from wrong index type.
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(TypeError)
+
         # it raises no index error, just appends
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        return self.subnode_list_arg.mayRaiseException(exception_type)
+        return (
+            self.subnode_list_arg.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+            or self.subnode_index.mayRaiseException(exception_type)
+            or self.subnode_item.mayRaiseException(exception_type)
+        )
 
     def mayRaiseExceptionOperation(self):
         # TODO: We do not yet have isIndexable from the type shape.
+        # Note that any index value will do for insert, it just has
+        # to be an integer.
         return (
-            self.subnode_item.isExpressionConstantRef()
-            and self.subnode_item.isIndexConstant()
+            self.subnode_index.isExpressionConstantRef()
+            and self.subnode_index.isIndexConstant()
         )
 
 
