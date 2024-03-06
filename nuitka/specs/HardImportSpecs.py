@@ -147,7 +147,7 @@ ctypes_cdll_since_38_spec = BuiltinParameterSpec(
         "mode",
         "handle",
         "use_errno",
-        "use_lasterror",
+        "use_last_error",
         "winmode",
     ),
     default_count=5,
@@ -160,7 +160,7 @@ ctypes_cdll_before_38_spec = BuiltinParameterSpec(
         "mode",
         "handle",
         "use_errno",
-        "use_lasterror",
+        "use_last_error",
     ),
     default_count=4,
 )
