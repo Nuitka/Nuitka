@@ -12,8 +12,21 @@
 
 WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore __prepare__ append args buffering capitalize casefold center chars
+spell-checker: ignore clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs extend file fillchar find format format_map formatmap
+spell-checker: ignore fromkeys get group handle has_key haskey index insert isalnum
+spell-checker: ignore isalpha isascii isdecimal isdigit isidentifier islower isnumeric
+spell-checker: ignore isprintable isspace istitle isupper item items iterable iteritems
+spell-checker: ignore iterkeys itervalues join keepends key keys kwargs ljust lower lstrip
+spell-checker: ignore maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
+spell-checker: ignore prepare remove replace resource resource_name reverse rfind rindex
+spell-checker: ignore rjust rpartition rsplit rstrip s sep setdefault sort split
+spell-checker: ignore splitlines start startswith stop strip sub suffix swapcase table
+spell-checker: ignore tabsize title translate update upper use_errno use_last_error value
+spell-checker: ignore values viewitems viewkeys viewvalues width winmode zfill
 """
 import os
 from abc import abstractmethod
