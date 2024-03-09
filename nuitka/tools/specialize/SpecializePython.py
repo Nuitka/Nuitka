@@ -12,6 +12,7 @@ nuitka.Options.is_full_compat = False
 
 # isort:start
 
+import textwrap
 from collections import namedtuple
 
 import nuitka.code_generation.BinaryOperationHelperDefinitions
@@ -248,12 +249,29 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 
 
 def emitGenerationWarning(emit, doc_string, template_name):
-    attribute_code_names = set(attribute_information.keys())
-    attribute_code_names = set(
+    generate_names = set()
+
+    generate_names.update(attribute_information.keys())
+    generate_names.update(
         attribute_name.replace("_", "") for attribute_name in attribute_information
     )
 
-    attribute_arg_names = set(sum(attribute_shape_args.values(), ()))
+    generate_names.update(sum(attribute_shape_args.values(), ()))
+
+    for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
+        spec = spec_descriptions[0][2]
+        generate_names.update(spec.getArgumentNames())
+
+    ignores = textwrap.fill(
+        " ".join(sorted(generate_names)),
+        width=90,
+        initial_indent="spell-checker: ignore ",
+        subsequent_indent="spell-checker: ignore ",
+        break_on_hyphens=False,
+        break_long_words=False,
+        expand_tabs=False,
+        replace_whitespace=False,
+    )
 
     emit(
         """
@@ -271,17 +289,11 @@ def emitGenerationWarning(emit, doc_string, template_name):
 
 WARNING, this code is GENERATED. Modify the template %s instead!
 
-spell-checker: ignore %s
-spell-checker: ignore %s
+%s
 """
 
 '''
-        % (
-            doc_string,
-            template_name,
-            " ".join(sorted(attribute_code_names)),
-            " ".join(sorted(attribute_arg_names)),
-        )
+        % (doc_string, template_name, ignores)
     )
 
 

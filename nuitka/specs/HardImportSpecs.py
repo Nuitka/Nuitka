@@ -148,7 +148,7 @@ ctypes_cdll_since_38_spec = BuiltinParameterSpec(
         "handle",
         "use_errno",
         "use_last_error",
-        "winmode",
+        "winmode",  # spell-checker: ignore winmode
     ),
     default_count=5,
 )
