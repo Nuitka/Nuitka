@@ -3493,6 +3493,21 @@
       change_function:
         'set_break': 'un-callable'
 
+- module-name: 'pypdfium2' # checksum: 
+  data-files:
+    patterns:
+      - 'version.json'
+    
+- module-name: 'pypdfium2_raw' # checksum: 
+  data-files:
+    patterns:
+      - 'version.json'
+  
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'pdfium'        
+
 - module-name: 'pyphen' # checksum: 708b31da
   data-files:
     dirs:
