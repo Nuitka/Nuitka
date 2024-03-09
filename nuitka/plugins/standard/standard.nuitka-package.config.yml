@@ -512,7 +512,7 @@
     - depends:
         - 'cassandra.compat'
 
-- module-name: 'cefpython3' # checksum: 623c0628
+- module-name: 'cefpython3' # checksum: cd02718a
   data-files:
     dirs:
       - 'locales'
@@ -526,11 +526,13 @@
         prefixes:
           - 'subprocess'
         executable: 'yes'
-      when: 'win32'
     - from_filenames:
         prefixes:
           - ''
-      when: 'win32'
+
+  implicit-imports:
+    - depends:
+        - 'urllib.request'
 
 - module-name: 'certifi' # checksum: 73df1a1e
   data-files:
