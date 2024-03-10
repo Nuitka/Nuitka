@@ -67,8 +67,6 @@ doxygen-*
 .coverage*
 *.tmp
 *.dat
-.vscode/ipch
-.vscode/tags
-.vscode/.ropeproject
 Nuitka-*
 nuitka/tools/podman/containers/requirements-devel.txt
+.vscode/

@@ -3493,20 +3493,20 @@
       change_function:
         'set_break': 'un-callable'
 
-- module-name: 'pypdfium2' # checksum: 
+- module-name: 'pypdfium2' # checksum: 91e9a452
   data-files:
     patterns:
       - 'version.json'
-    
-- module-name: 'pypdfium2_raw' # checksum: 
+
+- module-name: 'pypdfium2_raw' # checksum: 3c8f2a8f
   data-files:
     patterns:
       - 'version.json'
-  
+
   dlls:
     - from_filenames:
         prefixes:
-          - 'pdfium'        
+          - 'pdfium'
 
 - module-name: 'pyphen' # checksum: 708b31da
   data-files:
@@ -4284,6 +4284,18 @@
   data-files:
     patterns:
       - 'words.txt'
+
+- module-name: 'selenium' # checksum: 19747624
+  data-files:
+    dirs:
+      - '.'
+  dlls:
+    - from_filenames:
+        relative_path: 'webdriver/common/windows'
+        prefixes:
+          - 'selenium-manager'
+        executable: 'yes'
+      when: 'win32'
 
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
