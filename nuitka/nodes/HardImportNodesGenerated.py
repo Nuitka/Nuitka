@@ -71,8 +71,8 @@ from .ChildrenHavingMixins import (
     ChildHavingSMixin,
     ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
-    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
-    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin,
+    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
+    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
     ChildrenHavingPackageOrRequirementResourceNameMixin,
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ChildrenHavingPackageResourceMixin,
@@ -263,7 +263,7 @@ hard_import_node_classes[ExpressionCtypesCdllRef] = ctypes_cdll_since_38_spec
 
 
 class ExpressionCtypesCdllSince38CallBase(
-    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin,
+    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
     ExpressionBase,
 ):
     """Base class for CtypesCdllCall
@@ -278,7 +278,7 @@ class ExpressionCtypesCdllSince38CallBase(
         "mode|optional",
         "handle|optional",
         "use_errno|optional",
-        "use_lasterror|optional",
+        "use_last_error|optional",
         "winmode|optional",
     )
 
@@ -287,15 +287,15 @@ class ExpressionCtypesCdllSince38CallBase(
     spec = ctypes_cdll_since_38_spec
 
     def __init__(
-        self, name, mode, handle, use_errno, use_lasterror, winmode, source_ref
+        self, name, mode, handle, use_errno, use_last_error, winmode, source_ref
     ):
-        ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin.__init__(
+        ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin.__init__(
             self,
             name=name,
             mode=mode,
             handle=handle,
             use_errno=use_errno,
-            use_lasterror=use_lasterror,
+            use_last_error=use_last_error,
             winmode=winmode,
         )
 
@@ -310,7 +310,7 @@ class ExpressionCtypesCdllSince38CallBase(
                 self.subnode_mode,
                 self.subnode_handle,
                 self.subnode_use_errno,
-                self.subnode_use_lasterror,
+                self.subnode_use_last_error,
                 self.subnode_winmode,
             )
         ):
@@ -333,7 +333,7 @@ class ExpressionCtypesCdllSince38CallBase(
 
 
 class ExpressionCtypesCdllBefore38CallBase(
-    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
+    ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ExpressionBase,
 ):
     """Base class for CtypesCdllCall
@@ -348,21 +348,21 @@ class ExpressionCtypesCdllBefore38CallBase(
         "mode|optional",
         "handle|optional",
         "use_errno|optional",
-        "use_lasterror|optional",
+        "use_last_error|optional",
     )
 
     __slots__ = ("attempted",)
 
     spec = ctypes_cdll_before_38_spec
 
-    def __init__(self, name, mode, handle, use_errno, use_lasterror, source_ref):
-        ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin.__init__(
+    def __init__(self, name, mode, handle, use_errno, use_last_error, source_ref):
+        ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin.__init__(
             self,
             name=name,
             mode=mode,
             handle=handle,
             use_errno=use_errno,
-            use_lasterror=use_lasterror,
+            use_last_error=use_last_error,
         )
 
         ExpressionBase.__init__(self, source_ref)
@@ -376,7 +376,7 @@ class ExpressionCtypesCdllBefore38CallBase(
                 self.subnode_mode,
                 self.subnode_handle,
                 self.subnode_use_errno,
-                self.subnode_use_lasterror,
+                self.subnode_use_last_error,
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

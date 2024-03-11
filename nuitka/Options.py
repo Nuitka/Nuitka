@@ -31,6 +31,7 @@ from nuitka.PythonFlavors import (
     getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
+    isArchPackagePython,
     isCPythonOfficialPackage,
     isDebianPackagePython,
     isHomebrewPython,
@@ -961,6 +962,14 @@ release will add it. In the mean time use '%s' instead."""
                 % getMsvcVersion()
             )
 
+    try:
+        getJobLimit()
+    except ValueError:
+        Tracing.options_logger.sysexit(
+            "For --jobs value, use positive integer values only, not, but not '%s'."
+            % options.jobs
+        )
+
     if isOnefileMode():
         standalone_mode = "onefile"
     elif isStandaloneMode():
@@ -1500,6 +1509,9 @@ added to provide the static link library.""",
         if isMacOS() and isCPythonOfficialPackage():
             return True, None
 
+        if isArchPackagePython():
+            return True, None
+
     return options.static_libpython == "yes", None
 
 
@@ -1571,7 +1583,12 @@ def getJobLimit():
         else:
             return getCPUCoreCount()
 
-    return int(options.jobs)
+    result = int(options.jobs)
+
+    if result <= 0:
+        raise ValueError(result)
+
+    return result
 
 
 def getLtoMode():
