@@ -512,7 +512,7 @@
     - depends:
         - 'cassandra.compat'
 
-- module-name: 'cefpython3' # checksum: 623c0628
+- module-name: 'cefpython3' # checksum: cd02718a
   data-files:
     dirs:
       - 'locales'
@@ -526,11 +526,13 @@
         prefixes:
           - 'subprocess'
         executable: 'yes'
-      when: 'win32'
     - from_filenames:
         prefixes:
           - ''
-      when: 'win32'
+
+  implicit-imports:
+    - depends:
+        - 'urllib.request'
 
 - module-name: 'certifi' # checksum: 73df1a1e
   data-files:
@@ -3492,6 +3494,21 @@
     - description: 'remove pdb reference'
       change_function:
         'set_break': 'un-callable'
+
+- module-name: 'pypdfium2' # checksum: 91e9a452
+  data-files:
+    patterns:
+      - 'version.json'
+
+- module-name: 'pypdfium2_raw' # checksum: 3c8f2a8f
+  data-files:
+    patterns:
+      - 'version.json'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'pdfium'
 
 - module-name: 'pyphen' # checksum: 708b31da
   data-files:
