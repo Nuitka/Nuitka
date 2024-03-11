@@ -146,7 +146,7 @@ def decideFunctionCompilationMode(decorators):
                 decorator.isExpressionCall()
                 and decorator.subnode_called.isExpressionVariableNameRef()
             ):
-                if decorator.subnode_called.variable_name == "pyqtSlot":
+                if decorator.subnode_called.variable_name in ("pyqtSlot", "asyncSlot"):
                     return "bytecode"
 
     return "compiled"

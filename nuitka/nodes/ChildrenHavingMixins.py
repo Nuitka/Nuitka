@@ -33,6 +33,7 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
 
     # This is generated for use in
     #   CompiledPythonModule
+    #   CompiledPythonNamespacePackage
     #   CompiledPythonPackage
     #   PythonMainModule
 
@@ -160,6 +161,9 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
 
 # Assign the names that are easier to import with a stable name.
 ChildrenCompiledPythonModuleMixin = (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
+)
+ChildrenCompiledPythonNamespacePackageMixin = (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
 )
 ChildrenCompiledPythonPackageMixin = (
@@ -11642,7 +11646,7 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
 ChildrenExpressionBuiltinImportMixin = ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevelOptionalMixin
 
 
-class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin(
+class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin(
     object
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -11657,7 +11661,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         mode,
         handle,
         use_errno,
-        use_lasterror,
+        use_last_error,
     ):
         name.parent = self
 
@@ -11678,10 +11682,10 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
         self.subnode_use_errno = use_errno
 
-        if use_lasterror is not None:
-            use_lasterror.parent = self
+        if use_last_error is not None:
+            use_last_error.parent = self
 
-        self.subnode_use_lasterror = use_lasterror
+        self.subnode_use_last_error = use_last_error
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -11703,7 +11707,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             pass
         else:
             result.append(value)
-        value = self.subnode_use_lasterror
+        value = self.subnode_use_last_error
         if value is None:
             pass
         else:
@@ -11721,7 +11725,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             ("mode", self.subnode_mode),
             ("handle", self.subnode_handle),
             ("use_errno", self.subnode_use_errno),
-            ("use_lasterror", self.subnode_use_lasterror),
+            ("use_last_error", self.subnode_use_last_error),
         )
 
     def replaceChild(self, old_node, new_node):
@@ -11760,12 +11764,12 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
             return
 
-        value = self.subnode_use_lasterror
+        value = self.subnode_use_last_error
         if old_node is value:
             if new_node is not None:
                 new_node.parent = self
 
-            self.subnode_use_lasterror = new_node
+            self.subnode_use_last_error = new_node
 
             return
 
@@ -11788,8 +11792,8 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             "use_errno": self.subnode_use_errno.makeClone()
             if self.subnode_use_errno is not None
             else None,
-            "use_lasterror": self.subnode_use_lasterror.makeClone()
-            if self.subnode_use_lasterror is not None
+            "use_last_error": self.subnode_use_last_error.makeClone()
+            if self.subnode_use_last_error is not None
             else None,
         }
 
@@ -11811,9 +11815,9 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         if self.subnode_use_errno is not None:
             self.subnode_use_errno.finalize()
         del self.subnode_use_errno
-        if self.subnode_use_lasterror is not None:
-            self.subnode_use_lasterror.finalize()
-        del self.subnode_use_lasterror
+        if self.subnode_use_last_error is not None:
+            self.subnode_use_last_error.finalize()
+        del self.subnode_use_last_error
 
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -11863,17 +11867,17 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
         if subnode_use_errno is not None:
             self.subnode_use_errno.collectVariableAccesses(emit_read, emit_write)
-        subnode_use_lasterror = self.subnode_use_lasterror
+        subnode_use_last_error = self.subnode_use_last_error
 
-        if subnode_use_lasterror is not None:
-            self.subnode_use_lasterror.collectVariableAccesses(emit_read, emit_write)
+        if subnode_use_last_error is not None:
+            self.subnode_use_last_error.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin
+ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin
 
 
-class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin(
+class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin(
     object
 ):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -11888,7 +11892,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         mode,
         handle,
         use_errno,
-        use_lasterror,
+        use_last_error,
         winmode,
     ):
         name.parent = self
@@ -11910,10 +11914,10 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
         self.subnode_use_errno = use_errno
 
-        if use_lasterror is not None:
-            use_lasterror.parent = self
+        if use_last_error is not None:
+            use_last_error.parent = self
 
-        self.subnode_use_lasterror = use_lasterror
+        self.subnode_use_last_error = use_last_error
 
         if winmode is not None:
             winmode.parent = self
@@ -11940,7 +11944,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             pass
         else:
             result.append(value)
-        value = self.subnode_use_lasterror
+        value = self.subnode_use_last_error
         if value is None:
             pass
         else:
@@ -11963,7 +11967,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             ("mode", self.subnode_mode),
             ("handle", self.subnode_handle),
             ("use_errno", self.subnode_use_errno),
-            ("use_lasterror", self.subnode_use_lasterror),
+            ("use_last_error", self.subnode_use_last_error),
             ("winmode", self.subnode_winmode),
         )
 
@@ -12003,12 +12007,12 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
             return
 
-        value = self.subnode_use_lasterror
+        value = self.subnode_use_last_error
         if old_node is value:
             if new_node is not None:
                 new_node.parent = self
 
-            self.subnode_use_lasterror = new_node
+            self.subnode_use_last_error = new_node
 
             return
 
@@ -12040,8 +12044,8 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
             "use_errno": self.subnode_use_errno.makeClone()
             if self.subnode_use_errno is not None
             else None,
-            "use_lasterror": self.subnode_use_lasterror.makeClone()
-            if self.subnode_use_lasterror is not None
+            "use_last_error": self.subnode_use_last_error.makeClone()
+            if self.subnode_use_last_error is not None
             else None,
             "winmode": self.subnode_winmode.makeClone()
             if self.subnode_winmode is not None
@@ -12066,9 +12070,9 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         if self.subnode_use_errno is not None:
             self.subnode_use_errno.finalize()
         del self.subnode_use_errno
-        if self.subnode_use_lasterror is not None:
-            self.subnode_use_lasterror.finalize()
-        del self.subnode_use_lasterror
+        if self.subnode_use_last_error is not None:
+            self.subnode_use_last_error.finalize()
+        del self.subnode_use_last_error
         if self.subnode_winmode is not None:
             self.subnode_winmode.finalize()
         del self.subnode_winmode
@@ -12121,10 +12125,10 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
         if subnode_use_errno is not None:
             self.subnode_use_errno.collectVariableAccesses(emit_read, emit_write)
-        subnode_use_lasterror = self.subnode_use_lasterror
+        subnode_use_last_error = self.subnode_use_last_error
 
-        if subnode_use_lasterror is not None:
-            self.subnode_use_lasterror.collectVariableAccesses(emit_read, emit_write)
+        if subnode_use_last_error is not None:
+            self.subnode_use_last_error.collectVariableAccesses(emit_read, emit_write)
         subnode_winmode = self.subnode_winmode
 
         if subnode_winmode is not None:
@@ -12132,7 +12136,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin
+ChildrenExpressionCtypesCdllMixin = ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin
 
 
 class ChildrenHavingNamePackageOptionalMixin(object):
