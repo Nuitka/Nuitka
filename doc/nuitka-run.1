@@ -747,6 +747,14 @@ plugin\-list' to query the full list and exit. Most
 standard plugins are not a good idea to disable.
 Default empty.
 .TP
+\fB\-\-user\-plugin\fR=\fI\,PATH\/\fR
+The file name of user plugin. Can be given multiple
+times. Default empty.
+.TP
+\fB\-\-plugin\-list\fR
+Show list of all available plugins and exit. Defaults
+to off.
+.TP
 \fB\-\-plugin\-no\-detection\fR
 Plugins can detect if they might be used, and the you
 can disable the warning via "\-\-disable\-plugin=pluginthat\-warned", or you can use this option to disable
@@ -754,14 +762,6 @@ the mechanism entirely, which also speeds up
 compilation slightly of course as this detection code
 is run in vain once you are certain of which plugins
 to use. Defaults to off.
-.TP
-\fB\-\-plugin\-list\fR
-Show list of all available plugins and exit. Defaults
-to off.
-.TP
-\fB\-\-user\-plugin\fR=\fI\,PATH\/\fR
-The file name of user plugin. Can be given multiple
-times. Default empty.
 .TP
 \fB\-\-module\-parameter\fR=\fI\,MODULE_PARAMETERS\/\fR
 Provide a module parameter. You are asked by some
