@@ -1259,6 +1259,14 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
+    def onClassBodyParsing(self, module_name, class_name, node):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        """Provide a different class body for the class of that module.
+
+        Should return a boolean, indicating if any actual change was done.
+        """
+        return False
+
     def getCacheContributionValues(self, module_name):
         """Provide values that represent the include of a plugin on the compilation.
 

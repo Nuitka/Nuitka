@@ -90,6 +90,38 @@
     patterns:
       - 'public.xml'
 
+- module-name: 'antlr4.FileStream' # checksum: b7fe4fce
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestFileStream': 'un-usable'
+
+- module-name: 'antlr4.InputStream' # checksum: e9e7bd9b
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestInputStream': 'un-usable'
+
+- module-name: 'antlr4.IntervalSet' # checksum: 214ba83e
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestIntervalSet': 'un-usable'
+
+- module-name: 'antlr4.Recognizer' # checksum: 6e605dda
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'Test': 'un-usable'
+
 - module-name: 'anyio._core._eventloop' # checksum: c0b82a1e
   implicit-imports:
     - depends:
