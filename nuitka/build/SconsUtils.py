@@ -537,7 +537,11 @@ def isGccName(cc_name):
 
 
 def isClangName(cc_name):
-    return "clang" in cc_name and "-cl" not in cc_name
+    return ("clang" in cc_name and "-cl" not in cc_name) or isZigName(cc_name)
+
+
+def isZigName(cc_name):
+    return "zig" in cc_name
 
 
 def cheapCopyFile(src, dst):

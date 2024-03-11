@@ -1044,12 +1044,13 @@ enableSpawnMonitoring(
 changeKeyboardInterruptToErrorExit()
 
 # Check if ccache is installed, and complain if it is not.
-if env.gcc_mode and not disable_ccache:
+if env.gcc_mode:
     enableCcache(
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix_external,
         assume_yes_for_downloads=assume_yes_for_downloads,
+        disable_ccache=disable_ccache,
     )
 
 if env.msvc_mode and not disable_ccache:
