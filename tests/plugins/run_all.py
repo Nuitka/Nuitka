@@ -30,6 +30,7 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
+from nuitka.utils.Utils import isWin32Windows
 from nuitka.Version import getCommercialVersion
 
 
@@ -82,6 +83,10 @@ def main():
                     reportSkip(
                         "Plugin only available in Nuitka commercial", ".", filename
                     )
+                    continue
+
+                if not isWin32Windows():
+                    reportSkip("Plugin only works on Windows", ".", filename)
                     continue
 
             filename_main = getMainProgramFilename(filename)
