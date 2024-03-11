@@ -1540,6 +1540,17 @@
     - description: 'workaround hard module import attribute bug'
       append_plain: 'from .utils.tqdm import tqdm'
 
+- module-name: 'hydra' # checksum: 380a0a91
+  data-files:
+    dirs:
+      - 'conf'
+
+- module-name: 'hydra.core.plugins' # checksum: f4d9feae
+  implicit-imports:
+    - depends:
+        - 'hydra._internal.core_plugins.*'
+        - 'hydra_plugins.*'
+
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
     - replacements_plain:
