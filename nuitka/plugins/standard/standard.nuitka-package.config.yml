@@ -4287,6 +4287,18 @@
     patterns:
       - 'words.txt'
 
+- module-name: 'selenium' # checksum: 19747624
+  data-files:
+    dirs:
+      - '.'
+  dlls:
+    - from_filenames:
+        relative_path: 'webdriver/common/windows'
+        prefixes:
+          - 'selenium-manager'
+        executable: 'yes'
+      when: 'win32'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
