@@ -6710,6 +6710,11 @@
         'from distributed import Client': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'twofish' # checksum: c8ae9b1e
+  implicit-imports:
+    - depends:
+        - '_twofish'
+
 - module-name: 'tzdata' # checksum: dae3c0e3
   data-files:
     dirs:
