@@ -1071,6 +1071,11 @@
     - depends:
         - 'Equation.equation_*'
 
+- module-name: 'eth_utils' # checksum: c62fca1b
+  data-files:
+    dirs:
+      - '__json'
+
 - module-name: 'evaluate.config' # checksum: becc1d28
   anti-bloat:
     - description: 'workaround python version test not compile time recognized'
