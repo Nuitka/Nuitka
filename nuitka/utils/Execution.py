@@ -141,7 +141,7 @@ def check_call(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
         subprocess.check_call(*popenargs, **kwargs)
@@ -156,7 +156,7 @@ def callProcess(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     return subprocess.call(*popenargs, **kwargs)
 
