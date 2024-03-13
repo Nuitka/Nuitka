@@ -836,7 +836,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
     char var_name[1024];
     char *w = NULL;
 
-    bool var_started = false;
+    NUITKA_MAY_BE_UNUSED bool var_started = false;
 
     while (*source != 0) {
         if (*source == '{') {
