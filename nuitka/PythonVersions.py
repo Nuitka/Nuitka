@@ -388,7 +388,7 @@ def isPythonValidDigitValue(value):
     return -_float_digit_boundary <= value <= _float_digit_boundary
 
 
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
+sizeof_clong = 4 # ctypes.sizeof(ctypes.c_long)
 
 # TODO: We could be more aggressive here, there are issues with using full
 # values, in some contexts, but that can probably be sorted out.
