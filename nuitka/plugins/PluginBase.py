@@ -14,7 +14,6 @@ it being used.
 
 import ast
 import functools
-import importlib
 import inspect
 import os
 import sys
@@ -106,6 +105,15 @@ _module_config_constants = {}
 _module_config_variables = {}
 
 
+def _getImportLibModule():
+    try:
+        import importlib
+    except ImportError:
+        return None
+    else:
+        return importlib
+
+
 def _getEvaluationContext():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
@@ -145,7 +153,7 @@ def _getEvaluationContext():
             # Frequent used modules
             "sys": sys,
             "os": os,
-            "importlib": importlib,
+            "importlib": _getImportLibModule(),
             "appdirs": getAppdirsModule(),
             # Python version string
             "python_version_str": python_version_str,
