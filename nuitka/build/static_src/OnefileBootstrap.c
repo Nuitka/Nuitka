@@ -65,8 +65,8 @@
 #define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
 #define _NUITKA_ONEFILE_TEMP_SPEC "{TEMP}/onefile_{PID}_{TIME}"
 
-#define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
 #define _NUITKA_AUTO_UPDATE_BOOL 1
+#define _NUITKA_AUTO_UPDATE_DEBUG_BOOL 1
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
 
 #endif
@@ -858,7 +858,7 @@ int main(int argc, char **argv) {
     signal(SIGTERM, ourConsoleCtrlHandler);
 #endif
 
-#ifdef _NUITKA_AUTO_UPDATE_BOOL
+#if _NUITKA_AUTO_UPDATE_BOOL
     checkAutoUpdates();
 #endif
 
@@ -1052,7 +1052,7 @@ int main(int argc, char **argv) {
 
     closePayloadData();
 
-#ifdef _NUITKA_AUTO_UPDATE_BOOL
+#if _NUITKA_AUTO_UPDATE_BOOL
     exe_file_updatable = true;
 #endif
 
