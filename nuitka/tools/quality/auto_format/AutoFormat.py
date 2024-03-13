@@ -644,6 +644,7 @@ def autoFormatFile(
             ".txt",
             ".qml",
             ".rst",
+            ".inc",
             ".sh",
             ".in",
             ".md",
@@ -673,7 +674,7 @@ def autoFormatFile(
         "lintian-overrides",
     )
 
-    is_rst = effective_filename.endswith(".rst")
+    is_rst = effective_filename.endswith((".rst", ".inc"))
     is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
