@@ -535,6 +535,66 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return result
 
+    def _onClassBodyParsing(self, module_name, anti_bloat_config, class_name, node):
+        replace_code = anti_bloat_config.get("change_class", {}).get(class_name)
+
+        if replace_code == "un-usable":
+            replace_code = """
+'''
+class %(class_name)s:
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError("Must not call %(module_name)s.%(class_name)s")
+'''
+""" % {
+                "module_name": module_name,
+                "class_name": class_name,
+            }
+
+        if replace_code is None:
+            return False
+
+        replacement = self.evaluateExpression(
+            full_name=module_name,
+            expression=replace_code,
+            config_name="module '%s' config 'change_class' of '%s'"
+            % (module_name, class_name),
+            extra_context=self._getContextCode(
+                module_name=module_name, anti_bloat_config=anti_bloat_config
+            ),
+            single_value=True,
+        )
+
+        # Single node is required, extract the generated module body with
+        # single expression only statement value or a function body.
+        replacement = ast.parse(replacement).body[0]
+
+        node.body[:] = replacement.body
+        node.bases = replacement.bases
+
+        if self.show_changes:
+            self.info(
+                "Updated module '%s' class '%s'." % (module_name.asString(), class_name)
+            )
+
+        return True
+
+    def onClassBodyParsing(self, module_name, class_name, node):
+        result = False
+
+        config = self.config.get(module_name, section="anti-bloat")
+
+        if config:
+            for anti_bloat_config in config:
+                if self._onClassBodyParsing(
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    class_name=class_name,
+                    node=node,
+                ):
+                    result = True
+
+        return result
+
     def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
         while 1:
             config = self.config.get(using_module_name, section="anti-bloat")

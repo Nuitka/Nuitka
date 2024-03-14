@@ -90,6 +90,38 @@
     patterns:
       - 'public.xml'
 
+- module-name: 'antlr4.FileStream' # checksum: b7fe4fce
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestFileStream': 'un-usable'
+
+- module-name: 'antlr4.InputStream' # checksum: e9e7bd9b
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestInputStream': 'un-usable'
+
+- module-name: 'antlr4.IntervalSet' # checksum: 214ba83e
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'TestIntervalSet': 'un-usable'
+
+- module-name: 'antlr4.Recognizer' # checksum: 6e605dda
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+      change_class:
+        'Test': 'un-usable'
+
 - module-name: 'anyio._core._eventloop' # checksum: c0b82a1e
   implicit-imports:
     - depends:
@@ -533,6 +565,13 @@
   implicit-imports:
     - depends:
         - 'urllib.request'
+
+- module-name: 'celery' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'certifi' # checksum: 73df1a1e
   data-files:
@@ -1039,6 +1078,11 @@
     - depends:
         - 'Equation.equation_*'
 
+- module-name: 'eth_utils' # checksum: c62fca1b
+  data-files:
+    dirs:
+      - '__json'
+
 - module-name: 'evaluate.config' # checksum: becc1d28
   anti-bloat:
     - description: 'workaround python version test not compile time recognized'
@@ -1539,6 +1583,17 @@
   anti-bloat:
     - description: 'workaround hard module import attribute bug'
       append_plain: 'from .utils.tqdm import tqdm'
+
+- module-name: 'hydra' # checksum: 380a0a91
+  data-files:
+    dirs:
+      - 'conf'
+
+- module-name: 'hydra.core.plugins' # checksum: f4d9feae
+  implicit-imports:
+    - depends:
+        - 'hydra._internal.core_plugins.*'
+        - 'hydra_plugins.*'
 
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
@@ -4287,6 +4342,18 @@
     patterns:
       - 'words.txt'
 
+- module-name: 'selenium' # checksum: 19747624
+  data-files:
+    dirs:
+      - '.'
+  dlls:
+    - from_filenames:
+        relative_path: 'webdriver/common/windows'
+        prefixes:
+          - 'selenium-manager'
+        executable: 'yes'
+      when: 'win32'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
@@ -6654,6 +6721,11 @@
         'from distributed import Client, LocalCluster': 'raise ImportError'
         'from distributed import Client': 'raise ImportError'
       when: 'not use_dask'
+
+- module-name: 'twofish' # checksum: c8ae9b1e
+  implicit-imports:
+    - depends:
+        - '_twofish'
 
 - module-name: 'tzdata' # checksum: dae3c0e3
   data-files:
