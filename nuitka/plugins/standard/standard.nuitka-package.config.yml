@@ -566,6 +566,13 @@
     - depends:
         - 'urllib.request'
 
+- module-name: 'celery' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'certifi' # checksum: 73df1a1e
   data-files:
     patterns:
