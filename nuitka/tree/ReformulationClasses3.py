@@ -79,6 +79,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.Options import isExperimental
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -126,6 +127,10 @@ def buildClassNode3(provider, node, source_ref):
 
     # This function is the Python3 special case with special re-formulation as
     # according to Developer Manual.
+
+    # First, allow plugins to modify the code if they want to.
+    Plugins.onClassBodyParsing(provider=provider, class_name=node.name, node=node)
+
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.
