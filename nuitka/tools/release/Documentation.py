@@ -59,6 +59,7 @@ extra_rst_keywords = (
     b"toctree",
     b"automodule",
     b"dropdown",
+    b"rst-class",
 )
 
 
