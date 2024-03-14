@@ -1355,6 +1355,19 @@ class Plugins(object):
             )
 
     @classmethod
+    def onClassBodyParsing(cls, provider, class_name, node):
+        module_name = provider.getParentModule().getFullName()
+
+        for plugin in getActivePlugins():
+            # TODO: Could record what classes got modified by what plugin
+            # and in what way checking the return value
+            plugin.onClassBodyParsing(
+                module_name=module_name,
+                class_name=class_name,
+                node=node,
+            )
+
+    @classmethod
     def getCacheContributionValues(cls, module_name):
         for plugin in getActivePlugins():
             for value in plugin.getCacheContributionValues(module_name):

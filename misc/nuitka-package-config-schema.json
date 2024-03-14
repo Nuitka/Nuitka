@@ -24,7 +24,10 @@
                             "type": "string"
                         }
                     },
-                    "required" : ["name", "values"]
+                    "required": [
+                        "name",
+                        "values"
+                    ]
                 }
             },
             "constants": {
@@ -34,7 +37,7 @@
                     "declarations": {
                         "type": "object",
                         "additionalProperties": {
-                                "type": "string"
+                            "type": "string"
                         }
                     }
                 }
@@ -49,7 +52,7 @@
                     "declarations": {
                         "type": "object",
                         "additionalProperties": {
-                                "type": "string"
+                            "type": "string"
                         }
                     }
                 }
@@ -87,7 +90,11 @@
                     },
                     "include-pyi-file": {
                         "type": "string",
-                        "enum": ["yes", "no"]                    },
+                        "enum": [
+                            "yes",
+                            "no"
+                        ]
+                    },
                     "include-metadata": {
                         "type": "array",
                         "items": {
@@ -124,10 +131,15 @@
                                 },
                                 "executable": {
                                     "type": "string",
-                                    "enum": ["yes", "no"]
+                                    "enum": [
+                                        "yes",
+                                        "no"
+                                    ]
                                 }
                             },
-                            "required" : ["prefixes"]
+                            "required": [
+                                "prefixes"
+                            ]
                         },
                         "by_code": {
                             "additionalProperties": false,
@@ -141,7 +153,10 @@
                                 },
                                 "executable": {
                                     "type": "string",
-                                    "enum": ["yes", "no"]
+                                    "enum": [
+                                        "yes",
+                                        "no"
+                                    ]
                                 }
                             }
                         },
@@ -175,21 +190,24 @@
                         "replacements_plain": {
                             "type": "object",
                             "additionalProperties": {
-                                 "type": "string"
+                                "type": "string"
                             }
                         },
                         "replacements_re": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
-                           }
-                       },
+                            }
+                        },
                         "replacements": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
-                           }
-                       },
+                            }
+                        },
+                        "change_class": {
+                            "type": "object"
+                        },
                         "change_function": {
                             "type": "object"
                         },
@@ -259,19 +277,35 @@
                                 },
                                 "console": {
                                     "type": "string",
-                                    "enum": ["yes", "no", "recommend"]
+                                    "enum": [
+                                        "yes",
+                                        "no",
+                                        "recommend"
+                                    ]
                                 },
                                 "macos_bundle": {
                                     "type": "string",
-                                    "enum": ["yes", "no", "recommend"]
+                                    "enum": [
+                                        "yes",
+                                        "no",
+                                        "recommend"
+                                    ]
                                 },
                                 "macos_bundle_as_onefile": {
                                     "type": "string",
-                                    "enum": ["yes", "no"]
+                                    "enum": [
+                                        "yes",
+                                        "no"
+                                    ]
                                 },
                                 "support_info": {
                                     "type": "string",
-                                    "enum": ["error", "warning", "info", "parameter"]
+                                    "enum": [
+                                        "error",
+                                        "warning",
+                                        "info",
+                                        "parameter"
+                                    ]
                                 },
                                 "when": {
                                     "type": "string"
@@ -290,13 +324,13 @@
                         "overridden-environment-variables": {
                             "type": "object",
                             "additionalProperties": {
-                                 "type": "string"
+                                "type": "string"
                             }
                         },
                         "force-environment-variables": {
                             "type": "object",
                             "additionalProperties": {
-                                 "type": "string"
+                                "type": "string"
                             }
                         },
                         "package-paths": {
@@ -331,7 +365,10 @@
                         },
                         "package-system-dlls": {
                             "type": "string",
-                            "enum": ["yes", "no"]
+                            "enum": [
+                                "yes",
+                                "no"
+                            ]
                         },
                         "when": {
                             "type": "string"
