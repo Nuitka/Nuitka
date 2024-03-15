@@ -291,12 +291,12 @@ def runScons(options, env_values, scons_filename):
                     lf.write("rem scons debug\n")
                 else:
                     lf.write("#!/bin/sh\n")
-                win_set = "export"
+                set_smd = "export"
                 if os.name == "nt":
-                    win_set = "set"
+                    set_smd = "set"
                 for k, v in itertools.chain(env_values.items(), os.environ.items()):
-                    lf.write(f'{win_set} {k}="{v}"\n')
-                lf.write(f" ".join(scons_command))
+                    lf.write('%(set_smd)s %(k)s="%(v)s"\n' % vars())
+                lf.write(" ".join(scons_command))
 
         if Options.isShowScons():
             Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
