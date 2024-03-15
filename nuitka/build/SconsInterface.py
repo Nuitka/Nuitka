@@ -289,14 +289,14 @@ def runScons(options, env_values, scons_filename):
                 if os.name == 'nt':
                     lf.write('rem scons debug\n')
                 else:
-                    lf.write('#!/bin/sh')
-                win_set = ''    
+                    lf.write('#!/bin/sh\n')
+                win_set = 'export'
                 if os.name == 'nt':
-                    win_set = 'set '    
+                    win_set = 'set'
                 for k, v in itertools.chain(env_values.items(), os.environ.items()):
-                    lf.write(f'{win_set}{k}={v}\n')
+                    lf.write(f'{win_set} {k}="{v}"\n')
                 lf.write(f' '.join(scons_command))
-                
+
 
         if Options.isShowScons():
             Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
