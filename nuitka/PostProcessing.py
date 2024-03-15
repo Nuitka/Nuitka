@@ -379,9 +379,11 @@ set PYTHONHOME=%(python_home)s
 set NUITKA_PYTHONPATH=%(python_path)s
 %(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
-            "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
-            if Options.shallRunInDebugger()
-            else "",
+            "debugger_call": (
+                (" ".join(wrapCommandForDebuggerForExec()) + " ")
+                if Options.shallRunInDebugger()
+                else ""
+            ),
             "dll_directory": dll_directory,
             "python_home": sys.prefix,
             "python_path": ";".join(sys.path),

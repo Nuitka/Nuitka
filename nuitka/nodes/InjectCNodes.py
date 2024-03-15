@@ -3,7 +3,6 @@
 
 """ Nodes to inject C code into generated code. """
 
-
 from .NodeBases import StatementBase
 
 

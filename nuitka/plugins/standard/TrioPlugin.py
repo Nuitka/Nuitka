@@ -3,6 +3,7 @@
 
 """ Deprecated trio plugin.
 """
+
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

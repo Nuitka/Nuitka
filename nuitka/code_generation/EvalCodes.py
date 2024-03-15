@@ -254,9 +254,11 @@ def generateExecCode(statement, emit, context):
     # Default filename with origin in improved mode.
     filename_name.getCType().emitAssignmentCodeFromConstant(
         to_name=filename_name,
-        constant="<string>"
-        if Options.is_full_compat
-        else "<string at %s>" % source_ref.getAsString(),
+        constant=(
+            "<string>"
+            if Options.is_full_compat
+            else "<string at %s>" % source_ref.getAsString()
+        ),
         may_escape=False,
         emit=emit,
         context=context,

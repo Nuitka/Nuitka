@@ -538,7 +538,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             source_path=_getCompilationReportPath(standalone_entry_point.source_path),
             package=standalone_entry_point.package_name or "",
             ignored="yes" if ignored else "no",
-            reason=standalone_entry_point.reason
+            reason=standalone_entry_point.reason,
             # TODO: No reason yet.
         )
 

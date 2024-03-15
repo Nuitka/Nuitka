@@ -5,7 +5,6 @@
 
 """
 
-
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

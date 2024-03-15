@@ -3,7 +3,6 @@
 
 """Type operation specs. """
 
-
 from .BuiltinParameterSpecs import BuiltinMethodParameterSpecBase
 
 

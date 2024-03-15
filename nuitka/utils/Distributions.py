@@ -358,9 +358,9 @@ def getDistributionInstallerName(distribution_name):
             )
 
             if installer_name:
-                _distribution_to_installer[
-                    distribution_name
-                ] = installer_name.strip().lower()
+                _distribution_to_installer[distribution_name] = (
+                    installer_name.strip().lower()
+                )
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):

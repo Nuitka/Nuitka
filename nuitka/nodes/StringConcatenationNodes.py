@@ -8,6 +8,7 @@ code alternative to actually looking up that method from the empty string
 object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
+
 from .ChildrenHavingMixins import ChildHavingValuesTupleMixin
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase

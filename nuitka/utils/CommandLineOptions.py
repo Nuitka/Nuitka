@@ -3,7 +3,6 @@
 
 """ Tools for command line options."""
 
-
 import sys
 from optparse import (
     AmbiguousOptionError,

@@ -5,7 +5,6 @@
 
 """
 
-
 from .HardImportNodesGenerated import (
     ExpressionCtypesCdllBefore38CallBase,
     ExpressionCtypesCdllSince38CallBase,

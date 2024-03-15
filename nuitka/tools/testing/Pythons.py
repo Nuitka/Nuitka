@@ -3,7 +3,6 @@
 
 """ Test tool to run a program with various Pythons. """
 
-
 from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.utils.Execution import check_output
 from nuitka.utils.InstalledPythons import findPythons
