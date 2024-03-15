@@ -18,7 +18,7 @@ Pygments == 2.15.1 ; python_version >= '3.8'
 rstcheck == 6.2.0 ; python_version >= '3.8'
 
 # Auto-format needs
-black == 23.12.1 ; python_version >= '3.8'
+black == 24.2.0 ; python_version >= '3.8'
 toml >= 0.10.1 ; python_version >= '3.8'
 isort == 5.13.2 ; python_version >= '3.8'
 yamllint == 1.28.0 ; python_version >= '3.8'

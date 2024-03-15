@@ -540,9 +540,11 @@ class CompiledPythonModule(
 
         self.trace_collection = TraceCollectionModule(
             self,
-            very_trusted_module_variables=old_collection.getVeryTrustedModuleVariables()
-            if old_collection is not None
-            else {},
+            very_trusted_module_variables=(
+                old_collection.getVeryTrustedModuleVariables()
+                if old_collection is not None
+                else {}
+            ),
         )
 
         module_body = self.subnode_body

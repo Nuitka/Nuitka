@@ -136,12 +136,12 @@ class ParameterSpec(object):
             "ps_normal_args": ",".join(self.normal_args),
             "ps_pos_only_args": self.pos_only_args,
             "ps_kw_only_args": ",".join(self.kw_only_args),
-            "ps_list_star_arg": self.list_star_arg
-            if self.list_star_arg is not None
-            else "",
-            "ps_dict_star_arg": self.dict_star_arg
-            if self.dict_star_arg is not None
-            else "",
+            "ps_list_star_arg": (
+                self.list_star_arg if self.list_star_arg is not None else ""
+            ),
+            "ps_dict_star_arg": (
+                self.dict_star_arg if self.dict_star_arg is not None else ""
+            ),
             "ps_default_count": self.default_count,
             "type_shape": self.type_shape,
         }
@@ -556,9 +556,11 @@ def matchCall(
                 "%s expected %s%s, got %d"
                 % (
                     func_name,
-                    ("at least " if python_version < 0x300 else "")
-                    if num_defaults > 0
-                    else "exactly ",
+                    (
+                        ("at least " if python_version < 0x300 else "")
+                        if num_defaults > 0
+                        else "exactly "
+                    ),
                     "%d arguments" % num_required,
                     num_total,
                 )

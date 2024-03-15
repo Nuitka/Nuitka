@@ -1092,9 +1092,9 @@ def open_extractor(node):
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
         node=node,
-        builtin_class=ExpressionBuiltinOpenP3
-        if str is not bytes
-        else ExpressionBuiltinOpenP2,
+        builtin_class=(
+            ExpressionBuiltinOpenP3 if str is not bytes else ExpressionBuiltinOpenP2
+        ),
         builtin_spec=BuiltinParameterSpecs.builtin_open_spec,
         empty_special_class=makeOpen0,
     )
@@ -1132,9 +1132,9 @@ def super_extractor(node):
             ):
                 return makeRaiseExceptionReplacementExpression(
                     expression=node,
-                    exception_type="SystemError"
-                    if python_version < 0x331
-                    else "RuntimeError",
+                    exception_type=(
+                        "SystemError" if python_version < 0x331 else "RuntimeError"
+                    ),
                     exception_value="super(): __class__ cell not found",
                 )
 
@@ -1172,9 +1172,11 @@ def super_extractor(node):
                     if not object_arg.getVariable().isParameterVariable():
                         return makeRaiseExceptionReplacementExpression(
                             expression=node,
-                            exception_type="SystemError"
-                            if python_version < 0x300
-                            else "RuntimeError",
+                            exception_type=(
+                                "SystemError"
+                                if python_version < 0x300
+                                else "RuntimeError"
+                            ),
                             exception_value="super(): __class__ cell not found",
                         )
 

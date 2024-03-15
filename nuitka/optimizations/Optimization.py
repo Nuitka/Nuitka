@@ -8,7 +8,6 @@ optimization is possible. Every successful optimization to anything might
 make others possible.
 """
 
-
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
@@ -213,11 +212,13 @@ after that.""".format(
         reportMemoryUsage(
             "optimization/%d/%s" % (pass_count, current_module.getFullName()),
             (
-                "Total memory usage before optimizing module '%s'"
-                % current_module.getFullName()
-            )
-            if Options.isShowProgress() or Options.isShowMemory()
-            else None,
+                (
+                    "Total memory usage before optimizing module '%s'"
+                    % current_module.getFullName()
+                )
+                if Options.isShowProgress() or Options.isShowMemory()
+                else None
+            ),
         )
 
 

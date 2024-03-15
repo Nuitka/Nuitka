@@ -842,9 +842,11 @@ def compileTree():
 
         reportMemoryUsage(
             "before_c_code_generation",
-            "Total memory usage before generating C code:"
-            if Options.isShowProgress() or Options.isShowMemory()
-            else None,
+            (
+                "Total memory usage before generating C code:"
+                if Options.isShowProgress() or Options.isShowMemory()
+                else None
+            ),
         )
 
         # Now build the target language code for the whole tree.
@@ -870,9 +872,11 @@ def compileTree():
 
     reportMemoryUsage(
         "before_running_scons",
-        "Total memory usage before running scons"
-        if Options.isShowProgress() or Options.isShowMemory()
-        else None,
+        (
+            "Total memory usage before running scons"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None
+        ),
     )
 
     if Options.isShowMemory():
@@ -953,9 +957,11 @@ def _main():
 
     reportMemoryUsage(
         "after_launch",
-        "Total memory usage before processing:"
-        if Options.isShowProgress() or Options.isShowMemory()
-        else None,
+        (
+            "Total memory usage before processing:"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None
+        ),
     )
 
     # Initialize the importing layer from options, main filenames, debugging

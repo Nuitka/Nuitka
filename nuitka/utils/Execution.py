@@ -7,7 +7,6 @@ Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.
 """
 
-
 import os
 from contextlib import contextmanager
 

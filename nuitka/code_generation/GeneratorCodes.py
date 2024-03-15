@@ -101,9 +101,9 @@ def getGeneratorObjectCode(
 
     if needs_generator_return:
         generator_exit += template_generator_return_exit % {
-            "return_value": context.getReturnValueName()
-            if python_version >= 0x300
-            else None,
+            "return_value": (
+                context.getReturnValueName() if python_version >= 0x300 else None
+            ),
             "function_cleanup": indented(function_cleanup),
         }
 

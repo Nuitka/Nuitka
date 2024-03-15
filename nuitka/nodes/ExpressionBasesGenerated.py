@@ -296,12 +296,12 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
-            "name": self.subnode_name.makeClone()
-            if self.subnode_name is not None
-            else None,
-            "path": self.subnode_path.makeClone()
-            if self.subnode_path is not None
-            else None,
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1644,9 +1644,11 @@ class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         """
 
         values = {
-            "prompt": self.subnode_prompt.makeClone()
-            if self.subnode_prompt is not None
-            else None,
+            "prompt": (
+                self.subnode_prompt.makeClone()
+                if self.subnode_prompt is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())

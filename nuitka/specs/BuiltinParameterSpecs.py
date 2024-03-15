@@ -4,6 +4,7 @@
 """ Optimizations of built-ins to built-in calls.
 
 """
+
 import math
 
 from nuitka import Options

@@ -5,7 +5,6 @@
 
 """
 
-
 template_iterator_check = """\
 // Check if iterator has left-over elements.
 CHECK_OBJECT(%(iterator_name)s); assert(HAS_ITERNEXT(%(iterator_name)s));

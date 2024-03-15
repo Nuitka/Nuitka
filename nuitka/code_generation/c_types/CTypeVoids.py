@@ -4,6 +4,7 @@
 """ CType classes for C void, this cannot represent unassigned, nor indicate exception.
 
 """
+
 from nuitka.code_generation.ErrorCodes import getReleaseCode
 
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin

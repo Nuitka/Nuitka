@@ -48,9 +48,11 @@ def generateExpressionCode(to_name, expression, emit, context, allow_none=False)
             "Problem with %r at %s"
             % (
                 expression,
-                ""
-                if expression is None
-                else expression.getSourceReference().getAsString(),
+                (
+                    ""
+                    if expression is None
+                    else expression.getSourceReference().getAsString()
+                ),
             )
         )
         raise

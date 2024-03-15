@@ -141,9 +141,9 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
         """
 
         values = {
-            "body": self.subnode_body.makeClone()
-            if self.subnode_body is not None
-            else None,
+            "body": (
+                self.subnode_body.makeClone() if self.subnode_body is not None else None
+            ),
             "functions": tuple(v.makeClone() for v in self.subnode_functions),
         }
 
@@ -346,9 +346,9 @@ class ChildHavingBodyOptionalMixin(object):
         """
 
         values = {
-            "body": self.subnode_body.makeClone()
-            if self.subnode_body is not None
-            else None,
+            "body": (
+                self.subnode_body.makeClone() if self.subnode_body is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -4831,12 +4831,16 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
 
         values = {
             "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "kw_defaults": self.subnode_kw_defaults.makeClone()
-            if self.subnode_kw_defaults is not None
-            else None,
-            "annotations": self.subnode_annotations.makeClone()
-            if self.subnode_annotations is not None
-            else None,
+            "kw_defaults": (
+                self.subnode_kw_defaults.makeClone()
+                if self.subnode_kw_defaults is not None
+                else None
+            ),
+            "annotations": (
+                self.subnode_annotations.makeClone()
+                if self.subnode_annotations is not None
+                else None
+            ),
             "function_ref": self.subnode_function_ref.makeClone(),
         }
 
@@ -6248,9 +6252,11 @@ class ChildHavingExitCodeOptionalMixin(object):
         """
 
         values = {
-            "exit_code": self.subnode_exit_code.makeClone()
-            if self.subnode_exit_code is not None
-            else None,
+            "exit_code": (
+                self.subnode_exit_code.makeClone()
+                if self.subnode_exit_code is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -6870,12 +6876,16 @@ class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
 
         values = {
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7034,9 +7044,11 @@ class ChildrenHavingExpressionNameDefaultOptionalMixin(object):
         values = {
             "expression": self.subnode_expression.makeClone(),
             "name": self.subnode_name.makeClone(),
-            "default": self.subnode_default.makeClone()
-            if self.subnode_default is not None
-            else None,
+            "default": (
+                self.subnode_default.makeClone()
+                if self.subnode_default is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7665,27 +7677,39 @@ class ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptio
 
         values = {
             "file": self.subnode_file.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
-            "newline": self.subnode_newline.makeClone()
-            if self.subnode_newline is not None
-            else None,
-            "closefd": self.subnode_closefd.makeClone()
-            if self.subnode_closefd is not None
-            else None,
-            "opener": self.subnode_opener.makeClone()
-            if self.subnode_opener is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
+            "newline": (
+                self.subnode_newline.makeClone()
+                if self.subnode_newline is not None
+                else None
+            ),
+            "closefd": (
+                self.subnode_closefd.makeClone()
+                if self.subnode_closefd is not None
+                else None
+            ),
+            "opener": (
+                self.subnode_opener.makeClone()
+                if self.subnode_opener is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7882,12 +7906,14 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
 
         values = {
             "filename": self.subnode_filename.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -8158,27 +8184,39 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
 
         values = {
             "filename": self.subnode_filename.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
-            "newline": self.subnode_newline.makeClone()
-            if self.subnode_newline is not None
-            else None,
-            "closefd": self.subnode_closefd.makeClone()
-            if self.subnode_closefd is not None
-            else None,
-            "opener": self.subnode_opener.makeClone()
-            if self.subnode_opener is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
+            "newline": (
+                self.subnode_newline.makeClone()
+                if self.subnode_newline is not None
+                else None
+            ),
+            "closefd": (
+                self.subnode_closefd.makeClone()
+                if self.subnode_closefd is not None
+                else None
+            ),
+            "opener": (
+                self.subnode_opener.makeClone()
+                if self.subnode_opener is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -8580,9 +8618,9 @@ class ChildrenHavingGroupNameOptionalMixin(object):
 
         values = {
             "group": self.subnode_group.makeClone(),
-            "name": self.subnode_name.makeClone()
-            if self.subnode_name is not None
-            else None,
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -9481,13 +9519,17 @@ class ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRe
         """
 
         values = {
-            "kw_defaults": self.subnode_kw_defaults.makeClone()
-            if self.subnode_kw_defaults is not None
-            else None,
+            "kw_defaults": (
+                self.subnode_kw_defaults.makeClone()
+                if self.subnode_kw_defaults is not None
+                else None
+            ),
             "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "annotations": self.subnode_annotations.makeClone()
-            if self.subnode_annotations is not None
-            else None,
+            "annotations": (
+                self.subnode_annotations.makeClone()
+                if self.subnode_annotations is not None
+                else None
+            ),
             "function_ref": self.subnode_function_ref.makeClone(),
         }
 
@@ -10341,9 +10383,9 @@ class ChildrenHavingListArgKeyOptionalReverseMixin(object):
 
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
-            "key": self.subnode_key.makeClone()
-            if self.subnode_key is not None
-            else None,
+            "key": (
+                self.subnode_key.makeClone() if self.subnode_key is not None else None
+            ),
             "reverse": self.subnode_reverse.makeClone(),
         }
 
@@ -11565,18 +11607,26 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "globals_arg": self.subnode_globals_arg.makeClone()
-            if self.subnode_globals_arg is not None
-            else None,
-            "locals_arg": self.subnode_locals_arg.makeClone()
-            if self.subnode_locals_arg is not None
-            else None,
-            "fromlist": self.subnode_fromlist.makeClone()
-            if self.subnode_fromlist is not None
-            else None,
-            "level": self.subnode_level.makeClone()
-            if self.subnode_level is not None
-            else None,
+            "globals_arg": (
+                self.subnode_globals_arg.makeClone()
+                if self.subnode_globals_arg is not None
+                else None
+            ),
+            "locals_arg": (
+                self.subnode_locals_arg.makeClone()
+                if self.subnode_locals_arg is not None
+                else None
+            ),
+            "fromlist": (
+                self.subnode_fromlist.makeClone()
+                if self.subnode_fromlist is not None
+                else None
+            ),
+            "level": (
+                self.subnode_level.makeClone()
+                if self.subnode_level is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -11796,18 +11846,24 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "handle": self.subnode_handle.makeClone()
-            if self.subnode_handle is not None
-            else None,
-            "use_errno": self.subnode_use_errno.makeClone()
-            if self.subnode_use_errno is not None
-            else None,
-            "use_last_error": self.subnode_use_last_error.makeClone()
-            if self.subnode_use_last_error is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "handle": (
+                self.subnode_handle.makeClone()
+                if self.subnode_handle is not None
+                else None
+            ),
+            "use_errno": (
+                self.subnode_use_errno.makeClone()
+                if self.subnode_use_errno is not None
+                else None
+            ),
+            "use_last_error": (
+                self.subnode_use_last_error.makeClone()
+                if self.subnode_use_last_error is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12048,21 +12104,29 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "handle": self.subnode_handle.makeClone()
-            if self.subnode_handle is not None
-            else None,
-            "use_errno": self.subnode_use_errno.makeClone()
-            if self.subnode_use_errno is not None
-            else None,
-            "use_last_error": self.subnode_use_last_error.makeClone()
-            if self.subnode_use_last_error is not None
-            else None,
-            "winmode": self.subnode_winmode.makeClone()
-            if self.subnode_winmode is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "handle": (
+                self.subnode_handle.makeClone()
+                if self.subnode_handle is not None
+                else None
+            ),
+            "use_errno": (
+                self.subnode_use_errno.makeClone()
+                if self.subnode_use_errno is not None
+                else None
+            ),
+            "use_last_error": (
+                self.subnode_use_last_error.makeClone()
+                if self.subnode_use_last_error is not None
+                else None
+            ),
+            "winmode": (
+                self.subnode_winmode.makeClone()
+                if self.subnode_winmode is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12224,9 +12288,11 @@ class ChildrenHavingNamePackageOptionalMixin(object):
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "package": self.subnode_package.makeClone()
-            if self.subnode_package is not None
-            else None,
+            "package": (
+                self.subnode_package.makeClone()
+                if self.subnode_package is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12833,12 +12899,16 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
         values = {
             "package": self.subnode_package.makeClone(),
             "resource": self.subnode_resource.makeClone(),
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -13449,9 +13519,9 @@ class ChildHavingPathOptionalMixin(object):
         """
 
         values = {
-            "path": self.subnode_path.makeClone()
-            if self.subnode_path is not None
-            else None,
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -13582,9 +13652,11 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
         """
 
         values = {
-            "pos_arg": self.subnode_pos_arg.makeClone()
-            if self.subnode_pos_arg is not None
-            else None,
+            "pos_arg": (
+                self.subnode_pos_arg.makeClone()
+                if self.subnode_pos_arg is not None
+                else None
+            ),
             "pairs": tuple(v.makeClone() for v in self.subnode_pairs),
         }
 
@@ -13720,9 +13792,9 @@ class ChildrenHavingRealOptionalImagMixin(object):
         """
 
         values = {
-            "real": self.subnode_real.makeClone()
-            if self.subnode_real is not None
-            else None,
+            "real": (
+                self.subnode_real.makeClone() if self.subnode_real is not None else None
+            ),
             "imag": self.subnode_imag.makeClone(),
         }
 
@@ -14720,15 +14792,21 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
             "source": self.subnode_source.makeClone(),
             "filename": self.subnode_filename.makeClone(),
             "mode": self.subnode_mode.makeClone(),
-            "flags": self.subnode_flags.makeClone()
-            if self.subnode_flags is not None
-            else None,
-            "dont_inherit": self.subnode_dont_inherit.makeClone()
-            if self.subnode_dont_inherit is not None
-            else None,
-            "optimize": self.subnode_optimize.makeClone()
-            if self.subnode_optimize is not None
-            else None,
+            "flags": (
+                self.subnode_flags.makeClone()
+                if self.subnode_flags is not None
+                else None
+            ),
+            "dont_inherit": (
+                self.subnode_dont_inherit.makeClone()
+                if self.subnode_dont_inherit is not None
+                else None
+            ),
+            "optimize": (
+                self.subnode_optimize.makeClone()
+                if self.subnode_optimize is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -15061,9 +15139,11 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgClosureOptionalMixin(object):
             "source_code": self.subnode_source_code.makeClone(),
             "globals_arg": self.subnode_globals_arg.makeClone(),
             "locals_arg": self.subnode_locals_arg.makeClone(),
-            "closure": self.subnode_closure.makeClone()
-            if self.subnode_closure is not None
-            else None,
+            "closure": (
+                self.subnode_closure.makeClone()
+                if self.subnode_closure is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -18971,12 +19051,16 @@ class ChildrenHavingStringEncodingOptionalErrorsOptionalMixin(object):
 
         values = {
             "string": self.subnode_string.makeClone(),
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -19231,12 +19315,14 @@ class ChildrenHavingTypeArgArgsOptionalKwargsOptionalMixin(object):
 
         values = {
             "type_arg": self.subnode_type_arg.makeClone(),
-            "args": self.subnode_args.makeClone()
-            if self.subnode_args is not None
-            else None,
-            "kwargs": self.subnode_kwargs.makeClone()
-            if self.subnode_kwargs is not None
-            else None,
+            "args": (
+                self.subnode_args.makeClone() if self.subnode_args is not None else None
+            ),
+            "kwargs": (
+                self.subnode_kwargs.makeClone()
+                if self.subnode_kwargs is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -19807,9 +19893,11 @@ class ChildrenHavingValueOptionalBaseMixin(object):
         """
 
         values = {
-            "value": self.subnode_value.makeClone()
-            if self.subnode_value is not None
-            else None,
+            "value": (
+                self.subnode_value.makeClone()
+                if self.subnode_value is not None
+                else None
+            ),
             "base": self.subnode_base.makeClone(),
         }
 
@@ -19973,15 +20061,21 @@ class ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin(object):
         """
 
         values = {
-            "value": self.subnode_value.makeClone()
-            if self.subnode_value is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "value": (
+                self.subnode_value.makeClone()
+                if self.subnode_value is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -20136,9 +20230,11 @@ class ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin(object):
 
         values = {
             "value": self.subnode_value.makeClone(),
-            "format_spec": self.subnode_format_spec.makeClone()
-            if self.subnode_format_spec is not None
-            else None,
+            "format_spec": (
+                self.subnode_format_spec.makeClone()
+                if self.subnode_format_spec is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())

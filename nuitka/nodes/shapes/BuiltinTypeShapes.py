@@ -2240,9 +2240,11 @@ mod_shapes_bool.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_zerodiv_complex
-        if python_version < 0x300
-        else operation_result_unsupported_mod,
+        tshape_complex: (
+            operation_result_zerodiv_complex
+            if python_version < 0x300
+            else operation_result_unsupported_mod
+        ),
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -2577,9 +2579,11 @@ mod_shapes_int.update(
         tshape_int_or_long: operation_result_zerodiv_intorlong,
         tshape_bool: operation_result_zerodiv_int,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_zerodiv_complex
-        if python_version < 0x300
-        else operation_result_unsupported_mod,
+        tshape_complex: (
+            operation_result_zerodiv_complex
+            if python_version < 0x300
+            else operation_result_unsupported_mod
+        ),
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -2881,9 +2885,11 @@ mod_shapes_long.update(
         tshape_int_or_long: operation_result_zerodiv_long,
         tshape_bool: operation_result_zerodiv_long,
         tshape_float: operation_result_zerodiv_float,
-        tshape_complex: operation_result_zerodiv_complex
-        if python_version < 0x300
-        else operation_result_unsupported_mod,
+        tshape_complex: (
+            operation_result_zerodiv_complex
+            if python_version < 0x300
+            else operation_result_unsupported_mod
+        ),
         # Unsupported:
         tshape_str: operation_result_unsupported_mod,
         tshape_bytes: operation_result_unsupported_mod,
@@ -3771,9 +3777,11 @@ add_shapes_str.update(
         # Sequence repeat is not allowed
         tshape_str: operation_result_str_noescape,
         tshape_bytes: operation_result_unsupported_add,
-        tshape_bytearray: operation_result_bytearray_noescape
-        if python_version < 0x300
-        else operation_result_unsupported_add,
+        tshape_bytearray: (
+            operation_result_bytearray_noescape
+            if python_version < 0x300
+            else operation_result_unsupported_add
+        ),
         tshape_unicode: operation_result_unicode_noescape,
         tshape_tuple: operation_result_unsupported_add,
         tshape_list: operation_result_unsupported_add,
@@ -3961,9 +3969,11 @@ add_shapes_bytearray.update(
         tshape_bool: operation_result_unsupported_add,
         tshape_float: operation_result_unsupported_add,
         # Sequence repeat is not allowed
-        tshape_str: operation_result_bytearray_noescape
-        if python_version < 0x300
-        else operation_result_unsupported_add,
+        tshape_str: (
+            operation_result_bytearray_noescape
+            if python_version < 0x300
+            else operation_result_unsupported_add
+        ),
         tshape_bytes: operation_result_bytearray_noescape,
         tshape_bytearray: operation_result_bytearray_noescape,
         tshape_unicode: operation_result_unsupported_add,

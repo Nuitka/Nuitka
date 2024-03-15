@@ -123,16 +123,14 @@ def main():
             )
         elif filename == "reimport_main_dynamic":
             if python_version < (3,):
-                os.environ[
-                    "NUITKA_EXTRA_OPTIONS"
-                ] = extra_options + " --include-plugin-directory=%s" % (
-                    os.path.abspath(filename)
+                os.environ["NUITKA_EXTRA_OPTIONS"] = (
+                    extra_options
+                    + " --include-plugin-directory=%s" % (os.path.abspath(filename))
                 )
             else:
-                os.environ[
-                    "NUITKA_EXTRA_OPTIONS"
-                ] = extra_options + " --include-plugin-files=%s/*.py" % (
-                    os.path.abspath(filename)
+                os.environ["NUITKA_EXTRA_OPTIONS"] = (
+                    extra_options
+                    + " --include-plugin-files=%s/*.py" % (os.path.abspath(filename))
                 )
 
             extra_flags.append("ignore_warnings")

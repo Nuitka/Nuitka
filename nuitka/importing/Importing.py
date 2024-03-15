@@ -21,7 +21,6 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 """
 
-
 import collections
 import os
 import sys

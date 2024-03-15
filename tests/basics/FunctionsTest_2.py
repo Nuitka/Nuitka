@@ -7,7 +7,6 @@ Esp. nested arguments are no longer allowed in Python3 and covered here
 to make sure they are not forgotten.
 """
 
-
 from __future__ import print_function
 
 # pylint: disable=redefined-outer-name
