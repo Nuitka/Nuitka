@@ -295,7 +295,11 @@ def runScons(options, env_values, scons_filename):
                 if os.name == "nt":
                     set_smd = "set"
                 for k, v in itertools.chain(env_values.items(), os.environ.items()):
-                    lf.write('%(set_smd)s %(k)s="%(v)s"\n' % vars())
+                    quoted_value = v
+                    if os.name != "nt":
+                        # we should quote only for Linux
+                        quoted_value = '"' + v + '"'
+                    lf.write("%(set_smd)s %(k)s=%(quoted_value)s\n" % vars())
                 lf.write(" ".join(scons_command))
 
         if Options.isShowScons():
