@@ -282,21 +282,21 @@ def runScons(options, env_values, scons_filename):
         )
         if source_dir:
             import itertools
-            scons_debug_script_name = 'scons-debug.sh'
-            if os.name == 'nt':
-                scons_debug_script_name = 'scons-debug.bat'
-            with open(os.path.join(source_dir, scons_debug_script_name), 'w') as lf:
-                if os.name == 'nt':
-                    lf.write('rem scons debug\n')
+
+            scons_debug_script_name = "scons-debug.sh"
+            if os.name == "nt":
+                scons_debug_script_name = "scons-debug.bat"
+            with open(os.path.join(source_dir, scons_debug_script_name), "w") as lf:
+                if os.name == "nt":
+                    lf.write("rem scons debug\n")
                 else:
-                    lf.write('#!/bin/sh\n')
-                win_set = 'export'
-                if os.name == 'nt':
-                    win_set = 'set'
+                    lf.write("#!/bin/sh\n")
+                win_set = "export"
+                if os.name == "nt":
+                    win_set = "set"
                 for k, v in itertools.chain(env_values.items(), os.environ.items()):
                     lf.write(f'{win_set} {k}="{v}"\n')
-                lf.write(f' '.join(scons_command))
-
+                lf.write(f" ".join(scons_command))
 
         if Options.isShowScons():
             Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
