@@ -6136,10 +6136,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'toga_winforms' # checksum: 286969f5
+- module-name: 'toga_winforms' # checksum: 5dda2bcf
   data-files:
     dirs:
       - 'resources'
+    include-metadata:
+      - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
