@@ -350,12 +350,17 @@
         - 'av.plane'
         - 'av.video.plane'
 
-- module-name: 'babel' # checksum: e320e7f1
+- module-name: 'babel' # checksum: 37b8fa6d
   data-files:
     dirs:
       - 'locale-data'
     patterns:
       - 'global.dat'
+
+  implicit-imports:
+    - depends:
+        - 'babel.dates'
+        - 'babel.numbers'
 
 - module-name: 'backports.zoneinfo._common' # checksum: 70450440
   implicit-imports:
@@ -1487,6 +1492,31 @@
   data-files:
     patterns:
       - '_cython/_credentials/roots.pem'
+
+- module-name: 'gruut' # checksum: 19583930
+  data-files:
+    patterns:
+      - 'VERSION'
+
+  implicit-imports:
+    - depends:
+        - 'gruut_ipa'
+        - 'gruut_lang_en'
+
+- module-name: 'gruut_ipa' # checksum: 810a705a
+  data-files:
+    dirs:
+      - 'data'
+
+- module-name: 'gruut_lang_en' # checksum: 206e4c65
+  data-files:
+    dirs:
+      - 'espeak'
+      - 'g2p'
+      - 'pos'
+    patterns:
+      - 'VERSION'
+      - 'lexicon.db'
 
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
@@ -3401,6 +3431,17 @@
     - depends:
         - 'pycparser.yacctab'
         - 'pycparser.lextab'
+
+- module-name: 'pycrfsuite' # checksum: 452bfc81
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_pycrfsuite'
+
+  implicit-imports:
+    - depends:
+        - 'pycrfsuite._dumpparser'
+        - 'pycrfsuite._logparser'
 
 - module-name: 'pydantic' # checksum: fb2935eb
   implicit-imports:
