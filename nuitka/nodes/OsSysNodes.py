@@ -3,7 +3,6 @@
 
 """ Nodes the represent ways to access os and sys functions. """
 
-
 import os
 
 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef

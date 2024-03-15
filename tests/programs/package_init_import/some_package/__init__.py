@@ -10,9 +10,11 @@ print(
     __name__,
     "in",
     "__package__: ",
-    __package__
-    if __package__ is not None or sys.version_info[:2] != (3, 2)
-    else ".".join(__name__.split(".")[:-1]),
+    (
+        __package__
+        if __package__ is not None or sys.version_info[:2] != (3, 2)
+        else ".".join(__name__.split(".")[:-1])
+    ),
 )
 
 try:

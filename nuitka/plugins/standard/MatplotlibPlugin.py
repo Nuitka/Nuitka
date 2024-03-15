@@ -2,6 +2,7 @@
 
 
 """ Matplotlib standard plugin module. """
+
 import os
 
 from nuitka.Options import isStandaloneMode

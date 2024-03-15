@@ -628,14 +628,14 @@ def _parseNamedChildrenSpec(named_children):
                     named_children_checkers[named_child] = "convertNoneConstantToNone"
                 elif named_child_property == "auto_none_empty_str":
                     named_children_types[named_child] = "optional"
-                    named_children_checkers[
-                        named_child
-                    ] = "convertEmptyStrConstantToNone"
+                    named_children_checkers[named_child] = (
+                        "convertEmptyStrConstantToNone"
+                    )
                 elif named_child_property == "statements_or_none":
                     named_children_types[named_child] = "optional"
-                    named_children_checkers[
-                        named_child
-                    ] = "checkStatementsSequenceOrNone"
+                    named_children_checkers[named_child] = (
+                        "checkStatementsSequenceOrNone"
+                    )
                 elif named_child_property == "statements":
                     named_children_checkers[named_child] = "checkStatementsSequence"
                 elif named_child_property == "optional":
@@ -724,15 +724,15 @@ def addFromNodes():
         _addFromNode(node_class)
 
     # Fake factories:
-    node_factory_translations[
-        "ExpressionImportlibMetadataMetadataCall"
-    ] = "makeExpressionImportlibMetadataMetadataCall"
-    node_factory_translations[
-        "ExpressionImportlibMetadataBackportMetadataCall"
-    ] = "makeExpressionImportlibMetadataBackportMetadataCall"
-    node_factory_translations[
-        "ExpressionBuiltinsOpenCall"
-    ] = "makeExpressionBuiltinsOpenCall"
+    node_factory_translations["ExpressionImportlibMetadataMetadataCall"] = (
+        "makeExpressionImportlibMetadataMetadataCall"
+    )
+    node_factory_translations["ExpressionImportlibMetadataBackportMetadataCall"] = (
+        "makeExpressionImportlibMetadataBackportMetadataCall"
+    )
+    node_factory_translations["ExpressionBuiltinsOpenCall"] = (
+        "makeExpressionBuiltinsOpenCall"
+    )
     node_factory_translations["ExpressionSysExitCall"] = "makeExpressionSysExitCall"
 
 

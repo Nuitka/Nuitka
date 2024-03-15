@@ -5,7 +5,6 @@
 
 """
 
-
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,
     template_release_object_unclear,

@@ -6,6 +6,7 @@
 This is code generation for built-in references, and some built-ins like range,
 bin, etc.
 """
+
 from nuitka import Builtins
 from nuitka.PythonVersions import python_version
 

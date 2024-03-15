@@ -10,7 +10,6 @@ to variables only ever read.
 
 """
 
-
 from nuitka.Builtins import (
     builtin_anon_names,
     builtin_exception_names,

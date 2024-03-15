@@ -210,12 +210,16 @@ class StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranchO
 
         values = {
             "condition": self.subnode_condition.makeClone(),
-            "yes_branch": self.subnode_yes_branch.makeClone()
-            if self.subnode_yes_branch is not None
-            else None,
-            "no_branch": self.subnode_no_branch.makeClone()
-            if self.subnode_no_branch is not None
-            else None,
+            "yes_branch": (
+                self.subnode_yes_branch.makeClone()
+                if self.subnode_yes_branch is not None
+                else None
+            ),
+            "no_branch": (
+                self.subnode_no_branch.makeClone()
+                if self.subnode_no_branch is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -304,9 +308,9 @@ class StatementChildHavingDestOptionalOperationMixin(StatementBase):
         """
 
         values = {
-            "dest": self.subnode_dest.makeClone()
-            if self.subnode_dest is not None
-            else None,
+            "dest": (
+                self.subnode_dest.makeClone() if self.subnode_dest is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -421,9 +425,9 @@ class StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         """
 
         values = {
-            "dest": self.subnode_dest.makeClone()
-            if self.subnode_dest is not None
-            else None,
+            "dest": (
+                self.subnode_dest.makeClone() if self.subnode_dest is not None else None
+            ),
             "value": self.subnode_value.makeClone(),
         }
 
@@ -802,15 +806,21 @@ class StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOp
 
         values = {
             "exception_type": self.subnode_exception_type.makeClone(),
-            "exception_value": self.subnode_exception_value.makeClone()
-            if self.subnode_exception_value is not None
-            else None,
-            "exception_trace": self.subnode_exception_trace.makeClone()
-            if self.subnode_exception_trace is not None
-            else None,
-            "exception_cause": self.subnode_exception_cause.makeClone()
-            if self.subnode_exception_cause is not None
-            else None,
+            "exception_value": (
+                self.subnode_exception_value.makeClone()
+                if self.subnode_exception_value is not None
+                else None
+            ),
+            "exception_trace": (
+                self.subnode_exception_trace.makeClone()
+                if self.subnode_exception_trace is not None
+                else None
+            ),
+            "exception_cause": (
+                self.subnode_exception_cause.makeClone()
+                if self.subnode_exception_cause is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1120,12 +1130,16 @@ class StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statement
 
         values = {
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1612,9 +1626,11 @@ class StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Statemen
         """
 
         values = {
-            "loop_body": self.subnode_loop_body.makeClone()
-            if self.subnode_loop_body is not None
-            else None,
+            "loop_body": (
+                self.subnode_loop_body.makeClone()
+                if self.subnode_loop_body is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -2465,12 +2481,16 @@ class StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
         values = {
             "source": self.subnode_source.makeClone(),
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -2732,12 +2752,16 @@ class StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOperat
 
         values = {
             "source_code": self.subnode_source_code.makeClone(),
-            "globals_arg": self.subnode_globals_arg.makeClone()
-            if self.subnode_globals_arg is not None
-            else None,
-            "locals_arg": self.subnode_locals_arg.makeClone()
-            if self.subnode_locals_arg is not None
-            else None,
+            "globals_arg": (
+                self.subnode_globals_arg.makeClone()
+                if self.subnode_globals_arg is not None
+                else None
+            ),
+            "locals_arg": (
+                self.subnode_locals_arg.makeClone()
+                if self.subnode_locals_arg is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -3184,18 +3208,26 @@ class StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNon
 
         values = {
             "tried": self.subnode_tried.makeClone(),
-            "except_handler": self.subnode_except_handler.makeClone()
-            if self.subnode_except_handler is not None
-            else None,
-            "break_handler": self.subnode_break_handler.makeClone()
-            if self.subnode_break_handler is not None
-            else None,
-            "continue_handler": self.subnode_continue_handler.makeClone()
-            if self.subnode_continue_handler is not None
-            else None,
-            "return_handler": self.subnode_return_handler.makeClone()
-            if self.subnode_return_handler is not None
-            else None,
+            "except_handler": (
+                self.subnode_except_handler.makeClone()
+                if self.subnode_except_handler is not None
+                else None
+            ),
+            "break_handler": (
+                self.subnode_break_handler.makeClone()
+                if self.subnode_break_handler is not None
+                else None
+            ),
+            "continue_handler": (
+                self.subnode_continue_handler.makeClone()
+                if self.subnode_continue_handler is not None
+                else None
+            ),
+            "return_handler": (
+                self.subnode_return_handler.makeClone()
+                if self.subnode_return_handler is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())

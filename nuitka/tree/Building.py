@@ -34,6 +34,7 @@ special attribute lookups for "__enter__" and "__exit__", calls of them,
 catching and passing in exceptions raised.
 
 """
+
 import marshal
 import os
 

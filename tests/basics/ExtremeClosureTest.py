@@ -4,6 +4,7 @@
 """ These tests contain all forms of closure absuse.
 
 """
+
 from __future__ import print_function
 
 a = 1

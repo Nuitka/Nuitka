@@ -5,7 +5,6 @@
 
 """
 
-
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,

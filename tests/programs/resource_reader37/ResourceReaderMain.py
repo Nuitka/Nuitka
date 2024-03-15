@@ -2,6 +2,7 @@
 
 
 """ Tests that reads a data file via path"""
+
 # nuitka-project: --include-package=some_package
 
 # print(get_resource_reader(some_package).get_path("DATA_FILE.txt"))

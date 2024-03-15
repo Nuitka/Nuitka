@@ -28,9 +28,11 @@ from .NodeBases import SideEffectsFromChildrenMixin
 
 
 class ExpressionPkgutilGetDataCall(
-    ExpressionBytesShapeExactMixin
-    if str is not bytes
-    else ExpressionStrShapeExactMixin,
+    (
+        ExpressionBytesShapeExactMixin
+        if str is not bytes
+        else ExpressionStrShapeExactMixin
+    ),
     SideEffectsFromChildrenMixin,
     ExpressionPkgutilGetDataCallBase,
 ):
@@ -45,9 +47,11 @@ class ExpressionPkgutilGetDataCall(
 
 
 class ExpressionPkgResourcesResourceStringCall(
-    ExpressionBytesShapeExactMixin
-    if str is not bytes
-    else ExpressionStrShapeExactMixin,
+    (
+        ExpressionBytesShapeExactMixin
+        if str is not bytes
+        else ExpressionStrShapeExactMixin
+    ),
     SideEffectsFromChildrenMixin,
     ExpressionPkgResourcesResourceStringCallBase,
 ):

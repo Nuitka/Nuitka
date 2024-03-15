@@ -3,6 +3,7 @@
 
 """ Deprecated torch plugin.
 """
+
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

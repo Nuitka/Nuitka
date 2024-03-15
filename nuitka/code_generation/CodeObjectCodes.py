@@ -70,12 +70,16 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
         " | ".join(co_flags) or "0",
         context.getConstantCode(constant=code_object_handle.co_name),
         context.getConstantCode(constant=code_object_handle.co_qualname),
-        context.getConstantCode(constant=code_object_handle.co_varnames)
-        if code_object_handle.co_varnames
-        else "NULL",
-        context.getConstantCode(constant=code_object_handle.co_freevars)
-        if code_object_handle.co_freevars
-        else "NULL",
+        (
+            context.getConstantCode(constant=code_object_handle.co_varnames)
+            if code_object_handle.co_varnames
+            else "NULL"
+        ),
+        (
+            context.getConstantCode(constant=code_object_handle.co_freevars)
+            if code_object_handle.co_freevars
+            else "NULL"
+        ),
         code_object_handle.co_argcount,
         code_object_handle.co_kwonlyargcount,
         code_object_handle.co_posonlyargcount,

@@ -726,9 +726,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             # thing, and Nuitka-Python is not affected.
             env.Append(
                 LINKFLAGS=[
-                    "-O3"
-                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
-                    else "-O2"
+                    (
+                        "-O3"
+                        if env.nuitka_python
+                        or os.name == "nt"
+                        or not env.static_libpython
+                        else "-O2"
+                    )
                 ]
             )
 
@@ -745,9 +749,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         if env.gcc_mode:
             env.Append(
                 CCFLAGS=[
-                    "-O3"
-                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
-                    else "-O2"
+                    (
+                        "-O3"
+                        if env.nuitka_python
+                        or os.name == "nt"
+                        or not env.static_libpython
+                        else "-O2"
+                    )
                 ]
             )
         elif env.msvc_mode:

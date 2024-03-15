@@ -275,9 +275,11 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
         if self is object_desc or other is object_desc:
             return "%s == %s" % (
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
-                other.getTypeValueExpression(None)
-                if other is not object_desc
-                else type2,
+                (
+                    other.getTypeValueExpression(None)
+                    if other is not object_desc
+                    else type2
+                ),
             )
         elif self is other:
             return "1"
@@ -288,9 +290,11 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
         if self is object_desc or other is object_desc:
             return "%s != %s" % (
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
-                other.getTypeValueExpression(None)
-                if other is not object_desc
-                else type2,
+                (
+                    other.getTypeValueExpression(None)
+                    if other is not object_desc
+                    else type2
+                ),
             )
         elif self is other:
             return "0"

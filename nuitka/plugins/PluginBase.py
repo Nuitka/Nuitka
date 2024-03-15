@@ -186,9 +186,9 @@ def _getEvaluationContext():
             numeric_version = int(big) * 256 + int(major) * 16
             is_same_or_higher_version = python_version >= numeric_version
 
-            _context_dict[
-                "python" + big + major + "_or_higher"
-            ] = is_same_or_higher_version
+            _context_dict["python" + big + major + "_or_higher"] = (
+                is_same_or_higher_version
+            )
             _context_dict["before_python" + big + major] = not is_same_or_higher_version
 
         _context_dict["before_python3"] = python_version < 0x300

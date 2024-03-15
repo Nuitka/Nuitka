@@ -4,6 +4,7 @@
 """ For macOS application bundle creation
 
 """
+
 import os
 
 from nuitka import Options, OutputDirectories

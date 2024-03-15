@@ -805,9 +805,9 @@ Defaults to off.""",
             assert False
     elif mode == "coverage":
         return SearchModeCoverage(
-            start_at=options.pattern.replace("/", os.path.sep)
-            if options.pattern
-            else None
+            start_at=(
+                options.pattern.replace("/", os.path.sep) if options.pattern else None
+            )
         )
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)

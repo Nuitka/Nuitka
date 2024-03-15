@@ -448,9 +448,9 @@ class ExpressionImportlibMetadataBackportDistributionRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataBackportDistributionRef
-] = importlib_metadata_backport_distribution_spec
+hard_import_node_classes[ExpressionImportlibMetadataBackportDistributionRef] = (
+    importlib_metadata_backport_distribution_spec
+)
 
 
 class ExpressionImportlibMetadataBackportDistributionCallBase(
@@ -541,9 +541,9 @@ class ExpressionImportlibMetadataBackportEntryPointsRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataBackportEntryPointsRef
-] = importlib_metadata_backport_entry_points_spec
+hard_import_node_classes[ExpressionImportlibMetadataBackportEntryPointsRef] = (
+    importlib_metadata_backport_entry_points_spec
+)
 
 
 class ExpressionImportlibMetadataBackportEntryPointsCallBase(
@@ -634,9 +634,9 @@ class ExpressionImportlibMetadataBackportMetadataRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataBackportMetadataRef
-] = importlib_metadata_backport_metadata_spec
+hard_import_node_classes[ExpressionImportlibMetadataBackportMetadataRef] = (
+    importlib_metadata_backport_metadata_spec
+)
 
 
 class ExpressionImportlibMetadataBackportMetadataCallBase(
@@ -727,9 +727,9 @@ class ExpressionImportlibMetadataBackportVersionRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataBackportVersionRef
-] = importlib_metadata_backport_version_spec
+hard_import_node_classes[ExpressionImportlibMetadataBackportVersionRef] = (
+    importlib_metadata_backport_version_spec
+)
 
 
 class ExpressionImportlibMetadataBackportVersionCallBase(
@@ -820,9 +820,9 @@ class ExpressionImportlibMetadataDistributionRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataDistributionRef
-] = importlib_metadata_distribution_spec
+hard_import_node_classes[ExpressionImportlibMetadataDistributionRef] = (
+    importlib_metadata_distribution_spec
+)
 
 
 class ExpressionImportlibMetadataDistributionCallBase(
@@ -930,9 +930,9 @@ class ExpressionImportlibMetadataEntryPointsRef(
             )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataEntryPointsRef
-] = importlib_metadata_entry_points_since_310_spec
+hard_import_node_classes[ExpressionImportlibMetadataEntryPointsRef] = (
+    importlib_metadata_entry_points_since_310_spec
+)
 
 
 class ExpressionImportlibMetadataEntryPointsSince310CallBase(
@@ -1066,9 +1066,9 @@ class ExpressionImportlibMetadataMetadataRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataMetadataRef
-] = importlib_metadata_metadata_spec
+hard_import_node_classes[ExpressionImportlibMetadataMetadataRef] = (
+    importlib_metadata_metadata_spec
+)
 
 
 class ExpressionImportlibMetadataMetadataCallBase(
@@ -1158,9 +1158,9 @@ class ExpressionImportlibMetadataVersionRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibMetadataVersionRef
-] = importlib_metadata_version_spec
+hard_import_node_classes[ExpressionImportlibMetadataVersionRef] = (
+    importlib_metadata_version_spec
+)
 
 
 class ExpressionImportlibMetadataVersionCallBase(
@@ -1250,9 +1250,9 @@ class ExpressionImportlibResourcesBackportFilesRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesBackportFilesRef
-] = importlib_resources_backport_files_spec
+hard_import_node_classes[ExpressionImportlibResourcesBackportFilesRef] = (
+    importlib_resources_backport_files_spec
+)
 
 
 class ExpressionImportlibResourcesBackportFilesCallBase(
@@ -1343,9 +1343,9 @@ class ExpressionImportlibResourcesBackportReadBinaryRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesBackportReadBinaryRef
-] = importlib_resources_backport_read_binary_spec
+hard_import_node_classes[ExpressionImportlibResourcesBackportReadBinaryRef] = (
+    importlib_resources_backport_read_binary_spec
+)
 
 
 class ExpressionImportlibResourcesBackportReadBinaryCallBase(
@@ -1443,9 +1443,9 @@ class ExpressionImportlibResourcesBackportReadTextRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesBackportReadTextRef
-] = importlib_resources_backport_read_text_spec
+hard_import_node_classes[ExpressionImportlibResourcesBackportReadTextRef] = (
+    importlib_resources_backport_read_text_spec
+)
 
 
 class ExpressionImportlibResourcesBackportReadTextCallBase(
@@ -1549,9 +1549,9 @@ class ExpressionImportlibResourcesFilesRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesFilesRef
-] = importlib_resources_files_spec
+hard_import_node_classes[ExpressionImportlibResourcesFilesRef] = (
+    importlib_resources_files_spec
+)
 
 
 class ExpressionImportlibResourcesFilesCallBase(
@@ -1641,9 +1641,9 @@ class ExpressionImportlibResourcesReadBinaryRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesReadBinaryRef
-] = importlib_resources_read_binary_spec
+hard_import_node_classes[ExpressionImportlibResourcesReadBinaryRef] = (
+    importlib_resources_read_binary_spec
+)
 
 
 class ExpressionImportlibResourcesReadBinaryCallBase(
@@ -1740,9 +1740,9 @@ class ExpressionImportlibResourcesReadTextRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionImportlibResourcesReadTextRef
-] = importlib_resources_read_text_spec
+hard_import_node_classes[ExpressionImportlibResourcesReadTextRef] = (
+    importlib_resources_read_text_spec
+)
 
 
 class ExpressionImportlibResourcesReadTextCallBase(
@@ -2572,9 +2572,9 @@ class ExpressionPkgResourcesGetDistributionRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionPkgResourcesGetDistributionRef
-] = pkg_resources_get_distribution_spec
+hard_import_node_classes[ExpressionPkgResourcesGetDistributionRef] = (
+    pkg_resources_get_distribution_spec
+)
 
 
 class ExpressionPkgResourcesGetDistributionCallBase(
@@ -2665,9 +2665,9 @@ class ExpressionPkgResourcesIterEntryPointsRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionPkgResourcesIterEntryPointsRef
-] = pkg_resources_iter_entry_points_spec
+hard_import_node_classes[ExpressionPkgResourcesIterEntryPointsRef] = (
+    pkg_resources_iter_entry_points_spec
+)
 
 
 class ExpressionPkgResourcesIterEntryPointsCallBase(
@@ -2851,9 +2851,9 @@ class ExpressionPkgResourcesResourceStreamRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionPkgResourcesResourceStreamRef
-] = pkg_resources_resource_stream_spec
+hard_import_node_classes[ExpressionPkgResourcesResourceStreamRef] = (
+    pkg_resources_resource_stream_spec
+)
 
 
 class ExpressionPkgResourcesResourceStreamCallBase(
@@ -2951,9 +2951,9 @@ class ExpressionPkgResourcesResourceStringRef(
         )
 
 
-hard_import_node_classes[
-    ExpressionPkgResourcesResourceStringRef
-] = pkg_resources_resource_string_spec
+hard_import_node_classes[ExpressionPkgResourcesResourceStringRef] = (
+    pkg_resources_resource_string_spec
+)
 
 
 class ExpressionPkgResourcesResourceStringCallBase(

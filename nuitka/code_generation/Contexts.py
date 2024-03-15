@@ -215,12 +215,12 @@ class TempMixin(object):
             else:
                 preserver_obj_init = None
 
-            self.preserver_variable_declaration[
-                preserver_id
-            ] = self.variable_storage.addVariableDeclarationTop(
-                "struct Nuitka_ExceptionStackItem",
-                "exception_preserved_%d" % preserver_id,
-                preserver_obj_init,
+            self.preserver_variable_declaration[preserver_id] = (
+                self.variable_storage.addVariableDeclarationTop(
+                    "struct Nuitka_ExceptionStackItem",
+                    "exception_preserved_%d" % preserver_id,
+                    preserver_obj_init,
+                )
             )
 
         return self.preserver_variable_declaration[preserver_id]

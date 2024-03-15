@@ -214,9 +214,11 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if element[0] == "Starred":
                 if starred_index is not None:
                     raiseSyntaxError(
-                        "two starred expressions in assignment"
-                        if python_version < 0x390
-                        else "multiple starred expressions in assignment",
+                        (
+                            "two starred expressions in assignment"
+                            if python_version < 0x390
+                            else "multiple starred expressions in assignment"
+                        ),
                         source_ref.atColumnNumber(0),
                     )
 

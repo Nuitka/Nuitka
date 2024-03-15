@@ -3,7 +3,6 @@
 
 """ This is for use in testing, but also for user tools too."""
 
-
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.TreeXML import fromFile
 from nuitka.utils.ModuleNames import ModuleName

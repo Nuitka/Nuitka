@@ -486,9 +486,11 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
         submodule_attrs = dict(
             (
-                module_name.getChildNamed(submodule[1:])
-                if submodule.startswith(".")
-                else ModuleName(submodule),
+                (
+                    module_name.getChildNamed(submodule[1:])
+                    if submodule.startswith(".")
+                    else ModuleName(submodule)
+                ),
                 tuple(attribute_names),
             )
             for (submodule, attribute_names) in sorted(submodule_attrs.items())

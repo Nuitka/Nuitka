@@ -6,7 +6,6 @@
 This wraps strings with a class derived from "str" that does more checks.
 """
 
-
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Tracing import optimization_logger

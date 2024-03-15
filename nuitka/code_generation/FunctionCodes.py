@@ -5,7 +5,6 @@
 
 """
 
-
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
