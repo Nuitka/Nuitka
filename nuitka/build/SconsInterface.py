@@ -280,27 +280,6 @@ def runScons(options, env_values, scons_filename):
         scons_command = _buildSconsCommand(
             options=options, scons_filename=scons_filename
         )
-        if source_dir:
-            import itertools
-
-            scons_debug_script_name = "scons-debug.sh"
-            if os.name == "nt":
-                scons_debug_script_name = "scons-debug.bat"
-            with open(os.path.join(source_dir, scons_debug_script_name), "w") as lf:
-                if os.name == "nt":
-                    lf.write("rem scons debug\n")
-                else:
-                    lf.write("#!/bin/sh\n")
-                set_smd = "export"
-                if os.name == "nt":
-                    set_smd = "set"
-                for k, v in itertools.chain(env_values.items(), os.environ.items()):
-                    quoted_value = v
-                    if os.name != "nt":
-                        # we should quote only for Linux
-                        quoted_value = '"' + v + '"'
-                    lf.write("%(set_smd)s %(k)s=%(quoted_value)s\n" % vars())
-                lf.write(" ".join(scons_command))
 
         if Options.isShowScons():
             Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
@@ -308,6 +287,27 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
+
+            if source_dir:  # we wrote debug shell script only if build process called, not "--version" call.
+                scons_debug_script_name = "scons-debug.sh"
+                if os.name == "nt":
+                    scons_debug_script_name = "scons-debug.bat"
+                with open(os.path.join(source_dir, scons_debug_script_name), "w") as lf:
+                    if os.name == "nt":
+                        lf.write("rem scons debug\n")
+                    else:
+                        lf.write("#!/bin/sh\n")
+                    set_smd = "export"
+                    if os.name == "nt":
+                        set_smd = "set"
+                    for k, v in os.environ.items():
+                        quoted_value = v
+                        if os.name != "nt":
+                            # we should quote only for Linux
+                            quoted_value = '"' + v + '"'
+                        lf.write("%(set_smd)s %(k)s=%(quoted_value)s\n" % vars())
+                    lf.write(" ".join(scons_command))
+
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
