@@ -287,26 +287,28 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-            if source_dir:
+
+            if source_dir:  
                 # we wrote debug shell script only if build process called, not "--version" call.
-                scons_debug_script_name = "scons-debug.sh"
+                scons_debug_script_name = scons_debug_stem = "scons-debug"
+                scons_debug_python_name = scons_debug_stem + ".py"
+                with open(os.path.join(source_dir, scons_debug_python_name), "w", encoding="utf-8") as lf:
+                    lf.write("""# -*- coding: utf-8 -*-
+import os                             
+import subprocess 
+env = """ + repr(dict(os.environ)) + """
+for k, v in env.items():
+    os.environ[k] = v
+subprocess.call(""" + repr(scons_command) +  """, shell=False)    
+                    """)
+                    
                 if isWin32Windows():
-                    scons_debug_script_name = "scons-debug.bat"
+                    scons_debug_script_name += ".bat"
+                else:
+                    scons_debug_script_name += ".sh"
+
                 with open(os.path.join(source_dir, scons_debug_script_name), "w") as lf:
-                    if isWin32Windows():
-                        lf.write("rem scons debug\n")
-                    else:
-                        lf.write("#!/bin/sh\n")
-                    set_smd = "export"
-                    if isWin32Windows():
-                        set_smd = "set"
-                    for k, v in os.environ.items():
-                        quoted_value = v
-                        if isWin32Windows():
-                            # we should quote only for Linux
-                            quoted_value = '"' + v + '"'
-                        lf.write("%(set_smd)s %(k)s=%(quoted_value)s\n" % vars())
-                    lf.write(" ".join(scons_command))
+                    lf.write(" ".join([scons_command[0], scons_debug_python_name]))
 
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
