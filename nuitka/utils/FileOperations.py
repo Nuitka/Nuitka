@@ -239,8 +239,7 @@ def _getRealPathWindows(path):
             if result.startswith("UNC"):
                 # Avoid network mounts being converted to UNC shared paths by newer
                 # Python versions, many tools won't work with those.
-                # Dont touch already mapped links to UNC paths
-                _real_path_windows_cache[path] = path # '\\' + result[3:].rstrip("\r\n")
+                _real_path_windows_cache[path] = path
             else:
                 _real_path_windows_cache[path] = os.path.join(
                     os.path.dirname(path), result.rstrip("\r\n")
@@ -305,7 +304,7 @@ def getFilenameRealPath(path):
                 assert path.startswith(drive_real_path)
 
                 path = drive + path[len(drive_real_path) :]
-        else:       
+        else:
             path = path.strip(os.path.sep)
 
             if os.path.sep in path:
