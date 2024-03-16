@@ -236,9 +236,15 @@ def _getRealPathWindows(path):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            _real_path_windows_cache[path] = os.path.join(
-                os.path.dirname(path), result.rstrip("\r\n")
-            )
+            if result.startswith("UNC"):
+                # Avoid network mounts being converted to UNC shared paths by newer
+                # Python versions, many tools won't work with those.
+                # Dont touch already mapped links to UNC paths
+                _real_path_windows_cache[path] = path # '\\' + result[3:].rstrip("\r\n")
+            else:
+                _real_path_windows_cache[path] = os.path.join(
+                    os.path.dirname(path), result.rstrip("\r\n")
+                )
         else:
             _real_path_windows_cache[path] = path
 
@@ -288,35 +294,34 @@ def getFilenameRealPath(path):
     orig_path = path
     path = os.path.realpath(path)
 
-    # Avoid network mounts being converted to UNC shared paths ny newer
+    # Avoid network mounts being converted to UNC shared paths by newer
     # Python versions, many tools won't work with those.
-    if os.name == "nt" and path.startswith("\\\\"):
-        drive, _remaining_path = os.path.splitdrive(orig_path)
-
-        if drive:
-            drive_real_path = os.path.realpath(drive + "\\")
-            assert path.startswith(drive_real_path)
-
-            path = drive + path[len(drive_real_path) :]
-
-    # Attempt to resolve Windows symlinks older Python
     if os.name == "nt":
-        path = path.strip(os.path.sep)
+        if path.startswith("\\\\"):
+            drive, _remaining_path = os.path.splitdrive(orig_path)
 
-        if os.path.sep in path:
-            dirname = os.path.dirname(path)
-            filename = os.path.basename(path)
+            if drive and not drive.startswith("\\\\"):
+                drive_real_path = os.path.realpath(drive + "\\")
+                assert path.startswith(drive_real_path)
 
-            if dirname:
-                dirname = getDirectoryRealPath(dirname)
+                path = drive + path[len(drive_real_path) :]
+        else:       
+            path = path.strip(os.path.sep)
 
-                # Drive letters do not get slashes from "os.path.join", so
-                # we inject this here and normalize the path afterwards to
-                # remove any duplication added.
-                if os.path.sep not in dirname:
-                    dirname = dirname + os.path.sep
+            if os.path.sep in path:
+                dirname = os.path.dirname(path)
+                filename = os.path.basename(path)
 
-                path = os.path.normpath(os.path.join(dirname, filename))
+                if dirname:
+                    dirname = getDirectoryRealPath(dirname)
+
+                    # Drive letters do not get slashes from "os.path.join", so
+                    # we inject this here and normalize the path afterwards to
+                    # remove any duplication added.
+                    if os.path.sep not in dirname:
+                        dirname = dirname + os.path.sep
+
+                    path = os.path.normpath(os.path.join(dirname, filename))
 
     return path
 
