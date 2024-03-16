@@ -287,8 +287,8 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-
-            if source_dir:  # we wrote debug shell script only if build process called, not "--version" call.
+            if source_dir:
+                # we wrote debug shell script only if build process called, not "--version" call.
                 scons_debug_script_name = "scons-debug.sh"
                 if os.name == "nt":
                     scons_debug_script_name = "scons-debug.bat"
