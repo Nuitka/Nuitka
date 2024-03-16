@@ -25,7 +25,7 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 #ifdef _NUITKA_STANDALONE
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 
-static PyObject *STRIP_DIRNAME(PyObject *path) {
+NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
 #if PYTHON_VERSION < 0x300
     char const *path_cstr = PyString_AS_STRING(path);
 
