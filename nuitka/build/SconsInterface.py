@@ -287,21 +287,29 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
-
-            if source_dir:  
+            if source_dir:
                 # we wrote debug shell script only if build process called, not "--version" call.
                 scons_debug_script_name = scons_debug_stem = "scons-debug"
                 scons_debug_python_name = scons_debug_stem + ".py"
-                with open(os.path.join(source_dir, scons_debug_python_name), "w", encoding="utf-8") as lf:
-                    lf.write("""# -*- coding: utf-8 -*-
-import os                             
-import subprocess 
-env = """ + repr(dict(os.environ)) + """
+                with open(
+                    os.path.join(source_dir, scons_debug_python_name),
+                    "w",
+                    encoding="utf-8",
+                ) as lf:
+                    lf.write(
+                        """# -*- coding: utf-8 -*-
+import os
+import subprocess
+env = """
+                        + repr(dict(os.environ))
+                        + """
 for k, v in env.items():
     os.environ[k] = v
-subprocess.call(""" + repr(scons_command) +  """, shell=False)    
-                    """)
-                    
+subprocess.call("""
+                        + repr(scons_command)
+                        + ", shell=False)"
+                    )
+
                 if isWin32Windows():
                     scons_debug_script_name += ".bat"
                 else:
