@@ -6179,8 +6179,10 @@ static PyObject *COMPARE_LE_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
-                r = operand1_long_object->ob_digit[i] < operand2_long_object->ob_digit[i];
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] <
+                    Nuitka_LongGetDigitPointer(operand2_long_object)[i];
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }
@@ -6808,8 +6810,10 @@ static bool COMPARE_LE_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
-                r = operand1_long_object->ob_digit[i] < operand2_long_object->ob_digit[i];
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] <
+                    Nuitka_LongGetDigitPointer(operand2_long_object)[i];
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }
@@ -11669,8 +11673,8 @@ static PyObject *COMPARE_LE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
-                r = operand1_long_object->ob_digit[i] < operand2_digits[i];
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] < operand2_digits[i];
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }
@@ -11733,8 +11737,8 @@ static bool COMPARE_LE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
-                r = operand1_long_object->ob_digit[i] < operand2_digits[i];
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] < operand2_digits[i];
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }
@@ -11814,8 +11818,8 @@ static PyObject *COMPARE_LE_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
-                r = operand1_long_object->ob_digit[i] < (digit)Py_ABS(operand2);
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] < (digit)Py_ABS(operand2);
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }
@@ -11851,8 +11855,8 @@ static bool COMPARE_LE_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
         Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
-                r = operand1_long_object->ob_digit[i] < (digit)Py_ABS(operand2);
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
+                r = Nuitka_LongGetDigitPointer(operand1_long_object)[i] < (digit)Py_ABS(operand2);
                 if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
                 }

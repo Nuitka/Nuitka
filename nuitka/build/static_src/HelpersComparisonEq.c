@@ -6283,7 +6283,8 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
                 r = false;
                 break;
             }
@@ -6910,7 +6911,8 @@ static bool COMPARE_EQ_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
                 r = false;
                 break;
             }
@@ -11791,7 +11793,7 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
                 r = false;
                 break;
             }
@@ -11853,7 +11855,7 @@ static bool COMPARE_EQ_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
                 r = false;
                 break;
             }
@@ -11932,7 +11934,7 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
                 r = false;
                 break;
             }
@@ -11967,7 +11969,7 @@ static bool COMPARE_EQ_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
         r = true;
 
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
                 r = false;
                 break;
             }

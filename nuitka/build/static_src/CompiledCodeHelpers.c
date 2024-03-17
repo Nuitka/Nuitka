@@ -935,7 +935,11 @@ void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("current_exc=");
+#if PYTHON_VERSION < 0x3c0
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
+#else
+    _PRINT_EXCEPTION(tstate->exc_info->exc_value);
+#endif
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
