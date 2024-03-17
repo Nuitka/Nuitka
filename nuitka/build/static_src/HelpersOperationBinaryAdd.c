@@ -1040,10 +1040,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
-        digit const *b_digits = operand2_long_object->ob_digit;
+        digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
         Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
         bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -1274,10 +1274,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -1516,10 +1516,10 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -1601,10 +1601,10 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(PyObject *operand1, PyO
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
-        digit const *b_digits = operand2_long_object->ob_digit;
+        digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
         Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
         bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -1845,10 +1845,10 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -2097,10 +2097,10 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -3553,7 +3553,7 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, lon
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
         digit const *b_digits = (digit *)&operand2;
@@ -3633,7 +3633,7 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(PyObject *operand1, lo
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
         digit const *b_digits = (digit *)&operand2;

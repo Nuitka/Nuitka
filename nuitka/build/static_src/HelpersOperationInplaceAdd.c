@@ -644,7 +644,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
     }
 
     if (Py_REFCNT(*operand1) == 1) {
-        digit const *b_digits = operand2_long_object->ob_digit;
+        digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
         Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
 
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
@@ -670,10 +670,10 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
-        digit const *b_digits = operand2_long_object->ob_digit;
+        digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
         Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
         bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -949,7 +949,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
         }
 
         if (Py_REFCNT(*operand1) == 1) {
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
 
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
@@ -975,10 +975,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -1248,7 +1248,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
         }
 
         if (Py_REFCNT(*operand1) == 1) {
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
 
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
@@ -1274,10 +1274,10 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
         {
             PyLongObject *z;
 
-            digit const *a_digits = operand1_long_object->ob_digit;
+            digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
             Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
             bool a_negative = Py_SIZE(operand1_long_object) < 0;
-            digit const *b_digits = operand2_long_object->ob_digit;
+            digit const *b_digits = Nuitka_LongGetDigitPointer(operand2_long_object);
             Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
             bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
@@ -2436,7 +2436,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long o
     {
         PyLongObject *z;
 
-        digit const *a_digits = operand1_long_object->ob_digit;
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
         Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
         bool a_negative = Py_SIZE(operand1_long_object) < 0;
         digit const *b_digits = (digit *)&operand2;

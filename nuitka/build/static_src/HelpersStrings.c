@@ -232,6 +232,7 @@ static int _NuitkaUnicode_modifiable(PyObject *unicode) {
     return 1;
 }
 
+#if PYTHON_VERSION < 0x3c0
 static PyObject *_NuitkaUnicode_New(Py_ssize_t length) {
     assert(length != 0);
 
@@ -294,6 +295,8 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
     }
 }
 
+#endif
+
 // We use older form code, make some backward compatible defines available.
 #if PYTHON_VERSION >= 0x390
 
@@ -311,6 +314,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 
 #endif
 
+#if PYTHON_VERSION < 0x3c0
 static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t length) {
     assert(PyUnicode_IS_COMPACT(unicode));
 
@@ -474,6 +478,7 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
 
     return _NuitkaUnicode_resize_inplace(unicode, length);
 }
+#endif
 
 PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
     if (left == const_str_empty) {

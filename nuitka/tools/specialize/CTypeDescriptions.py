@@ -1388,11 +1388,11 @@ class LongDesc(ConcreteNonSequenceTypeBase):
 
     @staticmethod
     def getLongValueDigitExpression(operand, index):
-        return "%s_long_object->ob_digit[%s]" % (operand, index)
+        return "Nuitka_LongGetDigitPointer(%s_long_object)[%s]" % (operand, index)
 
     @staticmethod
     def getLongValueDigitsPointerExpression(operand):
-        return "%s_long_object->ob_digit" % operand
+        return "Nuitka_LongGetDigitPointer(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueMediumValueExpression(operand):
