@@ -23,7 +23,7 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
     PyLongObject *long_value = (PyLongObject *)value;
 
     if (i == 1) {
-        return long_value->ob_digit[0];
+        return Nuitka_LongGetDigitPointer(long_value)[0];
     }
 
     Py_ssize_t result = 0;
@@ -33,9 +33,11 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
         i = -i;
     }
 
+    digit *digits = Nuitka_LongGetDigitPointer(long_value);
+
     while (--i >= 0) {
         Py_ssize_t prev = result;
-        result = (result << PyLong_SHIFT) | long_value->ob_digit[i];
+        result = (result << PyLong_SHIFT) | digits[i];
         if ((result >> PyLong_SHIFT) != prev) {
             return (Py_ssize_t)-1;
         }
