@@ -236,7 +236,7 @@ def _getRealPathWindows(path):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            if result.startswith("UNC"):
+            if result.startswith("UNC\\"):
                 # Avoid network mounts being converted to UNC shared paths by newer
                 # Python versions, many tools won't work with those.
                 _real_path_windows_cache[path] = path
