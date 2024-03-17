@@ -35,12 +35,14 @@ from nuitka.utils.Execution import (
     withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    putTextFileContents,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -247,6 +249,61 @@ def _buildSconsCommand(options, scons_filename):
     return scons_command
 
 
+def _createSconsDebugScript(source_dir, scons_command):
+    # we wrote debug shell script only if build process called, not "--version" call.
+    scons_debug_python_name = "scons-debug.py"
+
+    putTextFileContents(
+        filename=os.path.join(source_dir, scons_debug_python_name),
+        contents="""\
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+
+exit_code = subprocess.call(
+    %(scons_command)r,
+    env=%(env)r,
+    shell=False
+)"""
+        % {"scons_command": scons_command, "env": dict(os.environ)},
+        encoding="utf8",
+    )
+
+    if isWin32Windows():
+        script_extension = ".bat"
+
+        script_prelude = """\
+cd "%~dp0"
+                    """
+    else:
+        script_extension = ".sh"
+
+        script_prelude = """\
+#!/bin/bash
+cd "${0%/*}"
+"""
+
+    putTextFileContents(
+        filename=os.path.join(
+            source_dir,
+            changeFilenameExtension(scons_debug_python_name, script_extension),
+        ),
+        contents="""\
+%(script_prelude)s
+
+'%(scons_python)s' '%(scons_debug_script_name)s'
+"""
+        % {
+            "script_prelude": script_prelude,
+            "scons_python": scons_command[0],
+            "scons_debug_script_name": scons_debug_python_name,
+        },
+        encoding="utf8",
+    )
+
+
 def runScons(options, env_values, scons_filename):
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -287,6 +344,12 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
+            # Create debug script to quickly re-run this step only.
+            if source_dir is not None:
+                _createSconsDebugScript(
+                    source_dir=source_dir, scons_command=scons_command
+                )
+
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
