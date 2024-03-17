@@ -6633,7 +6633,7 @@
     patterns:
       - '*.css'
 
-- module-name: 'transformers' # checksum: 81d84f69
+- module-name: 'transformers' # checksum: a442ab87
   data-files:
     include-metadata:
       - 'accelerate'
@@ -6654,6 +6654,12 @@
       - 'sentencepiece'
       - 'timm'
       - 'openai'
+
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
@@ -6676,11 +6682,39 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'transformers.models.deformable_detr.modling_deformable_detr' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.mra.modeling_mra' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'transformers.models.rwkv.modeling_rwkv' # checksum: f186b69e
   anti-bloat:
     - description: 'remove setuptools usage'
       change_function:
         'load_wkv_cuda_kernel': "'(lambda : None)'"
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.yoso.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
 - module-name: 'transformers.models.yoso.modeling_yoso' # checksum: 7f1a78b7
@@ -6695,13 +6729,6 @@
     - description: 'workaround manual import issue'
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
-
-- module-name: 'transformers.tools.agent_types' # checksum: 7d07a2d1
-  anti-bloat:
-    - description: 'remove IPython reference'
-      no-auto-follow:
-        'IPython': 'ignore'
-      when: 'not use_ipython'
 
 - module-name: 'transformers.trainer' # checksum: f71d17eb
   anti-bloat:
