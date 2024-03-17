@@ -1019,11 +1019,15 @@
         'load_ipython_extension': 'un-callable'
       when: 'not use_ipython'
 
-- module-name: 'dotenv.main' # checksum: 406cfc35
+- module-name: 'dotenv.main' # checksum: cb869e1f
   anti-bloat:
     - description: 'workaround to avoid dotenv requiring package directories'
       replacements_plain:
         "raise IOError('Starting path not found')": 'pass'
+    - description: 'workaround to avoid dotenv requiring python filenames'
+      replacements_plain:
+        'while frame.f_code.co_filename == current_file': 'if False'
+        'frame_filename = frame.f_code.co_filename': 'frame_filename = os.path.dirname(__file__)'
 
 - module-name: 'easyocr' # checksum: fb59d361
   data-files:
