@@ -653,7 +653,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
         if (a_negative) {
             if (b_negative) {
                 *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
+                Nuitka_LongSetSignNegative(*operand1);
             } else {
                 *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
             }
@@ -680,7 +680,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-                Py_SET_SIZE(z, -(Py_SIZE(z)));
+                Nuitka_LongFlipSign(z);
             } else {
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
             }
@@ -958,7 +958,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                    Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
+                    Nuitka_LongSetSignNegative(*operand1);
                 } else {
                     *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
                 }
@@ -985,7 +985,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-                    Py_SET_SIZE(z, -(Py_SIZE(z)));
+                    Nuitka_LongFlipSign(z);
                 } else {
                     z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
                 }
@@ -1257,7 +1257,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                    Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
+                    Nuitka_LongSetSignNegative(*operand1);
                 } else {
                     *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
                 }
@@ -1284,7 +1284,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-                    Py_SET_SIZE(z, -(Py_SIZE(z)));
+                    Nuitka_LongFlipSign(z);
                 } else {
                     z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
                 }
@@ -2419,7 +2419,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long o
         if (a_negative) {
             if (b_negative) {
                 *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
+                Nuitka_LongSetSignNegative(*operand1);
             } else {
                 *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
             }
@@ -2446,7 +2446,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long o
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-                Py_SET_SIZE(z, -(Py_SIZE(z)));
+                Nuitka_LongFlipSign(z);
             } else {
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
             }

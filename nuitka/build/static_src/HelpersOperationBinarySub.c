@@ -561,7 +561,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyOb
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
-            Py_SET_SIZE(z, -(Py_SIZE(z)));
+            Nuitka_LongFlipSign(z);
         } else {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
@@ -784,7 +784,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
-                Py_SET_SIZE(z, -(Py_SIZE(z)));
+                Nuitka_LongFlipSign(z);
             } else {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
@@ -1023,7 +1023,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
-                Py_SET_SIZE(z, -(Py_SIZE(z)));
+                Nuitka_LongFlipSign(z);
             } else {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
@@ -1993,7 +1993,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, lon
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
-            Py_SET_SIZE(z, -(Py_SIZE(z)));
+            Nuitka_LongFlipSign(z);
         } else {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
@@ -2074,7 +2074,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
-            Py_SET_SIZE(z, -(Py_SIZE(z)));
+            Nuitka_LongFlipSign(z);
         } else {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
