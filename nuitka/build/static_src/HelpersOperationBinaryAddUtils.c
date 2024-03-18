@@ -63,11 +63,13 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (Py_ABS(Py_SIZE(value)))
 #define Nuitka_LongSetSignNegative(value) Py_SET_SIZE(value, -Py_ABS(Py_SIZE(value)))
+#define Nuitka_LongFlipSign(value) Py_SET_SIZE(value, -Py_SIZE(value))
 #else
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->long_value.ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (((PyLongObject *)value)->long_value.lv_tag >> NON_SIZE_BITS)
 #define Nuitka_LongSetSignNegative(value)                                                                              \
     ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag | SIGN_NEGATIVE;
+#define Nuitka_LongFlipSign(value) _PyLong_FlipSign(value)
 #endif
 
 // Our version of _PyLong_New(size);
