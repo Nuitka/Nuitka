@@ -7113,6 +7113,16 @@
         - 'win32comext'
       when: 'win32'
 
+- module-name: 'win32com.server.register' # checksum: d2ea40f3
+  anti-bloat:
+    - replacements_plain:
+        'not pythoncom.frozen': 'False'
+      change_function:
+        'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
+
 - module-name: 'win32ui' # checksum: 2f1beca2
   implicit-imports:
     - pre-import-code:
