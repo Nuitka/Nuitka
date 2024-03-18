@@ -3822,7 +3822,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: f259f70e
+- module-name: 'PySide6' # checksum: db68a9cc
   implicit-imports:
     - post-import-code:
         - |
@@ -3843,6 +3843,11 @@
 
                       if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
                         slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
+
+                        try:
+                          setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
+                        except Exception:
+                          pass
 
               return orig_connect(self, slot, type)
 
