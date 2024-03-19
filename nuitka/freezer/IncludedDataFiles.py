@@ -506,7 +506,25 @@ def _reportDataFiles():
     _data_file_traces.clear()
 
 
-def _handleDataFile(included_datafile):
+def _checkPathConflict(dest_path, standalone_entry_points):
+    assert os.path.normpath(dest_path) == dest_path
+
+    while dest_path:
+        for standalone_entry_point in standalone_entry_points:
+            if dest_path == standalone_entry_point.dest_path:
+                options_logger.sysexit(
+                    """\
+Error, data file to be placed in distribution as '%s' conflicts with %s '%s'."""
+                    % (
+                        dest_path,
+                        standalone_entry_point.kind,
+                        standalone_entry_point.dest_path,
+                    )
+                )
+        dest_path = os.path.dirname(dest_path)
+
+
+def _handleDataFile(included_datafile, standalone_entry_points):
     """Handle a data file."""
     tracer = included_datafile.tracer
 
@@ -529,6 +547,7 @@ def _handleDataFile(included_datafile):
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)
     else:
+        _checkPathConflict(included_datafile.dest_path, standalone_entry_points)
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
     if included_datafile.kind == "data_blob":
@@ -548,7 +567,7 @@ def _handleDataFile(included_datafile):
         assert False, included_datafile
 
 
-def copyDataFiles():
+def copyDataFiles(standalone_entry_points):
     """Copy the data files needed for standalone distribution.
 
     Notes:
@@ -576,7 +595,8 @@ plugins '--embed-*' options. Not done for '%s'."""
                 )
 
             _handleDataFile(
-                included_datafile,
+                included_datafile=included_datafile,
+                standalone_entry_points=standalone_entry_points,
             )
 
     _reportDataFiles()
