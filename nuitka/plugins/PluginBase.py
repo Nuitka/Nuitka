@@ -17,6 +17,7 @@ import functools
 import inspect
 import os
 import sys
+import unittest
 
 from nuitka import Options
 from nuitka.__past__ import iter_modules, unicode
@@ -155,6 +156,7 @@ def _getEvaluationContext():
             "os": os,
             "importlib": _getImportLibModule(),
             "appdirs": getAppdirsModule(),
+            "unittest": unittest,
             # Python version string
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
