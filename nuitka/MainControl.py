@@ -1010,8 +1010,6 @@ def _main():
 
     executePostProcessing()
 
-    copyDataFiles()
-
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]
 
@@ -1031,6 +1029,10 @@ def _main():
             dist_dir=dist_dir,
             standalone_entry_points=getStandaloneEntryPoints(),
         )
+
+    copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
+
+    if Options.isStandaloneMode():
 
         Plugins.onStandaloneDistributionFinished(dist_dir)
 
