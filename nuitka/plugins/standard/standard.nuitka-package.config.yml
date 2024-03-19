@@ -5563,7 +5563,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 3e41f159
+- module-name: 'tensorflow' # checksum: 5ed34611
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5580,6 +5580,7 @@
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
+        'from tensorflow._api.v2 import test': 'test = None'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -5617,18 +5618,21 @@
         'from . import test': 'test = None'
         'from tensorflow._api.v1.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.__internal__' # checksum: 6575e290
+- module-name: 'tensorflow._api.v2.__internal__' # checksum: 4958c951
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
         'from . import distribute': 'distribute = None'
+        'from tensorflow._api.v2.__internal__ import test': 'test = None'
+        'from tensorflow._api.v2.__internal__ import distribute': 'distribute = None'
 
-- module-name: 'tensorflow._api.v2.compat.v1' # checksum: 3b5c62cb
+- module-name: 'tensorflow._api.v2.compat.v1' # checksum: 53024ed1
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v1 import test': 'test = None'
 
 - module-name: 'tensorflow._api.v2.compat.v1.compat.v1' # checksum: 31fdcb26
   anti-bloat:
@@ -5642,25 +5646,38 @@
       replacements_plain:
         'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2' # checksum: 3b5c62cb
+- module-name: 'tensorflow._api.v2.compat.v2' # checksum: b1ce7f9
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 6575e290
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 6992c716
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         # TODO: Really need to make the "un-usable" a thing
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v2.__internal__ import test': 'test = None'
         'from . import distribute': 'distribute = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute' # checksum: 6d039981
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute' # checksum: a5d90e6f
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import multi_process_runner': 'multi_process_runner = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import combinations': 'combinations = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import interim': 'interim = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import multi_process_runner': 'multi_process_runner=None'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute.multi_process_runner' # checksum: b50f5527
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.distribute.multi_worker_test_base import create_cluster_spec': 'pass'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow._api.v2.compat.v2.compat.v1' # checksum: 31fdcb26
   anti-bloat:
@@ -5933,12 +5950,13 @@
       replacements_plain:
         'ag_logging.warning(': 'if False: ag_logging.warning('
 
-- module-name: 'tensorflow.python.autograph.impl.conversion' # checksum: eddb826f
+- module-name: 'tensorflow.python.autograph.impl.conversion' # checksum: fe4e1edb
   anti-bloat:
-    - description: 'remove unitest usage'
+    - description: 'remove unittest usage'
       replacements_plain:
         'import unittest': ''
         'issubclass(owner_class, unittest.TestCase)': 'False'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow.python.compiler.tensorrt.trt_convert' # checksum: 9471824c
   implicit-imports:
@@ -5960,21 +5978,68 @@
     - depends:
         - 'tensorflow.python.data.ops.shuffle_op'
 
-- module-name: 'tensorflow.python.distribute.multi_process_runner' # checksum: 3b5c62cb
+- module-name: 'tensorflow.python.distribute.combinations' # checksum: 6cb7adcb
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.framework import test_combinations as combinations_lib': 'combinations_lib = None'
+        'from tensorflow.python.framework import test_util': 'test_util = None'
+        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
+        'import unittest': ''
+        'from tensorflow.python.distribute import multi_worker_test_base': ''
+      replacements:
+        'unittest.TestLoader.testMethodPrefix': 'unittest.TestLoader.testMethodPrefix'
+      change_function:
+        '_test_runner': 'un-callable'
+        '_multi_worker_test': 'un-callable'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.multi_process_lib' # checksum: b7c69e56
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': 'unittest = None'
+        'from tensorflow.python.eager import test': 'test = None'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.multi_process_runner' # checksum: fc293e17
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow.python.framework import test_util': 'test_util = None'
+        'test_util.is_tsan_enabled()': 'False'
+        'import unittest': 'unittest = None'
+      when: 'not use_unittest'
 
-- module-name: 'tensorflow.python.distribute.multi_worker_test_base' # checksum: 3d614bbf
+- module-name: 'tensorflow.python.distribute.multi_worker_test_base' # checksum: 28f6ca1b
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'import unittest': 'test = None'
         'from tensorflow.python.framework import test_util': 'test_util = None'
         'from tensorflow.python.platform import test': 'test = None'
+        'pick_unused_port = test_util.pick_unused_port': ''
+      append_plain: |
+        ASSIGNED_PORTS: set()
+        lock = threading.Lock()
 
-- module-name: 'tensorflow.python.distribute.strategy_combinations' # checksum: 2911563d
+        def pick_unused_port():
+          import portpicker
+          global ASSIGNED_PORTS
+          with lock:
+            while True:
+              try:
+                port = portpicker.pick_unused_port()
+              except portpicker.NoFreePortFoundError as porterror:
+                raise unittest.SkipTest("") from porterror
+              if port > 10000 and port not in ASSIGNED_PORTS:
+                ASSIGNED_PORTS.add(port)
+                logging.info("Using local port %r", port)
+                return port
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.strategy_combinations' # checksum: 4c4b9841
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
@@ -5982,12 +6047,20 @@
         'from tensorflow.python.framework import test_util as framework_test_util': 'framework_test_util = None'
         'from tensorflow.python.distribute import multi_process_runner': 'multi_process_runner = None'
         'from tensorflow.python.distribute import multi_worker_test_base': 'multi_worker_test_base = None'
+        'import unittest': 'unittest = None'
 
 - module-name: 'tensorflow.python.framework' # checksum: 98664efa
   implicit-imports:
     - depends:
         - 'tensorflow.python.framework.fast_tensor_util'
       when: 'not win32'
+
+- module-name: 'tensorflow.python.framework.combinations' # checksum: dd5e29c2
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow.python.framework.dtypes' # checksum: 25144a68
   implicit-imports:
