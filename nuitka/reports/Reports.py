@@ -52,7 +52,16 @@ from nuitka.utils.Distributions import (
 from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
-from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getLinuxDistribution,
+    getMacOSRelease,
+    getOS,
+    getWindowsRelease,
+    isLinux,
+    isMacOS,
+    isWin32OrPosixWindows,
+)
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 
@@ -60,7 +69,8 @@ def _getReportInputData(aborted):
     """Collect all information for reporting into a dictionary."""
 
     # used with locals for laziness and these are to populate a dictionary with
-    # many entries, pylint: disable=possibly-unused-variable,too-many-locals
+    # many entries,
+    # pylint: disable=possibly-unused-variable,too-many-branches,too-many-locals,too-many-statements
 
     module_names = tuple(module.getFullName() for module in getDoneModules())
 
@@ -179,6 +189,15 @@ def _getReportInputData(aborted):
     python_version = python_version_full_str
     os_name = getOS()
     arch_name = getArchitecture()
+
+    if isWin32OrPosixWindows():
+        os_release = getWindowsRelease()
+    elif isLinux():
+        os_release = "-".join(getLinuxDistribution())
+    elif isMacOS():
+        os_release = getMacOSRelease()
+    else:
+        os_release = "unknown"
 
     nuitka_version = getNuitkaVersion()
     nuitka_commercial_version = getCommercialVersion() or "not installed"
@@ -615,6 +634,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         python_flavor=report_input_data["python_flavor"],
         python_version=report_input_data["python_version"],
         os_name=report_input_data["os_name"],
+        os_release=report_input_data["os_release"],
         arch_name=report_input_data["arch_name"],
     )
 
