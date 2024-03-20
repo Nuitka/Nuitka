@@ -44,7 +44,9 @@ void startProfiling(void) {
         abort();
     }
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(PyObject_GetAttrString(vmprof_module, "enable"),
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyObject_GetAttrString(vmprof_module, "enable"),
                                                      PyInt_FromLong(fileno(tempfile_profile)));
 
     if (result == NULL) {
@@ -65,7 +67,7 @@ void stopProfiling(void) {
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *result = CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(vmprof_module, "disable"));
+    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(vmprof_module, "disable"));
 
     if (result == NULL) {
         CLEAR_ERROR_OCCURRED(tstate);
