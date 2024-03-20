@@ -759,12 +759,7 @@ def runSconsBackend():
     return result
 
 
-def callExecPython(args, clean_path, add_path):
-    old_python_path = os.getenv("PYTHONPATH")
-
-    if clean_path and old_python_path is not None:
-        os.environ["PYTHONPATH"] = ""
-
+def callExecPython(args, add_path):
     if add_path:
         if "PYTHONPATH" in os.environ:
             os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
@@ -777,17 +772,17 @@ def callExecPython(args, clean_path, add_path):
     callExecProcess(args)
 
 
-def executeMain(binary_filename, clean_path):
+def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
     if Options.shallRunInDebugger() and not Options.shallCreateCmdFileForExecution():
         args = wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(clean_path=clean_path, add_path=False, args=args)
+    callExecPython(add_path=False, args=args)
 
 
-def executeModule(tree, clean_path):
+def _executeModule(tree):
     """Execute the extension module just created."""
 
     if python_version < 0x340:
@@ -829,7 +824,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
     else:
         args = (sys.executable, "python", "-c", python_command)
 
-    callExecPython(clean_path=clean_path, add_path=True, args=args)
+    callExecPython(add_path=True, args=args)
 
 
 def compileTree():
@@ -1113,15 +1108,9 @@ not use compiled code while it exists."""
         general.info("Launching '%s'." % run_filename)
 
         if Options.shallMakeModule():
-            executeModule(
-                tree=main_module,
-                clean_path=Options.shallClearPythonPathEnvironment(),
-            )
+            _executeModule(tree=main_module)
         else:
-            executeMain(
-                binary_filename=run_filename,
-                clean_path=Options.shallClearPythonPathEnvironment(),
-            )
+            _executeMain(run_filename)
     else:
         if run_filename != final_filename:
             general.info(

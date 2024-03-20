@@ -577,18 +577,6 @@ Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack tra
 Defaults to off.""",
 )
 
-execute_group.add_option(
-    "--execute-with-pythonpath",
-    action="store_true",
-    dest="keep_pythonpath",
-    default=False,
-    help="""\
-When immediately executing the created binary or module using '--run',
-don't reset 'PYTHONPATH' environment. When all modules are successfully
-included, you ought to not need PYTHONPATH anymore, and definitely not
-for standalone mode.""",
-)
-
 del execute_group
 
 

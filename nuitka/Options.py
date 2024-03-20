@@ -1079,11 +1079,6 @@ but errors may happen."""
                 "The '--debugger' option has no effect outside of '--debug' without '--run' option."
             )
 
-        if not shallClearPythonPathEnvironment():
-            Tracing.options_logger.warning(
-                "The '--execute-with-pythonpath' option has no effect without '--run' option."
-            )
-
     # Check if the fallback is used, except for Python2 on Windows, where we cannot
     # have it.
     if hasattr(OrderedSet, "is_fallback") and not (
@@ -1444,11 +1439,6 @@ def getMainEntryPointFilenames():
 def shallOptimizeStringExec():
     """Inactive yet"""
     return False
-
-
-def shallClearPythonPathEnvironment():
-    """*bool* = **not** ``--execute-with-pythonpath``"""
-    return not options.keep_pythonpath
 
 
 _shall_use_static_lib_python = None
