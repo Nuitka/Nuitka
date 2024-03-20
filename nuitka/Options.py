@@ -61,6 +61,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
     getLinuxDistribution,
+    getMacOSRelease,
     getOS,
     getWindowsRelease,
     hasOnefileSupportedOS,
@@ -284,6 +285,9 @@ def _getVersionInformationValues():
 
     if isWin32OrPosixWindows():
         yield "WindowsRelease: %s" % getWindowsRelease()
+
+    if isMacOS():
+        yield "macOSRelease: %s" % getMacOSRelease()
 
 
 def printVersionInformation():

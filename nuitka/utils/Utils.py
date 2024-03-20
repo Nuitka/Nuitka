@@ -133,6 +133,15 @@ def getWindowsRelease():
     return platform.release()
 
 
+def getMacOSRelease():
+    if not isMacOS():
+        return None
+
+    import platform
+
+    return platform.mac_ver()[0]
+
+
 def isDebianBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
