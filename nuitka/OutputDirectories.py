@@ -131,6 +131,9 @@ def getResultFullpath(onefile):
         if isWin32OrPosixWindows() and not hasFilenameExtension(result, ".exe"):
             result += ".exe"
 
+        if not isWin32OrPosixWindows() and Options.isOnefileMode() and not onefile:
+            result += ".bin"
+
     return result
 
 
