@@ -6841,6 +6841,13 @@
         - 'websockets.legacy.server'
         - 'uvicorn.logging'
 
+- module-name: 'uvicorn.importer' # checksum: ada37bba
+  anti-bloat:
+    - description: 'better error message for string imports'
+      replacements_plain:
+        'Could not import module "{module_str}"': 'Nuitka: Could not import module "{module_str}" use "--include-module={module_str}" option during compilation'
+      when: 'not deployment'
+
 - module-name: 'uvicorn.lifespan' # checksum: f7b81412
   implicit-imports:
     - depends:
