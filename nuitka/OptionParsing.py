@@ -36,15 +36,18 @@ from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = os.path.basename(sys.argv[0]).lower().endswith("-run")
+_nuitka_binary_name = os.path.basename(sys.argv[0])
+if _nuitka_binary_name == "__main__.py":
+    _nuitka_binary_name = "%s -m nuitka" % os.path.basename(sys.executable)
+is_nuitka_run = _nuitka_binary_name.lower().endswith("-run")
 
 if not is_nuitka_run:
-    usage = "usage: %prog [--module] [--run] [options] main_module.py"
+    usage_template = "usage: %s [--module] [--run] [options] main_module.py"
 else:
-    usage = "usage: %prog [options] main_module.py"
+    usage_template = "usage: %s [options] main_module.py"
 
 
-parser = makeOptionsParser(usage=usage)
+parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
 
 parser.add_option(
     "--version",

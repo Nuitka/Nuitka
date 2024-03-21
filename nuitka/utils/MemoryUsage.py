@@ -96,7 +96,7 @@ def getMemoryInfos():
 
 
 def collectMemoryUsageValue(memory_usage_name):
-    assert memory_usage_name not in _memory_infos
+    assert memory_usage_name not in _memory_infos, memory_usage_name
     _memory_infos[memory_usage_name] = getOwnProcessMemoryUsage()
 
     return _memory_infos[memory_usage_name]

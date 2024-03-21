@@ -613,7 +613,7 @@ def scanSourceDir(env, dirname, plugins):
 
         # Only C files are of interest here.
         if not hasFilenameExtension(
-            filename_base, (".c", "cpp")
+            filename_base, (".c", ".cpp")
         ) or not filename_base.startswith(("module.", "__", "plugin.")):
             continue
 
