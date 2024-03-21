@@ -350,12 +350,17 @@
         - 'av.plane'
         - 'av.video.plane'
 
-- module-name: 'babel' # checksum: e320e7f1
+- module-name: 'babel' # checksum: 37b8fa6d
   data-files:
     dirs:
       - 'locale-data'
     patterns:
       - 'global.dat'
+
+  implicit-imports:
+    - depends:
+        - 'babel.dates'
+        - 'babel.numbers'
 
 - module-name: 'backports.zoneinfo._common' # checksum: 70450440
   implicit-imports:
@@ -1014,11 +1019,15 @@
         'load_ipython_extension': 'un-callable'
       when: 'not use_ipython'
 
-- module-name: 'dotenv.main' # checksum: 406cfc35
+- module-name: 'dotenv.main' # checksum: cb869e1f
   anti-bloat:
     - description: 'workaround to avoid dotenv requiring package directories'
       replacements_plain:
         "raise IOError('Starting path not found')": 'pass'
+    - description: 'workaround to avoid dotenv requiring python filenames'
+      replacements_plain:
+        'while frame.f_code.co_filename == current_file': 'if False'
+        'frame_filename = frame.f_code.co_filename': 'frame_filename = os.path.dirname(__file__)'
 
 - module-name: 'easyocr' # checksum: fb59d361
   data-files:
@@ -1487,6 +1496,31 @@
   data-files:
     patterns:
       - '_cython/_credentials/roots.pem'
+
+- module-name: 'gruut' # checksum: 19583930
+  data-files:
+    patterns:
+      - 'VERSION'
+
+  implicit-imports:
+    - depends:
+        - 'gruut_ipa'
+        - 'gruut_lang_en'
+
+- module-name: 'gruut_ipa' # checksum: 810a705a
+  data-files:
+    dirs:
+      - 'data'
+
+- module-name: 'gruut_lang_en' # checksum: 206e4c65
+  data-files:
+    dirs:
+      - 'espeak'
+      - 'g2p'
+      - 'pos'
+    patterns:
+      - 'VERSION'
+      - 'lexicon.db'
 
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
@@ -3402,6 +3436,17 @@
         - 'pycparser.yacctab'
         - 'pycparser.lextab'
 
+- module-name: 'pycrfsuite' # checksum: 452bfc81
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '_pycrfsuite'
+
+  implicit-imports:
+    - depends:
+        - 'pycrfsuite._dumpparser'
+        - 'pycrfsuite._logparser'
+
 - module-name: 'pydantic' # checksum: fb2935eb
   implicit-imports:
     - depends:
@@ -3781,7 +3826,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: f259f70e
+- module-name: 'PySide6' # checksum: db68a9cc
   implicit-imports:
     - post-import-code:
         - |
@@ -3802,6 +3847,11 @@
 
                       if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
                         slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
+
+                        try:
+                          setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
+                        except Exception:
+                          pass
 
               return orig_connect(self, slot, type)
 
@@ -5522,7 +5572,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 3e41f159
+- module-name: 'tensorflow' # checksum: 5ed34611
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -5539,6 +5589,7 @@
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
+        'from tensorflow._api.v2 import test': 'test = None'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -5576,18 +5627,21 @@
         'from . import test': 'test = None'
         'from tensorflow._api.v1.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.__internal__' # checksum: 6575e290
+- module-name: 'tensorflow._api.v2.__internal__' # checksum: 4958c951
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
         'from . import distribute': 'distribute = None'
+        'from tensorflow._api.v2.__internal__ import test': 'test = None'
+        'from tensorflow._api.v2.__internal__ import distribute': 'distribute = None'
 
-- module-name: 'tensorflow._api.v2.compat.v1' # checksum: 3b5c62cb
+- module-name: 'tensorflow._api.v2.compat.v1' # checksum: 53024ed1
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v1 import test': 'test = None'
 
 - module-name: 'tensorflow._api.v2.compat.v1.compat.v1' # checksum: 31fdcb26
   anti-bloat:
@@ -5601,25 +5655,38 @@
       replacements_plain:
         'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2' # checksum: 3b5c62cb
+- module-name: 'tensorflow._api.v2.compat.v2' # checksum: b1ce7f9
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 6575e290
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 6992c716
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         # TODO: Really need to make the "un-usable" a thing
         'from . import test': 'test = None'
+        'from tensorflow._api.v2.compat.v2.__internal__ import test': 'test = None'
         'from . import distribute': 'distribute = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute' # checksum: 6d039981
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute' # checksum: a5d90e6f
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import multi_process_runner': 'multi_process_runner = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import combinations': 'combinations = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import interim': 'interim = None'
+        'from tensorflow._api.v2.compat.v2.__internal__.distribute import multi_process_runner': 'multi_process_runner=None'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute.multi_process_runner' # checksum: b50f5527
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.distribute.multi_worker_test_base import create_cluster_spec': 'pass'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow._api.v2.compat.v2.compat.v1' # checksum: 31fdcb26
   anti-bloat:
@@ -5892,12 +5959,13 @@
       replacements_plain:
         'ag_logging.warning(': 'if False: ag_logging.warning('
 
-- module-name: 'tensorflow.python.autograph.impl.conversion' # checksum: eddb826f
+- module-name: 'tensorflow.python.autograph.impl.conversion' # checksum: fe4e1edb
   anti-bloat:
-    - description: 'remove unitest usage'
+    - description: 'remove unittest usage'
       replacements_plain:
         'import unittest': ''
         'issubclass(owner_class, unittest.TestCase)': 'False'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow.python.compiler.tensorrt.trt_convert' # checksum: 9471824c
   implicit-imports:
@@ -5919,21 +5987,68 @@
     - depends:
         - 'tensorflow.python.data.ops.shuffle_op'
 
-- module-name: 'tensorflow.python.distribute.multi_process_runner' # checksum: 3b5c62cb
+- module-name: 'tensorflow.python.distribute.combinations' # checksum: 6cb7adcb
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.framework import test_combinations as combinations_lib': 'combinations_lib = None'
+        'from tensorflow.python.framework import test_util': 'test_util = None'
+        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
+        'import unittest': ''
+        'from tensorflow.python.distribute import multi_worker_test_base': ''
+      replacements:
+        'unittest.TestLoader.testMethodPrefix': 'unittest.TestLoader.testMethodPrefix'
+      change_function:
+        '_test_runner': 'un-callable'
+        '_multi_worker_test': 'un-callable'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.multi_process_lib' # checksum: b7c69e56
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': 'unittest = None'
+        'from tensorflow.python.eager import test': 'test = None'
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.multi_process_runner' # checksum: fc293e17
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
+        'from tensorflow.python.framework import test_util': 'test_util = None'
+        'test_util.is_tsan_enabled()': 'False'
+        'import unittest': 'unittest = None'
+      when: 'not use_unittest'
 
-- module-name: 'tensorflow.python.distribute.multi_worker_test_base' # checksum: 3d614bbf
+- module-name: 'tensorflow.python.distribute.multi_worker_test_base' # checksum: 28f6ca1b
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'import unittest': 'test = None'
         'from tensorflow.python.framework import test_util': 'test_util = None'
         'from tensorflow.python.platform import test': 'test = None'
+        'pick_unused_port = test_util.pick_unused_port': ''
+      append_plain: |
+        ASSIGNED_PORTS: set()
+        lock = threading.Lock()
 
-- module-name: 'tensorflow.python.distribute.strategy_combinations' # checksum: 2911563d
+        def pick_unused_port():
+          import portpicker
+          global ASSIGNED_PORTS
+          with lock:
+            while True:
+              try:
+                port = portpicker.pick_unused_port()
+              except portpicker.NoFreePortFoundError as porterror:
+                raise unittest.SkipTest("") from porterror
+              if port > 10000 and port not in ASSIGNED_PORTS:
+                ASSIGNED_PORTS.add(port)
+                logging.info("Using local port %r", port)
+                return port
+      when: 'not use_unittest'
+
+- module-name: 'tensorflow.python.distribute.strategy_combinations' # checksum: 4c4b9841
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
@@ -5941,12 +6056,20 @@
         'from tensorflow.python.framework import test_util as framework_test_util': 'framework_test_util = None'
         'from tensorflow.python.distribute import multi_process_runner': 'multi_process_runner = None'
         'from tensorflow.python.distribute import multi_worker_test_base': 'multi_worker_test_base = None'
+        'import unittest': 'unittest = None'
 
 - module-name: 'tensorflow.python.framework' # checksum: 98664efa
   implicit-imports:
     - depends:
         - 'tensorflow.python.framework.fast_tensor_util'
       when: 'not win32'
+
+- module-name: 'tensorflow.python.framework.combinations' # checksum: dd5e29c2
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
+      when: 'not use_unittest'
 
 - module-name: 'tensorflow.python.framework.dtypes' # checksum: 25144a68
   implicit-imports:
@@ -6136,10 +6259,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'toga_winforms' # checksum: 286969f5
+- module-name: 'toga_winforms' # checksum: 5dda2bcf
   data-files:
     dirs:
       - 'resources'
+    include-metadata:
+      - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
@@ -6508,7 +6633,7 @@
     patterns:
       - '*.css'
 
-- module-name: 'transformers' # checksum: 81d84f69
+- module-name: 'transformers' # checksum: a442ab87
   data-files:
     include-metadata:
       - 'accelerate'
@@ -6529,6 +6654,12 @@
       - 'sentencepiece'
       - 'timm'
       - 'openai'
+
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
@@ -6551,11 +6682,39 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'transformers.models.deformable_detr.modling_deformable_detr' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.mra.modeling_mra' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'transformers.models.rwkv.modeling_rwkv' # checksum: f186b69e
   anti-bloat:
     - description: 'remove setuptools usage'
       change_function:
         'load_wkv_cuda_kernel': "'(lambda : None)'"
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.yoso.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
 - module-name: 'transformers.models.yoso.modeling_yoso' # checksum: 7f1a78b7
@@ -6570,13 +6729,6 @@
     - description: 'workaround manual import issue'
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
-
-- module-name: 'transformers.tools.agent_types' # checksum: 7d07a2d1
-  anti-bloat:
-    - description: 'remove IPython reference'
-      no-auto-follow:
-        'IPython': 'ignore'
-      when: 'not use_ipython'
 
 - module-name: 'transformers.trainer' # checksum: f71d17eb
   anti-bloat:
@@ -6798,6 +6950,13 @@
         - 'websockets.legacy.server'
         - 'uvicorn.logging'
 
+- module-name: 'uvicorn.importer' # checksum: ada37bba
+  anti-bloat:
+    - description: 'better error message for string imports'
+      replacements_plain:
+        'Could not import module "{module_str}"': 'Nuitka: Could not import module "{module_str}" use "--include-module={module_str}" option during compilation'
+      when: 'not deployment'
+
 - module-name: 'uvicorn.lifespan' # checksum: f7b81412
   implicit-imports:
     - depends:
@@ -6989,6 +7148,16 @@
     - package-dirs:
         - 'win32comext'
       when: 'win32'
+
+- module-name: 'win32com.server.register' # checksum: d2ea40f3
+  anti-bloat:
+    - replacements_plain:
+        'not pythoncom.frozen': 'False'
+      change_function:
+        'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
 
 - module-name: 'win32ui' # checksum: 2f1beca2
   implicit-imports:
