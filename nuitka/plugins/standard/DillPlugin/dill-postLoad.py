@@ -236,6 +236,10 @@ def save_compiled_function(pickler, obj):
             dill._dill.StockPickler.save_global(pickler, obj)
 
 
+if __compiled__.standalone:  # pylint: disable=undefined-variable
+    builtins.compiled_method = compiled_method
+    builtins.compiled_function = compiled_function
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

@@ -6,9 +6,13 @@
 
 from __future__ import print_function
 
+import setuptools
+
 # Demonstrate that this module, that anti-bloat fights really hard to
 # avoid, actually still works.
-import setuptools
+
+# nuitka-skip-unless-imports: setuptools
+
 
 print("OK.")
 
