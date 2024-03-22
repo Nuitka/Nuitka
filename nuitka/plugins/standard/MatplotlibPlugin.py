@@ -92,6 +92,18 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
 
         return info
 
+    def getImplicitImports(self, module):
+        # Make sure the used Qt namespace is included in compilation, mostly for
+        # accelerated mode, but also to prevent people from accidentally
+        # removing it.
+        if module.getFullName() != "matplotlib":
+            return
+
+        matplotlib_info = self._getMatplotlibInfo()
+
+        # Make sure, the default backend is included.
+        yield "matplotlib.backends.backend_%s" % matplotlib_info.backend.lower()
+
     def considerDataFiles(self, module):
         if module.getFullName() != "matplotlib":
             return
@@ -168,6 +180,10 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
         ):
             if hasActivePlugin("tk-inter"):
                 return True, "Needed for tkinter matplotlib backend"
+
+        if module_name == "matplotlib.backends.backend_qtagg":
+            if getActiveQtPluginBindingName() is not None:
+                return True, "Needed for qt matplotlib backend"
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.
