@@ -852,11 +852,22 @@
     patterns:
       - 'dask.yaml'
 
+- module-name: 'dask.dataframe' # checksum: b6b8eaf
+  implicit-imports:
+    - depends:
+        - 'pyarrow._*'
+
 - module-name: 'dask.dataframe._compat' # checksum: 78ecb250
   anti-bloat:
     - description: 'remove pandas.testing reference'
       replacements_plain:
         'import pandas.testing as tm': ''
+
+- module-name: 'dask.dataframe.utils' # checksum: 5af31dde
+  anti-bloat:
+    - description: 'remove pandas.testing reference'
+      replacements_plain:
+        'from dask.dataframe._compat import PANDAS_GE_150, tm': ''
 
 - module-name: 'dask.dot' # checksum: ddcb31f2
   anti-bloat:
@@ -1850,6 +1861,29 @@
     - from_filenames:
         prefixes:
           - 'libusb'
+
+- module-name: 'lightgbm' # checksum: 38422ad6
+  data-files:
+    dirs:
+      - 'locales'
+    patterns:
+      - '*.bin'
+      - 'VERSION.txt'
+  dlls:
+    - from_filenames:
+        relative_path: 'bin'
+        prefixes:
+          - 'lib_lightgbm'
+
+- module-name: 'lightgbm.dask' # checksum: f12519e1
+  anti-bloat:
+    - description: 'remove docstrings'
+      replacements_plain:
+        "    _before_kwargs, _kwargs, _after_kwargs = _base_doc.partition('**kwargs')  # type: ignore": ''
+        '        {_before_kwargs}client : dask.distributed.Client or None, optional (default=None)': ''
+        ? "        {' ':4}Dask client. If ``None``, ``distributed.default_client()`` will be used at runtime. The Dask client used by this class will not be saved if the model object is pickled."
+        : ''
+        '        {_kwargs}{_after_kwargs}': ''
 
 - module-name: 'lightgbm.libpath' # checksum: f4a8da46
   dlls:
@@ -6121,6 +6155,13 @@
     - depends:
         - 'keras.api._v2'
 
+- module-name: 'tensorrt_libs' # checksum: cb30dde5
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libnv'
+      dest_path: '.'
+
 - module-name: 'text_unidecode' # checksum: e24d920b
   data-files:
     patterns:
@@ -7268,6 +7309,11 @@
       replacements_plain:
         'import dask.array as dask_array': 'raise ImportError'
       when: 'not use_dask'
+
+- module-name: 'xarray.core.nputils' # checksum: 46ca5d07
+  data-files:
+    include-metadata:
+      - 'numpy'
 
 - module-name: 'xarray.core.parallel' # checksum: 37f8ca49
   anti-bloat:
