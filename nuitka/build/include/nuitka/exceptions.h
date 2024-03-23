@@ -884,12 +884,12 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(PyThre
     return _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(tstate, PyExc_AttributeError);
 }
 
-// Format a NameError exception for a variable name.
-extern void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+// Format a NameError exception for a variable name, chains with existing exception.
+extern void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name);
 
 #if PYTHON_VERSION < 0x340
-// Same as FORMAT_NAME_ERROR with different wording, sometimes used for older Python version.
-extern void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name);
+// Same as SET_CURRENT_EXCEPTION_NAME_ERROR with different wording, sometimes for Python2.
+extern void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name);
 #endif
 
 // Format a UnboundLocalError exception for a variable name.
@@ -903,7 +903,8 @@ extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **e
 #if PYTHON_VERSION >= 0x3c0
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyObject *element1);
 
-static PyObject *_MAKE_EXCEPTION_FROM_TYPE_ARG0(PyObject *type, PyObject *arg) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_EXCEPTION_FROM_TYPE_ARG0(PyThreadState *tstate, PyObject *type,
+                                                                    PyObject *arg) {
     PyBaseExceptionObject *self;
 
     PyTypeObject *type_object = (PyTypeObject *)type;
@@ -924,6 +925,14 @@ static PyObject *_MAKE_EXCEPTION_FROM_TYPE_ARG0(PyObject *type, PyObject *arg) {
     }
 
     return (PyObject *)self;
+}
+#else
+
+extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg);
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_EXCEPTION_FROM_TYPE_ARG0(PyThreadState *tstate, PyObject *type,
+                                                                    PyObject *arg) {
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, type, arg);
 }
 
 #endif
