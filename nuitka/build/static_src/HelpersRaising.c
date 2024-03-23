@@ -420,6 +420,37 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
     return true;
 }
 
+// Raise NameError for a given variable name.
+void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name, PyObject **exception_type,
+                                        PyObject **exception_value) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+    *exception_type = PyExc_NameError;
+    Py_INCREF(PyExc_NameError);
+
+#if PYTHON_VERSION >= 0x300
+    CHAIN_EXCEPTION(tstate, *exception_value);
+#endif
+}
+
+#if PYTHON_VERSION < 0x340
+void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
+                                               PyObject **exception_type, PyObject **exception_value) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+    *exception_type = PyExc_NameError;
+    Py_INCREF(PyExc_NameError);
+}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
