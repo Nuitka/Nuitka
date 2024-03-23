@@ -268,6 +268,7 @@ exit_code = subprocess.call(
     shell=False
 )"""
         % {"scons_command": scons_command, "env": dict(os.environ)},
+        encoding="utf8",
     )
 
     if isWin32Windows():
@@ -299,6 +300,7 @@ cd "${0%/*}"
             "scons_python": scons_command[0],
             "scons_debug_script_name": scons_debug_python_name,
         },
+        encoding="utf8",
     )
 
 
