@@ -419,10 +419,9 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     // Save the current exception, if any, we must to not corrupt it.
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state1;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
 #endif
 
     Nuitka_GC_UnTrack(nuitka_frame);
@@ -463,9 +462,11 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     releaseToFreeList(free_list_frames, nuitka_frame, MAX_FRAME_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    assert(tstate->curexc_type == save_exception_type);
-    assert(tstate->curexc_value == save_exception_value);
-    assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state2;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+
+    ASSERT_SAME_EXCEPTION_STATE(&saved_exception_state1, &saved_exception_state2);
 #endif
 }
 
@@ -1079,7 +1080,8 @@ void dumpFrameStack(void) {
     PyObject *saved_exception_type, *saved_exception_value;
     PyTracebackObject *saved_exception_tb;
 
-    FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     int total = 0;
 
@@ -1133,7 +1135,7 @@ void dumpFrameStack(void) {
 
     PRINT_STRING(">---------<\n");
 
-    RESTORE_ERROR_OCCURRED(tstate, saved_exception_type, saved_exception_value, saved_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {

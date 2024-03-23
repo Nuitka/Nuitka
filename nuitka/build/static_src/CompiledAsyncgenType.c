@@ -940,9 +940,8 @@ static void Nuitka_Asyncgen_tp_finalize(struct Nuitka_AsyncgenObject *asyncgen) 
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     bool close_result = _Nuitka_Asyncgen_close(tstate, asyncgen);
 
@@ -951,7 +950,7 @@ static void Nuitka_Asyncgen_tp_finalize(struct Nuitka_AsyncgenObject *asyncgen) 
     }
 
     /* Restore the saved exception if any. */
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 #define MAX_ASYNCGEN_FREE_LIST_COUNT 100
@@ -972,13 +971,12 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
     PyThreadState *tstate = PyThreadState_GET();
 
     // Save the current exception, if any, we must preserve it.
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
     PyObject *finalizer = asyncgen->m_finalizer;
     if (finalizer != NULL && asyncgen->m_closed == false) {
-        /* Save the current exception, if any. */
-        FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+        // Save the current exception, if any.
+        FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
         PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, finalizer, (PyObject *)asyncgen);
 
@@ -988,11 +986,11 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
             Py_DECREF(res);
         }
 
-        RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
         return;
     }
 
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     bool close_result = _Nuitka_Asyncgen_close(tstate, asyncgen);
 
@@ -1031,7 +1029,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgens, asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT);
 
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 static PyObject *Nuitka_Asyncgen_tp_repr(struct Nuitka_AsyncgenObject *asyncgen) {

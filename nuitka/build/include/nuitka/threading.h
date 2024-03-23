@@ -63,9 +63,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
         PyObject *async_exc = tstate->async_exc;
         tstate->async_exc = NULL;
 
-        Py_INCREF(async_exc);
-
-        RESTORE_ERROR_OCCURRED(tstate, async_exc, NULL, NULL);
+        SET_CURRENT_EXCEPTION_TYPE0(tstate, async_exc);
 
         return false;
     }
@@ -98,9 +96,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
             PyObject *async_exc = tstate->async_exc;
             tstate->async_exc = NULL;
 
-            Py_INCREF(async_exc);
-
-            RESTORE_ERROR_OCCURRED(tstate, async_exc, NULL, NULL);
+            SET_CURRENT_EXCEPTION_TYPE0(tstate, async_exc);
 
             return false;
         }
