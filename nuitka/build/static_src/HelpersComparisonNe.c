@@ -2118,20 +2118,24 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
         r = false;
     } else {
         int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind1 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
         }
+#endif
 
         int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind2 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
         }
+#endif
 
         if (kind1 != kind2) {
             r = false;
@@ -2781,20 +2785,24 @@ static bool COMPARE_NE_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
         r = false;
     } else {
         int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind1 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
         }
+#endif
 
         int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind2 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
         }
+#endif
 
         if (kind1 != kind2) {
             r = false;
