@@ -51,6 +51,16 @@
 #include "pydebug.h"
 #endif
 
+/* A way to not give warnings about things that are declared, but might not
+ * be used like in-line helper functions in headers or static per module
+ * variables from headers.
+ */
+#ifdef __GNUC__
+#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
+#else
+#define NUITKA_MAY_BE_UNUSED
+#endif
+
 // We are not following the 3.10 change to an inline function. At least
 // not immediately.
 #if PYTHON_VERSION >= 0x3a0
@@ -89,6 +99,25 @@
 
 extern _PyRuntimeState _PyRuntime;
 #else
+
+#if PYTHON_VERSION >= 0x3c0
+#include "internal/pycore_runtime.h"
+
+static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
+
+static inline static_builtin_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp, PyTypeObject *self) {
+    return &(interp->types.builtins[Nuitka_static_builtin_index_get(self)]);
+}
+
+NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_GetState(PyInterpreterState *interp,
+                                                                                      PyTypeObject *self) {
+    assert(self->tp_flags & _Py_TPFLAGS_STATIC_BUILTIN);
+    return Nuitka_static_builtin_state_get(interp, self);
+}
+
+#define _PyStaticType_GetState(interp, self) Nuitka_PyStaticType_GetState(interp, self)
+#endif
+
 #include "internal/pycore_pystate.h"
 #endif
 
@@ -177,16 +206,6 @@ extern _PyRuntimeState _PyRuntime;
  */
 
 #define NUITKA_NO_RETURN HEDLEY_NO_RETURN
-
-/* A way to not give warnings about things that are declared, but might not
- * be used like in-line helper functions in headers or static per module
- * variables from headers.
- */
-#ifdef __GNUC__
-#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
-#else
-#define NUITKA_MAY_BE_UNUSED
-#endif
 
 /* This is used to indicate code control flows we know cannot happen. */
 #ifndef __NUITKA_NO_ASSERT__
