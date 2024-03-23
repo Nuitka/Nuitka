@@ -56,7 +56,7 @@ if (%(condition)s) {
 template_error_format_name_error_exception = """\
 if (unlikely(%(condition)s)) {
 %(release_temps)s
-%(set_exception)s
+%(raise_name_error_helper)s(tstate, %(variable_name)s, &%(exception_type)s, &%(exception_value)s);
 
 %(line_number_code)s
 %(var_description_code)s
