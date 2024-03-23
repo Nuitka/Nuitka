@@ -1228,19 +1228,7 @@ PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyThreadState *tstate, PyObject *va
     PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)variable_name);
 
     if (unlikely(result == NULL)) {
-        PyObject *exception_type;
-        PyObject *exception_value;
-
-        // TODO: Do this in one go, once FORMAT_NAME_ERROR becomes unused in code generation.
-        FORMAT_NAME_ERROR(&exception_type, &exception_value, variable_name);
-
-#if PYTHON_VERSION >= 0x300
-        // TODO: FORMAT_NAME_ERROR for Python3 should already produce this normalized and chained.
-        NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, NULL);
-        CHAIN_EXCEPTION(tstate, exception_value);
-#endif
-
-        RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, NULL);
+        SET_CURRENT_EXCEPTION_NAME_ERROR(tstate, variable_name);
     }
 
     return result;
@@ -1251,12 +1239,7 @@ PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyThreadState *tstate, 
     PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)variable_name);
 
     if (unlikely(result == NULL)) {
-        PyObject *exception_type;
-        PyObject *exception_value;
-
-        FORMAT_GLOBAL_NAME_ERROR(&exception_type, &exception_value, variable_name);
-
-        RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, NULL);
+        SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(tstate, variable_name);
     }
 
     return result;

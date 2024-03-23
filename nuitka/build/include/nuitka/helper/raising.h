@@ -65,6 +65,14 @@ extern void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, PyObject **exc
 
 extern bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb);
 
+extern void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
+                                               PyObject **exception_type, PyObject **exception_value);
+
+#if PYTHON_VERSION < 0x340
+extern void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
+                                                      PyObject **exception_type, PyObject **exception_value);
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
