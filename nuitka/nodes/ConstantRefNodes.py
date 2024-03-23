@@ -694,6 +694,25 @@ class ExpressionConstantListRef(
             """Iteration over constant list lowered to tuple.""",
         )
 
+    def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        # We did not know this before
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return (
+            in_node,
+            "new_constant",
+            """Contains test over constant list lowered to tuple.""",
+        )
+
 
 class ExpressionConstantListEmptyRef(EmptyContainerMixin, ExpressionConstantListRef):
     kind = "EXPRESSION_CONSTANT_LIST_EMPTY_REF"
@@ -755,6 +774,25 @@ class ExpressionConstantSetRef(ExpressionSetShapeExactMixin, ExpressionConstantR
             iter_node,
             "new_constant",
             """Iteration over constant set lowered to tuple.""",
+        )
+
+    def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
+        result = makeConstantRefNode(
+            constant=frozenset(self.constant),
+            user_provided=self.user_provided,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
+        # We did not know this before
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return (
+            in_node,
+            "new_constant",
+            """Contains test over constant set lowered to frozenset.""",
         )
 
 
