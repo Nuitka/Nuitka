@@ -140,8 +140,10 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 #define _PyUnicode_KIND(op) (((PyASCIIObject *)(op))->state.kind)
 #define _PyUnicode_DATA_ANY(op) (((PyUnicodeObject *)(op))->data.any)
 
+#if PYTHON_VERSION < 0x3c0
 #undef PyUnicode_READY
 #define PyUnicode_READY(op) ((PyUnicode_IS_READY(op) ? 0 : _PyUnicode_Ready(op)))
+#endif
 
 #define _PyUnicode_SHARE_UTF8(op) (assert(!PyUnicode_IS_COMPACT_ASCII(op)), (_PyUnicode_UTF8(op) == PyUnicode_DATA(op)))
 #define _PyUnicode_SHARE_WSTR(op) ((_PyUnicode_WSTR(unicode) == PyUnicode_DATA(op)))
