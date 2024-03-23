@@ -687,10 +687,9 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     PyThreadState *tstate = PyThreadState_GET();
 
     // Save the current exception, if any, we must to not corrupt it.
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state1;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
 #endif
     assert(_PyObject_GC_IS_TRACKED(function));
     Nuitka_GC_UnTrack(function);
@@ -727,9 +726,11 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     releaseToFreeList(free_list_functions, function, MAX_FUNCTION_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    assert(tstate->curexc_type == save_exception_type);
-    assert(tstate->curexc_value == save_exception_value);
-    assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state2;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+
+    ASSERT_SAME_EXCEPTION_STATE(&saved_exception_state1, &saved_exception_state2);
 #endif
 }
 

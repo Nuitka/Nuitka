@@ -361,10 +361,9 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
     } else if (PyLong_Check(value)) {
         Py_hash_t result = DEEP_HASH_INIT(tstate, value);
 
-        PyObject *exception_type, *exception_value;
-        PyTracebackObject *exception_tb;
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
         // Use string to hash the long value, which relies on that to not
         // use the object address.
@@ -372,16 +371,15 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
         result ^= DEEP_HASH(tstate, str);
         Py_DECREF(str);
 
-        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
         return result;
     } else if (PyUnicode_Check(value)) {
         Py_hash_t result = DEEP_HASH(tstate, (PyObject *)Py_TYPE(value));
 
-        PyObject *exception_type, *exception_value;
-        PyTracebackObject *exception_tb;
+        struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-        FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+        FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
 #if PYTHON_VERSION >= 0x300
         char const *s = (char const *)PyUnicode_DATA(value);
@@ -397,7 +395,7 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         Py_DECREF(str);
 #endif
-        RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+        RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
         return result;
     }

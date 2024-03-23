@@ -32,14 +32,10 @@ static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value)
         return;
     }
 
-    Py_INCREF(PyExc_StopIteration);
-    RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, stop_value, NULL);
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, stop_value);
 #else
     if (likely(!PyTuple_Check(value) && !PyExceptionInstance_Check(value))) {
-        Py_INCREF(PyExc_StopIteration);
-        Py_INCREF(value);
-
-        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, value, NULL);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, value);
     } else {
         PyObject *stop_value = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyExc_StopIteration, value);
 
@@ -47,9 +43,7 @@ static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value)
             return;
         }
 
-        Py_INCREF(PyExc_StopIteration);
-
-        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, stop_value, NULL);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, stop_value);
     }
 #endif
 }
@@ -785,17 +779,15 @@ static PyFrameObject *_Nuitka_PyFrame_New_NoTrack(PyCodeObject *code) {
 static PyFrameObject *_Nuitka_PyFrame_MakeAndSetFrameObject(PyThreadState *tstate, _PyInterpreterFrame *frame) {
     assert(frame->frame_obj == NULL);
 
-    PyObject *error_type, *error_value;
-    PyTracebackObject *error_traceback;
-
-    FETCH_ERROR_OCCURRED(tstate, &error_type, &error_value, &error_traceback);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     PyFrameObject *f = _Nuitka_PyFrame_New_NoTrack(frame->f_code);
 
     // Out of memory should be rare.
     assert(f != NULL);
 
-    RESTORE_ERROR_OCCURRED(tstate, error_type, error_value, error_traceback);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     // Apparently there are situations where there is a race with what code creates the
     // frame, and this time it's not us.

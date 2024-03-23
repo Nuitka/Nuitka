@@ -1088,9 +1088,8 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
 
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     bool close_result = _Nuitka_Coroutine_close(tstate, coroutine);
 
@@ -1099,7 +1098,7 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
     }
 
     /* Restore the saved exception if any. */
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
@@ -1119,9 +1118,8 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     PyThreadState *tstate = PyThreadState_GET();
 
     // Save the current exception, if any, we must preserve it.
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
@@ -1139,7 +1137,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     // Allow for above code to resurrect the coroutine.
     Py_SET_REFCNT(coroutine, Py_REFCNT(coroutine) - 1);
     if (Py_REFCNT(coroutine) >= 1) {
-        RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
         return;
     }
 
@@ -1167,7 +1165,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coros, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
 
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 // TODO: Set "__doc__" automatically for method clones of compiled types from
