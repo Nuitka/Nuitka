@@ -7,7 +7,11 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_frozenset,
+    tshape_set,
+)
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.PythonOperators import (
     comparison_inversions,
@@ -279,9 +283,21 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         res_name = context.getIntResName()
 
+        right_shape = right.getTypeShape()
+
+        if right_shape in (tshape_set, tshape_frozenset):
+            c_api = "PySet_Contains"
+        else:
+            c_api = "PySequence_Contains"
+
         emit(
-            "%s = PySequence_Contains(%s, %s);"
-            % (res_name, right_name, left_name)  # sequence goes first in the API.
+            "%s = %s(%s, %s);"
+            % (
+                res_name,
+                c_api,
+                right_name,
+                left_name,
+            )  # sequence goes first in the API.
         )
 
         getErrorExitBoolCode(
