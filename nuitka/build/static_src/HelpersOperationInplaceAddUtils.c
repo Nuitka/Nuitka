@@ -96,7 +96,7 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
 
 NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyThreadState *tstate, PyObject **operand1,
                                                          PyObject *operand2) {
-    Py_ssize_t operand2_size = PyUnicode_GET_SIZE(operand2);
+    Py_ssize_t operand2_size = PyUnicode_GET_LENGTH(operand2);
     if (operand2_size == 0) {
         return true;
     }
