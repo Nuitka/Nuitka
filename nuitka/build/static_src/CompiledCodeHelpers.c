@@ -710,10 +710,9 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 #else
     NUITKA_ASSIGN_BUILTIN(print);
 
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     PyObject *result;
 
@@ -732,7 +731,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return result != NULL;
 #endif
@@ -804,10 +803,9 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 #else
     NUITKA_ASSIGN_BUILTIN(print);
 
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY();
@@ -828,7 +826,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return result != NULL;
 #endif
@@ -868,12 +866,11 @@ bool PRINT_FORMAT(char const *fmt, ...) {
 }
 
 bool PRINT_REPR(PyObject *object) {
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
-
     PyThreadState *tstate = PyThreadState_GET();
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     bool res;
 
@@ -890,7 +887,7 @@ bool PRINT_REPR(PyObject *object) {
         res = PRINT_NULL();
     }
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return res;
 }

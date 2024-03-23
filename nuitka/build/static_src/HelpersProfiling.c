@@ -63,9 +63,8 @@ void stopProfiling(void) {
     // Save the current exception, if any, we must preserve it.
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(vmprof_module, "disable"));
 
@@ -84,7 +83,7 @@ void stopProfiling(void) {
 
     fclose(tempfile_times);
 
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 #endif

@@ -91,13 +91,12 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(char const *module_name,
 NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyThreadState *tstate, PyObject *module_name) {
     CHECK_OBJECT(module_name);
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     bool result = DICT_REMOVE_ITEM(PyImport_GetModuleDict(), module_name);
 
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     return result;
 }
