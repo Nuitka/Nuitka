@@ -70,6 +70,14 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 #define Nuitka_LongGetDigitSize(value) (((PyLongObject *)value)->long_value.lv_tag >> NON_SIZE_BITS)
 #define Nuitka_LongSetSignNegative(value)                                                                              \
     ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag | SIGN_NEGATIVE;
+#define Nuitka_LongSetSignPositive(value)                                                                              \
+    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag & ~(SIGN_NEGATIVE);
+#define Nuitka_LongSetSign(value, positive)                                                                            \
+    if (positive) {                                                                                                    \
+        Nuitka_LongSetSignPositive(value);                                                                             \
+    } else {                                                                                                           \
+        Nuitka_LongSetSignNegative(value);                                                                             \
+    }
 #define Nuitka_LongFlipSign(value) _PyLong_FlipSign(value)
 #endif
 
