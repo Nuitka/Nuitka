@@ -1071,6 +1071,7 @@ make sure that is intended."""
         and not shallMakeModule()
         and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
+        and not shallUsePythonDebug()
     ):
         Tracing.options_logger.info(
             """Detected static libpython to exist, consider '--static-libpython=yes' for better performance, \
