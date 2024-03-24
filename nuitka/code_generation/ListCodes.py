@@ -414,25 +414,19 @@ def generateListOperationRemoveCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    with withObjectCodeTemporaryAssignment(
-        to_name, "list_remove_result", expression, emit, context
-    ) as result_name:
-        # TODO: Have a dedicated list helper instead, this could be more efficient,
-        # this call is also very bad.
-        emit("assert(PyList_CheckExact(%s));" % list_arg_name)
-        emit(
-            "%s = PyObject_CallMethodObjArgs(%s, const_str_plain_remove, %s, NULL);"
-            % (result_name, list_arg_name, value_arg_name)
-        )
+    res_name = context.getBoolResName()
 
-        getErrorExitCode(
-            check_name=result_name,
-            release_names=(list_arg_name, value_arg_name),
-            emit=emit,
-            context=context,
-        )
+    emit("%s = LIST_REMOVE(%s, %s);" % (res_name, list_arg_name, value_arg_name))
 
-        context.addCleanupTempName(result_name)
+    getErrorExitBoolCode(
+        condition="%s == false" % res_name,
+        release_names=(list_arg_name, value_arg_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
+        emit=emit,
+        context=context,
+    )
+
+    assignConstantNoneResult(to_name, emit, context)
 
 
 def generateListOperationSort1Code(to_name, expression, emit, context):

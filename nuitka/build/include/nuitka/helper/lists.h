@@ -27,9 +27,12 @@ extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
 extern bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *list, PyObject *other);
 extern bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *other);
 
-// Like PyList_Append, but we get to specify the transfer of refcount ownership.
+// Like "PyList_Append", but we get to specify the transfer of refcount ownership.
 extern bool LIST_APPEND1(PyObject *target, PyObject *item);
 extern bool LIST_APPEND0(PyObject *target, PyObject *item);
+
+// Like "list.remove"
+bool LIST_REMOVE(PyObject *target, PyObject *item);
 
 // Like list.clear
 extern void LIST_CLEAR(PyObject *target);
