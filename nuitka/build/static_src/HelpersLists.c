@@ -372,6 +372,46 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
 #endif
 }
 
+bool LIST_REMOVE(PyObject *target, PyObject *item) {
+    CHECK_OBJECT(target);
+    assert(PyList_CheckExact(target));
+
+    CHECK_OBJECT(item);
+
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    int res = PyList_Remove(target, item);
+    return res == 0;
+#else
+    PyListObject *list = (PyListObject *)target;
+
+    Py_ssize_t cur_size = PyList_GET_SIZE(list);
+
+    for (Py_ssize_t i = 0; i < cur_size; i++) {
+        PyObject *element = list->ob_item[i];
+
+        Py_INCREF(element);
+        nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
+        Py_DECREF(element);
+
+        if (cmp == NUITKA_BOOL_TRUE) {
+            Py_DECREF(element);
+            Py_SET_SIZE(list, cur_size - 1);
+
+            memmove(list->ob_item + i, list->ob_item + i + 1, sizeof(PyObject *) * (cur_size - i - 1));
+
+            return true;
+        } else if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
+            return false;
+        }
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ValueError, "list.remove(x): x not in list");
+    return false;
+#endif
+}
+
 void LIST_CLEAR(PyObject *target) {
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
