@@ -14,30 +14,31 @@
 
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
     /* Inline PyLong_AsSsize_t here for our special purpose. */
-    Py_ssize_t i = Py_SIZE(value);
+    assert(PyLong_Check(value));
 
-    if (i == 0) {
+    Py_ssize_t digits_count = Nuitka_LongGetDigitSize(value);
+
+    if (digits_count == 0) {
         return 0;
     }
 
+    bool is_negative = Nuitka_LongIsNegative(value);
+
     PyLongObject *long_value = (PyLongObject *)value;
 
-    if (i == 1) {
-        return Nuitka_LongGetDigitPointer(long_value)[0];
+    digit *digits = Nuitka_LongGetDigitPointer(long_value);
+
+    if ((digits_count == 1) && (is_negative == false)) {
+        return digits[0];
     }
 
     Py_ssize_t result = 0;
 
-    bool is_negative = i < 0;
-    if (is_negative) {
-        i = -i;
-    }
-
-    digit *digits = Nuitka_LongGetDigitPointer(long_value);
-
-    while (--i >= 0) {
+    while (--digits_count >= 0) {
         Py_ssize_t prev = result;
-        result = (result << PyLong_SHIFT) | digits[i];
+        result = (result << PyLong_SHIFT) | digits[digits_count];
+
+        // Overflow detection.
         if ((result >> PyLong_SHIFT) != prev) {
             return (Py_ssize_t)-1;
         }
@@ -45,9 +46,9 @@ static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
 
     if (is_negative) {
         return 0;
-    } else {
-        return result;
     }
+
+    return result;
 }
 
 static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
