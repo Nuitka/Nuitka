@@ -662,8 +662,19 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "azure",  # Not performance relevant.
     )
 
+    unworthy_modulename_patterns = (
+        "tensorflow.*test",  # Not performance relevant.
+        "tensorflow.**.test_util",  # Not performance relevant.
+    )
+
     def decideCompilation(self, module_name):
         if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
+            return "bytecode"
+
+        is_match, _reason = module_name.matchesToShellPatterns(
+            self.unworthy_modulename_patterns
+        )
+        if is_match:
             return "bytecode"
 
     def onModuleUsageLookAhead(
