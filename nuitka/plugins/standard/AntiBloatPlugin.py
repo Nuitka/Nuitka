@@ -138,6 +138,14 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_unittest_mode,
                 "unittest",
             )
+            self.handled_modules["keras.src.testing_infra"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
+            self.handled_modules["tf_keras.src.testing_infra"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
         else:
             self.control_tags["use_unittest"] = True
 
