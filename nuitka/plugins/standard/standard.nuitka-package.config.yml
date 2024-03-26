@@ -904,6 +904,14 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'deepspeed' # checksum: 5af29274
+  anti-bloat:
+    - description: 'remove setuptools usage via triton'
+      no-auto-follow:
+        'triton': 'ignore'
+        'torch.utils.cpp_extension': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'delphifmx' # checksum: f818d46e
   dlls:
     - from_filenames:
