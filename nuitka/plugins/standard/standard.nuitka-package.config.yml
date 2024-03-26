@@ -1969,7 +1969,7 @@
     - depends:
         - 'markdown.extensions.*'
 
-- module-name: 'matplotlib' # checksum: faefaad3
+- module-name: 'matplotlib' # checksum: 977975bb
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements:
@@ -1979,11 +1979,33 @@
         '_init_tests': "'None'"
         'test': "'None'"
         '_get_version': "'(lambda : _version.version)'"
+    - description: 'avoid PySide6 unless used'
+      no-auto-follow:
+        'PySide6': 'ignore'
+      when: 'not use_pyside6'
+    - description: 'avoid PySide2 unless used'
+      no-auto-follow:
+        'PySide2': 'ignore'
+      when: 'not use_pyside2'
+    - description: 'avoid PyQt5 unless used'
+      no-auto-follow:
+        'PyQt5': 'ignore'
+      when: 'not use_pyqt5'
+    - description: 'avoid PyQt6 unless used'
+      no-auto-follow:
+        'PyQt6': 'ignore'
+      when: 'not use_pyqt6'
+
   implicit-imports:
     - depends:
         - 'matplotlib.backend_managers'
         - 'matplotlib.backend_bases'
         - 'mpl_toolkits'
+  options:
+    checks:
+      - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
+        support_info: 'plugin'
+        when: 'not macos and not (use_noqt or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
   anti-bloat:
