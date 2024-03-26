@@ -5642,13 +5642,16 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 5ed34611
+- module-name: 'tensorflow' # checksum: 13d6e6a5
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
         prefixes:
           - '_cpu_feature_guard'
   anti-bloat:
+    - description: 'allow unittest inside of tensorflow, too dependent to remove'
+      bloat-mode-overrides:
+        'unittest': 'allow'
     - description: 'remove useless distutils and test framework usage'
       replacements_plain:
         'import distutils as _distutils': '_distutils = None'
@@ -5663,14 +5666,12 @@
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
+        sys.modules["tensorflow.experimental"] = experimental
         sys.modules["tensorflow.compat.v1"] = compat.v1
         sys.modules["tensorflow.compat.v2"] = compat.v2
         sys.modules["tensorflow.compat.v1.logging"] = compat.v1.logging
         sys.modules["tensorflow.compat.v2.experimental"] = compat.v2.experimental
         sys.modules["tensorflow.keras"] = keras
-        sys.modules["tensorflow.keras.layers"] = keras.layers
-        sys.modules["tensorflow.keras.activations"] = keras.activations
-        sys.modules["tensorflow.keras.models"] = keras.models
       when: 'standalone'
     - description: 'remove kubernetes as default dependency'
       no-auto-follow:
@@ -5682,6 +5683,12 @@
         - 'tensorboard'
         - 'tensorflow_estimator'
         - 'keras.api._v2.keras'
+
+  options:
+    checks:
+      - description: "'tensorflow' is not fully supported before version 2.16"
+        support_info: 'warning'
+        when: 'version("tensorflow") < (2,16)'
 
 - module-name: 'tensorflow._api.v1.compat.v1' # checksum: 3e84bd8b
   anti-bloat:
@@ -5697,14 +5704,12 @@
         'from . import test': 'test = None'
         'from tensorflow._api.v1.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.__internal__' # checksum: 4958c951
+- module-name: 'tensorflow._api.v2.__internal__' # checksum: 92facfb8
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         'from . import test': 'test = None'
-        'from . import distribute': 'distribute = None'
         'from tensorflow._api.v2.__internal__ import test': 'test = None'
-        'from tensorflow._api.v2.__internal__ import distribute': 'distribute = None'
 
 - module-name: 'tensorflow._api.v2.compat.v1' # checksum: 53024ed1
   anti-bloat:
@@ -5732,31 +5737,12 @@
         'from . import test': 'test = None'
         'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 6992c716
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__' # checksum: 970797b3
   anti-bloat:
     - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        # TODO: Really need to make the "un-usable" a thing
         'from . import test': 'test = None'
         'from tensorflow._api.v2.compat.v2.__internal__ import test': 'test = None'
-        'from . import distribute': 'distribute = None'
-
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute' # checksum: a5d90e6f
-  anti-bloat:
-    - description: 'remove useless tensorflow testing usage'
-      replacements_plain:
-        'from . import multi_process_runner': 'multi_process_runner = None'
-        'from tensorflow._api.v2.compat.v2.__internal__.distribute import combinations': 'combinations = None'
-        'from tensorflow._api.v2.compat.v2.__internal__.distribute import interim': 'interim = None'
-        'from tensorflow._api.v2.compat.v2.__internal__.distribute import multi_process_runner': 'multi_process_runner=None'
-      when: 'not use_unittest'
-
-- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute.multi_process_runner' # checksum: b50f5527
-  anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'from tensorflow.python.distribute.multi_worker_test_base import create_cluster_spec': 'pass'
-      when: 'not use_unittest'
 
 - module-name: 'tensorflow._api.v2.compat.v2.compat.v1' # checksum: 31fdcb26
   anti-bloat:
@@ -5806,15 +5792,6 @@
     - depends:
         - 'tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops'
       when: 'not win32'
-
-- module-name: 'tensorflow.contrib.eager.python.tfe' # checksum: 9ea31d00
-  anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'from tensorflow.python.framework.test_util import run_in_graph_and_eager_modes as run_test_in_graph_and_eager_modes': 'run_test_in_graph_and_eager_modes = None'
-        ? 'from tensorflow.python.framework.test_util import run_all_in_graph_and_eager_modes as run_all_tests_in_graph_and_eager_modes'
-        : 'run_all_tests_in_graph_and_eager_modes = None'
-      when: 'not use_unittest'
 
 - module-name: 'tensorflow.contrib.factorization.python.ops.factorization_ops' # checksum: 4ea2083
   dlls:
@@ -6029,14 +6006,6 @@
       replacements_plain:
         'ag_logging.warning(': 'if False: ag_logging.warning('
 
-- module-name: 'tensorflow.python.autograph.impl.conversion' # checksum: fe4e1edb
-  anti-bloat:
-    - description: 'remove unittest usage'
-      replacements_plain:
-        'import unittest': ''
-        'issubclass(owner_class, unittest.TestCase)': 'False'
-      when: 'not use_unittest'
-
 - module-name: 'tensorflow.python.compiler.tensorrt.trt_convert' # checksum: 9471824c
   implicit-imports:
     - depends:
@@ -6057,89 +6026,11 @@
     - depends:
         - 'tensorflow.python.data.ops.shuffle_op'
 
-- module-name: 'tensorflow.python.distribute.combinations' # checksum: 6cb7adcb
-  anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'from tensorflow.python.framework import test_combinations as combinations_lib': 'combinations_lib = None'
-        'from tensorflow.python.framework import test_util': 'test_util = None'
-        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
-        'import unittest': ''
-        'from tensorflow.python.distribute import multi_worker_test_base': ''
-      replacements:
-        'unittest.TestLoader.testMethodPrefix': 'unittest.TestLoader.testMethodPrefix'
-      change_function:
-        '_test_runner': 'un-callable'
-        '_multi_worker_test': 'un-callable'
-      when: 'not use_unittest'
-
-- module-name: 'tensorflow.python.distribute.multi_process_lib' # checksum: b7c69e56
-  anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'import unittest': 'unittest = None'
-        'from tensorflow.python.eager import test': 'test = None'
-      when: 'not use_unittest'
-
-- module-name: 'tensorflow.python.distribute.multi_process_runner' # checksum: fc293e17
-  anti-bloat:
-    - description: 'remove useless tensorflow testing usage'
-      replacements_plain:
-        'from . import test': 'test = None'
-        'from tensorflow.python.framework import test_util': 'test_util = None'
-        'test_util.is_tsan_enabled()': 'False'
-        'import unittest': 'unittest = None'
-      when: 'not use_unittest'
-
-- module-name: 'tensorflow.python.distribute.multi_worker_test_base' # checksum: 28f6ca1b
-  anti-bloat:
-    - description: 'remove useless tensorflow testing usage'
-      replacements_plain:
-        'import unittest': 'test = None'
-        'from tensorflow.python.framework import test_util': 'test_util = None'
-        'from tensorflow.python.platform import test': 'test = None'
-        'pick_unused_port = test_util.pick_unused_port': ''
-      append_plain: |
-        ASSIGNED_PORTS: set()
-        lock = threading.Lock()
-
-        def pick_unused_port():
-          import portpicker
-          global ASSIGNED_PORTS
-          with lock:
-            while True:
-              try:
-                port = portpicker.pick_unused_port()
-              except portpicker.NoFreePortFoundError as porterror:
-                raise unittest.SkipTest("") from porterror
-              if port > 10000 and port not in ASSIGNED_PORTS:
-                ASSIGNED_PORTS.add(port)
-                logging.info("Using local port %r", port)
-                return port
-      when: 'not use_unittest'
-
-- module-name: 'tensorflow.python.distribute.strategy_combinations' # checksum: 4c4b9841
-  anti-bloat:
-    - description: 'remove useless tensorflow testing usage'
-      replacements_plain:
-        'from tensorflow.python.distribute import test_util': 'test_util = None'
-        'from tensorflow.python.framework import test_util as framework_test_util': 'framework_test_util = None'
-        'from tensorflow.python.distribute import multi_process_runner': 'multi_process_runner = None'
-        'from tensorflow.python.distribute import multi_worker_test_base': 'multi_worker_test_base = None'
-        'import unittest': 'unittest = None'
-
 - module-name: 'tensorflow.python.framework' # checksum: 98664efa
   implicit-imports:
     - depends:
         - 'tensorflow.python.framework.fast_tensor_util'
       when: 'not win32'
-
-- module-name: 'tensorflow.python.framework.combinations' # checksum: dd5e29c2
-  anti-bloat:
-    - description: 'remove unittest reference'
-      replacements_plain:
-        'from tensorflow.python.framework import test_combinations': 'test_combinations = None'
-      when: 'not use_unittest'
 
 - module-name: 'tensorflow.python.framework.dtypes' # checksum: 25144a68
   implicit-imports:
@@ -6167,6 +6058,13 @@
         'class_attr_value.__doc__ = _update_docstring': "'class_attr_value___doc__ = _update_docstring'"
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
+
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: d4c83239
+  anti-bloat:
+    - description: 'reduce keras usage'
+      replacements:
+        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
+        'keras.__version__': 'repr(version_str("keras"))'
 
 - module-name: 'tensorflow_core' # checksum: f377875c
   anti-bloat:
@@ -6212,6 +6110,13 @@
   implicit-imports:
     - depends:
         - '._*'
+
+- module-name: 'tf_keras.src' # checksum: 9760fd72
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from keras.src.testing_infra import test_utils': 'test_utils = None'
+      when: 'not use_unittest'
 
 - module-name: 'tf_keras.src.utils.vis_utils' # checksum: 7d07a2d1
   anti-bloat:
@@ -6759,7 +6664,7 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
-- module-name: 'transformers.models.deformable_detr.modling_deformable_detr' # checksum: baab8e6b
+- module-name: 'transformers.models.deformable_detr.modeling_deformable_detr' # checksum: baab8e6b
   anti-bloat:
     - description: 'remove setuptools usage'
       change_function:
