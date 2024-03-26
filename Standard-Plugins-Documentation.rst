@@ -95,7 +95,7 @@ The following optional standard plugins are available in Nuitka:
    anti-bloat            Patch stupid imports out of widely used library modules source codes.
    data-files
    data-hiding           Commercial: Hide program constant Python data from offline inspection of created binaries.
-   datafile-inclusion    Commercial: Load file trusted file contents at compile time.
+   datafile-inclusion-ng Commercial: Load file trusted file contents at compile time.
    dill-compat
    enum-compat
    ethereum              Commercial: Required for ethereum packages in standalone mode
@@ -153,16 +153,6 @@ gevent
 
 -  Options: none.
 
-numpy
-=====
-
--  Required for *numpy, scipy, pandas, matplotlib, xarray, sklearn,
-   skimage*, and most other scientific packages.
-
--  Options: Can disable some of the packages handled, e.g.
-   ``--enable-plugin=numpy --noinclude-scipy --noinclude-matplotlib``
-   which disables the handling to make these actually usable.
-
 pmw-freezer
 ===========
 
@@ -179,8 +169,8 @@ pylint-warnings
 
 -  Options: none
 
-pyside2, pyside6, pyqt5
-=======================
+pyside2, pyside6, pyqt5, pyqt6
+==============================
 
 -  Required by the *PySide* and *PyQt* and GUI packages, only one can be
    activated at a time.
@@ -196,15 +186,6 @@ pyside2, pyside6, pyqt5
 -  These plugins also inhibit other GUI frameworks from being included
    in standalone distributions.
 
-tensorflow
-==========
-
--  Required by the *tensorflow* package. TensorFlow is an open source
-   machine learning framework for everyone. Note that this package
-   requires *numpy* and potentially many other packages.
-
--  Options: none.
-
 tk-inter
 ========
 
@@ -213,12 +194,3 @@ tk-inter
 -  Options: Can override the automatic detection of Tcl and Tk
    directories with ``--tk-library-dir`` and ``--tcl-library-dir`` but
    that should not be needed.
-
-torch
-=====
-
--  Required by the *torch* and *torchvision* packages. Tensors and
-   Dynamic neural networks in Python with strong GPU acceleration.
-   *Torchvision* requires *numpy*.
-
--  Options: none.
