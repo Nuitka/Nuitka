@@ -341,6 +341,7 @@ from .SubscriptCodes import (
     generateSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
+from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
 from .VariableCodes import (
@@ -943,6 +944,9 @@ addExpressionDispatchDict(
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
+        # PyPI module "tensorflow" specific stuff
+        "EXPRESSION_TENSORFLOW_FUNCTION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_TENSORFLOW_FUNCTION_CALL": generateTensorflowFunctionCallCode,
     }
 )
 

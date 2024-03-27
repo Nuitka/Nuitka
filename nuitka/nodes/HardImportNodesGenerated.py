@@ -2,31 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Hard import nodes
 
 WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args buffering capitalize casefold center chars
-spell-checker: ignore clear closefd copy count decode default delete dist
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
 spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
-spell-checker: ignore expandtabs extend file fillchar find format format_map formatmap
-spell-checker: ignore fromkeys get group handle has_key haskey index insert isalnum
-spell-checker: ignore isalpha isascii isdecimal isdigit isidentifier islower isnumeric
-spell-checker: ignore isprintable isspace istitle isupper item items iterable iteritems
-spell-checker: ignore iterkeys itervalues join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
 spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare remove replace resource resource_name reverse rfind rindex
-spell-checker: ignore rjust rpartition rsplit rstrip s sep setdefault sort split
-spell-checker: ignore splitlines start startswith stop strip sub suffix swapcase table
-spell-checker: ignore tabsize title translate update upper use_errno use_last_error value
-spell-checker: ignore values viewitems viewkeys viewvalues width winmode zfill
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 import os
 from abc import abstractmethod
@@ -69,6 +71,7 @@ from nuitka.specs.HardImportSpecs import (
     pkg_resources_resource_string_spec,
     pkgutil_get_data_spec,
     sys_exit_spec,
+    tensorflow_function_spec,
 )
 
 from .ChildrenHavingMixins import (
@@ -83,6 +86,7 @@ from .ChildrenHavingMixins import (
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
     ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
+    ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
@@ -175,6 +179,7 @@ class ExpressionBuiltinsOpenCallBase(
         opener,
         source_ref,
     ):
+
         ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin.__init__(
             self,
             file=file,
@@ -302,6 +307,7 @@ class ExpressionCtypesCdllSince38CallBase(
     def __init__(
         self, name, mode, handle, use_errno, use_last_error, winmode, source_ref
     ):
+
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin.__init__(
             self,
             name=name,
@@ -369,6 +375,7 @@ class ExpressionCtypesCdllBefore38CallBase(
     spec = ctypes_cdll_before_38_spec
 
     def __init__(self, name, mode, handle, use_errno, use_last_error, source_ref):
+
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin.__init__(
             self,
             name=name,
@@ -468,6 +475,7 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
     spec = importlib_metadata_backport_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -561,6 +569,7 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
     spec = importlib_metadata_backport_entry_points_spec
 
     def __init__(self, params, source_ref):
+
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -654,6 +663,7 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
     spec = importlib_metadata_backport_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -747,6 +757,7 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
     spec = importlib_metadata_backport_version_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -840,6 +851,7 @@ class ExpressionImportlibMetadataDistributionCallBase(
     spec = importlib_metadata_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -952,6 +964,7 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     spec = importlib_metadata_entry_points_since_310_spec
 
     def __init__(self, params, source_ref):
+
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -1001,6 +1014,7 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     spec = importlib_metadata_entry_points_before_310_spec
 
     def __init__(self, source_ref):
+
         ExpressionBase.__init__(self, source_ref)
 
         self.attempted = False
@@ -1086,6 +1100,7 @@ class ExpressionImportlibMetadataMetadataCallBase(
     spec = importlib_metadata_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1178,6 +1193,7 @@ class ExpressionImportlibMetadataVersionCallBase(
     spec = importlib_metadata_version_spec
 
     def __init__(self, distribution_name, source_ref):
+
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1270,6 +1286,7 @@ class ExpressionImportlibResourcesBackportFilesCallBase(
     spec = importlib_resources_backport_files_spec
 
     def __init__(self, package, source_ref):
+
         ChildHavingPackageMixin.__init__(
             self,
             package=package,
@@ -1366,6 +1383,7 @@ class ExpressionImportlibResourcesBackportReadBinaryCallBase(
     spec = importlib_resources_backport_read_binary_spec
 
     def __init__(self, package, resource, source_ref):
+
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,
@@ -1470,6 +1488,7 @@ class ExpressionImportlibResourcesBackportReadTextCallBase(
     spec = importlib_resources_backport_read_text_spec
 
     def __init__(self, package, resource, encoding, errors, source_ref):
+
         ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
             self,
             package=package,
@@ -1569,6 +1588,7 @@ class ExpressionImportlibResourcesFilesCallBase(
     spec = importlib_resources_files_spec
 
     def __init__(self, package, source_ref):
+
         ChildHavingPackageMixin.__init__(
             self,
             package=package,
@@ -1664,6 +1684,7 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
     spec = importlib_resources_read_binary_spec
 
     def __init__(self, package, resource, source_ref):
+
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,
@@ -1767,6 +1788,7 @@ class ExpressionImportlibResourcesReadTextCallBase(
     spec = importlib_resources_read_text_spec
 
     def __init__(self, package, resource, encoding, errors, source_ref):
+
         ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
             self,
             package=package,
@@ -1859,6 +1881,7 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
     spec = os_listdir_spec
 
     def __init__(self, path, source_ref):
+
         ChildHavingPathOptionalMixin.__init__(
             self,
             path=path,
@@ -1940,6 +1963,7 @@ class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_abspath_spec
 
     def __init__(self, path, source_ref):
+
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2021,6 +2045,7 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
     spec = os_path_basename_spec
 
     def __init__(self, p, source_ref):
+
         ChildHavingPMixin.__init__(
             self,
             p=p,
@@ -2102,6 +2127,7 @@ class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
     spec = os_path_dirname_spec
 
     def __init__(self, p, source_ref):
+
         ChildHavingPMixin.__init__(
             self,
             p=p,
@@ -2183,6 +2209,7 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_exists_spec
 
     def __init__(self, path, source_ref):
+
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2266,6 +2293,7 @@ class ExpressionOsPathIsabsCallBase(
     spec = os_path_isabs_spec
 
     def __init__(self, s, source_ref):
+
         ChildHavingSMixin.__init__(
             self,
             s=s,
@@ -2347,6 +2375,7 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isdir_spec
 
     def __init__(self, path, source_ref):
+
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2428,6 +2457,7 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isfile_spec
 
     def __init__(self, path, source_ref):
+
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2507,6 +2537,7 @@ class ExpressionOsUnameCallBase(ExpressionBase):
     spec = os_uname_spec
 
     def __init__(self, source_ref):
+
         ExpressionBase.__init__(self, source_ref)
 
         self.attempted = False
@@ -2592,6 +2623,7 @@ class ExpressionPkgResourcesGetDistributionCallBase(
     spec = pkg_resources_get_distribution_spec
 
     def __init__(self, dist, source_ref):
+
         ChildHavingDistMixin.__init__(
             self,
             dist=dist,
@@ -2688,6 +2720,7 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
     spec = pkg_resources_iter_entry_points_spec
 
     def __init__(self, group, name, source_ref):
+
         ChildrenHavingGroupNameOptionalMixin.__init__(
             self,
             group=group,
@@ -2781,6 +2814,7 @@ class ExpressionPkgResourcesRequireCallBase(
     spec = pkg_resources_require_spec
 
     def __init__(self, requirements, source_ref):
+
         ChildHavingRequirementsTupleMixin.__init__(
             self,
             requirements=requirements,
@@ -2874,6 +2908,7 @@ class ExpressionPkgResourcesResourceStreamCallBase(
     spec = pkg_resources_resource_stream_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
+
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -2974,6 +3009,7 @@ class ExpressionPkgResourcesResourceStringCallBase(
     spec = pkg_resources_resource_string_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
+
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -3068,6 +3104,7 @@ class ExpressionPkgutilGetDataCallBase(
     spec = pkgutil_get_data_spec
 
     def __init__(self, package, resource, source_ref):
+
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,
@@ -3153,6 +3190,7 @@ class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase
     spec = sys_exit_spec
 
     def __init__(self, exit_code, source_ref):
+
         ChildHavingExitCodeOptionalMixin.__init__(
             self,
             exit_code=exit_code,
@@ -3166,6 +3204,140 @@ class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase
     def computeExpression(self, trace_collection):
         if self.attempted or not sys_exit_spec.isCompileTimeComputable(
             (self.subnode_exit_code,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionTensorflowFunctionRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference tensorflow.function"""
+
+    kind = "EXPRESSION_TENSORFLOW_FUNCTION_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="tensorflow",
+            import_name="function",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .TensorflowNodes import ExpressionTensorflowFunctionCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionTensorflowFunctionCall,
+            builtin_spec=tensorflow_function_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'tensorflow.function' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionTensorflowFunctionRef] = tensorflow_function_spec
+
+
+class ExpressionTensorflowFunctionCallBase(
+    ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for TensorflowFunctionCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "func|optional",
+        "input_signature|optional",
+        "autograph|optional",
+        "jit_compile|optional",
+        "reduce_retracing|optional",
+        "experimental_implements|optional",
+        "experimental_autograph_options|optional",
+        "experimental_attributes|optional",
+        "experimental_relax_shapes|optional",
+        "experimental_compile|optional",
+        "experimental_follow_type_hints|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = tensorflow_function_spec
+
+    def __init__(
+        self,
+        func,
+        input_signature,
+        autograph,
+        jit_compile,
+        reduce_retracing,
+        experimental_implements,
+        experimental_autograph_options,
+        experimental_attributes,
+        experimental_relax_shapes,
+        experimental_compile,
+        experimental_follow_type_hints,
+        source_ref,
+    ):
+
+        ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin.__init__(
+            self,
+            func=func,
+            input_signature=input_signature,
+            autograph=autograph,
+            jit_compile=jit_compile,
+            reduce_retracing=reduce_retracing,
+            experimental_implements=experimental_implements,
+            experimental_autograph_options=experimental_autograph_options,
+            experimental_attributes=experimental_attributes,
+            experimental_relax_shapes=experimental_relax_shapes,
+            experimental_compile=experimental_compile,
+            experimental_follow_type_hints=experimental_follow_type_hints,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not tensorflow_function_spec.isCompileTimeComputable(
+            (
+                self.subnode_func,
+                self.subnode_input_signature,
+                self.subnode_autograph,
+                self.subnode_jit_compile,
+                self.subnode_reduce_retracing,
+                self.subnode_experimental_implements,
+                self.subnode_experimental_autograph_options,
+                self.subnode_experimental_attributes,
+                self.subnode_experimental_relax_shapes,
+                self.subnode_experimental_compile,
+                self.subnode_experimental_follow_type_hints,
+            )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 

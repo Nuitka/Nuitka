@@ -471,6 +471,8 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
+#include "nuitka/jit_sources.h"
+
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #include "nuitka_data_decoder.h"
 #else

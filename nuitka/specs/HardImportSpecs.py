@@ -175,6 +175,26 @@ sys_exit_spec = BuiltinParameterSpecNoKeywords(
     "sys.exit", ("exit_code",), default_count=1
 )
 
+# Tensorflow
+
+tensorflow_function_spec = BuiltinParameterSpec(
+    "tensorflow.function",
+    (
+        "func",
+        "input_signature",
+        "autograph",
+        "jit_compile",
+        "reduce_retracing",
+        "experimental_implements",
+        "experimental_autograph_options",
+        "experimental_attributes",
+        "experimental_relax_shapes",
+        "experimental_compile",
+        "experimental_follow_type_hints",
+    ),
+    default_count=11,
+)
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

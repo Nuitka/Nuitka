@@ -6032,6 +6032,30 @@
       replacements_plain:
         'ag_logging.warning(': 'if False: ag_logging.warning('
 
+- module-name: 'tensorflow.python.autograph.pyct.inspect_utils' # checksum: 791d410a
+  anti-bloat:
+    - description: 'workaround to enable Tensorflow JIT support'
+      append_plain: |
+        orig_getimmediatesource = getimmediatesource
+        def getimmediatesource(obj):
+          module_name = getattr(obj, '__module__', None)
+          if module_name:
+            qualname = getattr(obj, '__qualname__', None)
+
+            _uncompiled_function_sources_dict=getattr(
+              builtins,
+              "_uncompiled_function_sources_dict",
+              {}
+            )
+            key = "%s.%s" % (module_name, qualname)
+            source, line_number = _uncompiled_function_sources_dict.get(key, (None, None))
+
+            if source is not None:
+              return source
+
+          return orig_getimmediatesource(obj)
+      when: 'standalone'
+
 - module-name: 'tensorflow.python.compiler.tensorrt.trt_convert' # checksum: 9471824c
   implicit-imports:
     - depends:
@@ -6091,6 +6115,31 @@
       replacements:
         'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
+
+- module-name: 'tensorflow.python.util.tf_inspect' # checksum: 8e3a3cbf
+  anti-bloat:
+    - description: 'workaround to enable Tensorflow JIT support'
+      append_plain: |
+        import builtins
+        orig_getsourcelines = getsourcelines
+        def getsourcelines(object):
+          module_name = getattr(object, '__module__', None)
+          if module_name:
+            qualname = getattr(object, '__qualname__', None)
+
+            _uncompiled_function_sources_dict=getattr(
+              builtins,
+              "_uncompiled_function_sources_dict",
+              {}
+            )
+            key = "%s.%s" % (module_name, qualname)
+            source, line_number = _uncompiled_function_sources_dict.get(key, (None, None))
+
+            if source is not None:
+              return source.splitlines(), line_number
+
+          return orig_getsourcelines(obj)
+      when: 'standalone'
 
 - module-name: 'tensorflow_core' # checksum: f377875c
   anti-bloat:

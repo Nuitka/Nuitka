@@ -2,31 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Children having mixins
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args buffering capitalize casefold center chars
-spell-checker: ignore clear closefd copy count decode default delete dist
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
 spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
-spell-checker: ignore expandtabs extend file fillchar find format format_map formatmap
-spell-checker: ignore fromkeys get group handle has_key haskey index insert isalnum
-spell-checker: ignore isalpha isascii isdecimal isdigit isidentifier islower isnumeric
-spell-checker: ignore isprintable isspace istitle isupper item items iterable iteritems
-spell-checker: ignore iterkeys itervalues join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
 spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare remove replace resource resource_name reverse rfind rindex
-spell-checker: ignore rjust rpartition rsplit rstrip s sep setdefault sort split
-spell-checker: ignore splitlines start startswith stop strip sub suffix swapcase table
-spell-checker: ignore tabsize title translate update upper use_errno use_last_error value
-spell-checker: ignore values viewitems viewkeys viewvalues width winmode zfill
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 
 
@@ -8318,6 +8320,479 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionBuiltinOpenP3Mixin = ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
+
+
+class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin(
+    object
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTensorflowFunction
+    #   ExpressionTensorflowFunctionCall
+
+    def __init__(
+        self,
+        func,
+        input_signature,
+        autograph,
+        jit_compile,
+        reduce_retracing,
+        experimental_implements,
+        experimental_autograph_options,
+        experimental_attributes,
+        experimental_relax_shapes,
+        experimental_compile,
+        experimental_follow_type_hints,
+    ):
+        if func is not None:
+            func.parent = self
+
+        self.subnode_func = func
+
+        if input_signature is not None:
+            input_signature.parent = self
+
+        self.subnode_input_signature = input_signature
+
+        if autograph is not None:
+            autograph.parent = self
+
+        self.subnode_autograph = autograph
+
+        if jit_compile is not None:
+            jit_compile.parent = self
+
+        self.subnode_jit_compile = jit_compile
+
+        if reduce_retracing is not None:
+            reduce_retracing.parent = self
+
+        self.subnode_reduce_retracing = reduce_retracing
+
+        if experimental_implements is not None:
+            experimental_implements.parent = self
+
+        self.subnode_experimental_implements = experimental_implements
+
+        if experimental_autograph_options is not None:
+            experimental_autograph_options.parent = self
+
+        self.subnode_experimental_autograph_options = experimental_autograph_options
+
+        if experimental_attributes is not None:
+            experimental_attributes.parent = self
+
+        self.subnode_experimental_attributes = experimental_attributes
+
+        if experimental_relax_shapes is not None:
+            experimental_relax_shapes.parent = self
+
+        self.subnode_experimental_relax_shapes = experimental_relax_shapes
+
+        if experimental_compile is not None:
+            experimental_compile.parent = self
+
+        self.subnode_experimental_compile = experimental_compile
+
+        if experimental_follow_type_hints is not None:
+            experimental_follow_type_hints.parent = self
+
+        self.subnode_experimental_follow_type_hints = experimental_follow_type_hints
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_func
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_input_signature
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_autograph
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_jit_compile
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_reduce_retracing
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_implements
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_autograph_options
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_attributes
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_relax_shapes
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_compile
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_follow_type_hints
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("func", self.subnode_func),
+            ("input_signature", self.subnode_input_signature),
+            ("autograph", self.subnode_autograph),
+            ("jit_compile", self.subnode_jit_compile),
+            ("reduce_retracing", self.subnode_reduce_retracing),
+            ("experimental_implements", self.subnode_experimental_implements),
+            (
+                "experimental_autograph_options",
+                self.subnode_experimental_autograph_options,
+            ),
+            ("experimental_attributes", self.subnode_experimental_attributes),
+            ("experimental_relax_shapes", self.subnode_experimental_relax_shapes),
+            ("experimental_compile", self.subnode_experimental_compile),
+            (
+                "experimental_follow_type_hints",
+                self.subnode_experimental_follow_type_hints,
+            ),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_func
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_func = new_node
+
+            return
+
+        value = self.subnode_input_signature
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_input_signature = new_node
+
+            return
+
+        value = self.subnode_autograph
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_autograph = new_node
+
+            return
+
+        value = self.subnode_jit_compile
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_jit_compile = new_node
+
+            return
+
+        value = self.subnode_reduce_retracing
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_reduce_retracing = new_node
+
+            return
+
+        value = self.subnode_experimental_implements
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_implements = new_node
+
+            return
+
+        value = self.subnode_experimental_autograph_options
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_autograph_options = new_node
+
+            return
+
+        value = self.subnode_experimental_attributes
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_attributes = new_node
+
+            return
+
+        value = self.subnode_experimental_relax_shapes
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_relax_shapes = new_node
+
+            return
+
+        value = self.subnode_experimental_compile
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_compile = new_node
+
+            return
+
+        value = self.subnode_experimental_follow_type_hints
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_follow_type_hints = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "func": (
+                self.subnode_func.makeClone() if self.subnode_func is not None else None
+            ),
+            "input_signature": (
+                self.subnode_input_signature.makeClone()
+                if self.subnode_input_signature is not None
+                else None
+            ),
+            "autograph": (
+                self.subnode_autograph.makeClone()
+                if self.subnode_autograph is not None
+                else None
+            ),
+            "jit_compile": (
+                self.subnode_jit_compile.makeClone()
+                if self.subnode_jit_compile is not None
+                else None
+            ),
+            "reduce_retracing": (
+                self.subnode_reduce_retracing.makeClone()
+                if self.subnode_reduce_retracing is not None
+                else None
+            ),
+            "experimental_implements": (
+                self.subnode_experimental_implements.makeClone()
+                if self.subnode_experimental_implements is not None
+                else None
+            ),
+            "experimental_autograph_options": (
+                self.subnode_experimental_autograph_options.makeClone()
+                if self.subnode_experimental_autograph_options is not None
+                else None
+            ),
+            "experimental_attributes": (
+                self.subnode_experimental_attributes.makeClone()
+                if self.subnode_experimental_attributes is not None
+                else None
+            ),
+            "experimental_relax_shapes": (
+                self.subnode_experimental_relax_shapes.makeClone()
+                if self.subnode_experimental_relax_shapes is not None
+                else None
+            ),
+            "experimental_compile": (
+                self.subnode_experimental_compile.makeClone()
+                if self.subnode_experimental_compile is not None
+                else None
+            ),
+            "experimental_follow_type_hints": (
+                self.subnode_experimental_follow_type_hints.makeClone()
+                if self.subnode_experimental_follow_type_hints is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_func is not None:
+            self.subnode_func.finalize()
+        del self.subnode_func
+        if self.subnode_input_signature is not None:
+            self.subnode_input_signature.finalize()
+        del self.subnode_input_signature
+        if self.subnode_autograph is not None:
+            self.subnode_autograph.finalize()
+        del self.subnode_autograph
+        if self.subnode_jit_compile is not None:
+            self.subnode_jit_compile.finalize()
+        del self.subnode_jit_compile
+        if self.subnode_reduce_retracing is not None:
+            self.subnode_reduce_retracing.finalize()
+        del self.subnode_reduce_retracing
+        if self.subnode_experimental_implements is not None:
+            self.subnode_experimental_implements.finalize()
+        del self.subnode_experimental_implements
+        if self.subnode_experimental_autograph_options is not None:
+            self.subnode_experimental_autograph_options.finalize()
+        del self.subnode_experimental_autograph_options
+        if self.subnode_experimental_attributes is not None:
+            self.subnode_experimental_attributes.finalize()
+        del self.subnode_experimental_attributes
+        if self.subnode_experimental_relax_shapes is not None:
+            self.subnode_experimental_relax_shapes.finalize()
+        del self.subnode_experimental_relax_shapes
+        if self.subnode_experimental_compile is not None:
+            self.subnode_experimental_compile.finalize()
+        del self.subnode_experimental_compile
+        if self.subnode_experimental_follow_type_hints is not None:
+            self.subnode_experimental_follow_type_hints.finalize()
+        del self.subnode_experimental_follow_type_hints
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_func = self.subnode_func
+
+        if subnode_func is not None:
+            self.subnode_func.collectVariableAccesses(emit_read, emit_write)
+        subnode_input_signature = self.subnode_input_signature
+
+        if subnode_input_signature is not None:
+            self.subnode_input_signature.collectVariableAccesses(emit_read, emit_write)
+        subnode_autograph = self.subnode_autograph
+
+        if subnode_autograph is not None:
+            self.subnode_autograph.collectVariableAccesses(emit_read, emit_write)
+        subnode_jit_compile = self.subnode_jit_compile
+
+        if subnode_jit_compile is not None:
+            self.subnode_jit_compile.collectVariableAccesses(emit_read, emit_write)
+        subnode_reduce_retracing = self.subnode_reduce_retracing
+
+        if subnode_reduce_retracing is not None:
+            self.subnode_reduce_retracing.collectVariableAccesses(emit_read, emit_write)
+        subnode_experimental_implements = self.subnode_experimental_implements
+
+        if subnode_experimental_implements is not None:
+            self.subnode_experimental_implements.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_autograph_options = (
+            self.subnode_experimental_autograph_options
+        )
+
+        if subnode_experimental_autograph_options is not None:
+            self.subnode_experimental_autograph_options.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_attributes = self.subnode_experimental_attributes
+
+        if subnode_experimental_attributes is not None:
+            self.subnode_experimental_attributes.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_relax_shapes = self.subnode_experimental_relax_shapes
+
+        if subnode_experimental_relax_shapes is not None:
+            self.subnode_experimental_relax_shapes.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_compile = self.subnode_experimental_compile
+
+        if subnode_experimental_compile is not None:
+            self.subnode_experimental_compile.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_follow_type_hints = (
+            self.subnode_experimental_follow_type_hints
+        )
+
+        if subnode_experimental_follow_type_hints is not None:
+            self.subnode_experimental_follow_type_hints.collectVariableAccesses(
+                emit_read, emit_write
+            )
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionTensorflowFunctionMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
+ChildrenExpressionTensorflowFunctionCallMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
 
 
 class ChildrenHavingFunctionValuesTupleMixin(object):
