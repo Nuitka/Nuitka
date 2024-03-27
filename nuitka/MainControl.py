@@ -279,7 +279,7 @@ def dumpTreeXML():
     filename = Options.getXMLDumpOutputFilename()
 
     if filename is not None:
-        with openTextFile(filename, "w") as output_file:
+        with openTextFile(filename, "wb") as output_file:
             # XML output only.
             for module in ModuleRegistry.getDoneModules():
                 dumpTreeXMLToFile(tree=module.asXml(), output_file=output_file)
