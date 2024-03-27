@@ -63,6 +63,7 @@ hard_modules_non_stdlib = set(
         "pkg_resources",
         "importlib_metadata",
         "importlib_resources",
+        "tensorflow",
     )
 )
 
@@ -109,7 +110,7 @@ def isHardModule(module_name):
 
 
 # These modules can cause issues if imported during compile time.
-hard_modules_trust_with_side_effects = set(["site"])
+hard_modules_trust_with_side_effects = set(["site", "tensorflow"])
 if not isWin32Windows():
     # Crashing on anything but Windows.
     hard_modules_trust_with_side_effects.add("ctypes.wintypes")
@@ -264,6 +265,7 @@ hard_modules_trust = {
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
     "builtins": module_builtins_trust,
+    "tensorflow": {"function": trust_node},
 }
 
 
