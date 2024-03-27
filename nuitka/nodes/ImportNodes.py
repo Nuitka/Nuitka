@@ -479,11 +479,11 @@ class ExpressionImportModuleHard(
     def _computeExpressionAttribute(
         self, lookup_node, attribute_name, trace_collection, is_import
     ):
-        # Return driven handling of many cases, pylint: disable=too-many-return-statements
+        # Return driven handling of many cases
+        # pylint: disable=too-many-branches,too-many-return-statements
 
-        if self.module is not None and self.allowed:
+        if self.allowed:
             full_name = self.value_name.getChildNamed(attribute_name)
-
             full_name = ModuleName(hard_modules_aliases.get(full_name, full_name))
 
             if isHardModule(full_name):
@@ -501,9 +501,12 @@ class ExpressionImportModuleHard(
                     % (self.value_name, attribute_name),
                 )
 
-            trust = hard_modules_trust[self.value_name].get(
-                attribute_name, trust_undefined
-            )
+            if self.value_name in hard_modules_trust:
+                trust = hard_modules_trust[self.value_name].get(
+                    attribute_name, trust_undefined
+                )
+            else:
+                trust = trust_undefined
 
             if trust is trust_importable:
                 # TODO: Change this is a hard module import itself, currently these are not all trusted
@@ -512,8 +515,10 @@ class ExpressionImportModuleHard(
                 trace_collection.onExceptionRaiseExit(BaseException)
             elif trust is trust_may_exist:
                 trace_collection.onExceptionRaiseExit(BaseException)
-            elif trust is not trust_undefined and not hasattr(
-                self.module, attribute_name
+            elif (
+                trust is not trust_undefined
+                and self.module is not None
+                and not hasattr(self.module, attribute_name)
             ):
                 # TODO: Unify with below branches.
                 trace_collection.onExceptionRaiseExit(ImportError)
@@ -573,7 +578,7 @@ class ExpressionImportModuleHard(
                         self.value_name,
                         attribute_name,
                     )
-                elif trust is trust_constant:
+                elif trust is trust_constant and self.module is not None:
                     # Make sure it's actually there, and not becoming the getattr default by accident.
                     assert hasattr(self.module, attribute_name), self
 
