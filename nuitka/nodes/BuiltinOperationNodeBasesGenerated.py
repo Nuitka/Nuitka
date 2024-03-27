@@ -2,31 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Specialized attribute nodes
 
 WARNING, this code is GENERATED. Modify the template BuiltinOperationNodeBases.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args buffering capitalize casefold center chars
-spell-checker: ignore clear closefd copy count decode default delete dist
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
 spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
-spell-checker: ignore expandtabs extend file fillchar find format format_map formatmap
-spell-checker: ignore fromkeys get group handle has_key haskey index insert isalnum
-spell-checker: ignore isalpha isascii isdecimal isdigit isidentifier islower isnumeric
-spell-checker: ignore isprintable isspace istitle isupper item items iterable iteritems
-spell-checker: ignore iterkeys itervalues join keepends key keys kwargs ljust lower lstrip
-spell-checker: ignore maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
 spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
-spell-checker: ignore prepare remove replace resource resource_name reverse rfind rindex
-spell-checker: ignore rjust rpartition rsplit rstrip s sep setdefault sort split
-spell-checker: ignore splitlines start startswith stop strip sub suffix swapcase table
-spell-checker: ignore tabsize title translate update upper use_errno use_last_error value
-spell-checker: ignore values viewitems viewkeys viewvalues width winmode zfill
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 
 

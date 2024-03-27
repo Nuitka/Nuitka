@@ -438,6 +438,21 @@ PyObject *IMPORT_HARD_SYSCONFIG(void) {
     return module_import_hard_sysconfig;
 }
 
+/* C helper for hard import of module "tensorflow" import. */
+PyObject *IMPORT_HARD_TENSORFLOW(void) {
+    static PyObject *module_import_hard_tensorflow = NULL;
+
+    if (module_import_hard_tensorflow == NULL) {
+        module_import_hard_tensorflow = PyImport_ImportModule("tensorflow");
+
+        if (unlikely(module_import_hard_tensorflow == NULL)) {
+            return NULL;
+        }
+    }
+
+    return module_import_hard_tensorflow;
+}
+
 /* C helper for hard import of module "types" import. */
 PyObject *IMPORT_HARD_TYPES(void) {
     static PyObject *module_import_hard_types = NULL;

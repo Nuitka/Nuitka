@@ -86,6 +86,9 @@ extern PyObject *IMPORT_HARD_SYS(void);
 /* C helper for hard import of module "sysconfig" import. */
 extern PyObject *IMPORT_HARD_SYSCONFIG(void);
 
+/* C helper for hard import of module "tensorflow" import. */
+extern PyObject *IMPORT_HARD_TENSORFLOW(void);
+
 /* C helper for hard import of module "types" import. */
 extern PyObject *IMPORT_HARD_TYPES(void);
 

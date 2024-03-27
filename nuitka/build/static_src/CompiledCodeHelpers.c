@@ -2109,6 +2109,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersDumpBacktraces.c"
 #endif
 
+#include "HelpersJitSources.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
