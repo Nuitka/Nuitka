@@ -22,6 +22,7 @@ import nuitka.code_generation.Namify
 import nuitka.nodes.PackageMetadataNodes
 import nuitka.nodes.PackageResourceNodes
 import nuitka.nodes.SideEffectNodes
+import nuitka.nodes.TensorflowNodes
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinListOperationSpecs
@@ -276,10 +277,8 @@ def emitGenerationWarning(emit, doc_string, template_name):
     emit(
         """
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 """
     )
 
@@ -462,6 +461,8 @@ def makeCodeCased(value):
 
 
 def getCallModuleName(module_name, function_name):
+    # return driven, pylint: disable=too-many-return-statements
+
     if module_name in ("pkg_resources", "importlib.metadata", "importlib_metadata"):
         if function_name in ("resource_stream", "resource_string"):
             return "PackageResourceNodes"
@@ -476,6 +477,9 @@ def getCallModuleName(module_name, function_name):
     if module_name == "builtins":
         if function_name == "open":
             return "BuiltinOpenNodes"
+
+    if module_name == "tensorflow":
+        return "TensorflowNodes"
 
     assert False, (module_name, function_name)
 
