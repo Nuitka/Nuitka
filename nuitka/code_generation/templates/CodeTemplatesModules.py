@@ -451,8 +451,11 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     // Temp variables if any
 %(temps_decl)s
 
+    // Module init code if any
+%(module_init_codes)s
+
     // Module code.
-%(module_code)s
+%(module_codes)s
 
     // Report to PGO about leaving the module without error.
     PGO_onModuleExit("%(module_identifier)s", false);

@@ -112,7 +112,7 @@ PyObject *TUPLE_COPY(PyObject *tuple) {
     assert(PyTuple_CheckExact(tuple));
 
     Py_ssize_t size = PyTuple_GET_SIZE(tuple);
-    PyObject *result = MAKE_TUPLE_EMPTY(size);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(size);
 
     if (unlikely(result == NULL)) {
         return NULL;

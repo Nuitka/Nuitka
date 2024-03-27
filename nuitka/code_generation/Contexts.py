@@ -366,6 +366,10 @@ class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
         pass
 
     @abstractmethod
+    def addModuleInitCode(self, code):
+        pass
+
+    @abstractmethod
     def getModuleCodeName(self):
         pass
 
@@ -526,6 +530,9 @@ class PythonChildContextBase(PythonContextBase):
 
     def getConstantCode(self, constant, deep_check=False):
         return self.parent.getConstantCode(constant, deep_check=deep_check)
+
+    def addModuleInitCode(self, code):
+        self.parent.addModuleInitCode(code)
 
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
@@ -764,6 +771,7 @@ class PythonModuleContext(
         "variable_storage",
         "function_table_entries",
         "constant_accessor",
+        "module_init_codes",
         # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_type_descriptions",
@@ -819,6 +827,8 @@ class PythonModuleContext(
         self.constant_accessor = ConstantAccessor(
             top_level_name="mod_consts", data_filename=data_filename
         )
+
+        self.module_init_codes = []
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name
@@ -878,6 +888,12 @@ class PythonModuleContext(
 
     def getConstantsCount(self):
         return self.constant_accessor.getConstantsCount()
+
+    def getModuleInitCodes(self):
+        return self.module_init_codes
+
+    def addModuleInitCode(self, code):
+        self.module_init_codes.append(code)
 
     def addFunctionCreationInfo(self, creation_info):
         self.function_table_entries.append(creation_info)
