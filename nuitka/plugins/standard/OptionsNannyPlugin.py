@@ -45,26 +45,28 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         if support_info == "ignore":
             return
 
-        if support_info != "parameter":
+        if support_info == "parameter":
+            message = "Module has parameter: " + description
+        elif support_info == "plugin":
+            message = "Module has plugin consideration: " + description
+        else:
             if condition != "True":
                 problem_desc = (
-                    "incomplete support due to untrue condition '%s'" % condition
+                    " with incomplete support due to untrue condition '%s'" % condition
                 )
             else:
-                problem_desc = "incomplete support"
+                problem_desc = " with incomplete support"
 
-            message = "Using module '%s' (version %s) with %s: %s" % (
+            message = "Using module '%s' (version %s)%s: %s" % (
                 full_name,
                 ".".join(str(d) for d in self.getPackageVersion(full_name)),
                 problem_desc,
                 description,
             )
-        else:
-            message = "Module has parameter: " + description
 
         if support_info == "error":
             self.sysexit(message)
-        elif support_info in ("warning", "parameter"):
+        elif support_info in ("warning", "parameter", "plugin"):
             self.warning(message)
         elif support_info == "info":
             self.info(message)
