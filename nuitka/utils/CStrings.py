@@ -1,6 +1,7 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import re
 """ C string encoding
 
 This contains the code to create string literals for C to represent the given
@@ -142,7 +143,7 @@ def encodePythonIdentifierToC(value):
         else:
             return "$$%d$" % ord(c)
 
-    return "".join(re.sub("[^a-zA-Z0-9_]", r, c) for c in value)
+    return re.sub("[^a-zA-Z0-9_]", r, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
