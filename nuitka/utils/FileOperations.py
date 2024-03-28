@@ -828,6 +828,22 @@ def putTextFileContents(filename, contents, encoding=None):
             _writeContents(output_file)
 
 
+def putBinaryFileContents(filename, contents):
+    """Write a binary file from given contents.
+
+    Args:
+        filename: str with the file to be created
+        contents: bytes that should be written into the file
+
+    Returns:
+        None
+    """
+
+    with withFileLock("writing file %s" % filename):
+        with openTextFile(filename, "wb") as output_file:
+            output_file.write(contents)
+
+
 def changeTextFileContents(filename, contents, encoding=None, compare_only=False):
     """Write a text file from given contents.
 

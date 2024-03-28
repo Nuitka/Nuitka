@@ -49,7 +49,11 @@ from nuitka.utils.Distributions import (
     getDistributionsFromModuleName,
     getDistributionVersion,
 )
-from nuitka.utils.FileOperations import getReportPath, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getReportPath,
+    putBinaryFileContents,
+    putTextFileContents,
+)
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
 from nuitka.utils.Utils import (
@@ -663,10 +667,13 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         ),
     )
 
+    contents = TreeXML.toString(root)
+
+    if type(contents) is not bytes:
+        contents = contents.encode("utf8")
+
     try:
-        putTextFileContents(
-            filename=report_filename, contents=TreeXML.toString(root), encoding="utf8"
-        )
+        putBinaryFileContents(filename=report_filename, contents=contents)
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
