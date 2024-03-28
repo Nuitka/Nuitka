@@ -318,16 +318,16 @@ bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *oth
 #endif
 
 bool LIST_APPEND1(PyObject *target, PyObject *item) {
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    int res = PyList_Append(target, item);
-    Py_DECREF(item);
-    return res == 0;
-#else
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    int res = PyList_Append(target, item);
+    Py_DECREF(item);
+    return res == 0;
+#else
     PyListObject *list = (PyListObject *)target;
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
@@ -346,15 +346,15 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
 }
 
 bool LIST_APPEND0(PyObject *target, PyObject *item) {
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    int res = PyList_Append(target, item);
-    return res == 0;
-#else
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    int res = PyList_Append(target, item);
+    return res == 0;
+#else
     PyListObject *list = (PyListObject *)target;
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
@@ -517,7 +517,16 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize = PyLong_AsSsize_t(start_index);
+    Py_ssize_t start_ssize;
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(start_index)) {
+        start_ssize = PyInt_AS_LONG(start_index);
+    } else {
+        start_ssize = PyLong_AsSsize_t(start_index);
+    }
+#else
+    start_ssize = PyLong_AsSsize_t(start_index);
+#endif
 
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, Py_SIZE(list));
 }
@@ -536,7 +545,16 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t start_ssize = PyLong_AsSsize_t(start_index);
+    Py_ssize_t start_ssize;
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(start_index)) {
+        start_ssize = PyInt_AS_LONG(start_index);
+    } else {
+        start_ssize = PyLong_AsSsize_t(start_index);
+    }
+#else
+    start_ssize = PyLong_AsSsize_t(start_index);
+#endif
 
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
@@ -548,7 +566,16 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
         return NULL;
     }
 
-    Py_ssize_t stop_ssize = PyLong_AsSsize_t(stop_index);
+    Py_ssize_t stop_ssize;
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(stop_index)) {
+        stop_ssize = PyInt_AS_LONG(stop_index);
+    } else {
+        stop_ssize = PyLong_AsSsize_t(stop_index);
+    }
+#else
+    stop_ssize = PyLong_AsSsize_t(stop_index);
+#endif
 
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
 }
@@ -556,6 +583,7 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
 bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObject *item) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
+    CHECK_OBJECT(index);
     CHECK_OBJECT(item);
 
     // TODO: Avoid the clear, by having this as a variant that doesn't set the
@@ -569,7 +597,16 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
         return false;
     }
 
-    Py_ssize_t index_ssize = PyLong_AsSsize_t(index_long);
+    Py_ssize_t index_ssize;
+#if PYTHON_VERSION < 0x300
+    if (PyInt_CheckExact(index_long)) {
+        index_ssize = PyInt_AS_LONG(index_long);
+    } else {
+        index_ssize = PyLong_AsSsize_t(index_long);
+    }
+#else
+    index_ssize = PyLong_AsSsize_t(index_long);
+#endif
 
     LIST_INSERT_CONST(list, index_ssize, item);
     return true;
