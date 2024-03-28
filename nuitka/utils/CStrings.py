@@ -19,41 +19,32 @@ def _identifierEncode(c):
 
 
 codecs.register_error("c_identifier", _identifierEncode)
-
-
 def _encodePythonStringToC(value):
-    """Encode a string, so that it gives a C string literal.
-
-    This doesn't handle limits.
-    """
-    assert type(value) is bytes, type(value)
-
-    result = ""
+    """Encode a string, so that it gives a C string literal"""
+    assert isinstance(value, bytes), type(value)
+    
+    special_chars = {92: r"\134", 9: r"\011", 13: r"\015", 10: r"\012", 63: r"\077", 34: r"\042"}
+    result = []
     octal = False
-
     for c in value:
-        if str is bytes:
-            cv = ord(c)
-        else:
-            cv = c
+        cv = c
 
-        if c in b'\\\t\r\n"?':
-            result += r"\%03o" % cv
-
+        if c in special_chars.keys():
+            result.append(special_chars[c])
             octal = True
+            
         elif 32 <= cv <= 127:
             if octal and c in b"0123456789":
-                result += '" "'
+                result.append(r'" "')
 
-            result += chr(cv)
-
+            result.append(chr(cv))
             octal = False
         else:
-            result += r"\%o" % cv
+            result.append(r"\%o" % cv)
 
             octal = True
 
-    result = result.replace('" "\\', "\\")
+    result = "".join(result).replace('" "\\', "\\")
 
     return '"%s"' % result
 
