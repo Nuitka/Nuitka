@@ -136,6 +136,7 @@ def _getEvaluationContext():
             "deployment": isDeploymentMode(),
             # Querying package versions.
             "version": _getPackageVersion,
+            "version_str": _getPackageVersionStr,
             "get_dist_name": _getDistributionNameFromPackageName,
             "plugin": _isPluginActive,
             "no_asserts": hasPythonFlagNoAsserts(),
@@ -270,6 +271,15 @@ def _getPackageVersion(distribution_name):
         _package_versions[distribution_name] = result
 
     return _package_versions[distribution_name]
+
+
+def _getPackageVersionStr(distribution_name):
+    version = _getPackageVersion(distribution_name)
+
+    if version is not None:
+        version = ".".join(str(d) for d in version)
+
+    return version
 
 
 def _getModuleDirectory(module_name):

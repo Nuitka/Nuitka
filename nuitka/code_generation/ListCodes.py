@@ -421,7 +421,7 @@ def generateListOperationRemoveCode(to_name, expression, emit, context):
         # this call is also very bad.
         emit("assert(PyList_CheckExact(%s));" % list_arg_name)
         emit(
-            '%s = PyObject_CallMethod(%s, (char *)"remove", "O", %s);'
+            "%s = PyObject_CallMethodObjArgs(%s, const_str_plain_remove, %s, NULL);"
             % (result_name, list_arg_name, value_arg_name)
         )
 
