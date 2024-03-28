@@ -1,7 +1,6 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-import re
 """ C string encoding
 
 This contains the code to create string literals for C to represent the given
