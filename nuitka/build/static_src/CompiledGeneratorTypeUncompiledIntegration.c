@@ -19,6 +19,8 @@
 #undef Py_BUILD_CORE
 #endif
 
+static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
+                                                 struct Nuitka_ExceptionPreservationItem *exception_state);
 // This function takes no reference to value, and publishes a StopIteration
 // exception with it.
 #if PYTHON_VERSION >= 0x300
@@ -343,8 +345,8 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
 
-static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate, PyObject **exception_type, PyObject **exception_value,
-                                           PyTracebackObject **exception_tb);
+static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
+                                           struct Nuitka_ExceptionPreservationItem *exception_state);
 
 #if PYTHON_VERSION < 0x3b0
 #include <opcode.h>
@@ -1029,12 +1031,11 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 //   value of exception_type will not be NULL, but the actual exception will not necessarily
 //   be normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
-                                                  PyObject *exception_type, PyObject *exception_value,
-                                                  PyTracebackObject *exception_tb) {
+                                                  struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR
     PRINT_STRING("Nuitka_UncompiledGenerator_throw: Enter ");
     PRINT_ITEM((PyObject *)gen);
-    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
+    PRINT_EXCEPTION_STATE(exception_state);
     PRINT_NEW_LINE();
 #endif
 
@@ -1043,7 +1044,8 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
     if (yf != NULL) {
         _PyInterpreterFrame *frame = (_PyInterpreterFrame *)gen->gi_iframe;
 
-        if (close_on_genexit && EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_type, PyExc_GeneratorExit)) {
+        if (close_on_genexit &&
+            EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
             PyFrameState state = (PyFrameState)gen->gi_frame_state;
             gen->gi_frame_state = FRAME_EXECUTING;
 
@@ -1056,9 +1058,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             if (err < 0) {
                 // Releasing exception, we are done with it, raising instead the error just
                 // occurred.
-                Py_DECREF(exception_type);
-                Py_XDECREF(exception_value);
-                Py_XDECREF(exception_tb);
+                RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
                 return Nuitka_PyGen_gen_send_ex(tstate, gen, Py_None, 1, 0);
             }
@@ -1077,8 +1077,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             gen->gi_frame_state = FRAME_EXECUTING;
 
             // Handing exception ownership to "Nuitka_UncompiledGenerator_throw".
-            ret = Nuitka_UncompiledGenerator_throw(tstate, (PyGenObject *)yf, close_on_genexit, exception_type,
-                                                   exception_value, exception_tb);
+            ret = Nuitka_UncompiledGenerator_throw(tstate, (PyGenObject *)yf, close_on_genexit, exception_state);
             gen->gi_frame_state = state;
             tstate->cframe->current_frame = prev;
             frame->previous = NULL;
@@ -1106,15 +1105,12 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             PyFrameState state = (PyFrameState)gen->gi_frame_state;
             gen->gi_frame_state = FRAME_EXECUTING;
 
-            // TODO: Faster call code should be used.
-            ret = PyObject_CallFunctionObjArgs(meth, exception_type, exception_value, exception_tb, NULL);
+            ret = Nuitka_CallGeneratorThrowMethod(meth, exception_state);
 
             gen->gi_frame_state = state;
 
             // Releasing exception, we are done with it.
-            Py_DECREF(exception_type);
-            Py_XDECREF(exception_value);
-            Py_XDECREF(exception_tb);
+            RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
             Py_DECREF(meth);
         }
@@ -1142,51 +1138,51 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
     }
 
 throw_here:
-    if (exception_tb == (PyTracebackObject *)Py_None) {
-        exception_tb = NULL;
-        Py_DECREF(exception_tb);
-    } else if (exception_tb != NULL && !PyTraceBack_Check(exception_tb)) {
+    if (exception_state->exception_tb == (PyTracebackObject *)Py_None) {
+        exception_state->exception_tb = NULL;
+        Py_DECREF(exception_state->exception_tb);
+    } else if (exception_state->exception_tb != NULL && !PyTraceBack_Check(exception_state->exception_tb)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "throw() third argument must be a traceback object");
         goto failed_throw;
     }
 
     tstate = _PyThreadState_GET();
 
-    if (PyExceptionClass_Check(exception_type)) {
-        Nuitka_Err_NormalizeException(tstate, &exception_type, &exception_value, &exception_tb);
-    } else if (PyExceptionInstance_Check(exception_type)) {
-        if (exception_value && exception_value != Py_None) {
+    if (PyExceptionClass_Check(exception_state->exception_type)) {
+        Nuitka_Err_NormalizeException(tstate, &exception_state->exception_type, &exception_state->exception_value,
+                                      &exception_state->exception_tb);
+    } else if (PyExceptionInstance_Check(exception_state->exception_type)) {
+        if (exception_state->exception_value && exception_state->exception_value != Py_None) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
                                             "instance exception may not have a separate value");
             goto failed_throw;
         } else {
             // Normalize manually here via APIs
-            Py_XDECREF(exception_value);
-            exception_value = exception_type;
-            exception_type = PyExceptionInstance_Class(exception_type);
-            Py_INCREF(exception_type);
+            Py_XDECREF(exception_state->exception_value);
+            exception_state->exception_value = exception_state->exception_type;
+            exception_state->exception_type = PyExceptionInstance_Class(exception_state->exception_type);
+            Py_INCREF(exception_state->exception_type);
 
-            if (exception_tb == NULL) {
+            if (exception_state->exception_tb == NULL) {
                 // Can remain NULL if no traceback is available.
-                exception_tb = GET_EXCEPTION_TRACEBACK(exception_value);
-                Py_XINCREF(exception_tb);
+                exception_state->exception_tb = GET_EXCEPTION_TRACEBACK(exception_state->exception_value);
+                Py_XINCREF(exception_state->exception_tb);
             }
         }
     } else {
         // Raisable
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
-            "exceptions must be classes or instances deriving from BaseException, not %s", exception_type);
+            "exceptions must be classes or instances deriving from BaseException, not %s",
+            exception_state->exception_type);
         goto failed_throw;
     }
 
-    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
 
     return Nuitka_PyGen_gen_send_ex(tstate, gen, Py_None, 1, 1);
 
 failed_throw:
-    Py_DECREF(exception_type);
-    Py_XDECREF(exception_value);
-    Py_XDECREF(exception_tb);
+    RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
     return NULL;
 }
@@ -1459,19 +1455,19 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyThreadState *tstate, PyGenObject *ge
 //   value of exception_type will not be NULL, but the actual exception will not necessarily
 //   be normalized.
 static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenObject *gen, int close_on_genexit,
-                                                  PyObject *exception_type, PyObject *exception_value,
-                                                  PyTracebackObject *exception_tb) {
+                                                  struct Nuitka_ExceptionPreservationItem *exception_state) {
 #if _DEBUG_GENERATOR
     PRINT_STRING("Nuitka_UncompiledGenerator_throw: Enter ");
     PRINT_ITEM((PyObject *)gen);
-    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
+    PRINT_EXCEPTION_STATE(exception_state);
     PRINT_NEW_LINE();
 #endif
 
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {
-        if (close_on_genexit && EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_type, PyExc_GeneratorExit)) {
+        if (close_on_genexit &&
+            EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
 #if PYTHON_VERSION < 0x3a0
             gen->gi_running = 1;
 #else
@@ -1490,9 +1486,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             if (err < 0) {
                 // Releasing exception, we are done with it, raising instead the error just
                 // occurred.
-                Py_DECREF(exception_type);
-                Py_XDECREF(exception_value);
-                Py_XDECREF(exception_tb);
+                RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
                 return Nuitka_PyGen_gen_send_ex(tstate, gen, Py_None, 1, 0);
             }
@@ -1516,8 +1510,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 #endif
 
             // Handing exception ownership to "Nuitka_UncompiledGenerator_throw".
-            ret = Nuitka_UncompiledGenerator_throw(tstate, (PyGenObject *)yf, close_on_genexit, exception_type,
-                                                   exception_value, exception_tb);
+            ret = Nuitka_UncompiledGenerator_throw(tstate, (PyGenObject *)yf, close_on_genexit, exception_state);
 
 #if PYTHON_VERSION < 0x3a0
             gen->gi_running = 0;
@@ -1539,9 +1532,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
                     Py_DECREF(yf);
 
                     // Releasing exception, we are done with it.
-                    Py_DECREF(exception_type);
-                    Py_XDECREF(exception_value);
-                    Py_XDECREF(exception_tb);
+                    RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
                     return NULL;
                 }
@@ -1560,7 +1551,8 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             gen->gi_frame->f_state = FRAME_EXECUTING;
 #endif
             // TODO: Faster call code should be used.
-            ret = PyObject_CallFunctionObjArgs(meth, exception_type, exception_value, exception_tb, NULL);
+            ret = Nuitka_CallGeneratorThrowMethod(meth, exception_state);
+
 #if PYTHON_VERSION < 0x3a0
             gen->gi_running = 0;
 #else
@@ -1568,9 +1560,7 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 #endif
 
             // Releasing exception, we are done with it.
-            Py_DECREF(exception_type);
-            Py_XDECREF(exception_value);
-            Py_XDECREF(exception_tb);
+            RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
             Py_DECREF(meth);
         }
@@ -1593,10 +1583,10 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
             gen->gi_frame->f_lasti += 1;
 #endif
 
-            if (_PyGen_FetchStopIterationValue(&exception_value) == 0) {
-                ret = Nuitka_PyGen_gen_send_ex(tstate, gen, exception_value, 0, 0);
+            if (_PyGen_FetchStopIterationValue(&exception_state->exception_value) == 0) {
+                ret = Nuitka_PyGen_gen_send_ex(tstate, gen, exception_state->exception_value, 0, 0);
 
-                Py_DECREF(exception_value);
+                Py_DECREF(exception_state->exception_value);
             } else {
                 ret = Nuitka_PyGen_gen_send_ex(tstate, gen, Py_None, 1, 0);
             }
@@ -1606,13 +1596,13 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 
 throw_here:
     // We continue to have exception ownership here.
-    if (unlikely(_Nuitka_Generator_check_throw2(tstate, &exception_type, &exception_value, &exception_tb) == false)) {
+    if (unlikely(_Nuitka_Generator_check_throw2(tstate, exception_state) == false)) {
         // Exception was released by _Nuitka_Generator_check_throw2 already.
         return NULL;
     }
 
     // Transfer exception ownership to published exception.
-    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, (PyTracebackObject *)exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
 
     return Nuitka_PyGen_gen_send_ex(tstate, gen, Py_None, 1, 1);
 }

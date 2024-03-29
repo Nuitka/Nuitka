@@ -935,8 +935,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_EXCEPTION_FROM_TYPE_ARG0(PyThreadStat
     return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, type, arg);
 }
 
-#endif
-
 #if PYTHON_VERSION < 0x3c0
 struct Nuitka_ExceptionPreservationItem {
     PyObject *exception_type;
@@ -980,6 +978,35 @@ NUITKA_MAY_BE_UNUSED static void INIT_ERROR_OCCURRED_STATE(struct Nuitka_Excepti
     exception_state->exception_type = NULL;
     exception_state->exception_value = NULL;
     exception_state->exception_tb = NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static void
+RELEASE_ERROR_OCCURRED_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    Py_DECREF(exception_state->exception_type);
+    Py_XDECREF(exception_state->exception_value);
+    Py_XDECREF(exception_state->exception_tb);
+}
+
+NUITKA_MAY_BE_UNUSED static void
+RELEASE_ERROR_OCCURRED_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    Py_XDECREF(exception_state->exception_type);
+    Py_XDECREF(exception_state->exception_value);
+    Py_XDECREF(exception_state->exception_tb);
+}
+
+NUITKA_MAY_BE_UNUSED static void
+SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationItem *exception_state,
+                                           PyObject *exception_type, PyObject *exception_value,
+                                           PyTracebackObject *exception_tb) {
+    Py_INCREF(exception_type);
+    Py_XINCREF(exception_value);
+    Py_XINCREF(exception_tb);
+
+    exception_state->exception_type = exception_type;
+    exception_state->exception_value = exception_value;
+    exception_state->exception_tb = exception_tb;
+
+    // TODO: Python 3.12 conversion of args into single value object.
 }
 
 #else
@@ -1029,6 +1056,40 @@ RESTORE_ERROR_OCCURRED_STATE_UNTRACED(PyThreadState *tstate, struct Nuitka_Excep
 NUITKA_MAY_BE_UNUSED static void INIT_ERROR_OCCURRED_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
     exception_state->exception_value = NULL;
 }
+
+NUITKA_MAY_BE_UNUSED static void
+SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationItem *exception_state,
+                                           PyObject *exception_type, PyObject *exception_value,
+                                           PyTracebackObject *exception_tb) {
+    // TODO: Python 3.12 conversion of args into single value object.
+    assert(false);
+}
+
+#endif
+
+NUITKA_MAY_BE_UNUSED inline static void
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                PyObject *exception_type, char const *value) {
+    PyObject *exception_value = Nuitka_String_FromString(value);
+
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(exception_state, exception_type, exception_value, NULL);
+    Py_DECREF(exception_value);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT(exception_state->exception_type);
+    CHECK_OBJECT_X(exception_state->exception_value);
+    CHECK_OBJECT_X(exception_state->exception_tb);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT_X(exception_state->exception_type);
+    CHECK_OBJECT_X(exception_state->exception_value);
+    CHECK_OBJECT_X(exception_state->exception_tb);
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
