@@ -19,6 +19,7 @@
     },
     "files.associations": {
         "*.tac": "python",
+        "*.inc": "restructuredtext",
         "*.scons": "python",
         "*.sco": "python",
         "*.h": "c",
@@ -50,7 +51,19 @@
         "vector": "c",
         "xtr1common": "c",
         "__locale": "c",
-        "atomic": "c"
+        "atomic": "c",
+        "__functional_base": "c",
+        "__functional_base_03": "c",
+        "__tuple": "c",
+        "algorithm": "c",
+        "limits": "c",
+        "random": "c",
+        "__bit_reference": "c",
+        "__node_handle": "c",
+        "deque": "c",
+        "__memory": "c",
+        "iterator": "c",
+        "locale": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
