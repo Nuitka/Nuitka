@@ -451,6 +451,19 @@ void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *
 }
 #endif
 
+#if PYTHON_VERSION >= 0x300
+
+void RAISE_EXCEPTION_WITH_CAUSE_STATE(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                      PyObject *exception_cause) {
+#if PYTHON_VERSION < 0x3c0
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_type, &exception_state->exception_value,
+                               &exception_state->exception_tb, exception_cause);
+#else
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_value, exception_cause);
+#endif
+}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

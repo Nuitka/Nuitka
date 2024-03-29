@@ -73,6 +73,10 @@ extern void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyO
                                                       PyObject **exception_type, PyObject **exception_value);
 #endif
 
+extern void RAISE_EXCEPTION_WITH_CAUSE_STATE(PyThreadState *tstate,
+                                             struct Nuitka_ExceptionPreservationItem *exception_state,
+                                             PyObject *exception_cause);
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
