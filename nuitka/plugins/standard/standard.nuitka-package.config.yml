@@ -390,14 +390,19 @@
       change_function:
         'test': 'un-callable'
 
-- module-name: 'bitsandbytes.cextension' # checksum: 70a78a03
+- module-name: 'bitsandbytes' # checksum: 14f2c5d0
   dlls:
     - from_filenames:
         prefixes:
           - 'libbitsandbytes_'
         suffixes:
-          # Applies currently to all OSes in bitsandbytes wheels.
+          # Applied to all OSes in bitsandbytes wheels.
           - 'so'
+      when: 'version("bitsandbytes") < (0,43)'
+    - from_filenames:
+        prefixes:
+          - 'libbitsandbytes_'
+      when: 'version("bitsandbytes") >= (0,43)'
 
 - module-name: 'bitsandbytes.triton.dequantize_rowwise' # checksum: 291bbd89
   anti-bloat:
