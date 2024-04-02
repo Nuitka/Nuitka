@@ -4119,6 +4119,11 @@
     dirs:
       - 'fonts'
 
+- module-name: 'randomname' # checksum: 8d6f0c80
+  data-files:
+    dirs:
+      - 'wordlists'
+
 - module-name: 'rapidfuzz' # checksum: 2248cb4c
   implicit-imports:
     - depends:
