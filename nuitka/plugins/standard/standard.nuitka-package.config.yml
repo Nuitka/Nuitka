@@ -2240,6 +2240,11 @@
     - depends:
         - '_cffi_backend'
 
+- module-name: 'names' # checksum: 4d754910
+  data-files:
+    patterns:
+      - 'dist.*'
+
 - module-name: 'networkx' # checksum: 6f2aa88a
   anti-bloat:
     - description: 'remove networkx.testing usage and pytest reference (via nose)'
