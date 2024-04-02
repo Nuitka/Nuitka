@@ -40,8 +40,12 @@ def getDownload(name, url, download_path):
             raise
 
 
+def getDownloadCacheName():
+    return "downloads"
+
+
 def getDownloadCacheDir():
-    return getCacheDir("downloads")
+    return getCacheDir(getDownloadCacheName())
 
 
 def getCachedDownload(

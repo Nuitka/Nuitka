@@ -30,6 +30,8 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
+from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
     getExecutablePath,
     withEnvironmentVarsOverridden,
@@ -42,6 +44,7 @@ from nuitka.utils.FileOperations import (
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    makePath,
     putTextFileContents,
     withDirectoryChange,
 )
@@ -160,6 +163,14 @@ def _setupSconsEnvironment2():
     import nuitka
 
     os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
+
+    # When downloading in Scons, use the external path.
+    if isWin32Windows():
+        download_cache_dir = getDownloadCacheDir()
+        makePath(download_cache_dir)
+        os.environ[getCacheDirEnvironmentVariableName(getDownloadCacheName())] = (
+            getExternalUsePath(download_cache_dir)
+        )
 
     yield
 
