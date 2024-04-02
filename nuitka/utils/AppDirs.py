@@ -71,10 +71,14 @@ please consider making a PR for a general solution that adds support for it, or 
     return _cache_dir
 
 
-def getCacheDir(cache_basename):
+def getCacheDirEnvironmentVariableName(cache_basename):
     env_name = cache_basename.replace("-", "_").upper()
 
-    cache_dir = os.getenv("NUITKA_CACHE_DIR_" + env_name)
+    return "NUITKA_CACHE_DIR_" + env_name
+
+
+def getCacheDir(cache_basename):
+    cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
 
