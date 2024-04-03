@@ -569,6 +569,8 @@ def _shouldNotFormatCode(filename):
         return True
     if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
         return True
+    if "tests" in parts and "syntax" in parts:
+        return True
     if ".dist/" in filename:
         return True
     if parts[-1] in ("incbin.h", "hedley.h"):
