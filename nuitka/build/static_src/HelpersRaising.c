@@ -122,7 +122,12 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type
             Py_DECREF(*exception_type);
             Py_XDECREF(*exception_tb);
 
-            FETCH_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+            struct Nuitka_ExceptionPreservationItem exception_state;
+            FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+            ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exception_type, exception_value,
+                                                          exception_tb);
+            RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
             return;
         }
@@ -459,7 +464,16 @@ void RAISE_EXCEPTION_WITH_CAUSE_STATE(PyThreadState *tstate, struct Nuitka_Excep
     RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_type, &exception_state->exception_value,
                                &exception_state->exception_tb, exception_cause);
 #else
-    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_value, exception_cause);
+    PyObject *exception_type = (PyObject *)Py_TYPE(exception_state->exception_value);
+    Py_INCREF(exception_type);
+    PyTracebackObject *exception_tb = NULL;
+
+    // Python3.12: We are being a bit lazy there, by preparing the 3 things when
+    // we shouldn't really need them.
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_type, &exception_state->exception_value, &exception_tb,
+                               exception_cause);
+
+    Py_DECREF(exception_type);
 #endif
 }
 #endif
