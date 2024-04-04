@@ -297,9 +297,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
 #endif
 
     if (value != NULL) {
-        assert(exception_state->exception_type == NULL);
-        assert(exception_state->exception_value == NULL);
-        assert(exception_state->exception_tb == NULL);
+        ASSERT_EMPTY_EXCEPTION_STATE(exception_state);
     }
 
     if (asyncgen->m_status == status_Unused && value != NULL && value != Py_None) {
@@ -340,7 +338,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
         asyncgen->m_running = true;
 
         // Check for thrown exception, and publish it.
-        if (unlikely(exception_state->exception_type != NULL)) {
+        if (unlikely(HAS_EXCEPTION_STATE(exception_state))) {
             assert(value == NULL);
 
             // Transfer exception ownership to published.
@@ -530,7 +528,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
     if (asyncgen->m_yield_from != NULL) {
         // TODO: This check is not done for coroutines, correct?
         if (close_on_genexit) {
-            if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
+            if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
                 // Asynchronous generators need to close the yield_from.
                 Nuitka_MarkAsyncgenAsRunning(asyncgen);
                 bool res = Nuitka_gen_close_iter(tstate, asyncgen->m_yield_from);
@@ -707,13 +705,16 @@ throw_here:
         RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
         result = NULL;
     } else {
-        if (exception_state->exception_tb == NULL) {
+        PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
+
+        if (exception_tb == NULL) {
             // TODO: Our compiled objects really need a way to store common
             // stuff in a "shared" part across all instances, and outside of
             // run time, so we could reuse this.
             struct Nuitka_FrameObject *frame =
                 MAKE_FUNCTION_FRAME(tstate, asyncgen->m_code_object, asyncgen->m_module, 0);
-            exception_state->exception_tb = MAKE_TRACEBACK(frame, asyncgen->m_code_object->co_firstlineno);
+            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
+                                          MAKE_TRACEBACK(frame, asyncgen->m_code_object->co_firstlineno));
             Py_DECREF(frame);
         }
 
