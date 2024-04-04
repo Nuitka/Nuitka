@@ -937,6 +937,8 @@ def withExtendedExtraOptions(*args):
         del os.environ["NUITKA_EXTRA_OPTIONS"]
     else:
         os.environ["NUITKA_EXTRA_OPTIONS"] = old_value
+
+
 def indentedCode(codes, count):
     """Indent code, used for generating test codes."""
     indent = " " * count
