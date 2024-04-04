@@ -332,7 +332,7 @@ def _cleanupImportSortOrder(filename, effective_filename):
         ]
     )
 
-    if isort_output == b"":
+    if isort_output == b"" and contents != "":
         tools_logger.warning(
             "The 'isort' failed to handle '%s' properly." % effective_filename
         )
@@ -750,6 +750,8 @@ def autoFormatFile(
                 if effective_filename not in BLACK_SKIP_LIST:
                     black_call = _getPythonBinaryCall("black")
 
+                    old_contents = getFileContents(tmp_filename, "rb")
+
                     try:
                         check_call(black_call + ["-q", "--fast", tmp_filename])
                     # Catch all the things, pylint: disable=broad-except
@@ -761,7 +763,7 @@ def autoFormatFile(
                         if not ignore_errors:
                             raise
 
-                    if getFileContents(tmp_filename) == "":
+                    if getFileContents(tmp_filename) == "" and old_contents != b"":
                         if ignore_errors:
                             tools_logger.warning(
                                 "Problem formatting for '%s'." % effective_filename
