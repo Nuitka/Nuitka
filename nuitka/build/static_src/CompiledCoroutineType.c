@@ -706,7 +706,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
 #endif
 
     if (coroutine->m_yield_from != NULL) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
+        if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
             // Coroutines need to close the yield_from.
             Nuitka_MarkCoroutineAsRunning(coroutine);
             bool res = Nuitka_gen_close_iter(tstate, coroutine->m_yield_from);

@@ -211,7 +211,7 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
                                                   struct Nuitka_ExceptionPreservationItem *exception_state) {
     // The yielding generator is being closed, but we also are tasked to
     // immediately close the currently running sub-generator.
-    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
+    if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
         PyObject *close_method = PyObject_GetAttr(value, const_str_plain_close);
 
         if (close_method) {
@@ -859,6 +859,7 @@ static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
                                            struct Nuitka_ExceptionPreservationItem *exception_state) {
     CHECK_EXCEPTION_STATE(exception_state);
 
+#if PYTHON_VERSION < 0x3c0
     if (exception_state->exception_tb == (PyTracebackObject *)Py_None) {
         Py_DECREF(exception_state->exception_tb);
         exception_state->exception_tb = NULL;
@@ -897,6 +898,7 @@ static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
         goto failed_throw;
     }
 
+#endif
     return true;
 
 failed_throw:
@@ -1013,7 +1015,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
 
 #if PYTHON_VERSION >= 0x300
     if (generator->m_yield_from != NULL) {
-        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
+        if (EXCEPTION_STATE_MATCH_BOOL_SINGLE(tstate, exception_state, PyExc_GeneratorExit)) {
             // Generators need to close the yield_from.
             Nuitka_MarkGeneratorAsRunning(generator);
             bool res = Nuitka_gen_close_iter(tstate, generator->m_yield_from);
