@@ -6704,9 +6704,11 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
-- module-name: 'transformers.models.mra.modeling_mra' # checksum: baab8e6b
+- module-name: 'transformers.models.mra.modeling_mra' # checksum: a554c6d
   anti-bloat:
     - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch.utils.cpp_extension import load': ''
       change_function:
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
