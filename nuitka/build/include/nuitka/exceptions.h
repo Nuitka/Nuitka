@@ -299,7 +299,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyThreadState *tst
 #endif
 
 #if _NUITKA_MAINTAIN_SYS_EXC_VARS
-    // Set sys attributes in the fastest possible way.
+    // Set sys attributes in the fastest possible way, spell-checker: ignore sysdict
     PyObject *sys_dict = tstate->interp->sysdict;
     CHECK_OBJECT(sys_dict);
 
@@ -833,6 +833,19 @@ SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationIt
     exception_state->exception_tb = exception_tb;
 }
 
+NUITKA_MAY_BE_UNUSED static void
+ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state,
+                                              PyObject **exception_type, PyObject **exception_value,
+                                              PyTracebackObject **exception_tb) {
+
+    *exception_type = exception_state->exception_type;
+    Py_INCREF(*exception_type);
+    *exception_value = exception_state->exception_value;
+    Py_XINCREF(*exception_value);
+    *exception_tb = exception_state->exception_tb;
+    Py_XINCREF(*exception_tb);
+}
+
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *
 GET_EXCEPTION_STATE_TRACEBACK(struct Nuitka_ExceptionPreservationItem *exception_state) {
     return exception_state->exception_tb;
@@ -929,6 +942,14 @@ SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationIt
                                            PyObject *exception_type, PyObject *exception_value,
                                            PyTracebackObject *exception_tb) {
     // TODO: Python 3.12 conversion of args into single value object.
+    assert(false);
+}
+
+NUITKA_MAY_BE_UNUSED static void
+ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state,
+                                              PyObject **exception_type, PyObject **exception_value,
+                                              PyTracebackObject **exception_tb) {
+
     assert(false);
 }
 
@@ -1154,6 +1175,32 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyThreadState *tstat
         return _EXCEPTION_MATCH_BOOL(tstate, exception_value, exception_checked);
     }
 }
+
+#if PYTHON_VERSION >= 0x3c0
+
+// Python3.12: TODO: Must get rid of those by generating code with exception_state
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyThreadState *tstate, PyObject **exception_type,
+                                                      PyObject **exception_value,
+                                                      PyTracebackObject **exception_traceback) {
+
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+    ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exception_type, exception_value,
+                                                  exception_traceback);
+}
+
+NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED(PyThreadState *tstate, PyObject *exception_type,
+                                                        PyObject *exception_value,
+                                                        PyTracebackObject *exception_traceback) {
+    NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_traceback);
+
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(&exception_state, exception_type, exception_value, exception_traceback);
+
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
+}
+
+#endif
 
 #endif
 
