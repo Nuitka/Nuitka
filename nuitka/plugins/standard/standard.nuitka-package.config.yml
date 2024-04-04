@@ -6267,30 +6267,12 @@
         # imports to be available.
         - ''
 
-- module-name: 'tls_client.cffi' # checksum: 2c39205c
+- module-name: 'tls_client.cffi' # checksum: 97b24774
   dlls:
-    - from_filenames:
-        relative_path: 'dependencies'
-        prefixes:
-          - 'tls-client'
-        suffixes:
-          - 'dll'
-      when: 'win32'
-    - from_filenames:
-        relative_path: 'dependencies'
-        prefixes:
-          - 'tls-client'
-        suffixes:
-          - 'so'
-      when: 'linux'
-      # Hopefully this works on MacOS
-    - from_filenames:
-        relative_path: 'dependencies'
-        prefixes:
-          - 'tls-client'
-        suffixes:
-          - 'dylib'
-      when: 'macos'
+    - by_code:
+        setup_code: 'import tls_client.cffi'
+        filename_code: 'tls_client.cffi.library._name'
+      dest_path: 'tls_client/dependencies'
 
 - module-name: 'toga' # checksum: 575aecbd
   data-files:
