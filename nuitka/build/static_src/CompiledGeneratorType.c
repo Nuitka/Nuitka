@@ -323,7 +323,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
     FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
 
     // Exception, was thrown into us, need to send that to sub-generator.
-    if (exception_state.exception_type != NULL) {
+    if (HAS_EXCEPTION_STATE(&exception_state)) {
         // Passing ownership of exception fetch to it.
         retval = _Nuitka_YieldFromPassExceptionTo(tstate, yield_from, &exception_state);
 
@@ -507,9 +507,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 #endif
 
     if (value != NULL) {
-        assert(exception_state->exception_type == NULL);
-        assert(exception_state->exception_value == NULL);
-        assert(exception_state->exception_tb == NULL);
+        ASSERT_EMPTY_EXCEPTION_STATE(exception_state);
     }
 
     if (generator->m_status != status_Finished) {
@@ -551,7 +549,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         Nuitka_MarkGeneratorAsRunning(generator);
 
         // Check for thrown exception, publish it to the generator code.
-        if (unlikely(exception_state->exception_type)) {
+        if (unlikely(HAS_EXCEPTION_STATE(exception_state))) {
             assert(value == NULL);
 
             // Transfer exception ownership to published.
@@ -1206,13 +1204,16 @@ throw_here:
 
         return NULL;
     } else {
-        if (exception_state->exception_tb == NULL) {
+        PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
+
+        if (exception_tb == NULL) {
             // TODO: Our compiled objects really need a way to store common
             // stuff in a "shared" part across all instances, and outside of
             // run time, so we could reuse this.
             struct Nuitka_FrameObject *frame =
                 MAKE_FUNCTION_FRAME(tstate, generator->m_code_object, generator->m_module, 0);
-            exception_state->exception_tb = MAKE_TRACEBACK(frame, generator->m_code_object->co_firstlineno);
+            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
+                                          MAKE_TRACEBACK(frame, generator->m_code_object->co_firstlineno));
             Py_DECREF(frame);
         }
 

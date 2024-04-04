@@ -198,7 +198,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
 
     FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
 
-    if (exception_state.exception_type != NULL) {
+    if (HAS_EXCEPTION_STATE(&exception_state)) {
         // Exception, was thrown into us, need to send that to sub-generator.
         // We acquired ownership of the published exception and need to release it potentially.
 
@@ -391,9 +391,7 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
 
     // Not both a value and an exception please.
     if (value != NULL) {
-        assert(exception_state->exception_type == NULL);
-        assert(exception_state->exception_value == NULL);
-        assert(exception_state->exception_tb == NULL);
+        ASSERT_EMPTY_EXCEPTION_STATE(exception_state);
     }
 
     if (coroutine->m_status == status_Unused && value != NULL && value != Py_None) {
@@ -435,7 +433,7 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
         Nuitka_MarkCoroutineAsRunning(coroutine);
 
         // Check for thrown exception, publish it to the coroutine code.
-        if (unlikely(exception_state->exception_type)) {
+        if (unlikely(HAS_EXCEPTION_STATE(exception_state))) {
             assert(value == NULL);
 
             // Transfer exception ownership to published.
@@ -907,13 +905,16 @@ throw_here:
 
         return NULL;
     } else {
-        if (exception_state->exception_tb == NULL) {
+        PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(exception_state);
+
+        if (exception_tb == NULL) {
             // TODO: Our compiled objects really need a way to store common
             // stuff in a "shared" part across all instances, and outside of
             // run time, so we could reuse this.
             struct Nuitka_FrameObject *frame =
                 MAKE_FUNCTION_FRAME(tstate, coroutine->m_code_object, coroutine->m_module, 0);
-            exception_state->exception_tb = MAKE_TRACEBACK(frame, coroutine->m_code_object->co_firstlineno);
+            SET_EXCEPTION_STATE_TRACEBACK(exception_state,
+                                          MAKE_TRACEBACK(frame, coroutine->m_code_object->co_firstlineno));
             Py_DECREF(frame);
         }
 
