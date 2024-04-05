@@ -941,7 +941,8 @@ def withExtendedExtraOptions(*args):
 
 def indentedCode(codes, count):
     """Indent code, used for generating test codes."""
-    return "\n".join(" " * count + line if line else "" for line in codes)
+    indent = " " * count
+    return "\n".join(indent + line if line else "" for line in codes)
 
 
 def convertToPython(doctests, line_filter=None):
