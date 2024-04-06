@@ -538,12 +538,8 @@ def setCommonSconsOptions(options):
 
     if product_version is None:
         product_version = file_version
-    if product_version is not None:
-        product_version = ".".join(str(d) for d in product_version)
     if file_version is None:
         file_version = product_version
-    else:
-        file_version = ".".join(str(d) for d in file_version)
 
     if product_version != file_version:
         effective_version = "%s-%s" % (
