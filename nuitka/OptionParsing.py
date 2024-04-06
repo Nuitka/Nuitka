@@ -726,7 +726,19 @@ Keep deployment mode, but disable selectively parts of it. Errors from
 deployment mode will output these identifiers. Default empty.""",
 )
 
-del deployment_group
+environment_group = parser.add_option_group("Environment control")
+
+environment_group.add_option(
+    "--force-runtime-environment-variable",
+    action="append",
+    dest="forced_runtime_env_variables",
+    metavar="VARIABLE_SPEC",
+    default=[],
+    help="""\
+Force an environment variables to a given value. Default empty.""",
+)
+
+del environment_group
 
 debug_group = parser.add_option_group("Debug features")
 
