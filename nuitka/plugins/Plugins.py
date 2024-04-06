@@ -811,7 +811,6 @@ class Plugins(object):
     def onModuleDiscovered(cls, module):
         # We offer plugins many ways to provide extra stuff
         # pylint: disable=too-many-locals,too-many-statements
-
         full_name = module.getFullName()
 
         def _untangleLoadDescription(description):
@@ -853,6 +852,12 @@ class Plugins(object):
         pre_module_load_descriptions = []
         post_module_load_descriptions = []
         fake_module_descriptions = []
+
+        if module.isMainModule():
+            plugin = None
+            pre_module_load_descriptions.extend(
+                _untangleLoadDescription(_getMainModulePreloadCodes())
+            )
 
         for plugin in getActivePlugins():
             plugin.onModuleDiscovered(module)
@@ -1777,6 +1782,28 @@ def replaceTriggerModule(old, new):
 def isTriggerModule(module):
     """Decide of a module is a trigger module."""
     return module in pre_modules.values() or module in post_modules.values()
+
+
+# TODO: Make this a dedicated thing generally.
+def _getMainModulePreloadCodes():
+    forced_runtime_env_variable_values = (
+        Options.getForcedRuntimeEnvironmentVariableValues()
+    )
+    if not forced_runtime_env_variable_values:
+        return
+
+    result = ["import os"]
+
+    for (
+        forced_runtime_env_variable_name,
+        forced_runtime_env_variable_value,
+    ) in forced_runtime_env_variable_values:
+        result.append(
+            "os.environ['%s'] = '%s'"
+            % (forced_runtime_env_variable_name, forced_runtime_env_variable_value)
+        )
+
+    yield ("\n".join(result), "forcing environment variable(s)")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

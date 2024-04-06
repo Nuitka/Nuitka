@@ -2400,6 +2400,15 @@ def getModuleParameter(module_name, parameter_name):
     return None
 
 
+def getForcedRuntimeEnvironmentVariableValues():
+    "--force-runtime-environment-variable"
+
+    for forced_runtime_env_variables_spec in options.forced_runtime_env_variables:
+        name, value = forced_runtime_env_variables_spec.split("=", 1)
+
+        yield (name, value)
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
