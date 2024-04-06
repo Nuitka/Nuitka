@@ -704,6 +704,13 @@ def hasFilenameExtension(path, extensions):
         return extension in extensions
 
 
+def addFilenameExtension(path, extension):
+    if not hasFilenameExtension(path, extension):
+        path += extension
+
+    return path
+
+
 def removeDirectory(path, ignore_errors):
     """Remove a directory recursively.
 
