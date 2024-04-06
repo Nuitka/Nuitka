@@ -390,14 +390,19 @@
       change_function:
         'test': 'un-callable'
 
-- module-name: 'bitsandbytes.cextension' # checksum: 70a78a03
+- module-name: 'bitsandbytes' # checksum: 14f2c5d0
   dlls:
     - from_filenames:
         prefixes:
           - 'libbitsandbytes_'
         suffixes:
-          # Applies currently to all OSes in bitsandbytes wheels.
+          # Applied to all OSes in bitsandbytes wheels.
           - 'so'
+      when: 'version("bitsandbytes") < (0,43)'
+    - from_filenames:
+        prefixes:
+          - 'libbitsandbytes_'
+      when: 'version("bitsandbytes") >= (0,43)'
 
 - module-name: 'bitsandbytes.triton.dequantize_rowwise' # checksum: 291bbd89
   anti-bloat:
@@ -2234,6 +2239,11 @@
   implicit-imports:
     - depends:
         - '_cffi_backend'
+
+- module-name: 'names' # checksum: 4d754910
+  data-files:
+    patterns:
+      - 'dist.*'
 
 - module-name: 'networkx' # checksum: 6f2aa88a
   anti-bloat:
@@ -4114,6 +4124,11 @@
     dirs:
       - 'fonts'
 
+- module-name: 'randomname' # checksum: 8d6f0c80
+  data-files:
+    dirs:
+      - 'wordlists'
+
 - module-name: 'rapidfuzz' # checksum: 2248cb4c
   implicit-imports:
     - depends:
@@ -4264,7 +4279,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 2e8d63ef
+- module-name: 'scipy' # checksum: 30cb05e1
   data-files:
     patterns:
       - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -4279,6 +4294,12 @@
         prefixes:
           - ''
       when: 'win32'
+
+  anti-bloat:
+    - description: 'torch and cupy checks should not cause usage'
+      no-auto-follow:
+        'cupy': 'ignore'
+        'torch': 'ignore'
 
 - module-name: 'scipy._distributor_init' # checksum: 3316da5c
   anti-bloat:
@@ -4410,6 +4431,11 @@
   implicit-imports:
     - depends:
         - 'scipy.special._ufuncs_cxx'
+
+- module-name: 'scipy.special._ufuncs' # checksum: 4ded0e67
+  implicit-imports:
+    - depends:
+        - 'scipy.special._cdflib'
 
 - module-name: 'scipy.stats._fit' # checksum: 7547ad25
   anti-bloat:
@@ -6678,9 +6704,11 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
-- module-name: 'transformers.models.mra.modeling_mra' # checksum: baab8e6b
+- module-name: 'transformers.models.mra.modeling_mra' # checksum: a554c6d
   anti-bloat:
     - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch.utils.cpp_extension import load': ''
       change_function:
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
