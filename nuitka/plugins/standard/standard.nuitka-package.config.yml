@@ -4279,7 +4279,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 2e8d63ef
+- module-name: 'scipy' # checksum: 30cb05e1
   data-files:
     patterns:
       - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -4294,6 +4294,12 @@
         prefixes:
           - ''
       when: 'win32'
+
+  anti-bloat:
+    - description: 'torch and cupy checks should not cause usage'
+      no-auto-follow:
+        'cupy': 'ignore'
+        'torch': 'ignore'
 
 - module-name: 'scipy._distributor_init' # checksum: 3316da5c
   anti-bloat:
