@@ -919,6 +919,7 @@ _stdlib_module_raises = {
     "_subprocess": False,
     "_sha": False,  # TODO: Not entirely clear if that's true
     "_sha1": False,
+    "_sha2": False,
     "_sha256": False,
     "_sha3": False,
     "_sha512": False,
@@ -982,6 +983,7 @@ _stdlib_module_raises = {
     "zipimport": False,
     "zlib": False,
     "_ssl": True,
+    "_xxinterpchannels": False,
 }
 
 
