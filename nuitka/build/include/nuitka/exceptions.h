@@ -868,6 +868,20 @@ EXCEPTION_STATE_MATCH_BOOL_SINGLE(PyThreadState *tstate, struct Nuitka_Exception
     return EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, exception_checked);
 }
 
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT(exception_state->exception_type);
+    CHECK_OBJECT_X(exception_state->exception_value);
+    CHECK_OBJECT_X(exception_state->exception_tb);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT_X(exception_state->exception_type);
+    CHECK_OBJECT_X(exception_state->exception_value);
+    CHECK_OBJECT_X(exception_state->exception_tb);
+}
+
 #else
 struct Nuitka_ExceptionPreservationItem {
     PyObject *exception_value;
@@ -973,6 +987,16 @@ EXCEPTION_STATE_MATCH_BOOL_SINGLE(PyThreadState *tstate, struct Nuitka_Exception
     return EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_value, exception_checked);
 }
 
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT(exception_state->exception_value);
+}
+
+NUITKA_MAY_BE_UNUSED inline static void
+CHECK_EXCEPTION_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
+    CHECK_OBJECT_X(exception_state->exception_value);
+}
+
 #endif
 
 NUITKA_MAY_BE_UNUSED inline static void
@@ -982,20 +1006,6 @@ SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(struct Nuitka_ExceptionPreservat
 
     SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(exception_state, exception_type, exception_value, NULL);
     Py_DECREF(exception_value);
-}
-
-NUITKA_MAY_BE_UNUSED inline static void
-CHECK_EXCEPTION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
-    CHECK_OBJECT(exception_state->exception_type);
-    CHECK_OBJECT_X(exception_state->exception_value);
-    CHECK_OBJECT_X(exception_state->exception_tb);
-}
-
-NUITKA_MAY_BE_UNUSED inline static void
-CHECK_EXCEPTION_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
-    CHECK_OBJECT_X(exception_state->exception_type);
-    CHECK_OBJECT_X(exception_state->exception_value);
-    CHECK_OBJECT_X(exception_state->exception_tb);
 }
 
 NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyThreadState *tstate, PyObject *exception_value) {

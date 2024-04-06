@@ -57,9 +57,8 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 // Needed for offsetof
 #include <stddef.h>
 
-#define MAX_LONG_DIGITS ((PY_SSIZE_T_MAX - offsetof(PyLongObject, ob_digit)) / sizeof(digit))
-
 #if PYTHON_VERSION < 0x3c0
+#define MAX_LONG_DIGITS ((PY_SSIZE_T_MAX - offsetof(PyLongObject, ob_digit)) / sizeof(digit))
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (Py_ABS(Py_SIZE(value)))
 #define Nuitka_LongIsNegative(value) (Py_SIZE(value) < 0)
@@ -67,6 +66,8 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 #define Nuitka_LongSetSign(value, positive) Py_SET_SIZE(value, (((positive) ? 1 : -1) * Py_ABS(Py_SIZE(value))))
 #define Nuitka_LongFlipSign(value) Py_SET_SIZE(value, -Py_SIZE(value))
 #else
+#define MAX_LONG_DIGITS ((PY_SSIZE_T_MAX - offsetof(PyLongObject, long_value.ob_digit)) / sizeof(digit))
+
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->long_value.ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (((PyLongObject *)value)->long_value.lv_tag >> NON_SIZE_BITS)
 #define Nuitka_LongIsNegative(value) (((PyLongObject *)value)->long_value.lv_tag & SIGN_NEGATIVE)
