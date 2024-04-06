@@ -901,7 +901,9 @@ static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
 #endif
     return true;
 
+#if PYTHON_VERSION < 0x3c0
 failed_throw:
+#endif
     // Release exception, we are done with it now.
     RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
