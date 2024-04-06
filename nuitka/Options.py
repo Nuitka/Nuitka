@@ -115,6 +115,12 @@ def checkPathSpec(value, arg_name, allow_disable):
             % (arg_name, old, value)
         )
 
+    if "\n" in value or "\r" in value:
+        Tracing.options_logger.sysexit(
+            "Using a new line in value '%s=%r' value is not allowed."
+            % (arg_name, value)
+        )
+
     if "{NONE}" in value:
         if not allow_disable:
             Tracing.options_logger.sysexit(
