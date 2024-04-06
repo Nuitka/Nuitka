@@ -1328,9 +1328,9 @@ orig_argv = argv;
         if (python_path_cstr != NULL) {
             PyObject *python_path_str = Nuitka_String_FromFilename(python_path_cstr);
 #ifdef _WIN32
-            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ";");
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, (char *)"split", (char *)"s", ";");
 #else
-            PyObject *python_path_list = PyObject_CallMethod(python_path_str, "split", "s", ":");
+            PyObject *python_path_list = PyObject_CallMethod(python_path_str, (char *)"split", (char *)"s", ":");
 #endif
             Py_DECREF(python_path_str);
 
