@@ -160,7 +160,7 @@ def checkPathSpec(value, arg_name, allow_disable):
             % (arg_name, value)
         )
 
-    if "{VERSION}" in value and not (getFileVersion() or getProductVersion()):
+    if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
         Tracing.options_logger.sysexit(
             "Using value '{VERSION}' in '%s=%s' value without being specified."
             % (arg_name, value)
@@ -634,7 +634,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        file_version = getFileVersion()
+        file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         Tracing.options_logger.sysexit(
@@ -642,7 +642,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        product_version = getProductVersion()
+        product_version = getProductVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         Tracing.options_logger.sysexit(
@@ -1967,11 +1967,21 @@ def _parseVersionNumber(value):
 
 
 def getProductVersion():
+    """:returns: str, derived from ``--product-version``"""
+    return options.product_version
+
+
+def getProductVersionTuple():
     """:returns: tuple of 4 ints or None, derived from ``--product-version``"""
     return _parseVersionNumber(options.product_version)
 
 
 def getFileVersion():
+    """:returns str, derived from ``--file-version``"""
+    return options.file_version
+
+
+def getFileVersionTuple():
     """:returns tuple of 4 ints or None, derived from ``--file-version``"""
     return _parseVersionNumber(options.file_version)
 
