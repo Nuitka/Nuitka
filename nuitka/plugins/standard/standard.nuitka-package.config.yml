@@ -5038,12 +5038,12 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: e48286a
+- module-name: 'sklearn.utils' # checksum: d3a557f9
   data-files:
     patterns:
       - '*.css'
   anti-bloat:
-    - description: 'pandas check should not cause pandas usage'
+    - description: 'pandas and matplotlib checks should not cause usage'
       no-auto-follow:
         'pandas': 'ignore'
         'matplotlib': 'ignore'
