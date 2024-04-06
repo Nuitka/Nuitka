@@ -80,6 +80,9 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
             self, locals_scope=locals_scope, source_ref=source_ref
         )
 
+    def getDetails(self):
+        return {"locals_scope": self.locals_scope}
+
     def getLocalsScope(self):
         return self.locals_scope
 
