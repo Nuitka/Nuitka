@@ -590,8 +590,12 @@ PR to create. Default not making a PR.""",
 
     assert len(positional_args) <= 1, positional_args
 
-    if positional_args and os.path.isdir(positional_args[0]):
+    if positional_args:
         base_dir = positional_args[0]
+
+        if not os.path.isdir(base_dir):
+            watch_logger.sysexit("Error, '%s' is not a directory" % base_dir)
+
     else:
         base_dir = os.getcwd()
 
