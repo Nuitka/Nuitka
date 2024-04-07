@@ -19,8 +19,11 @@
 #undef Py_BUILD_CORE
 #endif
 
+#if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
                                                  struct Nuitka_ExceptionPreservationItem *exception_state);
+#endif
+
 // This function takes no reference to value, and publishes a StopIteration
 // exception with it.
 #if PYTHON_VERSION >= 0x300
@@ -345,8 +348,8 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
 
-static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
-                                           struct Nuitka_ExceptionPreservationItem *exception_state);
+static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
+                                          struct Nuitka_ExceptionPreservationItem *exception_state);
 
 #if PYTHON_VERSION < 0x3b0
 #include <opcode.h>
@@ -1596,8 +1599,8 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 
 throw_here:
     // We continue to have exception ownership here.
-    if (unlikely(_Nuitka_Generator_check_throw2(tstate, exception_state) == false)) {
-        // Exception was released by _Nuitka_Generator_check_throw2 already.
+    if (unlikely(_Nuitka_Generator_check_throw(tstate, exception_state) == false)) {
+        // Exception was released by _Nuitka_Generator_check_throw already.
         return NULL;
     }
 
