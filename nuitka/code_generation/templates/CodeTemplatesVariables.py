@@ -45,7 +45,7 @@ template_write_local_inplace = """\
 """
 
 template_write_shared_inplace = """\
-PyCell_SET(%(identifier)s, %(tmp_name)s);
+Nuitka_Cell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 
@@ -62,7 +62,7 @@ template_write_local_clear_ref1 = """\
 template_write_shared_unclear_ref0 = """\
 {
     PyObject *old = Nuitka_Cell_GET(%(identifier)s);
-    PyCell_SET(%(identifier)s, %(tmp_name)s);
+    Nuitka_Cell_SET(%(identifier)s, %(tmp_name)s);
     Py_XDECREF(old);
 }
 """
@@ -70,7 +70,7 @@ template_write_shared_unclear_ref0 = """\
 template_write_shared_unclear_ref1 = """\
 {
     PyObject *old = Nuitka_Cell_GET(%(identifier)s);
-    PyCell_SET(%(identifier)s, %(tmp_name)s);
+    Nuitka_Cell_SET(%(identifier)s, %(tmp_name)s);
     Py_INCREF(%(tmp_name)s);
     Py_XDECREF(old);
 }
@@ -78,13 +78,13 @@ template_write_shared_unclear_ref1 = """\
 
 template_write_shared_clear_ref0 = """\
 assert(Nuitka_Cell_GET(%(identifier)s) == NULL);
-PyCell_SET(%(identifier)s, %(tmp_name)s);
+Nuitka_Cell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 template_write_shared_clear_ref1 = """\
 assert(Nuitka_Cell_GET(%(identifier)s) == NULL);
 Py_INCREF(%(tmp_name)s);
-PyCell_SET(%(identifier)s, %(tmp_name)s);
+Nuitka_Cell_SET(%(identifier)s, %(tmp_name)s);
 """
 
 
@@ -96,7 +96,7 @@ Py_XDECREF(%(identifier)s);
 template_del_shared_tolerant = """\
 {
     PyObject *old = Nuitka_Cell_GET(%(identifier)s);
-    PyCell_SET(%(identifier)s, NULL);
+    Nuitka_Cell_SET(%(identifier)s, NULL);
     Py_XDECREF(old);
 }
 """
@@ -112,7 +112,7 @@ if (likely(%(result)s)) {
 template_del_shared_intolerant = """\
 {
     PyObject *old = Nuitka_Cell_GET(%(identifier)s);
-    PyCell_SET(%(identifier)s, NULL);
+    Nuitka_Cell_SET(%(identifier)s, NULL);
     Py_XDECREF(old);
 
     %(result)s = old != NULL;
@@ -128,7 +128,7 @@ Py_DECREF(%(identifier)s);
 template_del_shared_known = """\
 {
     PyObject *old = Nuitka_Cell_GET(%(identifier)s);
-    PyCell_SET(%(identifier)s, NULL);
+    Nuitka_Cell_SET(%(identifier)s, NULL);
 
     CHECK_OBJECT(old);
     Py_DECREF(old);
