@@ -608,7 +608,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_LONG(PyObject **operand1, PyObjec
     PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-        long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+        medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
         if (Py_REFCNT(*operand1) == 1) {
             Nuitka_LongUpdateFromCLong(&*operand1, r);
@@ -899,7 +899,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **operand1, PyObj
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+            medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
             if (Py_REFCNT(*operand1) == 1) {
                 Nuitka_LongUpdateFromCLong(&*operand1, r);
@@ -1195,7 +1195,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **operand1, PyObj
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+            medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
             if (Py_REFCNT(*operand1) == 1) {
                 Nuitka_LongUpdateFromCLong(&*operand1, r);
@@ -2309,7 +2309,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long o
     PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
 
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && (operand2 == 0 ? 0 : 1) <= 1) {
-        long r = MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2;
+        medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2;
 
         if (Py_REFCNT(*operand1) == 1) {
             Nuitka_LongUpdateFromCLong(&*operand1, r);

@@ -6284,7 +6284,8 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
 
     if (operand1_long_object == operand2_long_object) {
         r = true;
-    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
+    } else if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+               Nuitka_LongGetSignedDigitSize(operand2_long_object)) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
@@ -6912,7 +6913,8 @@ static bool COMPARE_EQ_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
 
     if (operand1_long_object == operand2_long_object) {
         r = true;
-    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
+    } else if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+               Nuitka_LongGetSignedDigitSize(operand2_long_object)) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
@@ -11794,7 +11796,7 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != operand2_size) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) != operand2_size) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
@@ -11856,7 +11858,7 @@ static bool COMPARE_EQ_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != operand2_size) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) != operand2_size) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
@@ -11935,7 +11937,8 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+        (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
@@ -11970,7 +11973,8 @@ static bool COMPARE_EQ_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+        (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
         r = false;
     } else {
         Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
