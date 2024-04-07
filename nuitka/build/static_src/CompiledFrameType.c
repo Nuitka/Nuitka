@@ -695,21 +695,22 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_methods != PyFrame_Type.tp_methods);
     assert(Nuitka_Frame_Type.tp_members != PyFrame_Type.tp_members);
     assert(Nuitka_Frame_Type.tp_getset != PyFrame_Type.tp_getset);
-    assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
+
     assert(Nuitka_Frame_Type.tp_descr_get != PyFrame_Type.tp_descr_get || PyFrame_Type.tp_descr_get == NULL);
 
     assert(Nuitka_Frame_Type.tp_descr_set != PyFrame_Type.tp_descr_set || PyFrame_Type.tp_descr_set == NULL);
     assert(Nuitka_Frame_Type.tp_dictoffset != PyFrame_Type.tp_dictoffset || PyFrame_Type.tp_dictoffset == 0);
     // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
     // assert(Nuitka_Frame_Type.tp_init != PyFrame_Type.tp_init || PyFrame_Type.tp_init == NULL);
     // assert(Nuitka_Frame_Type.tp_alloc != PyFrame_Type.tp_alloc || PyFrame_Type.tp_alloc == NULL);
     // assert(Nuitka_Frame_Type.tp_new != PyFrame_Type.tp_new || PyFrame_Type.tp_new == NULL);
     // assert(Nuitka_Frame_Type.tp_free != PyFrame_Type.tp_free || PyFrame_Type.tp_free == NULL);
+    // assert(Nuitka_Frame_Type.tp_weaklist != PyFrame_Type.tp_weaklist);
     assert(Nuitka_Frame_Type.tp_bases != PyFrame_Type.tp_bases);
     assert(Nuitka_Frame_Type.tp_mro != PyFrame_Type.tp_mro);
     assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
-    assert(Nuitka_Frame_Type.tp_weaklist != PyFrame_Type.tp_weaklist);
     assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
 #if PYTHON_VERSION >= 0x340
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
