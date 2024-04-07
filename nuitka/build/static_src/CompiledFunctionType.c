@@ -517,6 +517,29 @@ static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *func
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3c0
+static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "readonly attribute");
+    return -1;
+}
+
+static PyObject *Nuitka_Function_get_type_params(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    // TODO: Probably not needed anymore?
+    Py_INCREF(const_tuple_empty);
+    return const_tuple_empty;
+}
+#endif
+
 static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *function, PyObject *value) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
@@ -595,6 +618,9 @@ static PyGetSetDef Nuitka_Function_getset[] = {
 #endif
 #if PYTHON_VERSION >= 0x3a0
     {(char *)"__builtins__", (getter)Nuitka_Function_get_builtins, (setter)Nuitka_Function_set_builtins, NULL},
+#endif
+#if PYTHON_VERSION >= 0x3c0
+    {(char *)"__type_params__", (getter)Nuitka_Function_get_type_params, (setter)Nuitka_Function_set_type_params, NULL},
 #endif
     {(char *)"__compiled__", (getter)Nuitka_Function_get_compiled, (setter)Nuitka_Function_set_compiled, NULL},
     {(char *)"__compiled_constant__", (getter)Nuitka_Function_get_compiled_constant,

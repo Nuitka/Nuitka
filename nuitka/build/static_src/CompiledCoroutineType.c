@@ -645,7 +645,7 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
 
     if (coroutine->m_status == status_Running) {
         struct Nuitka_ExceptionPreservationItem exception_state;
-        SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(&exception_state, PyExc_GeneratorExit, NULL, NULL);
+        SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, PyExc_GeneratorExit, NULL, NULL);
 
         PyObject *result = _Nuitka_Coroutine_send(tstate, coroutine, NULL, true, &exception_state);
 
@@ -682,8 +682,8 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
                                               struct Nuitka_ExceptionPreservationItem *exception_state);
 #endif
 
-static bool _Nuitka_Generator_check_throw2(PyThreadState *tstate,
-                                           struct Nuitka_ExceptionPreservationItem *exception_state);
+static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
+                                          struct Nuitka_ExceptionPreservationItem *exception_state);
 
 // This function is called when yielding to a coroutine through "_Nuitka_YieldFromPassExceptionTo"
 // and potentially wrapper objects used by generators, or by the throw method itself.
@@ -866,8 +866,8 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
 throw_here:
     // We continue to have exception ownership here.
 
-    if (unlikely(_Nuitka_Generator_check_throw2(tstate, exception_state) == false)) {
-        // Exception was released by _Nuitka_Generator_check_throw2 already.
+    if (unlikely(_Nuitka_Generator_check_throw(tstate, exception_state) == false)) {
+        // Exception was released by _Nuitka_Generator_check_throw already.
         return NULL;
     }
 
@@ -953,11 +953,18 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
     PRINT_NEW_LINE();
 #endif
 
+    PyThreadState *tstate = PyThreadState_GET();
+
+#if PYTHON_VERSION >= 0x3c0
+    if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
+        return NULL;
+    }
+#endif
+
     // Handing ownership of exception over, we need not release it ourselves
     struct Nuitka_ExceptionPreservationItem exception_state;
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(&exception_state, exception_type, exception_value, exception_tb);
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value, exception_tb);
 
-    PyThreadState *tstate = PyThreadState_GET();
     PyObject *result = _Nuitka_Coroutine_throw2(tstate, coroutine, false, &exception_state);
 
     if (result == NULL) {

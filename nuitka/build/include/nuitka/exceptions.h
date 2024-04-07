@@ -24,7 +24,45 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED(PyThreadState *t
 #if PYTHON_VERSION < 0x3c0
     return tstate->curexc_type;
 #else
-    return (PyObject *)Py_TYPE(tstate->current_exception);
+    return tstate->current_exception ? (PyObject *)Py_TYPE(tstate->current_exception) : NULL;
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static inline void ASSERT_NORMALIZED_EXCEPTION_VALUE_X(PyObject *exception_value) {
+    CHECK_OBJECT_X(exception_value);
+    assert(exception_value == NULL || PyExceptionInstance_Check(exception_value));
+}
+
+NUITKA_MAY_BE_UNUSED static inline void ASSERT_NORMALIZED_EXCEPTION_VALUE(PyObject *exception_value) {
+    CHECK_OBJECT(exception_value);
+    assert(PyExceptionInstance_Check(exception_value));
+}
+
+extern void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val,
+                                          PyTracebackObject **tb);
+
+// Normalize an exception.
+NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyThreadState *tstate, PyObject **exception_type,
+                                                            PyObject **exception_value,
+                                                            PyTracebackObject **exception_tb) {
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
+    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
+#endif
+    CHECK_OBJECT_X(*exception_type);
+    CHECK_OBJECT_X(*exception_value);
+    if (exception_tb) {
+        CHECK_OBJECT_X(*exception_tb);
+    }
+
+    // TODO: Often we already know this to be true.
+    if (*exception_type != Py_None && *exception_type != NULL) {
+        Nuitka_Err_NormalizeException(tstate, exception_type, exception_value, exception_tb);
+    }
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
+    PRINT_EXCEPTION(*exception_type, *exception_value, exception_tb ? *exception_tb : NULL);
 #endif
 }
 
@@ -43,9 +81,12 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(PyThreadState *tsta
     Py_XDECREF(old_value);
     Py_XDECREF(old_tb);
 #else
-    PyObject *old_exception = tstate->current_exception;
+    PyObject *old_exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(old_exception_value);
+
     tstate->current_exception = NULL;
-    Py_XDECREF(old_exception);
+
+    Py_XDECREF(old_exception_value);
 #endif
 }
 
@@ -70,11 +111,12 @@ NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED(PyThreadState *tstat
     }
 #else
     if (unlikely(tstate->current_exception != NULL)) {
-        PyObject *old_exception = tstate->current_exception;
+        PyObject *old_exception_value = tstate->current_exception;
+        ASSERT_NORMALIZED_EXCEPTION_VALUE(old_exception_value);
 
         tstate->current_exception = NULL;
 
-        Py_DECREF(old_exception);
+        Py_DECREF(old_exception_value);
 
         return true;
     }
@@ -346,8 +388,10 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyThreadStat
     Py_XDECREF(old_exception_traceback);
 #else
     PyObject *old_exception = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(old_exception);
 
     tstate->current_exception = exception_type;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(exception_type);
     Py_INCREF(exception_type);
 
     // TODO: Might have to immediately normalize, and maybe we can use different
@@ -385,9 +429,11 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_ty
     Py_XDECREF(old_exception_value);
     Py_XDECREF(old_exception_traceback);
 #else
-    PyObject *old_exception = tstate->current_exception;
+    PyObject *old_exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
 
     tstate->current_exception = exception_value;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(exception_value);
     Py_INCREF(exception_value);
 
 #if _DEBUG_EXCEPTIONS
@@ -395,7 +441,7 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_ty
     PRINT_CURRENT_EXCEPTION();
 #endif
 
-    Py_XDECREF(old_exception);
+    Py_XDECREF(old_exception_value);
 #endif
 }
 
@@ -420,16 +466,17 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyThreadState *tstate, PyObject *exception_ty
     Py_XDECREF(old_exception_value);
     Py_XDECREF(old_exception_traceback);
 #else
-    PyObject *old_exception = tstate->current_exception;
+    PyObject *old_exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
 
     tstate->current_exception = exception_value;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_value);
+    Py_XDECREF(old_exception_value);
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
     PRINT_CURRENT_EXCEPTION();
 #endif
-
-    Py_XDECREF(old_exception);
 #endif
 }
 
@@ -439,6 +486,10 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyThreadState *tstate, PyObject *exception_ty
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyThreadState *tstate, PyObject *exception_type,
                                                                         char const *value) {
     PyObject *exception_value = Nuitka_String_FromString(value);
+
+#if PYTHON_VERSION >= 0x3c0
+    NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, NULL);
+#endif
 
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, exception_type, exception_value);
 }
@@ -528,14 +579,14 @@ NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION(PyThreadState *t
 
 #endif
 
-// Similar to PyException_SetTraceback, only done for Python3.
+// Similar to "PyException_SetTraceback", only done for Python3.
 #if PYTHON_VERSION < 0x300
 #define ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb) ;
 #else
 NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyObject *exception_value,
                                                                             PyTracebackObject *exception_tb) {
     CHECK_OBJECT(exception_value);
-    CHECK_OBJECT(exception_tb);
+    CHECK_OBJECT_X(exception_tb);
 
     if (exception_tb == (PyTracebackObject *)Py_None || exception_tb == NULL) {
         return;
@@ -554,40 +605,13 @@ NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyOb
 
 // Much like "PyException_GetTraceback", but does not give a reference.
 NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(PyObject *exception_value) {
+    CHECK_OBJECT(exception_value);
     assert(PyExceptionInstance_Check(exception_value));
 
     PyBaseExceptionObject *exc_object = (PyBaseExceptionObject *)(exception_value);
     return (PyTracebackObject *)exc_object->traceback;
 }
 #endif
-
-extern void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val,
-                                          PyTracebackObject **tb);
-
-// Normalize an exception.
-NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyThreadState *tstate, PyObject **exception_type,
-                                                            PyObject **exception_value,
-                                                            PyTracebackObject **exception_tb) {
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
-#endif
-    CHECK_OBJECT_X(*exception_type);
-    CHECK_OBJECT_X(*exception_value);
-    if (exception_tb) {
-        CHECK_OBJECT_X(*exception_tb);
-    }
-
-    // TODO: Often we already know this to be true.
-    if (*exception_type != Py_None && *exception_type != NULL) {
-        Nuitka_Err_NormalizeException(tstate, exception_type, exception_value, exception_tb);
-    }
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(*exception_type, *exception_value, exception_tb ? *exception_tb : NULL);
-#endif
-}
 
 // Publish an exception, erasing the values of the variables.
 NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION(PyThreadState *tstate, PyObject **exception_type,
@@ -820,10 +844,9 @@ RELEASE_ERROR_OCCURRED_STATE_X(struct Nuitka_ExceptionPreservationItem *exceptio
     Py_XDECREF(exception_state->exception_tb);
 }
 
-NUITKA_MAY_BE_UNUSED static void
-SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationItem *exception_state,
-                                           PyObject *exception_type, PyObject *exception_value,
-                                           PyTracebackObject *exception_tb) {
+NUITKA_MAY_BE_UNUSED static void SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(
+    PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state, PyObject *exception_type,
+    PyObject *exception_value, PyTracebackObject *exception_tb) {
     Py_INCREF(exception_type);
     Py_XINCREF(exception_value);
     Py_XINCREF(exception_tb);
@@ -890,6 +913,7 @@ struct Nuitka_ExceptionPreservationItem {
 NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED_STATE(PyThreadState *tstate,
                                                             struct Nuitka_ExceptionPreservationItem *exception_state) {
     exception_state->exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_state->exception_value);
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("FETCH_ERROR_OCCURRED_STATE:\n");
@@ -903,11 +927,16 @@ NUITKA_MAY_BE_UNUSED static void
 FETCH_ERROR_OCCURRED_STATE_UNTRACED(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
     exception_state->exception_value = tstate->current_exception;
     tstate->current_exception = NULL;
+
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_state->exception_value);
 }
 
 NUITKA_MAY_BE_UNUSED static void
 RESTORE_ERROR_OCCURRED_STATE(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
     PyObject *old_exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
+
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_state->exception_value);
     tstate->current_exception = exception_state->exception_value;
 
 #if _DEBUG_EXCEPTIONS
@@ -921,6 +950,9 @@ RESTORE_ERROR_OCCURRED_STATE(PyThreadState *tstate, struct Nuitka_ExceptionPrese
 NUITKA_MAY_BE_UNUSED static void
 RESTORE_ERROR_OCCURRED_STATE_UNTRACED(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state) {
     PyObject *old_exception_value = tstate->current_exception;
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
+
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_state->exception_value);
     tstate->current_exception = exception_state->exception_value;
 
     Py_XDECREF(old_exception_value);
@@ -951,12 +983,14 @@ RELEASE_ERROR_OCCURRED_STATE_X(struct Nuitka_ExceptionPreservationItem *exceptio
     Py_XDECREF(exception_state->exception_value);
 }
 
-NUITKA_MAY_BE_UNUSED static void
-SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(struct Nuitka_ExceptionPreservationItem *exception_state,
-                                           PyObject *exception_type, PyObject *exception_value,
-                                           PyTracebackObject *exception_tb) {
-    // TODO: Python 3.12 conversion of args into single value object.
-    assert(false);
+NUITKA_MAY_BE_UNUSED static void SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(
+    PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state, PyObject *exception_type,
+    PyObject *exception_value, PyTracebackObject *exception_tb) {
+    NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_tb);
+
+    exception_state->exception_value = exception_value;
+    Py_DECREF(exception_type);
+    ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(exception_value, exception_tb);
 }
 
 NUITKA_MAY_BE_UNUSED static void
@@ -964,7 +998,18 @@ ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(struct Nuitka_ExceptionPreservatio
                                               PyObject **exception_type, PyObject **exception_value,
                                               PyTracebackObject **exception_tb) {
 
-    assert(false);
+    *exception_value = exception_state->exception_value;
+    Py_XINCREF(*exception_value);
+
+    if (exception_value) {
+        *exception_type = (PyObject *)Py_TYPE(*exception_value);
+        Py_INCREF(*exception_type);
+        *exception_tb = GET_EXCEPTION_TRACEBACK(*exception_value);
+        Py_XINCREF(*exception_tb);
+    } else {
+        *exception_type = NULL;
+        *exception_tb = NULL;
+    }
 }
 
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *
@@ -989,22 +1034,23 @@ EXCEPTION_STATE_MATCH_BOOL_SINGLE(PyThreadState *tstate, struct Nuitka_Exception
 
 NUITKA_MAY_BE_UNUSED inline static void
 CHECK_EXCEPTION_STATE(struct Nuitka_ExceptionPreservationItem *exception_state) {
-    CHECK_OBJECT(exception_state->exception_value);
+    ASSERT_NORMALIZED_EXCEPTION_VALUE(exception_state->exception_value);
 }
 
 NUITKA_MAY_BE_UNUSED inline static void
 CHECK_EXCEPTION_STATE_X(struct Nuitka_ExceptionPreservationItem *exception_state) {
-    CHECK_OBJECT_X(exception_state->exception_value);
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_state->exception_value);
 }
 
 #endif
 
 NUITKA_MAY_BE_UNUSED inline static void
-SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(struct Nuitka_ExceptionPreservationItem *exception_state,
+SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(PyThreadState *tstate,
+                                                struct Nuitka_ExceptionPreservationItem *exception_state,
                                                 PyObject *exception_type, char const *value) {
     PyObject *exception_value = Nuitka_String_FromString(value);
 
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(exception_state, exception_type, exception_value, NULL);
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, exception_state, exception_type, exception_value, NULL);
     Py_DECREF(exception_value);
 }
 
@@ -1205,7 +1251,8 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED(PyThreadState *tstate, P
     NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, &exception_traceback);
 
     struct Nuitka_ExceptionPreservationItem exception_state;
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(&exception_state, exception_type, exception_value, exception_traceback);
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value,
+                                               exception_traceback);
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
 }
