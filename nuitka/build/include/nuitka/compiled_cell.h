@@ -38,6 +38,14 @@ extern int count_allocated_Nuitka_Cell_Type;
 extern int count_released_Nuitka_Cell_Type;
 #endif
 
+NUITKA_MAY_BE_UNUSED static inline void Nuitka_Cell_SET(struct Nuitka_CellObject *cell_object, PyObject *value) {
+    CHECK_OBJECT_X(value);
+    CHECK_OBJECT(cell_object);
+
+    assert(Nuitka_Cell_Check((PyObject *)cell_object));
+    cell_object->ob_ref = value;
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
