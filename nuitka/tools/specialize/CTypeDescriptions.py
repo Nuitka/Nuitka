@@ -1376,7 +1376,7 @@ class LongDesc(ConcreteNonSequenceTypeBase):
 
     @staticmethod
     def getLongValueSizeExpression(operand):
-        return "Py_SIZE(%s_long_object)" % operand
+        return "Nuitka_LongGetSignedDigitSize(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueIsNegativeTestExpression(operand):
