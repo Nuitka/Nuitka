@@ -538,7 +538,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-        long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+        medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
         clong_result = r;
         goto exit_result_ok_clong;
@@ -761,7 +761,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+            medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
             clong_result = r;
             goto exit_result_ok_clong;
@@ -1000,7 +1000,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+            medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
 
             clong_result = r;
             goto exit_result_ok_clong;
@@ -1970,7 +1970,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, lon
     PyLongObject *operand1_long_object = (PyLongObject *)operand1;
 
     if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && (operand2 == 0 ? 0 : 1) <= 1) {
-        long r = MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2;
+        medium_result_value_t r = MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2;
 
         clong_result = r;
         goto exit_result_ok_clong;
@@ -2051,7 +2051,7 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject
     PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     if ((operand1 == 0 ? 0 : 1) <= 1 && Nuitka_LongGetDigitSize(operand2_long_object) <= 1) {
-        long r = (sdigit)operand1 - MEDIUM_VALUE(operand2_long_object);
+        medium_result_value_t r = (sdigit)operand1 - MEDIUM_VALUE(operand2_long_object);
 
         clong_result = r;
         goto exit_result_ok_clong;
