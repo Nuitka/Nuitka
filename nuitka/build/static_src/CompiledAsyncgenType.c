@@ -761,15 +761,12 @@ static PyObject *Nuitka_Asyncgen_throw(PyThreadState *tstate, struct Nuitka_Asyn
     PRINT_NEW_LINE();
 #endif
 
-#if PYTHON_VERSION >= 0x3c0
-    if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
-        return NULL;
-    }
-#endif
-
     // Handing ownership of exception over, we need not release it ourselves
     struct Nuitka_ExceptionPreservationItem exception_state;
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value, exception_tb);
+    if (_Nuitka_Generator_make_throw_exception_state(tstate, &exception_state, exception_type, exception_value,
+                                                     exception_tb) == false) {
+        return NULL;
+    }
 
     PyObject *result = _Nuitka_Asyncgen_throw2(tstate, asyncgen, false, &exception_state);
 
@@ -1909,16 +1906,12 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
                 return NULL;
             }
 
-#if PYTHON_VERSION >= 0x3c0
-            if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
-                return NULL;
-            }
-#endif
-
             // Handing ownership of exception over, we need not release it ourselves
             struct Nuitka_ExceptionPreservationItem exception_state;
-            SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value,
-                                                       exception_tb);
+            if (_Nuitka_Generator_make_throw_exception_state(tstate, &exception_state, exception_type, exception_value,
+                                                             exception_tb) == false) {
+                return NULL;
+            }
 
             retval = _Nuitka_Asyncgen_throw2(tstate, asyncgen,
                                              0, /* Do not close generator when PyExc_GeneratorExit is passed */

@@ -834,12 +834,19 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
 void PRINT_REFCOUNT(PyObject *object) {
     if (object) {
+#if PYTHON_VERSION >= 0x3c0
+        if (_Py_IsImmortal(object)) {
+            PRINT_STRING(" recnf IMMORTAL");
+        }
+
+        return;
+#endif
         char buffer[1024];
         snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
 
         PRINT_STRING(buffer);
     } else {
-        PRINT_STRING("<null>");
+        PRINT_STRING(" <null>");
     }
 }
 

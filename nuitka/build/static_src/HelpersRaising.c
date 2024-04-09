@@ -464,7 +464,7 @@ void RAISE_EXCEPTION_WITH_CAUSE_STATE(PyThreadState *tstate, struct Nuitka_Excep
     RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_type, &exception_state->exception_value,
                                &exception_state->exception_tb, exception_cause);
 #else
-    PyObject *exception_type = (PyObject *)Py_TYPE(exception_state->exception_value);
+    PyObject *exception_type = (PyObject *)PyExceptionInstance_Class(exception_state->exception_value);
     Py_INCREF(exception_type);
     PyTracebackObject *exception_tb = NULL;
 

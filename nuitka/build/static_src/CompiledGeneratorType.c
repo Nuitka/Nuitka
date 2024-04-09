@@ -192,8 +192,8 @@ static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
 
     return result;
 #else
-    // TODO: For 3.12, we may or may not have to create the type and tb args
-    assert(false);
+    // For Python 3.12 or higher, we don't create the type and tb args, code was
+    // always supposed to handle single argument forms and is now.
     PyObject *result = PyObject_CallFunctionObjArgs(throw_method, exception_state->exception_value, NULL);
 
     return result;
@@ -478,14 +478,18 @@ static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, cha
     NORMALIZE_EXCEPTION(tstate, &new_exception_state.exception_type, &new_exception_state.exception_value,
                         &new_exception_state.exception_tb);
 #endif
+
+#if PYTHON_VERSION < 0x3c0
+    Py_INCREF(saved_exception_state.exception_value);
     RAISE_EXCEPTION_WITH_CAUSE_STATE(tstate, &new_exception_state, saved_exception_state.exception_value);
 
     Py_INCREF(saved_exception_state.exception_value);
     PyException_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
 
-    Py_INCREF(saved_exception_state.exception_value);
-    RELEASE_ERROR_OCCURRED_STATE(&saved_exception_state);
-
+    // TODO: When we do this, for whatever reason, 3.12 crashes, but I feel we should not release
+    // here at all.
+    RELEASE_ERROR_OCCURRED_STATE_X(&saved_exception_state);
+#endif
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
 }
 #endif
@@ -876,9 +880,7 @@ static bool _Nuitka_Generator_check_throw_args(PyThreadState *tstate, PyObject *
         // Release old None value and replace it with the object, then set the exception type
         // from the class.
         *exception_value = *exception_type;
-        Py_INCREF(*exception_type);
         *exception_type = PyExceptionInstance_Class(*exception_type);
-        Py_INCREF(*exception_type);
 
     } else {
 #if PYTHON_VERSION < 0x300
@@ -899,6 +901,36 @@ failed_throw:
     return false;
 }
 #endif
+
+static bool _Nuitka_Generator_make_throw_exception_state(PyThreadState *tstate,
+                                                         struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                         PyObject *exception_type, PyObject *exception_value,
+                                                         PyTracebackObject *exception_tb) {
+
+#if PYTHON_VERSION >= 0x3c0
+    Py_INCREF(exception_type);
+    Py_XINCREF(exception_value);
+    Py_XINCREF(exception_tb);
+
+    if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
+        Py_DECREF(exception_type);
+        Py_XDECREF(exception_value);
+        Py_XDECREF(exception_tb);
+
+        return false;
+    }
+#endif
+
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, exception_state, exception_type, exception_value, exception_tb);
+
+#if PYTHON_VERSION >= 0x3c0
+    Py_DECREF(exception_type);
+    Py_XDECREF(exception_value);
+    Py_XDECREF(exception_tb);
+#endif
+
+    return true;
+}
 
 // Shared code for checking a thrown exception, coroutines, asyncgen, uncompiled
 // ones do this too. For pre-3.12, the checking needs to be done late, for 3.12
@@ -1291,15 +1323,12 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 
     PyThreadState *tstate = PyThreadState_GET();
 
-#if PYTHON_VERSION >= 0x3c0
-    if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
-        return NULL;
-    }
-#endif
-
     // Handing ownership of exception over, we need not release it ourselves
     struct Nuitka_ExceptionPreservationItem exception_state;
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value, exception_tb);
+    if (_Nuitka_Generator_make_throw_exception_state(tstate, &exception_state, exception_type, exception_value,
+                                                     exception_tb) == false) {
+        return NULL;
+    }
 
     PyObject *result = _Nuitka_Generator_throw2(tstate, generator, &exception_state);
 
