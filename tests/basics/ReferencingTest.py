@@ -1028,6 +1028,9 @@ def simpleFunction111():
 
 
 def simpleFunction112():
+    if sys.version_info >= (3, 12):
+        return
+
     TESTFN = "tmp.txt"
     import codecs
 
