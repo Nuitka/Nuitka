@@ -396,7 +396,7 @@ extern void DICT_CLEAR(PyObject *dict);
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL)
 #define NUITKA_DICT_HAS_FREELIST 1
 
 // Replacement for PyDict_New that is faster
