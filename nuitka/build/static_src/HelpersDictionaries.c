@@ -1346,16 +1346,21 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 PyObject *MAKE_DICT_EMPTY(void) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 
+#if PYTHON_VERSION < 0x3c0
     empty_dict_mp->ma_keys->dk_refcnt++;
+#endif
 
     PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
 
     result_mp->ma_keys = empty_dict_mp->ma_keys;
     result_mp->ma_values = empty_dict_mp->ma_values;
     result_mp->ma_used = 0;
+#if PYTHON_VERSION >= 0x3c0
+    result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
+#endif
 
-    // Key reference needs to be counted.
-#ifdef Py_REF_DEBUG
+    // Key reference needs to be counted on older Python
+#if defined(Py_REF_DEBUG) && PYTHON_VERSION < 0x3c0
     _Py_RefTotal++;
 #endif
 
