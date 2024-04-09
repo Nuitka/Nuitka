@@ -955,15 +955,12 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 
     PyThreadState *tstate = PyThreadState_GET();
 
-#if PYTHON_VERSION >= 0x3c0
-    if (_Nuitka_Generator_check_throw_args(tstate, &exception_type, &exception_value, &exception_tb) == false) {
-        return NULL;
-    }
-#endif
-
     // Handing ownership of exception over, we need not release it ourselves
     struct Nuitka_ExceptionPreservationItem exception_state;
-    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &exception_state, exception_type, exception_value, exception_tb);
+    if (_Nuitka_Generator_make_throw_exception_state(tstate, &exception_state, exception_type, exception_value,
+                                                     exception_tb) == false) {
+        return NULL;
+    }
 
     PyObject *result = _Nuitka_Coroutine_throw2(tstate, coroutine, false, &exception_state);
 
