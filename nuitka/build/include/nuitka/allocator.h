@@ -13,7 +13,7 @@
 #define _PyObject_GC_IS_TRACKED(obj) (1)
 #endif
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {
     assert(ob != NULL && ob->ob_refcnt >= 0);
@@ -89,7 +89,7 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
     _PyInterpreterState_GET()->object_state.reftotal++;
 #endif
 #endif
-    Py_SET_REFCNT(op, 1);
+    op->ob_refcnt = 1;
 }
 #else
 #define Nuitka_Py_NewReference(op) _Py_NewReference(op)
