@@ -174,7 +174,7 @@ def simpleFunction16():
 
 
 def simpleFunction17():
-    class EmptyObjectClass:
+    class EmptyObjectClass(object):
         pass
 
     return EmptyObjectClass()
