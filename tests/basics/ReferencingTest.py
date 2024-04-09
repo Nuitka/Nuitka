@@ -1358,6 +1358,7 @@ result = executeReferenceChecked(
     names=globals(),
     tests_skipped=tests_skipped,
     tests_stderr=tests_stderr,
+    explain=False,
 )
 
 sys.exit(0 if result else 1)
