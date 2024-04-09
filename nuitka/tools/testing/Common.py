@@ -702,7 +702,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
                     my_print("extra:", m1[key], key)
                 elif m1[key] != m2[key]:
                     my_print("*" * 80)
-                    my_print(m1[key], "->", m2[key], key)
+                    my_print(m1[key], "->", m2[key], repr(key))
                 else:
                     pass
 
@@ -825,7 +825,7 @@ def executeReferenceChecked(
 ):
     gc.disable()
 
-    extract_number = lambda name: int(name.replace(prefix, ""))
+    extract_number = lambda name: int(name.replace(prefix, "") or "0")
 
     # Find the function names.
     matching_names = tuple(
