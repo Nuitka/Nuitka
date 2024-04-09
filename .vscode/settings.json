@@ -63,7 +63,8 @@
         "deque": "c",
         "__memory": "c",
         "iterator": "c",
-        "locale": "c"
+        "locale": "c",
+        "queue": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
