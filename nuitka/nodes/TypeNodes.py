@@ -23,6 +23,7 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinSuper0Mixin,
     ChildrenExpressionBuiltinSuper1Mixin,
     ChildrenExpressionBuiltinSuper2Mixin,
+    ChildrenExpressionTypeAliasMixin,
     ChildrenHavingInstanceClassesMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
@@ -324,6 +325,26 @@ class ExpressionSubtypeCheck(
         # TODO: This needs to check the MRO and can assume the type nature, since it's only coming
         # from re-formulations that guarantee that.
         return self, None, None
+
+
+class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
+    kind = "EXPRESSION_TYPE_ALIAS"
+
+    named_children = ("type_params|tuple", "compute_value")
+
+    def __init__(self, type_params, compute_value, source_ref):
+        ChildrenExpressionTypeAliasMixin.__init__(
+            self, type_params=type_params, compute_value=compute_value
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
