@@ -140,6 +140,7 @@ from .ReformulationAssignmentStatements import (
     buildDeleteNode,
     buildInplaceAssignNode,
     buildNamedExprNode,
+    buildTypeAliasNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -763,6 +764,7 @@ setBuildingDispatchers(
         "NamedExpr": buildNamedExprNode,
         "Slice": buildSliceNode,
         "Match": buildMatchNode,
+        "TypeAlias": buildTypeAliasNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
