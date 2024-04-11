@@ -64,6 +64,8 @@ syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
 timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
+did_you_mean_re = re.compile(r"\. Did you mean: '.*?'\?")
+
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
     # Of course many cases to deal with,
@@ -176,6 +178,8 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = importerror_re.sub(import_re_callback, line)
 
         line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
+
+        line = did_you_mean_re.sub("", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
