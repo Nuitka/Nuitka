@@ -420,6 +420,10 @@ extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool gen
 #include "nuitka/exception_groups.h"
 #endif
 
+#if PYTHON_VERSION >= 0x3c0
+#include "nuitka/type_aliases.h"
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
