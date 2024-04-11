@@ -309,6 +309,10 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("_37.py") and _python_version >= (3, 8):
         return False
 
+    # Skip tests that require Python 3.11 at maximum.
+    if filename.endswith("_311.py") and _python_version >= (3, 8):
+        return False
+
     # Skip tests that require Python 3.2 at least.
     if filename.endswith("32.py") and _python_version < (3, 2):
         return False
@@ -347,6 +351,10 @@ def decideFilenameVersionSkip(filename):
 
     # Skip tests that require Python 3.11 at least.
     if filename.endswith("311.py") and _python_version < (3, 11):
+        return False
+
+    # Skip tests that require Python 3.12 at least.
+    if filename.endswith("312.py") and _python_version < (3, 12):
         return False
 
     return True
