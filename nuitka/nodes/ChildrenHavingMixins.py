@@ -20137,6 +20137,142 @@ class ChildrenHavingTypeNameBasesDictArgMixin(object):
 ChildrenExpressionBuiltinType3Mixin = ChildrenHavingTypeNameBasesDictArgMixin
 
 
+class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTypeAlias
+
+    def __init__(
+        self,
+        type_params,
+        compute_value,
+    ):
+        assert type(type_params) is tuple
+
+        for val in type_params:
+            val.parent = self
+
+        self.subnode_type_params = type_params
+
+        compute_value.parent = self
+
+        self.subnode_compute_value = compute_value
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_type_params)
+        result.append(self.subnode_compute_value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("type_params", self.subnode_type_params),
+            ("compute_value", self.subnode_compute_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_type_params
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_type_params = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_type_params = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_compute_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_compute_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "type_params": tuple(v.makeClone() for v in self.subnode_type_params),
+            "compute_value": self.subnode_compute_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_type_params:
+            c.finalize()
+        del self.subnode_type_params
+        self.subnode_compute_value.finalize()
+        del self.subnode_compute_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_type_params:
+            element.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_compute_value.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionTypeAliasMixin = ChildrenHavingTypeParamsTupleComputeValueMixin
+
+
 class ChildHavingValueMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
