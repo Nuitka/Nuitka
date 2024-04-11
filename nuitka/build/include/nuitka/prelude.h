@@ -63,7 +63,7 @@
 
 // We are not following the 3.10 change to an inline function. At least
 // not immediately.
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3c0
 #undef Py_REFCNT
 #define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
 #endif
@@ -102,6 +102,7 @@ extern _PyRuntimeState _PyRuntime;
 
 #if PYTHON_VERSION >= 0x3c0
 #include "internal/pycore_runtime.h"
+#include "internal/pycore_typevarobject.h"
 
 static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
 
