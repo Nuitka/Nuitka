@@ -410,6 +410,9 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyThreadStat
 // Same as "PyErr_SetObject" CPython API, use this instead.
 NUITKA_MAY_BE_UNUSED inline static void
 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_type, PyObject *exception_value) {
+    CHECK_OBJECT(exception_type);
+    CHECK_OBJECT(exception_value);
+
 #if PYTHON_VERSION < 0x3c0
     PyObject *old_exception_type = tstate->curexc_type;
     PyObject *old_exception_value = tstate->curexc_value;
@@ -433,10 +436,10 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyThreadState *tstate, PyObject *exception_ty
     PyObject *old_exception_value = tstate->current_exception;
     ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
 
-    Py_INCREF(exception_value);
     NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, NULL);
     ASSERT_NORMALIZED_EXCEPTION_VALUE(exception_value);
     tstate->current_exception = exception_value;
+    Py_INCREF(exception_value);
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE_0VALUE0:\n");
@@ -474,12 +477,13 @@ SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyThreadState *tstate, PyObject *exception_ty
     NORMALIZE_EXCEPTION(tstate, &exception_type, &exception_value, NULL);
     ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_value);
     tstate->current_exception = exception_value;
-    Py_XDECREF(old_exception_value);
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
     PRINT_CURRENT_EXCEPTION();
 #endif
+
+    Py_XDECREF(old_exception_value);
 #endif
 }
 
@@ -673,15 +677,16 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
     PyObject *exception_current = tstate->curexc_type;
 #else
     PyObject *exception_current = tstate->current_exception;
-
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(exception_current);
 #endif
     if (exception_current == NULL) {
         return true;
     } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_current, exception_type)) {
-        // Clear the exception first, we believe we know it doesn't have side effects.
-        Py_DECREF(exception_current);
+        CHECK_OBJECT(exception_current);
 
 #if PYTHON_VERSION < 0x3c0
+        // Clear the exception first, we believe we know it doesn't have side effects.
+        Py_DECREF(exception_current);
         tstate->curexc_type = NULL;
 
         PyObject *old_value = tstate->curexc_value;
@@ -694,6 +699,7 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
         Py_XDECREF(old_tb);
 #else
         tstate->current_exception = NULL;
+        Py_DECREF(exception_current);
 #endif
 
         return true;
