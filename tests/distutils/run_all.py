@@ -106,6 +106,8 @@ def _handleCase(python_version, nuitka_dir, filename):
             venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
             deleteFile(pyproject_filename, must_exist=True)
         else:
+            venv.runCommand("pip install setuptools wheel")
+
             venv.runCommand(
                 commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
             )
@@ -179,6 +181,7 @@ def _handleCase(python_version, nuitka_dir, filename):
 
             deleteFile(pyproject_filename, must_exist=True)
         else:
+            venv.runCommand("pip install setuptools wheel")
             # Install nuitka from source so "bdist_nuitka" can work.
 
             try:
