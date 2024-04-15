@@ -38,7 +38,6 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
     StatementDictOperationRemove,
-    StatementDictOperationUpdate,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -88,12 +87,12 @@ from .InternalModule import (
     makeInternalHelperFunctionBody,
     once_decorator,
 )
+from .ReformulationDictionaryCreation import buildDictionaryUnpacking
 from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildFrameNode,
-    buildNode,
     buildNodeTuple,
     extractDocFromBody,
     getKind,
@@ -373,11 +372,6 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=decorator.getSourceReference(),
         )
 
-    if node.keywords and node.keywords[-1].arg is None:
-        keywords = node.keywords[:-1]
-    else:
-        keywords = node.keywords
-
     statements = []
 
     if node.bases:
@@ -417,31 +411,34 @@ def buildClassNode3(provider, node, source_ref):
                 )
             )
 
+    # TODO: It's not really clear, since when those in the middle keywords are accepted
+    # and not a SyntaxError, and if then we might have to raise it.
+    keyword_keys = tuple(keyword.arg for keyword in node.keywords)
+    keyword_values = tuple(keyword.value for keyword in node.keywords)
+
+    if None in keyword_keys:
+        assert python_version >= 0x350
+
+        make_keywords_dict = buildDictionaryUnpacking(
+            provider,
+            keys=keyword_keys,
+            values=keyword_values,
+            source_ref=source_ref,
+        )
+    else:
+        make_keywords_dict = makeDictCreationOrConstant2(
+            keys=keyword_keys,
+            values=buildNodeTuple(provider, keyword_values, source_ref),
+            source_ref=source_ref,
+        )
+
     statements.append(
         makeStatementAssignmentVariable(
             variable=tmp_class_decl_dict,
-            source=makeDictCreationOrConstant2(
-                keys=[keyword.arg for keyword in keywords],
-                values=[
-                    buildNode(provider, keyword.value, source_ref)
-                    for keyword in keywords
-                ],
-                source_ref=source_ref,
-            ),
+            source=make_keywords_dict,
             source_ref=source_ref,
         )
     )
-
-    if node.keywords and node.keywords[-1].arg is None:
-        statements.append(
-            StatementDictOperationUpdate(
-                dict_arg=ExpressionVariableRef(
-                    variable=tmp_class_decl_dict, source_ref=source_ref
-                ),
-                value=buildNode(provider, node.keywords[-1].value, source_ref),
-                source_ref=source_ref,
-            )
-        )
 
     # Check if there are bases, and if there are, go with the type of the
     # first base class as a metaclass unless it was specified in the class
