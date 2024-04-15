@@ -195,6 +195,19 @@ tensorflow_function_spec = BuiltinParameterSpec(
     default_count=11,
 )
 
+# networkx.utils.decorators
+
+# TODO: Disabled for now, keyword only arguments and star list argument are
+# having ordering issues for call matching and code generation.
+
+# networkx_argmap_spec = BuiltinParameterSpec(
+#     "networkx.utils.decorators.argmap",
+#     ("func",),
+#     default_count=1,
+#     list_star_arg="args",
+#     kw_only_args=("try_finally",),
+# )
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
