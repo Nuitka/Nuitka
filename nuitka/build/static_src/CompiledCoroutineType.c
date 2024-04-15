@@ -1651,14 +1651,18 @@ static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
 #else
     if (!PyTuple_Check(aw->aw_aiter) && !PyExceptionInstance_Check(aw->aw_aiter)) {
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
+        Py_INCREF(PyExc_StopIteration);
+        Py_INCREF(aw->aw_aiter);
+
+        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, aw->aw_aiter, NULL);
     } else {
-        PyObject *result = PyObject_CallFunctionObjArgs(PyExc_StopIteration, aw->aw_aiter, NULL);
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyExc_StopIteration, aw->aw_aiter);
         if (unlikely(result == NULL)) {
             return NULL;
         }
 
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, result);
+        Py_INCREF(PyExc_StopIteration);
+        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, result, NULL);
     }
 #endif
 

@@ -1378,6 +1378,8 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
 
     if (_PyAsyncGenWrappedValue_CheckExact(result)) {
         /* async yield */
+        // TODO: Unify with coroutines and generators, who do things manually with a shared
+        // helper, "Nuitka_SetStopIterationValue" should be usable instead.
         _PyGen_SetStopIterationValue(((struct _PyAsyncGenWrappedValue *)result)->agw_val);
 
         Py_DECREF(result);

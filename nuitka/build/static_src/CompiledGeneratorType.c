@@ -158,6 +158,8 @@ static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
     Py_DECREF(saved_exception_state.exception_type);
     Py_XDECREF(saved_exception_state.exception_tb);
 #endif
+
+    // We own a reference, and we mean to return it.
     PyObject *exception_value = saved_exception_state.exception_value;
 
     PyObject *value = NULL;
@@ -485,11 +487,9 @@ static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, cha
 
     Py_INCREF(saved_exception_state.exception_value);
     PyException_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
-
-    // TODO: When we do this, for whatever reason, 3.12 crashes, but I feel we should not release
-    // here at all.
-    RELEASE_ERROR_OCCURRED_STATE_X(&saved_exception_state);
 #endif
+
+    RELEASE_ERROR_OCCURRED_STATE_X(&saved_exception_state);
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
 }
 #endif
