@@ -19,6 +19,7 @@ import nuitka.code_generation.BinaryOperationHelperDefinitions
 import nuitka.code_generation.CodeGeneration
 import nuitka.code_generation.ComparisonCodes
 import nuitka.code_generation.Namify
+import nuitka.nodes.NetworkxNodes
 import nuitka.nodes.PackageMetadataNodes
 import nuitka.nodes.PackageResourceNodes
 import nuitka.nodes.SideEffectNodes
@@ -480,6 +481,9 @@ def getCallModuleName(module_name, function_name):
 
     if module_name == "tensorflow":
         return "TensorflowNodes"
+
+    if module_name.startswith("networkx"):
+        return "NetworkxNodes"
 
     assert False, (module_name, function_name)
 
@@ -1040,8 +1044,15 @@ hard_import_node_classes = {}
                         assert optional_name not in named_children_types
                         named_children_types[optional_name] = "optional"
 
+                if spec.getStarListArgumentName():
+                    named_children_types[spec.getStarListArgumentName()] = "tuple"
+
                 if spec.getStarDictArgumentName():
                     named_children_types[spec.getStarDictArgumentName()] = "tuple"
+
+                for kw_only_name in spec.getKwOnlyParameterNames():
+                    assert kw_only_name not in named_children_types
+                    named_children_types[kw_only_name] = "optional"
 
                 if parameter_names:
                     mixin_name = addChildrenMixin(
