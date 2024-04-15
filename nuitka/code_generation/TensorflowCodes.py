@@ -3,10 +3,9 @@
 
 """ Code generation for tensorflow module specific stuff. """
 
-from nuitka.Options import isStandaloneMode
-
 from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .ImportCodes import getImportModuleNameHardCode
+from .JitCodes import addUncompiledFunctionSourceDict
 
 
 def generateTensorflowFunctionCallCode(to_name, expression, emit, context):
@@ -27,24 +26,7 @@ def generateTensorflowFunctionCallCode(to_name, expression, emit, context):
     )
 
     # Include source code of "tensorflow.function" decorated functions.
-    if expression.subnode_func is not None and isStandaloneMode():
-        func_value = expression.subnode_func
-
-        if func_value.isExpressionFunctionCreation():
-            function_ref = func_value.subnode_function_ref
-
-            function_super_qualified_name = function_ref.getFunctionSuperQualifiedName()
-            function_source_code = function_ref.getFunctionSourceCode()
-
-            context.addModuleInitCode(
-                """\
-SET_UNCOMPILED_FUNCTION_SOURCE_DICT(%s, %s);
-"""
-                % (
-                    context.getConstantCode(function_super_qualified_name),
-                    context.getConstantCode(function_source_code),
-                )
-            )
+    addUncompiledFunctionSourceDict(func_value=expression.subnode_func, context=context)
 
     getBuiltinCallViaSpecCode(
         spec=expression.spec,
