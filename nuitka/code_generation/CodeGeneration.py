@@ -253,6 +253,7 @@ from .ModuleCodes import (
     generateNuitkaLoaderCreationCode,
     getModuleCode,
 )
+from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
 from .OperationCodes import (
     generateOperationBinaryCode,
     generateOperationNotCode,
@@ -949,6 +950,9 @@ addExpressionDispatchDict(
         # PyPI module "tensorflow" specific stuff
         "EXPRESSION_TENSORFLOW_FUNCTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_TENSORFLOW_FUNCTION_CALL": generateTensorflowFunctionCallCode,
+        # PyPI module "networkx" specific stuff
+        "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_CALL": generateNetworkxUtilsDecoratorsArgmapCallCode,
     }
 )
 
