@@ -40,15 +40,19 @@ static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value)
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, stop_value);
 #else
     if (likely(!PyTuple_Check(value) && !PyExceptionInstance_Check(value))) {
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, value);
+        Py_INCREF(PyExc_StopIteration);
+        Py_INCREF(value);
+
+        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, value, NULL);
     } else {
-        PyObject *stop_value = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyExc_StopIteration, value);
+        PyObject *stop_value = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)PyExc_StopIteration, value);
 
         if (unlikely(stop_value == NULL)) {
             return;
         }
 
-        SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, stop_value);
+        Py_INCREF(PyExc_StopIteration);
+        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, stop_value, NULL);
     }
 #endif
 }
@@ -255,10 +259,11 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
         if (result == Py_None) {
             SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
         } else {
-            PyObject *e = PyObject_CallFunctionObjArgs(PyExc_StopIteration, result, NULL);
+            PyObject *e = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)PyExc_StopIteration, result);
 
-            if (e != NULL) {
-                SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, e);
+            if (likely(e != NULL)) {
+                Py_INCREF(PyExc_StopIteration);
+                RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, e, NULL);
             }
         }
 
