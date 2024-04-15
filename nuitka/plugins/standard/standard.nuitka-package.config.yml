@@ -2263,26 +2263,6 @@
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
-- module-name: 'networkx.utils.decorators' # checksum: 7f34ff95
-  anti-bloat:
-    - description: 'required for decorator compatibility'
-      replacements_plain:
-        'func.__defaults__ = f.__defaults__': ''
-        'real_func = func.__argmap__.compile(func.__wrapped__)': 'return func'
-        '    return argmap(_not_implemented_for, 0)': |
-          #
-              import functools
-              def inner(func):
-                  @functools.wraps(func)
-                  def _not_implemented_for(g):
-                      if (mval is None or mval == g.is_multigraph()) and (
-                          dval is None or dval == g.is_directed()
-                      ):
-                          raise nx.NetworkXNotImplemented(errmsg)
-                      return func(g)
-                  return _not_implemented_for
-              return inner
-
 - module-name: 'nose.core' # checksum: 8247f58b
   data-files:
     patterns:
