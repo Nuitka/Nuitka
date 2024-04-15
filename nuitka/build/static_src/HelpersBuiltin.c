@@ -20,8 +20,9 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
     int i = 0;
 
     while (i < max_args) {
-        if (args[i] == NULL)
+        if (args[i] == NULL) {
             break;
+        }
 
         CHECK_OBJECT(args[i]);
 
