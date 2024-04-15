@@ -56,7 +56,10 @@ void RAISE_EXCEPTION_WITH_TYPE(PyThreadState *tstate, PyObject **exception_type,
     if (PyExceptionClass_Check(*exception_type)) {
         NORMALIZE_EXCEPTION(tstate, exception_type, exception_value, exception_tb);
 #if PYTHON_VERSION >= 0x270
+        // TODO: It seems NORMALIZE_EXCEPTION already does this?
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
+            assert(false);
+
             PyObject *old_exception_type = *exception_type;
             PyObject *old_exception_value = *exception_value;
 
