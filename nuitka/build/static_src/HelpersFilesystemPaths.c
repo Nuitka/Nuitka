@@ -18,7 +18,9 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <libgen.h>
+#if !defined(__wasi__)
 #include <pwd.h>
+#endif
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/mman.h>
@@ -167,7 +169,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__)
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__wasi__)
 static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
@@ -515,6 +517,9 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
 
 static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size,
                                     bool resolve_symlinks) {
+#ifdef __wasi__
+    copyStringSafe(resolved_filename, filename, resolved_filename_size);
+#else
     if (resolve_symlinks) {
         // At least on macOS, realpath cannot allocate a buffer, itself, so lets
         // use a local one, only on Linux we could use NULL argument and have a
@@ -531,6 +536,7 @@ static void resolveFileSymbolicLink(char *resolved_filename, char const *filenam
     } else {
         copyStringSafe(resolved_filename, filename, resolved_filename_size);
     }
+#endif
 }
 #endif
 
@@ -617,6 +623,10 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 
     // Resolve any symlinks we were invoked via
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
+
+#elif defined(__wasi__)
+    const char* wasi_filename = "program.wasm";
+    strncpy(binary_filename_resolved, wasi_filename, MAXPATHLEN);
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
@@ -889,8 +899,10 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, pid_buffer, buffer_size);
             } else if (strcasecmp(var_name, "HOME") == 0) {
                 char const *home_path = getenv("HOME");
-
                 if (home_path == NULL) {
+#ifdef __wasi__
+                    return false;
+#else
                     struct passwd *pw_data = getpwuid(getuid());
 
                     if (unlikely(pw_data == NULL)) {
@@ -898,6 +910,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     }
 
                     home_path = pw_data->pw_dir;
+#endif
                 }
 
                 appendStringSafe(target, home_path, buffer_size);
