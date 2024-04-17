@@ -753,6 +753,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     // structure internals of 3.8 or higher.
     // spell-checker: ignore getdlopenflags,dlopenflags
 
+#ifdef __wasi__
+    const char *error = "dynamic libraries are not implemented in wasi";
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, error);
+    return NULL;
+
+    entrypoint_t entrypoint = NULL;
+#else
     static PyObject *dlopenflags_object = NULL;
     if (dlopenflags_object == NULL) {
         dlopenflags_object = CALL_FUNCTION_NO_ARGS(tstate, Nuitka_SysGetObject("getdlopenflags"));
@@ -777,6 +784,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     }
 
     entrypoint_t entrypoint = (entrypoint_t)dlsym(handle, entry_function_name);
+#endif // __wasi__
 #endif
     assert(entrypoint);
 
