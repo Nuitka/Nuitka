@@ -625,7 +625,7 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 
 #elif defined(__wasi__)
-    const char* wasi_filename = "program.wasm";
+    const char *wasi_filename = "program.wasm";
     strncpy(binary_filename_resolved, wasi_filename, MAXPATHLEN);
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)

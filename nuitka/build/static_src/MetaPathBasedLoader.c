@@ -722,11 +722,11 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     // spell-checker: ignore getdlopenflags,dlopenflags
 
 #ifdef __wasi__
-        const char *error = "dynamic libraries are not implemented in wasi";
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, error);
-        return NULL;
+    const char *error = "dynamic libraries are not implemented in wasi";
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, error);
+    return NULL;
 
-        entrypoint_t entrypoint = NULL;
+    entrypoint_t entrypoint = NULL;
 #else
     static PyObject *dlopenflags_object = NULL;
     if (dlopenflags_object == NULL) {
