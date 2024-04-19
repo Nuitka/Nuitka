@@ -229,6 +229,15 @@ PyObject *OS_PATH_ISABS(PyThreadState *tstate, PyObject *filename) {
     return result;
 }
 
+extern PyObject *OS_PATH_NORMPATH(PyThreadState *tstate, PyObject *filename) {
+    PyObject *normpath_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS_PATH(tstate), const_str_plain_normpath);
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, normpath_func, filename);
+
+    Py_DECREF(normpath_func);
+    return result;
+}
+
 nuitka_bool compareFilePaths(PyThreadState *tstate, PyObject *filename_a, PyObject *filename_b) {
     filename_a = OS_PATH_ABSPATH(tstate, filename_a);
 

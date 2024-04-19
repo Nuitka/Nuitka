@@ -232,6 +232,7 @@
         "noelf",
         "nofollow",
         "noinclude",
+        "normpath",
         "nosite",
         "nowarn",
         "Nuitka",
