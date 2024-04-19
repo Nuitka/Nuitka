@@ -85,7 +85,7 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(PyThreadState *tsta
     Py_XDECREF(old_tb);
 #else
     PyObject *old_exception_value = tstate->current_exception;
-    ASSERT_NORMALIZED_EXCEPTION_VALUE(old_exception_value);
+    ASSERT_NORMALIZED_EXCEPTION_VALUE_X(old_exception_value);
 
     tstate->current_exception = NULL;
 
