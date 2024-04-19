@@ -542,7 +542,7 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
 
     # On Windows, we check exe suffixes, on other platforms we shell all filenames,
     # matching the prefix, but they have to the executable bit set.
-    if suffixes is None and isWin32OrPosixWindows():
+    if not suffixes and isWin32OrPosixWindows():
         suffixes = "exe", "bin"
 
     if suffixes:

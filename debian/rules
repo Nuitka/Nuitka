@@ -36,7 +36,6 @@ endif
 	dh $@ --with $(BUILD_WITH_ARGUMENT) --buildsystem=pybuild
 
 override_dh_auto_build:
-	cp Changelog.rst changelog
 	cp Developer_Manual.rst Developer_Manual.txt
 
 override_dh_auto_test:
