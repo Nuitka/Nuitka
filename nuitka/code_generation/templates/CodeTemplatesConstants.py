@@ -149,6 +149,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
     PyObject *binary_directory = getContainingDirectoryObject(false);
+    binary_directory = OS_PATH_ABSPATH(tstate, binary_directory);
 #ifdef _NUITKA_STANDALONE
 #ifndef _NUITKA_ONEFILE_MODE
     binary_directory = STRIP_DIRNAME(binary_directory);

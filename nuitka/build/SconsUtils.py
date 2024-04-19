@@ -315,7 +315,7 @@ def getExecutablePath(filename, env):
 
         full = os.path.normpath(os.path.join(path_element, filename))
 
-        if os.path.exists(full):
+        if os.path.isfile(full):
             return full
 
     return None

@@ -662,6 +662,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "rich",  #  Not performance relevant and memory leaking due to empty compiled cell leaks
         "altair.vegalite.v5.schema",  # Not performance relevant.
         "azure",  # Not performance relevant.
+        "networkx",  # Needs solutions for bytecode requiring decorators.
     )
 
     unworthy_modulename_patterns = (
