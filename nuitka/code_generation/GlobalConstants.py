@@ -99,6 +99,7 @@ def getConstantDefaultPopulation():
         "dirname",
         "abspath",
         "isabs",
+        "normpath",
         "exists",
         "isdir",
         "isfile",
