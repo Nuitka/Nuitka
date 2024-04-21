@@ -50,7 +50,7 @@ def _detectPythonRpaths():
         if os.path.isdir(candidate):
             result.append(candidate)
 
-    return tuple(result)
+    return tuple(set(result))
 
 
 def detectBinaryPathDLLsMacOS(
