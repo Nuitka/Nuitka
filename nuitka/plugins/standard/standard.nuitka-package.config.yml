@@ -5230,6 +5230,11 @@
     - depends:
         - 'srsly.msgpack.util'
 
+- module-name: 'sspilib.raw._credential' # checksum: 8f3d1cec
+  implicit-imports:
+    - depends:
+        - 'sspilib.raw._text'
+
 - module-name: 'statsmodels' # checksum: 9664932
   anti-bloat:
     - description: 'remove statsmodels testing framework'
