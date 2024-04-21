@@ -93,8 +93,8 @@ def detectBinaryPathDLLsMacOS(
                 original_dir=os.path.dirname(sub_dll_filename),
                 binary_filename=sub_dll_filename,
                 package_name=package_name,
-                recursive=True,
                 keep_unresolved=True,
+                recursive=True,
             )
 
             merged_result.update(sub_result)
