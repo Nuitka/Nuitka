@@ -64,7 +64,8 @@
         "__memory": "c",
         "iterator": "c",
         "locale": "c",
-        "queue": "c"
+        "queue": "c",
+        "ios": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
