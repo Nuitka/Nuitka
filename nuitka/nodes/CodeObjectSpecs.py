@@ -190,7 +190,7 @@ class CodeObjectSpec(object):
         return self.co_name
 
     def getCodeObjectQualname(self):
-        return self.co_name
+        return self.co_qualname
 
     def hasStarListArg(self):
         return self.co_has_starlist
