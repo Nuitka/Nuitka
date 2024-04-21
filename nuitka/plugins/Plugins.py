@@ -1786,7 +1786,7 @@ def isTriggerModule(module):
 
 # TODO: Make this a dedicated thing generally.
 def _getMainModulePreloadCodes():
-    forced_runtime_env_variable_values = (
+    forced_runtime_env_variable_values = tuple(
         Options.getForcedRuntimeEnvironmentVariableValues()
     )
     if not forced_runtime_env_variable_values:
