@@ -345,6 +345,7 @@ def addModuleDynamicHard(module_name):
     hard_modules.add(module_name)
     hard_modules_dynamic.add(module_name)
     hard_modules_non_stdlib.add(module_name)
+    hard_modules_trust_with_side_effects.add(module_name)
 
     if module_name not in hard_modules_trust:
         hard_modules_trust[module_name] = {}
