@@ -467,9 +467,12 @@ def _updateCase(
 def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mode):
     case_name = case_data["case"]
 
+    watch_logger.info("Consider '%s' ... " % case_name)
+
     # Wrong OS maybe.
     os_name = selectOS(case_data["os"])
     if os_name is None:
+        watch_logger.info("  ... not on this OS")
         return
 
     nuitka_min_version = case_data.get("nuitka")
@@ -478,6 +481,20 @@ def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mod
     if nuitka_min_version is not None and _compareNuitkaVersions(
         nuitka_version, nuitka_min_version, consider_rc=False
     ):
+        watch_logger.info("  ... not for this Nuitka version")
+        return
+
+    selected_pythons = tuple(
+        selectPythons(
+            # TODO: Enable Anaconda support through options/detection.
+            anaconda="Anaconda" in os_name,
+            msys2_mingw64="MSYS2" in os_name,
+            python_version_req=case_data.get("python_version_req"),
+        )
+    )
+
+    if not selected_pythons:
+        watch_logger.info("  ... no suitable Python installations")
         return
 
     # For all relevant Pythons applicable to this case.
