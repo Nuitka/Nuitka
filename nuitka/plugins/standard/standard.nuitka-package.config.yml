@@ -6278,10 +6278,12 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_gtk' # checksum: 3f9f0b7d
+- module-name: 'toga_gtk' # checksum: 1577803b
   data-files:
     dirs:
       - 'resources'
+    include-metadata:
+      - 'toga-gtk'
 
 - module-name: 'toga_winforms' # checksum: 5dda2bcf
   data-files:
