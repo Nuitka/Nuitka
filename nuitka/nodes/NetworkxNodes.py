@@ -11,7 +11,7 @@ from nuitka.HardImportRegistry import addModuleDynamicHard
 # having ordering issues for call matching and code generation.
 
 if False:  # pylint: disable=using-constant-test
-    from .HardImportNodesGenerated import (
+    from .HardImportNodesGenerated import (  # pylint: disable=no-name-in-module
         ExpressionNetworkxUtilsDecoratorsArgmapCallBase,
     )
 
