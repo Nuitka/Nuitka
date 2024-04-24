@@ -13,7 +13,7 @@ import os
 import sys
 
 from nuitka.Options import isStandaloneMode
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import (
     getDistributionFromModuleName,
@@ -25,17 +25,13 @@ from nuitka.utils.FileOperations import (
     listExeFilesFromDirectory,
 )
 from nuitka.utils.SharedLibraries import getPyWin32Dir
-from nuitka.utils.Utils import isFreeBSD, isLinux, isWin32Windows
-from nuitka.utils.Yaml import getYamlPackageConfiguration
+from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
 
-class NuitkaPluginDllFiles(NuitkaPluginBase):
+class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
     plugin_name = "dll-files"
 
     plugin_desc = "Include DLLs as per package configuration files."
-
-    def __init__(self):
-        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -367,22 +363,30 @@ conditions are missing, or this version of the module needs treatment added."""
                         )
 
     def getModuleSpecificDllPaths(self, module_name):
-        for entry in self.config.get(module_name, section="import-hacks"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=entry.get("when", "True")
-            ):
-                for item in self._getModuleSpecificDllPaths(config=entry):
-                    yield item
-
-    def _getModuleSpecificDllPaths(self, config):
-        for config_package_name in config.get("find-dlls-near-module", ()):
-            module_filename = self.locateModule(config_package_name)
+        for _config_module_name, near_module_name in self.getYamlConfigItemSet(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="find-dlls-near-module",
+            decide_relevant=None,
+            recursive=True,
+        ):
+            module_filename = self.locateModule(near_module_name)
 
             if module_filename is not None:
                 if os.path.isfile(module_filename):
-                    yield os.path.dirname(module_filename)
+                    package_directory = os.path.dirname(module_filename)
                 else:
-                    yield module_filename
+                    package_directory = module_filename
+
+                yield package_directory
+
+            if isMacOS():
+                # Some packages for macOS put their DLLs in a ".dylibs" folder,
+                # consider those as well, spell-checker: ignore dylibs
+                dylib_directory = os.path.join(package_directory, ".dylibs")
+
+                if os.path.isdir(package_directory):
+                    yield dylib_directory
 
     def isAcceptableMissingDLL(self, package_name, dll_basename):
         for entry in self.config.get(package_name, section="import-hacks"):
@@ -408,10 +412,6 @@ conditions are missing, or this version of the module needs treatment added."""
 
     def decideAllowOutsideDependencies(self, module_name):
         distribution = None
-
-        assert module_name != "_ctypes", self.config.get(
-            module_name, section="import-hacks"
-        )
 
         while 1:
             for entry in self.config.get(module_name, section="import-hacks"):

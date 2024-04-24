@@ -1675,6 +1675,26 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                     if decide_relevant(key, value):
                         yield key, value
 
+    def getYamlConfigItemSet(
+        self, module_name, section, item_name, decide_relevant, recursive
+    ):
+        for item_config in self.getYamlConfigItem(
+            module_name=module_name,
+            section=section,
+            item_name=item_name,
+            decide_relevant=None,
+            default=(),
+            recursive=recursive,
+        ):
+            if recursive:
+                for value in item_config[1]:
+                    if decide_relevant is None or decide_relevant(value):
+                        yield item_config[0], value
+            else:
+                for value in item_config:
+                    if decide_relevant is None or decide_relevant(value):
+                        yield value
+
 
 def standalone_only(func):
     """For plugins that have functionality that should be done in standalone mode only."""

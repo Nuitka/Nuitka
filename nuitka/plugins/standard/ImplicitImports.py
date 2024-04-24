@@ -15,13 +15,12 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
-class NuitkaPluginImplicitImports(NuitkaPluginBase):
+class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     plugin_name = "implicit-imports"
 
     plugin_desc = (
@@ -29,7 +28,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     )
 
     def __init__(self):
-        self.config = getYamlPackageConfiguration()
+        NuitkaYamlPluginBase.__init__(self)
 
         self.lazy_loader_usages = {}
 
