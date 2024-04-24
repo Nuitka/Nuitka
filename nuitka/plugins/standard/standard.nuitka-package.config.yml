@@ -6624,6 +6624,13 @@
         'obj.__doc__ = obj.__doc__.format(**kwargs)': ''
       when: 'no_docstrings'
 
+- module-name: 'torio.io._streaming_media_encoder' # checksum: a43ec55f
+  anti-bloat:
+    - description: 'remove docstring dependency'
+      replacements_plain:
+        'obj.__doc__ = obj.__doc__.format(**kwargs)': ''
+      when: 'no_docstrings'
+
 - module-name: 'tornado.httputil' # checksum: 4d59551a
   anti-bloat:
     - description: 'remove doctest usage'
