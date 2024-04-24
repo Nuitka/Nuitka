@@ -22,7 +22,7 @@ def _addFromDirectory(path, suffixes, ignore_list):
             for dirname in dirnames
             if dirname not in _default_ignore_list
             if not dirname.endswith((".build", ".dist", ".egg-info"))
-            if not dirname.startswith("CPython")
+            if not dirname.startswith(("CPython", "venv_"))
         ]
 
         filenames.sort()
