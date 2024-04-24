@@ -2281,7 +2281,7 @@
     patterns:
       - 'usage.txt'
 
-- module-name: 'numba' # checksum: a8eab062
+- module-name: 'numba' # checksum: a42885e3
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -2301,6 +2301,10 @@
     - force-environment-variables:
         'NUMBA_DISABLE_JIT': '1'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
+    - find-dlls-near-module:
+        # Finding libomp from there
+        - 'skimage'
+      when: 'macos'
 
 - module-name: 'numba.core.caching' # checksum: dce4aaa0
   anti-bloat:
