@@ -40,7 +40,7 @@ def _importFilePy3OldWay(filename):
 
 def importFilePy2(filename):
     """Import a file for Python version 2."""
-    import imp
+    import imp  # Python2 only, pylint: disable=I0021,import-error
 
     basename = os.path.splitext(os.path.basename(filename))[0]
     return imp.load_source(basename, filename)
@@ -76,7 +76,7 @@ def getSharedLibrarySuffixes():
 
     if _shared_library_suffixes is None:
         if python_version < 0x300:
-            import imp
+            import imp  # Python2 only, pylint: disable=I0021,import-error
 
             _shared_library_suffixes = []
 
@@ -223,7 +223,7 @@ def importFromCompileTime(module_name, must_exist):
 
 def isBuiltinModuleName(module_name):
     if python_version < 0x300:
-        import imp as _imp
+        import imp as _imp  # Python2 only, pylint: disable=I0021,import-error
     else:
         import _imp
 
@@ -255,7 +255,7 @@ builtin_module_names = set(
 
 def getModuleFilenameSuffixes():
     if python_version < 0x3C0:
-        import imp
+        import imp  # Older Python only, pylint: disable=I0021,import-error
 
         for suffix, _mode, module_type in imp.get_suffixes():
             if module_type == imp.C_EXTENSION:
