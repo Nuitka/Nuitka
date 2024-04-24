@@ -634,7 +634,7 @@ class %(class_name)s:
     def _applyNoFollowConfiguration(self, module_name):
         for (
             config_of_module_name,
-            no_follow,
+            no_follow_pattern,
             description,
         ) in self.getYamlConfigItemItems(
             module_name=module_name,
@@ -643,7 +643,7 @@ class %(class_name)s:
             decide_relevant=lambda key, value: True,
             recursive=True,
         ):
-            self.no_follows[no_follow] = (config_of_module_name, description)
+            self.no_follows[no_follow_pattern] = (config_of_module_name, description)
 
     def onModuleRecursion(
         self,
