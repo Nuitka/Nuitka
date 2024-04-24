@@ -1675,6 +1675,13 @@
       replacements:
         'sj.get_version("pyimagej")': 'repr(version("pyimagej"))'
 
+- module-name: 'imgui_bundle.immapp.immapp_notebook' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'importlib_metadata' # checksum: 37dae78
   anti-bloat:
     - description: 'remove useless metadata usage'
