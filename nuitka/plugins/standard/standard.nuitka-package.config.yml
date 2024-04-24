@@ -857,7 +857,13 @@
     patterns:
       - 'dask.yaml'
 
-- module-name: 'dask.dataframe' # checksum: b6b8eaf
+- module-name: 'dask.dataframe' # checksum: 54d2aebf
+  anti-bloat:
+    - description: 'remove pytest testing framework'
+      replacements_plain:
+        'from dask.dataframe._testing import test_dataframe': 'test_dataframe = None'
+      when: 'not use_pytest'
+
   implicit-imports:
     - depends:
         - 'pyarrow._*'
