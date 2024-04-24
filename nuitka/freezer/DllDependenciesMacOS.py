@@ -149,11 +149,17 @@ def _resolveBinaryPathDLLsMacOS(
     for path in paths:
         if path.startswith("@rpath/"):
             # Resolve rpath to just the ones given, first match.
+            library_name = path[7:]
+
             for rpath in rpaths:
-                if os.path.exists(os.path.join(rpath, path[7:])):
+                if os.path.exists(os.path.join(rpath, library_name)):
                     resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
                     break
             else:
+                # These have become virtual in later macOS.
+                if library_name in ("libc++.1.dylib", "libz.1.dylib"):
+                    continue
+
                 # This is only a guess, might be missing package specific directories.
                 resolved_path = os.path.normpath(os.path.join(original_dir, path[7:]))
         elif path.startswith("@loader_path/"):
