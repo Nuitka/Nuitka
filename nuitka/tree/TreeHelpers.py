@@ -197,7 +197,10 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 if name in ("name", "body", "comparators"):
                     pass
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        _check(field[0])
                 elif name in ("body", "elt"):
                     _check(field)
                 else:
