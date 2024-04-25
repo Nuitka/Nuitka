@@ -19,7 +19,7 @@ from nuitka.utils.FileOperations import getFileContents, listDir
 
 # The order of these files is significant.  Files which reference
 # other files must appear later.  Files may be deleted if they are not
-# used.
+# used. spell-checker: ignore TimeFuncs
 files = [
     "Dialog",
     "TimeFuncs",
@@ -93,7 +93,7 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
         return source_code
 
     def _packagePmw(self, pmw_path):
-        self.info("Packaging Pmw into single module fpor freezing.")
+        self.info("Packaging Pmw into single module for freezing.")
 
         # Algorithm is from the "__init__.py" of Pwm:
 
@@ -131,12 +131,12 @@ Should 'Pmw.Color' not be included, Default is to include it.""",
 
         return self._packagePmw2(candidate, version)
 
-    def _packagePmw2(self, srcdir, version):
-        def mungeFile(filename):
+    def _packagePmw2(self, src_dir, version):
+        def treatFile(filename):
             # Read the filename and modify it so that it can be bundled with the
-            # other Pmw files.
+            # other Pmw files. spell-checker: ignore INITOPT
             filename = "Pmw" + filename + ".py"
-            text = getFileContents(os.path.join(srcdir, filename))
+            text = getFileContents(os.path.join(src_dir, filename))
             text = re.sub(r"import Pmw\>", "", text)
             text = re.sub("INITOPT = Pmw.INITOPT", "", text)
             text = re.sub(r"\<Pmw\.", "", text)
@@ -155,12 +155,13 @@ from . import PmwBlt
 Blt = PmwBlt
 del PmwBlt
 """
-        # Code used when not linking with PmwBlt.py.
+        # Code used when not linking with PmwBlt.py, spell-checker: ignore _bltbusyOK
         ignore_blt_code = """
 _bltImported = 1
 _bltbusyOK = 0
 """
         # Code to define the functions normally supplied by the dynamic loader.
+        # spell-checker: ignore setversion,setalphaversions,installedversions
         extra_code = """
 
 ### Loader functions:
@@ -200,7 +201,7 @@ def installedversions(alpha = 0):
         outfile.write(extra_code % version)
 
         # Specially handle PmwBase.py filename:
-        text = mungeFile("Base")
+        text = treatFile("Base")
         text = re.sub("from . import PmwLogicalFont", "", text)
         text = re.sub("import PmwLogicalFont", "", text)
         text = re.sub("PmwLogicalFont._font_initialise", "_font_initialise", text)
@@ -212,7 +213,7 @@ def installedversions(alpha = 0):
         files.append("LogicalFont")
 
         for filename in files:
-            text = mungeFile(filename)
+            text = treatFile(filename)
             outfile.write(text)
 
         return outfile.getvalue()
