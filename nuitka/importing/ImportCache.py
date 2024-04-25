@@ -68,14 +68,14 @@ def replaceImportedModule(old, new):
             imported_by_name[key] = new
             break
     else:
-        assert False
+        assert False, (old, new)
 
     for key, value in imported_modules.items():
         if value == old:
             imported_modules[key] = new
             break
     else:
-        assert False
+        assert False, (old, new)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
