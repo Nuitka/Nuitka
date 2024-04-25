@@ -377,12 +377,12 @@
     patterns:
       - 'templates/*.j2'
 
-- module-name: 'bindings' # checksum: 7e84029d
+- module-name: 'bindings' # checksum: 463796d4
   dlls:
     - from_filenames:
         prefixes:
           - 'zaber-motion-lib'
-      when: 'None is not version("zaber_motion") >= (5,1,2)'
+      when: 'version("zaber_motion") == (5,1,2)'
 
 - module-name: 'bitarray' # checksum: b157a72f
   anti-bloat:
@@ -7386,7 +7386,7 @@
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
 
-- module-name: 'zaber_motion' # checksum: 7af9b202
+- module-name: 'zaber_motion' # checksum: 11ddc56d
   implicit-imports:
     - depends:
         - 'zaber_motion_bindings_windows'
@@ -7399,13 +7399,23 @@
       when: 'macos and version("zaber_motion") < (5,1,2)'
     - depends:
         - 'bindings'
-      when: 'version("zaber_motion") >= (5,1,2)'
+      when: 'version("zaber_motion") == (5,1,2)'
+    - depends:
+        - 'zaber_motion_bindings'
+      when: 'version("zaber_motion") >= (5,1,3)'
 
 - module-name: 'zaber_motion.bindings' # checksum: ebad5220
   anti-bloat:
     - description: 'normalize path for DLLs'
       replacements_plain:
         'os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name)': 'os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name))'
+
+- module-name: 'zaber_motion_bindings' # checksum: 679f33dc
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'zaber-motion-lib'
+      when: 'None is not version("zaber_motion") >= (5,1,3)'
 
 - module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea
   dlls:
