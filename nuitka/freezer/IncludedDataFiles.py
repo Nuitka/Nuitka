@@ -20,6 +20,7 @@ from nuitka.Options import (
     getShallIncludeExternallyDataFilePatterns,
     getShallIncludePackageData,
     getShallNotIncludeDataFilePatterns,
+    isAcceleratedMode,
     isOnefileMode,
     isStandaloneMode,
     shallMakeModule,
@@ -27,6 +28,7 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.Tracing import options_logger
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     containsPathElements,
     copyFileWithPermissions,
     getFileContents,
@@ -145,24 +147,33 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     if "framework_resource" in tags and not isMacOS():
         tracer.sysexit("Using resource files on non-MacOS")
 
-    inside = True
-    if not isRelativePath(dest_path):
-        if "framework_resource" in tags and not isOnefileMode():
-            inside = isRelativePath(os.path.join("Resources", dest_path))
-        else:
-            inside = False
-
-    if not inside:
-        tracer.sysexit(
-            "Error, cannot use dest path '%s' outside of distribution." % dest_path
-        )
-
     # Refuse directories, these must be kept distinct.
     if os.path.isdir(source_path):
         tracer.sysexit(
             "Error, cannot include directory '%s' as a data file. Data directories have their own options."
             % source_path
         )
+
+    # In accelerated mode, data files can be everywhere, but they cannot
+    # change place.
+    if isAcceleratedMode():
+        if "package_data" not in tags and not areSamePaths(source_path, dest_path):
+            tracer.sysexit(
+                "Error, cannot change paths for data files in accelerated mode '%s'."
+                % dest_path
+            )
+    else:
+        inside = True
+        if not isRelativePath(dest_path):
+            if "framework_resource" in tags and not isOnefileMode():
+                inside = isRelativePath(os.path.join("Resources", dest_path))
+            else:
+                inside = False
+
+        if not inside:
+            tracer.sysexit(
+                "Error, cannot use dest path '%s' outside of distribution." % dest_path
+            )
 
     return IncludedDataFile(
         kind="data_file",
