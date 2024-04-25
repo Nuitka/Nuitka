@@ -130,6 +130,38 @@ def makeModuleUsageAttempt(
     )
 
 
+def makeParentModuleUsagesAttempts(module_usage_attempt):
+    result = []
+
+    for parent_package_name in module_usage_attempt.module_name.getParentPackageNames():
+        (
+            _parent_package_name,
+            parent_module_filename,
+            parent_module_kind,
+            parent_module_finding,
+        ) = locateModule(
+            module_name=parent_package_name,
+            parent_package=None,
+            level=0,
+        )
+
+        result.append(
+            makeModuleUsageAttempt(
+                module_name=parent_package_name,
+                filename=parent_module_filename,
+                finding=parent_module_finding,
+                module_kind=parent_module_kind,
+                level=0,
+                source_ref=module_usage_attempt.source_ref,
+                reason="import path parent",
+            )
+        )
+
+    result.append(module_usage_attempt)
+
+    return tuple(result)
+
+
 def addMainScriptDirectory(main_dir):
     """Initialize the main script directory.
 
