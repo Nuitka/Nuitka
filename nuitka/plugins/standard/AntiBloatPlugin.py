@@ -669,6 +669,8 @@ class %(class_name)s:
 
         # This will allow "unittest.mock" to pass "unittest". It's kind of a hack and
         # hopefully unusual.
+        if module_name == "unittest" and reason == "import path parent":
+            return
         if module_name == "unittest.mock" and module_name not in self.handled_modules:
             return
 
