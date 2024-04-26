@@ -7412,6 +7412,11 @@
     dirs:
       - 'schemas'
 
+- module-name: 'xyzservices' # checksum: 810a705a
+  data-files:
+    dirs:
+      - 'data'
+
 - module-name: 'yapf_third_party._ylib2to3' # checksum: 4ec82d9d
   data-files:
     patterns:
