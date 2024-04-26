@@ -97,6 +97,9 @@ def areSamePaths(path1, path2):
         even short paths, it then becomes a mere string compare after that.
     """
 
+    if path1 == path2:
+        return True
+
     path1 = os.path.abspath(os.path.normpath(path1))
     path2 = os.path.abspath(os.path.normpath(path2))
 
