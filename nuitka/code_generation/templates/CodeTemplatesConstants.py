@@ -127,6 +127,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"no_docstrings", (char *)"boolean indicating --python-flag=no_docstrings usage"},
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
         {(char *)"module", (char *)"boolean indicating --module usage"},
+        {(char *)"main", (char *)"name of main module at runtime"},
         {0}
     };
 
@@ -210,6 +211,19 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *is_module_mode = Py_False;
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);
+
+#ifdef _NUITKA_MODULE
+    PyObject *main_name;
+
+    if (_Py_PackageContext != NULL) {
+        main_name = Nuitka_String_FromString(_Py_PackageContext);
+    } else {
+        main_name = Nuitka_String_FromString(%(module_name_cstr)s);
+    }
+#else
+    PyObject *main_name = Nuitka_String_FromString("__main__");
+#endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
