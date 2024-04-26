@@ -1784,6 +1784,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
                 "/usr/lib/system/",
+                "/usr/libexec/swift",
             ):
                 if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
                     ignore = False
