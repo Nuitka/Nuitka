@@ -48,7 +48,7 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
         else:
             if condition != "True":
                 problem_desc = (
-                    " with incomplete support due to untrue condition '%s'" % condition
+                    " with incomplete support due to condition '%s'" % condition
                 )
             else:
                 problem_desc = " with incomplete support"
