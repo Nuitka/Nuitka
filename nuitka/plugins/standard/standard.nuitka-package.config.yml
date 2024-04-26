@@ -6195,11 +6195,12 @@
     - depends:
         - '._*'
 
-- module-name: 'tf_keras.src' # checksum: 9760fd72
+- module-name: 'tf_keras.src' # checksum: c552fd3e
   anti-bloat:
     - description: 'remove unittest reference'
       replacements_plain:
         'from keras.src.testing_infra import test_utils': 'test_utils = None'
+        'from tf_keras.src.testing_infra import test_utils': 'test_utils = None'
       when: 'not use_unittest'
 
 - module-name: 'tf_keras.src.utils.vis_utils' # checksum: 7d07a2d1
