@@ -446,6 +446,13 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
+- module-name: 'bokeh.io.notebook' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'boto' # checksum: 22795308
   data-files:
     patterns:
