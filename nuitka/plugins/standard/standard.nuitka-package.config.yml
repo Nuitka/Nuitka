@@ -4305,11 +4305,13 @@
         'cupy': 'ignore'
         'torch': 'ignore'
 
-- module-name: 'scipy._distributor_init' # checksum: 3316da5c
+- module-name: 'scipy._distributor_init' # checksum: 576c57d8
   anti-bloat:
     - description: 'workaround for scipy DLL loading'
       append_plain: |
+        import os
         if os.name == "nt":
+          import glob
           libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
           for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
             WinDLL(filename)
