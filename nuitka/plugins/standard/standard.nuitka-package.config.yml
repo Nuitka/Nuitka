@@ -446,6 +446,16 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
+- module-name: 'bokeh' # checksum: e1035750
+  data-files:
+    dirs:
+      - '_sri'
+
+- module-name: 'bokeh.core' # checksum: 3dbea61d
+  data-files:
+    dirs:
+      - '_templates'
+
 - module-name: 'bokeh.io.notebook' # checksum: 7d07a2d1
   anti-bloat:
     - description: 'remove IPython reference'
