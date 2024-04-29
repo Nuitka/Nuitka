@@ -210,6 +210,8 @@ def _convertVersionToTuple(version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
+    # spell-checker: ignore opencv, pyobjc, objc
+
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
     elif distribution_name == "pyobjc":
@@ -302,7 +304,7 @@ def _iterate_module_names(package_name):
         module_name = package_name.getChildNamed(module_info.name)
         result.append(module_name.asString())
 
-        if module_info.ispkg:
+        if module_info.ispkg:  # spell-checker: ignore ispkg
             result.extend(_iterate_module_names(package_name=module_name))
 
     return result
