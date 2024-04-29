@@ -3013,6 +3013,15 @@
       replacements_plain:
         'if name == "testing":': 'if False:'
 
+- module-name: 'panel' # checksum: 29e3adc1
+  data-files:
+    dirs:
+      - '_templates'
+      - 'layout'
+      - 'theme'
+    patterns:
+      - 'package.json'
+
 - module-name: 'pango' # checksum: 7d2edca1
   implicit-imports:
     - depends:
