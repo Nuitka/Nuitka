@@ -135,9 +135,9 @@ def _writeConstantValue(output, constant_value):
             _writeConstantValue(output, element)
     elif constant_type is long:
         if isPythonValidCLongValue(constant_value):
-            output.write(b"l" + struct.pack("l", constant_value))
+            output.write(b"l" + struct.pack("=l", constant_value))
         elif isPythonValidCLongLongValue(constant_value):
-            output.write(b"q" + struct.pack("q", constant_value))
+            output.write(b"q" + struct.pack("=q", constant_value))
         else:
             output.write(b"g")
 
@@ -155,13 +155,13 @@ def _writeConstantValue(output, constant_value):
                 parts.append(abs_constant_value % mod_value)
                 abs_constant_value >>= sizeof_clonglong * 8
 
-            output.write(struct.pack("i", len(parts)))
+            output.write(struct.pack("=i", len(parts)))
             for part in reversed(parts):
                 output.write(struct.pack("Q", part))
 
     elif constant_type is int:
         # This is Python2 then. TODO: Special case smaller values.
-        output.write(b"i" + struct.pack("l", constant_value))
+        output.write(b"i" + struct.pack("=l", constant_value))
     elif constant_type is float:
         if constant_value == 0.0:
             if copysign(1, constant_value) == 1:
@@ -179,7 +179,7 @@ def _writeConstantValue(output, constant_value):
             else:
                 output.write(b"Z" + to_byte(5))
         else:
-            output.write(b"f" + struct.pack("d", constant_value))
+            output.write(b"f" + struct.pack("=d", constant_value))
     elif constant_type is unicode:
         if str is not bytes:
             encoded = constant_value.encode("utf8", "surrogatepass")
@@ -240,7 +240,7 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        output.write(struct.pack("lll", *range_args))
+        output.write(struct.pack("=lll", *range_args))
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
@@ -258,7 +258,7 @@ def _writeConstantValue(output, constant_value):
             _writeConstantValue(output, constant_value.imag)
         else:
             output.write(b"j")
-            output.write(struct.pack("dd", constant_value.real, constant_value.imag))
+            output.write(struct.pack("=dd", constant_value.real, constant_value.imag))
 
     elif constant_type is bytearray:
         output.write(b"B" + _encodeVariableLength(len(constant_value)))
@@ -275,7 +275,7 @@ def _writeConstantValue(output, constant_value):
     elif constant_type is BlobData:
         constant_value = constant_value.getData()
         output.write(b"X")
-        output.write(struct.pack("i", len(constant_value)))
+        output.write(struct.pack("=i", len(constant_value)))
         output.write(constant_value)
     elif constant_type is BuiltinGenericAliasValue:
         output.write(b"G")
@@ -335,7 +335,7 @@ def _writeConstantStream(constants_reader):
     # TODO: Debug mode only?
     result.write(b".")
 
-    return count, struct.pack("H", count) + result.getvalue()
+    return count, struct.pack("=H", count) + result.getvalue()
 
 
 crc32 = 0
