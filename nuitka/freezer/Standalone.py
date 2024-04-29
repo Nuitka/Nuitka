@@ -289,7 +289,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             # TODO: If used by a DLL from the same folder, put it there,
             # otherwise top level, but for now this is limited to a few cases
             # where required that way (openvino) or known to be good only (av),
-            # because it broke other things.
+            # because it broke other things. spell-checker: ignore openvino
             if standalone_entry_point.package_name in (
                 "openvino",
                 "av",
