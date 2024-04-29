@@ -5,7 +5,8 @@
             "${workspaceFolder}/nuitka/build/static_src",
             "${workspaceFolder}/nuitka/build/inline_copy/zstd",
             "${workspaceFolder}/nuitka/build/inline_copy/zlib",
-            "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace"
+            "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace",
+            "${workspaceFolder}/nuitka/plugins/*/*"
         ]
     },
     "configurations": [
