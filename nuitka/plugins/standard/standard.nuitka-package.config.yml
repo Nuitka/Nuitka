@@ -4091,6 +4091,13 @@
         'from pyvista.jupyter import _validate_jupyter_backend': '_validate_jupyter_backend = str'
       when: 'not use_ipython'
 
+- module-name: 'pyviz_comms' # checksum: 14fe3365
+  data-files:
+    dirs:
+      - 'labextension'
+    patterns:
+      - 'notebook.js'
+
 - module-name: 'pywt' # checksum: 889e5afa
   data-files:
     dirs:
