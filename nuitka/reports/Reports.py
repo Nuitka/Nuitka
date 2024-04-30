@@ -195,7 +195,7 @@ def _getReportInputData(aborted):
     arch_name = getArchitecture()
 
     if isWin32OrPosixWindows():
-        os_release = getWindowsRelease()
+        os_release = str(getWindowsRelease())
     elif isLinux():
         os_release = "-".join(x for x in getLinuxDistribution() if x)
     elif isMacOS():
