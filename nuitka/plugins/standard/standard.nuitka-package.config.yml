@@ -1999,7 +1999,13 @@
     - depends:
         - 'lxml.etree'
 
-- module-name: 'magic' # checksum: b6dd7a5
+- module-name: 'magic' # checksum: 803cd877
+  data-files:
+    dirs:
+      - 'libmagic'
+    patterns:
+      - 'magic.mgc'
+
   dlls:
     - from_filenames:
         relative_path: 'libmagic'
