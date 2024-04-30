@@ -2555,6 +2555,69 @@
         'rundocs': 'un-callable'
       when: 'not use_unittest'
 
+- module-name: 'nvidia' # checksum: 1639b6cb
+  dlls:
+    - from_filenames:
+        relative_path: 'cublas/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cuda_cupti/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cuda_nvrtc/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cuda_runtime/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cudnn/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cufft/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'curand/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cusolver/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'cusparse/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'nccl/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'nvjitlink/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'nvtx/lib'
+        prefixes:
+          - 'lib'
+      when: 'linux'
+
 - module-name: 'objc' # checksum: 5c6f45a7
   options:
     checks:
