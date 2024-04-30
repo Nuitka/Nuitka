@@ -21,7 +21,7 @@ typedef enum {
     NUITKA_LONG_UNASSIGNED = 0,
     NUITKA_LONG_OBJECT_VALID = 1,
     NUITKA_LONG_VALUE_VALID = 2,
-    NUITKA_LONG_BOTH_VALID = 3
+    NUITKA_LONG_BOTH_VALID = 3 // NUITKA_LONG_VALUE_VALID | NUITKA_LONG_OBJECT_VALID
 } nuitka_long_validity;
 
 typedef struct {
@@ -58,6 +58,19 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value)
 
 #endif
 
+#if PYTHON_VERSION < 0x3c0
+// Convert single digit to sdigit (int32_t)
+typedef long medium_result_value_t;
+#define MEDIUM_VALUE(x)                                                                                                \
+    (Py_SIZE(x) < 0 ? -(sdigit)((PyLongObject *)(x))->ob_digit[0]                                                      \
+                    : (Py_SIZE(x) == 0 ? (sdigit)0 : (sdigit)((PyLongObject *)(x))->ob_digit[0]))
+
+#else
+typedef stwodigits medium_result_value_t;
+#define MEDIUM_VALUE(x) ((stwodigits)_PyLong_CompactValue((PyLongObject *)x))
+
+#endif
+
 // TODO: Use this from header files, although they have changed.
 #define NUITKA_STATIC_SMALLINT_VALUE_MIN -5
 #define NUITKA_STATIC_SMALLINT_VALUE_MAX 257
@@ -81,7 +94,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Long_GetSmallValue(int ival)
 #endif
 
 #else
-NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Long_GetSmallValue(int ival) {
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Long_GetSmallValue(medium_result_value_t ival) {
     return (PyObject *)&_PyLong_SMALL_INTS[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];
 }
 #endif

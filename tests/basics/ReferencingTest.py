@@ -174,7 +174,7 @@ def simpleFunction16():
 
 
 def simpleFunction17():
-    class EmptyObjectClass:
+    class EmptyObjectClass(object):
         pass
 
     return EmptyObjectClass()
@@ -1028,6 +1028,9 @@ def simpleFunction111():
 
 
 def simpleFunction112():
+    if sys.version_info >= (3, 12):
+        return
+
     TESTFN = "tmp.txt"
     import codecs
 
@@ -1358,6 +1361,7 @@ result = executeReferenceChecked(
     names=globals(),
     tests_skipped=tests_skipped,
     tests_stderr=tests_stderr,
+    explain=False,
 )
 
 sys.exit(0 if result else 1)

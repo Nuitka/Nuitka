@@ -122,6 +122,9 @@ def diffRecursive(dir1, dir2):
         ):
             continue
 
+        if "scons-debug" in filename:
+            continue
+
         if not os.path.exists(path2):
             test_logger.warning("Only in %s: %s" % (dir1, filename))
             result = False

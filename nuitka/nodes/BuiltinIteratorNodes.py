@@ -203,9 +203,11 @@ class StatementSpecialUnpackCheckFromIterated(
                 result = makeRaiseExceptionReplacementStatement(
                     statement=self,
                     exception_type="ValueError",
-                    exception_value="too many values to unpack"
-                    if python_version < 0x300
-                    else "too many values to unpack (expected %d)" % self.count,
+                    exception_value=(
+                        "too many values to unpack"
+                        if python_version < 0x300
+                        else "too many values to unpack (expected %d)" % self.count
+                    ),
                 )
 
                 trace_collection.onExceptionRaiseExit(TypeError)

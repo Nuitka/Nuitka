@@ -17,8 +17,10 @@ import os
 import sys
 
 from nuitka import Options
+from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import ConstantAccessor
+from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 from nuitka.Version import getNuitkaVersionTuple
 
@@ -143,6 +145,9 @@ def getConstantsDefinitionCode():
     major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
     body = template_constants_reading % {
+        "module_name_cstr": encodePythonStringToC(
+            getRootTopModule().getFullName().asString().encode("utf8")
+        ),
         "global_constants_count": constant_accessor.getConstantsCount(),
         "sys_executable": sys_executable,
         "sys_prefix": sys_prefix,

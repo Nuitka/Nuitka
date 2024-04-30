@@ -3,7 +3,11 @@
 
 """ Nodes representing more trusted imports. """
 
-from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.importing.Importing import (
+    locateModule,
+    makeModuleUsageAttempt,
+    makeParentModuleUsagesAttempts,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ExpressionBases import ExpressionBase
@@ -12,7 +16,13 @@ from .ExpressionBases import ExpressionBase
 class ExpressionImportHardBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
     #
-    __slots__ = ("module_name", "finding", "module_kind", "module_filename")
+    __slots__ = (
+        "module_name",
+        "finding",
+        "module_kind",
+        "module_filename",
+        "module_usages",
+    )
 
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(self, source_ref)
@@ -34,16 +44,20 @@ class ExpressionImportHardBase(ExpressionBase):
         assert self.finding != "not-found", self.module_name
         assert _module_name == self.module_name, (self.module_name, _module_name)
 
-    def getModuleUsageAttempt(self):
-        return makeModuleUsageAttempt(
-            module_name=self.module_name,
-            filename=self.module_filename,
-            module_kind=self.module_kind,
-            finding=self.finding,
-            level=0,
-            source_ref=self.source_ref,
-            reason="import",
+        self.module_usages = makeParentModuleUsagesAttempts(
+            makeModuleUsageAttempt(
+                module_name=self.module_name,
+                filename=self.module_filename,
+                module_kind=self.module_kind,
+                finding=self.finding,
+                level=0,
+                source_ref=self.source_ref,
+                reason="import",
+            )
         )
+
+    def getModuleUsageAttempts(self):
+        return self.module_usages
 
 
 class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
@@ -96,7 +110,7 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
         trace_collection.onExceptionRaiseExit(AttributeError)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+        trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         return self, None, None
 
@@ -122,7 +136,7 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
             trace_collection.onExceptionRaiseExit(ImportError)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+        trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         # As good as it gets.
         return self, None, None

@@ -205,9 +205,9 @@ def createEnvironment(
         import SCons.Tool.msvc  # pylint: disable=I0021,import-error
 
         SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
-        SCons.Tool.msvc.msvc_exists = (
-            SCons.Tool.MSCommon.vc.msvc_exists
-        ) = lambda *args: False
+        SCons.Tool.msvc.msvc_exists = SCons.Tool.MSCommon.vc.msvc_exists = (
+            lambda *args: False
+        )
     else:
         # Everything else should use default, that is MSVC tools, but not MinGW64.
         tools = ["default"]
@@ -537,7 +537,11 @@ def isGccName(cc_name):
 
 
 def isClangName(cc_name):
-    return "clang" in cc_name and "-cl" not in cc_name
+    return ("clang" in cc_name and "-cl" not in cc_name) or isZigName(cc_name)
+
+
+def isZigName(cc_name):
+    return "zig" in cc_name
 
 
 def cheapCopyFile(src, dst):

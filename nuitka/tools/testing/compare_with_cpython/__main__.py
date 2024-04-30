@@ -220,7 +220,6 @@ def main():
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
-    keep_python_path = hasArg("keep_python_path")
     trace_command = (
         hasArg("trace_command") or os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0"
     )
@@ -476,9 +475,6 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if binary_python_path:
         addToPythonPath(os.path.dirname(os.path.abspath(filename)))
-
-    if (keep_python_path or binary_python_path) and not coverage_mode:
-        extra_options.append("--execute-with-pythonpath")
 
     if report:
         extra_options.append("--report=%s" % report)

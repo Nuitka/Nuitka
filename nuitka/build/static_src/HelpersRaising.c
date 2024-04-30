@@ -56,7 +56,10 @@ void RAISE_EXCEPTION_WITH_TYPE(PyThreadState *tstate, PyObject **exception_type,
     if (PyExceptionClass_Check(*exception_type)) {
         NORMALIZE_EXCEPTION(tstate, exception_type, exception_value, exception_tb);
 #if PYTHON_VERSION >= 0x270
+        // TODO: It seems NORMALIZE_EXCEPTION already does this?
         if (unlikely(!PyExceptionInstance_Check(*exception_value))) {
+            assert(false);
+
             PyObject *old_exception_type = *exception_type;
             PyObject *old_exception_value = *exception_value;
 
@@ -122,7 +125,12 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type
             Py_DECREF(*exception_type);
             Py_XDECREF(*exception_tb);
 
-            FETCH_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+            struct Nuitka_ExceptionPreservationItem exception_state;
+            FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+            ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exception_type, exception_value,
+                                                          exception_tb);
+            RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
             return;
         }
@@ -419,6 +427,59 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
 
     return true;
 }
+
+// Raise NameError for a given variable name.
+void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name, PyObject **exception_type,
+                                        PyObject **exception_value) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+    *exception_type = PyExc_NameError;
+    Py_INCREF(PyExc_NameError);
+
+#if PYTHON_VERSION >= 0x300
+    CHAIN_EXCEPTION(tstate, *exception_value);
+#endif
+}
+
+#if PYTHON_VERSION < 0x340
+void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
+                                               PyObject **exception_type, PyObject **exception_value) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+    *exception_type = PyExc_NameError;
+    Py_INCREF(PyExc_NameError);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
+
+void RAISE_EXCEPTION_WITH_CAUSE_STATE(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                      PyObject *exception_cause) {
+#if PYTHON_VERSION < 0x3c0
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_state->exception_type, &exception_state->exception_value,
+                               &exception_state->exception_tb, exception_cause);
+#else
+    PyObject *exception_type = (PyObject *)PyExceptionInstance_Class(exception_state->exception_value);
+    Py_INCREF(exception_type);
+    PyTracebackObject *exception_tb = NULL;
+
+    // Python3.12: We are being a bit lazy there, by preparing the 3 things when
+    // we shouldn't really need them.
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &exception_type, &exception_state->exception_value, &exception_tb,
+                               exception_cause);
+
+    Py_DECREF(exception_type);
+#endif
+}
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

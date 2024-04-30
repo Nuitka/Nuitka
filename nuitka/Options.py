@@ -61,6 +61,7 @@ from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
     getLinuxDistribution,
+    getMacOSRelease,
     getOS,
     getWindowsRelease,
     hasOnefileSupportedOS,
@@ -159,7 +160,7 @@ def checkPathSpec(value, arg_name, allow_disable):
             % (arg_name, value)
         )
 
-    if "{VERSION}" in value and not (getFileVersion() or getProductVersion()):
+    if "{VERSION}" in value and not (getFileVersionTuple() or getProductVersionTuple()):
         Tracing.options_logger.sysexit(
             "Using value '{VERSION}' in '%s=%s' value without being specified."
             % (arg_name, value)
@@ -290,6 +291,9 @@ def _getVersionInformationValues():
 
     if isWin32OrPosixWindows():
         yield "WindowsRelease: %s" % getWindowsRelease()
+
+    if isMacOS():
+        yield "macOSRelease: %s" % getMacOSRelease()
 
 
 def printVersionInformation():
@@ -630,7 +634,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        file_version = getFileVersion()
+        file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         Tracing.options_logger.sysexit(
@@ -638,7 +642,7 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        product_version = getProductVersion()
+        product_version = getProductVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
     except Exception:
         Tracing.options_logger.sysexit(
@@ -1086,11 +1090,6 @@ but errors may happen."""
                 "The '--debugger' option has no effect outside of '--debug' without '--run' option."
             )
 
-        if not shallClearPythonPathEnvironment():
-            Tracing.options_logger.warning(
-                "The '--execute-with-pythonpath' option has no effect without '--run' option."
-            )
-
     # Check if the fallback is used, except for Python2 on Windows, where we cannot
     # have it.
     if hasattr(OrderedSet, "is_fallback") and not (
@@ -1451,11 +1450,6 @@ def getMainEntryPointFilenames():
 def shallOptimizeStringExec():
     """Inactive yet"""
     return False
-
-
-def shallClearPythonPathEnvironment():
-    """*bool* = **not** ``--execute-with-pythonpath``"""
-    return not options.keep_pythonpath
 
 
 _shall_use_static_lib_python = None
@@ -1973,11 +1967,21 @@ def _parseVersionNumber(value):
 
 
 def getProductVersion():
+    """:returns: str, derived from ``--product-version``"""
+    return options.product_version
+
+
+def getProductVersionTuple():
     """:returns: tuple of 4 ints or None, derived from ``--product-version``"""
     return _parseVersionNumber(options.product_version)
 
 
 def getFileVersion():
+    """:returns str, derived from ``--file-version``"""
+    return options.file_version
+
+
+def getFileVersionTuple():
     """:returns tuple of 4 ints or None, derived from ``--file-version``"""
     return _parseVersionNumber(options.file_version)
 
@@ -2404,6 +2408,15 @@ def getModuleParameter(module_name, parameter_name):
             return module_option_value
 
     return None
+
+
+def getForcedRuntimeEnvironmentVariableValues():
+    """:returns: iterable (string, string) derived from ``----force-runtime-environment-variable``"""
+
+    for forced_runtime_env_variables_spec in options.forced_runtime_env_variables:
+        name, value = forced_runtime_env_variables_spec.split("=", 1)
+
+        yield (name, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

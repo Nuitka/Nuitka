@@ -309,6 +309,10 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("_37.py") and _python_version >= (3, 8):
         return False
 
+    # Skip tests that require Python 3.11 at maximum.
+    if filename.endswith("_311.py") and _python_version >= (3, 8):
+        return False
+
     # Skip tests that require Python 3.2 at least.
     if filename.endswith("32.py") and _python_version < (3, 2):
         return False
@@ -347,6 +351,10 @@ def decideFilenameVersionSkip(filename):
 
     # Skip tests that require Python 3.11 at least.
     if filename.endswith("311.py") and _python_version < (3, 11):
+        return False
+
+    # Skip tests that require Python 3.12 at least.
+    if filename.endswith("312.py") and _python_version < (3, 12):
         return False
 
     return True
@@ -702,7 +710,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
                     my_print("extra:", m1[key], key)
                 elif m1[key] != m2[key]:
                     my_print("*" * 80)
-                    my_print(m1[key], "->", m2[key], key)
+                    my_print(m1[key], "->", m2[key], repr(key))
                 else:
                     pass
 
@@ -805,9 +813,9 @@ Defaults to off.""",
             assert False
     elif mode == "coverage":
         return SearchModeCoverage(
-            start_at=options.pattern.replace("/", os.path.sep)
-            if options.pattern
-            else None
+            start_at=(
+                options.pattern.replace("/", os.path.sep) if options.pattern else None
+            )
         )
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)
@@ -825,7 +833,7 @@ def executeReferenceChecked(
 ):
     gc.disable()
 
-    extract_number = lambda name: int(name.replace(prefix, ""))
+    extract_number = lambda name: int(name.replace(prefix, "") or "0")
 
     # Find the function names.
     matching_names = tuple(
@@ -941,7 +949,8 @@ def withExtendedExtraOptions(*args):
 
 def indentedCode(codes, count):
     """Indent code, used for generating test codes."""
-    return "\n".join(" " * count + line if line else "" for line in codes)
+    indent = " " * count
+    return "\n".join(indent + line if line else "" for line in codes)
 
 
 def convertToPython(doctests, line_filter=None):
@@ -1601,7 +1610,14 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         # Loading from home directories is OK too.
         if any(
             isFilenameSameAsOrBelowPath(path, loaded_filename)
-            for path in ("/home", "/data", "/root", "/Users", "/Library/Preferences")
+            for path in (
+                "/home",
+                "/data",
+                "/root",
+                "/Users",
+                "/Library/Preferences",
+                "/agent",  # Azure
+            )
         ):
             continue
 
@@ -1768,6 +1784,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
                 "/usr/lib/system/",
+                "/usr/libexec/swift",
             ):
                 if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
                     ignore = False

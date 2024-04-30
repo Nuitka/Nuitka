@@ -4,6 +4,7 @@
 """
 Package using package data file.
 """
+
 import pkgutil
 
 print(pkgutil.get_data(__package__, "data/package_data.txt"))

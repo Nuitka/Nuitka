@@ -446,15 +446,15 @@ uint32_t getFileCRC32(filename_char_t const *filename) {
 
 #ifdef _WIN32
 
-static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath, DWORD dwFlags) {
-    typedef DWORD(WINAPI * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath,
+static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR FilePath, DWORD cchFilePath, DWORD dwFlags) {
+    typedef DWORD(WINAPI * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR FilePath, DWORD cchFilePath,
                                                          DWORD dwFlags);
 
     pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
         (pfnGetFinalPathNameByHandleW)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
 
     if (fnGetFinalPathNameByHandleW != NULL) {
-        return fnGetFinalPathNameByHandleW(hFile, lpszFilePath, cchFilePath, dwFlags);
+        return fnGetFinalPathNameByHandleW(hFile, FilePath, cchFilePath, dwFlags);
     } else {
         // There are no symlinks before Windows Vista.
         return 0;
@@ -683,6 +683,8 @@ static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_
         return false;
     }
 #else
+    // spell-checker: ignore USERPROFILE,LOCALAPPDATA
+
     DWORD res = 0;
     if (csidl_id == CSIDL_PROFILE) {
         res = GetEnvironmentVariableW(L"USERPROFILE", path_buffer, sizeof(path_buffer));
@@ -777,6 +779,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
             } else if (wcsicmp(var_name, L"TIME") == 0) {
                 char time_buffer[1024];
 
+                // spell-checker: ignore LPFILETIME
                 __int64 time = 0;
                 assert(sizeof(time) == sizeof(FILETIME));
                 GetSystemTimeAsFileTime((LPFILETIME)&time);
@@ -905,12 +908,9 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 if (xdg_cache_home != NULL && xdg_cache_home[0] == '/') {
                     appendStringSafe(target, xdg_cache_home, buffer_size);
                 } else {
-                    if (expandTemplatePath(target, "{HOME}", buffer_size - strlen(target)) == false) {
+                    if (expandTemplatePath(target, "{HOME}/.cache", buffer_size - strlen(target)) == false) {
                         return false;
                     }
-
-                    appendCharSafe(target, '/', buffer_size);
-                    appendStringSafe(target, ".cache", buffer_size);
                 }
                 is_path = true;
 #ifdef NUITKA_COMPANY_NAME

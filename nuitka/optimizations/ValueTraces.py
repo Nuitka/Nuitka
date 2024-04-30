@@ -18,7 +18,15 @@ Values can be seen as:
 * LoopComplete (complete knowledge of loop types)
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_bytes,
+    tshape_dict,
+    tshape_list,
+    tshape_str,
+    tshape_tuple,
+    tshape_unicode,
+)
 from nuitka.nodes.shapes.ControlFlowDescriptions import (
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFullEscape,
@@ -846,6 +854,46 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
 
         self.recursion = False
         return True
+
+    def hasShapeListExact(self):
+        return self.type_shapes == _only_list_shape
+
+    def hasShapeDictionaryExact(self):
+        return self.type_shapes == _only_dict_shape
+
+    def hasShapeStrExact(self):
+        return self.type_shapes == _only_str_shape
+
+    def hasShapeUnicodeExact(self):
+        return self.type_shapes == _only_unicode_shape
+
+    if str is bytes:
+
+        def hasShapeStrOrUnicodeExact(self):
+            return (
+                self.hasShapeStrExact()
+                or self.hasShapeUnicodeExact()
+                or self.type_shapes == _str_plus_unicode_shape
+            )
+
+    else:
+
+        hasShapeStrOrUnicodeExact = hasShapeUnicodeExact
+
+    def hasShapeBytesExact(self):
+        return self.type_shapes == _only_bytes_shape
+
+    def hasShapeBoolExact(self):
+        return self.type_shapes == _only_bool_shape
+
+
+_only_list_shape = frozenset((tshape_list,))
+_only_dict_shape = frozenset((tshape_dict,))
+_only_str_shape = frozenset((tshape_str,))
+_only_unicode_shape = frozenset((tshape_unicode,))
+_str_plus_unicode_shape = frozenset((tshape_unicode, tshape_str))
+_only_bytes_shape = frozenset((tshape_bytes,))
+_only_bool_shape = frozenset((tshape_bool,))
 
 
 class ValueTraceLoopComplete(ValueTraceLoopBase):

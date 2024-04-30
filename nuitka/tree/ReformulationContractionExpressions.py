@@ -204,9 +204,11 @@ def buildDictContractionNode(provider, node, source_ref):
         provider=provider,
         node=node,
         name="<dictcontraction>",
-        emit_class=StatementDictOperationSet
-        if python_version < 0x380
-        else StatementDictOperationSetKeyValue,
+        emit_class=(
+            StatementDictOperationSet
+            if python_version < 0x380
+            else StatementDictOperationSetKeyValue
+        ),
         start_value={},
         source_ref=source_ref,
     )

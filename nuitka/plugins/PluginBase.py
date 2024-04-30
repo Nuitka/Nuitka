@@ -187,9 +187,9 @@ def _getEvaluationContext():
             numeric_version = int(big) * 256 + int(major) * 16
             is_same_or_higher_version = python_version >= numeric_version
 
-            _context_dict[
-                "python" + big + major + "_or_higher"
-            ] = is_same_or_higher_version
+            _context_dict["python" + big + major + "_or_higher"] = (
+                is_same_or_higher_version
+            )
             _context_dict["before_python" + big + major] = not is_same_or_higher_version
 
         _context_dict["before_python3"] = python_version < 0x300
@@ -210,6 +210,8 @@ def _convertVersionToTuple(version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
+    # spell-checker: ignore opencv, pyobjc, objc
+
     if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
     elif distribution_name == "pyobjc":
@@ -302,7 +304,7 @@ def _iterate_module_names(package_name):
         module_name = package_name.getChildNamed(module_info.name)
         result.append(module_name.asString())
 
-        if module_info.ispkg:
+        if module_info.ispkg:  # spell-checker: ignore ispkg
             result.extend(_iterate_module_names(package_name=module_name))
 
     return result
@@ -1674,6 +1676,26 @@ class NuitkaYamlPluginBase(NuitkaPluginBase):
                 for key, value in item_config.items():
                     if decide_relevant(key, value):
                         yield key, value
+
+    def getYamlConfigItemSet(
+        self, module_name, section, item_name, decide_relevant, recursive
+    ):
+        for item_config in self.getYamlConfigItem(
+            module_name=module_name,
+            section=section,
+            item_name=item_name,
+            decide_relevant=None,
+            default=(),
+            recursive=recursive,
+        ):
+            if recursive:
+                for value in item_config[1]:
+                    if decide_relevant is None or decide_relevant(value):
+                        yield item_config[0], value
+            else:
+                for value in item_config:
+                    if decide_relevant is None or decide_relevant(value):
+                        yield value
 
 
 def standalone_only(func):

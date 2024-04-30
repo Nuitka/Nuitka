@@ -104,12 +104,14 @@ def _getBinaryOperationCode(
     ) = decideExpressionCTypes(
         left=left,
         right=right,
-        may_swap_arguments="never"
-        if inplace
-        else (
-            "number"
-            if operator in ("Add", "Mult", "BitOr", "BitAnd", "BitXor")
-            else "never"
+        may_swap_arguments=(
+            "never"
+            if inplace
+            else (
+                "number"
+                if operator in ("Add", "Mult", "BitOr", "BitAnd", "BitXor")
+                else "never"
+            )
         ),
     )
 

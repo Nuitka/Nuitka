@@ -63,6 +63,10 @@ hard_modules_non_stdlib = set(
         "pkg_resources",
         "importlib_metadata",
         "importlib_resources",
+        "tensorflow",
+        # TODO: Disabled for now, keyword only arguments and star list argument
+        # are having ordering issues for call matching and code generation.
+        # "networkx.utils.decorators",
     )
 )
 
@@ -109,7 +113,15 @@ def isHardModule(module_name):
 
 
 # These modules can cause issues if imported during compile time.
-hard_modules_trust_with_side_effects = set(["site"])
+hard_modules_trust_with_side_effects = set(
+    [
+        "site",
+        "tensorflow",
+        # TODO: Disabled for now, keyword only arguments and star list argument are
+        # having ordering issues for call matching and code generation.
+        # "networkx.utils.decorators"
+    ]
+)
 if not isWin32Windows():
     # Crashing on anything but Windows.
     hard_modules_trust_with_side_effects.add("ctypes.wintypes")
@@ -264,6 +276,10 @@ hard_modules_trust = {
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
     "builtins": module_builtins_trust,
+    "tensorflow": {"function": trust_node},
+    # TODO: Disabled for now, keyword only arguments and star list argument are
+    # having ordering issues for call matching and code generation.
+    # "networkx.utils.decorators": {"argmap": trust_node},
 }
 
 
@@ -329,6 +345,7 @@ def addModuleDynamicHard(module_name):
     hard_modules.add(module_name)
     hard_modules_dynamic.add(module_name)
     hard_modules_non_stdlib.add(module_name)
+    hard_modules_trust_with_side_effects.add(module_name)
 
     if module_name not in hard_modules_trust:
         hard_modules_trust[module_name] = {}

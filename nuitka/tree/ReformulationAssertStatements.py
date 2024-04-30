@@ -7,6 +7,7 @@ Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
 
 """
+
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple

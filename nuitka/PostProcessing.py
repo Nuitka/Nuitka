@@ -227,13 +227,13 @@ def executePostProcessingResources(manifest, onefile):
 
     if (
         Options.getWindowsVersionInfoStrings()
-        or Options.getProductVersion()
-        or Options.getFileVersion()
+        or Options.getProductVersionTuple()
+        or Options.getFileVersionTuple()
     ):
         addVersionInfoResource(
             string_values=Options.getWindowsVersionInfoStrings(),
-            product_version=Options.getProductVersion(),
-            file_version=Options.getFileVersion(),
+            product_version=Options.getProductVersionTuple(),
+            file_version=Options.getFileVersionTuple(),
             file_date=(0, 0),
             is_exe=not Options.shallMakeModule(),
             result_filename=result_filename,
@@ -379,9 +379,11 @@ set PYTHONHOME=%(python_home)s
 set NUITKA_PYTHONPATH=%(python_path)s
 %(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
-            "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
-            if Options.shallRunInDebugger()
-            else "",
+            "debugger_call": (
+                (" ".join(wrapCommandForDebuggerForExec()) + " ")
+                if Options.shallRunInDebugger()
+                else ""
+            ),
             "dll_directory": dll_directory,
             "python_home": sys.prefix,
             "python_path": ";".join(sys.path),

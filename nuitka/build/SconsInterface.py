@@ -30,17 +30,22 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.utils.AppDirs import getCacheDirEnvironmentVariableName
+from nuitka.utils.Download import getDownloadCacheDir, getDownloadCacheName
 from nuitka.utils.Execution import (
     getExecutablePath,
     withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
     getWindowsShortPathName,
     hasFilenameExtension,
     listDir,
+    makePath,
+    putTextFileContents,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -105,7 +110,16 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11")
+    scons_supported_pythons = (
+        "3.5",
+        "3.6",
+        "3.7",
+        "3.8",
+        "3.9",
+        "3.10",
+        "3.11",
+        "3.12",
+    )
     if not isWin32Windows():
         scons_supported_pythons += ("2.7", "2.6")
 
@@ -158,6 +172,14 @@ def _setupSconsEnvironment2():
     import nuitka
 
     os.environ["NUITKA_PACKAGE_DIR"] = os.path.abspath(nuitka.__path__[0])
+
+    # When downloading in Scons, use the external path.
+    if isWin32Windows():
+        download_cache_dir = getDownloadCacheDir()
+        makePath(download_cache_dir)
+        os.environ[getCacheDirEnvironmentVariableName(getDownloadCacheName())] = (
+            getExternalUsePath(download_cache_dir)
+        )
 
     yield
 
@@ -247,6 +269,61 @@ def _buildSconsCommand(options, scons_filename):
     return scons_command
 
 
+def _createSconsDebugScript(source_dir, scons_command):
+    # we wrote debug shell script only if build process called, not "--version" call.
+    scons_debug_python_name = "scons-debug.py"
+
+    putTextFileContents(
+        filename=os.path.join(source_dir, scons_debug_python_name),
+        contents="""\
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+import subprocess
+
+exit_code = subprocess.call(
+    %(scons_command)r,
+    env=%(env)r,
+    shell=False
+)"""
+        % {"scons_command": scons_command, "env": dict(os.environ)},
+        encoding="utf8",
+    )
+
+    if isWin32Windows():
+        script_extension = ".bat"
+
+        script_prelude = """\
+cd "%~dp0"
+                    """
+    else:
+        script_extension = ".sh"
+
+        script_prelude = """\
+#!/bin/bash
+cd "${0%/*}"
+"""
+
+    putTextFileContents(
+        filename=os.path.join(
+            source_dir,
+            changeFilenameExtension(scons_debug_python_name, script_extension),
+        ),
+        contents="""\
+%(script_prelude)s
+
+'%(scons_python)s' '%(scons_debug_script_name)s'
+"""
+        % {
+            "script_prelude": script_prelude,
+            "scons_python": scons_command[0],
+            "scons_debug_script_name": scons_debug_python_name,
+        },
+        encoding="utf8",
+    )
+
+
 def runScons(options, env_values, scons_filename):
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -287,6 +364,12 @@ def runScons(options, env_values, scons_filename):
         Tracing.flushStandardOutputs()
 
         with withEnvironmentVarsOverridden(env_values):
+            # Create debug script to quickly re-run this step only.
+            if source_dir is not None:
+                _createSconsDebugScript(
+                    source_dir=source_dir, scons_command=scons_command
+                )
+
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
@@ -464,12 +547,8 @@ def setCommonSconsOptions(options):
 
     if product_version is None:
         product_version = file_version
-    if product_version is not None:
-        product_version = ".".join(str(d) for d in product_version)
     if file_version is None:
         file_version = product_version
-    else:
-        file_version = ".".join(str(d) for d in file_version)
 
     if product_version != file_version:
         effective_version = "%s-%s" % (

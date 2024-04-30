@@ -17,7 +17,6 @@ to grow both.
 
 """
 
-
 import re
 
 from nuitka.__past__ import intern

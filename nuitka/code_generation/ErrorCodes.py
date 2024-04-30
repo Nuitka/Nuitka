@@ -247,44 +247,36 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
 
 # TODO: Get rid of this function entirely.
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
-    helper_code = "FORMAT_NAME_ERROR"
+    helper_code = "RAISE_CURRENT_EXCEPTION_NAME_ERROR"
 
     if python_version < 0x340:
         owner = context.getOwner()
 
         if not owner.isCompiledPythonModule() and not owner.isExpressionClassBodyBase():
-            helper_code = "FORMAT_GLOBAL_NAME_ERROR"
+            helper_code = "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
 
     (
         exception_type,
         exception_value,
-        _exception_tb,
+        exception_tb,
         _exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
-
-    set_exception = "%s(&%s, &%s, %s);" % (
-        helper_code,
-        exception_type,
-        exception_value,
-        context.getConstantCode(variable_name),
-    )
-
-    # TODO: Make this part of the helper code as well.
-    if python_version >= 0x300:
-        set_exception = [set_exception]
-        set_exception.extend(_getExceptionChainingCode(context))
 
     emit(
         template_error_format_name_error_exception
         % {
             "condition": condition,
             "exception_exit": context.getExceptionEscape(),
-            "set_exception": indented(set_exception),
+            "raise_name_error_helper": helper_code,
+            "variable_name": context.getConstantCode(variable_name),
             "release_temps": indented(getErrorExitReleaseCode(context)),
             "var_description_code": indented(
                 getFrameVariableTypeDescriptionCode(context)
             ),
             "line_number_code": indented(getErrorLineNumberUpdateCode(context)),
+            "exception_type": exception_type,
+            "exception_value": exception_value,
+            "exception_tb": exception_tb,
         }
     )
 

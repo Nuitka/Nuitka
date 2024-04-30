@@ -249,9 +249,11 @@ def main():
             stdout_diff,
             "exit_stderr:",
             stderr_diff,
-            "\nError, outputs differed for package %s." % package_name
-            if exit_code
-            else "\nNo differences found for package %s." % package_name,
+            (
+                "\nError, outputs differed for package %s." % package_name
+                if exit_code
+                else "\nNo differences found for package %s." % package_name
+            ),
             "\n=================================================================================\n",
             style="red" if exit_code else "green",
         )

@@ -7,7 +7,6 @@ This does only the interfacing with tracing and collection of information.
 
 """
 
-
 from nuitka.Progress import (
     closeProgressBar,
     enableProgressBar,

@@ -826,12 +826,16 @@ def buildFunctionWithParsing(
     parameters = ParameterSpec(
         ps_name=name,
         ps_normal_args=extractNormalArgs(node.args.args),
-        ps_pos_only_args=[extractArg(arg) for arg in node.args.posonlyargs]
-        if python_version >= 0x380
-        else (),
-        ps_kw_only_args=[extractArg(arg) for arg in node.args.kwonlyargs]
-        if python_version >= 0x300
-        else (),
+        ps_pos_only_args=(
+            [extractArg(arg) for arg in node.args.posonlyargs]
+            if python_version >= 0x380
+            else ()
+        ),
+        ps_kw_only_args=(
+            [extractArg(arg) for arg in node.args.kwonlyargs]
+            if python_version >= 0x300
+            else ()
+        ),
         ps_list_star_arg=extractArg(node.args.vararg),
         ps_dict_star_arg=extractArg(node.args.kwarg),
         ps_default_count=len(node.args.defaults),

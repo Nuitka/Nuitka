@@ -710,10 +710,9 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 #else
     NUITKA_ASSIGN_BUILTIN(print);
 
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     PyObject *result;
 
@@ -732,7 +731,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return result != NULL;
 #endif
@@ -804,10 +803,9 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 #else
     NUITKA_ASSIGN_BUILTIN(print);
 
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY();
@@ -828,7 +826,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     Py_XDECREF(result);
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return result != NULL;
 #endif
@@ -836,12 +834,19 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
 void PRINT_REFCOUNT(PyObject *object) {
     if (object) {
+#if PYTHON_VERSION >= 0x3c0
+        if (_Py_IsImmortal(object)) {
+            PRINT_STRING(" recnf IMMORTAL");
+        }
+
+        return;
+#endif
         char buffer[1024];
         snprintf(buffer, sizeof(buffer) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT(object));
 
         PRINT_STRING(buffer);
     } else {
-        PRINT_STRING("<null>");
+        PRINT_STRING(" <null>");
     }
 }
 
@@ -868,12 +873,11 @@ bool PRINT_FORMAT(char const *fmt, ...) {
 }
 
 bool PRINT_REPR(PyObject *object) {
-    PyObject *exception_type, *exception_value;
-    PyTracebackObject *exception_tb;
-
     PyThreadState *tstate = PyThreadState_GET();
 
-    FETCH_ERROR_OCCURRED_UNTRACED(tstate, &exception_type, &exception_value, &exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+
+    FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     bool res;
 
@@ -890,7 +894,7 @@ bool PRINT_REPR(PyObject *object) {
         res = PRINT_NULL();
     }
 
-    RESTORE_ERROR_OCCURRED_UNTRACED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     return res;
 }
@@ -935,7 +939,11 @@ void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("current_exc=");
+#if PYTHON_VERSION < 0x3c0
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
+#else
+    _PRINT_EXCEPTION(tstate->exc_info->exc_value);
+#endif
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
@@ -2107,6 +2115,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
 #include "HelpersDumpBacktraces.c"
 #endif
+
+#include "HelpersJitSources.c"
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

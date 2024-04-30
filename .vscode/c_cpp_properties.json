@@ -5,7 +5,8 @@
             "${workspaceFolder}/nuitka/build/static_src",
             "${workspaceFolder}/nuitka/build/inline_copy/zstd",
             "${workspaceFolder}/nuitka/build/inline_copy/zlib",
-            "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace"
+            "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace",
+            "${workspaceFolder}/nuitka/plugins/*/*"
         ]
     },
     "configurations": [
@@ -143,6 +144,25 @@
             "intelliSenseMode": "${default}"
         },
         {
+            "name": "Linux-Python3.12",
+            "includePath": [
+                "/usr/include",
+                "${myDefaultIncludePath}",
+                "/usr/include/python3.12"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3C0"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
             "name": "Linux-Python2.7",
             "includePath": [
                 "/usr/include",
@@ -178,7 +198,7 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "${default}"
-        },
+        }
     ],
     "version": 4
 }

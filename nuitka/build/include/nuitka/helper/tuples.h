@@ -11,19 +11,35 @@
         PyTuple_SET_ITEM(tuple, index, tmp);                                                                           \
     }
 
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL)
 #define NUITKA_TUPLE_HAS_FREELIST 1
+// Make empty tuple, size > 0
 extern PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size);
+// Make empty tuple, size >= 0
 extern PyObject *MAKE_TUPLE_EMPTY_VAR(Py_ssize_t size);
 #else
 #define NUITKA_TUPLE_HAS_FREELIST 0
 
+// Make empty tuple, size > 0
 #define MAKE_TUPLE_EMPTY(size) PyTuple_New(size)
+// Make empty tuple, size >= 0
 #define MAKE_TUPLE_EMPTY_VAR(size) PyTuple_New(size)
 #endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
+    assert(size > 0);
+
     PyObject *result = MAKE_TUPLE_EMPTY(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyTuple_SET_ITEM0(result, i, elements[i]);
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE_VAR(PyObject *const *elements, Py_ssize_t size) {
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         PyTuple_SET_ITEM0(result, i, elements[i]);

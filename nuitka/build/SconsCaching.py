@@ -30,6 +30,7 @@ from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
+    isZigName,
     setEnvironmentVariable,
 )
 
@@ -100,20 +101,16 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
 
     else:
         scons_details_logger.info(
-            "Using ccache '%s' from NUITKA_CCACHE_BINARY environment variable."
+            "Using ccache '%s' from 'NUITKA_CCACHE_BINARY' environment variable."
             % ccache_binary
         )
 
     if ccache_binary is not None and os.path.exists(ccache_binary):
-        # Make sure the
         # In case we are on Windows, make sure the Anaconda form runs outside of Anaconda
         # environment, by adding DLL folder to PATH.
         assert areSamePaths(
             getExecutablePath(os.path.basename(env.the_compiler), env=env), cc_path
         )
-
-        # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
-        env["CXX"] = env["CC"] = '"%s" "%s"' % (ccache_binary, cc_path)
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
@@ -126,58 +123,79 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
             "Providing real CC path '%s' via PATH extension." % cc_path
         )
 
+        values = [ccache_binary, cc_path]
 
-def enableCcache(
-    env,
-    source_dir,
-    python_prefix,
-    assume_yes_for_downloads,
-):
-    # The ccache needs absolute path, otherwise it will not work.
-    ccache_logfile = os.path.abspath(
-        os.path.join(source_dir, "ccache-%d.txt" % os.getpid())
-    )
+        if isZigName(env.the_cc_name):
+            values.append("c++" if env.c11_mode else "cc")
 
-    setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
-    env["CCACHE_LOGFILE"] = ccache_logfile
-
-    # Unless asked to do otherwise, store ccache files in our own directory.
-    if "CCACHE_DIR" not in os.environ:
-        ccache_dir = getCacheDir("ccache")
-        makePath(ccache_dir)
-        ccache_dir = getExternalUsePath(ccache_dir)
-        setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
-        env["CCACHE_DIR"] = ccache_dir
-
-    if "CLCACHE_MEMCACHED" in os.environ:
-        scons_logger.warning(
-            "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
-        )
-        setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
-
-    # We know the include files we created are safe to use.
-    setEnvironmentVariable(
-        env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
-    )
-
-    # First check if it's not already supposed to be a ccache, then do nothing.
-    cc_path = getExecutablePath(env.the_compiler, env=env)
-
-    cc_is_link, cc_link_path = getLinkTarget(cc_path)
-    if cc_is_link and os.path.basename(cc_link_path) == "ccache":
-        scons_details_logger.info(
-            "Chosen compiler %s is pointing to ccache %s already."
-            % (cc_path, cc_link_path)
-        )
+        # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
+        env["CXX"] = env["CC"] = " ".join('"%s"' % value for value in values)
 
         return True
 
-    return _injectCcache(
-        env=env,
-        cc_path=cc_path,
-        python_prefix=python_prefix,
-        assume_yes_for_downloads=assume_yes_for_downloads,
-    )
+    return False
+
+
+def enableCcache(
+    env, source_dir, python_prefix, assume_yes_for_downloads, disable_ccache
+):
+    inject_ccache = not disable_ccache
+
+    if inject_ccache:
+        # The ccache needs absolute path, otherwise it will not work.
+        ccache_logfile = os.path.abspath(
+            os.path.join(source_dir, "ccache-%d.txt" % os.getpid())
+        )
+
+        setEnvironmentVariable(env, "CCACHE_LOGFILE", ccache_logfile)
+        env["CCACHE_LOGFILE"] = ccache_logfile
+
+        # Unless asked to do otherwise, store ccache files in our own directory.
+        if "CCACHE_DIR" not in os.environ:
+            ccache_dir = getCacheDir("ccache")
+            makePath(ccache_dir)
+            ccache_dir = getExternalUsePath(ccache_dir)
+            setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
+            env["CCACHE_DIR"] = ccache_dir
+
+        if "CLCACHE_MEMCACHED" in os.environ:
+            scons_logger.warning(
+                "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
+            )
+            setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
+
+        # We know the include files we created are safe to use.
+        setEnvironmentVariable(
+            env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
+        )
+
+        # First check if it's not already supposed to be a ccache, then do nothing.
+        cc_path = getExecutablePath(env.the_compiler, env=env)
+
+        cc_is_link, cc_link_path = getLinkTarget(cc_path)
+        if cc_is_link and os.path.basename(cc_link_path) == "ccache":
+            scons_details_logger.info(
+                "Chosen compiler %s is pointing to ccache %s already."
+                % (cc_path, cc_link_path)
+            )
+
+            inject_ccache = False
+
+    if inject_ccache:
+        inject_ccache = _injectCcache(
+            env=env,
+            cc_path=cc_path,
+            python_prefix=python_prefix,
+            assume_yes_for_downloads=assume_yes_for_downloads,
+        )
+
+    # If we failed to inject zig argument into ccache command line, we need to
+    # do it now.
+    if isZigName(env.the_cc_name) and inject_ccache is False:
+        env["CXX"] = env["CC"] = '"%s" "%s"' % (
+            cc_path,
+            "cc" if env.c11_mode else "c++",
+        )
 
 
 def enableClcache(env, source_dir):
