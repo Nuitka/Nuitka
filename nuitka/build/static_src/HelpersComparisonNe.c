@@ -2118,20 +2118,24 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
         r = false;
     } else {
         int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind1 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
         }
+#endif
 
         int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind2 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
         }
+#endif
 
         if (kind1 != kind2) {
             r = false;
@@ -2781,20 +2785,24 @@ static bool COMPARE_NE_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *opera
         r = false;
     } else {
         int kind1 = PyUnicode_KIND(a);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind1 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)a);
             assert(res != -1);
             kind1 = PyUnicode_KIND(a);
             assert(kind1 != 0);
         }
+#endif
 
         int kind2 = PyUnicode_KIND(b);
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(kind2 == 0)) {
             NUITKA_MAY_BE_UNUSED int res = _PyUnicode_Ready((PyObject *)b);
             assert(res != -1);
             kind2 = PyUnicode_KIND(b);
             assert(kind2 != 0);
         }
+#endif
 
         if (kind1 != kind2) {
             r = false;
@@ -6213,13 +6221,15 @@ static PyObject *COMPARE_NE_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
 
     if (operand1_long_object == operand2_long_object) {
         r = false;
-    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
+    } else if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+               Nuitka_LongGetSignedDigitSize(operand2_long_object)) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
                 r = true;
                 break;
             }
@@ -6833,13 +6843,15 @@ static bool COMPARE_NE_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
 
     if (operand1_long_object == operand2_long_object) {
         r = false;
-    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
+    } else if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+               Nuitka_LongGetSignedDigitSize(operand2_long_object)) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] !=
+                Nuitka_LongGetDigitPointer(operand2_long_object)[i]) {
                 r = true;
                 break;
             }
@@ -11697,13 +11709,13 @@ static PyObject *COMPARE_NE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != operand2_size) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) != operand2_size) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
                 r = true;
                 break;
             }
@@ -11758,13 +11770,13 @@ static bool COMPARE_NE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != operand2_size) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) != operand2_size) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != operand2_digits[i]) {
                 r = true;
                 break;
             }
@@ -11836,13 +11848,14 @@ static PyObject *COMPARE_NE_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+        (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
                 r = true;
                 break;
             }
@@ -11870,13 +11883,14 @@ static bool COMPARE_NE_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
 
     bool r;
 
-    if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+    if (Nuitka_LongGetSignedDigitSize(operand1_long_object) !=
+        (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        Py_ssize_t i = Nuitka_LongGetDigitSize(operand1_long_object);
         r = false;
         while (--i >= 0) {
-            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+            if (Nuitka_LongGetDigitPointer(operand1_long_object)[i] != (digit)Py_ABS(operand2)) {
                 r = true;
                 break;
             }

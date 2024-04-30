@@ -7,7 +7,6 @@ Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.
 """
 
-
 import os
 from contextlib import contextmanager
 
@@ -107,6 +106,10 @@ def check_output(*popenargs, **kwargs):
     Note: We use same name as in Python stdlib, violating our rules to
     make it more recognizable what this does.
     """
+    logger = kwargs.pop("logger", None)
+
+    if logger is not None:
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
@@ -141,7 +144,7 @@ def check_call(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     try:
         subprocess.check_call(*popenargs, **kwargs)
@@ -156,7 +159,7 @@ def callProcess(*popenargs, **kwargs):
     logger = kwargs.pop("logger", None)
 
     if logger is not None:
-        logger.info("Executing command '%s'." % popenargs[0])
+        logger.info("Executing command '%s'." % popenargs[0], keep_format=True)
 
     return subprocess.call(*popenargs, **kwargs)
 

@@ -128,7 +128,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
                     pass
-                elif name in ("bases", "decorator_list", "keywords"):
+                elif name in ("bases", "decorator_list", "keywords", "type_params"):
                     for child in field:
                         _check(child)
                 elif name == "starargs":
@@ -145,7 +145,7 @@ def detectFunctionBodyKind(nodes, start_value=None):
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
                     pass
-                elif name in ("bases", "decorator_list"):
+                elif name in ("bases", "decorator_list", "type_params"):
                     for child in field:
                         _check(child)
                 elif name == "args":
@@ -197,7 +197,10 @@ def detectFunctionBodyKind(nodes, start_value=None):
                 if name in ("name", "body", "comparators"):
                     pass
                 elif name == "generators":
-                    _check(field[0].iter)
+                    if python_version < 0x3B0:
+                        _check(field[0].iter)
+                    else:
+                        _check(field[0])
                 elif name in ("body", "elt"):
                     _check(field)
                 else:

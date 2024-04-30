@@ -97,6 +97,9 @@ def areSamePaths(path1, path2):
         even short paths, it then becomes a mere string compare after that.
     """
 
+    if path1 == path2:
+        return True
+
     path1 = os.path.abspath(os.path.normpath(path1))
     path2 = os.path.abspath(os.path.normpath(path2))
 
@@ -236,9 +239,14 @@ def _getRealPathWindows(path):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            _real_path_windows_cache[path] = os.path.join(
-                os.path.dirname(path), result.rstrip("\r\n")
-            )
+            if result.startswith("UNC\\"):
+                # Avoid network mounts being converted to UNC shared paths by newer
+                # Python versions, many tools won't work with those.
+                _real_path_windows_cache[path] = path
+            else:
+                _real_path_windows_cache[path] = os.path.join(
+                    os.path.dirname(path), result.rstrip("\r\n")
+                )
         else:
             _real_path_windows_cache[path] = path
 
@@ -270,6 +278,36 @@ def getDirectoryRealPath(path):
     return path
 
 
+def _restoreWindowsPath(orig_path, path):
+    if path.startswith("\\\\"):
+        drive, _remaining_path = os.path.splitdrive(orig_path)
+
+        if drive and not drive.startswith("\\\\"):
+            drive_real_path = os.path.realpath(drive + "\\")
+            assert path.startswith(drive_real_path)
+
+            path = drive + path[len(drive_real_path) :]
+    else:
+        path = path.strip(os.path.sep)
+
+        if os.path.sep in path:
+            dirname = os.path.dirname(path)
+            filename = os.path.basename(path)
+
+            if dirname:
+                dirname = getDirectoryRealPath(dirname)
+
+                # Drive letters do not get slashes from "os.path.join", so
+                # we inject this here and normalize the path afterwards to
+                # remove any duplication added.
+                if os.path.sep not in dirname:
+                    dirname = dirname + os.path.sep
+
+                path = os.path.normpath(os.path.join(dirname, filename))
+
+    return path
+
+
 def getFilenameRealPath(path):
     """Get os.path.realpath with Python2 and Windows symlink workaround applied.
 
@@ -288,35 +326,10 @@ def getFilenameRealPath(path):
     orig_path = path
     path = os.path.realpath(path)
 
-    # Avoid network mounts being converted to UNC shared paths ny newer
+    # Avoid network mounts being converted to UNC shared paths by newer
     # Python versions, many tools won't work with those.
-    if os.name == "nt" and path.startswith("\\\\"):
-        drive, _remaining_path = os.path.splitdrive(orig_path)
-
-        if drive:
-            drive_real_path = os.path.realpath(drive + "\\")
-            assert path.startswith(drive_real_path)
-
-            path = drive + path[len(drive_real_path) :]
-
-    # Attempt to resolve Windows symlinks older Python
     if os.name == "nt":
-        path = path.strip(os.path.sep)
-
-        if os.path.sep in path:
-            dirname = os.path.dirname(path)
-            filename = os.path.basename(path)
-
-            if dirname:
-                dirname = getDirectoryRealPath(dirname)
-
-                # Drive letters do not get slashes from "os.path.join", so
-                # we inject this here and normalize the path afterwards to
-                # remove any duplication added.
-                if os.path.sep not in dirname:
-                    dirname = dirname + os.path.sep
-
-                path = os.path.normpath(os.path.join(dirname, filename))
+        path = _restoreWindowsPath(orig_path=orig_path, path=path)
 
     return path
 
@@ -694,6 +707,13 @@ def hasFilenameExtension(path, extensions):
         return extension in extensions
 
 
+def addFilenameExtension(path, extension):
+    if not hasFilenameExtension(path, extension):
+        path += extension
+
+    return path
+
+
 def removeDirectory(path, ignore_errors):
     """Remove a directory recursively.
 
@@ -933,10 +953,13 @@ def copyTree(source_path, dest_path):
     if python_version >= 0x380:
         # Python 3.8+ has dirs_exist_ok
         return shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
+    else:
 
-    from distutils.dir_util import copy_tree
+        from distutils.dir_util import (  # Older Python only, pylint: disable=I0021,import-error
+            copy_tree,
+        )
 
-    return copy_tree(source_path, dest_path)
+        return copy_tree(source_path, dest_path)
 
 
 def copyFileWithPermissions(source_path, dest_path, dist_dir):

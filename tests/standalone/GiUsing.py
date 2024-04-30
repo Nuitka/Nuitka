@@ -2,6 +2,7 @@
 
 
 # nuitka-skip-unless-imports: cairo
+# nuitka-skip-unless-imports: gi
 
 import cairo
 import gi

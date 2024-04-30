@@ -117,7 +117,7 @@ def appendTreeElement(parent, *args, **kwargs):
 def dumpTreeXMLToFile(tree, output_file):
     """Write an XML node tree to a file."""
 
-    value = toString(tree).rstrip()
+    value = toBytes(tree).rstrip()
     output_file.write(value)
 
 

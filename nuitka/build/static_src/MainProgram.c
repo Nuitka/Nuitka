@@ -191,7 +191,7 @@ extern void _initCompiledFrameType();
 static wchar_t **convertCommandLineParameters(int argc, char **argv) {
     // Originally taken from CPython3: There seems to be no sane way to use
     static wchar_t **argv_copy;
-    argv_copy = (wchar_t **)PyMem_MALLOC(sizeof(wchar_t *) * argc);
+    argv_copy = (wchar_t **)malloc(sizeof(wchar_t *) * argc);
 
     // Temporarily disable locale for conversions to not use it.
     char *old_locale = strdup(setlocale(LC_ALL, NULL));

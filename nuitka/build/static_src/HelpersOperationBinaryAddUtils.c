@@ -43,26 +43,59 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
     return (PyObject *)result;
 }
 
-// Convert single digit to sdigit (int32_t)
-#define MEDIUM_VALUE(x)                                                                                                \
-    (Py_SIZE(x) < 0 ? -(sdigit)((PyLongObject *)(x))->ob_digit[0]                                                      \
-                    : (Py_SIZE(x) == 0 ? (sdigit)0 : (sdigit)((PyLongObject *)(x))->ob_digit[0]))
-
 // Needed for offsetof
 #include <stddef.h>
 
+#if PYTHON_VERSION < 0x3c0
 #define MAX_LONG_DIGITS ((PY_SSIZE_T_MAX - offsetof(PyLongObject, ob_digit)) / sizeof(digit))
 #define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->ob_digit[0]))
 #define Nuitka_LongGetDigitSize(value) (Py_ABS(Py_SIZE(value)))
+#define Nuitka_LongGetSignedDigitSize(value) (Py_SIZE(value))
+#define Nuitka_LongIsNegative(value) (Py_SIZE(value) < 0)
+#define Nuitka_LongSetSignNegative(value) Py_SET_SIZE(value, -Py_ABS(Py_SIZE(value)))
+#define Nuitka_LongSetSign(value, positive) Py_SET_SIZE(value, (((positive) ? 1 : -1) * Py_ABS(Py_SIZE(value))))
+#define Nuitka_LongFlipSign(value) Py_SET_SIZE(value, -Py_SIZE(value))
+#define Nuitka_LongSetDigitSizeAndNegative(value, count, negative) Py_SET_SIZE(value, negative ? -count : count)
+#else
+#define MAX_LONG_DIGITS ((PY_SSIZE_T_MAX - offsetof(PyLongObject, long_value.ob_digit)) / sizeof(digit))
+
+#define Nuitka_LongGetDigitPointer(value) (&(((PyLongObject *)value)->long_value.ob_digit[0]))
+#define Nuitka_LongGetDigitSize(value) (_PyLong_DigitCount((PyLongObject const *)(value)))
+#define Nuitka_LongGetSignedDigitSize(value) (_PyLong_SignedDigitCount((PyLongObject const *)(value)))
+#define Nuitka_LongIsNegative(value) (((PyLongObject *)value)->long_value.lv_tag & SIGN_NEGATIVE)
+#define Nuitka_LongSetSignNegative(value)                                                                              \
+    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag | SIGN_NEGATIVE;
+#define Nuitka_LongSetSignPositive(value)                                                                              \
+    ((PyLongObject *)value)->long_value.lv_tag = ((PyLongObject *)value)->long_value.lv_tag & ~(SIGN_NEGATIVE);
+#define Nuitka_LongSetSign(value, positive)                                                                            \
+    if (positive) {                                                                                                    \
+        Nuitka_LongSetSignPositive(value);                                                                             \
+    } else {                                                                                                           \
+        Nuitka_LongSetSignNegative(value);                                                                             \
+    }
+#define Nuitka_LongSetDigitSizeAndNegative(value, count, negative)                                                     \
+    _PyLong_SetSignAndDigitCount(value, negative ? -1 : 1, count)
+#define Nuitka_LongFlipSign(value) _PyLong_FlipSign(value)
+#endif
 
 // Our version of _PyLong_New(size);
 static PyLongObject *Nuitka_LongNew(Py_ssize_t size) {
+    // TODO: The assertion may be a bit to strong, could be <= for at least < 3.12
     assert(size < (Py_ssize_t)MAX_LONG_DIGITS);
+    assert(size >= 0);
 
-#if PYTHON_VERSION >= 0x300
-    PyLongObject *result;
+#if PYTHON_VERSION >= 0x3c0
+    // The zero now is a single digit number.
+    Py_ssize_t ndigits = size ? size : 1;
 
-    result = (PyLongObject *)PyObject_MALLOC(offsetof(PyLongObject, ob_digit) + size * sizeof(digit));
+    PyLongObject *result =
+        (PyLongObject *)PyObject_MALLOC(offsetof(PyLongObject, long_value.ob_digit) + ndigits * sizeof(digit));
+    _PyLong_SetSignAndDigitCount(result, size != 0, size);
+    PyObject_INIT(result, &PyLong_Type);
+    result->long_value.ob_digit[0] = 0;
+    return result;
+#elif PYTHON_VERSION >= 0x300
+    PyLongObject *result = (PyLongObject *)PyObject_MALLOC(offsetof(PyLongObject, ob_digit) + size * sizeof(digit));
     return (PyLongObject *)PyObject_INIT_VAR(result, &PyLong_Type, size);
 #else
     return (PyLongObject *)PyObject_NEW_VAR(PyLongObject, &PyLong_Type, size);
@@ -70,8 +103,10 @@ static PyLongObject *Nuitka_LongNew(Py_ssize_t size) {
 }
 
 static PyObject *Nuitka_LongRealloc(PyObject *value, Py_ssize_t size) {
+    assert(size >= 0);
+
     PyLongObject *result = Nuitka_LongNew(size);
-    Py_SET_SIZE(result, size);
+    Nuitka_LongSetDigitSizeAndNegative(result, size, false);
     Py_DECREF(value);
 
     return (PyObject *)result;
@@ -111,10 +146,11 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
         PyLongObject *result = Nuitka_LongNew(1);
         assert(result != NULL);
         if (negative) {
-            Py_SET_SIZE(result, -1);
+            Nuitka_LongSetSignNegative(result);
         }
 
-        result->ob_digit[0] = (digit)abs_ival;
+        digit *digits = Nuitka_LongGetDigitPointer(result);
+        digits[0] = (digit)abs_ival;
 
         return (PyObject *)result;
     }
@@ -125,11 +161,13 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
         PyLongObject *result = Nuitka_LongNew(2);
         assert(result != NULL);
         if (negative) {
-            Py_SIZE(result) = -2;
+            Nuitka_LongSetSignNegative(result);
         }
 
-        result->ob_digit[0] = (digit)(abs_ival & PyLong_MASK);
-        result->ob_digit[1] = (digit)(abs_ival >> PyLong_SHIFT);
+        digit *digits = Nuitka_LongGetDigitPointer(result);
+
+        digits[0] = (digit)(abs_ival & PyLong_MASK);
+        digits[1] = (digit)(abs_ival >> PyLong_SHIFT);
 
         return (PyObject *)result;
     }
@@ -148,9 +186,9 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     PyLongObject *result = _PyLong_New(ndigits);
     assert(result != NULL);
 
-    Py_SET_SIZE(result, negative ? -ndigits : ndigits);
+    Nuitka_LongSetDigitSizeAndNegative(result, ndigits, negative);
 
-    digit *d = result->ob_digit;
+    digit *d = Nuitka_LongGetDigitPointer(result);
 
     // Now copy the digits
     t = abs_ival;
@@ -204,18 +242,22 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     if (!(abs_ival >> PyLong_SHIFT)) {
         PyLongObject *result;
 
+#if PYTHON_VERSION < 0x3c0
         if (unlikely(Py_SIZE(*value) == 0)) {
             *value = Nuitka_LongRealloc(*value, 1);
             CHECK_OBJECT(*value);
 
             result = (PyLongObject *)*value;
-        } else {
+        } else
+#endif
+        {
             result = (PyLongObject *)(*value);
         }
 
-        Py_SET_SIZE(result, negative ? -1 : 1);
+        Nuitka_LongSetSign(result, !negative);
 
-        result->ob_digit[0] = (digit)abs_ival;
+        digit *digits = Nuitka_LongGetDigitPointer(result);
+        digits[0] = (digit)abs_ival;
 
         return;
     }
@@ -233,10 +275,14 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
             result = (PyLongObject *)(*value);
         }
 
-        Py_SIZE(result) = negative ? -2 : 2;
+        if (negative) {
+            Nuitka_LongSetSignNegative(result);
+        }
 
-        result->ob_digit[0] = (digit)(abs_ival & PyLong_MASK);
-        result->ob_digit[1] = (digit)(abs_ival >> PyLong_SHIFT);
+        digit *digits = Nuitka_LongGetDigitPointer(result);
+
+        digits[0] = (digit)(abs_ival & PyLong_MASK);
+        digits[1] = (digit)(abs_ival >> PyLong_SHIFT);
 
         return;
     }
@@ -258,9 +304,9 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
 
     CHECK_OBJECT(*value);
 
-    Py_SET_SIZE(*value, negative ? -ndigits : ndigits);
+    Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)*value, ndigits, negative);
 
-    digit *d = ((PyLongObject *)(*value))->ob_digit;
+    digit *d = Nuitka_LongGetDigitPointer(*value);
 
     // Now copy the digits
     t = abs_ival;
@@ -310,7 +356,7 @@ static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, di
     PyLongObject *result = Nuitka_LongNew(size_a + 1);
     CHECK_OBJECT(result);
 
-    digit *r = &result->ob_digit[0];
+    digit *r = Nuitka_LongGetDigitPointer(result);
 
     digit carry = 0;
 
@@ -332,7 +378,8 @@ static PyLongObject *_Nuitka_LongAddDigits(digit const *a, Py_ssize_t size_a, di
     if (carry) {
         r[i] = carry;
     } else {
-        Py_SET_SIZE(result, Py_SIZE(result) - 1);
+        // Note: Beware, this looses the sign value.
+        Nuitka_LongSetDigitSizeAndNegative(result, Nuitka_LongGetDigitSize(result) - 1, false);
     }
 
     return result;
@@ -417,9 +464,9 @@ static PyObject *_Nuitka_LongAddInplaceDigits(PyObject *left, digit const *b, Py
     if (carry != 0) {
         r[i] = carry;
 
-        Py_SET_SIZE(left, i + 1);
+        Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)left, i + 1, false);
     } else {
-        Py_SET_SIZE(left, i);
+        Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)left, i, false);
     }
 
     // Release reference to old value
@@ -480,7 +527,7 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
     PyLongObject *result = Nuitka_LongNew(size_a);
     CHECK_OBJECT(result);
 
-    digit *r = &result->ob_digit[0];
+    digit *r = Nuitka_LongGetDigitPointer(result);
 
     digit borrow = 0;
 
@@ -506,12 +553,12 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
         i -= 1;
     }
 
-    Py_SET_SIZE(result, (sign < 0) ? -i : i);
+    Nuitka_LongSetDigitSizeAndNegative(result, i, sign < 0);
 
 #if PYTHON_VERSION >= 0x300
     // Normalize small integers.
     if (i <= 1) {
-        long ival = MEDIUM_VALUE(result);
+        medium_result_value_t ival = MEDIUM_VALUE(result);
 
         if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
             Py_DECREF(result);
@@ -615,7 +662,7 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
         i -= 1;
     }
 
-    Py_SET_SIZE(left, (sign < 0) ? -i : i);
+    Nuitka_LongSetDigitSizeAndNegative((PyLongObject *)left, i, (sign < 0));
 
     // Release reference to old value
     Py_DECREF(old);
@@ -623,7 +670,7 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
 #if PYTHON_VERSION >= 0x300
     // Normalize small integers.
     if (i <= 1) {
-        long ival = MEDIUM_VALUE(left);
+        medium_result_value_t ival = MEDIUM_VALUE(left);
 
         if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
             Py_DECREF(left);

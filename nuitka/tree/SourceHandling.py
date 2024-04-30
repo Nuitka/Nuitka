@@ -285,11 +285,19 @@ That will make use the correct Python version for Nuitka.
 
 
 def readSourceLine(source_ref):
+    """Read a single source line, mainly for use in error reporting only."""
     import linecache
 
     return linecache.getline(
         filename=source_ref.getFilename(), lineno=source_ref.getLineNumber()
     )
+
+
+def readSourceLines(source_ref):
+    """Read a source lines with linecache, for use with cached function source finding."""
+    import linecache
+
+    return linecache.getlines(source_ref.filename)
 
 
 def writeSourceCode(filename, source_code):

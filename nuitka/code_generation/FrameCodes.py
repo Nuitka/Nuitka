@@ -244,9 +244,11 @@ def getFrameGuardHeavyCode(
                 "locals_size": getFrameLocalsStorageSize(
                     context.getFrameVariableTypeDescriptions()
                 ),
-                "locals_dict_name": frame_node.getLocalsScope().getCodeName()
-                if use_locals_dict
-                else "NULL",
+                "locals_dict_name": (
+                    frame_node.getLocalsScope().getCodeName()
+                    if use_locals_dict
+                    else "NULL"
+                ),
             }
         )
 

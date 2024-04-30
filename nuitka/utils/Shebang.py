@@ -4,6 +4,7 @@
 """ Utils to work with shebang lines.
 
 """
+
 import os
 import re
 

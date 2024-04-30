@@ -51,9 +51,19 @@
 #include "pydebug.h"
 #endif
 
+/* A way to not give warnings about things that are declared, but might not
+ * be used like in-line helper functions in headers or static per module
+ * variables from headers.
+ */
+#ifdef __GNUC__
+#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
+#else
+#define NUITKA_MAY_BE_UNUSED
+#endif
+
 // We are not following the 3.10 change to an inline function. At least
 // not immediately.
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3c0
 #undef Py_REFCNT
 #define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
 #endif
@@ -89,6 +99,26 @@
 
 extern _PyRuntimeState _PyRuntime;
 #else
+
+#if PYTHON_VERSION >= 0x3c0
+#include "internal/pycore_runtime.h"
+#include "internal/pycore_typevarobject.h"
+
+static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
+
+static inline static_builtin_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp, PyTypeObject *self) {
+    return &(interp->types.builtins[Nuitka_static_builtin_index_get(self)]);
+}
+
+NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_GetState(PyInterpreterState *interp,
+                                                                                      PyTypeObject *self) {
+    assert(self->tp_flags & _Py_TPFLAGS_STATIC_BUILTIN);
+    return Nuitka_static_builtin_state_get(interp, self);
+}
+
+#define _PyStaticType_GetState(interp, self) Nuitka_PyStaticType_GetState(interp, self)
+#endif
+
 #include "internal/pycore_pystate.h"
 #endif
 
@@ -177,16 +207,6 @@ extern _PyRuntimeState _PyRuntime;
  */
 
 #define NUITKA_NO_RETURN HEDLEY_NO_RETURN
-
-/* A way to not give warnings about things that are declared, but might not
- * be used like in-line helper functions in headers or static per module
- * variables from headers.
- */
-#ifdef __GNUC__
-#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
-#else
-#define NUITKA_MAY_BE_UNUSED
-#endif
 
 /* This is used to indicate code control flows we know cannot happen. */
 #ifndef __NUITKA_NO_ASSERT__
@@ -399,6 +419,11 @@ extern PyThreadState *_PyThreadState_Current;
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
 
+// For newer Python, this API was moved to global state
+#if PYTHON_VERSION >= 0x3c0
+#define _Py_PackageContext (_PyRuntime.imports.pkgcontext)
+#endif
+
 // Our replacement for "PyType_IsSubtype"
 extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 
@@ -446,6 +471,8 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
+
+#include "nuitka/jit_sources.h"
 
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #include "nuitka_data_decoder.h"

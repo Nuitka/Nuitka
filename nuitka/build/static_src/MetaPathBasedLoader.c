@@ -200,8 +200,9 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
         PyObject *path_list = MAKE_LIST_EMPTY(1);
-        if (unlikely(path_list == NULL))
+        if (unlikely(path_list == NULL)) {
             return NULL;
+        }
 
         int res = PyList_SetItem(path_list, 0, module_path_entry);
         if (unlikely(res != 0)) {

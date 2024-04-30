@@ -28,6 +28,8 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.PythonFlavors import isAnacondaPython, isHomebrewPython
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import areInSamePaths, isFilenameBelowPath
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
@@ -220,6 +222,9 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 def _reduceToPythonPath(used_dlls):
     inside_paths = getPythonUnpackedSearchPath()
 
+    if isAnacondaPython() or isHomebrewPython():
+        inside_paths.insert(0, getSystemPrefixPath())
+
     def decideInside(dll_filename):
         return any(
             isFilenameBelowPath(path=inside_path, filename=dll_filename)
@@ -284,7 +289,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             # TODO: If used by a DLL from the same folder, put it there,
             # otherwise top level, but for now this is limited to a few cases
             # where required that way (openvino) or known to be good only (av),
-            # because it broke other things.
+            # because it broke other things. spell-checker: ignore openvino
             if standalone_entry_point.package_name in (
                 "openvino",
                 "av",

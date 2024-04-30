@@ -34,10 +34,10 @@ Extending "dill" for compiled types to be pickle-able as well.""",
             return (
                 """\
 import sys
-sys.modules["%(module_name)s"]._create_compiled_function%(version)s = \
+sys.modules[__compiled__.main]._create_compiled_function%(version)s = \
     sys.modules["%(module_name)s-preLoad"]._create_compiled_function%(version)s
-sys.modules["%(module_name)s"]._create_compiled_function%(version)s.__module__ = \
-    "%(module_name)s"
+sys.modules[__compiled__.main]._create_compiled_function%(version)s.__module__ = \
+    __compiled__.main
 """
                 % {"module_name": full_name, "version": "2" if str is bytes else "3"},
                 """

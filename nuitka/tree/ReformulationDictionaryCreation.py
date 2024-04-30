@@ -71,7 +71,10 @@ def buildDictionaryNode(provider, node, source_ref):
         for key in node.keys:
             if key is None:
                 return buildDictionaryUnpacking(
-                    provider=provider, node=node, source_ref=source_ref
+                    provider=provider,
+                    keys=node.keys,
+                    values=node.values,
+                    source_ref=source_ref,
                 )
 
     return makeExpressionMakeDictOrConstant(
@@ -266,10 +269,8 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
     return tuple(result)
 
 
-def buildDictionaryUnpacking(provider, node, source_ref):
-    helper_args = buildDictionaryUnpackingArgs(
-        provider, node.keys, node.values, source_ref
-    )
+def buildDictionaryUnpacking(provider, keys, values, source_ref):
+    helper_args = buildDictionaryUnpackingArgs(provider, keys, values, source_ref)
 
     result = makeExpressionFunctionCall(
         function=makeExpressionFunctionCreation(

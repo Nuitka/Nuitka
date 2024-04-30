@@ -5,6 +5,7 @@
 
 Some of these come from built-ins, e.g. abs, some from syntax, and repr from both.
 """
+
 from nuitka import PythonOperators
 
 from .ChildrenHavingMixins import ChildHavingOperandMixin

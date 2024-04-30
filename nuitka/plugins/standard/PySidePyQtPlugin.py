@@ -1045,34 +1045,6 @@ Prefix = .
                     reason="needed by '%s'" % full_name.asString(),
                 )
 
-    def removeDllDependencies(self, dll_filename, dll_filenames):
-        for value in self.getQtPluginDirs():
-            # TODO: That is not a proper check if a file is below that.
-            if dll_filename.startswith(value):
-                for sub_dll_filename in dll_filenames:
-                    for badword in (
-                        "libKF5",
-                        "libkfontinst",
-                        "libkorganizer",
-                        "libplasma",
-                        "libakregator",
-                        "libdolphin",
-                        "libnoteshared",
-                        "libknotes",
-                        "libsystemsettings",
-                        "libkerfuffle",
-                        "libkaddressbook",
-                        "libkworkspace",
-                        "libkmail",
-                        "libmilou",
-                        "libtaskmanager",
-                        "libkonsole",
-                        "libgwenview",
-                        "libweather_ion",
-                    ):
-                        if os.path.basename(sub_dll_filename).startswith(badword):
-                            yield sub_dll_filename
-
     def onModuleEncounter(
         self, using_module_name, module_name, module_filename, module_kind
     ):

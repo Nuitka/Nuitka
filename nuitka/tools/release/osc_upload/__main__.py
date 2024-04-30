@@ -7,7 +7,6 @@ Uploads Nuitka branches adapting the RPM configuration to the different
 projects on OSC.
 """
 
-
 import os
 import shutil
 import sys

@@ -56,7 +56,16 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
-from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getLinuxDistribution,
+    getMacOSRelease,
+    getOS,
+    getWindowsRelease,
+    isLinux,
+    isMacOS,
+    isWin32OrPosixWindows,
+)
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 
@@ -64,7 +73,8 @@ def _getReportInputData(aborted):
     """Collect all information for reporting into a dictionary."""
 
     # used with locals for laziness and these are to populate a dictionary with
-    # many entries, pylint: disable=possibly-unused-variable,too-many-locals
+    # many entries,
+    # pylint: disable=possibly-unused-variable,too-many-branches,too-many-locals,too-many-statements
 
     module_names = tuple(module.getFullName() for module in getDoneModules())
 
@@ -184,6 +194,15 @@ def _getReportInputData(aborted):
     os_name = getOS()
     arch_name = getArchitecture()
 
+    if isWin32OrPosixWindows():
+        os_release = getWindowsRelease()
+    elif isLinux():
+        os_release = "-".join(x for x in getLinuxDistribution() if x)
+    elif isMacOS():
+        os_release = getMacOSRelease()
+    else:
+        os_release = "unknown"
+
     nuitka_version = getNuitkaVersion()
     nuitka_commercial_version = getCommercialVersion() or "not installed"
 
@@ -234,7 +253,8 @@ def _getCompilationReportPath(path):
 
 
 def _addModulesToReport(root, report_input_data, diffable):
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
+    # Many details to work with,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
@@ -353,13 +373,36 @@ def _addModulesToReport(root, report_input_data, diffable):
             "module_usages",
         )
 
-        for used_module in report_input_data["module_usages"][module_name]:
+        for count, used_module in enumerate(
+            report_input_data["module_usages"][module_name]
+        ):
+            # We don't want to see those parent imports, unless they have
+            # an effect.
+            if used_module.reason == "import path parent":
+                while True:
+                    count += 1
+                    next_used_module = report_input_data["module_usages"][module_name][
+                        count
+                    ]
+
+                    if next_used_module.reason != "import path parent":
+                        break
+
+                exclusion_reason = report_input_data["module_exclusions"][
+                    module_name
+                ].get(next_used_module.module_name)
+
+                if exclusion_reason is None or next_used_module.finding != "not-found":
+                    continue
+
             module_usage_node = TreeXML.appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
                 line=str(used_module.source_ref.getLineNumber()),
+                # TODO: Add reason in a hotfix.
+                # reason=used_module.reason,
             )
 
             exclusion_reason = report_input_data["module_exclusions"][module_name].get(
@@ -542,7 +585,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             source_path=_getCompilationReportPath(standalone_entry_point.source_path),
             package=standalone_entry_point.package_name or "",
             ignored="yes" if ignored else "no",
-            reason=standalone_entry_point.reason
+            reason=standalone_entry_point.reason,
             # TODO: No reason yet.
         )
 
@@ -619,6 +662,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         python_flavor=report_input_data["python_flavor"],
         python_version=report_input_data["python_version"],
         os_name=report_input_data["os_name"],
+        os_release=report_input_data["os_release"],
         arch_name=report_input_data["arch_name"],
     )
 

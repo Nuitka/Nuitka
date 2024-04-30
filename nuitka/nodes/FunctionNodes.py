@@ -16,6 +16,7 @@ classes.
 """
 
 import inspect
+import re
 
 from nuitka import Options, Variables
 from nuitka.Constants import isMutable
@@ -29,8 +30,9 @@ from nuitka.specs.ParameterSpecs import (
     TooManyArguments,
     matchCall,
 )
-from nuitka.Tracing import optimization_logger
+from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .ChildrenHavingMixins import (
@@ -806,9 +808,11 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),
                         tags=tag,
-                        message=change_desc()
-                        if inspect.isfunction(change_desc)
-                        else change_desc,
+                        message=(
+                            change_desc()
+                            if inspect.isfunction(change_desc)
+                            else change_desc
+                        ),
                     )
                 )
 
@@ -1100,7 +1104,7 @@ if python_version < 0x340:
 class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
-    __slots__ = "function_body", "code_name"
+    __slots__ = "function_body", "code_name", "function_source"
 
     def __init__(self, source_ref, function_body=None, code_name=None):
         assert function_body is not None or code_name is not None
@@ -1110,10 +1114,12 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
         self.function_body = function_body
         self.code_name = code_name
+        self.function_source = None
 
     def finalize(self):
         del self.parent
         del self.function_body
+        del self.function_source
 
     def getName(self):
         return self.function_body.getName()
@@ -1141,6 +1147,45 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
         # TODO: Function after collection may now know something.
         return self, None, None
+
+    def getFunctionSourceCode(self):
+        if self.function_source is None:
+            try:
+                lines = readSourceLines(self.getFunctionBody().source_ref)
+
+                # This needs to match "inspect.findsource".
+                pat = re.compile(
+                    r"^(\s*def\s)|(\s*async\s+def\s)|(.*(?<!\w)lambda(:|\s))|^(\s*@)"
+                )
+
+                line_number = self.source_ref.line - 1
+
+                while line_number > 0:
+                    line = lines[line_number]
+
+                    if pat.match(line):
+                        break
+
+                    line_number = line_number - 1
+
+                self.function_source = (
+                    "".join(inspect.getblock(lines[line_number:])),
+                    line_number,
+                )
+            except Exception:
+                printError(
+                    "Problem with retrieving source code of '%s' at %s"
+                    % (self.getFunctionSuperQualifiedName(), self.source_ref)
+                )
+                raise
+
+        return self.function_source
+
+    def getFunctionSuperQualifiedName(self):
+        return "%s.%s" % (
+            self.getParentModule().getFullName(),
+            self.getFunctionBody().getFunctionQualname(),
+        )
 
 
 def makeExpressionFunctionCall(function, values, source_ref):

@@ -30,6 +30,7 @@ from nuitka.tools.testing.Common import (
     setup,
     withPythonPathChange,
 )
+from nuitka.utils.Utils import isWin32Windows
 from nuitka.Version import getCommercialVersion
 
 
@@ -57,16 +58,6 @@ def main():
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("remove_output")
 
-        user_plugin_files = [
-            p for p in os.listdir(filename) if p.endswith("-plugin.py")
-        ]
-
-        if user_plugin_files:
-            extra_flags.extend(
-                "user_plugin:" + os.path.abspath(os.path.join(filename, p))
-                for p in user_plugin_files
-            )
-
         if filename == "parameters":
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + " --trace-my-plugin"
         else:
@@ -82,6 +73,10 @@ def main():
                     reportSkip(
                         "Plugin only available in Nuitka commercial", ".", filename
                     )
+                    continue
+
+                if not isWin32Windows():
+                    reportSkip("Plugin only works on Windows", ".", filename)
                     continue
 
             filename_main = getMainProgramFilename(filename)

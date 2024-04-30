@@ -419,10 +419,9 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     // Save the current exception, if any, we must to not corrupt it.
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *save_exception_type, *save_exception_value;
-    PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED(tstate, &save_exception_type, &save_exception_value, &save_exception_tb);
-    RESTORE_ERROR_OCCURRED(tstate, save_exception_type, save_exception_value, save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state1;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state1);
 #endif
 
     Nuitka_GC_UnTrack(nuitka_frame);
@@ -463,9 +462,11 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     releaseToFreeList(free_list_frames, nuitka_frame, MAX_FRAME_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    assert(tstate->curexc_type == save_exception_type);
-    assert(tstate->curexc_value == save_exception_value);
-    assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state2;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state2);
+
+    ASSERT_SAME_EXCEPTION_STATE(&saved_exception_state1, &saved_exception_state2);
 #endif
 }
 
@@ -694,21 +695,22 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_methods != PyFrame_Type.tp_methods);
     assert(Nuitka_Frame_Type.tp_members != PyFrame_Type.tp_members);
     assert(Nuitka_Frame_Type.tp_getset != PyFrame_Type.tp_getset);
-    assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
+
     assert(Nuitka_Frame_Type.tp_descr_get != PyFrame_Type.tp_descr_get || PyFrame_Type.tp_descr_get == NULL);
 
     assert(Nuitka_Frame_Type.tp_descr_set != PyFrame_Type.tp_descr_set || PyFrame_Type.tp_descr_set == NULL);
     assert(Nuitka_Frame_Type.tp_dictoffset != PyFrame_Type.tp_dictoffset || PyFrame_Type.tp_dictoffset == 0);
     // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
     // assert(Nuitka_Frame_Type.tp_init != PyFrame_Type.tp_init || PyFrame_Type.tp_init == NULL);
     // assert(Nuitka_Frame_Type.tp_alloc != PyFrame_Type.tp_alloc || PyFrame_Type.tp_alloc == NULL);
     // assert(Nuitka_Frame_Type.tp_new != PyFrame_Type.tp_new || PyFrame_Type.tp_new == NULL);
     // assert(Nuitka_Frame_Type.tp_free != PyFrame_Type.tp_free || PyFrame_Type.tp_free == NULL);
+    // assert(Nuitka_Frame_Type.tp_weaklist != PyFrame_Type.tp_weaklist);
     assert(Nuitka_Frame_Type.tp_bases != PyFrame_Type.tp_bases);
     assert(Nuitka_Frame_Type.tp_mro != PyFrame_Type.tp_mro);
     assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
-    assert(Nuitka_Frame_Type.tp_weaklist != PyFrame_Type.tp_weaklist);
     assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
 #if PYTHON_VERSION >= 0x340
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
@@ -1079,7 +1081,8 @@ void dumpFrameStack(void) {
     PyObject *saved_exception_type, *saved_exception_value;
     PyTracebackObject *saved_exception_tb;
 
-    FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
     int total = 0;
 
@@ -1133,7 +1136,7 @@ void dumpFrameStack(void) {
 
     PRINT_STRING(">---------<\n");
 
-    RESTORE_ERROR_OCCURRED(tstate, saved_exception_type, saved_exception_value, saved_exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {

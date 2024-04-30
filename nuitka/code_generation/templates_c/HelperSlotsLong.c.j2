@@ -19,11 +19,12 @@
     {{ declare_long_access(right, operand2) }}
 
     if ({{ left.getLongValueDigitCountExpression("operand1")}} <= 1 && {{ right.getLongValueDigitCountExpression("operand2")}} <= 1) {
-        long r = {{ left.getLongValueMediumValueExpression("operand1") }} + {{ right.getLongValueMediumValueExpression("operand2") }};
+        {# TODO: Double digits are not handled efficiently for Python3.12 #}
+        long r = (long)({{ left.getLongValueMediumValueExpression("operand1") }} + {{ right.getLongValueMediumValueExpression("operand2") }});
 
 {% if target == None and left.hasReferenceCounting() %}
         if (Py_REFCNT({{operand1}}) == 1) {
-            Nuitka_LongUpdateFromCLong(&{{operand1}}, r);
+            Nuitka_LongUpdateFromCLong(&{{operand1}}, (long)r);
             {{ goto_exit(props, "exit_result_ok") }}
         } else {
             PyObject *obj = Nuitka_LongFromCLong(r);
@@ -45,7 +46,7 @@
         if (a_negative) {
             if (b_negative) {
                 {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b_digits, b_digit_count);
-                Py_SET_SIZE({{ operand1 }}, -Py_ABS(Py_SIZE({{ operand1 }})));
+                Nuitka_LongSetSignNegative({{ operand1 }});
             } else {
                 {# Reversed operands order means sign inversion. #}
                 {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b_digits, b_digit_count, -1);
@@ -75,7 +76,7 @@
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-                Py_SET_SIZE(z, -(Py_SIZE(z)));
+                Nuitka_LongFlipSign(z);
             } else {
                 {# Reversed operands order. #}
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
@@ -95,7 +96,8 @@
     {{ declare_long_access(right, operand2) }}
 
     if ({{ left.getLongValueDigitCountExpression("operand1")}} <= 1 && {{ right.getLongValueDigitCountExpression("operand2")}} <= 1) {
-        long r = {{ left.getLongValueMediumValueExpression("operand1") }} - {{ right.getLongValueMediumValueExpression("operand2") }};
+        {# TODO: Double digits are not handled efficiently for Python3.12 #}
+        long r = (long)({{ left.getLongValueMediumValueExpression("operand1") }} - {{ right.getLongValueMediumValueExpression("operand2") }});
 
 {% if target == None and left.hasReferenceCounting() %}
         if (Py_REFCNT({{operand1}}) == 1) {
@@ -124,7 +126,7 @@
                 {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b_digits, b_digit_count, -1);
             } else {
                 {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b_digits, b_digit_count);
-                Py_SET_SIZE({{ operand1 }}, -Py_ABS(Py_SIZE({{ operand1 }})));
+                Nuitka_LongSetSignNegative({{ operand1 }});
             }
         } else {
             if (b_negative) {
@@ -155,7 +157,7 @@
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
-            Py_SET_SIZE(z, -(Py_SIZE(z)));
+            Nuitka_LongFlipSign(z);
         } else {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);

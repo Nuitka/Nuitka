@@ -37,6 +37,7 @@ from nuitka.importing.Importing import (
     isPackageDir,
     locateModule,
     makeModuleUsageAttempt,
+    makeParentModuleUsagesAttempts,
 )
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
@@ -139,6 +140,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
         "found_module_filename",
         "module_kind",
         "finding",
+        "module_usages",
     )
 
     def __init__(self, module_name, value_name, source_ref):
@@ -156,6 +158,18 @@ class ExpressionImportModuleFixed(ExpressionBase):
             self.module_kind,
             self.finding,
         ) = self._attemptFollow()
+
+        self.module_usages = makeParentModuleUsagesAttempts(
+            makeModuleUsageAttempt(
+                module_name=self.found_module_name,
+                filename=self.found_module_filename,
+                finding=self.finding,
+                module_kind=self.module_kind,
+                level=0,
+                source_ref=self.source_ref,
+                reason="import",
+            )
+        )
 
     # TODO: This is called in constructor only, is it, then inline it.
     def _attemptFollow(self):
@@ -218,23 +232,15 @@ class ExpressionImportModuleFixed(ExpressionBase):
         else:
             return tshape_module
 
-    def getModuleUsageAttempt(self):
-        return makeModuleUsageAttempt(
-            module_name=self.found_module_name,
-            filename=self.found_module_filename,
-            finding=self.finding,
-            module_kind=self.module_kind,
-            level=0,
-            source_ref=self.source_ref,
-            reason="import",
-        )
+    def getModuleUsageAttempts(self):
+        return self.module_usages
 
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+        trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         # Nothing to do about it.
         return self, None, None
@@ -263,6 +269,7 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
         "value_name",
         "module_kind",
         "builtin_module",
+        "module_usages",
     )
 
     def __init__(self, module_name, value_name, source_ref):
@@ -283,6 +290,18 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
         assert _module_name == self.module_name, _module_name
         assert _finding == "built-in", _finding
         assert _module_kind is None, _module_kind
+
+        self.module_usages = makeParentModuleUsagesAttempts(
+            makeModuleUsageAttempt(
+                module_name=self.module_name,
+                filename=None,
+                finding="built-in",
+                module_kind=None,
+                level=0,
+                source_ref=self.source_ref,
+                reason="import",
+            )
+        )
 
     @staticmethod
     def getTypeShape():
@@ -310,23 +329,15 @@ class ExpressionImportModuleBuiltin(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return isNonRaisingBuiltinModule(self.module_name) is not False
 
-    def getModuleUsageAttempt(self):
-        return makeModuleUsageAttempt(
-            module_name=self.module_name,
-            filename=None,
-            finding="built-in",
-            module_kind=None,
-            level=0,
-            source_ref=self.source_ref,
-            reason="import",
-        )
+    def getModuleUsageAttempts(self):
+        return self.module_usages
 
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+        trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         # Nothing to do about it.
         return self, None, None
@@ -428,7 +439,7 @@ class ExpressionImportModuleHard(
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+        trace_collection.onModuleUsageAttempts(self.getModuleUsageAttempts())
 
         return self, None, None
 
@@ -479,11 +490,11 @@ class ExpressionImportModuleHard(
     def _computeExpressionAttribute(
         self, lookup_node, attribute_name, trace_collection, is_import
     ):
-        # Return driven handling of many cases, pylint: disable=too-many-return-statements
+        # Return driven handling of many cases
+        # pylint: disable=too-many-branches,too-many-return-statements
 
-        if self.module is not None and self.allowed:
+        if self.allowed:
             full_name = self.value_name.getChildNamed(attribute_name)
-
             full_name = ModuleName(hard_modules_aliases.get(full_name, full_name))
 
             if isHardModule(full_name):
@@ -501,9 +512,12 @@ class ExpressionImportModuleHard(
                     % (self.value_name, attribute_name),
                 )
 
-            trust = hard_modules_trust[self.value_name].get(
-                attribute_name, trust_undefined
-            )
+            if self.value_name in hard_modules_trust:
+                trust = hard_modules_trust[self.value_name].get(
+                    attribute_name, trust_undefined
+                )
+            else:
+                trust = trust_undefined
 
             if trust is trust_importable:
                 # TODO: Change this is a hard module import itself, currently these are not all trusted
@@ -512,8 +526,10 @@ class ExpressionImportModuleHard(
                 trace_collection.onExceptionRaiseExit(BaseException)
             elif trust is trust_may_exist:
                 trace_collection.onExceptionRaiseExit(BaseException)
-            elif trust is not trust_undefined and not hasattr(
-                self.module, attribute_name
+            elif (
+                trust is not trust_undefined
+                and self.module is not None
+                and not hasattr(self.module, attribute_name)
             ):
                 # TODO: Unify with below branches.
                 trace_collection.onExceptionRaiseExit(ImportError)
@@ -573,7 +589,7 @@ class ExpressionImportModuleHard(
                         self.value_name,
                         attribute_name,
                     )
-                elif trust is trust_constant:
+                elif trust is trust_constant and self.module is not None:
                     # Make sure it's actually there, and not becoming the getattr default by accident.
                     assert hasattr(self.module, attribute_name), self
 
@@ -795,6 +811,30 @@ addModuleSingleAttributeNodeFactory(
 )
 
 
+def _makeParentImportModuleUsages(module_name, source_ref):
+    for parent_package_name in module_name.getParentPackageNames():
+        (
+            _parent_package_name,
+            parent_module_filename,
+            parent_module_kind,
+            parent_module_finding,
+        ) = locateModule(
+            module_name=parent_package_name,
+            parent_package=None,
+            level=0,
+        )
+
+        yield makeModuleUsageAttempt(
+            module_name=parent_package_name,
+            filename=parent_module_filename,
+            finding=parent_module_finding,
+            module_kind=parent_module_kind,
+            level=0,
+            source_ref=source_ref,
+            reason="import path parent",
+        )
+
+
 class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBase):
     __slots__ = (
         "follow_attempted",
@@ -850,7 +890,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             return level_value
 
     def _attemptFollow(self, module_name):
-        # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+        # Complex stuff, pylint: disable=too-many-branches
 
         # Without the level value, we don't know what it is.
         level_value = self._getLevelValue()
@@ -885,7 +925,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             level=level_value,
         )
 
-        self.used_modules = [
+        self.used_modules = makeParentModuleUsagesAttempts(
             makeModuleUsageAttempt(
                 module_name=module_name_found,
                 filename=module_filename,
@@ -895,7 +935,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 source_ref=self.source_ref,
                 reason="import",
             )
-        ]
+        )
 
         if self.finding != "not-found":
             module_name = module_name_found
@@ -929,6 +969,8 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         level=1,  # Relative import
                     )
 
+                    self.used_modules = list(self.used_modules)
+
                     self.used_modules.append(
                         makeModuleUsageAttempt(
                             module_name=name_import_module_name,
@@ -937,44 +979,14 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             finding=name_import_finding,
                             level=1,
                             source_ref=self.source_ref,
-                            reason="import",
+                            reason="import fromlist",
                         )
                     )
 
+                self.used_modules = tuple(self.used_modules)
+
             return module_filename
         else:
-            while True:
-                module_name = module_name.getPackageName()
-
-                if not module_name:
-                    break
-
-                (
-                    found_module_name,
-                    module_filename,
-                    module_kind,
-                    finding,
-                ) = locateModule(
-                    module_name=module_name,
-                    parent_package=parent_package,
-                    level=level_value,
-                )
-
-                self.used_modules.append(
-                    makeModuleUsageAttempt(
-                        module_name=found_module_name,
-                        filename=module_filename,
-                        module_kind=module_kind,
-                        finding=finding,
-                        level=level_value,
-                        source_ref=self.source_ref,
-                        reason="import",
-                    )
-                )
-
-                if finding != "not-found":
-                    break
-
             return None
 
     def _getImportedValueName(self, imported_module_name):
@@ -999,8 +1011,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 trace_collection.onExceptionRaiseExit(RuntimeError)
 
             # Trace the module usage attempts.
-            for module_usage_attempt in self.used_modules:
-                trace_collection.onModuleUsageAttempt(module_usage_attempt)
+            trace_collection.onModuleUsageAttempts(self.used_modules)
 
             # We stay here.
             return self, None, None

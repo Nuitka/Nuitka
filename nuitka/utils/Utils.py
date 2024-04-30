@@ -128,9 +128,45 @@ def getWindowsRelease():
     if not isWin32OrPosixWindows():
         return None
 
+    import ctypes
+
+    class OS_VERSION_INFO_EX(ctypes.Structure):
+        _fields_ = [
+            ("dwOSVersionInfoSize", ctypes.c_ulong),
+            ("dwMajorVersion", ctypes.c_ulong),
+            ("dwMinorVersion", ctypes.c_ulong),
+            ("dwBuildNumber", ctypes.c_ulong),
+            ("dwPlatformId", ctypes.c_ulong),
+            ("szCSDVersion", ctypes.c_wchar * 128),
+            ("wServicePackMajor", ctypes.c_ushort),
+            ("wServicePackMinor", ctypes.c_ushort),
+            ("wSuiteMask", ctypes.c_ushort),
+            ("wProductType", ctypes.c_byte),
+            ("wReserved", ctypes.c_byte),
+        ]
+
+    os_version_value = OS_VERSION_INFO_EX()
+    os_version_value.dwOSVersionInfoSize = ctypes.sizeof(os_version_value)
+
+    result = ctypes.windll.ntdll.RtlGetVersion(ctypes.byref(os_version_value))
+    if result != 0:
+        raiseWindowsError("Failed to get OS version")
+
+    version = os_version_value.dwMajorVersion
+
+    if os_version_value.dwBuildNumber >= 21996 and version == 10:
+        version = 11
+
+    return version
+
+
+def getMacOSRelease():
+    if not isMacOS():
+        return None
+
     import platform
 
-    return platform.release()
+    return platform.mac_ver()[0]
 
 
 def isDebianBasedLinux():

@@ -4,6 +4,7 @@
 """ Optimizations of built-ins to built-in calls.
 
 """
+
 import math
 
 from nuitka import Options
@@ -695,10 +696,10 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         args_list.append(args_dict[argument_name])
 
     if builtin_spec.getStarListArgumentName() is not None:
-        args_list.append(args_dict[builtin_spec.getStarListArgumentName()])
+        args_list.append(args_dict[builtin_spec.getStarListArgumentName()] or ())
 
     if builtin_spec.getStarDictArgumentName() is not None:
-        args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
+        args_list.append(args_dict[builtin_spec.getStarDictArgumentName()] or ())
 
     for argument_name in builtin_spec.getKwOnlyParameterNames():
         args_list.append(args_dict[argument_name])
