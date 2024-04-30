@@ -253,7 +253,8 @@ def _getCompilationReportPath(path):
 
 
 def _addModulesToReport(root, report_input_data, diffable):
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
+    # Many details to work with,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     for module_name in report_input_data["module_names"]:
         active_module_info = report_input_data["module_inclusion_infos"][module_name]
@@ -372,13 +373,36 @@ def _addModulesToReport(root, report_input_data, diffable):
             "module_usages",
         )
 
-        for used_module in report_input_data["module_usages"][module_name]:
+        for count, used_module in enumerate(
+            report_input_data["module_usages"][module_name]
+        ):
+            # We don't want to see those parent imports, unless they have
+            # an effect.
+            if used_module.reason == "import path parent":
+                while True:
+                    count += 1
+                    next_used_module = report_input_data["module_usages"][module_name][
+                        count
+                    ]
+
+                    if next_used_module.reason != "import path parent":
+                        break
+
+                exclusion_reason = report_input_data["module_exclusions"][
+                    module_name
+                ].get(next_used_module.module_name)
+
+                if exclusion_reason is None or next_used_module.finding != "not-found":
+                    continue
+
             module_usage_node = TreeXML.appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
                 line=str(used_module.source_ref.getLineNumber()),
+                # TODO: Add reason in a hotfix.
+                # reason=used_module.reason,
             )
 
             exclusion_reason = report_input_data["module_exclusions"][module_name].get(
