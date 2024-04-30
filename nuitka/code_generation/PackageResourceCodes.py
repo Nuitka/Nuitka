@@ -520,11 +520,13 @@ def generatePkgResourcesIterEntryPointsCallCode(to_name, expression, emit, conte
             called_name=iter_entry_points_function_name,
             expression=expression,
             arg_names=(
-                group_arg_name,
-                name_arg_name,
-            )
-            if name_arg_name is not None
-            else (group_arg_name,),
+                (
+                    group_arg_name,
+                    name_arg_name,
+                )
+                if name_arg_name is not None
+                else (group_arg_name,)
+            ),
             emit=emit,
             context=context,
         )

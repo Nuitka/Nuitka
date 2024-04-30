@@ -11,7 +11,6 @@ TODO: Clarify by renaming that the top module is now used, and these are
 merely helpers to do it.
 """
 
-
 from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionPureBody,

@@ -131,7 +131,7 @@ class PythonModuleBase(NodeBase):
             )
 
     def getCodeName(self):
-        # Abstract method, pylint: disable=no-self-use
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def getCompileTimeFilename(self):
@@ -450,7 +450,10 @@ class CompiledPythonModule(
         # For code name of modules, we need to translate to C identifiers,
         # removing characters illegal for that.
 
-        return encodePythonIdentifierToC(self.getFullName())
+        if self.code_name is None:
+            self.code_name = encodePythonIdentifierToC(self.module_name)
+
+        return self.code_name
 
     @staticmethod
     def getChildQualname(function_name):
@@ -540,9 +543,11 @@ class CompiledPythonModule(
 
         self.trace_collection = TraceCollectionModule(
             self,
-            very_trusted_module_variables=old_collection.getVeryTrustedModuleVariables()
-            if old_collection is not None
-            else {},
+            very_trusted_module_variables=(
+                old_collection.getVeryTrustedModuleVariables()
+                if old_collection is not None
+                else {}
+            ),
         )
 
         module_body = self.subnode_body

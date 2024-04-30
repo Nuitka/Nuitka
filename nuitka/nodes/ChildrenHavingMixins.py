@@ -2,18 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Children having mixins
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 
 
@@ -128,9 +143,9 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
         """
 
         values = {
-            "body": self.subnode_body.makeClone()
-            if self.subnode_body is not None
-            else None,
+            "body": (
+                self.subnode_body.makeClone() if self.subnode_body is not None else None
+            ),
             "functions": tuple(v.makeClone() for v in self.subnode_functions),
         }
 
@@ -333,9 +348,9 @@ class ChildHavingBodyOptionalMixin(object):
         """
 
         values = {
-            "body": self.subnode_body.makeClone()
-            if self.subnode_body is not None
-            else None,
+            "body": (
+                self.subnode_body.makeClone() if self.subnode_body is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -4818,12 +4833,16 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
 
         values = {
             "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "kw_defaults": self.subnode_kw_defaults.makeClone()
-            if self.subnode_kw_defaults is not None
-            else None,
-            "annotations": self.subnode_annotations.makeClone()
-            if self.subnode_annotations is not None
-            else None,
+            "kw_defaults": (
+                self.subnode_kw_defaults.makeClone()
+                if self.subnode_kw_defaults is not None
+                else None
+            ),
+            "annotations": (
+                self.subnode_annotations.makeClone()
+                if self.subnode_annotations is not None
+                else None
+            ),
             "function_ref": self.subnode_function_ref.makeClone(),
         }
 
@@ -6235,9 +6254,11 @@ class ChildHavingExitCodeOptionalMixin(object):
         """
 
         values = {
-            "exit_code": self.subnode_exit_code.makeClone()
-            if self.subnode_exit_code is not None
-            else None,
+            "exit_code": (
+                self.subnode_exit_code.makeClone()
+                if self.subnode_exit_code is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -6857,12 +6878,16 @@ class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
 
         values = {
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7021,9 +7046,11 @@ class ChildrenHavingExpressionNameDefaultOptionalMixin(object):
         values = {
             "expression": self.subnode_expression.makeClone(),
             "name": self.subnode_name.makeClone(),
-            "default": self.subnode_default.makeClone()
-            if self.subnode_default is not None
-            else None,
+            "default": (
+                self.subnode_default.makeClone()
+                if self.subnode_default is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7652,27 +7679,39 @@ class ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptio
 
         values = {
             "file": self.subnode_file.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
-            "newline": self.subnode_newline.makeClone()
-            if self.subnode_newline is not None
-            else None,
-            "closefd": self.subnode_closefd.makeClone()
-            if self.subnode_closefd is not None
-            else None,
-            "opener": self.subnode_opener.makeClone()
-            if self.subnode_opener is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
+            "newline": (
+                self.subnode_newline.makeClone()
+                if self.subnode_newline is not None
+                else None
+            ),
+            "closefd": (
+                self.subnode_closefd.makeClone()
+                if self.subnode_closefd is not None
+                else None
+            ),
+            "opener": (
+                self.subnode_opener.makeClone()
+                if self.subnode_opener is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -7869,12 +7908,14 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
 
         values = {
             "filename": self.subnode_filename.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -8145,27 +8186,39 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
 
         values = {
             "filename": self.subnode_filename.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "buffering": self.subnode_buffering.makeClone()
-            if self.subnode_buffering is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
-            "newline": self.subnode_newline.makeClone()
-            if self.subnode_newline is not None
-            else None,
-            "closefd": self.subnode_closefd.makeClone()
-            if self.subnode_closefd is not None
-            else None,
-            "opener": self.subnode_opener.makeClone()
-            if self.subnode_opener is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "buffering": (
+                self.subnode_buffering.makeClone()
+                if self.subnode_buffering is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
+            "newline": (
+                self.subnode_newline.makeClone()
+                if self.subnode_newline is not None
+                else None
+            ),
+            "closefd": (
+                self.subnode_closefd.makeClone()
+                if self.subnode_closefd is not None
+                else None
+            ),
+            "opener": (
+                self.subnode_opener.makeClone()
+                if self.subnode_opener is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -8267,6 +8320,479 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionBuiltinOpenP3Mixin = ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
+
+
+class ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin(
+    object
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTensorflowFunction
+    #   ExpressionTensorflowFunctionCall
+
+    def __init__(
+        self,
+        func,
+        input_signature,
+        autograph,
+        jit_compile,
+        reduce_retracing,
+        experimental_implements,
+        experimental_autograph_options,
+        experimental_attributes,
+        experimental_relax_shapes,
+        experimental_compile,
+        experimental_follow_type_hints,
+    ):
+        if func is not None:
+            func.parent = self
+
+        self.subnode_func = func
+
+        if input_signature is not None:
+            input_signature.parent = self
+
+        self.subnode_input_signature = input_signature
+
+        if autograph is not None:
+            autograph.parent = self
+
+        self.subnode_autograph = autograph
+
+        if jit_compile is not None:
+            jit_compile.parent = self
+
+        self.subnode_jit_compile = jit_compile
+
+        if reduce_retracing is not None:
+            reduce_retracing.parent = self
+
+        self.subnode_reduce_retracing = reduce_retracing
+
+        if experimental_implements is not None:
+            experimental_implements.parent = self
+
+        self.subnode_experimental_implements = experimental_implements
+
+        if experimental_autograph_options is not None:
+            experimental_autograph_options.parent = self
+
+        self.subnode_experimental_autograph_options = experimental_autograph_options
+
+        if experimental_attributes is not None:
+            experimental_attributes.parent = self
+
+        self.subnode_experimental_attributes = experimental_attributes
+
+        if experimental_relax_shapes is not None:
+            experimental_relax_shapes.parent = self
+
+        self.subnode_experimental_relax_shapes = experimental_relax_shapes
+
+        if experimental_compile is not None:
+            experimental_compile.parent = self
+
+        self.subnode_experimental_compile = experimental_compile
+
+        if experimental_follow_type_hints is not None:
+            experimental_follow_type_hints.parent = self
+
+        self.subnode_experimental_follow_type_hints = experimental_follow_type_hints
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_func
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_input_signature
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_autograph
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_jit_compile
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_reduce_retracing
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_implements
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_autograph_options
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_attributes
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_relax_shapes
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_compile
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_experimental_follow_type_hints
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("func", self.subnode_func),
+            ("input_signature", self.subnode_input_signature),
+            ("autograph", self.subnode_autograph),
+            ("jit_compile", self.subnode_jit_compile),
+            ("reduce_retracing", self.subnode_reduce_retracing),
+            ("experimental_implements", self.subnode_experimental_implements),
+            (
+                "experimental_autograph_options",
+                self.subnode_experimental_autograph_options,
+            ),
+            ("experimental_attributes", self.subnode_experimental_attributes),
+            ("experimental_relax_shapes", self.subnode_experimental_relax_shapes),
+            ("experimental_compile", self.subnode_experimental_compile),
+            (
+                "experimental_follow_type_hints",
+                self.subnode_experimental_follow_type_hints,
+            ),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_func
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_func = new_node
+
+            return
+
+        value = self.subnode_input_signature
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_input_signature = new_node
+
+            return
+
+        value = self.subnode_autograph
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_autograph = new_node
+
+            return
+
+        value = self.subnode_jit_compile
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_jit_compile = new_node
+
+            return
+
+        value = self.subnode_reduce_retracing
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_reduce_retracing = new_node
+
+            return
+
+        value = self.subnode_experimental_implements
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_implements = new_node
+
+            return
+
+        value = self.subnode_experimental_autograph_options
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_autograph_options = new_node
+
+            return
+
+        value = self.subnode_experimental_attributes
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_attributes = new_node
+
+            return
+
+        value = self.subnode_experimental_relax_shapes
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_relax_shapes = new_node
+
+            return
+
+        value = self.subnode_experimental_compile
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_compile = new_node
+
+            return
+
+        value = self.subnode_experimental_follow_type_hints
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_experimental_follow_type_hints = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "func": (
+                self.subnode_func.makeClone() if self.subnode_func is not None else None
+            ),
+            "input_signature": (
+                self.subnode_input_signature.makeClone()
+                if self.subnode_input_signature is not None
+                else None
+            ),
+            "autograph": (
+                self.subnode_autograph.makeClone()
+                if self.subnode_autograph is not None
+                else None
+            ),
+            "jit_compile": (
+                self.subnode_jit_compile.makeClone()
+                if self.subnode_jit_compile is not None
+                else None
+            ),
+            "reduce_retracing": (
+                self.subnode_reduce_retracing.makeClone()
+                if self.subnode_reduce_retracing is not None
+                else None
+            ),
+            "experimental_implements": (
+                self.subnode_experimental_implements.makeClone()
+                if self.subnode_experimental_implements is not None
+                else None
+            ),
+            "experimental_autograph_options": (
+                self.subnode_experimental_autograph_options.makeClone()
+                if self.subnode_experimental_autograph_options is not None
+                else None
+            ),
+            "experimental_attributes": (
+                self.subnode_experimental_attributes.makeClone()
+                if self.subnode_experimental_attributes is not None
+                else None
+            ),
+            "experimental_relax_shapes": (
+                self.subnode_experimental_relax_shapes.makeClone()
+                if self.subnode_experimental_relax_shapes is not None
+                else None
+            ),
+            "experimental_compile": (
+                self.subnode_experimental_compile.makeClone()
+                if self.subnode_experimental_compile is not None
+                else None
+            ),
+            "experimental_follow_type_hints": (
+                self.subnode_experimental_follow_type_hints.makeClone()
+                if self.subnode_experimental_follow_type_hints is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_func is not None:
+            self.subnode_func.finalize()
+        del self.subnode_func
+        if self.subnode_input_signature is not None:
+            self.subnode_input_signature.finalize()
+        del self.subnode_input_signature
+        if self.subnode_autograph is not None:
+            self.subnode_autograph.finalize()
+        del self.subnode_autograph
+        if self.subnode_jit_compile is not None:
+            self.subnode_jit_compile.finalize()
+        del self.subnode_jit_compile
+        if self.subnode_reduce_retracing is not None:
+            self.subnode_reduce_retracing.finalize()
+        del self.subnode_reduce_retracing
+        if self.subnode_experimental_implements is not None:
+            self.subnode_experimental_implements.finalize()
+        del self.subnode_experimental_implements
+        if self.subnode_experimental_autograph_options is not None:
+            self.subnode_experimental_autograph_options.finalize()
+        del self.subnode_experimental_autograph_options
+        if self.subnode_experimental_attributes is not None:
+            self.subnode_experimental_attributes.finalize()
+        del self.subnode_experimental_attributes
+        if self.subnode_experimental_relax_shapes is not None:
+            self.subnode_experimental_relax_shapes.finalize()
+        del self.subnode_experimental_relax_shapes
+        if self.subnode_experimental_compile is not None:
+            self.subnode_experimental_compile.finalize()
+        del self.subnode_experimental_compile
+        if self.subnode_experimental_follow_type_hints is not None:
+            self.subnode_experimental_follow_type_hints.finalize()
+        del self.subnode_experimental_follow_type_hints
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_func = self.subnode_func
+
+        if subnode_func is not None:
+            self.subnode_func.collectVariableAccesses(emit_read, emit_write)
+        subnode_input_signature = self.subnode_input_signature
+
+        if subnode_input_signature is not None:
+            self.subnode_input_signature.collectVariableAccesses(emit_read, emit_write)
+        subnode_autograph = self.subnode_autograph
+
+        if subnode_autograph is not None:
+            self.subnode_autograph.collectVariableAccesses(emit_read, emit_write)
+        subnode_jit_compile = self.subnode_jit_compile
+
+        if subnode_jit_compile is not None:
+            self.subnode_jit_compile.collectVariableAccesses(emit_read, emit_write)
+        subnode_reduce_retracing = self.subnode_reduce_retracing
+
+        if subnode_reduce_retracing is not None:
+            self.subnode_reduce_retracing.collectVariableAccesses(emit_read, emit_write)
+        subnode_experimental_implements = self.subnode_experimental_implements
+
+        if subnode_experimental_implements is not None:
+            self.subnode_experimental_implements.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_autograph_options = (
+            self.subnode_experimental_autograph_options
+        )
+
+        if subnode_experimental_autograph_options is not None:
+            self.subnode_experimental_autograph_options.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_attributes = self.subnode_experimental_attributes
+
+        if subnode_experimental_attributes is not None:
+            self.subnode_experimental_attributes.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_relax_shapes = self.subnode_experimental_relax_shapes
+
+        if subnode_experimental_relax_shapes is not None:
+            self.subnode_experimental_relax_shapes.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_compile = self.subnode_experimental_compile
+
+        if subnode_experimental_compile is not None:
+            self.subnode_experimental_compile.collectVariableAccesses(
+                emit_read, emit_write
+            )
+        subnode_experimental_follow_type_hints = (
+            self.subnode_experimental_follow_type_hints
+        )
+
+        if subnode_experimental_follow_type_hints is not None:
+            self.subnode_experimental_follow_type_hints.collectVariableAccesses(
+                emit_read, emit_write
+            )
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionTensorflowFunctionMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
+ChildrenExpressionTensorflowFunctionCallMixin = ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin
 
 
 class ChildrenHavingFunctionValuesTupleMixin(object):
@@ -8567,9 +9093,9 @@ class ChildrenHavingGroupNameOptionalMixin(object):
 
         values = {
             "group": self.subnode_group.makeClone(),
-            "name": self.subnode_name.makeClone()
-            if self.subnode_name is not None
-            else None,
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -9468,13 +9994,17 @@ class ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRe
         """
 
         values = {
-            "kw_defaults": self.subnode_kw_defaults.makeClone()
-            if self.subnode_kw_defaults is not None
-            else None,
+            "kw_defaults": (
+                self.subnode_kw_defaults.makeClone()
+                if self.subnode_kw_defaults is not None
+                else None
+            ),
             "defaults": tuple(v.makeClone() for v in self.subnode_defaults),
-            "annotations": self.subnode_annotations.makeClone()
-            if self.subnode_annotations is not None
-            else None,
+            "annotations": (
+                self.subnode_annotations.makeClone()
+                if self.subnode_annotations is not None
+                else None
+            ),
             "function_ref": self.subnode_function_ref.makeClone(),
         }
 
@@ -10328,9 +10858,9 @@ class ChildrenHavingListArgKeyOptionalReverseMixin(object):
 
         values = {
             "list_arg": self.subnode_list_arg.makeClone(),
-            "key": self.subnode_key.makeClone()
-            if self.subnode_key is not None
-            else None,
+            "key": (
+                self.subnode_key.makeClone() if self.subnode_key is not None else None
+            ),
             "reverse": self.subnode_reverse.makeClone(),
         }
 
@@ -11552,18 +12082,26 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "globals_arg": self.subnode_globals_arg.makeClone()
-            if self.subnode_globals_arg is not None
-            else None,
-            "locals_arg": self.subnode_locals_arg.makeClone()
-            if self.subnode_locals_arg is not None
-            else None,
-            "fromlist": self.subnode_fromlist.makeClone()
-            if self.subnode_fromlist is not None
-            else None,
-            "level": self.subnode_level.makeClone()
-            if self.subnode_level is not None
-            else None,
+            "globals_arg": (
+                self.subnode_globals_arg.makeClone()
+                if self.subnode_globals_arg is not None
+                else None
+            ),
+            "locals_arg": (
+                self.subnode_locals_arg.makeClone()
+                if self.subnode_locals_arg is not None
+                else None
+            ),
+            "fromlist": (
+                self.subnode_fromlist.makeClone()
+                if self.subnode_fromlist is not None
+                else None
+            ),
+            "level": (
+                self.subnode_level.makeClone()
+                if self.subnode_level is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -11783,18 +12321,24 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "handle": self.subnode_handle.makeClone()
-            if self.subnode_handle is not None
-            else None,
-            "use_errno": self.subnode_use_errno.makeClone()
-            if self.subnode_use_errno is not None
-            else None,
-            "use_last_error": self.subnode_use_last_error.makeClone()
-            if self.subnode_use_last_error is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "handle": (
+                self.subnode_handle.makeClone()
+                if self.subnode_handle is not None
+                else None
+            ),
+            "use_errno": (
+                self.subnode_use_errno.makeClone()
+                if self.subnode_use_errno is not None
+                else None
+            ),
+            "use_last_error": (
+                self.subnode_use_last_error.makeClone()
+                if self.subnode_use_last_error is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12035,21 +12579,29 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOp
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "mode": self.subnode_mode.makeClone()
-            if self.subnode_mode is not None
-            else None,
-            "handle": self.subnode_handle.makeClone()
-            if self.subnode_handle is not None
-            else None,
-            "use_errno": self.subnode_use_errno.makeClone()
-            if self.subnode_use_errno is not None
-            else None,
-            "use_last_error": self.subnode_use_last_error.makeClone()
-            if self.subnode_use_last_error is not None
-            else None,
-            "winmode": self.subnode_winmode.makeClone()
-            if self.subnode_winmode is not None
-            else None,
+            "mode": (
+                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
+            ),
+            "handle": (
+                self.subnode_handle.makeClone()
+                if self.subnode_handle is not None
+                else None
+            ),
+            "use_errno": (
+                self.subnode_use_errno.makeClone()
+                if self.subnode_use_errno is not None
+                else None
+            ),
+            "use_last_error": (
+                self.subnode_use_last_error.makeClone()
+                if self.subnode_use_last_error is not None
+                else None
+            ),
+            "winmode": (
+                self.subnode_winmode.makeClone()
+                if self.subnode_winmode is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12211,9 +12763,11 @@ class ChildrenHavingNamePackageOptionalMixin(object):
 
         values = {
             "name": self.subnode_name.makeClone(),
-            "package": self.subnode_package.makeClone()
-            if self.subnode_package is not None
-            else None,
+            "package": (
+                self.subnode_package.makeClone()
+                if self.subnode_package is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -12820,12 +13374,16 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
         values = {
             "package": self.subnode_package.makeClone(),
             "resource": self.subnode_resource.makeClone(),
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -13436,9 +13994,9 @@ class ChildHavingPathOptionalMixin(object):
         """
 
         values = {
-            "path": self.subnode_path.makeClone()
-            if self.subnode_path is not None
-            else None,
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -13569,9 +14127,11 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
         """
 
         values = {
-            "pos_arg": self.subnode_pos_arg.makeClone()
-            if self.subnode_pos_arg is not None
-            else None,
+            "pos_arg": (
+                self.subnode_pos_arg.makeClone()
+                if self.subnode_pos_arg is not None
+                else None
+            ),
             "pairs": tuple(v.makeClone() for v in self.subnode_pairs),
         }
 
@@ -13707,9 +14267,9 @@ class ChildrenHavingRealOptionalImagMixin(object):
         """
 
         values = {
-            "real": self.subnode_real.makeClone()
-            if self.subnode_real is not None
-            else None,
+            "real": (
+                self.subnode_real.makeClone() if self.subnode_real is not None else None
+            ),
             "imag": self.subnode_imag.makeClone(),
         }
 
@@ -14707,15 +15267,21 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
             "source": self.subnode_source.makeClone(),
             "filename": self.subnode_filename.makeClone(),
             "mode": self.subnode_mode.makeClone(),
-            "flags": self.subnode_flags.makeClone()
-            if self.subnode_flags is not None
-            else None,
-            "dont_inherit": self.subnode_dont_inherit.makeClone()
-            if self.subnode_dont_inherit is not None
-            else None,
-            "optimize": self.subnode_optimize.makeClone()
-            if self.subnode_optimize is not None
-            else None,
+            "flags": (
+                self.subnode_flags.makeClone()
+                if self.subnode_flags is not None
+                else None
+            ),
+            "dont_inherit": (
+                self.subnode_dont_inherit.makeClone()
+                if self.subnode_dont_inherit is not None
+                else None
+            ),
+            "optimize": (
+                self.subnode_optimize.makeClone()
+                if self.subnode_optimize is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -15048,9 +15614,11 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgClosureOptionalMixin(object):
             "source_code": self.subnode_source_code.makeClone(),
             "globals_arg": self.subnode_globals_arg.makeClone(),
             "locals_arg": self.subnode_locals_arg.makeClone(),
-            "closure": self.subnode_closure.makeClone()
-            if self.subnode_closure is not None
-            else None,
+            "closure": (
+                self.subnode_closure.makeClone()
+                if self.subnode_closure is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -18958,12 +19526,16 @@ class ChildrenHavingStringEncodingOptionalErrorsOptionalMixin(object):
 
         values = {
             "string": self.subnode_string.makeClone(),
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -19218,12 +19790,14 @@ class ChildrenHavingTypeArgArgsOptionalKwargsOptionalMixin(object):
 
         values = {
             "type_arg": self.subnode_type_arg.makeClone(),
-            "args": self.subnode_args.makeClone()
-            if self.subnode_args is not None
-            else None,
-            "kwargs": self.subnode_kwargs.makeClone()
-            if self.subnode_kwargs is not None
-            else None,
+            "args": (
+                self.subnode_args.makeClone() if self.subnode_args is not None else None
+            ),
+            "kwargs": (
+                self.subnode_kwargs.makeClone()
+                if self.subnode_kwargs is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -19563,6 +20137,142 @@ class ChildrenHavingTypeNameBasesDictArgMixin(object):
 ChildrenExpressionBuiltinType3Mixin = ChildrenHavingTypeNameBasesDictArgMixin
 
 
+class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTypeAlias
+
+    def __init__(
+        self,
+        type_params,
+        compute_value,
+    ):
+        assert type(type_params) is tuple
+
+        for val in type_params:
+            val.parent = self
+
+        self.subnode_type_params = type_params
+
+        compute_value.parent = self
+
+        self.subnode_compute_value = compute_value
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.extend(self.subnode_type_params)
+        result.append(self.subnode_compute_value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("type_params", self.subnode_type_params),
+            ("compute_value", self.subnode_compute_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_type_params
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_type_params = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_type_params = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_compute_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_compute_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "type_params": tuple(v.makeClone() for v in self.subnode_type_params),
+            "compute_value": self.subnode_compute_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_type_params:
+            c.finalize()
+        del self.subnode_type_params
+        self.subnode_compute_value.finalize()
+        del self.subnode_compute_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_type_params:
+            element.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_compute_value.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionTypeAliasMixin = ChildrenHavingTypeParamsTupleComputeValueMixin
+
+
 class ChildHavingValueMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -19794,9 +20504,11 @@ class ChildrenHavingValueOptionalBaseMixin(object):
         """
 
         values = {
-            "value": self.subnode_value.makeClone()
-            if self.subnode_value is not None
-            else None,
+            "value": (
+                self.subnode_value.makeClone()
+                if self.subnode_value is not None
+                else None
+            ),
             "base": self.subnode_base.makeClone(),
         }
 
@@ -19960,15 +20672,21 @@ class ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin(object):
         """
 
         values = {
-            "value": self.subnode_value.makeClone()
-            if self.subnode_value is not None
-            else None,
-            "encoding": self.subnode_encoding.makeClone()
-            if self.subnode_encoding is not None
-            else None,
-            "errors": self.subnode_errors.makeClone()
-            if self.subnode_errors is not None
-            else None,
+            "value": (
+                self.subnode_value.makeClone()
+                if self.subnode_value is not None
+                else None
+            ),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -20123,9 +20841,11 @@ class ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin(object):
 
         values = {
             "value": self.subnode_value.makeClone(),
-            "format_spec": self.subnode_format_spec.makeClone()
-            if self.subnode_format_spec is not None
-            else None,
+            "format_spec": (
+                self.subnode_format_spec.makeClone()
+                if self.subnode_format_spec is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())

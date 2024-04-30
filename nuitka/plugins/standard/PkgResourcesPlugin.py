@@ -8,7 +8,6 @@ runtime, but that is done by nodes and optimization. But there are other things,
 that need special case, e.g. the registration of the loader class.
 """
 
-
 import re
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase

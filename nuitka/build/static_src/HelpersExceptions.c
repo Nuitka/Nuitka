@@ -42,26 +42,6 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mis
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
 }
 
-void FORMAT_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_NameError;
-    Py_INCREF(*exception_type);
-
-    *exception_value =
-        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-    CHECK_OBJECT(*exception_value);
-}
-
-#if PYTHON_VERSION < 0x340
-void FORMAT_GLOBAL_NAME_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_NameError;
-    Py_INCREF(*exception_type);
-
-    *exception_value =
-        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-    CHECK_OBJECT(*exception_value);
-}
-#endif
-
 void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
     *exception_type = PyExc_UnboundLocalError;
     Py_INCREF(*exception_type);
@@ -114,7 +94,6 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
     return exc;
 }
 
-#if PYTHON_VERSION < 0x3c0
 // Our replacement for PyErr_NormalizeException, that however does not attempt
 // to deal with recursion, i.e. exception during normalization, we just avoid
 // the API call overhead in the normal case.
@@ -128,6 +107,9 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
 
     // Allow setting the value to NULL for time savings with quick type only errors
     if (value == NULL) {
+        // TODO: For Python3.12, these kinds of assignments from immortal objects
+        // should be specialized, might need to check Python source for how they
+        // do that.
         value = Py_None;
         Py_INCREF(value);
     }
@@ -179,7 +161,11 @@ error:
     Py_DECREF(value);
     PyTracebackObject *initial_tb = *tb;
 
-    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+    ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exc, val, tb);
+    RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
     if (initial_tb != NULL) {
         if (*tb == NULL) {
@@ -195,7 +181,35 @@ error:
     PyErr_NormalizeException(exc, val, (PyObject **)tb);
 #endif
 }
+
+// Raise NameError for a given variable name.
+void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+#if PYTHON_VERSION >= 0x300
+    CHAIN_EXCEPTION(tstate, exception_value);
 #endif
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
+}
+
+// Raise NameError with "global" for a given variable name.
+#if PYTHON_VERSION < 0x340
+void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
+    PyObject *exception_value_str =
+        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+
+    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
+    Py_DECREF(exception_value_str);
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
+}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

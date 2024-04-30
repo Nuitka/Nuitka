@@ -16,7 +16,7 @@ STATUS_INVALID_HANDLE = 0xC0000008
 STATUS_BUFFER_TOO_SMALL = 0xC0000023
 
 
-def getWindowsAllProcessandles():
+def getWindowsAllProcessHandles():
     """Return all process system handles."""
 
     i = 2048
@@ -184,13 +184,14 @@ def getWindowsAllProcessFileHandles():
 
     ObjectTypeInformation = 2
 
-    psapi = ctypes.WinDLL("Psapi.dll")
+    # spell-checker: ignore psapi
+    psapi = ctypes.WinDLL("psapi.dll")
     psapi.GetProcessImageFileNameW.restype = ctypes.wintypes.DWORD
 
     this_process = ctypes.windll.kernel32.GetCurrentProcess()
     this_process_id = ctypes.windll.kernel32.GetCurrentProcessId()
 
-    for process, handles in getWindowsAllProcessandles().items():
+    for process, handles in getWindowsAllProcessHandles().items():
         # Ignore ourselves, we do not matter normally.
 
         if this_process_id == process:

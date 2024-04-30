@@ -53,6 +53,7 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
+from nuitka.nodes.TypeNodes import ExpressionTypeAlias
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
@@ -76,6 +77,7 @@ from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
     buildNode,
+    buildNodeTuple,
     getKind,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -214,9 +216,11 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if element[0] == "Starred":
                 if starred_index is not None:
                     raiseSyntaxError(
-                        "two starred expressions in assignment"
-                        if python_version < 0x390
-                        else "multiple starred expressions in assignment",
+                        (
+                            "two starred expressions in assignment"
+                            if python_version < 0x390
+                            else "multiple starred expressions in assignment"
+                        ),
                         source_ref.atColumnNumber(0),
                     )
 
@@ -1245,6 +1249,25 @@ def buildNamedExprNode(provider, node, source_ref):
     )
 
     return outline_body
+
+
+def buildTypeAliasNode(provider, node, source_ref):
+    """Python3.12 or higher, type alias statements."""
+
+    assert not node.type_params, node.type_params
+    type_alias_node = ExpressionTypeAlias(
+        type_params=buildNodeTuple(provider, node.type_params, source_ref),
+        compute_value=buildNode(provider, node.value, source_ref),
+        source_ref=source_ref,
+    )
+
+    # TODO: A specialized assignment statement might be in order
+    return StatementAssignmentVariableName(
+        provider=provider,
+        variable_name=mangleName(node.name.id, provider),
+        source=type_alias_node,
+        source_ref=source_ref,
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

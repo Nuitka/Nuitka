@@ -360,9 +360,9 @@ def makeHelperOperations(
             op_code=op_code,
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
-            nb_inplace_slot=_getNbInplaceSlotFromOperand(operator, op_code)
-            if inplace
-            else None,
+            nb_inplace_slot=(
+                _getNbInplaceSlotFromOperand(operator, op_code) if inplace else None
+            ),
             sq_slot=sq_slot,
             sq_inplace_slot=sq_inplace_slot,
             object_desc=object_desc,
@@ -1232,15 +1232,17 @@ def makeHelperBuiltinTypeMethods():
                             builtin_type=type_desc,
                             builtin_arg_name=type_desc.type_name,
                             method_name=method_name,
-                            api_suffix=str(arg_count + 1)
-                            if len(arg_counts) > 1
-                            else "",
+                            api_suffix=(
+                                str(arg_count + 1) if len(arg_counts) > 1 else ""
+                            ),
                             arg_names=variant_args,
                             arg_types=[object_desc] * len(variant_args),
                             formatArgumentDeclaration=formatArgumentDeclaration,
-                            extra_check=_getCheckForShape(result_shape)
-                            if result_shape is not None
-                            else None,
+                            extra_check=(
+                                _getCheckForShape(result_shape)
+                                if result_shape is not None
+                                else None
+                            ),
                             zip=zip,
                             len=len,
                             name=template.name,

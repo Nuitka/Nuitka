@@ -34,6 +34,7 @@ special attribute lookups for "__enter__" and "__exit__", calls of them,
 catching and passing in exceptions raised.
 
 """
+
 import marshal
 import os
 
@@ -139,6 +140,7 @@ from .ReformulationAssignmentStatements import (
     buildDeleteNode,
     buildInplaceAssignNode,
     buildNamedExprNode,
+    buildTypeAliasNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -762,6 +764,7 @@ setBuildingDispatchers(
         "NamedExpr": buildNamedExprNode,
         "Slice": buildSliceNode,
         "Match": buildMatchNode,
+        "TypeAlias": buildTypeAliasNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8

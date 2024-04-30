@@ -279,7 +279,7 @@ def dumpTreeXML():
     filename = Options.getXMLDumpOutputFilename()
 
     if filename is not None:
-        with openTextFile(filename, "w") as output_file:
+        with openTextFile(filename, "wb") as output_file:
             # XML output only.
             for module in ModuleRegistry.getDoneModules():
                 dumpTreeXMLToFile(tree=module.asXml(), output_file=output_file)
@@ -759,12 +759,7 @@ def runSconsBackend():
     return result
 
 
-def callExecPython(args, clean_path, add_path):
-    old_python_path = os.getenv("PYTHONPATH")
-
-    if clean_path and old_python_path is not None:
-        os.environ["PYTHONPATH"] = ""
-
+def callExecPython(args, add_path):
     if add_path:
         if "PYTHONPATH" in os.environ:
             os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
@@ -777,17 +772,17 @@ def callExecPython(args, clean_path, add_path):
     callExecProcess(args)
 
 
-def executeMain(binary_filename, clean_path):
+def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
     if Options.shallRunInDebugger() and not Options.shallCreateCmdFileForExecution():
         args = wrapCommandForDebuggerForExec(binary_filename)
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(clean_path=clean_path, add_path=False, args=args)
+    callExecPython(add_path=False, args=args)
 
 
-def executeModule(tree, clean_path):
+def _executeModule(tree):
     """Execute the extension module just created."""
 
     if python_version < 0x340:
@@ -829,7 +824,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
     else:
         args = (sys.executable, "python", "-c", python_command)
 
-    callExecPython(clean_path=clean_path, add_path=True, args=args)
+    callExecPython(add_path=True, args=args)
 
 
 def compileTree():
@@ -842,9 +837,11 @@ def compileTree():
 
         reportMemoryUsage(
             "before_c_code_generation",
-            "Total memory usage before generating C code:"
-            if Options.isShowProgress() or Options.isShowMemory()
-            else None,
+            (
+                "Total memory usage before generating C code:"
+                if Options.isShowProgress() or Options.isShowMemory()
+                else None
+            ),
         )
 
         # Now build the target language code for the whole tree.
@@ -870,9 +867,11 @@ def compileTree():
 
     reportMemoryUsage(
         "before_running_scons",
-        "Total memory usage before running scons"
-        if Options.isShowProgress() or Options.isShowMemory()
-        else None,
+        (
+            "Total memory usage before running scons"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None
+        ),
     )
 
     if Options.isShowMemory():
@@ -953,9 +952,11 @@ def _main():
 
     reportMemoryUsage(
         "after_launch",
-        "Total memory usage before processing:"
-        if Options.isShowProgress() or Options.isShowMemory()
-        else None,
+        (
+            "Total memory usage before processing:"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None
+        ),
     )
 
     # Initialize the importing layer from options, main filenames, debugging
@@ -1004,8 +1005,6 @@ def _main():
 
     executePostProcessing()
 
-    copyDataFiles()
-
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]
 
@@ -1025,6 +1024,10 @@ def _main():
             dist_dir=dist_dir,
             standalone_entry_points=getStandaloneEntryPoints(),
         )
+
+    copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
+
+    if Options.isStandaloneMode():
 
         Plugins.onStandaloneDistributionFinished(dist_dir)
 
@@ -1105,15 +1108,9 @@ not use compiled code while it exists."""
         general.info("Launching '%s'." % run_filename)
 
         if Options.shallMakeModule():
-            executeModule(
-                tree=main_module,
-                clean_path=Options.shallClearPythonPathEnvironment(),
-            )
+            _executeModule(tree=main_module)
         else:
-            executeMain(
-                binary_filename=run_filename,
-                clean_path=Options.shallClearPythonPathEnvironment(),
-            )
+            _executeMain(run_filename)
     else:
         if run_filename != final_filename:
             general.info(

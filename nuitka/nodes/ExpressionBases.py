@@ -446,9 +446,11 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                template="int() argument must be a string or a number, not '%s'"
-                if python_version < 0x300
-                else "int() argument must be a string, a bytes-like object or a number, not '%s'",
+                template=(
+                    "int() argument must be a string or a number, not '%s'"
+                    if python_version < 0x300
+                    else "int() argument must be a string, a bytes-like object or a number, not '%s'"
+                ),
                 operation="int",
                 original_node=int_node,
                 value_node=self,
@@ -496,9 +498,11 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                "float() argument must be a string or a number"
-                if Options.is_full_compat and python_version < 0x300
-                else "float() argument must be a string or a number, not '%s'",
+                (
+                    "float() argument must be a string or a number"
+                    if Options.is_full_compat and python_version < 0x300
+                    else "float() argument must be a string or a number, not '%s'"
+                ),
                 operation="long",
                 original_node=float_node,
                 value_node=self,
@@ -550,9 +554,11 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
-                "complex() argument must be a string or a number"
-                if Options.is_full_compat and python_version < 0x300
-                else "complex() argument must be a string or a number, not '%s'",
+                (
+                    "complex() argument must be a string or a number"
+                    if Options.is_full_compat and python_version < 0x300
+                    else "complex() argument must be a string or a number, not '%s'"
+                ),
                 operation="complex",
                 original_node=complex_node,
                 value_node=self,

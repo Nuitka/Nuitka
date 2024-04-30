@@ -171,6 +171,48 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
     NUITKA_MAY_BE_UNUSED int res = PyType_Ready(type);
     assert(res >= 0);
 }
+
+#if PYTHON_VERSION >= 0x3c0
+
+typedef struct {
+    PyObject_HEAD PyObject *name;
+    PyObject *type_params;
+    PyObject *compute_value;
+    PyObject *value;
+    PyObject *module;
+} typealiasobject;
+
+static PyTypeObject *getTypeAliasType(void) {
+    static PyTypeObject *type_alias_type = NULL;
+
+    if (type_alias_type == NULL) {
+
+        PyObject *typing_module = PyImport_ImportModule("_typing");
+        CHECK_OBJECT(typing_module);
+
+        type_alias_type = (PyTypeObject *)PyObject_GetAttrString(typing_module, "TypeAliasType");
+        CHECK_OBJECT(type_alias_type);
+    }
+
+    return type_alias_type;
+}
+
+PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value) {
+    typealiasobject *ta = Nuitka_GC_New(getTypeAliasType());
+
+    // TODO: Lets follow Python new inline function in the future, this is 3.12
+    // only code, so we can use it here.
+    ta->name = Py_NewRef(name);
+    ta->type_params = Py_IsNone(type_params) ? NULL : Py_XNewRef(type_params);
+    ta->compute_value = Py_XNewRef(compute_value);
+    ta->value = NULL;
+    ta->module = NULL;
+
+    Nuitka_GC_Track(ta);
+
+    return (PyObject *)ta;
+}
+#endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

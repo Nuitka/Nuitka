@@ -5,7 +5,6 @@
 
 """
 
-
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.Tracing import inclusion_logger

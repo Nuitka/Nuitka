@@ -8,6 +8,7 @@ this is to collect them, providing the emit implementation. Sometimes nested
 use of these will occur.
 
 """
+
 import contextlib
 
 from .Indentation import indented

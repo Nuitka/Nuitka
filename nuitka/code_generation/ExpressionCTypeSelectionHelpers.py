@@ -7,6 +7,7 @@ This is first used for comparisons and binary operations, but should see
 general use too and expand beyond constant values, e.g. covering constant
 values that are of behind conditions or variables.
 """
+
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bytearray,
     tshape_bytes,

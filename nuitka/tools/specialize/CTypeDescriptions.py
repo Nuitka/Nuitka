@@ -275,9 +275,11 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
         if self is object_desc or other is object_desc:
             return "%s == %s" % (
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
-                other.getTypeValueExpression(None)
-                if other is not object_desc
-                else type2,
+                (
+                    other.getTypeValueExpression(None)
+                    if other is not object_desc
+                    else type2
+                ),
             )
         elif self is other:
             return "1"
@@ -288,9 +290,11 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
         if self is object_desc or other is object_desc:
             return "%s != %s" % (
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
-                other.getTypeValueExpression(None)
-                if other is not object_desc
-                else type2,
+                (
+                    other.getTypeValueExpression(None)
+                    if other is not object_desc
+                    else type2
+                ),
             )
         elif self is other:
             return "0"
@@ -1372,23 +1376,23 @@ class LongDesc(ConcreteNonSequenceTypeBase):
 
     @staticmethod
     def getLongValueSizeExpression(operand):
-        return "Py_SIZE(%s_long_object)" % operand
+        return "Nuitka_LongGetSignedDigitSize(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueIsNegativeTestExpression(operand):
-        return "Py_SIZE(%s_long_object) < 0" % operand
+        return "Nuitka_LongIsNegative(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueDigitCountExpression(operand):
-        return "Py_ABS(Py_SIZE(%s_long_object))" % operand
+        return "Nuitka_LongGetDigitSize(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueDigitExpression(operand, index):
-        return "%s_long_object->ob_digit[%s]" % (operand, index)
+        return "Nuitka_LongGetDigitPointer(%s_long_object)[%s]" % (operand, index)
 
     @staticmethod
     def getLongValueDigitsPointerExpression(operand):
-        return "%s_long_object->ob_digit" % operand
+        return "Nuitka_LongGetDigitPointer(%s_long_object)" % operand
 
     @staticmethod
     def getLongValueMediumValueExpression(operand):

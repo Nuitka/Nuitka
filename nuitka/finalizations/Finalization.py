@@ -8,6 +8,7 @@ can be computed here, so the code generation can be quick and doesn't have to
 check it many times.
 
 """
+
 from nuitka.tree import Operations
 
 from .FinalizeMarkups import FinalizeMarkups

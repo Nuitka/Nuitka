@@ -20,6 +20,7 @@ from nuitka.Options import (
     getShallIncludeExternallyDataFilePatterns,
     getShallIncludePackageData,
     getShallNotIncludeDataFilePatterns,
+    isAcceleratedMode,
     isOnefileMode,
     isStandaloneMode,
     shallMakeModule,
@@ -27,6 +28,7 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.Tracing import options_logger
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     containsPathElements,
     copyFileWithPermissions,
     getFileContents,
@@ -145,24 +147,33 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     if "framework_resource" in tags and not isMacOS():
         tracer.sysexit("Using resource files on non-MacOS")
 
-    inside = True
-    if not isRelativePath(dest_path):
-        if "framework_resource" in tags and not isOnefileMode():
-            inside = isRelativePath(os.path.join("Resources", dest_path))
-        else:
-            inside = False
-
-    if not inside:
-        tracer.sysexit(
-            "Error, cannot use dest path '%s' outside of distribution." % dest_path
-        )
-
     # Refuse directories, these must be kept distinct.
     if os.path.isdir(source_path):
         tracer.sysexit(
             "Error, cannot include directory '%s' as a data file. Data directories have their own options."
             % source_path
         )
+
+    # In accelerated mode, data files can be everywhere, but they cannot
+    # change place.
+    if isAcceleratedMode():
+        if "package_data" not in tags and not areSamePaths(source_path, dest_path):
+            tracer.sysexit(
+                "Error, cannot change paths for data files in accelerated mode '%s'."
+                % dest_path
+            )
+    else:
+        inside = True
+        if not isRelativePath(dest_path):
+            if "framework_resource" in tags and not isOnefileMode():
+                inside = isRelativePath(os.path.join("Resources", dest_path))
+            else:
+                inside = False
+
+        if not inside:
+            tracer.sysexit(
+                "Error, cannot use dest path '%s' outside of distribution." % dest_path
+            )
 
     return IncludedDataFile(
         kind="data_file",
@@ -506,7 +517,25 @@ def _reportDataFiles():
     _data_file_traces.clear()
 
 
-def _handleDataFile(included_datafile):
+def _checkPathConflict(dest_path, standalone_entry_points):
+    assert os.path.normpath(dest_path) == dest_path
+
+    while dest_path:
+        for standalone_entry_point in standalone_entry_points:
+            if dest_path == standalone_entry_point.dest_path:
+                options_logger.sysexit(
+                    """\
+Error, data file to be placed in distribution as '%s' conflicts with %s '%s'."""
+                    % (
+                        dest_path,
+                        standalone_entry_point.kind,
+                        standalone_entry_point.dest_path,
+                    )
+                )
+        dest_path = os.path.dirname(dest_path)
+
+
+def _handleDataFile(included_datafile, standalone_entry_points):
     """Handle a data file."""
     tracer = included_datafile.tracer
 
@@ -529,6 +558,7 @@ def _handleDataFile(included_datafile):
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)
     else:
+        _checkPathConflict(included_datafile.dest_path, standalone_entry_points)
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 
     if included_datafile.kind == "data_blob":
@@ -548,7 +578,7 @@ def _handleDataFile(included_datafile):
         assert False, included_datafile
 
 
-def copyDataFiles():
+def copyDataFiles(standalone_entry_points):
     """Copy the data files needed for standalone distribution.
 
     Notes:
@@ -576,7 +606,8 @@ plugins '--embed-*' options. Not done for '%s'."""
                 )
 
             _handleDataFile(
-                included_datafile,
+                included_datafile=included_datafile,
+                standalone_entry_points=standalone_entry_points,
             )
 
     _reportDataFiles()

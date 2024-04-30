@@ -17,7 +17,6 @@ are in another context.
 
 """
 
-
 from nuitka import Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet

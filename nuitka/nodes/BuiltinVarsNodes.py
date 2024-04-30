@@ -7,7 +7,6 @@ Not used much, esp. not in the form with arguments. Maybe used in some meta prog
 and hopefully can be predicted, because at run time, it is hard to support.
 """
 
-
 from .ChildrenHavingMixins import ChildHavingSourceMixin
 from .ExpressionBases import ExpressionBase
 

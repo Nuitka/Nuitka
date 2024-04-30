@@ -138,6 +138,14 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_unittest_mode,
                 "unittest",
             )
+            self.handled_modules["keras.src.testing_infra"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
+            self.handled_modules["tf_keras.src.testing_infra"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
         else:
             self.control_tags["use_unittest"] = True
 
@@ -626,7 +634,7 @@ class %(class_name)s:
     def _applyNoFollowConfiguration(self, module_name):
         for (
             config_of_module_name,
-            no_follow,
+            no_follow_pattern,
             description,
         ) in self.getYamlConfigItemItems(
             module_name=module_name,
@@ -635,7 +643,7 @@ class %(class_name)s:
             decide_relevant=lambda key, value: True,
             recursive=True,
         ):
-            self.no_follows[no_follow] = (config_of_module_name, description)
+            self.no_follows[no_follow_pattern] = (config_of_module_name, description)
 
     def onModuleRecursion(
         self,
@@ -661,6 +669,8 @@ class %(class_name)s:
 
         # This will allow "unittest.mock" to pass "unittest". It's kind of a hack and
         # hopefully unusual.
+        if module_name == "unittest" and reason == "import path parent":
+            return
         if module_name == "unittest.mock" and module_name not in self.handled_modules:
             return
 

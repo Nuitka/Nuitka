@@ -14,7 +14,7 @@ import os
 
 from nuitka import Options
 from nuitka.utils.FileOperations import (
-    hasFilenameExtension,
+    addFilenameExtension,
     makePath,
     putTextFileContents,
 )
@@ -126,10 +126,13 @@ def getResultFullpath(onefile):
         elif output_filename is not None:
             result = output_filename
         elif not isWin32OrPosixWindows() and not Options.shallCreateAppBundle():
-            result += ".bin"
+            result = addFilenameExtension(result, ".bin")
 
-        if isWin32OrPosixWindows() and not hasFilenameExtension(result, ".exe"):
-            result += ".exe"
+        if isWin32OrPosixWindows():
+            result = addFilenameExtension(result, ".exe")
+
+        if not isWin32OrPosixWindows() and Options.isOnefileMode() and not onefile:
+            result = addFilenameExtension(result, ".bin")
 
     return result
 

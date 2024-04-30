@@ -5,7 +5,6 @@
 
 """
 
-
 template_metapath_loader_compiled_module_entry = """\
 {%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)

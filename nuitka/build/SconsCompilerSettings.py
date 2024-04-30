@@ -34,6 +34,7 @@ from .SconsUtils import (
     getMsvcVersionString,
     isClangName,
     isGccName,
+    isZigName,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
 )
@@ -99,6 +100,10 @@ def _enableC11Settings(env):
         c11_mode = True
     elif env.clang_mode:
         c11_mode = True
+
+        # For now, zig doesn't support C11 mode in the form needed by Nuitka
+        if isZigName(env.the_cc_name):
+            c11_mode = False
     elif env.gcc_mode and env.gcc_version >= (5,):
         c11_mode = True
     else:
@@ -721,9 +726,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             # thing, and Nuitka-Python is not affected.
             env.Append(
                 LINKFLAGS=[
-                    "-O3"
-                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
-                    else "-O2"
+                    (
+                        "-O3"
+                        if env.nuitka_python
+                        or os.name == "nt"
+                        or not env.static_libpython
+                        else "-O2"
+                    )
                 ]
             )
 
@@ -740,9 +749,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         if env.gcc_mode:
             env.Append(
                 CCFLAGS=[
-                    "-O3"
-                    if env.nuitka_python or os.name == "nt" or not env.static_libpython
-                    else "-O2"
+                    (
+                        "-O3"
+                        if env.nuitka_python
+                        or os.name == "nt"
+                        or not env.static_libpython
+                        else "-O2"
+                    )
                 ]
             )
         elif env.msvc_mode:

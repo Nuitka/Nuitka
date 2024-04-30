@@ -30,7 +30,6 @@ from nuitka.utils.Execution import (
     check_call,
     check_output,
     getExecutablePath,
-    getNullOutput,
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
@@ -39,6 +38,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     listDir,
     openTextFile,
+    putBinaryFileContents,
     putTextFileContents,
     withPreserveFileMode,
     withTemporaryFile,
@@ -317,11 +317,11 @@ def _cleanupImportSortOrder(filename, effective_filename):
 
         putTextFileContents(filename, contents=contents, encoding="utf8")
 
-    check_call(
+    isort_output = check_output(
         isort_call
         + [
             "-q",  # quiet, but stdout is still garbage
-            "--overwrite-in-place",  # avoid using another temp file, this is already on one.
+            "--stdout",  # avoid using another temp file, this is already on one.
             "--order-by-type",  # Order imports by type in addition to alphabetically
             "--multi-line=VERTICAL_HANGING_INDENT",
             "--trailing-comma",
@@ -329,9 +329,15 @@ def _cleanupImportSortOrder(filename, effective_filename):
             "--float-to-top",  # move imports to start
             "--thirdparty=SCons",
             filename,
-        ],
-        stdout=getNullOutput(),
+        ]
     )
+
+    if isort_output == b"" and contents != "":
+        tools_logger.warning(
+            "The 'isort' failed to handle '%s' properly." % effective_filename
+        )
+    else:
+        putBinaryFileContents(filename, isort_output)
 
     cleanupWindowsNewlines(filename, effective_filename)
 
@@ -563,6 +569,8 @@ def _shouldNotFormatCode(filename):
         return True
     if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
         return True
+    if "tests" in parts and "syntax" in parts:
+        return True
     if ".dist/" in filename:
         return True
     if parts[-1] in ("incbin.h", "hedley.h"):
@@ -644,6 +652,7 @@ def autoFormatFile(
             ".txt",
             ".qml",
             ".rst",
+            ".inc",
             ".sh",
             ".in",
             ".md",
@@ -673,7 +682,7 @@ def autoFormatFile(
         "lintian-overrides",
     )
 
-    is_rst = effective_filename.endswith(".rst")
+    is_rst = effective_filename.endswith((".rst", ".inc"))
     is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
@@ -741,6 +750,8 @@ def autoFormatFile(
                 if effective_filename not in BLACK_SKIP_LIST:
                     black_call = _getPythonBinaryCall("black")
 
+                    old_contents = getFileContents(tmp_filename, "rb")
+
                     try:
                         check_call(black_call + ["-q", "--fast", tmp_filename])
                     # Catch all the things, pylint: disable=broad-except
@@ -751,6 +762,18 @@ def autoFormatFile(
 
                         if not ignore_errors:
                             raise
+
+                    if getFileContents(tmp_filename) == "" and old_contents != b"":
+                        if ignore_errors:
+                            tools_logger.warning(
+                                "Problem formatting for '%s'." % effective_filename
+                            )
+                        else:
+                            tools_logger.sysexit(
+                                "Problem formatting for '%s'." % effective_filename
+                            )
+
+                            return
 
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 

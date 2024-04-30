@@ -577,18 +577,6 @@ Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack tra
 Defaults to off.""",
 )
 
-execute_group.add_option(
-    "--execute-with-pythonpath",
-    action="store_true",
-    dest="keep_pythonpath",
-    default=False,
-    help="""\
-When immediately executing the created binary or module using '--run',
-don't reset 'PYTHONPATH' environment. When all modules are successfully
-included, you ought to not need PYTHONPATH anymore, and definitely not
-for standalone mode.""",
-)
-
 del execute_group
 
 
@@ -738,7 +726,19 @@ Keep deployment mode, but disable selectively parts of it. Errors from
 deployment mode will output these identifiers. Default empty.""",
 )
 
-del deployment_group
+environment_group = parser.add_option_group("Environment control")
+
+environment_group.add_option(
+    "--force-runtime-environment-variable",
+    action="append",
+    dest="forced_runtime_env_variables",
+    metavar="VARIABLE_SPEC",
+    default=[],
+    help="""\
+Force an environment variables to a given value. Default empty.""",
+)
+
+del environment_group
 
 debug_group = parser.add_option_group("Debug features")
 
@@ -1646,10 +1646,31 @@ plugin_group.add_option(
     dest="plugins_disabled",
     metavar="PLUGIN_NAME",
     default=[],
+    github_action=False,
     help="""\
 Disabled plugins. Must be plug-in names. Use '--plugin-list' to query the
 full list and exit. Most standard plugins are not a good idea to disable.
 Default empty.""",
+)
+
+plugin_group.add_option(
+    "--user-plugin",
+    action="append",
+    dest="user_plugins",
+    metavar="PATH",
+    default=[],
+    help="The file name of user plugin. Can be given multiple times. Default empty.",
+)
+
+plugin_group.add_option(
+    "--plugin-list",
+    action="store_true",
+    dest="plugin_list",
+    default=False,
+    require_compiling=False,
+    github_action=False,
+    help="""\
+Show list of all available plugins and exit. Defaults to off.""",
 )
 
 plugin_group.add_option(
@@ -1666,25 +1687,6 @@ use. Defaults to off.""",
 )
 
 plugin_group.add_option(
-    "--plugin-list",
-    action="store_true",
-    dest="plugin_list",
-    default=False,
-    require_compiling=False,
-    help="""\
-Show list of all available plugins and exit. Defaults to off.""",
-)
-
-plugin_group.add_option(
-    "--user-plugin",
-    action="append",
-    dest="user_plugins",
-    metavar="PATH",
-    default=[],
-    help="The file name of user plugin. Can be given multiple times. Default empty.",
-)
-
-plugin_group.add_option(
     "--module-parameter",
     action="append",
     dest="module_parameters",
@@ -1696,12 +1698,12 @@ to provide extra decisions. Format is currently
 Default empty.""",
 )
 
-
 plugin_group.add_option(
     "--show-source-changes",
     action="append",
     dest="show_source_changes",
     default=[],
+    github_action=False,
     help="""\
 Show source changes to original Python file content before compilation. Mostly
 intended for developing plugins and Nuitka package configuration. Use e.g.

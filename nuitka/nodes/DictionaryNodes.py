@@ -8,7 +8,6 @@ that is the child of the dictionary creation.
 
 """
 
-
 from nuitka import Constants
 from nuitka.specs.BuiltinDictOperationSpecs import dict_fromkeys_spec
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
