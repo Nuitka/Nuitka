@@ -128,9 +128,38 @@ def getWindowsRelease():
     if not isWin32OrPosixWindows():
         return None
 
-    import platform
+    class OsVersionInfoEx(ctypes.Structure):
+        _fields_ = [
+            ("dwOSVersionInfoSize", ctypes.c_ulong),
+            ("dwMajorVersion", ctypes.c_ulong),
+            ("dwMinorVersion", ctypes.c_ulong),
+            ("dwBuildNumber", ctypes.c_ulong),
+            ("dwPlatformId", ctypes.c_ulong),
+            ("szCSDVersion", ctypes.c_wchar * 128),
+            ("wServicePackMajor", ctypes.c_ushort),
+            ("wServicePackMinor", ctypes.c_ushort),
+            ("wSuiteMask", ctypes.c_ushort),
+            ("wProductType", ctypes.c_byte),
+            ("wReserved", ctypes.c_byte),
+        ]
 
-    return platform.release()
+        def __init__(self):
+            self.dwOSVersionInfoSize = ctypes.sizeof(  # pylint: disable=invalid-name
+                self
+            )
+
+    os_version_value = OsVersionInfoEx()
+
+    result = ctypes.windll.ntdll.RtlGetVersion(ctypes.byref(os_version_value))
+    if result != 0:
+        raiseWindowsError("Failed to get OS version")
+
+    version = os_version_value.dwMajorVersion
+
+    if os_version_value.dwBuildNumber >= 21996 and version == 10:
+        version = 11
+
+    return version
 
 
 def getMacOSRelease():
