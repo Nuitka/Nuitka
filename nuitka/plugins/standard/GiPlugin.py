@@ -3,6 +3,7 @@
 
 """ Support for gi typelib files and DLLs
 """
+
 import os
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only

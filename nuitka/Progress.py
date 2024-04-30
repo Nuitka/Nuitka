@@ -41,9 +41,9 @@ class NuitkaProgressBar(object):
         self.tqdm = tqdm(
             iterable=iterable,
             initial=self.progress,
-            total=max(self.total, self.min_total)
-            if self.min_total is not None
-            else None,
+            total=(
+                max(self.total, self.min_total) if self.min_total is not None else None
+            ),
             unit=unit,
             disable=None,
             leave=False,

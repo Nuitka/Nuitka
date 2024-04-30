@@ -5,7 +5,6 @@
 
 """
 
-
 from .CTypeBases import CTypeBase
 
 

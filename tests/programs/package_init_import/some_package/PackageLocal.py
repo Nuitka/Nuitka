@@ -9,9 +9,11 @@ print(
     "Imported PackageLocal",
     __name__,
     "in",
-    __package__
-    if __package__ is not None or sys.version_info[:2] != (3, 2)
-    else ".".join(__name__.split(".")[:-1]),
+    (
+        __package__
+        if __package__ is not None or sys.version_info[:2] != (3, 2)
+        else ".".join(__name__.split(".")[:-1])
+    ),
 )
 
 #     Python tests originally created or extracted from other peoples work. The

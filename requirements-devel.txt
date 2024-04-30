@@ -1,5 +1,5 @@
 # Speed up Nuitka by having this available. On Windows, installing on 2.7 is not
-# working easily, so lets exclude that.
+# working easily, so let's exclude that.
 ordered-set == 4.1.0; python_version >= '3.7'
 orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
 orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.6' and python_version < '3.7'
@@ -18,7 +18,7 @@ Pygments == 2.15.1 ; python_version >= '3.8'
 rstcheck == 6.2.0 ; python_version >= '3.8'
 
 # Auto-format needs
-black == 23.12.1 ; python_version >= '3.8'
+black == 24.4.0 ; python_version >= '3.8'
 toml >= 0.10.1 ; python_version >= '3.8'
 isort == 5.13.2 ; python_version >= '3.8'
 yamllint == 1.28.0 ; python_version >= '3.8'
@@ -31,7 +31,7 @@ mdformat-gfm == 0.3.5 ; python_version >= '3.8'
 mdformat-frontmatter == 2.0.1 ; python_version >= '3.8'
 mdformat-footnote == 0.1.1 ; python_version >= '3.8'
 
-# Codespell can be used as well, no need to fix version
+# Codespell can be used as well, no need to fix the version
 codespell ; python_version >= '3.8'
 
 # API doc, doxygen helper for Python
@@ -41,7 +41,7 @@ doxypypy == 0.8.8.6 ; python_version >= '2.7'
 Jinja2 == 2.11.3 ; python_version == '2.7'
 Jinja2 == 3.1.3 ; python_version >= '3.7'
 
-# For the progress bar to look nicely.
+# For the progress bar to look nice.
 tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
 
 # Distutils test, packaging test for PyPI, fixed for Python2 breakage
@@ -56,7 +56,7 @@ pytest; python_version == '2.7' or python_version >= '3.4'
 zstandard >= 0.15; python_version >= '3.5'
 
 # Plugins need that
-pyyaml == 6.0; python_version >= '3.6'
+pyyaml == 6.0.1; python_version >= '3.6'
 # Python3.5 was dropped sooner than Python2.
 pyyaml == 5.3.1; python_version == '3.5'
 pyyaml == 5.4.1; python_version == '2.7'

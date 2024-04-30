@@ -230,6 +230,8 @@ def getImportHardModuleGetterCode(module_name, context):
 def getImportModuleNameHardCode(
     to_name, module_name, import_name, needs_check, emit, context
 ):
+    module_name = ModuleName(module_name)
+
     if module_name == "sys":
         emit("""%s = Nuitka_SysGetObject("%s");""" % (to_name, import_name))
         needs_release = False

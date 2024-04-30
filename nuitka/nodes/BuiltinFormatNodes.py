@@ -8,6 +8,7 @@ result prediction will help to be smarter, but generally these should not be tha
 about performance critical.
 
 """
+
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 

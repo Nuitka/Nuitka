@@ -17,7 +17,10 @@ from nuitka.utils.Execution import callProcess, check_call
 
 def checkInNuitkaWatch():
     remote_url = getRemoteURL("origin")
-    assert remote_url == "git@github.com:Nuitka/Nuitka-Watch.git", remote_url
+    assert remote_url in (
+        "git@github.com:Nuitka/Nuitka-Watch.git",
+        "https://github.com/Nuitka/Nuitka-Watch",
+    ), remote_url
     branch_name = getCurrentBranchName()
     assert branch_name == "main", branch_name
     assert os.path.exists(".git")

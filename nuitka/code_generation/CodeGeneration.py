@@ -253,6 +253,7 @@ from .ModuleCodes import (
     generateNuitkaLoaderCreationCode,
     getModuleCode,
 )
+from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
 from .OperationCodes import (
     generateOperationBinaryCode,
     generateOperationNotCode,
@@ -341,8 +342,10 @@ from .SubscriptCodes import (
     generateSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
+from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
+from .TypeAliasCodes import generateTypeAliasCode
 from .VariableCodes import (
     generateAssignmentVariableCode,
     generateDelVariableCode,
@@ -939,10 +942,17 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
+        "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
+        # PyPI module "tensorflow" specific stuff
+        "EXPRESSION_TENSORFLOW_FUNCTION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_TENSORFLOW_FUNCTION_CALL": generateTensorflowFunctionCallCode,
+        # PyPI module "networkx" specific stuff
+        "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_NETWORKX_UTILS_DECORATORS_ARGMAP_CALL": generateNetworkxUtilsDecoratorsArgmapCallCode,
     }
 )
 

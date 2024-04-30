@@ -316,9 +316,11 @@ def addExtensionModuleEntryPoint(module):
             + getSharedLibrarySuffix(preferred=False),
             module_name=module.getFullName(),
             package_name=module.getFullName().getPackageName(),
-            reason="required extension module for CPython library startup"
-            if module.isTechnical()
-            else "used extension module",
+            reason=(
+                "required extension module for CPython library startup"
+                if module.isTechnical()
+                else "used extension module"
+            ),
         )
     )
 

@@ -11,7 +11,7 @@ import pkgutil
 from nuitka import Options
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.Distributions import getDistribution
 from nuitka.utils.FileOperations import (
@@ -19,16 +19,12 @@ from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
-class NuitkaPluginDataFileCollector(NuitkaPluginBase):
+class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
     plugin_name = "data-files"
 
     plugin_desc = "Include data files specified by package configuration files."
-
-    def __init__(self):
-        self.config = getYamlPackageConfiguration()
 
     @classmethod
     def isRelevant(cls):

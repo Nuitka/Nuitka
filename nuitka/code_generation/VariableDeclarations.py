@@ -5,6 +5,7 @@
 Holds the information necessary to make C code declarations related to a variable.
 
 """
+
 from contextlib import contextmanager
 
 from .c_types.CTypeBooleans import CTypeBool

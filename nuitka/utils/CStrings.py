@@ -142,7 +142,7 @@ def encodePythonIdentifierToC(value):
         else:
             return "$$%d$" % ord(c)
 
-    return "".join(re.sub("[^a-zA-Z0-9_]", r, c) for c in value)
+    return re.sub("[^a-zA-Z0-9_]", r, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

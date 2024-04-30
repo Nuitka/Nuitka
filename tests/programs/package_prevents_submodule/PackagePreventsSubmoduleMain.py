@@ -3,7 +3,6 @@
 
 from __future__ import print_function
 
-import imp
 import os
 import sys
 
@@ -22,6 +21,9 @@ def diff(dct):
     if str is bytes:
         if "some_package.os" in mdiff:
             mdiff.remove("some_package.os")
+
+    # Sets are not ordered and can differ otherwise
+    mdiff = tuple(sorted(mdiff))
 
     print("Modules diff", mdiff)
 

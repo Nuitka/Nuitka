@@ -180,6 +180,7 @@ class ExpressionVariableRefBase(ExpressionBase):
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
 
+        # TODO: Add "set" shape here as well.
         if self.variable_trace.hasShapeDictionaryExact():
             tags = "new_expression"
             message = """\

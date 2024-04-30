@@ -140,8 +140,10 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 #define _PyUnicode_KIND(op) (((PyASCIIObject *)(op))->state.kind)
 #define _PyUnicode_DATA_ANY(op) (((PyUnicodeObject *)(op))->data.any)
 
+#if PYTHON_VERSION < 0x3c0
 #undef PyUnicode_READY
 #define PyUnicode_READY(op) ((PyUnicode_IS_READY(op) ? 0 : _PyUnicode_Ready(op)))
+#endif
 
 #define _PyUnicode_SHARE_UTF8(op) (assert(!PyUnicode_IS_COMPACT_ASCII(op)), (_PyUnicode_UTF8(op) == PyUnicode_DATA(op)))
 #define _PyUnicode_SHARE_WSTR(op) ((_PyUnicode_WSTR(unicode) == PyUnicode_DATA(op)))
@@ -232,6 +234,7 @@ static int _NuitkaUnicode_modifiable(PyObject *unicode) {
     return 1;
 }
 
+#if PYTHON_VERSION < 0x3c0
 static PyObject *_NuitkaUnicode_New(Py_ssize_t length) {
     assert(length != 0);
 
@@ -294,6 +297,24 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
     }
 }
 
+#else
+
+static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length) {
+    // TODO: We should inline this one as well, it's doable and would save a bunch
+    // for the copying case as well.
+    PyObject *copy = PyUnicode_New(length, PyUnicode_MAX_CHAR_VALUE(unicode));
+
+    if (unlikely(copy == NULL)) {
+        return NULL;
+    }
+
+    Py_ssize_t copy_length = Py_MIN(length, PyUnicode_GET_LENGTH(unicode));
+    _NuitkaUnicode_FastCopyCharacters(copy, 0, unicode, 0, copy_length);
+    return copy;
+}
+
+#endif
+
 // We use older form code, make some backward compatible defines available.
 #if PYTHON_VERSION >= 0x390
 
@@ -311,6 +332,7 @@ static PyObject *_NuitkaUnicode_resize_copy(PyObject *unicode, Py_ssize_t length
 
 #endif
 
+#if PYTHON_VERSION < 0x3c0
 static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t length) {
     assert(PyUnicode_IS_COMPACT(unicode));
 
@@ -325,7 +347,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
     int share_wstr = _PyUnicode_SHARE_WSTR(unicode);
 
-    if (length > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1)) {
+    if (unlikely(length > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1))) {
         PyErr_NoMemory();
         return NULL;
     }
@@ -336,6 +358,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
         _PyUnicode_UTF8(unicode) = NULL;
         _PyUnicode_UTF8_LENGTH(unicode) = 0;
     }
+
     _Py_DEC_REFTOTAL;
     _Py_ForgetReference(unicode);
 
@@ -346,10 +369,12 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
         PyErr_NoMemory();
         return NULL;
     }
+
     unicode = new_unicode;
     Nuitka_Py_NewReference(unicode);
 
     _PyUnicode_LENGTH(unicode) = length;
+
     if (share_wstr) {
         _PyUnicode_WSTR(unicode) = (wchar_t *)PyUnicode_DATA(unicode);
         if (!PyUnicode_IS_ASCII(unicode)) {
@@ -378,10 +403,11 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
         int share_wstr = _PyUnicode_SHARE_WSTR(unicode);
         int share_utf8 = _PyUnicode_SHARE_UTF8(unicode);
 
-        if (length > (PY_SSIZE_T_MAX / char_size - 1)) {
+        if (unlikely(length > (PY_SSIZE_T_MAX / char_size - 1))) {
             PyErr_NoMemory();
             return -1;
         }
+
         Py_ssize_t new_size = (length + 1) * char_size;
 
         if (!share_utf8 && _PyUnicode_HAS_UTF8_MEMORY(unicode)) {
@@ -395,6 +421,7 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
             PyErr_NoMemory();
             return -1;
         }
+
         _PyUnicode_DATA_ANY(unicode) = data;
         if (share_wstr) {
             _PyUnicode_WSTR(unicode) = (wchar_t *)data;
@@ -433,15 +460,17 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
 }
 
 static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
+    assert(p_unicode != NULL);
+    assert(*p_unicode != NULL);
+    assert(0 <= length);
+
     PyObject *unicode = *p_unicode;
+    assert(PyUnicode_Check(unicode));
     Py_ssize_t old_length;
 
-#if PYTHON_VERSION < 0x3c0
     if (_PyUnicode_KIND(unicode) == PyUnicode_WCHAR_KIND) {
         old_length = PyUnicode_WSTR_LENGTH(unicode);
-    } else
-#endif
-    {
+    } else {
         old_length = PyUnicode_GET_LENGTH(unicode);
     }
 
@@ -457,23 +486,189 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
 
     if (!_NuitkaUnicode_modifiable(unicode)) {
         PyObject *copy = _NuitkaUnicode_resize_copy(unicode, length);
-        if (copy == NULL)
+        if (unlikely(copy == NULL)) {
             return -1;
+        }
         Py_DECREF(*p_unicode);
         *p_unicode = copy;
+
         return 0;
     }
 
     if (PyUnicode_IS_COMPACT(unicode)) {
         PyObject *new_unicode = _NuitkaUnicode_resize_compact(unicode, length);
-        if (new_unicode == NULL)
+
+        if (unlikely(new_unicode == NULL)) {
             return -1;
+        }
+
         *p_unicode = new_unicode;
         return 0;
     }
 
     return _NuitkaUnicode_resize_inplace(unicode, length);
 }
+#else
+
+#ifndef __NUITKA_NO_ASSERT__
+static void _Nuitka_unicode_fill_invalid(PyObject *unicode, Py_ssize_t old_length) {
+    int kind = PyUnicode_KIND(unicode);
+    Py_UCS1 *data = PyUnicode_1BYTE_DATA(unicode);
+    Py_ssize_t length = _PyUnicode_LENGTH(unicode);
+    if (length <= old_length)
+        return;
+    memset(data + old_length * kind, 0xff, (length - old_length) * kind);
+}
+#endif
+
+static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t length) {
+    assert(PyUnicode_IS_COMPACT(unicode));
+
+    Py_ssize_t char_size = PyUnicode_KIND(unicode);
+    Py_ssize_t struct_size;
+
+    if (PyUnicode_IS_ASCII(unicode)) {
+        struct_size = sizeof(PyASCIIObject);
+    } else {
+        struct_size = sizeof(PyCompactUnicodeObject);
+    }
+
+#ifndef __NUITKA_NO_ASSERT__
+    Py_ssize_t old_length = _PyUnicode_LENGTH(unicode);
+#endif
+
+    // assert(_Nuitka_unicode_modifiable(unicode));
+
+    if (unlikely(length > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1))) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    Py_ssize_t new_size = (struct_size + (length + 1) * char_size);
+
+    if (_PyUnicode_HAS_UTF8_MEMORY(unicode)) {
+        PyObject_DEL(_PyUnicode_UTF8(unicode));
+        _PyUnicode_UTF8(unicode) = NULL;
+        _PyUnicode_UTF8_LENGTH(unicode) = 0;
+    }
+    _Py_ForgetReference(unicode);
+
+    PyObject *new_unicode = (PyObject *)PyObject_Realloc(unicode, new_size);
+    if (unlikely(new_unicode == NULL)) {
+        Nuitka_Py_NewReferenceNoTotal(unicode);
+
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    unicode = new_unicode;
+    Nuitka_Py_NewReferenceNoTotal(unicode);
+
+    _PyUnicode_LENGTH(unicode) = length;
+
+#ifndef __NUITKA_NO_ASSERT__
+    _Nuitka_unicode_fill_invalid(unicode, old_length);
+#endif
+
+    PyUnicode_WRITE(PyUnicode_KIND(unicode), PyUnicode_DATA(unicode), length, 0);
+    assert(_PyUnicode_CheckConsistency(unicode, 0));
+
+    return unicode;
+}
+
+static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
+    assert(!PyUnicode_IS_COMPACT(unicode));
+    assert(Py_REFCNT(unicode) == 1);
+
+#ifndef __NUITKA_NO_ASSERT__
+    Py_ssize_t old_length = _PyUnicode_LENGTH(unicode);
+#endif
+
+    void *data = _PyUnicode_DATA_ANY(unicode);
+    Py_ssize_t char_size = PyUnicode_KIND(unicode);
+    int share_utf8 = _PyUnicode_SHARE_UTF8(unicode);
+
+    if (unlikely(length > (PY_SSIZE_T_MAX / char_size - 1))) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    Py_ssize_t new_size = (length + 1) * char_size;
+
+    if (!share_utf8 && _PyUnicode_HAS_UTF8_MEMORY(unicode)) {
+        PyObject_DEL(_PyUnicode_UTF8(unicode));
+        _PyUnicode_UTF8(unicode) = NULL;
+        _PyUnicode_UTF8_LENGTH(unicode) = 0;
+    }
+
+    data = (PyObject *)PyObject_REALLOC(data, new_size);
+    if (data == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    _PyUnicode_DATA_ANY(unicode) = data;
+    if (share_utf8) {
+        _PyUnicode_UTF8(unicode) = data;
+        _PyUnicode_UTF8_LENGTH(unicode) = length;
+    }
+    _PyUnicode_LENGTH(unicode) = length;
+    PyUnicode_WRITE(PyUnicode_KIND(unicode), data, length, 0);
+#ifndef __NUITKA_NO_ASSERT__
+    _Nuitka_unicode_fill_invalid(unicode, old_length);
+#endif
+
+    /* check for integer overflow */
+    if (length > PY_SSIZE_T_MAX / (Py_ssize_t)sizeof(wchar_t) - 1) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    assert(_PyUnicode_CheckConsistency(unicode, 0));
+    return 0;
+}
+
+static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
+    assert(p_unicode != NULL);
+    assert(*p_unicode != NULL);
+    assert(0 <= length);
+
+    PyObject *unicode = *p_unicode;
+    assert(PyUnicode_Check(unicode));
+    Py_ssize_t old_length;
+
+    old_length = PyUnicode_GET_LENGTH(unicode);
+    if (old_length == length) {
+        return 0;
+    }
+
+    if (length == 0) {
+        Py_SETREF(*p_unicode, const_str_empty);
+        return 0;
+    }
+
+    if (!_NuitkaUnicode_modifiable(unicode)) {
+        PyObject *copy = _NuitkaUnicode_resize_copy(unicode, length);
+        if (unlikely(copy == NULL)) {
+            return -1;
+        }
+        Py_SETREF(*p_unicode, copy);
+
+        return 0;
+    }
+
+    if (PyUnicode_IS_COMPACT(unicode)) {
+        PyObject *new_unicode = _NuitkaUnicode_resize_compact(unicode, length);
+
+        if (unlikely(new_unicode == NULL)) {
+            return -1;
+        }
+
+        *p_unicode = new_unicode;
+        return 0;
+    }
+
+    return _NuitkaUnicode_resize_inplace(unicode, length);
+}
+#endif
 
 PyObject *UNICODE_CONCAT(PyThreadState *tstate, PyObject *left, PyObject *right) {
     if (left == const_str_empty) {

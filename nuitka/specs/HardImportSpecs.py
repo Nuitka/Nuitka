@@ -148,7 +148,7 @@ ctypes_cdll_since_38_spec = BuiltinParameterSpec(
         "handle",
         "use_errno",
         "use_last_error",
-        "winmode",
+        "winmode",  # spell-checker: ignore winmode
     ),
     default_count=5,
 )
@@ -174,6 +174,39 @@ builtins_open_since_3_spec = BuiltinParameterSpec(
 sys_exit_spec = BuiltinParameterSpecNoKeywords(
     "sys.exit", ("exit_code",), default_count=1
 )
+
+# Tensorflow
+
+tensorflow_function_spec = BuiltinParameterSpec(
+    "tensorflow.function",
+    (
+        "func",
+        "input_signature",
+        "autograph",
+        "jit_compile",
+        "reduce_retracing",
+        "experimental_implements",
+        "experimental_autograph_options",
+        "experimental_attributes",
+        "experimental_relax_shapes",
+        "experimental_compile",
+        "experimental_follow_type_hints",
+    ),
+    default_count=11,
+)
+
+# networkx.utils.decorators
+
+# TODO: Disabled for now, keyword only arguments and star list argument are
+# having ordering issues for call matching and code generation.
+
+# networkx_argmap_spec = BuiltinParameterSpec(
+#     "networkx.utils.decorators.argmap",
+#     ("func",),
+#     default_count=1,
+#     list_star_arg="args",
+#     kw_only_args=("try_finally",),
+# )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

@@ -15,13 +15,12 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
-class NuitkaPluginImplicitImports(NuitkaPluginBase):
+class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     plugin_name = "implicit-imports"
 
     plugin_desc = (
@@ -29,7 +28,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     )
 
     def __init__(self):
-        self.config = getYamlPackageConfiguration()
+        NuitkaYamlPluginBase.__init__(self)
 
         self.lazy_loader_usages = {}
 
@@ -486,9 +485,11 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
         submodule_attrs = dict(
             (
-                module_name.getChildNamed(submodule[1:])
-                if submodule.startswith(".")
-                else ModuleName(submodule),
+                (
+                    module_name.getChildNamed(submodule[1:])
+                    if submodule.startswith(".")
+                    else ModuleName(submodule)
+                ),
                 tuple(attribute_names),
             )
             for (submodule, attribute_names) in sorted(submodule_attrs.items())

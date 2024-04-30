@@ -12,15 +12,18 @@ nuitka.Options.is_full_compat = False
 
 # isort:start
 
+import textwrap
 from collections import namedtuple
 
 import nuitka.code_generation.BinaryOperationHelperDefinitions
 import nuitka.code_generation.CodeGeneration
 import nuitka.code_generation.ComparisonCodes
 import nuitka.code_generation.Namify
+import nuitka.nodes.NetworkxNodes
 import nuitka.nodes.PackageMetadataNodes
 import nuitka.nodes.PackageResourceNodes
 import nuitka.nodes.SideEffectNodes
+import nuitka.nodes.TensorflowNodes
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinListOperationSpecs
@@ -248,20 +251,35 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 
 
 def emitGenerationWarning(emit, doc_string, template_name):
-    attribute_code_names = set(attribute_information.keys())
-    attribute_code_names = set(
+    generate_names = set()
+
+    generate_names.update(attribute_information.keys())
+    generate_names.update(
         attribute_name.replace("_", "") for attribute_name in attribute_information
     )
 
-    attribute_arg_names = set(sum(attribute_shape_args.values(), ()))
+    generate_names.update(sum(attribute_shape_args.values(), ()))
+
+    for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
+        spec = spec_descriptions[0][2]
+        generate_names.update(spec.getArgumentNames())
+
+    ignores = textwrap.fill(
+        " ".join(sorted(generate_names)),
+        width=90,
+        initial_indent="spell-checker: ignore ",
+        subsequent_indent="spell-checker: ignore ",
+        break_on_hyphens=False,
+        break_long_words=False,
+        expand_tabs=False,
+        replace_whitespace=False,
+    )
 
     emit(
         """
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 """
     )
 
@@ -271,17 +289,11 @@ def emitGenerationWarning(emit, doc_string, template_name):
 
 WARNING, this code is GENERATED. Modify the template %s instead!
 
-spell-checker: ignore %s
-spell-checker: ignore %s
+%s
 """
 
 '''
-        % (
-            doc_string,
-            template_name,
-            " ".join(sorted(attribute_code_names)),
-            " ".join(sorted(attribute_arg_names)),
-        )
+        % (doc_string, template_name, ignores)
     )
 
 
@@ -450,6 +462,8 @@ def makeCodeCased(value):
 
 
 def getCallModuleName(module_name, function_name):
+    # return driven, pylint: disable=too-many-return-statements
+
     if module_name in ("pkg_resources", "importlib.metadata", "importlib_metadata"):
         if function_name in ("resource_stream", "resource_string"):
             return "PackageResourceNodes"
@@ -464,6 +478,12 @@ def getCallModuleName(module_name, function_name):
     if module_name == "builtins":
         if function_name == "open":
             return "BuiltinOpenNodes"
+
+    if module_name == "tensorflow":
+        return "TensorflowNodes"
+
+    if module_name.startswith("networkx"):
+        return "NetworkxNodes"
 
     assert False, (module_name, function_name)
 
@@ -616,14 +636,14 @@ def _parseNamedChildrenSpec(named_children):
                     named_children_checkers[named_child] = "convertNoneConstantToNone"
                 elif named_child_property == "auto_none_empty_str":
                     named_children_types[named_child] = "optional"
-                    named_children_checkers[
-                        named_child
-                    ] = "convertEmptyStrConstantToNone"
+                    named_children_checkers[named_child] = (
+                        "convertEmptyStrConstantToNone"
+                    )
                 elif named_child_property == "statements_or_none":
                     named_children_types[named_child] = "optional"
-                    named_children_checkers[
-                        named_child
-                    ] = "checkStatementsSequenceOrNone"
+                    named_children_checkers[named_child] = (
+                        "checkStatementsSequenceOrNone"
+                    )
                 elif named_child_property == "statements":
                     named_children_checkers[named_child] = "checkStatementsSequence"
                 elif named_child_property == "optional":
@@ -712,15 +732,15 @@ def addFromNodes():
         _addFromNode(node_class)
 
     # Fake factories:
-    node_factory_translations[
-        "ExpressionImportlibMetadataMetadataCall"
-    ] = "makeExpressionImportlibMetadataMetadataCall"
-    node_factory_translations[
-        "ExpressionImportlibMetadataBackportMetadataCall"
-    ] = "makeExpressionImportlibMetadataBackportMetadataCall"
-    node_factory_translations[
-        "ExpressionBuiltinsOpenCall"
-    ] = "makeExpressionBuiltinsOpenCall"
+    node_factory_translations["ExpressionImportlibMetadataMetadataCall"] = (
+        "makeExpressionImportlibMetadataMetadataCall"
+    )
+    node_factory_translations["ExpressionImportlibMetadataBackportMetadataCall"] = (
+        "makeExpressionImportlibMetadataBackportMetadataCall"
+    )
+    node_factory_translations["ExpressionBuiltinsOpenCall"] = (
+        "makeExpressionBuiltinsOpenCall"
+    )
     node_factory_translations["ExpressionSysExitCall"] = "makeExpressionSysExitCall"
 
 
@@ -1024,8 +1044,15 @@ hard_import_node_classes = {}
                         assert optional_name not in named_children_types
                         named_children_types[optional_name] = "optional"
 
+                if spec.getStarListArgumentName():
+                    named_children_types[spec.getStarListArgumentName()] = "tuple"
+
                 if spec.getStarDictArgumentName():
                     named_children_types[spec.getStarDictArgumentName()] = "tuple"
+
+                for kw_only_name in spec.getKwOnlyParameterNames():
+                    assert kw_only_name not in named_children_types
+                    named_children_types[kw_only_name] = "optional"
 
                 if parameter_names:
                     mixin_name = addChildrenMixin(

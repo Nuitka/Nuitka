@@ -2,18 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Children having expression bases
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 
 
@@ -283,12 +298,12 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
         values = {
             "args": tuple(v.makeClone() for v in self.subnode_args),
-            "name": self.subnode_name.makeClone()
-            if self.subnode_name is not None
-            else None,
-            "path": self.subnode_path.makeClone()
-            if self.subnode_path is not None
-            else None,
+            "name": (
+                self.subnode_name.makeClone() if self.subnode_name is not None else None
+            ),
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1631,9 +1646,11 @@ class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
         """
 
         values = {
-            "prompt": self.subnode_prompt.makeClone()
-            if self.subnode_prompt is not None
-            else None,
+            "prompt": (
+                self.subnode_prompt.makeClone()
+                if self.subnode_prompt is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())

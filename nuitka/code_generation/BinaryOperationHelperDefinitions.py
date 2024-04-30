@@ -200,9 +200,11 @@ def _makeNumberOps(op_code, include_nbool, in_place):
         _makeFriendOps(op_code, include_nbool, in_place, "INT", "LONG", "FLOAT"),
         # Special operations, currently used with constant values mostly.
         _makeFriendOps(op_code, include_nbool, in_place, "INT", "CLONG"),
-        _makeFriendOps(op_code, include_nbool, in_place, "LONG", "DIGIT")
-        if op_code in ("ADD", "SUB")  # TODO: Add more
-        else (),
+        (
+            _makeFriendOps(op_code, include_nbool, in_place, "LONG", "DIGIT")
+            if op_code in ("ADD", "SUB")  # TODO: Add more
+            else ()
+        ),
         _makeFriendOps(op_code, include_nbool, in_place, "FLOAT", "CFLOAT"),
     )
 

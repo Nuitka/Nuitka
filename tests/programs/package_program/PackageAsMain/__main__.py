@@ -5,7 +5,6 @@
 Test case, where __main__ is the main program in a directory.
 """
 
-
 from __future__ import print_function
 
 import sys

@@ -21,7 +21,6 @@ it's from the standard library, one can abuse the attribute ``__file__`` of the
 
 """
 
-
 import collections
 import os
 import sys
@@ -129,6 +128,38 @@ def makeModuleUsageAttempt(
         source_ref=source_ref,
         reason=reason,
     )
+
+
+def makeParentModuleUsagesAttempts(module_usage_attempt):
+    result = []
+
+    for parent_package_name in module_usage_attempt.module_name.getParentPackageNames():
+        (
+            _parent_package_name,
+            parent_module_filename,
+            parent_module_kind,
+            parent_module_finding,
+        ) = locateModule(
+            module_name=parent_package_name,
+            parent_package=None,
+            level=0,
+        )
+
+        result.append(
+            makeModuleUsageAttempt(
+                module_name=parent_package_name,
+                filename=parent_module_filename,
+                finding=parent_module_finding,
+                module_kind=parent_module_kind,
+                level=0,
+                source_ref=module_usage_attempt.source_ref,
+                reason="import path parent",
+            )
+        )
+
+    result.append(module_usage_attempt)
+
+    return tuple(result)
 
 
 def addMainScriptDirectory(main_dir):
@@ -920,6 +951,7 @@ _stdlib_module_raises = {
     "_subprocess": False,
     "_sha": False,  # TODO: Not entirely clear if that's true
     "_sha1": False,
+    "_sha2": False,
     "_sha256": False,
     "_sha3": False,
     "_sha512": False,
@@ -983,6 +1015,7 @@ _stdlib_module_raises = {
     "zipimport": False,
     "zlib": False,
     "_ssl": True,
+    "_xxinterpchannels": False,
 }
 
 

@@ -15,20 +15,16 @@ from nuitka.Options import (
     shallCreateAppBundle,
     shallDisableConsoleWindow,
 )
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Utils import isMacOS
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
-class NuitkaPluginOptionsNanny(NuitkaPluginBase):
+class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
     plugin_name = "options-nanny"
 
     plugin_desc = (
         "Inform the user about potential problems as per package configuration files."
     )
-
-    def __init__(self):
-        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -52,7 +48,7 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         else:
             if condition != "True":
                 problem_desc = (
-                    " with incomplete support due to untrue condition '%s'" % condition
+                    " with incomplete support due to condition '%s'" % condition
                 )
             else:
                 problem_desc = " with incomplete support"

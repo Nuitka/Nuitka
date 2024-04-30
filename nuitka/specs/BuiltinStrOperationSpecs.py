@@ -136,7 +136,7 @@ str_encode_spec = StrMethodSpec(
 str_decode_spec = StrMethodSpec(
     "decode",
     arg_names=("encoding", "errors"),
-    default_count=2
+    default_count=2,
     # TODO: Resolve Python2/Python3 runtime differences
     #
     # type_shape=tshape_str_or_unicode

@@ -2,18 +2,33 @@
 
 
 # We are not avoiding these in generated code at all
-# pylint: disable=I0021,too-many-lines
-# pylint: disable=I0021,line-too-long
-# pylint: disable=I0021,too-many-instance-attributes
-# pylint: disable=I0021,too-many-return-statements
+# pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
+# pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
 
 
 """Children having statement bases
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
+spell-checker: ignore center chars clear closefd copy count decode default delete dist
+spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
+spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore experimental_compile experimental_follow_type_hints
+spell-checker: ignore experimental_implements experimental_relax_shapes extend file
+spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
+spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
+spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
+spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
+spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
+spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
+spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
+spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
+spell-checker: ignore sort split splitlines start startswith stop strip sub suffix
+spell-checker: ignore swapcase table tabsize title translate update upper use_errno
+spell-checker: ignore use_last_error value values viewitems viewkeys viewvalues width
+spell-checker: ignore winmode zfill
 """
 
 
@@ -197,12 +212,16 @@ class StatementChildrenHavingConditionYesBranchOptionalStatementsOrNoneNoBranchO
 
         values = {
             "condition": self.subnode_condition.makeClone(),
-            "yes_branch": self.subnode_yes_branch.makeClone()
-            if self.subnode_yes_branch is not None
-            else None,
-            "no_branch": self.subnode_no_branch.makeClone()
-            if self.subnode_no_branch is not None
-            else None,
+            "yes_branch": (
+                self.subnode_yes_branch.makeClone()
+                if self.subnode_yes_branch is not None
+                else None
+            ),
+            "no_branch": (
+                self.subnode_no_branch.makeClone()
+                if self.subnode_no_branch is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -291,9 +310,9 @@ class StatementChildHavingDestOptionalOperationMixin(StatementBase):
         """
 
         values = {
-            "dest": self.subnode_dest.makeClone()
-            if self.subnode_dest is not None
-            else None,
+            "dest": (
+                self.subnode_dest.makeClone() if self.subnode_dest is not None else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -408,9 +427,9 @@ class StatementChildrenHavingDestOptionalValueOperationMixin(StatementBase):
         """
 
         values = {
-            "dest": self.subnode_dest.makeClone()
-            if self.subnode_dest is not None
-            else None,
+            "dest": (
+                self.subnode_dest.makeClone() if self.subnode_dest is not None else None
+            ),
             "value": self.subnode_value.makeClone(),
         }
 
@@ -789,15 +808,21 @@ class StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOp
 
         values = {
             "exception_type": self.subnode_exception_type.makeClone(),
-            "exception_value": self.subnode_exception_value.makeClone()
-            if self.subnode_exception_value is not None
-            else None,
-            "exception_trace": self.subnode_exception_trace.makeClone()
-            if self.subnode_exception_trace is not None
-            else None,
-            "exception_cause": self.subnode_exception_cause.makeClone()
-            if self.subnode_exception_cause is not None
-            else None,
+            "exception_value": (
+                self.subnode_exception_value.makeClone()
+                if self.subnode_exception_value is not None
+                else None
+            ),
+            "exception_trace": (
+                self.subnode_exception_trace.makeClone()
+                if self.subnode_exception_trace is not None
+                else None
+            ),
+            "exception_cause": (
+                self.subnode_exception_cause.makeClone()
+                if self.subnode_exception_cause is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1107,12 +1132,16 @@ class StatementChildrenHavingExpressionLowerOptionalUpperOptionalMixin(Statement
 
         values = {
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -1599,9 +1628,11 @@ class StatementChildHavingLoopBodyOptionalStatementsOrNonePostInitMixin(Statemen
         """
 
         values = {
-            "loop_body": self.subnode_loop_body.makeClone()
-            if self.subnode_loop_body is not None
-            else None,
+            "loop_body": (
+                self.subnode_loop_body.makeClone()
+                if self.subnode_loop_body is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -2452,12 +2483,16 @@ class StatementChildrenHavingSourceExpressionLowerOptionalUpperOptionalMixin(
         values = {
             "source": self.subnode_source.makeClone(),
             "expression": self.subnode_expression.makeClone(),
-            "lower": self.subnode_lower.makeClone()
-            if self.subnode_lower is not None
-            else None,
-            "upper": self.subnode_upper.makeClone()
-            if self.subnode_upper is not None
-            else None,
+            "lower": (
+                self.subnode_lower.makeClone()
+                if self.subnode_lower is not None
+                else None
+            ),
+            "upper": (
+                self.subnode_upper.makeClone()
+                if self.subnode_upper is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -2719,12 +2754,16 @@ class StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOperat
 
         values = {
             "source_code": self.subnode_source_code.makeClone(),
-            "globals_arg": self.subnode_globals_arg.makeClone()
-            if self.subnode_globals_arg is not None
-            else None,
-            "locals_arg": self.subnode_locals_arg.makeClone()
-            if self.subnode_locals_arg is not None
-            else None,
+            "globals_arg": (
+                self.subnode_globals_arg.makeClone()
+                if self.subnode_globals_arg is not None
+                else None
+            ),
+            "locals_arg": (
+                self.subnode_locals_arg.makeClone()
+                if self.subnode_locals_arg is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
@@ -3171,18 +3210,26 @@ class StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNon
 
         values = {
             "tried": self.subnode_tried.makeClone(),
-            "except_handler": self.subnode_except_handler.makeClone()
-            if self.subnode_except_handler is not None
-            else None,
-            "break_handler": self.subnode_break_handler.makeClone()
-            if self.subnode_break_handler is not None
-            else None,
-            "continue_handler": self.subnode_continue_handler.makeClone()
-            if self.subnode_continue_handler is not None
-            else None,
-            "return_handler": self.subnode_return_handler.makeClone()
-            if self.subnode_return_handler is not None
-            else None,
+            "except_handler": (
+                self.subnode_except_handler.makeClone()
+                if self.subnode_except_handler is not None
+                else None
+            ),
+            "break_handler": (
+                self.subnode_break_handler.makeClone()
+                if self.subnode_break_handler is not None
+                else None
+            ),
+            "continue_handler": (
+                self.subnode_continue_handler.makeClone()
+                if self.subnode_continue_handler is not None
+                else None
+            ),
+            "return_handler": (
+                self.subnode_return_handler.makeClone()
+                if self.subnode_return_handler is not None
+                else None
+            ),
         }
 
         values.update(self.getDetails())
