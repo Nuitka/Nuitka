@@ -412,6 +412,21 @@ extern PyThreadState *_PyThreadState_Current;
 #define PyFloat_SET_DOUBLE(op, value) ((PyFloatObject *)(op))->ob_fval = value
 #endif
 
+#ifndef Py_NewRef
+static inline PyObject *_Py_NewRef(PyObject *obj) {
+    Py_INCREF(obj);
+    return obj;
+}
+
+static inline PyObject *_Py_XNewRef(PyObject *obj) {
+    Py_XINCREF(obj);
+    return obj;
+}
+
+#define Py_NewRef(obj) _Py_NewRef((PyObject *)(obj))
+#define Py_XNewRef(obj) _Py_XNewRef((PyObject *)(obj))
+#endif
+
 // For older Python, we don't have a feature "CLASS" anymore, that's implied now.
 #if PYTHON_VERSION < 0x300
 #define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
