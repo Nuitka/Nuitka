@@ -593,9 +593,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
 
     switch (res) {
     case PYGEN_RETURN:
-        if (result == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
-        } else {
+        if (result != NULL) {
             if (result != Py_None) {
                 Nuitka_SetStopIterationValue(tstate, result);
             }
