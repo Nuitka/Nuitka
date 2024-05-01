@@ -163,7 +163,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunctionNoArgs(called);
@@ -549,7 +549,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
@@ -953,7 +953,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
@@ -1335,7 +1335,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
@@ -1720,7 +1720,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
@@ -2095,7 +2095,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
@@ -2480,7 +2480,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
@@ -2855,7 +2855,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
@@ -3240,7 +3240,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
@@ -3615,7 +3615,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
@@ -4000,7 +4000,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
@@ -4375,7 +4375,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
@@ -4760,7 +4760,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
@@ -5135,7 +5135,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
@@ -5520,7 +5520,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
@@ -5895,7 +5895,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
@@ -6280,7 +6280,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
@@ -6655,7 +6655,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
@@ -7040,7 +7040,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
@@ -7415,7 +7415,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
@@ -7800,7 +7800,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
