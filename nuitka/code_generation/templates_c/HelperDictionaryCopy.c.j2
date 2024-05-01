@@ -122,7 +122,7 @@ else
         result_mp->ma_used = dict_mp->ma_used;
 
         Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-        result_mp->ma_keys = (PyDictKeysObject *)PyObject_MALLOC(keys_size);
+        result_mp->ma_keys = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
         assert(result_mp->ma_keys);
 
         memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
@@ -288,12 +288,12 @@ static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
     Py_ssize_t values_size = sizeof(PyObject *) * size;
 
 #if PYTHON_VERSION < 0x3b0
-    return (PyDictValues *)PyMem_MALLOC(values_size);
+    return (PyDictValues *)NuitkaMem_Malloc(values_size);
 #else
     // With Python3.11 or higher a prefix is allocated too.
     size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
     size_t n = prefix_size + values_size;
-    uint8_t *mem = (uint8_t *)PyMem_MALLOC(n);
+    uint8_t *mem = (uint8_t *)NuitkaMem_Malloc(n);
 
     assert(mem != NULL);
 

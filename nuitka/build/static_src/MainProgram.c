@@ -912,6 +912,10 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 }
 
 static void Nuitka_Py_Initialize(void) {
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+    initNuitkaAllocators();
+#endif
+
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
