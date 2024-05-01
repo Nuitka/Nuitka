@@ -211,6 +211,7 @@ module_os_path_trust = {
     "basename": trust_node,
     "dirname": trust_node,
     "abspath": trust_node,
+    "normpath": trust_node,
 }
 
 
