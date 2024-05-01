@@ -70,6 +70,12 @@
                             "type": "string"
                         }
                     },
+                    "raw_dirs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "patterns": {
                         "type": "array",
                         "items": {
