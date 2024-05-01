@@ -39,7 +39,7 @@ PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
 
     // Elements are allocated separately.
     if (size > 0) {
-        result_list->ob_item = (PyObject **)PyMem_Calloc(size, sizeof(PyObject *));
+        result_list->ob_item = (PyObject **)NuitkaMem_Calloc(size, sizeof(PyObject *));
 
         if (unlikely(result_list->ob_item == NULL)) {
             Py_DECREF(result_list);
