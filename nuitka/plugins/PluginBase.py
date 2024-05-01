@@ -895,6 +895,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         ignore_suffixes=(),
         only_suffixes=(),
         normalize=True,
+        raw=False,
     ):
         return makeIncludedDataDirectory(
             source_path=source_path,
@@ -907,6 +908,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             ignore_suffixes=ignore_suffixes,
             only_suffixes=only_suffixes,
             normalize=normalize,
+            raw=raw,
         )
 
     def makeIncludedEmptyDirectory(self, dest_path, reason, tags):

@@ -454,6 +454,18 @@ data_group.add_option(
 Output the data files found for a given package name. Default not done.""",
 )
 
+data_group.add_option(
+    "--include-raw-dir",
+    action="append",
+    dest="raw_dirs",
+    metavar="DIRECTORY",
+    default=[],
+    help="""\
+Include raw directories completely in the distribution. This is
+recursive. Check '--include-data-dir' to use the sane option.
+Default empty.""",
+)
+
 
 del data_group
 

@@ -325,6 +325,28 @@ when '--onefile' is not specified."""
         )
 
 
+def _checkDataDirOptionValue(data_dir, option_name):
+    if "=" not in data_dir:
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value '%s' description, must specify a relative target path with '=' separating it."
+            % (option_name, data_dir)
+        )
+
+    src, dst = data_dir.split("=", 1)
+
+    if os.path.isabs(dst):
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value, must specify relative target path for data dir, not '%s' as in '%s'."
+            % (option_name, dst, data_dir)
+        )
+
+    if not os.path.isdir(src):
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
+            % (option_name, dst, data_dir)
+        )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -751,24 +773,10 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     for data_dir in options.data_dirs:
-        if "=" not in data_dir:
-            Tracing.options_logger.sysexit(
-                "Error, malformed data dir description, must specify relative target path with '=' separating it."
-            )
+        _checkDataDirOptionValue(data_dir=data_dir, option_name="--include-data-dir")
 
-        src, dst = data_dir.split("=", 1)
-
-        if os.path.isabs(dst):
-            Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data dir, not '%s' as in '%s'."
-                % (dst, data_dir)
-            )
-
-        if not os.path.isdir(src):
-            Tracing.options_logger.sysexit(
-                "Error, must specify existing source data directory, not '%s' as in '%s'."
-                % (dst, data_dir)
-            )
+    for data_dir in options.raw_dirs:
+        _checkDataDirOptionValue(data_dir=data_dir, option_name="--include-raw-dir")
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
