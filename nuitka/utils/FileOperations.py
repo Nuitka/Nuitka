@@ -189,7 +189,11 @@ def makePath(path):
 
     with withFileLock("creating directory %s" % path):
         if not os.path.isdir(path):
-            os.makedirs(path)
+            try:
+                os.makedirs(path)
+            except OSError:
+                if not os.path.exists(path):
+                    raise
 
 
 def makeContainingPath(filename):
