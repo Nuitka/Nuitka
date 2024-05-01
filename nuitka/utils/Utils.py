@@ -128,9 +128,7 @@ def getWindowsRelease():
     if not isWin32OrPosixWindows():
         return None
 
-    import ctypes
-
-    class OS_VERSION_INFO_EX(ctypes.Structure):
+    class OsVersionInfoEx(ctypes.Structure):
         _fields_ = [
             ("dwOSVersionInfoSize", ctypes.c_ulong),
             ("dwMajorVersion", ctypes.c_ulong),
@@ -145,8 +143,12 @@ def getWindowsRelease():
             ("wReserved", ctypes.c_byte),
         ]
 
-    os_version_value = OS_VERSION_INFO_EX()
-    os_version_value.dwOSVersionInfoSize = ctypes.sizeof(os_version_value)
+        def __init__(self):
+            self.dwOSVersionInfoSize = ctypes.sizeof(  # pylint: disable=invalid-name
+                self
+            )
+
+    os_version_value = OsVersionInfoEx()
 
     result = ctypes.windll.ntdll.RtlGetVersion(ctypes.byref(os_version_value))
     if result != 0:
