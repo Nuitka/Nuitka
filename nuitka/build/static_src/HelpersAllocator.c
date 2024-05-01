@@ -8,6 +8,40 @@
 #include "nuitka/prelude.h"
 #endif
 
+void *(*python_obj_malloc)(void *ctx, size_t size) = NULL;
+void *(*python_mem_malloc)(void *ctx, size_t size) = NULL;
+void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize) = NULL;
+
+#if defined(Py_DEBUG)
+void *python_obj_ctx = NULL;
+void *python_mem_ctx = NULL;
+#endif
+
+void initNuitkaAllocators(void) {
+    // PyMem_SetupDebugHooks();
+
+    PyMemAllocatorEx allocators;
+
+    PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &allocators);
+
+#if defined(Py_DEBUG)
+    python_obj_ctx = allocators.ctx;
+#endif
+
+    python_obj_malloc = allocators.malloc;
+
+    PyMem_GetAllocator(PYMEM_DOMAIN_MEM, &allocators);
+
+#if defined(Py_DEBUG)
+    python_mem_ctx = allocators.ctx;
+#endif
+
+    python_mem_malloc = allocators.malloc;
+    python_mem_calloc = allocators.calloc;
+}
+
+#if PYTHON_VERSION >= 0x3b0
+
 typedef struct _gc_runtime_state GCState;
 
 #define AS_GC(o) ((PyGC_Head *)(((char *)(o)) - sizeof(PyGC_Head)))
@@ -615,6 +649,8 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         gcstate->collecting = 0;
     }
 }
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

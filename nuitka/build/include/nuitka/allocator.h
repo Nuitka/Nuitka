@@ -13,6 +13,39 @@
 #define _PyObject_GC_IS_TRACKED(obj) (1)
 #endif
 
+// The full API is available for Python 3.5 only
+#if PYTHON_VERSION >= 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+extern void *(*python_obj_malloc)(void *ctx, size_t size);
+extern void *(*python_mem_malloc)(void *ctx, size_t size);
+extern void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize);
+
+#if defined(Py_DEBUG)
+extern void *python_obj_ctx;
+extern void *python_mem_ctx;
+#else
+#define python_obj_ctx (NULL)
+#define python_mem_ctx (NULL)
+#endif
+
+extern void initNuitkaAllocators(void);
+
+// Our version of "PyObject_Malloc".
+NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) { return python_obj_malloc(python_obj_ctx, size); }
+
+// Our version of "PyMem_Malloc".
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) { return python_mem_malloc(python_mem_ctx, size); }
+
+// Our version of "PyMem_Calloc".
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
+    return python_mem_calloc(python_mem_ctx, nelem, elsize);
+}
+
+#else
+#define NuitkaObject_Malloc(size) PyObject_MALLOC(size)
+#define NuitkaMem_Malloc(size) PyMem_MALLOC(size)
+#define NuitkaMem_Calloc(elem, elsize) PyMem_CALLOC(elem, elsize)
+#endif
+
 #if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {
@@ -116,7 +149,7 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
     assert(pre_size == sizeof(PyGC_Head));
 
-    char *alloc = (char *)PyObject_Malloc(size + pre_size);
+    char *alloc = (char *)NuitkaObject_Malloc(size + pre_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
@@ -151,7 +184,7 @@ static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
     // TODO: This ought to be static for all our types, so remove it as a call.
     const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
 
-    char *alloc = (char *)PyObject_Malloc(_PyObject_SIZE(type) + pre_size);
+    char *alloc = (char *)NuitkaObject_Malloc(_PyObject_SIZE(type) + pre_size);
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 

@@ -30,7 +30,7 @@ static void _initBuiltinTypeMethods(void) {
     _initListBuiltinMethods();
 }
 
-#if PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION >= 0x350
 #include "HelpersAllocator.c"
 #endif
 
