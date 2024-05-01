@@ -19,7 +19,7 @@ import sys
 from nuitka import Options
 from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.PythonVersions import python_version
-from nuitka.Serialization import ConstantAccessor
+from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 from nuitka.Version import getNuitkaVersionTuple
@@ -86,7 +86,7 @@ def getConstantsDefinitionCode():
     """
     # Somewhat detail rich, pylint: disable=too-many-locals
 
-    constant_accessor = ConstantAccessor(
+    constant_accessor = GlobalConstantAccessor(
         data_filename="__constants.const", top_level_name="global_constants"
     )
 
