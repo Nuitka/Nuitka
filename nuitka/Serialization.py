@@ -163,7 +163,9 @@ class ConstantStreamReader(object):
         return self.pickle.load()
 
 
-class ConstantAccessor(object):
+class GlobalConstantAccessor(object):
+    __slots__ = ("constants", "constants_writer", "top_level_name")
+
     def __init__(self, data_filename, top_level_name):
         self.constants = OrderedSet()
 
@@ -171,52 +173,54 @@ class ConstantAccessor(object):
         self.top_level_name = top_level_name
 
     def getConstantCode(self, constant):
-        # Use in user code, or for constants building code itself, many
-        # constant types get special code immediately.
-        # pylint: disable=too-many-branches,too-many-statements
+        # Use in user code, or for constants building code itself, many constant
+        # types get special code immediately, and it's return driven.
+        # pylint: disable=too-many-branches,too-many-return-statements
         if constant is None:
-            key = "Py_None"
+            return "Py_None"
         elif constant is True:
-            key = "Py_True"
+            return "Py_True"
         elif constant is False:
-            key = "Py_False"
+            return "Py_False"
         elif constant is Ellipsis:
-            key = "Py_Ellipsis"
+            return "Py_Ellipsis"
         elif constant is NotImplemented:
-            key = "Py_NotImplemented"
+            return "Py_NotImplemented"
         elif constant is sys.version_info:
-            key = "Py_SysVersionInfo"
+            return "Py_SysVersionInfo"
         elif type(constant) is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
             if constant is None:
-                key = "(PyObject *)Py_TYPE(Py_None)"
+                return "(PyObject *)Py_TYPE(Py_None)"
             elif constant is object:
-                key = "(PyObject *)&PyBaseObject_Type"
+                return "(PyObject *)&PyBaseObject_Type"
             elif constant is staticmethod:
-                key = "(PyObject *)&PyStaticMethod_Type"
+                return "(PyObject *)&PyStaticMethod_Type"
             elif constant is classmethod:
-                key = "(PyObject *)&PyClassMethod_Type"
+                return "(PyObject *)&PyClassMethod_Type"
             elif constant is bytearray:
-                key = "(PyObject *)&PyByteArray_Type"
+                return "(PyObject *)&PyByteArray_Type"
             elif constant is enumerate:
-                key = "(PyObject *)&PyEnum_Type"
+                return "(PyObject *)&PyEnum_Type"
             elif constant is frozenset:
-                key = "(PyObject *)&PyFrozenSet_Type"
+                return "(PyObject *)&PyFrozenSet_Type"
             elif python_version >= 0x270 and constant is memoryview:
-                key = "(PyObject *)&PyMemoryView_Type"
+                return "(PyObject *)&PyMemoryView_Type"
             elif python_version < 0x300 and constant is basestring:
-                key = "(PyObject *)&PyBaseString_Type"
+                return "(PyObject *)&PyBaseString_Type"
             elif python_version < 0x300 and constant is xrange:
-                key = "(PyObject *)&PyRange_Type"
+                return "(PyObject *)&PyRange_Type"
             elif constant in builtin_anon_values:
-                key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
+                return (
+                    "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
+                )
             elif constant in builtin_exception_values_list:
-                key = "(PyObject *)PyExc_%s" % constant.__name__
+                return "(PyObject *)PyExc_%s" % constant.__name__
             elif constant is ExceptionGroup:
-                key = "(PyObject *)_PyInterpreterState_GET()->exc_state.PyExc_ExceptionGroup"
+                return "(PyObject *)_PyInterpreterState_GET()->exc_state.PyExc_ExceptionGroup"
             elif constant is BaseExceptionGroup:
-                key = "(PyObject *)PyExc_BaseExceptionGroup"
+                return "(PyObject *)PyExc_BaseExceptionGroup"
             else:
                 type_name = constant.__name__
 
@@ -225,15 +229,18 @@ class ConstantAccessor(object):
                 elif constant is str:
                     type_name = "string" if python_version < 0x300 else "unicode"
 
-                key = "(PyObject *)&Py%s_Type" % type_name.capitalize()
+                return "(PyObject *)&Py%s_Type" % type_name.capitalize()
         else:
-            key = "const_" + namifyConstant(constant)
+            return self._getConstantCode(constant)
 
-            if key not in self.constants:
-                self.constants.add(key)
-                self.constants_writer.addConstantValue(constant)
+    def _getConstantCode(self, constant):
+        key = "const_" + namifyConstant(constant)
 
-            key = "%s[%d]" % (self.top_level_name, self.constants.index(key))
+        if key not in self.constants:
+            self.constants.add(key)
+            self.constants_writer.addConstantValue(constant)
+
+        key = "%s[%d]" % (self.top_level_name, self.constants.index(key))
 
         # TODO: Make it returning, more clear.
         return key
@@ -254,6 +261,16 @@ class ConstantAccessor(object):
         self.constants_writer.close()
 
         return len(self.constants)
+
+
+class ConstantAccessor(GlobalConstantAccessor):
+    def _getConstantCode(self, constant):
+        constant_type = type(constant)
+
+        if constant_type is tuple and not constant:
+            return "const_tuple_empty"
+
+        return GlobalConstantAccessor._getConstantCode(self, constant)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
