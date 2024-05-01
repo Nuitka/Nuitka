@@ -1999,6 +1999,19 @@
     - depends:
         - 'lxml.etree'
 
+- module-name: 'magic' # checksum: 803cd877
+  data-files:
+    dirs:
+      - 'libmagic'
+    patterns:
+      - 'magic.mgc'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'libmagic'
+        prefixes:
+          - 'libmagic'
+
 - module-name: 'markdown' # checksum: 827a8bc8
   implicit-imports:
     - depends:
