@@ -51,7 +51,7 @@ static PyFloatObject *_Nuitka_AllocatePyFloatObject(void) {
 
         Py_SET_TYPE(result_float, &PyFloat_Type);
     } else {
-        result_float = (PyFloatObject *)PyObject_Malloc(sizeof(PyFloatObject));
+        result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));
     }
 
     Py_SET_TYPE(result_float, &PyFloat_Type);

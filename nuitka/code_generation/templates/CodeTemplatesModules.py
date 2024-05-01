@@ -277,7 +277,9 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         // In case of an extension module loaded into a process, we need to call
         // initialization here because that's the first and potentially only time
         // we are going called.
-
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+        initNuitkaAllocators();
+#endif
         // Initialize the constant values used.
         _initBuiltinModule();
         createGlobalConstants(tstate);
