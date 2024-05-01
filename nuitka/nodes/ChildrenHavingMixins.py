@@ -13853,6 +13853,7 @@ class ChildHavingPathMixin(object):
     #   ExpressionOsPathExists
     #   ExpressionOsPathIsdir
     #   ExpressionOsPathIsfile
+    #   ExpressionOsPathNormpath
 
     def __init__(
         self,
@@ -13939,6 +13940,7 @@ ChildrenExpressionOsPathAbspathMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathExistsMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathIsdirMixin = ChildHavingPathMixin
 ChildrenExpressionOsPathIsfileMixin = ChildHavingPathMixin
+ChildrenExpressionOsPathNormpathMixin = ChildHavingPathMixin
 
 
 class ChildHavingPathOptionalMixin(object):
