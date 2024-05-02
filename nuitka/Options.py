@@ -828,10 +828,13 @@ download. With that, your program will work on macOS 10.9 or higher."""
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:
-        Tracing.options_logger.sysexit(
-            "Error, standalone mode on Linux requires 'patchelf' to be installed. Use 'apt/dnf/yum install patchelf' first."
+    if isStandaloneMode() and isLinux():
+        # Cyclic dependency
+        from nuitka.utils.SharedLibraries import (
+            checkPatchElfPresenceAndUsability,
         )
+
+        checkPatchElfPresenceAndUsability(Tracing.options_logger)
 
     pgo_executable = getPgoExecutable()
     if pgo_executable and not isPathExecutable(pgo_executable):
