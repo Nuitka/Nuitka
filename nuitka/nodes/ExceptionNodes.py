@@ -220,6 +220,16 @@ class ExpressionBuiltinMakeExceptionImportError(
         return False
 
 
+class ExpressionBuiltinMakeExceptionModuleNotFoundError(
+    ExpressionBuiltinMakeExceptionImportError
+):
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_MODULE_NOT_FOUND_ERROR"
+
+    @staticmethod
+    def getExceptionName():
+        return "ModuleNotFoundError"
+
+
 class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
     """Common things for all caught exception references."""
 
