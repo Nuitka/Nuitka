@@ -364,6 +364,23 @@ Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
 need to be updated."""
 
 
+def checkPatchElfPresenceAndUsability(logger):
+    """Checks if patchelf is present and usable."""
+
+    output = executeToolChecked(
+        logger=logger,
+        command=("patchelf", "--version"),
+        absence_message="""\
+Error, standalone mode on Linux requires 'patchelf' to be \
+installed. Use 'apt/dnf/yum install patchelf' first.""",
+    )
+
+    if output.split() == b"0.18.0":
+        logger.sysexit(
+            "Error, patchelf version 0.18.0 is a known buggy release and cannot be used. Please upgrade or downgrade it."
+        )
+
+
 def _setSharedLibraryRPATHElf(filename, rpath):
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
     with withEnvironmentVarOverridden("LANG", "C"):
