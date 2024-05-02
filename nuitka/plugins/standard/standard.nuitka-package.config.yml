@@ -1894,6 +1894,12 @@
     dirs:
       - 'grammars'
 
+- module-name: 'librosa' # checksum: 20378624
+  anti-bloat:
+    - description: 'allow numba inside of librosa, too dependent to remove'
+      bloat-mode-overrides:
+        'numba': 'allow'
+
 - module-name: 'librosa.core.intervals' # checksum: fc442d1
   data-files:
     patterns:
