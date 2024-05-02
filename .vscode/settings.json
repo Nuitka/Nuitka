@@ -65,7 +65,8 @@
         "iterator": "c",
         "locale": "c",
         "queue": "c",
-        "ios": "c"
+        "ios": "c",
+        "__threading_support": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
