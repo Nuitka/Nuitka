@@ -251,7 +251,9 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             update_cache=not shallNotStoreDependsExeCachedResults(),
         )
     except NuitkaForbiddenDLLEncounter:
-        inclusion_logger.info("Not including forbidden DLL '%s'." % binary_filename)
+        inclusion_logger.info(
+            "Not including due to forbidden DLL '%s'." % binary_filename
+        )
     else:
         # Plugins generally decide if they allow dependencies from the outside
         # based on the package name.
