@@ -55,6 +55,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(void) {
 #endif
 }
 
+// Check if a module is in "sys.modules"
+NUITKA_MAY_BE_UNUSED static bool Nuitka_HasModule(PyThreadState *tstate, PyObject *module_name) {
+    return DICT_HAS_ITEM(tstate, Nuitka_GetSysModules(), module_name) == 1;
+}
+
 // Replacement for "PyImport_GetModule" working across all versions and less checks.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyThreadState *tstate, PyObject *module_name) {
     return DICT_GET_ITEM1(tstate, Nuitka_GetSysModules(), module_name);
