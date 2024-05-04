@@ -1428,7 +1428,7 @@ class Plugins(object):
         # Not a DLL filename, then it cannot be true, but it's kind of strange
         # to get asked.
         if dll_basename is None:
-            return False
+            return None, None
 
         result = None
         plugin_name = None
