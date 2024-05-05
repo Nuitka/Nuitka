@@ -25,6 +25,7 @@ from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import (
     ExpressionBuiltinMakeException,
     ExpressionBuiltinMakeExceptionImportError,
+    ExpressionBuiltinMakeExceptionModuleNotFoundError,
 )
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .shapes.BuiltinTypeShapes import tshape_exception_class
@@ -229,6 +230,13 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
             if exception_name == "ImportError" and python_version >= 0x300:
                 return ExpressionBuiltinMakeExceptionImportError(
+                    args=args,
+                    name=name,
+                    path=path,
+                    source_ref=source_ref,
+                )
+            elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
+                return ExpressionBuiltinMakeExceptionModuleNotFoundError(
                     args=args,
                     name=name,
                     path=path,

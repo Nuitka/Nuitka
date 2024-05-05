@@ -189,7 +189,11 @@ def makePath(path):
 
     with withFileLock("creating directory %s" % path):
         if not os.path.isdir(path):
-            os.makedirs(path)
+            try:
+                os.makedirs(path)
+            except OSError:
+                if not os.path.exists(path):
+                    raise
 
 
 def makeContainingPath(filename):
@@ -491,9 +495,9 @@ def getDllBasename(path):
         if compare_path.endswith(suffix):
             return path[: -len(suffix)]
 
-    # Linux us not case sensitive, but lets still do it properly,
-    # sometimes, it is done on non-Linux too. So we split on the
-    # normcase, but only to find out what is going on there.
+    # Linux is not case sensitive, but lets still do it properly, sometimes, it
+    # is done macOS too. So we split on the normcase, but only to find out what
+    # is going on there.
     if ".so." in compare_path:
         return path[: len(compare_path.split(".so.")[0])]
 
