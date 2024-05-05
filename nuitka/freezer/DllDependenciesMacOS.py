@@ -26,6 +26,7 @@ from nuitka.utils.SharedLibraries import (
     getOtoolDependencyOutput,
     getOtoolListing,
 )
+from nuitka.utils.Utils import getArchitecture
 
 from .DllDependenciesCommon import getLdLibraryPath
 
@@ -133,6 +134,24 @@ def _parseOtoolListingOutput(output):
     return paths
 
 
+def _getNonVersionedDllFilenames(filename):
+    yield filename
+
+    if getArchitecture() == "arm64" and filename.endswith(".dylib"):
+        yield filename[:-6] + "_arm64.dylib"
+
+    match = re.match(r"^(.*?)(\.\d+)+\.dylib$", filename)
+
+    if match:
+        yield match.group(1) + ".dylib"
+
+        # TODO: The versioned filename, might do the same, and so could the
+        # "x86_64" specific DLL be a thing too, but we should have actual
+        # examples to be sure they are covered with tests.
+        if getArchitecture() == "arm64":
+            yield match.group(1) + "_arm64.dylib"
+
+
 def _resolveBinaryPathDLLsMacOS(
     original_dir, binary_filename, paths, package_specific_dirs, package_name
 ):
@@ -195,22 +214,33 @@ def _resolveBinaryPathDLLsMacOS(
                 )
 
         # Some extension modules seem to reference themselves by a different
-        # extension module name, so use that if it exists.
-        if not os.path.exists(resolved_path) and python_version >= 0x300:
+        # extension module name, so use that if it exists, and some versioned
+        # DLL dependencies do not matter.
+        if python_version >= 0x300:
             so_suffixes = getSharedLibrarySuffixes()[:-1]
 
             specific_suffix = so_suffixes[0]
             abi_suffix = so_suffixes[1]
 
-            if resolved_path.endswith(specific_suffix):
-                candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
-            elif resolved_path.endswith(abi_suffix):
-                candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
-            else:
-                candidate = None
+            for resolved_path_candidate in _getNonVersionedDllFilenames(resolved_path):
+                if os.path.exists(resolved_path_candidate):
+                    resolved_path = resolved_path_candidate
+                    break
 
-            if candidate is not None and os.path.exists(candidate):
-                resolved_path = candidate
+                if resolved_path_candidate.endswith(specific_suffix):
+                    candidate = (
+                        resolved_path_candidate[: -len(specific_suffix)] + abi_suffix
+                    )
+                elif resolved_path_candidate.endswith(abi_suffix):
+                    candidate = (
+                        resolved_path_candidate[: -len(specific_suffix)] + abi_suffix
+                    )
+                else:
+                    candidate = None
+
+                if candidate is not None and os.path.exists(candidate):
+                    resolved_path = candidate
+                    break
 
         # Sometimes self-dependencies are on a numbered version, but deployed is
         # one version without it. The macOS just ignores that, and so we do.
@@ -247,6 +277,17 @@ def _resolveBinaryPathDLLsMacOS(
             # TODO: Missing DLLs that are accepted, are not really forbidden, we
             # should instead acknowledge them as missing, and treat that properly
             # in using code.
+            if acceptable is True:
+                raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
+
+            # We check both the user and the used DLL if they are listed. This
+            # might be a form of bug hiding, that the later is not sufficient,
+            # that we should address later.
+            acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
+                package_name=package_name,
+                filename=resolved_path,
+            )
+
             if acceptable is True:
                 raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
 
