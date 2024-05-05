@@ -6412,6 +6412,13 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
+- module-name: 'toga_cocoa' # checksum: 34886ad0
+  data-files:
+    dirs:
+      - 'resources'
+    include-metadata:
+      - 'toga-cocoa'
+
 - module-name: 'toga_gtk' # checksum: 1577803b
   data-files:
     dirs:
