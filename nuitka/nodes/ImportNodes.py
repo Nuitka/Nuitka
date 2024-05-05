@@ -48,6 +48,7 @@ from nuitka.Options import (
     shallMakeModule,
     shallWarnUnusualCode,
 )
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import (
     BuiltinParameterSpec,
@@ -923,6 +924,14 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             module_name=ModuleName(module_name),
             parent_package=parent_package,
             level=level_value,
+        )
+
+        # Allow for the import look ahead, to change what modules are
+        # considered hard imports.
+        Plugins.onModuleUsageLookAhead(
+            module_name=module_name_found,
+            module_filename=module_filename,
+            module_kind=module_kind,
         )
 
         self.used_modules = makeParentModuleUsagesAttempts(

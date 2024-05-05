@@ -389,6 +389,12 @@ conditions are missing, or this version of the module needs treatment added."""
                         yield dylib_directory
 
     def isAcceptableMissingDLL(self, package_name, dll_basename):
+        if package_name is None:
+            return None
+
+        # Config is to be attached to top level package.
+        package_name = package_name.getTopLevelPackageName()
+
         for entry in self.config.get(package_name, section="import-hacks"):
             if self.evaluateCondition(
                 full_name=package_name, condition=entry.get("when", "True")
