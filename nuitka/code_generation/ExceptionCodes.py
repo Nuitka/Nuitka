@@ -193,7 +193,14 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                 context=context,
             )
 
-        if expression.getExceptionName() == "ImportError" and python_version >= 0x300:
+        if exception_type == "ImportError" and python_version >= 0x300:
+            is_new_import_error = True
+        elif exception_type == "ModuleNotFoundError" and python_version >= 0x360:
+            is_new_import_error = True
+        else:
+            is_new_import_error = False
+
+        if is_new_import_error:
             from .PythonAPICodes import getReferenceExportCode
 
             import_error_name_expression = expression.subnode_name

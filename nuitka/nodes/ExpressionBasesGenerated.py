@@ -206,6 +206,7 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
     # This is generated for use in
     #   ExpressionBuiltinMakeExceptionImportError
+    #   ExpressionBuiltinMakeExceptionModuleNotFoundError
 
     def __init__(self, args, name, path, source_ref):
         assert type(args) is tuple
@@ -388,6 +389,9 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
+    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin
+)
+ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
     ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin
 )
 
