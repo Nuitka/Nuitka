@@ -227,6 +227,13 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         ParameterSpec that can be used to evaluate calls of these exceptions.
     """
     if exception_name == "ImportError" and python_version >= 0x300:
+        is_new_import_error = True
+    elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
+        is_new_import_error = True
+    else:
+        is_new_import_error = False
+
+    if is_new_import_error:
         # This is currently the only known built-in exception that does it, but let's
         # be general, as surely that list is going to expand only.
 

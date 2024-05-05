@@ -1894,6 +1894,12 @@
     dirs:
       - 'grammars'
 
+- module-name: 'librosa' # checksum: 20378624
+  anti-bloat:
+    - description: 'allow numba inside of librosa, too dependent to remove'
+      bloat-mode-overrides:
+        'numba': 'allow'
+
 - module-name: 'librosa.core.intervals' # checksum: fc442d1
   data-files:
     patterns:
@@ -1998,6 +2004,19 @@
   implicit-imports:
     - depends:
         - 'lxml.etree'
+
+- module-name: 'magic' # checksum: 803cd877
+  data-files:
+    dirs:
+      - 'libmagic'
+    patterns:
+      - 'magic.mgc'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'libmagic'
+        prefixes:
+          - 'libmagic'
 
 - module-name: 'markdown' # checksum: 827a8bc8
   implicit-imports:
@@ -2298,7 +2317,7 @@
     patterns:
       - 'usage.txt'
 
-- module-name: 'numba' # checksum: a42885e3
+- module-name: 'numba' # checksum: 9bea0dec
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -2318,10 +2337,9 @@
     - force-environment-variables:
         'NUMBA_DISABLE_JIT': '1'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
-    - find-dlls-near-module:
-        # Finding libomp from there
-        - 'skimage'
-      when: 'macos'
+    # This is for "numba.np.ufunc.omppool".
+    - acceptable-missing-dlls:
+        - 'libomp'
 
 - module-name: 'numba.core.caching' # checksum: dce4aaa0
   anti-bloat:
@@ -6393,6 +6411,13 @@
   anti-bloat:
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
+
+- module-name: 'toga_cocoa' # checksum: 34886ad0
+  data-files:
+    dirs:
+      - 'resources'
+    include-metadata:
+      - 'toga-cocoa'
 
 - module-name: 'toga_gtk' # checksum: 1577803b
   data-files:

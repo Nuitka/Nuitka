@@ -69,6 +69,10 @@ class NuitkaForbiddenDLLEncounter(Exception):
     """This DLL is not allowed to be included."""
 
 
+class NuitkaSyntaxError(Exception):
+    """The code cannot be read due to SyntaxError"""
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
