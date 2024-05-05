@@ -25,6 +25,7 @@ from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Errors import NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
@@ -1057,17 +1058,26 @@ class Plugins(object):
             if not os.path.isfile(source_filename):
                 return None
 
-            return readSourceCodeFromFilename(
-                module_name=module_name, source_filename=source_filename, pre_load=True
-            )
+            try:
+                return readSourceCodeFromFilename(
+                    module_name=module_name,
+                    source_filename=source_filename,
+                    pre_load=True,
+                )
+            except SyntaxError as e:
+                # Look ahead just not possible.
+                raise NuitkaSyntaxError(e)
 
-        for plugin in getActivePlugins():
-            plugin.onModuleUsageLookAhead(
-                module_name=module_name,
-                module_filename=module_filename,
-                module_kind=module_kind,
-                get_module_source=getModuleSourceCode,
-            )
+        try:
+            for plugin in getActivePlugins():
+                plugin.onModuleUsageLookAhead(
+                    module_name=module_name,
+                    module_filename=module_filename,
+                    module_kind=module_kind,
+                    get_module_source=getModuleSourceCode,
+                )
+        except NuitkaSyntaxError:
+            pass
 
     @staticmethod
     def onModuleRecursion(
@@ -1428,7 +1438,7 @@ class Plugins(object):
         # Not a DLL filename, then it cannot be true, but it's kind of strange
         # to get asked.
         if dll_basename is None:
-            return False
+            return None, None
 
         result = None
         plugin_name = None
