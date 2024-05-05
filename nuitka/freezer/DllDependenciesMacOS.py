@@ -280,6 +280,17 @@ def _resolveBinaryPathDLLsMacOS(
             if acceptable is True:
                 raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
 
+            # We check both the user and the used DLL if they are listed. This
+            # might be a form of bug hiding, that the later is not sufficient,
+            # that we should address later.
+            acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
+                package_name=package_name,
+                filename=resolved_path,
+            )
+
+            if acceptable is True:
+                raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
+
             if not path.startswith(("@", "/")):
                 continue
 
