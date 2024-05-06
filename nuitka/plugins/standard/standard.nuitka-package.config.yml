@@ -3688,7 +3688,7 @@
     dirs:
       - '.'
 
-- module-name: 'pygame' # checksum: 74ba6d7b
+- module-name: 'pygame' # checksum: 5fbb83cf
   data-files:
     patterns:
       - 'freesansbold.ttf'
@@ -3696,7 +3696,7 @@
   options:
     checks:
       - description: 'PyGame is a GUI framework'
-        console: 'recommend'
+        macos_bundle: 'recommend'
 
 - module-name: 'pygame_menu' # checksum: 3f9f0b7d
   data-files:
@@ -3806,7 +3806,7 @@
     dirs:
       - 'proj_dir'
 
-- module-name: 'PyQt5' # checksum: c7182cc5
+- module-name: 'PyQt5' # checksum: 8ca4bbdf
   data-files:
     empty_dirs:
       - 'Qt5'
@@ -3815,7 +3815,7 @@
   options:
     checks:
       - description: 'PyQt5 is a GUI framework'
-        console: 'recommend'
+        macos_bundle: 'recommend'
         when: 'use_pyqt5'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
@@ -3828,11 +3828,11 @@
     - acceptable-missing-dlls:
         - 'libqpdf'
 
-- module-name: 'PyQt6' # checksum: 884033ec
+- module-name: 'PyQt6' # checksum: 9ddfb6bb
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
-        console: 'recommend'
+        macos_bundle: 'recommend'
         when: 'use_pyqt6'
       - description: 'PyQt6 on macOS is not supported, use PySide6 instead'
         support_info: 'error'
@@ -3982,7 +3982,7 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: 4e71be92
+- module-name: 'PySide2' # checksum: c07d1551
   implicit-imports:
     - post-import-code:
         - |
@@ -4001,7 +4001,7 @@
   options:
     checks:
       - description: 'PySide2 is a GUI framework'
-        console: 'recommend'
+        macos_bundle: 'recommend'
         when: 'use_pyside2'
       - description: 'PySide2 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
@@ -4010,7 +4010,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: db68a9cc
+- module-name: 'PySide6' # checksum: 87cc98d8
   implicit-imports:
     - post-import-code:
         - |
@@ -4048,7 +4048,7 @@
   options:
     checks:
       - description: 'PySide6 is a GUI framework'
-        console: 'recommend'
+        macos_bundle: 'recommend'
         when: 'use_pyside6'
 
   import-hacks:
@@ -7362,11 +7362,11 @@
     - depends:
         - '._noop'
 
-- module-name: 'wx' # checksum: 154e95cb
+- module-name: 'wx' # checksum: 9a4d4164
   options:
     checks:
       - description: 'wx will crash in console mode during startup'
-        console: 'yes'
+        macos_bundle: 'yes'
         when: 'macos'
       - description: 'wx requires program to be in bundle form'
         macos_bundle: 'yes'

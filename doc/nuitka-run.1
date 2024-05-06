@@ -576,16 +576,13 @@ filename. Default is standard output.
 .IP
 General OS controls:
 .TP
-\fB\-\-disable\-console\fR
-When compiling for Windows or macOS, disable the
-console window and create a GUI application. Defaults
-to off.
-.TP
-\fB\-\-enable\-console\fR
-When compiling for Windows or macOS, enable the
-console window and create a console application. This
-disables hints from certain modules, e.g. "PySide"
-that suggest to disable it. Defaults to true.
+\fB\-\-windows\-console\-mode\fR=\fI\,CONSOLE_MODE\/\fR
+Select console mode to use. Default mode is 'force'
+and creates a console window if not available, i.e.
+the program was started from one. With 'disable' it
+doesn't create or use a console. With 'attach' an
+existing console will be used for outputs. Default is
+\&'force'.
 .TP
 \fB\-\-force\-stdout\-spec\fR=\fI\,FORCE_STDOUT_SPEC\/\fR
 Force standard output of the program to go to this

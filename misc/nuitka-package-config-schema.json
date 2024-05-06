@@ -281,14 +281,6 @@
                                 "description": {
                                     "type": "string"
                                 },
-                                "console": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no",
-                                        "recommend"
-                                    ]
-                                },
                                 "macos_bundle": {
                                     "type": "string",
                                     "enum": [
