@@ -320,7 +320,7 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'tkinter' # checksum: cef6b613
+- module-name: 'tkinter' # checksum: 481f7b98
   anti-bloat:
     - description: 'enhanced tk-inter in case of missing tcl'
       context:
@@ -338,7 +338,7 @@
       when: 'not deployment and not plugin("tk-inter")'
   options:
     checks:
-      - console: 'recommend'
+      - macos_bundle: 'recommend'
         when: 'plugin("tk-inter")'
 
 - module-name: 'tokenize' # checksum: 6a44b57d

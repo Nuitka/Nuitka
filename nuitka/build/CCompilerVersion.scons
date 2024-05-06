@@ -87,8 +87,8 @@ experimental = getArgumentList("experimental", "")
 # good with the compiler in question.
 lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
-# Windows subsystem mode: Disable console for windows builds.
-disable_console = getArgumentBool("disable_console", False)
+# Console mode specified
+console_mode = getArgumentDefaulted("console_mode", "attach")
 
 # Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
@@ -207,7 +207,7 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
-env.disable_console = disable_console
+env.console_mode = console_mode
 env.nuitka_src = nuitka_src
 env.low_memory = False
 env.macos_min_version = macos_min_version
