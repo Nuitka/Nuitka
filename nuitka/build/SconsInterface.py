@@ -475,8 +475,8 @@ def setCommonSconsOptions(options):
     if Options.shallDisableCCacheUsage():
         options["disable_ccache"] = asBoolStr(True)
 
-    if Options.shallDisableConsoleWindow() and Options.mayDisableConsoleWindow():
-        options["disable_console"] = asBoolStr(True)
+    if isWin32Windows() and Options.getWindowsConsoleMode() != "attach":
+        options["console_mode"] = Options.getWindowsConsoleMode()
 
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()

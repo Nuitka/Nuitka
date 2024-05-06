@@ -34,6 +34,7 @@
 #define SYSFLAG_UNBUFFERED 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
+#define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #endif
 
 // It doesn't work for MinGW64 to update the standard output handles early on,
@@ -46,6 +47,10 @@
 #endif
 #else
 #define NUITKA_STANDARD_HANDLES_EARLY 0
+#endif
+
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#include "HelpersConsole.c"
 #endif
 
 extern PyCodeObject *codeobj_main;
@@ -837,7 +842,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #if NUITKA_STANDARD_HANDLES_EARLY == 0
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     {
-#ifdef _WIN32
+#if defined(_WIN32)
         PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDOUT_PATH);
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
@@ -1002,23 +1007,13 @@ static void Nuitka_Py_Initialize(void) {
 static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, filename_char_t const *template_path) {
     filename_char_t filename_buffer[1024];
 
-    // TODO: We should only have one that works with filename_char_t rather than having
-    // to make a difference here.
-#ifdef _WIN32
-    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
+    bool res =
+        expandTemplatePathFilename(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
 
     if (res == false) {
-        wprintf(L"Error, couldn't expand pattern '%lS'\n", template_path);
+        printf("Error, couldn't expand pattern '" FILENAME_FORMAT_STR "'\n", template_path);
         abort();
     }
-#else
-    bool res = expandTemplatePath(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
-
-    if (res == false) {
-        printf("Error, couldn't expand pattern: '%s'\n", template_path);
-        abort();
-    }
-#endif
 
     if (GetStdHandle(std_handle_id) == 0) {
         FILE *file_handle;
@@ -1133,7 +1128,13 @@ int main(int argc, char **argv) {
     atexit(Nuitka_at_exit);
 #endif
 
-    // First things, set up stdout/stderr according to user specification.
+    // Attach to the parent console respecting redirection only, otherwise we
+    // cannot even output traces.
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+    inheritAttachedConsole();
+#endif
+
+    // Set up stdout/stderr according to user specification.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(NUITKA_FORCED_STDOUT_PATH)
 #ifdef _WIN32
@@ -1417,6 +1418,57 @@ orig_argv = argv;
     if (ticker_value != NULL) {
         _Py_Ticker = atoi(ticker_value);
         assert(_Py_Ticker >= 20);
+    }
+#endif
+
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+    if (needs_stdout_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONOUT$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stdout", stdout_file);
+    }
+
+    if (needs_stderr_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONOUT$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stderr", stderr_file);
+    }
+
+    if (needs_stdin_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONIN$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        // CPython core requires stdin to be buffered due to methods usage, and it won't matter
+        // here much.
+        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding);
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stdin", stdin_file);
     }
 #endif
 
