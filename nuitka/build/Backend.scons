@@ -167,8 +167,8 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
-# Windows subsystem mode: Disable console for windows builds.
-disable_console = getArgumentBool("disable_console", False)
+# Console mode specified
+console_mode = getArgumentDefaulted("console_mode", "attach")
 
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
@@ -354,7 +354,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
-env.disable_console = disable_console
+env.console_mode = console_mode
 env.source_dir = source_dir
 env.nuitka_src = nuitka_src
 env.low_memory = low_memory

@@ -650,11 +650,6 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
-    if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
-        Tracing.options_logger.sysexit(
-            "Error, cannot disable console unless also using '--macos-create-app-bundle'."
-        )
-
     try:
         file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
@@ -1122,15 +1117,10 @@ and not with the non-debug version.
 """
         )
 
-    if (
-        isMacOS()
-        and shallCreateAppBundle()
-        and shallDisableConsoleWindow()
-        and not getMacOSIconPaths()
-    ):
+    if isMacOS() and shallCreateAppBundle() and not getMacOSIconPaths():
         Tracing.general.warning(
             """\
-For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
+For application bundles, you ought to specify an icon with '--macos-app-icon'.", \
 otherwise a dock icon may not be present."""
         )
 
@@ -1149,7 +1139,7 @@ to work."""
     if (
         isWin32Windows()
         and 0x340 <= python_version < 0x380
-        and not shallDisableConsoleWindow()
+        and not getWindowsConsoleMode() != "disable"
     ):
         Tracing.general.warning(
             """\
@@ -1160,6 +1150,30 @@ console window for deployment.
 """
             % python_version_str,
             mnemonic="old-python-windows-console",
+        )
+
+    if shallMakeModule() and options.console_mode is not None:
+        Tracing.general.warning(
+            """\
+Extension modules are not binaries, and therefore the option \
+'--windows-console-mode' does not have an impact and should \
+not be specified."""
+        )
+
+    if options.disable_console in (True, False):
+        Tracing.general.warning(
+            """\
+The old console option '%s' should not be given anymore, use '%s' \
+instead. It also has the extra mode 'attach' to consider."""
+            % (
+                (
+                    "--disable-console"
+                    if options.disable_console
+                    else "--enable-console"
+                ),
+                "--windows-console-module=%s"
+                % ("force" if options.disable_console else "disable"),
+            )
         )
 
 
@@ -1668,16 +1682,13 @@ def shallDisableCompressionCacheUsage():
     return shallDisableCacheUsage("compression")
 
 
-def shallDisableConsoleWindow():
-    """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
-    return options.disable_console
-
-
-def mayDisableConsoleWindow():
-    """:returns: bool derived from platform support of disabling the console,"""
-
-    # TODO: What about MSYS2?
-    return isWin32Windows() or isMacOS()
+def getWindowsConsoleMode():
+    """:returns: str from ``--windows-console-mode``"""
+    if options.disable_console is True:
+        return "disable"
+    if options.disable_console is False:
+        return "force"
+    return options.console_mode or "force"
 
 
 def _isFullCompat():
