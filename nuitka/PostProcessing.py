@@ -11,7 +11,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
-from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
@@ -420,7 +420,8 @@ __name__ = ...
 """
             % {
                 "imports": "\n".join(
-                    "import %s" % module_name for module_name in getImportedNames()
+                    "import %s" % module_name
+                    for module_name in getImportedModuleNames()
                 )
             },
             encoding="utf-8",
