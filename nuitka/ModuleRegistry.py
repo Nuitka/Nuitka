@@ -295,6 +295,21 @@ def getModuleOptimizationTimingInfos(module_name):
     return module_timing_infos.get(module_name, ())
 
 
+def getImportedModuleNames():
+    result = OrderedSet()
+
+    for module in getDoneModules():
+        for used_module in module.getUsedModules():
+            module_name = used_module.module_name
+
+            if hasDoneModule(module_name):
+                continue
+
+            result.add(module_name)
+
+    return result
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
