@@ -13,6 +13,7 @@
 # Make sure, the usual bad ones are not included with anti-bloat.
 
 # nuitka-project: --noinclude-default-mode=error
+# nuitka-project: --noinclude-numba-mode=allow
 # nuitka-project: --noinclude-custom-mode=numpy.distutils:error
 
 # scipy.lib._docscrape insists on it, and seems not easy to get
