@@ -119,8 +119,9 @@ empty.
 \fB\-\-nofollow\-import\-to\fR=\fI\,MODULE\/\fR/PACKAGE
 Do not follow to that module name even if used, or if
 a package name, to the whole package in any case,
-overrides all other options. Can be given multiple
-times. Default empty.
+overrides all other options. This can also contain
+patterns, e.g. "*.tests". Can be given multiple times.
+Default empty.
 .TP
 \fB\-\-nofollow\-imports\fR
 Do not descend into any imported modules at all,
