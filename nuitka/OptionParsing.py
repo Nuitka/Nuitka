@@ -287,8 +287,8 @@ follow_group.add_option(
     default=[],
     help="""\
 Do not follow to that module name even if used, or if a package name, to the
-whole package in any case, overrides all other options. Can be given multiple
-times. Default empty.""",
+whole package in any case, overrides all other options. This can also contain
+patterns, e.g. "*.tests". Can be given multiple times. Default empty.""",
 )
 
 follow_group.add_option(
