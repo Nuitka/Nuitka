@@ -520,13 +520,19 @@ static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *func
 #if PYTHON_VERSION >= 0x3c0
 static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *function, PyObject *value) {
     CHECK_OBJECT((PyObject *)function);
+    CHECK_OBJECT_X(value);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
+    if (unlikely(value == NULL || !PyTuple_Check(value))) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "readonly attribute");
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__type_params__ must be set to a tuple");
     return -1;
+    }
+
+    Py_SETREF(function->m_type_params, Py_NewRef(value));
+    return 0;
 }
 
 static PyObject *Nuitka_Function_get_type_params(struct Nuitka_FunctionObject *function) {
@@ -727,6 +733,10 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     Py_DECREF(function->m_name);
 #if PYTHON_VERSION >= 0x300
     Py_DECREF(function->m_qualname);
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+    Py_DECREF(function->m_type_params);
 #endif
 
     // These may actually resurrect the object, not?
@@ -1316,6 +1326,11 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     result->m_vectorcall = (vectorcallfunc)Nuitka_Function_tp_vectorcall;
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+    result->m_type_params = const_tuple_empty;
+    assert(_Py_IsImmortal(result->m_type_params));
 #endif
 
     Nuitka_GC_Track(result);
