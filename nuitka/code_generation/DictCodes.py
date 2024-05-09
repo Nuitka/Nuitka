@@ -272,7 +272,7 @@ if (%(value_name)s == NULL) {
 if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = Py_None;
-    Py_INCREF(%(value_name)s);
+    Py_INCREF_IMMORTAL(%(value_name)s);
 }
 """,
                 expression=expression,

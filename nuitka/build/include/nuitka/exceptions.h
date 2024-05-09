@@ -535,7 +535,7 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION(PyThreadState *
             PRINT_STRING("PRESERVE_FRAME_EXCEPTION: no exception to preserve\n");
 #endif
             frame->f_exc_type = Py_None;
-            Py_INCREF(frame->f_exc_type);
+            Py_INCREF_IMMORTAL(frame->f_exc_type);
             frame->f_exc_value = NULL;
             frame->f_exc_traceback = NULL;
         }
