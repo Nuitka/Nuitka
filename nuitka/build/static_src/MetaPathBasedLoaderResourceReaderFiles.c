@@ -418,7 +418,7 @@ static PyObject *Nuitka_ResourceReaderFiles_enter(struct Nuitka_ResourceReaderFi
 static PyObject *Nuitka_ResourceReaderFiles_exit(struct Nuitka_ResourceReaderFilesObject *files) {
     CHECK_OBJECT(files);
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 

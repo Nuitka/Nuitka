@@ -1160,7 +1160,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
             return klass->cl_bases;
         } else if (strcmp(sattr_name, "__name__") == 0) {
             if (klass->cl_name == NULL) {
-                Py_INCREF(Py_None);
+                Py_INCREF_IMMORTAL(Py_None);
                 return Py_None;
             } else {
                 Py_INCREF(klass->cl_name);

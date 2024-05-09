@@ -107,11 +107,8 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
 
     // Allow setting the value to NULL for time savings with quick type only errors
     if (value == NULL) {
-        // TODO: For Python3.12, these kinds of assignments from immortal objects
-        // should be specialized, might need to check Python source for how they
-        // do that.
         value = Py_None;
-        Py_INCREF(value);
+        Py_INCREF_IMMORTAL(value);
     }
 
     // Normalize the exception from class to instance

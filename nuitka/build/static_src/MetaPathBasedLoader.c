@@ -561,7 +561,7 @@ static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyOb
         PySys_WriteStderr("import %s # denied responsibility\n", name);
     }
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -1114,7 +1114,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
         return result;
     }
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -1534,7 +1534,7 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
             PySys_WriteStderr("import %s # denied responsibility\n", full_name);
         }
 
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 
