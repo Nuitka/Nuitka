@@ -638,7 +638,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             }
 #endif
 
-#if PYTHON_VERSION >= 0x350
+#if PYTHON_VERSION >= 0x350 && PYTHON_VERSION < 0x3c0
             if (
 #if PYTHON_VERSION < 0x370
                 generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
