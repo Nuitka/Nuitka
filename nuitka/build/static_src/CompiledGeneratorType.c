@@ -175,7 +175,7 @@ static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
     }
 
     if (value == NULL) {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         value = Py_None;
     }
 
@@ -365,7 +365,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
         if (error == NULL) {
-            Py_INCREF(Py_None);
+            Py_INCREF_IMMORTAL(Py_None);
             generator->m_returned = Py_None;
         } else if (likely(EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration))) {
             // The sub-generator has given an exception. In case of
@@ -638,7 +638,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             }
 #endif
 
-#if PYTHON_VERSION >= 0x350 && PYTHON_VERSION < 0x3c0
+#if PYTHON_VERSION >= 0x350
             if (
 #if PYTHON_VERSION < 0x370
                 generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
@@ -706,9 +706,9 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
                 tstate->exc_value = Py_None;
                 tstate->exc_traceback = (PyObject *)Py_None;
 
-                Py_INCREF(Py_None);
-                Py_INCREF(Py_None);
-                Py_INCREF(Py_None);
+                Py_INCREF_IMMORTAL(Py_None);
+                Py_INCREF_IMMORTAL(Py_None);
+                Py_INCREF_IMMORTAL(Py_None);
 
                 Py_XDECREF(old_type);
                 Py_XDECREF(old_value);
@@ -767,7 +767,7 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 static PyObject *Nuitka_Generator_tp_iternext(struct Nuitka_GeneratorObject *generator) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
 
     struct Nuitka_ExceptionPreservationItem exception_state;
     INIT_ERROR_OCCURRED_STATE(&exception_state);
@@ -778,7 +778,7 @@ static PyObject *Nuitka_Generator_tp_iternext(struct Nuitka_GeneratorObject *gen
 /* Our own qiter interface, which is for quicker simple loop style iteration,
    that does not send anything in. */
 PyObject *Nuitka_Generator_qiter(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator, bool *finished) {
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
 
     struct Nuitka_ExceptionPreservationItem exception_state;
     INIT_ERROR_OCCURRED_STATE(&exception_state);
@@ -853,7 +853,7 @@ static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator
     if (unlikely(r == false)) {
         return NULL;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -1489,7 +1489,7 @@ static PyObject *Nuitka_Generator_get_yieldfrom(struct Nuitka_GeneratorObject *g
         Py_INCREF(generator->m_yield_from);
         return generator->m_yield_from;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }

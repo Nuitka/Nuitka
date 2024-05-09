@@ -106,6 +106,16 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 
 #endif
 
+// For Python3.12, avoid reference management if value is known to be immortal.
+#if PYTHON_VERSION < 0x3c0
+#define Py_INCREF_IMMORTAL(value) Py_INCREF(value)
+#define Py_DECREF_IMMORTAL(value) Py_DECREF(value)
+#else
+// TODO: For debugging, assert that it is indeed immortal.
+#define Py_INCREF_IMMORTAL(value)
+#define Py_DECREF_IMMORTAL(value)
+#endif
+
 // Macro introduced with Python3.9 or higher, make it generally available.
 #ifndef Py_SET_TYPE
 static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type = type; }

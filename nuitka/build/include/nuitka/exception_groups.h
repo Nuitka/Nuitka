@@ -82,9 +82,9 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     // TODO: Avoid this from happening, we should not call it then.
     if (exc_value == Py_None) {
         *match = Py_None;
-        Py_INCREF(*match);
+        Py_INCREF_IMMORTAL(*match);
         *rest = Py_None;
-        Py_INCREF(*rest);
+        Py_INCREF_IMMORTAL(*rest);
 
         return 0;
     }
@@ -112,7 +112,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
         }
 
         *rest = Py_None;
-        Py_INCREF(*rest);
+        Py_INCREF_IMMORTAL(*rest);
 
         return 0;
     }
@@ -142,10 +142,10 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     }
 
     *match = Py_None;
-    Py_INCREF(*match);
+    Py_INCREF_IMMORTAL(*match);
 
     *rest = Py_None;
-    Py_INCREF(*rest);
+    Py_INCREF_IMMORTAL(*rest);
 
     return 0;
 }
