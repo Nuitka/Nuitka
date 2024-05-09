@@ -114,7 +114,7 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, PyObject **exception_type
 
     // None is not a cause.
     if (exception_cause == Py_None) {
-        Py_DECREF(exception_cause);
+        Py_DECREF_IMMORTAL(exception_cause);
         exception_cause = NULL;
     } else if (PyExceptionClass_Check(exception_cause)) {
         PyObject *old_exception_cause = exception_cause;
@@ -313,7 +313,7 @@ void RAISE_EXCEPTION_WITH_TRACEBACK(PyThreadState *tstate, PyObject **exception_
     CHECK_OBJECT(*exception_value);
 
     if (*exception_tb == (PyTracebackObject *)Py_None) {
-        Py_DECREF(*exception_tb);
+        Py_DECREF_IMMORTAL(*exception_tb);
         *exception_tb = NULL;
     }
 

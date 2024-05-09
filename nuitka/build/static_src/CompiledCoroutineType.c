@@ -124,7 +124,7 @@ static PyObject *Nuitka_Coroutine_get_cr_await(struct Nuitka_CoroutineObject *co
         Py_INCREF(coroutine->m_yield_from);
         return coroutine->m_yield_from;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -154,7 +154,7 @@ static PyObject *Nuitka_Coroutine_get_frame(struct Nuitka_CoroutineObject *corou
         Py_INCREF(coroutine->m_frame);
         return (PyObject *)coroutine->m_frame;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -222,7 +222,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         struct Nuitka_CoroutineObject *yieldfrom_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yield_from)->m_coroutine;
 
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
 
         struct Nuitka_ExceptionPreservationItem no_exception_state;
         INIT_ERROR_OCCURRED_STATE(&no_exception_state);
@@ -245,7 +245,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
         if (error == NULL) {
-            Py_INCREF(Py_None);
+            Py_INCREF_IMMORTAL(Py_None);
             *returned_value = Py_None;
         } else if (likely(EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration))) {
             // The sub-generator has given an exception. In case of
@@ -668,7 +668,7 @@ static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine
     if (unlikely(r == false)) {
         return NULL;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }

@@ -124,7 +124,7 @@ static PyObject *Nuitka_Asyncgen_get_ag_await(struct Nuitka_AsyncgenObject *asyn
         Py_INCREF(asyncgen->m_yield_from);
         return asyncgen->m_yield_from;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -154,7 +154,7 @@ static PyObject *Nuitka_Asyncgen_get_frame(struct Nuitka_AsyncgenObject *asyncge
         Py_INCREF(asyncgen->m_frame);
         return (PyObject *)asyncgen->m_frame;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -1640,7 +1640,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
 static PyObject *Nuitka_AsyncgenAsend_close(struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args) {
     asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -2047,7 +2047,7 @@ static PyObject *Nuitka_AsyncgenAthrow_tp_iternext(struct Nuitka_AsyncgenAthrowO
 static PyObject *Nuitka_AsyncgenAthrow_close(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
     asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 

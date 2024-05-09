@@ -311,7 +311,7 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *funct
     if (function->m_closure_given > 0) {
         return MAKE_TUPLE((PyObject *const *)function->m_closure, function->m_closure_given);
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -525,10 +525,10 @@ static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *functio
     assert(_PyObject_GC_IS_TRACKED(function));
 
     if (unlikely(value == NULL || !PyTuple_Check(value))) {
-    PyThreadState *tstate = PyThreadState_GET();
+        PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__type_params__ must be set to a tuple");
-    return -1;
+        return -1;
     }
 
     Py_SETREF(function->m_type_params, Py_NewRef(value));
@@ -1258,7 +1258,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #endif
 
     if (defaults == NULL) {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         defaults = Py_None;
     }
     CHECK_OBJECT(defaults);
