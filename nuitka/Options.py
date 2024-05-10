@@ -1152,6 +1152,14 @@ console window for deployment.
             mnemonic="old-python-windows-console",
         )
 
+    if shallMakeModule() and (getForcedStderrPath() or getForcedStdoutPath()):
+        Tracing.general.warning(
+            """\
+Extension modules do not control process outputs, therefore the \
+options '--force-stdout-spec' and '--force-stderr-spec' have no \
+impact and should not be specified."""
+        )
+
     if shallMakeModule() and options.console_mode is not None:
         Tracing.general.warning(
             """\
