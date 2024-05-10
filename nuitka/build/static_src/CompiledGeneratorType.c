@@ -481,13 +481,11 @@ static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, cha
                         &new_exception_state.exception_tb);
 #endif
 
-#if PYTHON_VERSION < 0x3c0
     Py_INCREF(saved_exception_state.exception_value);
     RAISE_EXCEPTION_WITH_CAUSE_STATE(tstate, &new_exception_state, saved_exception_state.exception_value);
 
     Py_INCREF(saved_exception_state.exception_value);
     PyException_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
-#endif
 
     RELEASE_ERROR_OCCURRED_STATE_X(&saved_exception_state);
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
