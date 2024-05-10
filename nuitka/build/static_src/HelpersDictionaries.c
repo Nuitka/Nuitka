@@ -185,6 +185,12 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #endif
 }
 
+#if PYTHON_VERSION >= 0x3c0
+static PyObject *Nuitka_CreateKeyError(PyObject *key) {
+    return (PyObject *)Nuitka_BaseExceptionSingleArg_new((PyTypeObject *)PyExc_KeyError, key);
+}
+#endif
+
 static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key) {
 #if PYTHON_VERSION < 0x3c0
     /* Wrap all kinds of tuples, because normalization will later unwrap
@@ -199,9 +205,9 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
         SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_KeyError, key);
     }
 #else
-    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_KeyError, key);
+    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateKeyError(key)};
 
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_KeyError, exception_value);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
 #endif
 }
 
