@@ -878,10 +878,10 @@ static bool _Nuitka_Generator_check_throw_args(PyThreadState *tstate, PyObject *
         }
 
         // Release old None value and replace it with the object, then set the exception type
-        // from the class.
+        // from the class. The "None" is known immortal here and needs no refcount correction.
         *exception_value = *exception_type;
         *exception_type = PyExceptionInstance_Class(*exception_type);
-
+        Py_INCREF(*exception_type);
     } else {
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "exceptions must be classes, or instances, not %s",

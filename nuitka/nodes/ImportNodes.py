@@ -499,6 +499,8 @@ class ExpressionImportModuleHard(
             full_name = ModuleName(hard_modules_aliases.get(full_name, full_name))
 
             if isHardModule(full_name):
+                trace_collection.onExceptionRaiseExit(BaseException)
+
                 new_node = ExpressionImportModuleHard(
                     using_module_name=self.using_module_name,
                     module_name=full_name,
