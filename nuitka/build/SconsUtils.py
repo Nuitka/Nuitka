@@ -18,7 +18,9 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     getFileContentByLine,
+    getFilenameExtension,
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
@@ -359,7 +361,7 @@ def addToPATH(env, dirname, prefix):
     setEnvironmentVariable(env, "PATH", os.pathsep.join(path_value))
 
 
-def writeSconsReport(env):
+def writeSconsReport(env, target):
     with openTextFile(
         _getSconsReportFilename(env.source_dir), "w", encoding="utf8"
     ) as report_file:
@@ -390,6 +392,7 @@ def writeSconsReport(env):
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
         print("PATH=%s" % os.environ["PATH"], file=report_file)
+        print("TARGET=%s" % target[0].abspath, file=report_file)
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
@@ -623,6 +626,11 @@ def scanSourceDir(env, dirname, plugins):
 
         if isWin32Windows() and not isFilesystemEncodable(filename_base):
             target_filename = getWindowsShortPathName(target_filename)
+
+            # Avoid ".C" suffixes, that MinGW64 wouldn't recognize.
+            target_filename = changeFilenameExtension(
+                target_filename, getFilenameExtension(target_filename).lower()
+            )
 
         # We pretend to use C++ if no C11 compiler is present.
         if env.c11_mode:

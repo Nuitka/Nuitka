@@ -81,7 +81,7 @@ void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_si
     *target = 0;
 }
 
-void appendCharSafeW(wchar_t *target, char c, size_t buffer_size) {
+void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
     while (*target != 0) {
         target++;
         buffer_size -= 1;
@@ -91,10 +91,20 @@ void appendCharSafeW(wchar_t *target, char c, size_t buffer_size) {
         abort();
     }
 
-    target += wcslen(target);
+    *target++ = c;
+    *target = 0;
+}
+
+void appendCharSafeW(wchar_t *target, char c, size_t buffer_size) {
     char buffer_c[2] = {c, 0};
-    NUITKA_MAY_BE_UNUSED size_t res = mbstowcs(target, buffer_c, 2);
-    assert(res == 1);
+    wchar_t wide_buffer_c[2];
+
+    size_t res = mbstowcs(wide_buffer_c, buffer_c, 2);
+    if (res != 1) {
+        abort();
+    }
+
+    appendWCharSafeW(target, wide_buffer_c[0], buffer_size);
 }
 
 void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) {

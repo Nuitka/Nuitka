@@ -265,6 +265,7 @@
         "pkglib",
         "Podman",
         "POSIX",
+        "punycode",
         "Py_DECREF",
         "Py_INCREF",
         "PY_NOGIL",

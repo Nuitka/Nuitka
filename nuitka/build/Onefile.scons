@@ -536,7 +536,7 @@ if env.gcc_mode:
         env=env,
     )
 
-writeSconsReport(env)
+writeSconsReport(env=env, target=target)
 
 setSconsProgressBarTotal(name="Onefile", total=len(source_files))
 
