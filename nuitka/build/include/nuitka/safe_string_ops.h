@@ -19,6 +19,7 @@ extern void appendStringSafe(char *target, char const *source, size_t buffer_siz
 
 /* Safe to use functions to append a wide char string, will abort program for overflow. */
 extern void appendCharSafeW(wchar_t *target, char c, size_t buffer_size);
+extern void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size);
 extern void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size);
 extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 

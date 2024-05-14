@@ -115,6 +115,10 @@ extern PyObject **global_constants;
 #define const_str_plain_classmethod global_constants[36]
 // 'name'
 #define const_str_plain_name global_constants[37]
+// 'ascii'
+#define const_str_plain_ascii global_constants[37]
+// 'punycode'
+#define const_str_plain_punycode global_constants[37]
 // 'globals'
 #define const_str_plain_globals global_constants[38]
 // 'locals'

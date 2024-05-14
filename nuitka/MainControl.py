@@ -569,7 +569,6 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
 
     options = {
-        "result_name": OutputDirectories.getResultBasePath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
@@ -692,7 +691,9 @@ def runSconsBackend():
         options["abiflags"] = abiflags
 
     if Options.shallMakeModule():
-        options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
+        options["result_exe"] = OutputDirectories.getResultBasePath(
+            onefile=False
+        ) + getSharedLibrarySuffix(preferred=True)
 
     link_module_libs = getModuleLinkerLibs()
     if link_module_libs:
