@@ -461,9 +461,11 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     PGO_onModuleExit("%(module_identifier)s", false);
 
 #if defined(_NUITKA_MODULE) && %(is_top)d
-    PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
-    if (post_load == NULL) {
-        return NULL;
+    {
+        PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
+        if (post_load == NULL) {
+            return NULL;
+        }
     }
 #endif
 
