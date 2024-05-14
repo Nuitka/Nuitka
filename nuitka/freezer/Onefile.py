@@ -61,7 +61,6 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     Plugins.writeExtraCodeFiles(onefile=True)
 
     options = {
-        "result_name": OutputDirectories.getResultBasePath(onefile=True),
         "result_exe": OutputDirectories.getResultFullpath(onefile=True),
         "source_dir": source_dir,
         "debug_mode": asBoolStr(Options.is_debug),
