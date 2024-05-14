@@ -22,6 +22,9 @@
 #ifdef _WIN32
 #undef SEP
 #define SEP '\\'
+#define SEP_L L'\\'
+#else
+#define SEP_L SEP
 #endif
 
 #ifdef _WIN32
@@ -66,6 +69,7 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
     // Skip to the end
     while (*buffer != 0) {
         buffer++;
+        buffer_size -= 1;
     }
 
     while (*module_name) {
@@ -90,20 +94,17 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
 
 #if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 
-static void appendModuleNameAsPathW(wchar_t *buffer, char const *module_name, size_t buffer_size) {
-    // Skip to the end
-    while (*buffer != 0) {
-        buffer++;
-    }
+static void appendModuleNameAsPathW(wchar_t *buffer, PyObject *module_name, size_t buffer_size) {
+    wchar_t const *module_name_wstr = PyUnicode_AsWideCharString(module_name, NULL);
 
-    while (*module_name) {
-        char c = *module_name++;
+    while (*module_name_wstr != 0) {
+        wchar_t c = *module_name_wstr++;
 
-        if (c == '.') {
-            c = SEP;
+        if (c == L'.') {
+            c = SEP_L;
         }
 
-        appendCharSafeW(buffer, c, buffer_size);
+        appendWCharSafeW(buffer, c, buffer_size);
     }
 }
 #endif
@@ -458,11 +459,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     return result;
 }
 
-#ifdef _WIN32
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const wchar_t *filename);
-#else
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const char *filename);
-#endif
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename);
 
 static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObject *module_name,
                                                   PyObject *extension_module_filename) {
@@ -638,11 +635,46 @@ typedef PyObject *(*entrypoint_t)(void);
 static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package);
 #endif
 
-#ifdef _WIN32
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const wchar_t *filename) {
+static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char *buffer, size_t buffer_size,
+                                                     char const *name) {
+
+#if PYTHON_VERSION >= 0x350
+    PyObject *name_bytes_obj = PyBytes_FromString(name);
+    PyObject *name_obj = BYTES_DECODE2(tstate, name_bytes_obj, Nuitka_String_FromString("utf8"));
+    Py_DECREF(name_bytes_obj);
+
+    PyObject *name_ascii = UNICODE_ENCODE2(tstate, name_obj, const_str_plain_ascii);
+
+    if (name_ascii == NULL) {
+        DROP_ERROR_OCCURRED(tstate);
+
+        PyObject *name_punycode = UNICODE_ENCODE2(tstate, name_obj, const_str_plain_punycode);
+
+        CHECK_OBJECT(name_punycode);
+
+        snprintf(buffer, buffer_size, "PyInitU_%s", PyBytes_AsString(name_punycode));
+
+        Py_DECREF(name_punycode);
+    } else {
+        Py_DECREF(name_ascii);
+
+        snprintf(buffer, buffer_size, "PyInit_%s", name);
+    }
+    Py_DECREF(name_obj);
 #else
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const char *filename) {
+
+    snprintf(buffer, buffer_size,
+#if PYTHON_VERSION < 0x300
+             "init%s",
+#else
+             "PyInit_%s",
 #endif
+             name);
+#endif
+}
+
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name,
+                                         const filename_char_t *filename) {
     // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
@@ -658,13 +690,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     }
 
     char entry_function_name[1024];
-    snprintf(entry_function_name, sizeof(entry_function_name),
-#if PYTHON_VERSION < 0x300
-             "init%s",
-#else
-             "PyInit_%s",
-#endif
-             name);
+    _fillExtensionModuleDllEntryFunctionName(tstate, entry_function_name, sizeof(entry_function_name), name);
 
 #ifdef _WIN32
     if (isVerbose()) {
@@ -701,15 +727,18 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
-                          error_code);
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
+                                    error_code);
+
+            assert(ret >= 0);
         } else {
             // Strip trailing newline.
             if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
                 size -= 2;
                 error_message[size] = '\0';
             }
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
+            assert(ret >= 0);
         }
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, buffer);
@@ -984,7 +1013,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
 
         appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), sizeof(filename) / sizeof(wchar_t));
         appendCharSafeW(filename, SEP, sizeof(filename) / sizeof(wchar_t));
-        appendModuleNameAsPathW(filename, entry->name, sizeof(filename) / sizeof(wchar_t));
+        appendModuleNameAsPathW(filename, module_name, sizeof(filename) / sizeof(wchar_t));
         appendStringSafeW(filename, ".pyd", sizeof(filename) / sizeof(wchar_t));
 #else
         char filename[MAXPATHLEN + 1] = {0};

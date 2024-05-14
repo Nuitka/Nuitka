@@ -210,6 +210,7 @@ def _detectEarlyImports():
         "base64_codec",
         "hex_codec",
         "rot_13",
+        "punycode",
     ):
         if non_locale_encoding in encoding_names:
             encoding_names.remove(non_locale_encoding)

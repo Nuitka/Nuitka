@@ -182,6 +182,10 @@ def getConstantDefaultPopulation():
         # Patching the types module.
         result.append("types")
 
+        # Converting module names
+        result.append("ascii")
+        result.append("punycode")
+
     if not Options.shallMakeModule():
         result.append("__main__")
 
