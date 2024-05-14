@@ -90,9 +90,19 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 
 extern PyTypeObject Nuitka_Frame_Type;
 
-static inline bool Nuitka_Frame_Check(PyObject *object) {
+static inline bool Nuitka_Frame_CheckExact(PyObject *object) {
     CHECK_OBJECT(object);
     return Py_TYPE(object) == &Nuitka_Frame_Type;
+}
+
+static inline bool Nuitka_Frame_Check(PyObject *object) {
+    CHECK_OBJECT(object);
+
+    if (Nuitka_Frame_CheckExact(object)) {
+        return true;
+    }
+
+    return strcmp(Py_TYPE(object)->tp_name, "compiled_frame") == 0;
 }
 
 struct Nuitka_FrameObject {

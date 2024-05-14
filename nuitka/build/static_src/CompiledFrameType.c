@@ -37,7 +37,7 @@ static PyMemberDef Nuitka_Frame_memberlist[] = {
 #if PYTHON_VERSION < 0x300
 
 static PyObject *Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -52,7 +52,7 @@ static PyObject *Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame
 }
 
 static int Nuitka_Frame_set_exc_traceback(struct Nuitka_FrameObject *frame, PyObject *traceback) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -69,7 +69,7 @@ static int Nuitka_Frame_set_exc_traceback(struct Nuitka_FrameObject *frame, PyOb
 }
 
 static PyObject *Nuitka_Frame_get_exc_type(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -86,7 +86,7 @@ static PyObject *Nuitka_Frame_get_exc_type(struct Nuitka_FrameObject *frame) {
 }
 
 static int Nuitka_Frame_set_exc_type(struct Nuitka_FrameObject *frame, PyObject *exception_type) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -105,7 +105,7 @@ static int Nuitka_Frame_set_exc_type(struct Nuitka_FrameObject *frame, PyObject 
 }
 
 static PyObject *Nuitka_Frame_get_exc_value(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -122,7 +122,7 @@ static PyObject *Nuitka_Frame_get_exc_value(struct Nuitka_FrameObject *frame) {
 }
 
 static int Nuitka_Frame_set_exc_value(struct Nuitka_FrameObject *frame, PyObject *exception_value) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -140,7 +140,7 @@ static int Nuitka_Frame_set_exc_value(struct Nuitka_FrameObject *frame, PyObject
 }
 
 static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -151,7 +151,7 @@ static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, v
 #endif
 
 static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)nuitka_frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)nuitka_frame));
     CHECK_OBJECT((PyObject *)nuitka_frame);
     assert(_PyObject_GC_IS_TRACKED(nuitka_frame));
 
@@ -236,7 +236,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
 }
 
 static PyObject *Nuitka_Frame_getlineno(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -244,7 +244,7 @@ static PyObject *Nuitka_Frame_getlineno(struct Nuitka_FrameObject *frame, void *
 }
 
 static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -254,7 +254,7 @@ static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *c
 }
 
 static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -266,7 +266,7 @@ static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, 
 
 #if PYTHON_VERSION >= 0x370
 static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -276,7 +276,7 @@ static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, vo
 }
 
 static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -287,7 +287,7 @@ static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject
 }
 
 static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -297,7 +297,7 @@ static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, 
 }
 
 static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -310,7 +310,7 @@ static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObje
 
 #if PYTHON_VERSION >= 0x3b0
 static PyObject *Nuitka_Frame_getback(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -339,7 +339,7 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-    assert(Nuitka_Frame_Check((PyObject *)nuitka_frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)nuitka_frame));
     CHECK_OBJECT((PyObject *)nuitka_frame);
     assert(_PyObject_GC_IS_TRACKED(nuitka_frame));
 
@@ -471,7 +471,7 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 }
 
 static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -541,7 +541,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 #if PYTHON_VERSION >= 0x340
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -623,7 +623,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
 #endif
 
 static inline Py_ssize_t Nuitka_Frame_GetSize(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -635,7 +635,7 @@ static inline Py_ssize_t Nuitka_Frame_GetSize(struct Nuitka_FrameObject *frame) 
 }
 
 static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame) {
-    assert(Nuitka_Frame_Check((PyObject *)frame));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
@@ -800,7 +800,13 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     result->m_interpreter_frame.frame_obj = &result->m_frame;
     result->m_interpreter_frame.owner = 0;
     result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
+#if PYTHON_VERSION >= 0x3c0
+    result->m_interpreter_frame.f_funcobj = NULL;
+#else
+    result->m_interpreter_frame.f_func = NULL;
+#endif
     result->m_frame.f_frame = &result->m_interpreter_frame;
+
 #endif
 
     Nuitka_GC_Track(result);
@@ -980,7 +986,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 }
 
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char const *type_description, ...) {
-    assert(Nuitka_Frame_Check((PyObject *)frame_object));
+    assert(Nuitka_Frame_CheckExact((PyObject *)frame_object));
     CHECK_OBJECT((PyObject *)frame_object);
     assert(_PyObject_GC_IS_TRACKED(frame_object));
     assertFrameObject(frame_object);
