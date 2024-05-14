@@ -14,6 +14,7 @@ from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isShowProgress
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
@@ -99,7 +100,7 @@ def _getScanDirectories(package_name, original_dir):
     if cache_key in _scan_dir_cache:
         return _scan_dir_cache[cache_key]
 
-    scan_dirs = [sys.prefix]
+    scan_dirs = [getSystemPrefixPath()]
 
     if package_name is not None:
         scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
