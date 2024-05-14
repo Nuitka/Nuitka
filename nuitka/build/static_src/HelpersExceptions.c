@@ -116,14 +116,14 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
 
     // Normalize the exception from class to instance
     if (PyExceptionClass_Check(type)) {
-        PyObject *inclass = NULL;
+        PyObject *instance_class = NULL;
 
         int is_subclass = 0;
 
         if (PyExceptionInstance_Check(value)) {
-            inclass = PyExceptionInstance_Class(value);
+            instance_class = PyExceptionInstance_Class(value);
 
-            is_subclass = PyObject_IsSubclass(inclass, type);
+            is_subclass = PyObject_IsSubclass(instance_class, type);
 
             if (is_subclass < 0) {
                 goto error;
@@ -141,12 +141,12 @@ void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObje
 
             Py_DECREF(value);
             value = fixed_value;
-        } else if (inclass != type) {
+        } else if (instance_class != type) {
             // Switch to given type then
-            Py_INCREF(inclass);
+            Py_INCREF(instance_class);
             Py_DECREF(type);
 
-            type = inclass;
+            type = instance_class;
         }
     }
 
