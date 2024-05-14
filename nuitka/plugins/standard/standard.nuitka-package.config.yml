@@ -5290,6 +5290,13 @@
         support_info: 'warning'
         when: 'not use_numba and standalone'
 
+- module-name: 'sparse._coo.core' # checksum: 6ac5aa4f
+  anti-bloat:
+    - description: 'remove dask reference'
+      no-auto-follow:
+        'dask': 'ignore'
+      when: 'not use_dask'
+
 - module-name: 'speech_recognition' # checksum: 1b8b6249
   dlls:
     - from_filenames:

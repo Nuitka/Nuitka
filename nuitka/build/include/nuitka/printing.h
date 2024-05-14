@@ -39,7 +39,7 @@ extern void PRINT_TRACEBACK(PyTracebackObject *traceback);
 extern void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb);
 #else
 #define PRINT_EXCEPTION(exception_type, exception_value, exception_tb) _PRINT_EXCEPTION(exception_value)
-#define PRINT_EXCEPTION_STATE(exception_state) _PRINT_EXCEPTION(exception_state->exception_value)
+#define PRINT_EXCEPTION_STATE(exception_state) _PRINT_EXCEPTION((exception_state)->exception_value)
 extern void _PRINT_EXCEPTION(PyObject *exception_value);
 #endif
 

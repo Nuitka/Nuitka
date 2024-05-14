@@ -652,9 +652,7 @@ branches.""",
             yes_branch = branch_yes_collection.computeBranch(branch=yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if yes_branch is None:
-                branch_yes_collection = None
-            elif yes_branch.isStatementAborting():
+            if yes_branch is not None and yes_branch.isStatementAborting():
                 branch_yes_collection = None
                 needs_merge = False
         else:
@@ -669,9 +667,7 @@ branches.""",
             no_branch = branch_no_collection.computeBranch(branch=no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if no_branch is None:
-                branch_no_collection = None
-            elif no_branch.isStatementAborting():
+            if no_branch is not None and no_branch.isStatementAborting():
                 branch_no_collection = None
                 needs_merge = False
         else:
