@@ -30,15 +30,13 @@ extern void *python_mem_ctx;
 extern void initNuitkaAllocators(void);
 
 // Our version of "PyObject_Malloc".
-NUITKA_MAY_BE_UNUSED static PyObject *NuitkaObject_Malloc(size_t size) {
-    return python_obj_malloc(python_obj_ctx, size);
-}
+NUITKA_MAY_BE_UNUSED static void *NuitkaObject_Malloc(size_t size) { return python_obj_malloc(python_obj_ctx, size); }
 
 // Our version of "PyMem_Malloc".
-NUITKA_MAY_BE_UNUSED static PyObject *NuitkaMem_Malloc(size_t size) { return python_mem_malloc(python_mem_ctx, size); }
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Malloc(size_t size) { return python_mem_malloc(python_mem_ctx, size); }
 
 // Our version of "PyMem_Calloc".
-NUITKA_MAY_BE_UNUSED static PyObject *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) {
     return python_mem_calloc(python_mem_ctx, nelem, elsize);
 }
 
