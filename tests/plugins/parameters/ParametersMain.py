@@ -6,6 +6,7 @@
 """
 
 # nuitka-project: --user-plugin={MAIN_DIRECTORY}/parameter-using-plugin.py
+# nuitka-project: --trace-my-plugin
 # nuitka-project: --follow-imports
 
 from __future__ import print_function

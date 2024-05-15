@@ -40,8 +40,6 @@ def main():
 
     search_mode = createSearchMode()
 
-    extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
-
     # TODO: Add a directory test case scanner instead of duplicating this kind of code.
     for filename in sorted(os.listdir(".")):
         if (
@@ -57,11 +55,6 @@ def main():
 
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("remove_output")
-
-        if filename == "parameters":
-            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + " --trace-my-plugin"
-        else:
-            os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
         active = search_mode.consider(dirname=None, filename=filename)
 
