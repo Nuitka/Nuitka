@@ -44,9 +44,7 @@
 #include "stdbool.h"
 #endif
 
-#if defined(_WIN32)
-#include <imagehlp.h>
-#else
+#if !defined(_WIN32)
 #include <dirent.h>
 #include <signal.h>
 #include <sys/stat.h>
