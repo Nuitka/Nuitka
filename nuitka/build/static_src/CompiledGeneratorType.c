@@ -110,13 +110,15 @@ static void Nuitka_MarkGeneratorAsNotRunning(struct Nuitka_GeneratorObject *gene
 }
 
 static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generator) {
-    return Nuitka_String_FromFormat("<compiled_generator object %s at %p>",
-#if PYTHON_VERSION < 0x350
-                                    Nuitka_String_AsString(generator->m_name),
-#else
-                                    Nuitka_String_AsString(generator->m_qualname),
-#endif
+#if PYTHON_VERSION < 0x300
+    return Nuitka_String_FromFormat("<compiled_generator object %s at %p>", Nuitka_String_AsString(generator->m_name),
                                     generator);
+#elif PYTHON_VERSION < 0x350
+    return Nuitka_String_FromFormat("<compiled_generator object %U at %p>", generator->m_name, generator);
+
+#else
+    return Nuitka_String_FromFormat("<compiled_generator object %U at %p>", generator->m_qualname, generator);
+#endif
 }
 
 static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generator, visitproc visit, void *arg) {
