@@ -45,13 +45,11 @@ static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function)
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
-    return Nuitka_String_FromFormat("<compiled_function %s at %p>",
 #if PYTHON_VERSION < 0x300
-                                    Nuitka_String_AsString(function->m_name),
+    return Nuitka_String_FromFormat("<compiled_function %s at %p>", Nuitka_String_AsString(function->m_name), function);
 #else
-                                    Nuitka_String_AsString(function->m_qualname),
+    return Nuitka_String_FromFormat("<compiled_function %U at %p>", function->m_qualname, function);
 #endif
-                                    function);
 }
 
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {

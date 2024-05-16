@@ -46,13 +46,17 @@ void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_
     *exception_type = PyExc_UnboundLocalError;
     Py_INCREF(*exception_type);
 
-#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION < 0x300
     char const *message = "local variable '%s' referenced before assignment";
+    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
+#elif PYTHON_VERSION < 0x3b0
+    char const *message = "local variable '%U' referenced before assignment";
+    *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #else
-    char const *message = "cannot access local variable '%s' where it is not associated with a value";
+    char const *message = "cannot access local variable '%U' where it is not associated with a value";
+    *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #endif
 
-    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
     CHECK_OBJECT(*exception_value);
 }
 
@@ -181,9 +185,12 @@ error:
 
 // Raise NameError for a given variable name.
 void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
+#if PYTHON_VERSION >= 0x300
+    PyObject *exception_value_str = Nuitka_String_FromFormat("name '%U' is not defined", variable_name);
+#else
     PyObject *exception_value_str =
         Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-
+#endif
     PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
     Py_DECREF(exception_value_str);
 
@@ -197,9 +204,12 @@ void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_
 // Raise NameError with "global" for a given variable name.
 #if PYTHON_VERSION < 0x340
 void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
+#if PYTHON_VERSION >= 0x300
+    PyObject *exception_value_str = Nuitka_String_FromFormat("global name '%U' is not defined", variable_name);
+#else
     PyObject *exception_value_str =
         Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-
+#endif
     PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
     Py_DECREF(exception_value_str);
 

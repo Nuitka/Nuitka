@@ -272,8 +272,15 @@ NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObje
 #define PyUnicode_UTF8(op)                                                                                             \
     (assert(PyUnicode_IS_READY(op)),                                                                                   \
      PyUnicode_IS_COMPACT_ASCII(op) ? ((char *)((PyASCIIObject *)(op) + 1)) : _PyUnicode_UTF8(op))
+#ifdef __NUITKA_NO_ASSERT__
 #define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
-
+#else
+NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObject *object) {
+    char const *result = PyUnicode_UTF8(object);
+    assert(result != NULL);
+    return result;
+}
+#endif
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringOrUnicode_CheckExact PyUnicode_CheckExact
