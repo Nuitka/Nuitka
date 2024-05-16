@@ -25,7 +25,7 @@ def checkIconUsage(logger, icon_path):
         except ImportError:
             logger.sysexit(
                 """\
-Need to install 'imageio' to let automatically convert the non native \
+Need to install 'imageio' to automatically convert the non native \
 icon image (%s) in file in '%s'."""
                 % (icon_format[1:].upper(), icon_path)
             )

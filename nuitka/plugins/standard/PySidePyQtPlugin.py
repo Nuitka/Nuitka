@@ -406,6 +406,7 @@ import %(binding_name)s.QtCore
             ".mesh",
             ".frag",
             "qmldir",
+            ".webp",
         )
 
         if dlls:

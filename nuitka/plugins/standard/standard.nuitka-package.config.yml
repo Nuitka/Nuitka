@@ -3755,11 +3755,19 @@
     - depends:
         - 'pymssql._mssql'
 
-- module-name: 'pyocd' # checksum: 5c06f0b9
+- module-name: 'pyocd' # checksum: f450220c
   data-files:
     patterns:
       - 'debug/sequences/*.lark'
       - 'debug/svd/*.zip'
+    include-metadata:
+      - 'pyocd'
+  implicit-imports:
+    - depends:
+        - 'pyocd.probe.*'
+        - 'pyocd.rtos.*'
+        - 'pylink-square'
+        - 'pyusb'
 
 - module-name: 'pyodbc' # checksum: 893567d5
   implicit-imports:
@@ -4010,7 +4018,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: 87cc98d8
+- module-name: 'PySide6' # checksum: a87b6b1
   implicit-imports:
     - post-import-code:
         - |
@@ -4061,6 +4069,8 @@
         - 'libqpdf'
         - 'libqtquick3dhelpersimplplugin'
         - 'libquick3dspatialaudioplugin'
+        - 'libqtvkbcomponentsplugin'
+        - 'libqtvkbsettingsplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
