@@ -1169,20 +1169,31 @@ not be specified."""
         )
 
     if options.disable_console in (True, False):
-        Tracing.general.warning(
-            """\
+        if isWin32Windows():
+            Tracing.general.warning(
+                """\
 The old console option '%s' should not be given anymore, use '%s' \
 instead. It also has the extra mode 'attach' to consider."""
-            % (
-                (
+                % (
+                    (
+                        "--disable-console"
+                        if options.disable_console
+                        else "--enable-console"
+                    ),
+                    "--windows-console-module=%s"
+                    % ("force" if options.disable_console else "disable"),
+                )
+            )
+        else:
+            Tracing.general.warning(
+                """The old console option '%s' should not be given anymore, and doesn't
+have any effect anymore on non-Windows."""
+                % (
                     "--disable-console"
                     if options.disable_console
                     else "--enable-console"
-                ),
-                "--windows-console-module=%s"
-                % ("force" if options.disable_console else "disable"),
+                )
             )
-        )
 
 
 def isVerbose():
