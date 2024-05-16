@@ -431,8 +431,12 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
 // Raise NameError for a given variable name.
 void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name, PyObject **exception_type,
                                         PyObject **exception_value) {
+#if PYTHON_VERSION < 0x300
     PyObject *exception_value_str =
         Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
+#else
+    PyObject *exception_value_str = Nuitka_String_FromFormat("name '%U' is not defined", variable_name);
+#endif
 
     *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
     Py_DECREF(exception_value_str);
@@ -448,9 +452,12 @@ void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variabl
 #if PYTHON_VERSION < 0x340
 void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
                                                PyObject **exception_type, PyObject **exception_value) {
+#if PYTHON_VERSION < 0x300
     PyObject *exception_value_str =
         Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-
+#else
+    PyObject *exception_value_str = Nuitka_String_FromFormat("global name '%U' is not defined", variable_name);
+#endif
     *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
     Py_DECREF(exception_value_str);
 

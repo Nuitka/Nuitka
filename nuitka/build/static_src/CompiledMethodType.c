@@ -323,13 +323,13 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
 #endif
 
 #if PYTHON_VERSION < 0x350
-        PyObject *result = Nuitka_String_FromFormat(
-            "<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
-            Nuitka_String_AsString(method->m_function->m_name), Nuitka_String_AsString_Unchecked(object_repr));
+        PyObject *result =
+            Nuitka_String_FromFormat("<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
+                                     Nuitka_String_AsString_Unchecked(method->m_function->m_name),
+                                     Nuitka_String_AsString_Unchecked(object_repr));
 #else
-        PyObject *result = PyUnicode_FromFormat("<bound compiled_method %s of %s>",
-                                                Nuitka_String_AsString(method->m_function->m_qualname),
-                                                Nuitka_String_AsString_Unchecked(object_repr));
+        PyObject *result =
+            PyUnicode_FromFormat("<bound compiled_method %U of %U>", method->m_function->m_qualname, object_repr);
 #endif
 
         Py_DECREF(object_repr);
