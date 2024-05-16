@@ -1139,7 +1139,7 @@ to work."""
     if (
         isWin32Windows()
         and 0x340 <= python_version < 0x380
-        and not getWindowsConsoleMode() != "disable"
+        and getWindowsConsoleMode() != "disable"
     ):
         Tracing.general.warning(
             """\
