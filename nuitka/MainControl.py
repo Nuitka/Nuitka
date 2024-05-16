@@ -760,7 +760,7 @@ def runSconsBackend():
     return result
 
 
-def callExecPython(args, add_path):
+def callExecPython(args, add_path, uac):
     if add_path:
         if "PYTHONPATH" in os.environ:
             os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
@@ -770,7 +770,7 @@ def callExecPython(args, add_path):
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
-    callExecProcess(args)
+    callExecProcess(args, uac=uac)
 
 
 def _executeMain(binary_filename):
@@ -780,7 +780,11 @@ def _executeMain(binary_filename):
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(add_path=False, args=args)
+    callExecPython(
+        args=args,
+        add_path=False,
+        uac=isWin32Windows() and Options.shallAskForWindowsAdminRights(),
+    )
 
 
 def _executeModule(tree):
@@ -825,7 +829,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
     else:
         args = (sys.executable, "python", "-c", python_command)
 
-    callExecPython(add_path=True, args=args)
+    callExecPython(args=args, add_path=True, uac=False)
 
 
 def compileTree():
