@@ -13,7 +13,7 @@ import os
 import sys
 
 
-def callExecProcess(args):
+def callExecProcess(args, uac):
     """Do exec in a portable way preserving exit code.
 
     On Windows, unfortunately there is no real exec, so we have to spawn
@@ -33,7 +33,7 @@ def callExecProcess(args):
 
         try:
             # Context manager is not available on all Python versions, pylint: disable=consider-using-with
-            process = subprocess.Popen(args=args)
+            process = subprocess.Popen(args=args, shell=uac)
             process.communicate()
             # No point in cleaning up, just exit the hard way.
             try:
@@ -46,6 +46,10 @@ def callExecProcess(args):
             # There was a more relevant stack trace already, so abort this
             # right here.
             os._exit(2)
+        except OSError as e:
+            print("Error, executing: %s" % e)
+            os._exit(2)
+
     else:
         # The star arguments is the API of execl
         os.execl(*args)
@@ -120,7 +124,7 @@ def reExecuteNuitka(pgo_filename):
     os.environ["NUITKA_REEXECUTION"] = "1"
 
     # Does not return:
-    callExecProcess(args)
+    callExecProcess(args, uac=False)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
