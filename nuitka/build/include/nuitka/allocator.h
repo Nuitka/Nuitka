@@ -272,6 +272,10 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
     return op;
 }
 
+static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
+    return object == NULL || _PyObject_GC_IS_TRACKED(object);
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
