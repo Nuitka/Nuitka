@@ -1882,7 +1882,11 @@ def getLocalWebServerDir(base_dir):
     web_dir = os.path.join(getTempDir(), "local-web-server", base_dir)
 
     if _web_server_process is None:
-        web_server_directory_supporting_pythons = ("3.11", "3.10", "3.9", "3.8", "3.7")
+        web_server_directory_supporting_pythons = tuple(
+            python_version
+            for python_version in getTestExecutionPythonVersions()
+            if python_version not in ("3.6", "3.5", "3.4", "2.7", "2.6")
+        )
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
