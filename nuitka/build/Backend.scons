@@ -637,6 +637,9 @@ not satisfied!"""
                 % ("debug" if python_debug else "development", candidates)
             )
 
+    if python_version >= (3, 13):
+        yield os.path.join(candidate, "internal", "mimalloc")
+
     if env.self_compiled_python_uninstalled:
         yield python_prefix_external
 
