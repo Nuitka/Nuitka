@@ -96,6 +96,12 @@ static inline bool Nuitka_Frame_CheckExact(PyObject *object) {
 }
 
 static inline bool Nuitka_Frame_Check(PyObject *object) {
+    assert(object);
+
+    if (!_PyObject_GC_IS_TRACKED(object)) {
+        return false;
+    }
+
     CHECK_OBJECT(object);
 
     if (Nuitka_Frame_CheckExact(object)) {
@@ -178,6 +184,7 @@ inline static void assertPythonFrameObject(PyFrameObject *frame_object) {
     // TODO: Need to do this manually, as this is making frame caching code
     // vulnerable to mistakes, but so far the compiled frame type is private
     // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
+    CHECK_OBJECT(frame_object);
 
     CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(frame_object));
 }
@@ -272,8 +279,12 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadS
     interpreter_frame->previous = old;
     tstate->cframe->current_frame = interpreter_frame;
 
-    if (old != NULL && interpreter_frame->frame_obj) {
+    if (old != NULL && !_PyFrame_IsIncomplete(old) && interpreter_frame->frame_obj) {
+        assert(Nuitka_GC_IS_TRACKED_X((PyObject *)old->frame_obj));
+
         interpreter_frame->frame_obj->f_back = old->frame_obj;
+        CHECK_OBJECT_X(old->frame_obj);
+
         Py_XINCREF(old->frame_obj);
     }
 }
@@ -302,7 +313,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState 
 
     // Transfer ownership of old frame.
     if (old != NULL) {
-
         frame_object->f_back = old;
     }
 
@@ -356,9 +366,11 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
 
+    assert(Nuitka_GC_IS_TRACKED_X((PyObject *)frame_object->m_frame.f_back));
     CHECK_OBJECT_X(frame_object->m_frame.f_back);
     Py_CLEAR(frame_object->m_frame.f_back);
 
+    assert(Nuitka_GC_IS_TRACKED_X((PyObject *)frame_object));
     Py_DECREF(frame_object);
 
     frame_object->m_interpreter_frame.previous = NULL;
