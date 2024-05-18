@@ -31,6 +31,7 @@ def getSupportedPythonVersions():
         "3.9",
         "3.10",
         "3.11",
+        "3.12",
     )
 
 
@@ -42,7 +43,7 @@ def getNotYetSupportedPythonVersions():
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
 
-    return ("3.12",)
+    return ()
 
 
 def getZstandardSupportingVersions():
