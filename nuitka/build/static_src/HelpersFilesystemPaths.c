@@ -34,7 +34,8 @@
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
-const char *getExecutablePathOBSD(char *epath) {
+#if defined(__OpenBSD__)
+const char *_getBinaryPath2(char *epath) {
     int mib[4];
     char **argv;
     size_t len;
@@ -83,12 +84,15 @@ const char *getExecutablePathOBSD(char *epath) {
         free(xpath);
     }
 
+#if 0
     if (ok)
         *strrchr(epath, '/') = '\0';
+#endif
 
     free(argv);
     return ok ? epath : NULL;
 }
+#endif
 
 filename_char_t *getBinaryPath(void) {
     static filename_char_t binary_filename[MAXPATHLEN];
@@ -106,7 +110,7 @@ filename_char_t *getBinaryPath(void) {
         abort();
     }
 #elif defined(__OpenBSD__)
-    getExecutablePathOBSD(binary_filename);
+    _getBinaryPath2(binary_filename);
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
@@ -676,7 +680,7 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     // Resolve any symlinks we were invoked via
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 #elif defined(__OpenBSD__)
-    getExecutablePathOBSD(binary_filename_target);
+    _getBinaryPath2(binary_filename_target);
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
