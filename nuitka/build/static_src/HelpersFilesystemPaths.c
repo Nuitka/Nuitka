@@ -34,6 +34,62 @@
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
+const char *getExecutablePathOBSD(char *epath) {
+    int mib[4];
+    char **argv;
+    size_t len;
+    const char *comm;
+    int ok = 0;
+
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC_ARGS;
+    mib[2] = getpid();
+    mib[3] = KERN_PROC_ARGV;
+
+    if (sysctl(mib, 4, NULL, &len, NULL, 0) < 0)
+        abort();
+
+    if (!(argv = malloc(len)))
+        abort();
+
+    if (sysctl(mib, 4, argv, &len, NULL, 0) < 0)
+        abort();
+
+    comm = argv[0];
+
+    if (*comm == '/' || *comm == '.') {
+        if (realpath(comm, epath))
+            ok = 1;
+    } else {
+        char *sp;
+        char *xpath = strdup(getenv("PATH"));
+        char *path = strtok_r(xpath, ":", &sp);
+        struct stat st;
+
+        if (!xpath)
+            abort();
+
+        while (path) {
+            snprintf(epath, PATH_MAX, "%s/%s", path, comm);
+
+            if (!stat(epath, &st) && (st.st_mode & S_IXUSR)) {
+                ok = 1;
+                break;
+            }
+
+            path = strtok_r(NULL, ":", &sp);
+        }
+
+        free(xpath);
+    }
+
+    if (ok)
+        *strrchr(epath, '/') = '\0';
+
+    free(argv);
+    return ok ? epath : NULL;
+}
+
 filename_char_t *getBinaryPath(void) {
     static filename_char_t binary_filename[MAXPATHLEN];
 
@@ -49,7 +105,9 @@ filename_char_t *getBinaryPath(void) {
     if (res != 0) {
         abort();
     }
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__OpenBSD__)
+    getExecutablePathOBSD(binary_filename);
+#elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
      */
@@ -167,7 +225,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__)
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__)
 static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
@@ -617,8 +675,10 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 
     // Resolve any symlinks we were invoked via
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__OpenBSD__)
+    getExecutablePathOBSD(binary_filename_target);
+    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
+#elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
      */
