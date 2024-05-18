@@ -148,7 +148,11 @@ NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_Get
 
 // Uncompiled generator integration requires these.
 #if PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION >= 0x3d0
+#include <opcode_ids.h>
+#else
 #include <internal/pycore_opcode.h>
+#endif
 // Clashes with our helper names.
 #undef CALL_FUNCTION
 #endif
