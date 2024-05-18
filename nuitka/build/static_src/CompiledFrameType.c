@@ -433,6 +433,7 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     _PyInterpreterFrame *locals_owner = &nuitka_frame->m_interpreter_frame;
 #endif
 
+    assert(Nuitka_GC_IS_TRACKED_X((PyObject *)frame->f_back));
     Py_XDECREF(frame->f_back);
     Py_DECREF(locals_owner->f_builtins);
     Py_DECREF(locals_owner->f_globals);
@@ -807,6 +808,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #endif
     result->m_frame.f_frame = &result->m_interpreter_frame;
 
+    assert(!_PyFrame_IsIncomplete(&result->m_interpreter_frame));
 #endif
 
     Nuitka_GC_Track(result);

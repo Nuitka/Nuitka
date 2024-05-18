@@ -29,6 +29,8 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
         return NULL;
     }
 
+    CHECK_OBJECT(object);
+
     if (Nuitka_Generator_Check(object)) {
         struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)object;
 
@@ -117,8 +119,7 @@ static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", (PyCF
 static char *kw_list_depth[] = {(char *)"depth", NULL};
 
 static bool Nuitka_FrameIsCompiled(_PyInterpreterFrame *frame) {
-    return ((frame->frame_obj != NULL) && (Py_REFCNT(frame->frame_obj) > 0) &&
-            Nuitka_Frame_Check((PyObject *)frame->frame_obj));
+    return ((frame->frame_obj != NULL) && Nuitka_Frame_Check((PyObject *)frame->frame_obj));
 }
 
 static bool Nuitka_FrameIsIncomplete(_PyInterpreterFrame *frame) {
@@ -213,13 +214,11 @@ void patchInspectModule(PyThreadState *tstate) {
     old_getgeneratorstate = PyObject_GetAttrString(module_inspect, "getgeneratorstate");
     CHECK_OBJECT(old_getgeneratorstate);
 
-    if (PyFunction_Check(old_getgeneratorstate)) {
-        PyObject *inspect_getgeneratorstate_replacement =
-            PyCFunction_New(&_method_def_inspect_getgeneratorstate_replacement, NULL);
-        CHECK_OBJECT(inspect_getgeneratorstate_replacement);
+    PyObject *inspect_getgeneratorstate_replacement =
+        PyCFunction_New(&_method_def_inspect_getgeneratorstate_replacement, NULL);
+    CHECK_OBJECT(inspect_getgeneratorstate_replacement);
 
-        PyObject_SetAttrString(module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement);
-    }
+    PyObject_SetAttrString(module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement);
 
 #if PYTHON_VERSION >= 0x350
     // Patch "inspect.getcoroutinestate" unless it is already patched.

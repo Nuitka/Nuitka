@@ -599,7 +599,9 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             // assert(tstate->frame == &generator->m_frame->m_frame);
             assertFrameObject(generator->m_frame);
 
-            Py_CLEAR(generator->m_frame->m_frame.f_back);
+            if (generator->m_frame->m_frame.f_back) {
+                Py_CLEAR(generator->m_frame->m_frame.f_back);
+            }
         }
 
         // Return back to the frame that called us.
