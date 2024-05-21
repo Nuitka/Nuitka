@@ -326,11 +326,11 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 
 #endif
 
-// TODO: Disabled for NOGIL until it becomes more ready.
+// TODO: Disabled for Python 3.13 until it becomes more ready.
 // Not done for earlier versions yet, indicate usability for compiled
 // generators, but it seems that mostly coroutines need it anyway, so the
 // benefit would be only for performance and not by a lot.
-#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL)
+#if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x3d0
 #define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
 #endif
 
@@ -897,7 +897,12 @@ static void _Nuitka_PyFrame_Clear(PyThreadState *tstate, _PyInterpreterFrame *fr
 #else
     Py_DECREF(frame->f_funcobj);
 #endif
-    Py_DECREF(frame->f_code);
+
+#if PYTHON_VERSION < 0x3d0
+    Py_XDECREF(frame->f_code);
+#else
+    Py_XDECREF(frame->f_executable);
+#endif
 }
 #endif
 
@@ -954,7 +959,7 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     _PyFrame_StackPush(frame, result);
 
 #if PYTHON_VERSION < 0x3c0
-    frame->previous = tstate->cframe->current_frame;
+    frame->previous = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 #endif
 
     _PyErr_StackItem *prev_exc_info = tstate->exc_info;
@@ -976,7 +981,7 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     tstate->exc_info = gen->gi_exc_state.previous_item;
     gen->gi_exc_state.previous_item = NULL;
 
-    assert(tstate->cframe->current_frame == frame->previous);
+    assert(CURRENT_TSTATE_INTERPRETER_FRAME(tstate) == frame->previous);
     frame->previous = NULL;
 #else
     assert(tstate->exc_info == prev_exc_info);
@@ -1096,16 +1101,16 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
         PyObject *ret;
 
         if (PyGen_CheckExact(yf) || PyCoro_CheckExact(yf)) {
-            _PyInterpreterFrame *prev = tstate->cframe->current_frame;
+            _PyInterpreterFrame *prev = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
             frame->previous = prev;
-            tstate->cframe->current_frame = frame;
+            CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = frame;
             PyFrameState state = (PyFrameState)gen->gi_frame_state;
             gen->gi_frame_state = FRAME_EXECUTING;
 
             // Handing exception ownership to "Nuitka_UncompiledGenerator_throw".
             ret = Nuitka_UncompiledGenerator_throw(tstate, (PyGenObject *)yf, close_on_genexit, exception_state);
             gen->gi_frame_state = state;
-            tstate->cframe->current_frame = prev;
+            CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = prev;
             frame->previous = NULL;
         } else {
 #if 0
