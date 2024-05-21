@@ -3,30 +3,36 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #if PYTHON_VERSION >= 0x3a0
-extern PyObject *Nuitka_Slice_New(PyObject *start, PyObject *stop, PyObject *step);
+extern PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step);
 #else
-#define Nuitka_Slice_New PySlice_New
+#define Nuitka_Slice_New(tstate, start, stop, step) PySlice_New(start, stop, step)
 #endif
 
 // Note: Cannot these cannot fail, PySlice_New does not return errors.
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT3(PyObject *start, PyObject *stop, PyObject *step) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT3(PyThreadState *tstate, PyObject *start, PyObject *stop,
+                                                         PyObject *step) {
     CHECK_OBJECT(start);
     CHECK_OBJECT(stop);
     CHECK_OBJECT(step);
 
-    return Nuitka_Slice_New(start, stop, step);
+    return Nuitka_Slice_New(tstate, start, stop, step);
 }
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT2(PyObject *start, PyObject *stop) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT2(PyThreadState *tstate, PyObject *start, PyObject *stop) {
     CHECK_OBJECT(start);
     CHECK_OBJECT(stop);
 
-    return Nuitka_Slice_New(start, stop, Py_None);
+    return Nuitka_Slice_New(tstate, start, stop, Py_None);
 }
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT1(PyObject *stop) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT1(PyThreadState *tstate, PyObject *stop) {
     CHECK_OBJECT(stop);
 
-    return Nuitka_Slice_New(Py_None, stop, Py_None);
+    return Nuitka_Slice_New(tstate, Py_None, stop, Py_None);
 }
 
 #if PYTHON_VERSION < 0x300
