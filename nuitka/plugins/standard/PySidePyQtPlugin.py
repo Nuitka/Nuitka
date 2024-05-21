@@ -1459,6 +1459,9 @@ it for full compatible behavior with the uncompiled code to debug it."""
 
                 return (False, "Not included due to all Qt bindings disallowed.")
 
+    def getEvaluationConditionControlTags(self):
+        return {"use_noqt": True}
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
