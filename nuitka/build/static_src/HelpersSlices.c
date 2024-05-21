@@ -9,14 +9,24 @@
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
-PyObject *Nuitka_Slice_New(PyObject *start, PyObject *stop, PyObject *step) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
 
+PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step) {
     PySliceObject *result_slice;
 
-    if (interp->slice_cache != NULL) {
-        result_slice = interp->slice_cache;
-        interp->slice_cache = NULL;
+#if PYTHON_VERSION >= 0x3d0
+#ifdef Py_GIL_DISABLED
+    PySliceObject **slice_cache_ptr = &((_PyThreadStateImpl *)tstate)->freelists.slices.slice_cache;
+#else
+    PySliceObject **slice_cache_ptr = &tstate->interp->object_state.freelists.slices.slice_cache;
+#endif
+#else
+    PyInterpreterState *interp = tstate->interp;
+    PySliceObject **slice_cache_ptr = &interp->slice_cache;
+#endif
+
+    if (*slice_cache_ptr != NULL) {
+        result_slice = *slice_cache_ptr;
+        *slice_cache_ptr = NULL;
 
         Nuitka_Py_NewReference((PyObject *)result_slice);
     } else {
