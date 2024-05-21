@@ -752,7 +752,12 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     _PyInterpreterFrame *locals_owner = &result->m_interpreter_frame;
 #endif
 
+#if PYTHON_VERSION < 0x3d0
     locals_owner->f_code = code;
+#else
+    // TODO: Why is our code object not just immortal.
+    locals_owner->f_executable = (PyObject *)code;
+#endif
 
     frame->f_trace = Py_None;
 
@@ -799,7 +804,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
-    result->m_interpreter_frame.owner = 0;
+    result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
     result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
 #if PYTHON_VERSION >= 0x3c0
     result->m_interpreter_frame.f_funcobj = NULL;
@@ -1086,9 +1091,6 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
 void dumpFrameStack(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *saved_exception_type, *saved_exception_value;
-    PyTracebackObject *saved_exception_tb;
-
     struct Nuitka_ExceptionPreservationItem saved_exception_state;
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
@@ -1126,7 +1128,7 @@ void dumpFrameStack(void) {
             current_repr = const_str_empty;
             Py_INCREF(const_str_empty);
         }
-        PyObject *code_repr = PyObject_Str((PyObject *)current->current_frame->f_code);
+        PyObject *code_repr = PyObject_Str((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(current->current_frame));
 #endif
 
         PRINT_FORMAT("Frame stack %d: %s %d %s\n", total--, Nuitka_String_AsString(current_repr), Py_REFCNT(current),
@@ -1182,7 +1184,7 @@ void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *fr
     if (frame) {
         PRINT_FORMAT("0x%lx ", frame);
 
-        PyObject *code_object_str = PyObject_Repr((PyObject *)frame->f_code);
+        PyObject *code_object_str = PyObject_Repr((PyObject *)Nuitka_InterpreterFrame_GetCodeObject(frame));
         PRINT_ITEM(code_object_str);
         Py_DECREF(code_object_str);
     } else {
@@ -1199,7 +1201,7 @@ void PRINT_TOP_FRAME(char const *prefix) {
 #if PYTHON_VERSION < 0x3b0
     PRINT_UNCOMPILED_FRAME(prefix, tstate->frame);
 #else
-    PRINT_INTERPRETER_FRAME(prefix, tstate->cframe->current_frame);
+    PRINT_INTERPRETER_FRAME(prefix, CURRENT_TSTATE_INTERPRETER_FRAME(tstate));
 #endif
 }
 
