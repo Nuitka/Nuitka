@@ -333,20 +333,23 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
     return IMPORT_EMBEDDED_MODULE(tstate, module_name);
 }
 
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 #include "nuitka_windows_service.h"
 
 // Callback from Windows Service logic.
-bool SvcStartPython(void) {
+void SvcStartPython(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
 
-    if (HAS_ERROR_OCCURRED(tstate)) {
-        return true;
-    } else {
-        return false;
-    }
+    NUITKA_PRINT_TIMING("SvcStartPython() Python exited.")
+
+    int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+    // TODO: Log exception and call ReportSvcStatus
+
+    NUITKA_PRINT_TIMING("SvcStartPython(): Calling Py_Exit.");
+    Py_Exit(exit_code);
 }
 
 void SvcStopPython(void) { PyErr_SetInterrupt(); }
@@ -414,12 +417,12 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
         if (i == 1) {
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
             if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                 NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
                 SvcInstall();
-                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                NUITKA_CANNOT_GET_HERE("main(): SvcInstall must not return");
             }
 #endif
         }
