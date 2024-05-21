@@ -100,7 +100,7 @@ def _getScanDirectories(package_name, original_dir):
     if cache_key in _scan_dir_cache:
         return _scan_dir_cache[cache_key]
 
-    scan_dirs = [getSystemPrefixPath()]
+    scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
 
     if package_name is not None:
         scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
