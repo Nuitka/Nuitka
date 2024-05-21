@@ -123,11 +123,6 @@ static bool Nuitka_FrameIsCompiled(_PyInterpreterFrame *frame) {
 }
 
 static bool Nuitka_FrameIsIncomplete(_PyInterpreterFrame *frame) {
-    // Compiled frames are always complete.
-    if (Nuitka_FrameIsCompiled(frame)) {
-        return false;
-    }
-
     bool r = _PyFrame_IsIncomplete(frame);
 
     return r;
@@ -154,7 +149,7 @@ static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *a
 
     PyThreadState *tstate = _PyThreadState_GET();
 
-    _PyInterpreterFrame *frame = tstate->cframe->current_frame;
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
     while ((frame != NULL) && ((Nuitka_FrameIsIncomplete(frame)) || depth_ssize-- > 0)) {
         frame = frame->previous;
     }
