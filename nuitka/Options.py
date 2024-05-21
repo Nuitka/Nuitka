@@ -901,8 +901,27 @@ version '%s' instead or newer Nuitka."""
                 )
             )
 
+    if sys.version_info.releaselevel != "final":
+        if python_version_str not in getNotYetSupportedPythonVersions():
+            Tracing.general.sysexit(
+                """\
+Non-final versions '%s' '%s' are not supported by Nuitka, use the \
+final version instead."""
+                % (python_version_str, sys.version_info.releaselevel)
+            )
+
     if python_version_str in getNotYetSupportedPythonVersions():
-        if not isExperimental("python" + python_version_str):
+        if sys.version_info.releaselevel != "final" and not isExperimental(
+            "python" + python_version_str
+        ):
+            Tracing.general.warning(
+                """\
+The Python version '%s' '%s' is only experimentally supported by \
+and recommended only for use in Nuitka development and testing."""
+                % (python_version_str, sys.version_info.releaselevel)
+            )
+
+        elif not isExperimental("python" + python_version_str):
             Tracing.general.sysexit(
                 """\
 The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
