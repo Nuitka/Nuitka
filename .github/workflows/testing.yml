@@ -29,12 +29,12 @@ jobs:
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -58,7 +58,7 @@ jobs:
             *.xml
 
       # This can be used to ssh into GitHub actions if debugging is needed.
-      # - uses: actions/checkout@v2
+      # - uses: actions/checkout@v4
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
       #   with:
@@ -113,10 +113,10 @@ jobs:
             - '3.11'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -156,12 +156,12 @@ jobs:
             - '3.11'
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
 
