@@ -1351,12 +1351,16 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
     // we have the line number stored.
 
     int addr = _PyInterpreterFrame_LASTI(frame) * sizeof(_Py_CODEUNIT);
+#if PYTHON_VERSION < 0x3d0
     return PyCode_Addr2Line(frame->f_code, addr);
+#else
+    return PyCode_Addr2Line((PyCodeObject *)frame->f_executable, addr);
+#endif
 }
 
 static PyObject *computeCoroutineOrigin(int origin_depth) {
     PyThreadState *tstate = _PyThreadState_GET();
-    _PyInterpreterFrame *current_frame = tstate->cframe->current_frame;
+    _PyInterpreterFrame *current_frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
     // Create result tuple with correct size.
     int frame_count = 0;
@@ -1369,7 +1373,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
 
     frame = current_frame;
     for (int i = 0; i < frame_count; i++) {
-        PyCodeObject *code = frame->f_code;
+        PyCodeObject *code = Nuitka_InterpreterFrame_GetCodeObject(frame);
 
         int line = Nuitka_PyInterpreterFrame_GetLine(frame);
 
@@ -1399,8 +1403,8 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
     frame = PyEval_GetFrame();
 
     for (int i = 0; i < frame_count; i++) {
-        PyObject *frame_info =
-            Py_BuildValue("OiO", frame->f_code->co_filename, PyFrame_GetLineNumber(frame), frame->f_code->co_name);
+        PyObject *frame_info = Py_BuildValue("OiO", Nuitka_Frame_GetCodeObject(frame)->co_filename,
+                                             PyFrame_GetLineNumber(frame), frame->f_code->co_name);
 
         assert(frame_info);
 
@@ -1494,9 +1498,12 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
 static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
 #if PYTHON_VERSION < 0x3c0
     return (PyCodeObject *)gen->gi_code;
-#else
+#elif PYTHON_VERSION < 0x3d0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return frame->f_code;
+#else
+    _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
+    return (PyCodeObject *)frame->f_executable;
 #endif
 }
 
