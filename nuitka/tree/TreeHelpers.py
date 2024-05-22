@@ -291,6 +291,8 @@ def setBuildingDispatchers(path_args3, path_args2, path_args1):
 
 
 def buildNode(provider, node, source_ref, allow_none=False):
+    # too many exception handlers, pylint: disable=too-many-branches
+
     if node is None and allow_none:
         return None
 
@@ -329,6 +331,9 @@ def buildNode(provider, node, source_ref, allow_none=False):
         # User interrupting is not a problem with the source, but tell where
         # we got interrupted.
         optimization_logger.info("Interrupted at '%s'." % source_ref)
+        raise
+    except SystemExit:
+        optimization_logger.warning("Problem at '%s'." % source_ref.getAsString())
         raise
     except:
         optimization_logger.warning(
