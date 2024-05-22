@@ -470,6 +470,8 @@ if env.debug_mode:
                     "-Werror",
                 ]
             )
+        else:
+            env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
         env.Append(
             CCFLAGS=[
