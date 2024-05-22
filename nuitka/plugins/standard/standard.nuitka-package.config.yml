@@ -1273,6 +1273,12 @@
         macos_bundle: 'yes'
         when: 'macos'
 
+- module-name: 'freetype' # checksum: 5a9431c2
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libfreetype'
+
 - module-name: 'frozendict' # checksum: 85584475
   data-files:
     patterns:
