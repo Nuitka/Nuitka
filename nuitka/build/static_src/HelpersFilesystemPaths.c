@@ -35,40 +35,43 @@
 #include "nuitka/safe_string_ops.h"
 
 #if defined(__OpenBSD__)
-const char *_getBinaryPath2(char *epath) {
+void _getBinaryPath2(char *epath) {
     int mib[4];
-    char **argv;
-    size_t len;
-    const char *comm;
-    int ok = 0;
-
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC_ARGS;
     mib[2] = getpid();
     mib[3] = KERN_PROC_ARGV;
 
-    if (sysctl(mib, 4, NULL, &len, NULL, 0) < 0)
-        abort();
+    size_t len;
 
-    if (!(argv = malloc(len)))
+    if (sysctl(mib, 4, NULL, &len, NULL, 0) < 0) {
         abort();
+    }
 
-    if (sysctl(mib, 4, argv, &len, NULL, 0) < 0)
+    char **argv = argv = malloc(len);
+    if (argv == NULL) {
         abort();
+    }
 
-    comm = argv[0];
+    if (sysctl(mib, 4, argv, &len, NULL, 0) < 0) {
+        abort();
+    }
+
+    const char *comm = argv[0];
 
     if (*comm == '/' || *comm == '.') {
-        if (realpath(comm, epath))
-            ok = 1;
+        if (realpath(comm, epath) == NULL) {
+            abort();
+        }
     } else {
         char *sp;
         char *xpath = strdup(getenv("PATH"));
         char *path = strtok_r(xpath, ":", &sp);
         struct stat st;
 
-        if (!xpath)
+        if (xpath == NULL) {
             abort();
+        }
 
         while (path) {
             snprintf(epath, PATH_MAX, "%s/%s", path, comm);
@@ -84,13 +87,7 @@ const char *_getBinaryPath2(char *epath) {
         free(xpath);
     }
 
-#if 0
-    if (ok)
-        *strrchr(epath, '/') = '\0';
-#endif
-
     free(argv);
-    return ok ? epath : NULL;
 }
 #endif
 
