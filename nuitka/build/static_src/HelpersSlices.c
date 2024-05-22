@@ -14,11 +14,8 @@ PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *sto
     PySliceObject *result_slice;
 
 #if PYTHON_VERSION >= 0x3d0
-#ifdef Py_GIL_DISABLED
-    PySliceObject **slice_cache_ptr = &((_PyThreadStateImpl *)tstate)->freelists.slices.slice_cache;
-#else
-    PySliceObject **slice_cache_ptr = &tstate->interp->object_state.freelists.slices.slice_cache;
-#endif
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    PySliceObject **slice_cache_ptr = &freelists->slices.slice_cache;
 #else
     PyInterpreterState *interp = tstate->interp;
     PySliceObject **slice_cache_ptr = &interp->slice_cache;

@@ -11,10 +11,13 @@
 #endif
 
 #if NUITKA_TUPLE_HAS_FREELIST
+
+#if PYTHON_VERSION < 0x3d0
 static struct _Py_tuple_state *_Nuitka_Py_get_tuple_state(void) {
     PyInterpreterState *interp = _PyInterpreterState_GET();
     return &interp->tuple;
 }
+#endif
 
 PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     PyTupleObject *result_tuple;
@@ -22,7 +25,19 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     // Lets not get called other than this
     assert(size > 0);
 
+    // TODO: Avoid getting the tstate by passing it.
+#if PYTHON_VERSION < 0x3d0
     struct _Py_tuple_state *state = _Nuitka_Py_get_tuple_state();
+    PyTupleObject **items = state->free_list;
+#else
+    PyThreadState *tstate = PyThreadState_GET();
+
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+
+    struct _Py_tuple_freelist *state = &freelists->tuples;
+    PyTupleObject **items = state->items;
+
+#endif
 
 #if PYTHON_VERSION < 0x3b0
     Py_ssize_t index = size;
@@ -30,8 +45,8 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     Py_ssize_t index = size - 1;
 #endif
 
-    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = state->free_list[index]) != NULL) {
-        state->free_list[index] = (PyTupleObject *)result_tuple->ob_item[0];
+    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = items[index]) != NULL) {
+        items[index] = (PyTupleObject *)result_tuple->ob_item[0];
         state->numfree[index] -= 1;
 
         assert(Py_SIZE(result_tuple) == size);
