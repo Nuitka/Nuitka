@@ -174,6 +174,10 @@ NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_Get
 #include <objimpl.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_freelist.h>
+#endif
+
 #undef Py_BUILD_CORE
 
 #endif
