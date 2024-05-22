@@ -67,8 +67,8 @@ PyObject *Nuitka_Bytes_FromStringAndSize(const char *data, Py_ssize_t size) {
 
     op = (PyBytesObject *)NuitkaObject_Malloc(PyBytesObject_SIZE + size);
 
-    Py_SET_SIZE(op, size);
     Py_SET_TYPE(op, &PyBytes_Type);
+    Py_SET_SIZE(op, size);
 
     Nuitka_Py_NewReference((PyObject *)op);
 
