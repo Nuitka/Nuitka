@@ -52,8 +52,14 @@ class NuitkaPluginResources(NuitkaPluginBase):
 
             for entry_point in dist.entry_points:
                 if entry_point.group == group and entry_point.name == name:
-                    module_name = entry_point.module
-                    main_name = entry_point.attr
+                    try:
+                        module_name = entry_point.module
+                        main_name = entry_point.attr
+                    except AttributeError:
+                        match = entry_point.pattern.match(entry_point.value)
+
+                        module_name = match.group("module")
+                        main_name = match.group("attr")
 
                     break
 
