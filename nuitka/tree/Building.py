@@ -131,6 +131,7 @@ from nuitka.Tracing import (
 )
 from nuitka.utils import MemoryUsage
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import withNoSyntaxWarning
 
 from . import SyntaxErrors
 from .ReformulationAssertStatements import buildAssertNode
@@ -1366,12 +1367,13 @@ def buildModule(
                 )
 
         try:
-            ast_tree = parseSourceCodeToAst(
-                source_code=source_code,
-                module_name=module_name,
-                filename=source_filename,
-                line_offset=0,
-            )
+            with withNoSyntaxWarning():
+                ast_tree = parseSourceCodeToAst(
+                    source_code=source_code,
+                    module_name=module_name,
+                    filename=source_filename,
+                    line_offset=0,
+                )
         except (SyntaxError, IndentationError) as e:
             # Do not hide SyntaxError if asked not to.
             if not hide_syntax_error:
