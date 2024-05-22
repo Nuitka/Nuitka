@@ -7,6 +7,7 @@ import ast
 
 from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocStrings
 from nuitka.tree.TreeHelpers import getKind
+from nuitka.utils.Utils import withNoSyntaxWarning
 
 doc_having = tuple(
     getattr(ast, candidate)
@@ -26,8 +27,9 @@ def _removeDocFromBody(node):
 def compileSourceToBytecode(source_code, filename):
     """Compile given source code into bytecode."""
 
-    # Prepare compile call with AST tree.
-    tree = ast.parse(source_code, filename)
+    with withNoSyntaxWarning():
+        # Prepare compile call with AST tree.
+        tree = ast.parse(source_code, filename)
 
     # Do we need to remove doc strings.
     remove_doc_strings_from_tree = hasPythonFlagNoDocStrings()
