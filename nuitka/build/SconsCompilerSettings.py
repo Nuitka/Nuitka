@@ -637,7 +637,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Don't export anything by default, this should create smaller executables.
         env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
-        if env.debug_mode:
+        if env.debug_mode and "allow-c-warnings" not in env.experimental_flags:
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
