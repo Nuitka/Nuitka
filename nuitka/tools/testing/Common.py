@@ -731,6 +731,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 def createSearchMode():
     # Dealing with many options, pylint: disable=too-many-branches
+    # Return driven, pylint: disable=too-many-return-statements
 
     parser = OptionParser()
 
@@ -804,7 +805,9 @@ Defaults to off.""",
         else:
             return SearchModeImmediate()
     elif mode == "resume":
-        return SearchModeResume(sys.modules["__main__"].__file__)
+        return SearchModeResume(sys.modules["__main__"].__file__, skip=False)
+    elif mode == "skip":
+        return SearchModeResume(sys.modules["__main__"].__file__, skip=True)
     elif mode == "only":
         if options.pattern:
             pattern = options.pattern.replace("/", os.path.sep)
