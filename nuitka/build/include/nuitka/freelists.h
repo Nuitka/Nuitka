@@ -63,6 +63,17 @@ static const bool use_freelists = true;
         free_list##_count += 1;                                                                                        \
     }
 
+#if PYTHON_VERSION >= 0x3d0
+NUITKA_MAY_BE_UNUSED static inline struct _Py_object_freelists *_Nuitka_object_freelists_GET(PyThreadState *tstate) {
+
+#ifdef Py_GIL_DISABLED
+    return &((_PyThreadStateImpl *)tstate)->freelists;
+#else
+    return &tstate->interp->object_state.freelists;
+#endif
+}
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
