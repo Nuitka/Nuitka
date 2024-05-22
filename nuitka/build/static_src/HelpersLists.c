@@ -15,14 +15,20 @@
 static PyObject *Nuitka_LongFromCLong(long ival);
 
 #if NUITKA_LIST_HAS_FREELIST
+
+#ifndef _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
 static struct _Py_list_state *_Nuitka_Py_get_list_state(void) {
     PyInterpreterState *interp = _PyInterpreterState_GET();
     return &interp->list;
 }
+#endif
 
 PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
     assert(size >= 0);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    return PyList_New(size);
+#else
     struct _Py_list_state *state = _Nuitka_Py_get_list_state();
     PyListObject *result_list;
 
@@ -55,6 +61,7 @@ PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
     Nuitka_GC_Track(result_list);
 
     return (PyObject *)result_list;
+#endif
 }
 #endif
 
@@ -378,7 +385,8 @@ bool LIST_REMOVE(PyObject *target, PyObject *item) {
 
     CHECK_OBJECT(item);
 
-#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT && 0
+    // TODO: This is not exposed, would need to delete as slice instead.
     int res = PyList_Remove(target, item);
     return res == 0;
 #else
@@ -716,7 +724,7 @@ void LIST_REVERSE(PyObject *list) {
     }
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x340 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT)
 static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
     PyObject **items = PyMem_New(PyObject *, size);
 
