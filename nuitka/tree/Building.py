@@ -1075,6 +1075,7 @@ def _createModule(
     if module_kind == "extension":
         result = PythonExtensionModule(
             module_name=module_name,
+            module_filename=module_filename,
             reason=reason,
             technical=is_stdlib and module_name in detectEarlyImports(),
             source_ref=source_ref,

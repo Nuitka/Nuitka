@@ -14,6 +14,7 @@ not start anew, but reuse what we already found out about it.
 import os
 
 from nuitka.plugins.Plugins import Plugins
+from nuitka.utils.Importing import hasPackageDirFilename
 
 imported_modules = {}
 imported_by_name = {}
@@ -22,7 +23,7 @@ imported_by_name = {}
 def addImportedModule(imported_module):
     module_filename = os.path.abspath(imported_module.getFilename())
 
-    if os.path.basename(module_filename) == "__init__.py":
+    if hasPackageDirFilename(module_filename):
         module_filename = os.path.dirname(module_filename)
 
     key = (module_filename, imported_module.getFullName())
@@ -55,7 +56,7 @@ def getImportedModuleByNameAndPath(full_name, module_filename):
     # For caching we use absolute paths only.
     module_filename = os.path.abspath(module_filename)
 
-    if os.path.basename(module_filename) == "__init__.py":
+    if hasPackageDirFilename(module_filename):
         module_filename = os.path.dirname(module_filename)
 
     # KeyError is valid result.
