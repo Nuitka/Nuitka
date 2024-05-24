@@ -87,7 +87,10 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     resetDirectory,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import (
+    getPackageDirFilename,
+    getSharedLibrarySuffix,
+)
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -1090,9 +1093,7 @@ def _main():
     if Options.shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and os.path.isfile(
-            os.path.join(base_path, "__init__.py")
-        ):
+        if os.path.isdir(base_path) and getPackageDirFilename(base_path):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \

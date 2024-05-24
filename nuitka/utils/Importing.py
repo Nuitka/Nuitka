@@ -307,6 +307,30 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
     return None, None
 
 
+def hasPackageDirFilename(path):
+    path = os.path.basename(path)
+
+    for suffix in (".py",) + getSharedLibrarySuffixes():
+        candidate = "__init__" + suffix
+
+        if candidate == path:
+            return True
+
+    return False
+
+
+def getPackageDirFilename(path):
+    assert os.path.isdir(path)
+
+    for suffix in (".py",) + getSharedLibrarySuffixes():
+        candidate = os.path.join(path, "__init__" + suffix)
+
+        if os.path.isfile(candidate):
+            return candidate
+
+    return None
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
