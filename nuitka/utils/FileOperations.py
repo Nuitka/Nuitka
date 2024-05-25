@@ -1438,7 +1438,7 @@ def syncFileOutput(file_handle):
 
 def isFilesystemEncodable(filename):
     """Decide if a filename is safe for use as a file system path with tools."""
-    if os.name == "nt":
+    if os.name == "nt" and type(filename) is unicode:
         value = (
             unicodedata.normalize("NFKD", filename)
             .encode("ascii", "ignore")
