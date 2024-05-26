@@ -391,24 +391,30 @@ def matchCall(
             try:
                 arg_index = (args + kw_only_args).index(pair[0])
             except ValueError:
-                if improved or python_version >= 0x370:
-                    message = "'%s' is an invalid keyword argument for %s()" % (
-                        pair[0],
-                        func_name,
-                    )
+                if python_version < 0x370 and not improved:
+                    template = "'%(arg_name)s' is an invalid keyword argument for this function"
+                elif python_version < 0x3D0 and not improved:
+                    template = "'%(arg_name)s' is an invalid keyword argument for %(func_name)s()"
                 else:
-                    message = (
-                        "'%s' is an invalid keyword argument for this function"
-                        % pair[0]
-                    )
+                    template = "%(func_name)s() got an unexpected keyword argument '%(arg_name)s'"
+
+                message = template % {
+                    "arg_name": pair[0],
+                    "func_name": func_name,
+                }
 
                 raise TooManyArguments(TypeError(message))
 
             if arg_index < num_pos_only:
-                message = "'%s' is an invalid keyword argument for %s()" % (
-                    pair[0],
-                    func_name,
-                )
+                if python_version < 0x3D0:
+                    template = "'%(arg_name)s' is an invalid keyword argument for %(func_name)s()"
+                else:
+                    template = "%(func_name)s() got an unexpected keyword argument '%(arg_name)s'"
+
+                message = template % {
+                    "arg_name": pair[0],
+                    "func_name": func_name,
+                }
 
                 raise TooManyArguments(TypeError(message))
 
@@ -446,9 +452,14 @@ def matchCall(
                 )
             )
 
+        if python_version < 0x3D0:
+            template = "%s() takes at most %d %s (%d given)"
+        else:
+            template = "%s expected at most %d %s, got %d"
+
         raise TooManyArguments(
             TypeError(
-                "%s() takes at most %d %s (%d given)"
+                template
                 % (
                     func_name,
                     num_args,
@@ -507,7 +518,7 @@ def matchCall(
     elif pairs:
         unexpected = next(iter(dict(pairs)))
 
-        if improved:
+        if improved or python_version >= 0x3D0:
             message = "%s() got an unexpected keyword argument '%s'" % (
                 func_name,
                 unexpected,
