@@ -62,6 +62,9 @@ def extractDocFromBody(node):
         if Options.hasPythonFlagNoDocStrings():
             doc = None
 
+    if doc is not None and python_version >= 0x3D0:
+        doc = doc.lstrip()
+
     return body, doc
 
 
