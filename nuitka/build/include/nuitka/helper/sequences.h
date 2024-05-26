@@ -9,6 +9,12 @@ extern bool SEQUENCE_SET_ITEM(PyObject *sequence, Py_ssize_t index, PyObject *va
 
 extern Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence);
 
+// Our version of "_PyObject_HasLen", a former API function.
+NUITKA_MAY_BE_UNUSED static int Nuitka_PyObject_HasLen(PyObject *o) {
+    return (Py_TYPE(o)->tp_as_sequence && Py_TYPE(o)->tp_as_sequence->sq_length) ||
+           (Py_TYPE(o)->tp_as_mapping && Py_TYPE(o)->tp_as_mapping->mp_length);
+}
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

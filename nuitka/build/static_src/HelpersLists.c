@@ -16,27 +16,29 @@ static PyObject *Nuitka_LongFromCLong(long ival);
 
 #if NUITKA_LIST_HAS_FREELIST
 
-#ifndef _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-static struct _Py_list_state *_Nuitka_Py_get_list_state(void) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->list;
-}
-#endif
-
-PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
+PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     assert(size >= 0);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     return PyList_New(size);
 #else
-    struct _Py_list_state *state = _Nuitka_Py_get_list_state();
+    // This is the CPython name, spell-checker: ignore numfree
+
+#if PYTHON_VERSION < 0x3d0
+    PyListObject **items = tstate->interp->list.free_list;
+    int *numfree = &tstate->interp->list.numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_list_freelist *state = &freelists->lists;
+    PyListObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+    assert(*numfree >= 0);
     PyListObject *result_list;
 
-    assert(state->numfree >= 0);
-
-    if (state->numfree) {
-        state->numfree -= 1;
-        result_list = state->free_list[state->numfree];
+    if (*numfree) {
+        (*numfree) -= 1;
+        result_list = items[*numfree];
 
         Nuitka_Py_NewReference((PyObject *)result_list);
     } else {
@@ -65,12 +67,12 @@ PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
 }
 #endif
 
-PyObject *LIST_COPY(PyObject *list) {
+PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
 
     Py_ssize_t size = PyList_GET_SIZE(list);
-    PyObject *result = MAKE_LIST_EMPTY(size);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, size);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -527,7 +529,7 @@ static PyObject *_LIST_INDEX_COMMON(PyThreadState *tstate, PyListObject *list, P
 
 #if PYTHON_VERSION < 0x300
     PyObject *err_format = PyString_FromString("%r is not in list");
-    PyObject *format_tuple = MAKE_TUPLE1_0(item);
+    PyObject *format_tuple = MAKE_TUPLE1_0(tstate, item);
     PyObject *err_string = PyString_Format(err_format, format_tuple);
     Py_DECREF(format_tuple);
 
@@ -743,7 +745,7 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
     // Can leave the size hinting to later functions, because the list is allocated empty without
     // items, and when then extending, etc. length hints can be used.
-    PyObject *list = MAKE_LIST_EMPTY(0);
+    PyObject *list = MAKE_LIST_EMPTY(tstate, 0);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     PyObject *result = _PyList_Extend((PyListObject *)list, iterable);
@@ -756,7 +758,7 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
     }
 #else
 #if PYTHON_VERSION >= 0x340
-    if (_PyObject_HasLen(iterable)) {
+    if (Nuitka_PyObject_HasLen(iterable)) {
         Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
 
         if (unlikely(iter_len == -1)) {

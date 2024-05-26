@@ -3762,7 +3762,10 @@ static inline bool _INPLACE_OPERATION_ADD_TUPLE_TUPLE(PyObject **operand1, PyObj
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
     assert(x != Py_NotImplemented);
     obj_result = x;
@@ -3923,7 +3926,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_TUPLE(PyObject **operand1, PyOb
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
         assert(x != Py_NotImplemented);
         obj_result = x;
@@ -4085,7 +4091,10 @@ static inline bool _INPLACE_OPERATION_ADD_TUPLE_OBJECT(PyObject **operand1, PyOb
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
         assert(x != Py_NotImplemented);
         obj_result = x;
@@ -4144,7 +4153,10 @@ static inline bool _INPLACE_OPERATION_ADD_LIST_LIST(PyObject **operand1, PyObjec
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = LIST_CONCAT(*operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
     assert(x != Py_NotImplemented);
 
     obj_result = x;
@@ -4310,7 +4322,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LIST(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = LIST_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
         assert(x != Py_NotImplemented);
 
         obj_result = x;
@@ -4482,7 +4497,10 @@ static inline bool _INPLACE_OPERATION_ADD_LIST_OBJECT(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = LIST_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
         assert(x != Py_NotImplemented);
 
         obj_result = x;

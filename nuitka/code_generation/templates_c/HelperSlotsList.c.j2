@@ -9,7 +9,10 @@
     {# TODO: Could and should in-line and specialize this per slot too. #}
 {% if nb_slot == "nb_add" %}
 {% if left.type_name == "list" == right.type_name %}
-    PyObject *x = LIST_CONCAT({{ operand1 }}, {{ operand2 }});
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = LIST_CONCAT(tstate, {{ operand1 }}, {{ operand2 }});
 {% else %}
     PyObject *x = {{ left.getSlotCallExpression("sq_concat", "PyList_Type.tp_as_sequence->sq_concat", operand1, operand2) }};
 {% endif %}

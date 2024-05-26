@@ -230,7 +230,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 
 #if PYTHON_VERSION < 0x360
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
             PyObject *pos_args = const_tuple_empty;
 {% endif %}
@@ -246,7 +246,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 #else
             if (flags == (METH_VARARGS|METH_KEYWORDS)) {
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
             PyObject *pos_args = const_tuple_empty;
 {% endif %}
@@ -263,7 +263,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 {% endif %}
 #else
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
             PyObject *pos_args = const_tuple_empty;
 {% endif %}
@@ -274,7 +274,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
 #endif
             } else {
 {% if not has_tuple_arg and args_count != 0 %}
-            PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% elif not has_tuple_arg %}
             PyObject *pos_args = const_tuple_empty;
 {% endif %}
@@ -356,7 +356,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                 CHECK_OBJECT(obj);
             } else {
 {% if not has_tuple_arg and args_count != 0 %}
-                pos_args = MAKE_TUPLE(args, {{args_count}});
+                pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% endif %}
                 obj = called_type->tp_new(called_type, pos_args, NULL);
                 {# TODO: obj = _Py_CheckFunctionResult(obj) for Python3 in debug mode #}
@@ -460,7 +460,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                     } else {
 {% if not has_tuple_arg and args_count != 0 %}
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, {{args_count}});
+                            pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
                         }
 {% endif %}
 
@@ -595,7 +595,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
     PyObject *result = CALL_FUNCTION(tstate, called, const_tuple_empty, NULL);
 {% else %}
 {% if not has_tuple_arg %}
-    PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% endif %}
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);

@@ -81,7 +81,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
         size = ESTIMATE_RANGE(high, low, -step);
     }
 
-    PyObject *result = MAKE_LIST_EMPTY(size);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, size);
 
     long current = low;
 
@@ -96,7 +96,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
 static PyObject *_BUILTIN_RANGE_INT(long boundary) {
-    PyObject *result = MAKE_LIST_EMPTY(boundary > 0 ? boundary : 0);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, boundary > 0 ? boundary : 0);
 
     for (int i = 0; i < boundary; i++) {
         PyList_SET_ITEM(result, i, PyInt_FromLong(i));
@@ -191,7 +191,7 @@ PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
 
     if (fallback) {
         // Transfers references to tuple.
-        PyObject *pos_args = MAKE_TUPLE2_0(low_temp, high_temp);
+        PyObject *pos_args = MAKE_TUPLE2_0(tstate, low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
         PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
@@ -250,7 +250,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
     }
 
     if (fallback) {
-        PyObject *pos_args = MAKE_TUPLE3_0(low_temp, high_temp, step_temp);
+        PyObject *pos_args = MAKE_TUPLE3_0(tstate, low_temp, high_temp, step_temp);
 
         NUITKA_ASSIGN_BUILTIN(range);
 
@@ -808,7 +808,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
     FETCH_ERROR_OCCURRED_STATE_UNTRACED(tstate, &saved_exception_state);
 
     // TODO: Have a helper that creates a dictionary for PyObject **
-    PyObject *print_kw = MAKE_DICT_EMPTY();
+    PyObject *print_kw = MAKE_DICT_EMPTY(tstate);
     DICT_SET_ITEM(print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
@@ -817,7 +817,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         DICT_SET_ITEM(print_kw, const_str_plain_file, file);
     }
 
-    PyObject *print_args = MAKE_TUPLE1(object);
+    PyObject *print_args = MAKE_TUPLE1(tstate, object);
 
     PyObject *result = CALL_FUNCTION(tstate, NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
@@ -1459,7 +1459,7 @@ PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *star
     CHECK_OBJECT(sequence);
     CHECK_OBJECT(start);
 
-    PyObject *pos_args = MAKE_TUPLE2(sequence, start);
+    PyObject *pos_args = MAKE_TUPLE2(tstate, sequence, start);
 
     PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
@@ -2002,7 +2002,9 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 iternextfunc default_iternext;
 
 void _initSlotIterNext(void) {
-    PyObject *pos_args = MAKE_TUPLE1((PyObject *)&PyBaseObject_Type);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *pos_args = MAKE_TUPLE1(tstate, (PyObject *)&PyBaseObject_Type);
 
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();

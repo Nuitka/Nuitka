@@ -809,7 +809,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 // reason.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1 && PYTHON_VERSION >= 0x370
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
-    PyObject *args = MAKE_DICT_EMPTY();
+    PyObject *args = MAKE_DICT_EMPTY(tstate);
 
     DICT_SET_ITEM(args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
     DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
@@ -927,12 +927,16 @@ static void Nuitka_Py_Initialize(void) {
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
+#if PYTHON_VERSION < 0x3d0
     PyStatus status = _PyRuntime_Initialize();
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
     }
     NUITKA_MAY_BE_UNUSED _PyRuntimeState *runtime = &_PyRuntime;
     assert(!runtime->initialized);
+#else
+    PyStatus status;
+#endif
 
     PyConfig config;
     _PyConfig_InitCompatConfig(&config);
@@ -1503,8 +1507,10 @@ orig_argv = argv;
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
+#if PYTHON_VERSION < 0x3d0
     /* Initialize warnings module. */
     _PyWarnings_Init();
+#endif
 
 #if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
     // For full compatibility bump the warnings registry version,

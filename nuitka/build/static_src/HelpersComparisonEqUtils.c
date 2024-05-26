@@ -25,8 +25,10 @@ void _initSlotCompare(void) {
     // libraries it's not accessible. The name does not matter, nor does the
     // actual value used for "__cmp__".
 
+    PyThreadState *tstate = PyThreadState_GET();
+
     // Use "int" as the base class.
-    PyObject *pos_args = MAKE_TUPLE1((PyObject *)&PyLong_Type);
+    PyObject *pos_args = MAKE_TUPLE1(tstate, (PyObject *)&PyLong_Type);
 
     // Use "__cmp__" with true value, won't matter.
     // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.

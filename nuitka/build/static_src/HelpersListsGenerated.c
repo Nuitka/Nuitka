@@ -7,9 +7,9 @@
 #include "nuitka/prelude.h"
 #endif
 
-PyObject *MAKE_LIST1(PyObject *arg0) {
+PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0) {
 
-    PyObject *result = MAKE_LIST_EMPTY(1);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 1);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -21,9 +21,9 @@ PyObject *MAKE_LIST1(PyObject *arg0) {
 
     return result;
 }
-PyObject *MAKE_LIST2(PyObject *arg0, PyObject *arg1) {
+PyObject *MAKE_LIST2(PyThreadState *tstate, PyObject *arg0, PyObject *arg1) {
 
-    PyObject *result = MAKE_LIST_EMPTY(2);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 2);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -39,9 +39,9 @@ PyObject *MAKE_LIST2(PyObject *arg0, PyObject *arg1) {
 
     return result;
 }
-PyObject *MAKE_LIST3(PyObject *arg0, PyObject *arg1, PyObject *arg2) {
+PyObject *MAKE_LIST3(PyThreadState *tstate, PyObject *arg0, PyObject *arg1, PyObject *arg2) {
 
-    PyObject *result = MAKE_LIST_EMPTY(3);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 3);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -61,12 +61,12 @@ PyObject *MAKE_LIST3(PyObject *arg0, PyObject *arg1, PyObject *arg2) {
 
     return result;
 }
-PyObject *MAKE_LIST4(PyObject *list) {
+PyObject *MAKE_LIST4(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 4);
 
-    PyObject *result = MAKE_LIST_EMPTY(4);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 4);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -95,12 +95,12 @@ PyObject *MAKE_LIST4(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST5(PyObject *list) {
+PyObject *MAKE_LIST5(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 5);
 
-    PyObject *result = MAKE_LIST_EMPTY(5);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 5);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -134,12 +134,12 @@ PyObject *MAKE_LIST5(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST6(PyObject *list) {
+PyObject *MAKE_LIST6(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 6);
 
-    PyObject *result = MAKE_LIST_EMPTY(6);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 6);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -178,12 +178,12 @@ PyObject *MAKE_LIST6(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST7(PyObject *list) {
+PyObject *MAKE_LIST7(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 7);
 
-    PyObject *result = MAKE_LIST_EMPTY(7);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 7);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -227,12 +227,12 @@ PyObject *MAKE_LIST7(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST8(PyObject *list) {
+PyObject *MAKE_LIST8(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 8);
 
-    PyObject *result = MAKE_LIST_EMPTY(8);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 8);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -281,12 +281,12 @@ PyObject *MAKE_LIST8(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST9(PyObject *list) {
+PyObject *MAKE_LIST9(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 9);
 
-    PyObject *result = MAKE_LIST_EMPTY(9);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 9);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -340,12 +340,12 @@ PyObject *MAKE_LIST9(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST10(PyObject *list) {
+PyObject *MAKE_LIST10(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 10);
 
-    PyObject *result = MAKE_LIST_EMPTY(10);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 10);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -404,12 +404,12 @@ PyObject *MAKE_LIST10(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST11(PyObject *list) {
+PyObject *MAKE_LIST11(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 11);
 
-    PyObject *result = MAKE_LIST_EMPTY(11);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 11);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -473,12 +473,12 @@ PyObject *MAKE_LIST11(PyObject *list) {
 
     return result;
 }
-PyObject *MAKE_LIST12(PyObject *list) {
+PyObject *MAKE_LIST12(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == 12);
 
-    PyObject *result = MAKE_LIST_EMPTY(12);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 12);
 
     if (unlikely(result == NULL)) {
         return NULL;
