@@ -1024,6 +1024,11 @@ _stdlib_module_raises = {
     "zlib": False,
     "_ssl": True,
     "_xxinterpchannels": False,
+    # TODO: 3.13 clarify if this is actually true
+    "_interpchannels": False,
+    "_interpreters": False,
+    "_interpqueues": False,
+    "_sysconfig": False,
 }
 
 
