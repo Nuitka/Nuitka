@@ -17,11 +17,11 @@
 
 #if PYTHON_VERSION >= 0x3a0
 #define NUITKA_LIST_HAS_FREELIST 1
-extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
+extern PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size);
 #else
 #define NUITKA_LIST_HAS_FREELIST 0
 
-#define MAKE_LIST_EMPTY(size) PyList_New(size)
+#define MAKE_LIST_EMPTY(tstate, size) PyList_New(size)
 #endif
 
 extern bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *list, PyObject *other);
@@ -41,7 +41,7 @@ extern void LIST_CLEAR(PyObject *target);
 extern void LIST_REVERSE(PyObject *list);
 
 // Like list.copy
-extern PyObject *LIST_COPY(PyObject *list);
+extern PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list);
 
 // Like list.count
 extern PyObject *LIST_COUNT(PyObject *list, PyObject *item);
@@ -60,8 +60,8 @@ extern PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable);
 
 extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST_REPEATED(Py_ssize_t size, PyObject *element) {
-    PyObject *result = MAKE_LIST_EMPTY(size);
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST_REPEATED(PyThreadState *tstate, Py_ssize_t size, PyObject *element) {
+    PyObject *result = MAKE_LIST_EMPTY(tstate, size);
 
     if (unlikely(result == NULL)) {
         return NULL;

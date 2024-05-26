@@ -34,7 +34,7 @@ def generateSetLocalsDictCode(statement, emit, context):
 
     emit(
         """\
-%(locals_dict)s = MAKE_DICT_EMPTY();"""
+%(locals_dict)s = MAKE_DICT_EMPTY(tstate);"""
         % {"locals_dict": locals_declaration}
     )
 

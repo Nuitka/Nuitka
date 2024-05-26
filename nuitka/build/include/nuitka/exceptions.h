@@ -751,7 +751,7 @@ extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **e
                                          PyObject *variable_name);
 
 #if PYTHON_VERSION >= 0x3c0
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyObject *element1);
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyThreadState *tstate, PyObject *element1);
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_EXCEPTION_FROM_TYPE_ARG0(PyThreadState *tstate, PyObject *type,
                                                                     PyObject *arg) {
@@ -769,7 +769,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_EXCEPTION_FROM_TYPE_ARG0(PyThreadStat
     assert(arg != NULL);
 
     if (!PyTuple_Check(arg)) {
-        self->args = MAKE_TUPLE1(arg);
+        self->args = MAKE_TUPLE1(tstate, arg);
     } else {
         self->args = Py_NewRef(arg);
     }

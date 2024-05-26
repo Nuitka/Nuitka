@@ -1,11 +1,11 @@
 {#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
-PyObject *MAKE_LIST{{args_count}}(PyObject *list) {
+PyObject *MAKE_LIST{{args_count}}(PyThreadState *tstate, PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
     assert(PyList_GET_SIZE(list) == {{args_count}});
 
-    PyObject *result = MAKE_LIST_EMPTY({{args_count}});
+    PyObject *result = MAKE_LIST_EMPTY(tstate, {{args_count}});
 
     if (unlikely(result == NULL)) {
         return NULL;

@@ -186,8 +186,8 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 }
 
 #if PYTHON_VERSION >= 0x3c0
-static PyObject *Nuitka_CreateKeyError(PyObject *key) {
-    return (PyObject *)Nuitka_BaseExceptionSingleArg_new((PyTypeObject *)PyExc_KeyError, key);
+static PyObject *Nuitka_CreateKeyError(PyThreadState *tstate, PyObject *key) {
+    return (PyObject *)Nuitka_BaseExceptionSingleArg_new(tstate, (PyTypeObject *)PyExc_KeyError, key);
 }
 #endif
 
@@ -205,7 +205,7 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
         SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_KeyError, key);
     }
 #else
-    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateKeyError(key)};
+    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateKeyError(tstate, key)};
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
 #endif
@@ -595,12 +595,12 @@ PyObject *DICT_ITEMS(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = MAKE_LIST_EMPTY(size);
+    result = MAKE_LIST_EMPTY(tstate, size);
     CHECK_OBJECT(result);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         // Later populated.
-        PyObject *item = MAKE_TUPLE_EMPTY(2);
+        PyObject *item = MAKE_TUPLE_EMPTY(tstate, 2);
         CHECK_OBJECT(item);
 
         PyList_SET_ITEM(result, i, item);
@@ -649,7 +649,7 @@ PyObject *DICT_KEYS(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = MAKE_LIST_EMPTY(size);
+    result = MAKE_LIST_EMPTY(tstate, size);
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {
@@ -694,7 +694,7 @@ PyObject *DICT_VALUES(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = MAKE_LIST_EMPTY(size);
+    result = MAKE_LIST_EMPTY(tstate, size);
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {
@@ -1300,9 +1300,9 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 
         // Fast path for dictionaries.
         if (PyDict_CheckExact(seq_obj)) {
-            result = DICT_COPY(seq_obj);
+            result = DICT_COPY(tstate, seq_obj);
         } else {
-            result = MAKE_DICT_EMPTY();
+            result = MAKE_DICT_EMPTY(tstate);
 
             Py_INCREF(seq_obj);
 
@@ -1330,7 +1330,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
             }
         }
     } else {
-        result = MAKE_DICT_EMPTY();
+        result = MAKE_DICT_EMPTY(tstate);
     }
 
     // TODO: Should specialize for dict_obj/seq_obj presence to save a bit of time
@@ -1349,14 +1349,14 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 }
 
 #if NUITKA_DICT_HAS_FREELIST
-PyObject *MAKE_DICT_EMPTY(void) {
+PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
 
 #if PYTHON_VERSION < 0x3c0
     empty_dict_mp->ma_keys->dk_refcnt++;
 #endif
 
-    PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+    PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
 
     result_mp->ma_keys = empty_dict_mp->ma_keys;
     result_mp->ma_values = empty_dict_mp->ma_values;

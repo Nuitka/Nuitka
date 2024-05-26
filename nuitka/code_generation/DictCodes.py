@@ -541,7 +541,7 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_COPY",
-        tstate=False,
+        tstate=True,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),

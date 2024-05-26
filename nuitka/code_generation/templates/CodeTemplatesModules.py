@@ -128,9 +128,9 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    if (Nuitka_Function_Check(func) == false) {
-        PyThreadState *tstate = PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
 
+    if (Nuitka_Function_Check(func) == false) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
@@ -140,7 +140,6 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     int offset = Nuitka_Function_GetFunctionCodeIndex(function, function_table_%(module_identifier)s);
 
     if (unlikely(offset == -1)) {
-        PyThreadState *tstate = PyThreadState_GET();
 #if 0
         PRINT_STRING("Looking for:");
         PRINT_ITEM(func);
@@ -150,7 +149,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(6);
+    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(tstate, 6);
     PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
     PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
     PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
@@ -161,7 +160,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     CHECK_OBJECT_DEEP(code_object_desc);
 
 
-    PyObject *result = MAKE_TUPLE_EMPTY(8);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
     PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
