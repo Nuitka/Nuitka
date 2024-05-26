@@ -18,6 +18,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContents, isFilenameBelowPath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import (
+    isMacOS,
     isNetBSD,
     isPosixWindows,
     isWin32OrPosixWindows,
@@ -174,6 +175,9 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("ensurepip")
             if "ensurepip" in dirs:
                 dirs.remove("ensurepip")
+
+            if "_ios_support.py" in filenames and not isMacOS():
+                filenames.remove("_ios_support.py")
 
             # Ignore "lib-dynload" and "lib-tk" and alike.
             dirs[:] = [
