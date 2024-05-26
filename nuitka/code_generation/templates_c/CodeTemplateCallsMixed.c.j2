@@ -93,7 +93,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyThreadState *tstate
 {% if args_count == 0 %}
     PyObject *pos_args = const_tuple_empty;
 {% elif not has_tuple_arg or not has_dict_values %}
-    PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, {{args_count}});
 {% endif %}
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);

@@ -200,7 +200,9 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
-        PyObject *path_list = MAKE_LIST_EMPTY(1);
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *path_list = MAKE_LIST_EMPTY(tstate, 1);
         if (unlikely(path_list == NULL)) {
             return NULL;
         }
@@ -314,7 +316,7 @@ static PyObject *_getImportingSuffixesByPriority(PyThreadState *tstate, int kind
     static PyObject *result = NULL;
 
     if (result == NULL) {
-        result = MAKE_LIST_EMPTY(0);
+        result = MAKE_LIST_EMPTY(tstate, 0);
 
         PyObject *imp_module = PyImport_ImportModule("imp");
         PyObject *get_suffixes_func = PyObject_GetAttrString(imp_module, "get_suffixes");
@@ -372,7 +374,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
         return false;
     }
 
-    PyObject *candidates = MAKE_LIST_EMPTY(0);
+    PyObject *candidates = MAKE_LIST_EMPTY(tstate, 0);
 
     // Search only relative to the parent name of course.
     char const *module_relative_name_str = Nuitka_String_AsString(module_name) + strlen(parent_module_name) + 1;
@@ -435,7 +437,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
                 PyObject *fullpath = JOIN_PATH2(directory, candidate);
 
                 if (installed_extension_modules == NULL) {
-                    installed_extension_modules = MAKE_DICT_EMPTY();
+                    installed_extension_modules = MAKE_DICT_EMPTY(tstate);
                 }
 
 // Force path to unicode, to have easier consumption, as we need a wchar_t or char *
@@ -940,20 +942,23 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #endif
     CHECK_OBJECT(filename_obj);
 
+#if PYTHON_VERSION < 0x3d0
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
                                              ,
                                              Nuitka_GetSysModules()
 #endif
-
     );
+#endif
 
     Py_DECREF(full_name_obj);
     Py_DECREF(filename_obj);
 
+#if PYTHON_VERSION < 0x3d0
     if (unlikely(res == -1)) {
         return NULL;
     }
+#endif
 #endif
 
     return module;
@@ -1266,7 +1271,9 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
         return NULL;
     }
 
-    PyObject *result = MAKE_LIST_EMPTY(0);
+    NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
@@ -1322,7 +1329,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             Py_DECREF(old);
         }
 
-        PyObject *r = MAKE_TUPLE_EMPTY(2);
+        PyObject *r = MAKE_TUPLE_EMPTY(tstate, 2);
         PyTuple_SET_ITEM(r, 0, name);
         PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
@@ -1477,7 +1484,7 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
         return NULL;
     }
 
-    PyObject *args = MAKE_TUPLE2(module_name, (PyObject *)&Nuitka_Loader_Type);
+    PyObject *args = MAKE_TUPLE2(tstate, module_name, (PyObject *)&Nuitka_Loader_Type);
 
     PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
@@ -1703,12 +1710,12 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         return NULL;
     }
 
-    PyObject *temp = MAKE_LIST_EMPTY(0);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *temp = MAKE_LIST_EMPTY(tstate, 0);
 
     Py_ssize_t pos = 0;
     PyObject *distribution_name;
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     while (Nuitka_DistributionNext(&pos, &distribution_name)) {
         bool include = false;

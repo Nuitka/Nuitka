@@ -111,7 +111,7 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
         return NULL;
     }
 
-    PyObject *files_objects = MAKE_LIST_EMPTY(0);
+    PyObject *files_objects = MAKE_LIST_EMPTY(tstate, 0);
 
     Py_ssize_t n = PyList_GET_SIZE(file_names);
     for (Py_ssize_t i = 0; i < n; i++) {

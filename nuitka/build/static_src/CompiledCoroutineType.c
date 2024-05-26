@@ -1358,8 +1358,7 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
 #endif
 }
 
-static PyObject *computeCoroutineOrigin(int origin_depth) {
-    PyThreadState *tstate = _PyThreadState_GET();
+static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
     _PyInterpreterFrame *current_frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
     // Create result tuple with correct size.
@@ -1369,7 +1368,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
         frame = frame->previous;
         frame_count += 1;
     }
-    PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(frame_count);
+    PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(tstate, frame_count);
 
     frame = current_frame;
     for (int i = 0; i < frame_count; i++) {
@@ -1388,7 +1387,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
 }
 
 #elif PYTHON_VERSION >= 0x370
-static PyObject *computeCoroutineOrigin(int origin_depth) {
+static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
     PyFrameObject *frame = PyEval_GetFrame();
 
     int frame_count = 0;
@@ -1398,7 +1397,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
         frame_count += 1;
     }
 
-    PyObject *cr_origin = MAKE_TUPLE_EMPTY(frame_count);
+    PyObject *cr_origin = MAKE_TUPLE_EMPTY(tstate, frame_count);
 
     frame = PyEval_GetFrame();
 
@@ -1480,7 +1479,7 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     if (origin_depth == 0) {
         result->m_origin = NULL;
     } else {
-        result->m_origin = computeCoroutineOrigin(origin_depth);
+        result->m_origin = computeCoroutineOrigin(tstate, origin_depth);
     }
 #endif
 

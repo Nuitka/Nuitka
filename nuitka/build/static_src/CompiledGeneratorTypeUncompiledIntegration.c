@@ -25,7 +25,8 @@ static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
 #endif
 
 #if PYTHON_VERSION >= 0x300
-static PyBaseExceptionObject *Nuitka_BaseExceptionSingleArg_new(PyTypeObject *type, PyObject *arg) {
+static PyBaseExceptionObject *Nuitka_BaseExceptionSingleArg_new(PyThreadState *tstate, PyTypeObject *type,
+                                                                PyObject *arg) {
     PyBaseExceptionObject *result = (PyBaseExceptionObject *)type->tp_alloc(type, 0);
 
     result->dict = NULL;
@@ -34,14 +35,14 @@ static PyBaseExceptionObject *Nuitka_BaseExceptionSingleArg_new(PyTypeObject *ty
     result->context = NULL;
     result->suppress_context = 0;
 
-    result->args = MAKE_TUPLE1(arg);
+    result->args = MAKE_TUPLE1(tstate, arg);
 
     return result;
 }
 
-static PyObject *Nuitka_CreateStopIteration(PyObject *value) {
+static PyObject *Nuitka_CreateStopIteration(PyThreadState *tstate, PyObject *value) {
     PyStopIterationObject *result =
-        (PyStopIterationObject *)Nuitka_BaseExceptionSingleArg_new((PyTypeObject *)PyExc_StopIteration, value);
+        (PyStopIterationObject *)Nuitka_BaseExceptionSingleArg_new(tstate, (PyTypeObject *)PyExc_StopIteration, value);
 
     result->value = value;
     Py_INCREF(value);
@@ -63,7 +64,7 @@ static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value)
 
     SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_StopIteration, stop_value);
 #elif PYTHON_VERSION >= 0x3c0
-    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateStopIteration(value)};
+    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateStopIteration(tstate, value)};
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
 #else
@@ -74,7 +75,7 @@ static void Nuitka_SetStopIterationValue(PyThreadState *tstate, PyObject *value)
         RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, value, NULL);
     } else {
         struct Nuitka_ExceptionPreservationItem exception_state = {Py_NewRef(PyExc_StopIteration),
-                                                                   Nuitka_CreateStopIteration(value)};
+                                                                   Nuitka_CreateStopIteration(tstate, value)};
 
         RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
     }

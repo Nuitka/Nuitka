@@ -155,6 +155,8 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
     CHECK_OBJECT((PyObject *)nuitka_frame);
     assert(_PyObject_GC_IS_TRACKED(nuitka_frame));
 
+    NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
     if (nuitka_frame->m_type_description == NULL) {
 #if PYTHON_VERSION < 0x3b0
         PyFrameObject *locals_owner = &nuitka_frame->m_frame;
@@ -163,13 +165,13 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
 #endif
 
         if (locals_owner->f_locals == NULL) {
-            locals_owner->f_locals = MAKE_DICT_EMPTY();
+            locals_owner->f_locals = MAKE_DICT_EMPTY(tstate);
         }
 
         Py_INCREF(locals_owner->f_locals);
         return locals_owner->f_locals;
     } else {
-        PyObject *result = MAKE_DICT_EMPTY();
+        PyObject *result = MAKE_DICT_EMPTY(tstate);
         PyObject **var_names = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
         char const *w = nuitka_frame->m_type_description;
@@ -805,11 +807,11 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
     result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
-    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
 #if PYTHON_VERSION >= 0x3c0
     result->m_interpreter_frame.f_funcobj = NULL;
 #else
     result->m_interpreter_frame.f_func = NULL;
+    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
 #endif
     result->m_frame.f_frame = &result->m_interpreter_frame;
 
