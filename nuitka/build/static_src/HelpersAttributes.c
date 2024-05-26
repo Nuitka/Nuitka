@@ -975,7 +975,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
             dict = *dict_pointer;
 
             if (dict == NULL) {
-                dict = MAKE_DICT_EMPTY();
+                dict = MAKE_DICT_EMPTY(tstate);
                 *dict_pointer = dict;
             }
         }

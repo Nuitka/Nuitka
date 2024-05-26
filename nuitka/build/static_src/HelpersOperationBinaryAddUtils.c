@@ -12,7 +12,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
+static PyObject *LIST_CONCAT(PyThreadState *tstate, PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyList_CheckExact(operand1));
     CHECK_OBJECT(operand2);
@@ -20,7 +20,7 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 
     Py_ssize_t size = Py_SIZE(operand1) + Py_SIZE(operand2);
 
-    PyListObject *result = (PyListObject *)MAKE_LIST_EMPTY(size);
+    PyListObject *result = (PyListObject *)MAKE_LIST_EMPTY(tstate, size);
     if (unlikely(result == NULL)) {
         return NULL;
     }

@@ -42,10 +42,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
                 return NULL;
             }
 
-            // TODO: Specialize for single element maybe, but LTO solves
-            // this just fine.
-            PyObject *elements[1] = {matched};
-            return MAKE_TUPLE(elements, 1);
+            return MAKE_TUPLE1(tstate, matched);
         }
 
         actual = 0;
@@ -58,7 +55,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
         return NULL;
     }
 
-    PyObject *result = MAKE_TUPLE_EMPTY_VAR(actual);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, actual);
 
     for (Py_ssize_t i = 0; i < max_allowed; i++) {
         PyObject *arg_name = PyTuple_GET_ITEM(match_args, i);

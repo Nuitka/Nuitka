@@ -100,7 +100,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
             Py_INCREF(*match);
         } else {
             // Old style plain exception, put it into an exception group.
-            PyObject *exception_tuple = MAKE_TUPLE1_0(exc_value);
+            PyObject *exception_tuple = MAKE_TUPLE1_0(tstate, exc_value);
             PyObject *wrapped = _PyExc_CreateExceptionGroup("", exception_tuple);
             Py_DECREF(exception_tuple);
 

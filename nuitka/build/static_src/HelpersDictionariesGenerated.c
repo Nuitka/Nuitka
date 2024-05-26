@@ -49,22 +49,26 @@ static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
 #endif
 }
 
-#if NUITKA_DICT_HAS_FREELIST
-static struct _Py_dict_state *_Nuitka_Py_get_dict_state(void) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->dict_state;
-}
-#endif
-
 #if PYTHON_VERSION >= 0x300
-static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
+static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
 #if NUITKA_DICT_HAS_FREELIST
-    struct _Py_dict_state *state = _Nuitka_Py_get_dict_state();
+    // This is the CPython name, spell-checker: ignore numfree
 
-    if (state->numfree) {
-        result_mp = state->free_list[--state->numfree];
+#if PYTHON_VERSION < 0x3d0
+    PyDictObject **items = tstate->interp->dict_state.free_list;
+    int *numfree = &tstate->interp->dict_state.numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dict_freelist *state = &freelists->dicts;
+    PyDictObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        result_mp = items[*numfree];
 
         Nuitka_Py_NewReference((PyObject *)result_mp);
 
@@ -77,6 +81,38 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
     }
 
     return result_mp;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x360
+static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate, Py_ssize_t keys_size) {
+    // CPython names, spell-checker: ignore numfree,dictkeys
+    PyDictKeysObject *dk;
+
+// TODO: Cannot always use cached objects. Need to also consider
+// "log2_size == PyDict_LOG_MINSIZE && unicode" as a criterion,
+// seems it can only be used for the smallest keys type.
+#if NUITKA_DICT_HAS_FREELIST && 0
+#if PYTHON_VERSION < 0x3d0
+    PyDictKeysObject **items = tstate->interp->dict_state.keys_free_list;
+    int *numfree = &tstate->interp->dict_state.keys_numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dictkeys_freelist *state = &freelists->dictkeys;
+    PyDictKeysObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        dk = items[*numfree];
+    } else
+#endif
+    {
+        dk = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+    }
+
+    return dk;
 }
 #endif
 
@@ -98,7 +134,7 @@ static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
 }
 #endif
 
-PyObject *DICT_COPY(PyObject *dict_value) {
+PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
@@ -111,7 +147,7 @@ PyObject *DICT_COPY(PyObject *dict_value) {
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = MAKE_DICT_EMPTY();
+        result = MAKE_DICT_EMPTY(tstate);
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -136,7 +172,7 @@ PyObject *DICT_COPY(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
@@ -184,14 +220,14 @@ PyObject *DICT_COPY(PyObject *dict_value) {
                 assert(dict_mp->ma_values == NULL);
                 assert(dict_mp->ma_keys->dk_refcnt == 1);
 
-                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
                 result = (PyObject *)result_mp;
 
                 result_mp->ma_values = NULL;
                 result_mp->ma_used = dict_mp->ma_used;
 
                 Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-                result_mp->ma_keys = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+                result_mp->ma_keys = _Nuitka_AllocatePyDictKeysObject(tstate, keys_size);
                 assert(result_mp->ma_keys);
 
                 memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
@@ -307,7 +343,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
-    result = DICT_COPY(dict_value);
+    result = DICT_COPY(tstate, dict_value);
 
     Py_ssize_t pos = 0;
     PyObject *key, *value;
@@ -324,7 +360,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = MAKE_DICT_EMPTY();
+        result = MAKE_DICT_EMPTY(tstate);
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -352,7 +388,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
@@ -400,14 +436,14 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
                 assert(dict_mp->ma_values == NULL);
                 assert(dict_mp->ma_keys->dk_refcnt == 1);
 
-                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
                 result = (PyObject *)result_mp;
 
                 result_mp->ma_values = NULL;
                 result_mp->ma_used = dict_mp->ma_used;
 
                 Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-                result_mp->ma_keys = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+                result_mp->ma_keys = _Nuitka_AllocatePyDictKeysObject(tstate, keys_size);
                 assert(result_mp->ma_keys);
 
                 memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
@@ -528,7 +564,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 }
 
 // Helper for function calls with star dict arguments. */
-static PyObject *COPY_DICT_KW(PyObject *dict_value) {
+static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
     PyObject *result;
     bool had_kw_error = false;
 
@@ -536,7 +572,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
-    result = DICT_COPY(dict_value);
+    result = DICT_COPY(tstate, dict_value);
 
     Py_ssize_t pos = 0;
     PyObject *key, *value;
@@ -551,7 +587,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = MAKE_DICT_EMPTY();
+        result = MAKE_DICT_EMPTY(tstate);
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -579,7 +615,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+            PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
@@ -651,14 +687,14 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
                 assert(dict_mp->ma_values == NULL);
                 assert(dict_mp->ma_keys->dk_refcnt == 1);
 
-                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+                PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
                 result = (PyObject *)result_mp;
 
                 result_mp->ma_values = NULL;
                 result_mp->ma_used = dict_mp->ma_used;
 
                 Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-                result_mp->ma_keys = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+                result_mp->ma_keys = _Nuitka_AllocatePyDictKeysObject(tstate, keys_size);
                 assert(result_mp->ma_keys);
 
                 memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
