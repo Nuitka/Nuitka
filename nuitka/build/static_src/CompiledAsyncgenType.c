@@ -1352,7 +1352,13 @@ struct _PyAsyncGenWrappedValue {
         PyObject *agw_val;
 };
 
+#if PYTHON_VERSION < 0x3d0
 #define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == &_PyAsyncGenWrappedValue_Type)
+#else
+static PyTypeObject *Nuitka_PyAsyncGenWrappedValue_Type = NULL;
+
+#define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == Nuitka_PyAsyncGenWrappedValue_Type)
+#endif
 
 static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen,
                                                PyObject *result) {
@@ -2178,6 +2184,13 @@ static void _initCompiledAsyncgenTypes(void) {
     Nuitka_PyType_Ready(&Nuitka_AsyncgenAsend_Type, NULL, true, false, true, true, false);
     Nuitka_PyType_Ready(&Nuitka_AsyncgenAthrow_Type, NULL, true, false, true, true, false);
     Nuitka_PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type, NULL, false, false, false, false, false);
+
+#if PYTHON_VERSION >= 0x3d0
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *asyncgen_wrapper_object = _PyIntrinsics_UnaryFunctions[INTRINSIC_ASYNC_GEN_WRAP].func(tstate, Py_None);
+    Nuitka_PyAsyncGenWrappedValue_Type = Py_TYPE(asyncgen_wrapper_object);
+    Py_DECREF(asyncgen_wrapper_object);
+#endif
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
