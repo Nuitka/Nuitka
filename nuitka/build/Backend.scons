@@ -506,6 +506,9 @@ if env.debug_mode:
         if python_version >= (3, 4):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
+        if python_version >= (3, 13):
+            env.Append(CCFLAGS=["/wd4324"])
+
         # We use null arrays in our structure Python declarations, which C11 does
         # not really allow, but should work.
         env.Append(CCFLAGS=["/wd4200"])
