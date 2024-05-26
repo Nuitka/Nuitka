@@ -101,6 +101,95 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
 // Our replacement for PyErr_NormalizeException, that however does not attempt
 // to deal with recursion, i.e. exception during normalization, we just avoid
 // the API call overhead in the normal case.
+
+#if PYTHON_VERSION >= 0x3d0
+// TODO: Merge with old branch for enhancements.
+void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
+    int recursion_depth = 0;
+    tstate->recursion_headroom++;
+
+    PyObject *type, *value;
+    PyTracebackObject *initial_tb;
+
+restart:
+    type = *exc;
+
+    if (type == NULL) {
+        tstate->recursion_headroom--;
+        return;
+    }
+
+    value = *val;
+
+    if (!value) {
+        Py_INCREF_IMMORTAL(Py_None);
+        value = Py_None;
+    }
+
+    if (PyExceptionClass_Check(type)) {
+        PyObject *instance_class = NULL;
+
+        int is_subclass = 0;
+
+        if (PyExceptionInstance_Check(value)) {
+            instance_class = PyExceptionInstance_Class(value);
+
+            is_subclass = PyObject_IsSubclass(instance_class, type);
+            if (is_subclass < 0) {
+                goto error;
+            }
+        }
+
+        if (!is_subclass) {
+            PyObject *fixed_value = _Nuitka_Err_CreateException(tstate, type, value);
+
+            if (fixed_value == NULL) {
+                goto error;
+            }
+
+            Py_SETREF(value, fixed_value);
+        } else if (instance_class != type) {
+            Py_SETREF(type, Py_NewRef(instance_class));
+        }
+    }
+    *exc = type;
+    *val = value;
+    tstate->recursion_headroom--;
+    return;
+
+error:
+    Py_DECREF(type);
+    Py_DECREF(value);
+    recursion_depth++;
+    if (recursion_depth == 32) {
+        _PyErr_SetString(tstate, PyExc_RecursionError,
+                         "maximum recursion depth exceeded "
+                         "while normalizing an exception");
+    }
+
+    initial_tb = *tb;
+
+    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
+
+    assert(*exc != NULL);
+    if (initial_tb != NULL) {
+        if (*tb == NULL)
+            *tb = initial_tb;
+        else
+            Py_DECREF(initial_tb);
+    }
+    if (recursion_depth >= 32 + 2) {
+        if (PyErr_GivenExceptionMatches(*exc, PyExc_MemoryError)) {
+            Py_FatalError("Cannot recover from MemoryErrors "
+                          "while normalizing exceptions.");
+        } else {
+            Py_FatalError("Cannot recover from the recursive normalization "
+                          "of an exception.");
+        }
+    }
+    goto restart;
+}
+#else
 void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
     PyObject *type = *exc;
 
@@ -182,6 +271,8 @@ error:
     PyErr_NormalizeException(exc, val, (PyObject **)tb);
 #endif
 }
+
+#endif
 
 // Raise NameError for a given variable name.
 void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
