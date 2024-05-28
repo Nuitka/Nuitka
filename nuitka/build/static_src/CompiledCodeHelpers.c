@@ -585,7 +585,7 @@ PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
 
         if (cmp == 0) {
             Py_DECREF(it);
-            Py_INCREF(Py_False);
+            Py_INCREF_IMMORTAL(Py_False);
             return Py_False;
         }
     }
@@ -596,7 +596,7 @@ PyObject *BUILTIN_ALL(PyThreadState *tstate, PyObject *value) {
         return NULL;
     }
 
-    Py_INCREF(Py_True);
+    Py_INCREF_IMMORTAL(Py_True);
     return Py_True;
 }
 
@@ -635,7 +635,7 @@ PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
         }
         if (cmp > 0) {
             Py_DECREF(it);
-            Py_INCREF(Py_True);
+            Py_INCREF_IMMORTAL(Py_True);
             return Py_True;
         }
     }
@@ -645,7 +645,7 @@ PyObject *BUILTIN_ANY(PyThreadState *tstate, PyObject *value) {
         return NULL;
     }
 
-    Py_INCREF(Py_False);
+    Py_INCREF_IMMORTAL(Py_False);
     return Py_False;
 }
 
@@ -1382,7 +1382,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
 #endif
 
         if (item == Py_False) {
-            Py_DECREF(item);
+            Py_DECREF_IMMORTAL(item);
             continue;
         }
 

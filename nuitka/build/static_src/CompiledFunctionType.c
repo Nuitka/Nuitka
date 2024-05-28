@@ -1021,7 +1021,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(PyThreadState *tstate, struct
 
     PyObject *result = Py_True;
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1038,8 +1038,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(PyThreadState *tstate, struc
     }
 
     PyObject *result = Py_False;
-
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 

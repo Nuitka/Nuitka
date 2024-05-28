@@ -171,7 +171,7 @@
                     {{ goto_exit(props, exit_result_object, "x") }}
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -183,7 +183,7 @@
             {{ goto_exit(props, exit_result_object, "x") }}
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 {% endif %}
 
@@ -195,7 +195,7 @@
             {{ goto_exit(props, exit_result_object, "x") }}
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 {% endif %}
 

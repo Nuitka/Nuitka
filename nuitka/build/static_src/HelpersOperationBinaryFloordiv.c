@@ -137,7 +137,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_I
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -148,7 +148,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_I
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -369,7 +369,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -381,7 +381,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -392,7 +392,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -654,7 +654,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_L
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -665,7 +665,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_L
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -844,7 +844,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -856,7 +856,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -867,7 +867,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1119,7 +1119,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_F
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -1130,7 +1130,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_F
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1336,7 +1336,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -1348,7 +1348,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -1359,7 +1359,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1554,7 +1554,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1611,7 +1611,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1663,7 +1663,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1,
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1718,7 +1718,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1,
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1767,7 +1767,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1822,7 +1822,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -2285,7 +2285,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -2297,7 +2297,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -2308,7 +2308,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
