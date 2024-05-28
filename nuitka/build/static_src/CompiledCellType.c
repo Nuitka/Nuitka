@@ -124,7 +124,7 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         return NULL;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 #endif

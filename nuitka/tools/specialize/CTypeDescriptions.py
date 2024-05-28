@@ -670,8 +670,11 @@ return %(return_value)s;""" % {
             )
 
     @staticmethod
-    def getTakeReferenceStatement(operand):
-        return "Py_INCREF(%s);" % operand
+    def getTakeReferenceStatement(operand, immortal):
+        return "%s(%s);" % (
+            ("Py_INCREF_IMMORTAL" if immortal else "Py_INCREF"),
+            operand,
+        )
 
     @classmethod
     def hasReferenceCounting(cls):
@@ -764,10 +767,9 @@ return %(return_value)s;""" % {
     @classmethod
     def getAssignFromBoolExpressionCode(cls, result, operand, give_ref):
         if cls.type_name == "object":
-            # TODO: Python3?
             code = "%s = BOOL_FROM(%s);" % (result, operand)
             if give_ref:
-                code += "Py_INCREF(%s);" % result
+                code += "Py_INCREF_IMMORTAL(%s);" % result
 
             return code
         elif cls.type_name == "nbool":
@@ -903,7 +905,7 @@ Py_INCREF(%(result)s);""" % {
     def getAssignConversionCode(cls, result, left, value):
         def _getObjectObject():
             code = "%s = %s;" % (result, value)
-            code += cls.getTakeReferenceStatement(result)
+            code += cls.getTakeReferenceStatement(result, immortal=False)
 
             return code
 
@@ -964,7 +966,7 @@ assert(%(type_name)s_CheckExact(%(operand)s));""" % {
         pass
 
     @staticmethod
-    def getTakeReferenceStatement(operand):
+    def getTakeReferenceStatement(operand, immortal):
         return ""
 
 
@@ -1598,7 +1600,7 @@ class CBoolDesc(ConcreteCTypeBase):
         return "CHECK_IF_TRUE(%s) == 1" % operand
 
     @staticmethod
-    def getTakeReferenceStatement(operand):
+    def getTakeReferenceStatement(operand, immortal):
         return ""
 
     @staticmethod
@@ -1644,7 +1646,7 @@ class NBoolDesc(ConcreteCTypeBase):
         return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
 
     @staticmethod
-    def getTakeReferenceStatement(operand):
+    def getTakeReferenceStatement(operand, immortal):
         return ""
 
     @staticmethod
@@ -1695,7 +1697,7 @@ class NVoidDesc(ConcreteCTypeBase):
         return "NUITKA_VOID_OK"
 
     @staticmethod
-    def getTakeReferenceStatement(operand):
+    def getTakeReferenceStatement(operand, immortal):
         return ""
 
     @staticmethod

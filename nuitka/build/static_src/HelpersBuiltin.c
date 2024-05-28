@@ -673,7 +673,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
 PyObject *BUILTIN_CALLABLE(PyObject *value) {
     int res = PyCallable_Check(value);
     PyObject *result = BOOL_FROM(res != 0);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 

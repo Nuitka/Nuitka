@@ -144,7 +144,7 @@ static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, v
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
 
-    Py_INCREF(Py_False);
+    Py_INCREF_IMMORTAL(Py_False);
     return Py_False;
 }
 
@@ -273,7 +273,7 @@ static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, vo
     assert(_PyObject_GC_IS_TRACKED(frame));
 
     PyObject *result = Py_False;
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -294,7 +294,7 @@ static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, 
     assert(_PyObject_GC_IS_TRACKED(frame));
 
     PyObject *result = Py_False;
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 

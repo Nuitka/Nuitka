@@ -397,7 +397,7 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
         result = BOOL_FROM(!b_res);
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
