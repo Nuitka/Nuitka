@@ -1,6 +1,6 @@
 {#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
-{{target.getTypeDecl()}} {{module_code_name}}(void) {
+{{ target.getTypeDecl() }} {{module_code_name}}(void) {
     static PyObject *module_{{module_code_name.lower()}} = NULL;
 
     if (module_{{module_code_name.lower()}} == NULL) {

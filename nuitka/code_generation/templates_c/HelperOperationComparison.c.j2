@@ -16,8 +16,8 @@
     // Quick path for avoidable checks, compatible with CPython.
     if (operand1 == operand2 && {{left.getMostSpecificType(right).getSaneTypeCheckCode("operand1")}}) {
         bool r = {% if op_code == "NE" %} false {% else %} true {%endif %};
-        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-        {{target.getTakeReferenceStatement("result")}}
+        {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+        {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
     }
 {% endif %}
@@ -61,7 +61,7 @@
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -105,8 +105,8 @@
             }
 
             bool r = c != 0;
-            {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-            {{target.getTakeReferenceStatement("result")}}
+            {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+            {{ target.getTakeReferenceStatement("result", immortal=True) }}
             return result;
         }
     }
@@ -126,7 +126,7 @@
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -140,7 +140,7 @@
             {{ target.getReturnFromObjectExpressionCode("result") }}
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
@@ -153,7 +153,7 @@
             {{ target.getReturnFromObjectExpressionCode("result") }}
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -240,8 +240,8 @@
     }
 
     bool r = c != 0;
-    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-    {{target.getTakeReferenceStatement("result")}}
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+    {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 #else
     bool checked_reverse_op = false;
@@ -261,7 +261,7 @@
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -276,7 +276,7 @@
             {{ target.getReturnFromObjectExpressionCode("result") }}
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -291,7 +291,7 @@
                 {{ target.getReturnFromObjectExpressionCode("result") }}
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -302,14 +302,14 @@
     switch(Py_{{op_code}}) {
     case Py_EQ: {
         bool r = operand1 == operand2;
-        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-        {{target.getTakeReferenceStatement("result")}}
+        {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+        {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
-        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-        {{target.getTakeReferenceStatement("result")}}
+        {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+        {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
     }
     default:
@@ -318,7 +318,7 @@
 #endif
 {% endif %}
 {% endmacro %}
-{{target.getTypeDecl()}} RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+{{ target.getTypeDecl() }} RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
 
 {# Divert to more special implementation immediately if possible. #}
 {% if left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2") %}

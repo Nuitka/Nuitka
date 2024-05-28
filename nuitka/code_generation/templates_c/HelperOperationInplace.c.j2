@@ -23,7 +23,7 @@
             {{ goto_exit(props, "exit_inplace_result_object", "x") }}
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 {% else %}
     // No inplace number slot {{ nb_inplace_slot }} available for this type.

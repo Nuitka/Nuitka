@@ -39,7 +39,7 @@ exit_binary_exception:
 {% endif %}
 {% endmacro %}
 {% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
-static HEDLEY_NEVER_INLINE {{target.getTypeDecl()}} __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static HEDLEY_NEVER_INLINE {{ target.getTypeDecl() }} __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
 {% set props = {"exits": {}} %}
 {% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
@@ -51,7 +51,7 @@ static HEDLEY_NEVER_INLINE {{target.getTypeDecl()}} __BINARY_OPERATION_{{op_code
     {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
 }
 {% endif %}
-static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static {{ target.getTypeDecl() }} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{ left.getCheckValueCode("operand1") }}
     {{ right.getCheckValueCode("operand2") }}
 
@@ -59,7 +59,7 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
     {# CPython2 treats integer values with fast path. #}
 #if PYTHON_VERSION < 0x300
     if ({{ left.getIntCheckExpression("operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
-        {{target.getTypeDecl()}} result;
+        {{ target.getTypeDecl() }} result;
 
         {% set props = {"exits": {}} %}
         {{ int_slot(props, operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
@@ -98,7 +98,7 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
-        {{target.getTypeDecl()}} result;
+        {{ target.getTypeDecl() }} result;
 
         {# There is special code for same types. #}
         // return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
@@ -128,7 +128,7 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 }
 
-{{target.getTypeDecl()}} BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+{{ target.getTypeDecl() }} BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 }
 
