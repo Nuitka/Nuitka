@@ -113,7 +113,7 @@ static PyObject *our_list_richcompare(PyListObject *list1, PyListObject *list2, 
         result = Py_False;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -136,7 +136,7 @@ static PyObject *our_tuple_richcompare(PyTupleObject *tuple1, PyTupleObject *tup
         result = Py_False;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -210,7 +210,7 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
 #endif
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -226,7 +226,7 @@ static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int o
         result = Py_False;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -274,7 +274,7 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
         }
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1146,8 +1146,12 @@ static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject
         if (is_object == true) {
             CHECK_OBJECT(*output);
 
+#if PYTHON_VERSION < 0x3c0
             Py_INCREF(*output);
             Py_INCREF(*output);
+#else
+            Py_SET_REFCNT_IMMORTAL(*output);
+#endif
         }
 
         // PRINT_ITEM(*output);
