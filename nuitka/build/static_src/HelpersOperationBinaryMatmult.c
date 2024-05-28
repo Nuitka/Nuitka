@@ -75,7 +75,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -135,7 +135,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -221,7 +221,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -277,7 +277,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -393,7 +393,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -405,7 +405,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -416,7 +416,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'

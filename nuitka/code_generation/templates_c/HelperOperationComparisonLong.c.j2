@@ -1,7 +1,7 @@
 {#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
 {% from 'HelperLongTools.c.j2' import declare_long_access with context %}
-static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{ left.getCheckValueCode("operand1") }}
     {{ right.getCheckValueCode("operand2") }}
 
@@ -136,8 +136,8 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
 {% endif %}
 
     // Convert to target type.
-    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-    {{target.getTakeReferenceStatement("result")}}
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+    {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 }
 

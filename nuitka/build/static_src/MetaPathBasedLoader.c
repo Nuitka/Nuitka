@@ -1256,7 +1256,7 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
         result = Py_None;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1331,6 +1331,8 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
 
         PyObject *r = MAKE_TUPLE_EMPTY(tstate, 2);
         PyTuple_SET_ITEM(r, 0, name);
+
+        // TODO: Needs PyTuple_SET_ITEM0 variant for immortal objects.
         PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
         LIST_APPEND1(result, r);

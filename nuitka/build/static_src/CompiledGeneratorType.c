@@ -1539,7 +1539,7 @@ static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *gen
     result = PyInt_FromLong(generator->m_running);
 #else
     result = BOOL_FROM(generator->m_running != 0);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
 #endif
     return result;
 }
