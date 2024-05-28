@@ -485,7 +485,7 @@ typedef long nuitka_digit;
 #include "nuitka/compiled_function.h"
 
 /* Sentinel PyObject to be used for all our call iterator endings. */
-extern PyObject *_sentinel_value;
+extern PyObject *Nuitka_sentinel_value;
 
 /* Value to use for __compiled__ value of all modules. */
 extern PyObject *Nuitka_dunder_compiled_value;

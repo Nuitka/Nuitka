@@ -108,10 +108,12 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #if PYTHON_VERSION < 0x3c0
 #define Py_INCREF_IMMORTAL(value) Py_INCREF(value)
 #define Py_DECREF_IMMORTAL(value) Py_DECREF(value)
-#else
-// TODO: For debugging, assert that it is indeed immortal.
+#elif defined(__NUITKA_NO_ASSERT__)
 #define Py_INCREF_IMMORTAL(value)
 #define Py_DECREF_IMMORTAL(value)
+#else
+#define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
+#define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
 #endif
 
 // Macro introduced with Python3.9 or higher, make it generally available.
@@ -275,6 +277,13 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
 static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
     return object == NULL || _PyObject_GC_IS_TRACKED(object);
 }
+
+// To allow us marking some of our own values as immortal.
+#if PYTHON_VERSION >= 0x3c0
+static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) { object->ob_refcnt = _Py_IMMORTAL_REFCNT; }
+#else
+#define Py_SET_REFCNT_IMMORTAL(object)
+#endif
 
 #endif
 
