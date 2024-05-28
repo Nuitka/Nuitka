@@ -41,7 +41,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
-from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
 from .SearchModes import (
     SearchModeByPattern,
@@ -205,7 +205,7 @@ def getTempDir():
                 os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__))
             )
             + "-",
-            dir=tempfile.gettempdir() if not os.path.exists("/var/tmp") else "/var/tmp",
+            dir=None if not (isLinux() and os.path.exists("/var/tmp")) else "/var/tmp",
         )
 
         def removeTempDir():
@@ -520,7 +520,7 @@ def displayRuntimeTraces(logger, path):
 
     if os.name == "posix":
         # Run with traces to help debugging, specifically in CI environment.
-        if getOS() in ("Darwin", "FreeBSD"):
+        if isMacOS() or isFreeBSD():
             test_logger.info("dtruss:")
             os.system("sudo dtruss %s" % path)
         else:
