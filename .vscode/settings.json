@@ -282,6 +282,7 @@
         "Py_INCREF",
         "PY_NOGIL",
         "Py_REFCNT",
+        "Py_SET_REFCNT_IMMORTAL",
         "Py_ssize_t",
         "Py_TPFLAGS",
         "Py_TPFLAGS_BASETYPE",
