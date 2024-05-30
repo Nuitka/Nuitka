@@ -91,6 +91,8 @@ extern PyObject **global_constants;
 #define const_str_plain_open global_constants[30]
 // 'keys'
 #define const_str_plain_keys global_constants[30]
+// 'get'
+#define const_str_plain_get global_constants[30]
 // 'as_file'
 #define const_str_plain_as_file global_constants[30]
 // 'register'

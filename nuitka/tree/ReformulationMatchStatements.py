@@ -25,7 +25,7 @@ from nuitka.nodes.MatchNodes import ExpressionMatchArgs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturnConstant
 from nuitka.nodes.SubscriptNodes import (
-    ExpressionSubscriptCheck,
+    ExpressionMatchSubscriptCheck,
     ExpressionSubscriptLookup,
 )
 from nuitka.nodes.TypeMatchNodes import (
@@ -257,7 +257,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
     for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
         conditions.append(
-            ExpressionSubscriptCheck(
+            ExpressionMatchSubscriptCheck(
                 expression=make_against(),
                 subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
