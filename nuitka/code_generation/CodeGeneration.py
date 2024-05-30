@@ -340,7 +340,7 @@ from .StringCodes import (
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
     generateDelSubscriptCode,
-    generateSubscriptCheckCode,
+    generateMatchSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
 from .TensorflowCodes import generateTensorflowFunctionCallCode
@@ -848,7 +848,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
-        "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
+        "EXPRESSION_MATCH_SUBSCRIPT_CHECK": generateMatchSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,

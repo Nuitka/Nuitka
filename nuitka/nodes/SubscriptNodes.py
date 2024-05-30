@@ -118,13 +118,13 @@ def hasSubscript(value, subscript):
         return True
 
 
-class ExpressionSubscriptCheck(
+class ExpressionMatchSubscriptCheck(
     ExpressionBoolShapeExactMixin,
     SideEffectsFromChildrenMixin,
     ChildrenHavingExpressionSubscriptMixin,
     ExpressionBase,
 ):
-    kind = "EXPRESSION_SUBSCRIPT_CHECK"
+    kind = "EXPRESSION_MATCH_SUBSCRIPT_CHECK"
 
     named_children = ("expression", "subscript")
 
@@ -153,7 +153,7 @@ class ExpressionSubscriptCheck(
                 computation=lambda: hasSubscript(
                     source.getCompileTimeConstant(), subscript.getCompileTimeConstant()
                 ),
-                description="Subscript check has been pre-computed.",
+                description="Subscript match check has been pre-computed.",
             )
 
             # If source has side effects, they must be evaluated.
