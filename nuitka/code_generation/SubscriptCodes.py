@@ -136,7 +136,7 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
             )
 
 
-def generateSubscriptCheckCode(to_name, expression, emit, context):
+def generateMatchSubscriptCheckCode(to_name, expression, emit, context):
     subscribed = expression.subnode_expression
     subscript = expression.subnode_subscript
 
@@ -148,20 +148,12 @@ def generateSubscriptCheckCode(to_name, expression, emit, context):
         expression=subscript, emit=emit, context=context
     )
 
-    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
-
     res_name = context.getBoolResName()
 
-    if integer_subscript:
-        emit(
-            "%s = HAS_SUBSCRIPT_CONST(tstate, %s, %s, %s);"
-            % (res_name, subscribed_name, subscript_name, subscript_constant)
-        )
-    else:
-        emit(
-            "%s = HAS_SUBSCRIPT(tstate, %s, %s);"
-            % (res_name, subscribed_name, subscript_name)
-        )
+    emit(
+        "%s = MATCH_MAPPING_KEY(tstate, %s, %s);"
+        % (res_name, subscribed_name, subscript_name)
+    )
 
     getReleaseCodes((subscript_name, subscribed_name), emit, context)
 
