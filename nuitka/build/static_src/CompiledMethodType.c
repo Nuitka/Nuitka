@@ -93,9 +93,9 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
     PyTuple_SET_ITEM(result, 0, newobj_func);
     PyObject *type_tuple = MAKE_TUPLE1(tstate, (PyObject *)&Nuitka_Method_Type);
     PyTuple_SET_ITEM(result, 1, type_tuple);
-    PyTuple_SET_ITEM0(result, 2, Py_None);
-    PyTuple_SET_ITEM0(result, 3, Py_None);
-    PyTuple_SET_ITEM0(result, 4, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 2, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 4, Py_None);
 
     CHECK_OBJECT_DEEP(result);
 
