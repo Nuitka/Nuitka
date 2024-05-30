@@ -3,13 +3,20 @@
 #ifndef __NUITKA_HELPER_TUPLES_H__
 #define __NUITKA_HELPER_TUPLES_H__
 
-// Like PyTuple_SET_ITEM but takes a reference to the item.
+// Like PyTuple_SET_ITEM, but takes a reference to the item.
 #define PyTuple_SET_ITEM0(tuple, index, value)                                                                         \
     {                                                                                                                  \
         PyObject *tmp = value;                                                                                         \
         Py_INCREF(tmp);                                                                                                \
         PyTuple_SET_ITEM(tuple, index, tmp);                                                                           \
     }
+
+// Like PyTuple_SET_ITEM, but takes a reference to the immortal value pre 3.12
+#if PYTHON_VERSION < 0x3c0
+#define PyTuple_SET_ITEM_IMMORTAL(tuple, index, value) PyTuple_SET_ITEM0(tuple, index, value)
+#else
+#define PyTuple_SET_ITEM_IMMORTAL(tuple, index, value) PyTuple_SET_ITEM(tuple, index, value)
+#endif
 
 #if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL)
 #define NUITKA_TUPLE_HAS_FREELIST 1

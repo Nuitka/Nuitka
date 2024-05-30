@@ -167,8 +167,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 #if PYTHON_VERSION >= 0x300
     PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
 #else
-    // TODO: For immortal values, should use the fact that they are known immortal.
-    PyTuple_SET_ITEM0(result, 3, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
 #endif
     PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
 
@@ -176,13 +175,13 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         CHECK_OBJECT(function->m_constant_return_value);
         PyTuple_SET_ITEM0(result, 5, function->m_constant_return_value);
     } else {
-        PyTuple_SET_ITEM0(result, 5, Py_None);
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
     }
 
 #if PYTHON_VERSION >= 0x300
     PyTuple_SET_ITEM0(result, 6, function->m_qualname);
 #else
-    PyTuple_SET_ITEM0(result, 6, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
 #endif
 
     PyObject *closure = PyObject_GetAttr(
