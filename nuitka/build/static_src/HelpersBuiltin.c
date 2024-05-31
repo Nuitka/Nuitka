@@ -38,7 +38,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
             CHECK_OBJECT(args[i]);
 
             if (kw_dict == NULL) {
-                kw_dict = MAKE_DICT_EMPTY();
+                kw_dict = MAKE_DICT_EMPTY(tstate);
             }
 
             NUITKA_MAY_BE_UNUSED int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
@@ -48,7 +48,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
         i++;
     }
 
-    PyObject *args_tuple = MAKE_TUPLE(args, usable_args);
+    PyObject *args_tuple = MAKE_TUPLE(tstate, args, usable_args);
 
     PyObject *result = CALL_FUNCTION(tstate, callable, args_tuple, kw_dict);
     Py_XDECREF(kw_dict);
@@ -78,7 +78,7 @@ PyObject *COMPILE_CODE(PyThreadState *tstate, PyObject *source_code, PyObject *f
         return source_code;
     }
 
-    PyObject *pos_args = MAKE_TUPLE3(source_code, file_name, mode);
+    PyObject *pos_args = MAKE_TUPLE3(tstate, source_code, file_name, mode);
 
     PyObject *kw_values[] = {
         flags,
@@ -593,7 +593,7 @@ PyObject *BUILTIN_TYPE1(PyObject *arg) {
 }
 
 PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
-    PyObject *pos_args = MAKE_TUPLE3(name, bases, dict);
+    PyObject *pos_args = MAKE_TUPLE3(tstate, name, bases, dict);
 
     PyObject *result = PyType_Type.tp_new(&PyType_Type, pos_args, NULL);
 
@@ -673,7 +673,7 @@ PyObject *BUILTIN_SUPER0(PyThreadState *tstate, PyDictObject *module_dict, PyObj
 PyObject *BUILTIN_CALLABLE(PyObject *value) {
     int res = PyCallable_Check(value);
     PyObject *result = BOOL_FROM(res != 0);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 

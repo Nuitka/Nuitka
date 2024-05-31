@@ -181,12 +181,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
                 else:
-                    code = "DICT_COPY(%s)" % context.getConstantCode(
+                    code = "DICT_COPY(tstate, %s)" % context.getConstantCode(
                         constant, deep_check=False
                     )
                     ref_count = 1
             else:
-                code = "MAKE_DICT_EMPTY()"
+                code = "MAKE_DICT_EMPTY(tstate)"
                 ref_count = 1
         elif type(constant) is set:
             if not may_escape:
@@ -222,12 +222,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     if constant_size > 1 and all(
                         constant[i] is constant[0] for i in xrange(1, len(constant))
                     ):
-                        code = "MAKE_LIST_REPEATED(%s, %s)" % (
+                        code = "MAKE_LIST_REPEATED(tstate, %s, %s)" % (
                             constant_size,
                             context.getConstantCode(constant[0], deep_check=False),
                         )
                     elif constant_size < make_list_constant_direct_threshold:
-                        code = "MAKE_LIST%d(%s)" % (
+                        code = "MAKE_LIST%d(tstate, %s)" % (
                             constant_size,
                             ",".join(
                                 context.getConstantCode(constant[i], deep_check=False)
@@ -235,19 +235,19 @@ class CPythonPyObjectPtrBase(CTypeBase):
                             ),
                         )
                     elif constant_size < make_list_constant_hinted_threshold:
-                        code = "MAKE_LIST%d(%s)" % (
+                        code = "MAKE_LIST%d(tstate, %s)" % (
                             constant_size,
                             context.getConstantCode(constant, deep_check=False),
                         )
                     else:
-                        code = "LIST_COPY(%s)" % context.getConstantCode(
+                        code = "LIST_COPY(tstate, %s)" % context.getConstantCode(
                             constant, deep_check=False
                         )
                     ref_count = 1
             else:
                 # TODO: For the zero elements list, maybe have a dedicated function, which
                 # avoids a bit of tests, not sure we want LTO do this.
-                code = "MAKE_LIST_EMPTY(0)"
+                code = "MAKE_LIST_EMPTY(tstate, 0)"
                 ref_count = 1
         elif type(constant) is tuple:
             needs_deep = False

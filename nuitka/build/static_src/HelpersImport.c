@@ -421,7 +421,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyThreadState *tstate, PyObject *module, PyObjec
             }
 
             if (level_int > 0) {
-                PyObject *fromlist = MAKE_TUPLE1(import_name);
+                PyObject *fromlist = MAKE_TUPLE1(tstate, import_name);
 
                 result = IMPORT_MODULE5(tstate, const_str_empty, globals, globals, fromlist, level);
 

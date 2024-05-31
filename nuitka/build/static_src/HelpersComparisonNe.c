@@ -23,7 +23,7 @@ static PyObject *COMPARE_NE_OBJECT_INT_INT(PyObject *operand1, PyObject *operand
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 #endif
@@ -58,7 +58,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
         bool r = false;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -90,7 +90,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -131,7 +131,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -151,7 +151,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -165,7 +165,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -178,7 +178,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -266,7 +266,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -286,7 +286,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -301,7 +301,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -316,7 +316,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -328,13 +328,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -402,7 +402,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -471,7 +471,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -493,7 +493,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -514,7 +514,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -630,7 +630,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -653,7 +653,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -676,7 +676,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -725,7 +725,7 @@ static PyObject *COMPARE_NE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -737,7 +737,7 @@ static PyObject *COMPARE_NE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     } else {
         if ((a->ob_sval[0] == b->ob_sval[0]) && (memcmp(a->ob_sval, b->ob_sval, len_a) == 0)) {
@@ -745,14 +745,14 @@ static PyObject *COMPARE_NE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
 
             // Convert to target type.
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         } else {
             bool r = true;
 
             // Convert to target type.
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -791,7 +791,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -832,7 +832,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -852,7 +852,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -866,7 +866,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyString_Type.tp_richcompare;
@@ -879,7 +879,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -967,7 +967,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -987,7 +987,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1002,7 +1002,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -1017,7 +1017,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1029,13 +1029,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -1085,7 +1085,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -1126,7 +1126,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -1146,7 +1146,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1160,7 +1160,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -1173,7 +1173,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -1261,7 +1261,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -1281,7 +1281,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1296,7 +1296,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -1311,7 +1311,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1323,13 +1323,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -1434,7 +1434,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -1503,7 +1503,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1525,7 +1525,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyString_Type.tp_richcompare;
@@ -1546,7 +1546,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -1662,7 +1662,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1685,7 +1685,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -1708,7 +1708,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1784,7 +1784,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -1853,7 +1853,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -1875,7 +1875,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -1896,7 +1896,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -2012,7 +2012,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2035,7 +2035,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -2058,7 +2058,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2106,7 +2106,7 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -2149,7 +2149,7 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
     }
 
     PyObject *result = BOOL_FROM(r == false);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool r;
@@ -2166,7 +2166,7 @@ static PyObject *COMPARE_NE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject 
     }
 
     PyObject *result = BOOL_FROM(r == false);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #endif
 }
@@ -2204,7 +2204,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -2245,7 +2245,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -2265,7 +2265,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2279,7 +2279,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyUnicode_Type.tp_richcompare;
@@ -2292,7 +2292,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -2380,7 +2380,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -2400,7 +2400,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2415,7 +2415,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -2430,7 +2430,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2442,13 +2442,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -2498,7 +2498,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -2539,7 +2539,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -2559,7 +2559,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2573,7 +2573,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -2586,7 +2586,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -2674,7 +2674,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -2694,7 +2694,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2709,7 +2709,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -2724,7 +2724,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2736,13 +2736,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -2879,7 +2879,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -2948,7 +2948,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -2970,7 +2970,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyUnicode_Type.tp_richcompare;
@@ -2991,7 +2991,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -3107,7 +3107,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3130,7 +3130,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -3153,7 +3153,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3229,7 +3229,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -3298,7 +3298,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3320,7 +3320,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -3341,7 +3341,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -3457,7 +3457,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3480,7 +3480,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -3503,7 +3503,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3553,7 +3553,7 @@ static PyObject *COMPARE_NE_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -3565,7 +3565,7 @@ static PyObject *COMPARE_NE_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     } else {
         if ((a->ob_sval[0] == b->ob_sval[0]) && (memcmp(a->ob_sval, b->ob_sval, len_a) == 0)) {
@@ -3573,14 +3573,14 @@ static PyObject *COMPARE_NE_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
 
             // Convert to target type.
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         } else {
             bool r = true;
 
             // Convert to target type.
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -3619,7 +3619,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -3660,7 +3660,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -3680,7 +3680,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3694,7 +3694,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyBytes_Type.tp_richcompare;
@@ -3707,7 +3707,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -3795,7 +3795,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -3815,7 +3815,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3830,7 +3830,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -3845,7 +3845,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3857,13 +3857,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -3913,7 +3913,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -3954,7 +3954,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -3974,7 +3974,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -3988,7 +3988,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -4001,7 +4001,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -4089,7 +4089,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -4109,7 +4109,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4124,7 +4124,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -4139,7 +4139,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4151,13 +4151,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -4262,7 +4262,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -4331,7 +4331,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4353,7 +4353,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyBytes_Type.tp_richcompare;
@@ -4374,7 +4374,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -4490,7 +4490,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4513,7 +4513,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -4536,7 +4536,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4612,7 +4612,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -4681,7 +4681,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4703,7 +4703,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -4724,7 +4724,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -4840,7 +4840,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4863,7 +4863,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -4886,7 +4886,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -4954,7 +4954,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -4995,7 +4995,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -5015,7 +5015,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5029,7 +5029,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = NULL;
@@ -5042,7 +5042,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -5130,7 +5130,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -5150,7 +5150,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5165,7 +5165,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -5180,7 +5180,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5192,13 +5192,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -5248,7 +5248,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -5289,7 +5289,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -5309,7 +5309,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5323,7 +5323,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -5336,7 +5336,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -5424,7 +5424,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -5444,7 +5444,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5459,7 +5459,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -5474,7 +5474,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5486,13 +5486,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -5550,7 +5550,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -5619,7 +5619,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5641,7 +5641,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = NULL;
@@ -5662,7 +5662,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -5778,7 +5778,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5801,7 +5801,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -5824,7 +5824,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5900,7 +5900,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -5969,7 +5969,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -5991,7 +5991,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -6012,7 +6012,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -6128,7 +6128,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6151,7 +6151,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -6174,7 +6174,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6238,7 +6238,7 @@ static PyObject *COMPARE_NE_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
@@ -6275,7 +6275,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -6316,7 +6316,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -6336,7 +6336,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6350,7 +6350,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -6363,7 +6363,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -6451,7 +6451,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -6471,7 +6471,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6486,7 +6486,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -6501,7 +6501,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6513,13 +6513,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -6569,7 +6569,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -6610,7 +6610,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -6630,7 +6630,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6644,7 +6644,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -6657,7 +6657,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -6745,7 +6745,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -6765,7 +6765,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6780,7 +6780,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -6795,7 +6795,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6807,13 +6807,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -6905,7 +6905,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -6974,7 +6974,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -6996,7 +6996,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
@@ -7017,7 +7017,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -7133,7 +7133,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7156,7 +7156,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -7179,7 +7179,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7255,7 +7255,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -7324,7 +7324,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7346,7 +7346,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -7367,7 +7367,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -7483,7 +7483,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7506,7 +7506,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -7529,7 +7529,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7576,7 +7576,7 @@ static PyObject *COMPARE_NE_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *ope
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
@@ -7613,7 +7613,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -7654,7 +7654,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -7674,7 +7674,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7688,7 +7688,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyFloat_Type.tp_richcompare;
@@ -7701,7 +7701,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -7789,7 +7789,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -7809,7 +7809,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7824,7 +7824,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -7839,7 +7839,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7851,13 +7851,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -7905,7 +7905,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -7946,7 +7946,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -7966,7 +7966,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -7980,7 +7980,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -7993,7 +7993,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -8081,7 +8081,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -8101,7 +8101,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8116,7 +8116,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -8131,7 +8131,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8143,13 +8143,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -8221,7 +8221,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -8290,7 +8290,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8312,7 +8312,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyFloat_Type.tp_richcompare;
@@ -8333,7 +8333,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -8449,7 +8449,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8472,7 +8472,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -8495,7 +8495,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8569,7 +8569,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -8638,7 +8638,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8660,7 +8660,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -8681,7 +8681,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -8797,7 +8797,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8820,7 +8820,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -8843,7 +8843,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -8892,7 +8892,7 @@ static PyObject *COMPARE_NE_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *ope
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -8922,7 +8922,7 @@ static PyObject *COMPARE_NE_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *ope
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
@@ -8959,7 +8959,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -9000,7 +9000,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -9020,7 +9020,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9034,7 +9034,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyTuple_Type.tp_richcompare;
@@ -9047,7 +9047,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -9135,7 +9135,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -9155,7 +9155,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9170,7 +9170,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -9185,7 +9185,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9197,13 +9197,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -9251,7 +9251,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -9292,7 +9292,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -9312,7 +9312,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9326,7 +9326,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -9339,7 +9339,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -9427,7 +9427,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -9447,7 +9447,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9462,7 +9462,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -9477,7 +9477,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9489,13 +9489,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -9607,7 +9607,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -9676,7 +9676,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9698,7 +9698,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyTuple_Type.tp_richcompare;
@@ -9719,7 +9719,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -9835,7 +9835,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9858,7 +9858,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -9881,7 +9881,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -9955,7 +9955,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -10024,7 +10024,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10046,7 +10046,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -10067,7 +10067,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -10183,7 +10183,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10206,7 +10206,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -10229,7 +10229,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10281,7 +10281,7 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
 
         // Convert to target type.
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
 
@@ -10321,7 +10321,7 @@ static PyObject *COMPARE_NE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *opera
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
@@ -10358,7 +10358,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -10399,7 +10399,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -10419,7 +10419,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10433,7 +10433,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyList_Type.tp_richcompare;
@@ -10446,7 +10446,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -10534,7 +10534,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -10554,7 +10554,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10569,7 +10569,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -10584,7 +10584,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10596,13 +10596,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -10650,7 +10650,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -10691,7 +10691,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
             bool r = c != 0;
             PyObject *result = BOOL_FROM(r);
-            Py_INCREF(result);
+            Py_INCREF_IMMORTAL(result);
             return result;
         }
     }
@@ -10711,7 +10711,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10725,7 +10725,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -10738,7 +10738,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -10826,7 +10826,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
     bool r = c != 0;
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 #else
     bool checked_reverse_op = false;
@@ -10846,7 +10846,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10861,7 +10861,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             return result;
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -10876,7 +10876,7 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
                 return result;
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -10888,13 +10888,13 @@ PyObject *RICH_COMPARE_NE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     case Py_EQ: {
         bool r = operand1 == operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     case Py_NE: {
         bool r = operand1 != operand2;
         PyObject *result = BOOL_FROM(r);
-        Py_INCREF(result);
+        Py_INCREF_IMMORTAL(result);
         return result;
     }
     default:
@@ -11013,7 +11013,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -11082,7 +11082,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11104,7 +11104,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = PyList_Type.tp_richcompare;
@@ -11125,7 +11125,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -11241,7 +11241,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11264,7 +11264,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -11287,7 +11287,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11361,7 +11361,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
 
         // No rich comparison worked, but maybe compare works.
@@ -11430,7 +11430,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11452,7 +11452,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     f = RICHCOMPARE(type2);
@@ -11473,7 +11473,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     int c;
@@ -11589,7 +11589,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11612,7 +11612,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             }
         }
 
-        Py_DECREF(result);
+        Py_DECREF_IMMORTAL(result);
     }
 
     if (checked_reverse_op == false) {
@@ -11635,7 +11635,7 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                 }
             }
 
-            Py_DECREF(result);
+            Py_DECREF_IMMORTAL(result);
         }
     }
 
@@ -11724,7 +11724,7 @@ static PyObject *COMPARE_NE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
@@ -11807,7 +11807,7 @@ static PyObject *COMPARE_NE_OBJECT_INT_CLONG(PyObject *operand1, long operand2) 
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
@@ -11864,7 +11864,7 @@ static PyObject *COMPARE_NE_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2)
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
@@ -11920,7 +11920,7 @@ static PyObject *COMPARE_NE_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double opera
 
     // Convert to target type.
     PyObject *result = BOOL_FROM(r);
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */

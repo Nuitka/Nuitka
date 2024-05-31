@@ -175,7 +175,7 @@ def _resolveBinaryPathDLLsMacOS(
                     resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
                     break
             else:
-                # These have become virtual in later macOS.
+                # These have become virtual in later macOS, spell-checker: ignore libz
                 if library_name in ("libc++.1.dylib", "libz.1.dylib"):
                     continue
 

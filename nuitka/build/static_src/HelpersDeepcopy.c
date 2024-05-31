@@ -26,7 +26,7 @@ PyObject *DEEP_COPY_LIST(PyThreadState *tstate, PyObject *value) {
     assert(PyList_CheckExact(value));
 
     Py_ssize_t n = PyList_GET_SIZE(value);
-    PyObject *result = MAKE_LIST_EMPTY(n);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, n);
 
     PyTypeObject *type = NULL;
     copy_func copy_function = NULL;
@@ -61,7 +61,7 @@ PyObject *DEEP_COPY_TUPLE(PyThreadState *tstate, PyObject *value) {
 
     Py_ssize_t n = PyTuple_GET_SIZE(value);
 
-    PyObject *result = MAKE_TUPLE_EMPTY_VAR(n);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, n);
 
     for (Py_ssize_t i = 0; i < n; i++) {
         PyTuple_SET_ITEM(result, i, DEEP_COPY(tstate, PyTuple_GET_ITEM(value, i)));
@@ -146,8 +146,10 @@ static void _initDeepCopy(void) {
 
 #if PYTHON_VERSION >= 0x3a0
     {
+        PyThreadState *tstate = PyThreadState_GET();
+
         PyObject *args[2] = {(PyObject *)&PyFloat_Type, (PyObject *)&PyTuple_Type};
-        PyObject *args_tuple = MAKE_TUPLE(args, 2);
+        PyObject *args_tuple = MAKE_TUPLE(tstate, args, 2);
         PyObject *union_value = MAKE_UNION_TYPE(args_tuple);
 
         Nuitka_PyUnion_Type = Py_TYPE(union_value);
@@ -549,15 +551,15 @@ static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyThreadState *tstate, PyObject *valu
     case 'L':
         return _DEEP_COPY_LIST_GUIDED(tstate, value, guide);
     case 'l':
-        return LIST_COPY(value);
+        return LIST_COPY(tstate, value);
     case 'T':
         return _DEEP_COPY_TUPLE_GUIDED(tstate, value, guide);
     case 't':
-        return TUPLE_COPY(value);
+        return TUPLE_COPY(tstate, value);
     case 'D':
         return DEEP_COPY_DICT(tstate, value);
     case 'd':
-        return DICT_COPY(value);
+        return DICT_COPY(tstate, value);
     case 'S':
         return DEEP_COPY_SET(tstate, value);
     case 'B':
@@ -575,7 +577,7 @@ static PyObject *_DEEP_COPY_LIST_GUIDED(PyThreadState *tstate, PyObject *value, 
 
     Py_ssize_t size = PyList_GET_SIZE(value);
 
-    PyObject *result = MAKE_LIST_EMPTY(size);
+    PyObject *result = MAKE_LIST_EMPTY(tstate, size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(tstate, PyList_GET_ITEM(value, i), guide);
@@ -592,7 +594,7 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value,
     Py_ssize_t size = PyTuple_GET_SIZE(value);
 
     // We cannot have size 0, so this is safe.
-    PyObject *result = MAKE_TUPLE_EMPTY(size);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(tstate, PyTuple_GET_ITEM(value, i), guide);

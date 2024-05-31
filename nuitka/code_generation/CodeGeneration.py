@@ -283,6 +283,7 @@ from .PackageResourceCodes import (
     generateOsPathIsabsCallCode,
     generateOsPathIsdirCallCode,
     generateOsPathIsfileCallCode,
+    generateOsPathNormpathCallCode,
     generateOsUnameCallCode,
     generatePkglibGetDataCallCode,
     generatePkgResourcesDistributionValueCode,
@@ -339,7 +340,7 @@ from .StringCodes import (
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
     generateDelSubscriptCode,
-    generateSubscriptCheckCode,
+    generateMatchSubscriptCheckCode,
     generateSubscriptLookupCode,
 )
 from .TensorflowCodes import generateTensorflowFunctionCallCode
@@ -847,7 +848,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
-        "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
+        "EXPRESSION_MATCH_SUBSCRIPT_CHECK": generateMatchSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,
@@ -911,6 +912,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_DIRNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_BASENAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ABSPATH_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_PATH_NORMPATH_REF": generateImportModuleNameHardCode,
         "EXPRESSION_BUILTINS_OPEN_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_REF": generateImportModuleNameHardCode,
         "EXPRESSION_CTYPES_CDLL_SINCE38_CALL": generateCtypesCdllCallCode,
@@ -940,6 +942,7 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_BASENAME_CALL": generateOsPathBasenameCallCode,
         "EXPRESSION_OS_PATH_DIRNAME_CALL": generateOsPathDirnameCallCode,
         "EXPRESSION_OS_PATH_ABSPATH_CALL": generateOsPathAbspathCallCode,
+        "EXPRESSION_OS_PATH_NORMPATH_CALL": generateOsPathNormpathCallCode,
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,

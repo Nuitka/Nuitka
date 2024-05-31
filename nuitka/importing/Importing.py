@@ -41,6 +41,7 @@ from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
     builtin_module_names,
     getModuleFilenameSuffixes,
+    getPackageDirFilename,
     getSharedLibrarySuffixes,
     isBuiltinModuleName,
 )
@@ -228,6 +229,16 @@ def getModuleNameAndKindFromFilename(module_filename):
             )
 
     if os.path.isdir(module_filename):
+        package_filename = getPackageDirFilename(module_filename)
+
+        if package_filename is not None:
+            for suffix in getSharedLibrarySuffixes():
+                if package_filename.endswith(suffix):
+                    return (
+                        ModuleName(os.path.basename(module_filename)),
+                        "extension",
+                    )
+
         return ModuleName(os.path.basename(module_filename)), "py"
 
     return None, None
@@ -507,9 +518,6 @@ def _findModuleInPath2(package_name, module_name, search_path):
             found = False
 
             for suffix, module_type in getModuleFilenameSuffixes():
-                if module_type == "C_EXTENSION":
-                    continue
-
                 package_file_name = "__init__" + suffix
 
                 file_path = os.path.join(package_directory, package_file_name)
@@ -1016,6 +1024,11 @@ _stdlib_module_raises = {
     "zlib": False,
     "_ssl": True,
     "_xxinterpchannels": False,
+    # TODO: 3.13 clarify if this is actually true
+    "_interpchannels": False,
+    "_interpreters": False,
+    "_interpqueues": False,
+    "_sysconfig": False,
 }
 
 

@@ -11,18 +11,23 @@
 #endif
 
 #if NUITKA_TUPLE_HAS_FREELIST
-static struct _Py_tuple_state *_Nuitka_Py_get_tuple_state(void) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->tuple;
-}
 
-PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
+PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     PyTupleObject *result_tuple;
 
     // Lets not get called other than this
     assert(size > 0);
 
-    struct _Py_tuple_state *state = _Nuitka_Py_get_tuple_state();
+    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION < 0x3d0
+    PyTupleObject **items = tstate->interp->tuple.free_list;
+    int *numfree = tstate->interp->tuple.numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_tuple_freelist *state = &freelists->tuples;
+    PyTupleObject **items = state->items;
+    int(*numfree) = state->numfree;
+#endif
 
 #if PYTHON_VERSION < 0x3b0
     Py_ssize_t index = size;
@@ -30,9 +35,9 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     Py_ssize_t index = size - 1;
 #endif
 
-    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = state->free_list[index]) != NULL) {
-        state->free_list[index] = (PyTupleObject *)result_tuple->ob_item[0];
-        state->numfree[index] -= 1;
+    if ((size < PyTuple_MAXSAVESIZE) && (result_tuple = items[index]) != NULL) {
+        items[index] = (PyTupleObject *)result_tuple->ob_item[0];
+        numfree[index] -= 1;
 
         assert(Py_SIZE(result_tuple) == size);
         assert(Py_TYPE(result_tuple) == &PyTuple_Type);
@@ -65,23 +70,23 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
     return (PyObject *)result_tuple;
 }
 
-PyObject *MAKE_TUPLE_EMPTY_VAR(Py_ssize_t size) {
+PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size) {
     if (size == 0) {
         PyObject *result = const_tuple_empty;
         Py_INCREF(result);
         return result;
     } else {
-        return MAKE_TUPLE_EMPTY(size);
+        return MAKE_TUPLE_EMPTY(tstate, size);
     }
 }
 
 #endif
 
-PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2) {
+PyObject *TUPLE_CONCAT(PyThreadState *tstate, PyObject *tuple1, PyObject *tuple2) {
     Py_ssize_t size = Py_SIZE(tuple1) + Py_SIZE(tuple2);
 
     // Do not ignore MemoryError, may actually happen.
-    PyTupleObject *result = (PyTupleObject *)MAKE_TUPLE_EMPTY_VAR(size);
+    PyTupleObject *result = (PyTupleObject *)MAKE_TUPLE_EMPTY_VAR(tstate, size);
     if (unlikely(result == NULL)) {
         return NULL;
     }
@@ -107,12 +112,12 @@ PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2) {
     return (PyObject *)result;
 }
 
-PyObject *TUPLE_COPY(PyObject *tuple) {
+PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple) {
     CHECK_OBJECT(tuple);
     assert(PyTuple_CheckExact(tuple));
 
     Py_ssize_t size = PyTuple_GET_SIZE(tuple);
-    PyObject *result = MAKE_TUPLE_EMPTY(size);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 
     if (unlikely(result == NULL)) {
         return NULL;

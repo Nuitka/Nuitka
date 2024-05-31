@@ -116,7 +116,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_INT(PyObject **op
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -142,7 +142,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_INT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -153,7 +153,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_INT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -392,7 +392,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_INT_OBJECT(PyObject **op
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -404,7 +404,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_INT_OBJECT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -415,7 +415,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_INT_OBJECT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -751,7 +751,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **o
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -777,7 +777,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -788,7 +788,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1074,7 +1074,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **o
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -1086,7 +1086,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1097,7 +1097,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1411,7 +1411,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_FLOAT(PyObject **
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -1437,7 +1437,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_FLOAT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1448,7 +1448,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_FLOAT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1660,7 +1660,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_FLOAT_OBJECT(PyObject **
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -1672,7 +1672,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_FLOAT_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1683,7 +1683,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_FLOAT_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1878,7 +1878,7 @@ static inline bool _INPLACE_OPERATION_ADD_FLOAT_LONG(PyObject **operand1, PyObje
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -1957,7 +1957,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_FLOAT(PyObject **operand1, PyObje
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2031,7 +2031,7 @@ static inline bool _INPLACE_OPERATION_ADD_FLOAT_INT(PyObject **operand1, PyObjec
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2108,7 +2108,7 @@ static inline bool _INPLACE_OPERATION_ADD_INT_FLOAT(PyObject **operand1, PyObjec
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2179,7 +2179,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_INT(PyObject **operand1, PyObject
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2256,7 +2256,7 @@ static inline bool _INPLACE_OPERATION_ADD_INT_LONG(PyObject **operand1, PyObject
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2630,7 +2630,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_STR(PyObject **op
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -2645,7 +2645,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_STR(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -2814,7 +2814,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_STR_OBJECT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3022,7 +3022,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_UNICODE(PyObject 
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -3037,7 +3037,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_UNICODE(PyObject 
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3214,7 +3214,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_UNICODE_OBJECT(PyObject 
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3424,7 +3424,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_BYTES(PyObject **
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -3439,7 +3439,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_BYTES(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3609,7 +3609,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_BYTES_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3762,7 +3762,10 @@ static inline bool _INPLACE_OPERATION_ADD_TUPLE_TUPLE(PyObject **operand1, PyObj
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
     assert(x != Py_NotImplemented);
     obj_result = x;
@@ -3814,7 +3817,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_TUPLE(PyObject **
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -3829,7 +3832,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_TUPLE(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -3923,7 +3926,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_TUPLE(PyObject **operand1, PyOb
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
         assert(x != Py_NotImplemented);
         obj_result = x;
@@ -3986,7 +3992,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_TUPLE_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -4085,7 +4091,10 @@ static inline bool _INPLACE_OPERATION_ADD_TUPLE_OBJECT(PyObject **operand1, PyOb
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = TUPLE_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = TUPLE_CONCAT(tstate, *operand1, operand2);
 
         assert(x != Py_NotImplemented);
         obj_result = x;
@@ -4144,7 +4153,10 @@ static inline bool _INPLACE_OPERATION_ADD_LIST_LIST(PyObject **operand1, PyObjec
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    PyObject *x = LIST_CONCAT(*operand1, operand2);
+    // TODO: Have this more globally passed in
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
     assert(x != Py_NotImplemented);
 
     obj_result = x;
@@ -4197,7 +4209,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_LIST(PyObject **o
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -4212,7 +4224,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_OBJECT_LIST(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -4310,7 +4322,10 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LIST(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = LIST_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
         assert(x != Py_NotImplemented);
 
         obj_result = x;
@@ -4374,7 +4389,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_ADD_LIST_OBJECT(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -4482,7 +4497,10 @@ static inline bool _INPLACE_OPERATION_ADD_LIST_OBJECT(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        PyObject *x = LIST_CONCAT(*operand1, operand2);
+        // TODO: Have this more globally passed in
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *x = LIST_CONCAT(tstate, *operand1, operand2);
         assert(x != Py_NotImplemented);
 
         obj_result = x;
@@ -4783,7 +4801,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -4811,7 +4829,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -4823,7 +4841,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -4834,7 +4852,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300

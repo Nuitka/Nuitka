@@ -14,16 +14,18 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
     makeExpressionAttributeLookup,
 )
+from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.DictionaryNodes import StatementDictOperationRemove
 from nuitka.nodes.MatchNodes import ExpressionMatchArgs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturnConstant
 from nuitka.nodes.SubscriptNodes import (
-    ExpressionSubscriptCheck,
+    ExpressionMatchSubscriptCheck,
     ExpressionSubscriptLookup,
 )
 from nuitka.nodes.TypeMatchNodes import (
@@ -32,7 +34,10 @@ from nuitka.nodes.TypeMatchNodes import (
 )
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
@@ -252,7 +257,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
     for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
         conditions.append(
-            ExpressionSubscriptCheck(
+            ExpressionMatchSubscriptCheck(
                 expression=make_against(),
                 subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
@@ -276,6 +281,37 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
         if item_assignments:
             assignments.extend(item_assignments)
+
+    if pattern.rest:
+        assert type(pattern.rest) is str, pattern.rest
+
+        assignments.append(
+            StatementAssignmentVariableName(
+                provider=provider,
+                variable_name=pattern.rest,
+                source=ExpressionBuiltinDict(
+                    pos_arg=make_against(),
+                    pairs=(),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        for key in pattern.keys:
+            assert type(key) is ast.Constant, key
+
+            assignments.append(
+                StatementDictOperationRemove(
+                    dict_arg=ExpressionVariableNameRef(
+                        provider=provider,
+                        variable_name=pattern.rest,
+                        source_ref=source_ref,
+                    ),
+                    key=buildNode(provider, key, source_ref),
+                    source_ref=source_ref,
+                )
+            )
 
     return conditions, assignments
 

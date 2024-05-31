@@ -70,6 +70,12 @@
                             "type": "string"
                         }
                     },
+                    "raw_dirs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "patterns": {
                         "type": "array",
                         "items": {
@@ -274,14 +280,6 @@
                             "properties": {
                                 "description": {
                                     "type": "string"
-                                },
-                                "console": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no",
-                                        "recommend"
-                                    ]
                                 },
                                 "macos_bundle": {
                                     "type": "string",

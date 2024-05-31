@@ -115,7 +115,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_INT(PyObject **op
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -141,7 +141,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_INT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -152,7 +152,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_INT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -377,7 +377,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_INT_OBJECT(PyObject **op
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -389,7 +389,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_INT_OBJECT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -400,7 +400,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_INT_OBJECT(PyObject **op
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -732,7 +732,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **o
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -758,7 +758,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -769,7 +769,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1042,7 +1042,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **o
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -1054,7 +1054,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1065,7 +1065,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **o
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1375,7 +1375,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_FLOAT(PyObject **
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -1401,7 +1401,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_FLOAT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1412,7 +1412,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_OBJECT_FLOAT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1610,7 +1610,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_FLOAT_OBJECT(PyObject **
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -1622,7 +1622,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_FLOAT_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -1633,7 +1633,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_SUB_FLOAT_OBJECT(PyObject **
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300
@@ -1823,7 +1823,7 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_LONG(PyObject **operand1, PyObje
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -1897,7 +1897,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_FLOAT(PyObject **operand1, PyObje
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -1966,7 +1966,7 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_INT(PyObject **operand1, PyObjec
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2038,7 +2038,7 @@ static inline bool _INPLACE_OPERATION_SUB_INT_FLOAT(PyObject **operand1, PyObjec
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2104,7 +2104,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_INT(PyObject **operand1, PyObject
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2176,7 +2176,7 @@ static inline bool _INPLACE_OPERATION_SUB_INT_LONG(PyObject **operand1, PyObject
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with these types
@@ -2568,7 +2568,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -2597,7 +2597,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -2609,7 +2609,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -2620,7 +2620,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
 #if PYTHON_VERSION < 0x300

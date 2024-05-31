@@ -116,6 +116,23 @@ def getModuleCode(
         module.getRuntimePackageValue() if is_dunder_main else ""
     )
 
+    if str is bytes:
+        module_dll_entry_point = "init" + module_identifier
+        module_def_size = -1
+    else:
+        try:
+            module_dll_entry_point = module_name.encode("ascii")
+            module_dll_entry_point_prefix = "PyInit_"
+            module_def_size = -1
+        except UnicodeEncodeError:
+            module_dll_entry_point = module_name.encode("punycode")
+            module_dll_entry_point_prefix = "PyInitU_"
+            module_def_size = 0
+
+        module_dll_entry_point = (
+            module_dll_entry_point_prefix + module_dll_entry_point.decode("ascii")
+        )
+
     return template % {
         "module_name_cstr": encodePythonStringToC(
             module_name.asString().encode("utf8")
@@ -138,6 +155,8 @@ def getModuleCode(
         "module_code_objects_init": indented(module_code_objects_init, 1),
         "constants_count": context.getConstantsCount(),
         "module_const_blob_name": module_const_blob_name,
+        "module_dll_entry_point": module_dll_entry_point,
+        "module_def_size": module_def_size,
     }
 
 

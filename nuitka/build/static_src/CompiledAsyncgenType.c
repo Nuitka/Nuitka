@@ -124,7 +124,7 @@ static PyObject *Nuitka_Asyncgen_get_ag_await(struct Nuitka_AsyncgenObject *asyn
         Py_INCREF(asyncgen->m_yield_from);
         return asyncgen->m_yield_from;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -154,7 +154,7 @@ static PyObject *Nuitka_Asyncgen_get_frame(struct Nuitka_AsyncgenObject *asyncge
         Py_INCREF(asyncgen->m_frame);
         return (PyObject *)asyncgen->m_frame;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -1352,7 +1352,13 @@ struct _PyAsyncGenWrappedValue {
         PyObject *agw_val;
 };
 
+#if PYTHON_VERSION < 0x3d0
 #define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == &_PyAsyncGenWrappedValue_Type)
+#else
+static PyTypeObject *Nuitka_PyAsyncGenWrappedValue_Type = NULL;
+
+#define _PyAsyncGenWrappedValue_CheckExact(o) (Py_TYPE(o) == Nuitka_PyAsyncGenWrappedValue_Type)
+#endif
 
 static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen,
                                                PyObject *result) {
@@ -1378,9 +1384,7 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
 
     if (_PyAsyncGenWrappedValue_CheckExact(result)) {
         /* async yield */
-        // TODO: Unify with coroutines and generators, who do things manually with a shared
-        // helper, "Nuitka_SetStopIterationValue" should be usable instead.
-        _PyGen_SetStopIterationValue(((struct _PyAsyncGenWrappedValue *)result)->agw_val);
+        Nuitka_SetStopIterationValue(tstate, ((struct _PyAsyncGenWrappedValue *)result)->agw_val);
 
         Py_DECREF(result);
 
@@ -1390,7 +1394,7 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
         return NULL;
     } else if (Nuitka_AsyncgenWrappedValue_CheckExact(result)) {
         /* async yield */
-        _PyGen_SetStopIterationValue(((struct Nuitka_AsyncgenWrappedValueObject *)result)->m_value);
+        Nuitka_SetStopIterationValue(tstate, ((struct Nuitka_AsyncgenWrappedValueObject *)result)->m_value);
 
         Py_DECREF(result);
 
@@ -1642,7 +1646,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
 static PyObject *Nuitka_AsyncgenAsend_close(struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args) {
     asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -2049,7 +2053,7 @@ static PyObject *Nuitka_AsyncgenAthrow_tp_iternext(struct Nuitka_AsyncgenAthrowO
 static PyObject *Nuitka_AsyncgenAthrow_close(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
     asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -2180,6 +2184,13 @@ static void _initCompiledAsyncgenTypes(void) {
     Nuitka_PyType_Ready(&Nuitka_AsyncgenAsend_Type, NULL, true, false, true, true, false);
     Nuitka_PyType_Ready(&Nuitka_AsyncgenAthrow_Type, NULL, true, false, true, true, false);
     Nuitka_PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type, NULL, false, false, false, false, false);
+
+#if PYTHON_VERSION >= 0x3d0
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *asyncgen_wrapper_object = _PyIntrinsics_UnaryFunctions[INTRINSIC_ASYNC_GEN_WRAP].func(tstate, Py_None);
+    Nuitka_PyAsyncGenWrappedValue_Type = Py_TYPE(asyncgen_wrapper_object);
+    Py_DECREF(asyncgen_wrapper_object);
+#endif
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

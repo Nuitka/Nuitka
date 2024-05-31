@@ -42,10 +42,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
                 return NULL;
             }
 
-            // TODO: Specialize for single element maybe, but LTO solves
-            // this just fine.
-            PyObject *elements[1] = {matched};
-            return MAKE_TUPLE(elements, 1);
+            return MAKE_TUPLE1(tstate, matched);
         }
 
         actual = 0;
@@ -58,7 +55,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
         return NULL;
     }
 
-    PyObject *result = MAKE_TUPLE_EMPTY_VAR(actual);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, actual);
 
     for (Py_ssize_t i = 0; i < max_allowed; i++) {
         PyObject *arg_name = PyTuple_GET_ITEM(match_args, i);
@@ -89,6 +86,36 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
     Py_DECREF(match_args);
     return result;
 }
+
+int MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
+    // Need to use get_method with default value, so "defaultdict" do not
+    // mutate. TODO: Use a cached value across the "match".
+    PyObject *get_method = LOOKUP_ATTRIBUTE(tstate, map, const_str_plain_get);
+    if (unlikely(get_method == NULL)) {
+        return -1;
+    }
+
+    PyObject *args[] = {key, Nuitka_sentinel_value};
+
+    PyObject *value = CALL_FUNCTION_WITH_ARGS2(tstate, get_method, args);
+
+    Py_XDECREF(get_method);
+
+    if (unlikely(value == NULL)) {
+        return -1;
+    }
+
+    if (value == Nuitka_sentinel_value) {
+        Py_DECREF_IMMORTAL(value);
+
+        return 0;
+    }
+
+    Py_DECREF(value);
+
+    return 1;
+}
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

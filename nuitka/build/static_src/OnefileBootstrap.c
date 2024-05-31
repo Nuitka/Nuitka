@@ -67,6 +67,7 @@
 #define _NUITKA_AUTO_UPDATE_DEBUG_BOOL 1
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
 
+#define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -105,6 +106,10 @@
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#include "HelpersConsole.c"
+#endif
+
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
@@ -136,22 +141,6 @@ static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory
 
 // Could not launch child process.
 static void fatalErrorChild(char const *message, error_code_t error_code) { fatalIOError(message, error_code); }
-
-#if defined(_WIN32)
-static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
-    while (*target != 0) {
-        target++;
-        buffer_size -= 1;
-    }
-
-    if (buffer_size < 1) {
-        abort();
-    }
-
-    *target++ = c;
-    *target = 0;
-}
-#endif
 
 static void fatalErrorTempFileCreate(filename_char_t const *filename) {
     fprintf(stderr, "Error, failed to open '" FILENAME_FORMAT_STR "' for writing.\n", filename);
@@ -832,6 +821,12 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
 #endif
+    // Attach to the parent console respecting redirection only, otherwise we cannot
+    // even output traces.
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+    inheritAttachedConsole();
+#endif
+
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
     filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
@@ -1079,6 +1074,10 @@ int main(int argc, char **argv) {
 
     STARTUPINFOW si;
     memset(&si, 0, sizeof(si));
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
     si.cb = sizeof(si);
 
     PROCESS_INFORMATION pi;
@@ -1087,7 +1086,7 @@ int main(int argc, char **argv) {
                               GetCommandLineW(),     // command line
                               NULL,                  // process attributes
                               NULL,                  // thread attributes
-                              FALSE,                 // inherit handles
+                              TRUE,                  // inherit handles
                               NORMAL_PRIORITY_CLASS, // creation flags
                               NULL, NULL, &si, &pi);
 

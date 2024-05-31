@@ -18,16 +18,8 @@ are in another context.
 """
 
 from nuitka import Tracing
-from nuitka.__past__ import unicode
-from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Operations import VisitorNoopMixin
-
-imported_names = OrderedSet()
-
-
-def getImportedNames():
-    return imported_names
 
 
 class FinalizeMarkups(VisitorNoopMixin):
@@ -65,16 +57,6 @@ class FinalizeMarkups(VisitorNoopMixin):
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
-
-        if node.isExpressionBuiltinImport() and node.follow_attempted:
-            module_name = node.subnode_name
-
-            if module_name.isCompileTimeConstant():
-                imported_module_name = module_name.getCompileTimeConstant()
-
-                if type(imported_module_name) in (str, unicode):
-                    if imported_module_name:
-                        imported_names.add(imported_module_name)
 
         if node.isExpressionFunctionCreation():
             if (

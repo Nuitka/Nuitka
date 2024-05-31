@@ -325,6 +325,28 @@ when '--onefile' is not specified."""
         )
 
 
+def _checkDataDirOptionValue(data_dir, option_name):
+    if "=" not in data_dir:
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value '%s' description, must specify a relative target path with '=' separating it."
+            % (option_name, data_dir)
+        )
+
+    src, dst = data_dir.split("=", 1)
+
+    if os.path.isabs(dst):
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value, must specify relative target path for data dir, not '%s' as in '%s'."
+            % (option_name, dst, data_dir)
+        )
+
+    if not os.path.isdir(src):
+        Tracing.options_logger.sysexit(
+            "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
+            % (option_name, dst, data_dir)
+        )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -628,11 +650,6 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
-    if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
-        Tracing.options_logger.sysexit(
-            "Error, cannot disable console unless also using '--macos-create-app-bundle'."
-        )
-
     try:
         file_version = getFileVersionTuple()
     # Catch all the things, don't want any interface, pylint: disable=broad-except
@@ -751,24 +768,10 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     for data_dir in options.data_dirs:
-        if "=" not in data_dir:
-            Tracing.options_logger.sysexit(
-                "Error, malformed data dir description, must specify relative target path with '=' separating it."
-            )
+        _checkDataDirOptionValue(data_dir=data_dir, option_name="--include-data-dir")
 
-        src, dst = data_dir.split("=", 1)
-
-        if os.path.isabs(dst):
-            Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data dir, not '%s' as in '%s'."
-                % (dst, data_dir)
-            )
-
-        if not os.path.isdir(src):
-            Tracing.options_logger.sysexit(
-                "Error, must specify existing source data directory, not '%s' as in '%s'."
-                % (dst, data_dir)
-            )
+    for data_dir in options.raw_dirs:
+        _checkDataDirOptionValue(data_dir=data_dir, option_name="--include-raw-dir")
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
@@ -820,10 +823,13 @@ download. With that, your program will work on macOS 10.9 or higher."""
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isLinux() and getExecutablePath("patchelf") is None:
-        Tracing.options_logger.sysexit(
-            "Error, standalone mode on Linux requires 'patchelf' to be installed. Use 'apt/dnf/yum install patchelf' first."
+    if isStandaloneMode() and isLinux():
+        # Cyclic dependency
+        from nuitka.utils.SharedLibraries import (
+            checkPatchElfPresenceAndUsability,
         )
+
+        checkPatchElfPresenceAndUsability(Tracing.options_logger)
 
     pgo_executable = getPgoExecutable()
     if pgo_executable and not isPathExecutable(pgo_executable):
@@ -895,8 +901,27 @@ version '%s' instead or newer Nuitka."""
                 )
             )
 
+    if sys.version_info.releaselevel != "final":
+        if python_version_str not in getNotYetSupportedPythonVersions():
+            Tracing.general.sysexit(
+                """\
+Non-final versions '%s' '%s' are not supported by Nuitka, use the \
+final version instead."""
+                % (python_version_str, sys.version_info.releaselevel)
+            )
+
     if python_version_str in getNotYetSupportedPythonVersions():
-        if not isExperimental("python" + python_version_str):
+        if sys.version_info.releaselevel != "final" and not isExperimental(
+            "python" + python_version_str
+        ):
+            Tracing.general.warning(
+                """\
+The Python version '%s' '%s' is only experimentally supported by \
+and recommended only for use in Nuitka development and testing."""
+                % (python_version_str, sys.version_info.releaselevel)
+            )
+
+        elif not isExperimental("python" + python_version_str):
             Tracing.general.sysexit(
                 """\
 The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
@@ -1111,15 +1136,10 @@ and not with the non-debug version.
 """
         )
 
-    if (
-        isMacOS()
-        and shallCreateAppBundle()
-        and shallDisableConsoleWindow()
-        and not getMacOSIconPaths()
-    ):
+    if isMacOS() and shallCreateAppBundle() and not getMacOSIconPaths():
         Tracing.general.warning(
             """\
-For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
+For application bundles, you ought to specify an icon with '--macos-app-icon'.", \
 otherwise a dock icon may not be present."""
         )
 
@@ -1138,7 +1158,7 @@ to work."""
     if (
         isWin32Windows()
         and 0x340 <= python_version < 0x380
-        and not shallDisableConsoleWindow()
+        and getWindowsConsoleMode() != "disable"
     ):
         Tracing.general.warning(
             """\
@@ -1150,6 +1170,49 @@ console window for deployment.
             % python_version_str,
             mnemonic="old-python-windows-console",
         )
+
+    if shallMakeModule() and (getForcedStderrPath() or getForcedStdoutPath()):
+        Tracing.general.warning(
+            """\
+Extension modules do not control process outputs, therefore the \
+options '--force-stdout-spec' and '--force-stderr-spec' have no \
+impact and should not be specified."""
+        )
+
+    if shallMakeModule() and options.console_mode is not None:
+        Tracing.general.warning(
+            """\
+Extension modules are not binaries, and therefore the option \
+'--windows-console-mode' does not have an impact and should \
+not be specified."""
+        )
+
+    if options.disable_console in (True, False):
+        if isWin32Windows():
+            Tracing.general.warning(
+                """\
+The old console option '%s' should not be given anymore, use '%s' \
+instead. It also has the extra mode 'attach' to consider."""
+                % (
+                    (
+                        "--disable-console"
+                        if options.disable_console
+                        else "--enable-console"
+                    ),
+                    "--windows-console-module=%s"
+                    % ("force" if options.disable_console else "disable"),
+                )
+            )
+        else:
+            Tracing.general.warning(
+                """The old console option '%s' should not be given anymore, and doesn't
+have any effect anymore on non-Windows."""
+                % (
+                    "--disable-console"
+                    if options.disable_console
+                    else "--enable-console"
+                )
+            )
 
 
 def isVerbose():
@@ -1657,16 +1720,13 @@ def shallDisableCompressionCacheUsage():
     return shallDisableCacheUsage("compression")
 
 
-def shallDisableConsoleWindow():
-    """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
-    return options.disable_console
-
-
-def mayDisableConsoleWindow():
-    """:returns: bool derived from platform support of disabling the console,"""
-
-    # TODO: What about MSYS2?
-    return isWin32Windows() or isMacOS()
+def getWindowsConsoleMode():
+    """:returns: str from ``--windows-console-mode``"""
+    if options.disable_console is True:
+        return "disable"
+    if options.disable_console is False:
+        return "force"
+    return options.console_mode or "force"
 
 
 def _isFullCompat():

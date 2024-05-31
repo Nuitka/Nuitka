@@ -272,7 +272,7 @@ if (%(value_name)s == NULL) {
 if (%(value_name)s == NULL && !HAS_ERROR_OCCURRED(tstate)) {
 {% endif %}
     %(value_name)s = Py_None;
-    Py_INCREF(%(value_name)s);
+    Py_INCREF_IMMORTAL(%(value_name)s);
 }
 """,
                 expression=expression,
@@ -541,7 +541,7 @@ def generateDictOperationCopyCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_COPY",
-        tstate=False,
+        tstate=True,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),

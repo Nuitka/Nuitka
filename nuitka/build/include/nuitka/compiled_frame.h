@@ -90,9 +90,25 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 
 extern PyTypeObject Nuitka_Frame_Type;
 
-static inline bool Nuitka_Frame_Check(PyObject *object) {
+static inline bool Nuitka_Frame_CheckExact(PyObject *object) {
     CHECK_OBJECT(object);
     return Py_TYPE(object) == &Nuitka_Frame_Type;
+}
+
+static inline bool Nuitka_Frame_Check(PyObject *object) {
+    assert(object);
+
+    if (!_PyObject_GC_IS_TRACKED(object)) {
+        return false;
+    }
+
+    CHECK_OBJECT(object);
+
+    if (Nuitka_Frame_CheckExact(object)) {
+        return true;
+    }
+
+    return strcmp(Py_TYPE(object)->tp_name, "compiled_frame") == 0;
 }
 
 struct Nuitka_FrameObject {
@@ -154,10 +170,20 @@ extern int count_hit_frame_cache_instances;
 extern void dumpFrameStack(void);
 #endif
 
+#if PYTHON_VERSION >= 0x3b0
+inline static PyCodeObject *Nuitka_InterpreterFrame_GetCodeObject(_PyInterpreterFrame *frame) {
+#if PYTHON_VERSION < 0x3d0
+    return frame->f_code;
+#else
+    return (PyCodeObject *)frame->f_executable;
+#endif
+}
+#endif
+
 inline static PyCodeObject *Nuitka_Frame_GetCodeObject(PyFrameObject *frame) {
 #if PYTHON_VERSION >= 0x3b0
     assert(frame->f_frame);
-    return frame->f_frame->f_code;
+    return Nuitka_InterpreterFrame_GetCodeObject(frame->f_frame);
 #else
     return frame->f_code;
 #endif
@@ -168,6 +194,7 @@ inline static void assertPythonFrameObject(PyFrameObject *frame_object) {
     // TODO: Need to do this manually, as this is making frame caching code
     // vulnerable to mistakes, but so far the compiled frame type is private
     // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
+    CHECK_OBJECT(frame_object);
 
     CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(frame_object));
 }
@@ -256,14 +283,23 @@ static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
 #endif
 
 #if PYTHON_VERSION >= 0x3b0
+
+#if PYTHON_VERSION < 0x3d0
+#define CURRENT_TSTATE_INTERPRETER_FRAME(tstate) tstate->cframe->current_frame
+#else
+#define CURRENT_TSTATE_INTERPRETER_FRAME(tstate) tstate->current_frame
+#endif
+
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(PyThreadState *tstate,
                                                                        _PyInterpreterFrame *interpreter_frame) {
-    _PyInterpreterFrame *old = tstate->cframe->current_frame;
+    _PyInterpreterFrame *old = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
     interpreter_frame->previous = old;
-    tstate->cframe->current_frame = interpreter_frame;
+    CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = interpreter_frame;
 
-    if (old != NULL && interpreter_frame->frame_obj) {
+    if (old != NULL && !_PyFrame_IsIncomplete(old) && interpreter_frame->frame_obj) {
         interpreter_frame->frame_obj->f_back = old->frame_obj;
+        CHECK_OBJECT_X(old->frame_obj);
+
         Py_XINCREF(old->frame_obj);
     }
 }
@@ -281,7 +317,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState 
 
     if (old) {
         assertPythonFrameObject(old);
-        CHECK_CODE_OBJECT(old->f_code);
+        CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(old));
     }
 
     // No recursion with identical frames allowed, assert against it.
@@ -292,7 +328,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyThreadState 
 
     // Transfer ownership of old frame.
     if (old != NULL) {
-
         frame_object->f_back = old;
     }
 
@@ -336,13 +371,13 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
     Py_DECREF(frame_object);
 #else
-    assert(tstate->cframe);
-    assert(tstate->cframe->current_frame);
+    assert(CURRENT_TSTATE_INTERPRETER_FRAME(tstate));
 
-    struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)tstate->cframe->current_frame->frame_obj;
+    struct Nuitka_FrameObject *frame_object =
+        (struct Nuitka_FrameObject *)CURRENT_TSTATE_INTERPRETER_FRAME(tstate)->frame_obj;
     CHECK_OBJECT(frame_object);
 
-    tstate->cframe->current_frame = tstate->cframe->current_frame->previous;
+    CURRENT_TSTATE_INTERPRETER_FRAME(tstate) = CURRENT_TSTATE_INTERPRETER_FRAME(tstate)->previous;
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
 
@@ -389,7 +424,7 @@ NUITKA_MAY_BE_UNUSED static PyCodeObject *Nuitka_GetFrameCodeObject(struct Nuitk
 #if PYTHON_VERSION < 0x3b0
     return nuitka_frame->m_frame.f_code;
 #else
-    return nuitka_frame->m_interpreter_frame.f_code;
+    return Nuitka_InterpreterFrame_GetCodeObject(&nuitka_frame->m_interpreter_frame);
 #endif
 }
 
@@ -415,7 +450,7 @@ NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateF
 #if PYTHON_VERSION < 0x3b0
     return tstate->frame;
 #else
-    return tstate->cframe->current_frame;
+    return CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 #endif
 }
 

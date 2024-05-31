@@ -35,34 +35,40 @@ PyObject *TO_FLOAT(PyObject *value) {
 
 #if NUITKA_FLOAT_HAS_FREELIST
 
-static struct _Py_float_state *_Nuitka_Py_get_float_state(void) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->float_state;
-}
+static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
+    // This is the CPython name, spell-checker: ignore numfree
 
-static PyFloatObject *_Nuitka_AllocatePyFloatObject(void) {
-    struct _Py_float_state *state = _Nuitka_Py_get_float_state();
-
-    PyFloatObject *result_float = state->free_list;
+#if PYTHON_VERSION < 0x3d0
+    struct _Py_float_state *state = &tstate->interp->float_state;
+    PyFloatObject **free_list = &state->free_list;
+    int *numfree = &state->numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_float_freelist *state = &freelists->floats;
+    PyFloatObject **free_list = &state->items;
+    int *numfree = &state->numfree;
+#endif
+    PyFloatObject *result_float = *free_list;
 
     if (result_float) {
-        state->free_list = (PyFloatObject *)Py_TYPE(result_float);
-        state->numfree -= 1;
-
-        Py_SET_TYPE(result_float, &PyFloat_Type);
+        (*numfree) -= 1;
+        *free_list = (PyFloatObject *)Py_TYPE(result_float);
     } else {
-        result_float = (PyFloatObject *)PyObject_Malloc(sizeof(PyFloatObject));
+        result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));
     }
 
     Py_SET_TYPE(result_float, &PyFloat_Type);
     Nuitka_Py_NewReference((PyObject *)result_float);
+
     assert(result_float != NULL);
 
     return result_float;
 }
 
 PyObject *MAKE_FLOAT_FROM_DOUBLE(double value) {
-    PyFloatObject *result = _Nuitka_AllocatePyFloatObject();
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyFloatObject *result = _Nuitka_AllocatePyFloatObject(tstate);
 
     PyFloat_SET_DOUBLE(result, value);
     return (PyObject *)result;

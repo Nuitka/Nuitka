@@ -19,7 +19,7 @@ void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyObject *name, PyObject *source) {
 
         DROP_ERROR_OCCURRED(tstate);
 
-        uncompiled_function_sources_dict = MAKE_DICT_EMPTY();
+        uncompiled_function_sources_dict = MAKE_DICT_EMPTY(tstate);
 
         PyObject_SetAttrString((PyObject *)builtin_module, uncompiled_sources_dict_attribute_name,
                                uncompiled_function_sources_dict);
