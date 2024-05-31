@@ -1200,17 +1200,17 @@
     - depends:
         - 'fastapi.routing'
 
-- module-name: 'feedparser.html' # checksum: 65e0a1
+- module-name: 'feedparser.html' # checksum: 8b17e6bc
   anti-bloat:
     - description: 'use SGML code more naturally'
       context:
         - 'import inspect'
         - 'import textwrap'
         - 'import sgmllib'
-      replacements:
-        '__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__': "'pass'"
-        'def goahead(self, i):': "'def goahead(self, end):'"
-        'goahead.__code__ = sgmllib.SGMLParser.goahead.__code__': "'pass'"
+      replacements_plain:
+        '__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__': 'pass'
+        'def goahead(self, i):': 'def goahead(self, end):'
+        'goahead.__code__ = sgmllib.SGMLParser.goahead.__code__': 'pass'
       change_function:
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
@@ -2038,11 +2038,11 @@
     - depends:
         - 'markdown.extensions.*'
 
-- module-name: 'matplotlib' # checksum: 977975bb
+- module-name: 'matplotlib' # checksum: d5e66e6c
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
-      replacements:
-        '(root / ".git").exists()"': "'None'"
+      replacements_plain:
+        '(root / ".git").exists()"': 'None'
         'test.__test__ = False': ''
       change_function:
         '_init_tests': "'None'"
@@ -2244,15 +2244,15 @@
           return result[:_MAX_LENGTH] + ' [truncated]...'
       when: 'not use_unittest'
 
-- module-name: 'moto' # checksum: cd522fec
+- module-name: 'moto' # checksum: 8565eb96
   data-files:
     patterns:
       - 'ec2/resources/instance_types.json'
       - 'ec2/resources/amis.json'
   anti-bloat:
     - description: 'remove pytest testing framework'
-      replacements:
-        "imp.find_module('pytest')": "'None'"
+      replacements_plain:
+        "imp.find_module('pytest')": 'None'
       when: 'not use_pytest'
 
 - module-name: 'moviepy.audio.fx' # checksum: 1851bf53
@@ -2446,20 +2446,21 @@
         - 'numpy.core._dtype_ctypes'
         - 'numpy.core._multiarray_tests'
 
-- module-name: 'numpy.core.overrides' # checksum: 48ac7e42
+- module-name: 'numpy.core.overrides' # checksum: cda0efc0
   anti-bloat:
     - description: 'workaround numpy issues with compiled code'
-      replacements:
-        'add_docstring(implementation, dispatcher.__doc__)': "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+      replacements_plain:
+        'add_docstring(implementation, dispatcher.__doc__)': "add_docstring(implementation, dispatcher.__doc__ or '')"
         'public_api.__code__ = ': ''
 
-- module-name: 'numpy.ctypeslib' # checksum: 664cfa3e
+- module-name: 'numpy.ctypeslib' # checksum: e411db79
   anti-bloat:
     - description: 'remove numpy.distutils references'
       context:
         - 'import numpy.distutils.misc_util'
-      replacements:
+      replacements_plain:
         'from numpy.distutils.misc_util import get_shared_lib_extension': ''
+      replacements:
         'get_shared_lib_extension()': 'repr(numpy.distutils.misc_util.get_shared_lib_extension())'
         'get_shared_lib_extension(is_python_ext=True)': 'repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'
 
@@ -2972,49 +2973,49 @@
         'distutils.version.LooseVersion(version) < minimum_version': 'False'
         'import distutils.version': ''
 
-- module-name: 'pandas.compat.numpy' # checksum: a21ef6ec
+- module-name: 'pandas.compat.numpy' # checksum: 871e7b91
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
+      replacements_plain:
         # TODO: Smells not only like regexp, must be one.
-        'LooseVersion("1.14")': "'\"1.14\"'"
-        'LooseVersion("1.15")': "'\"1.15\"'"
-        'LooseVersion("1.16")': "'\"1.16\"'"
-        'LooseVersion("1.17")': "'\"1.17\"'"
-        'LooseVersion("1.18")': "'\"1.18\"'"
-        'LooseVersion("1.19")': "'\"1.19\"'"
-        'LooseVersion("1.20")': "'\"1.20\"'"
-        'LooseVersion(_np_version)': "'_np_version'"
-        'from distutils.version import LooseVersion': "''"
+        'LooseVersion("1.14")': '"1.14"'
+        'LooseVersion("1.15")': '"1.15"'
+        'LooseVersion("1.16")': '"1.16"'
+        'LooseVersion("1.17")': '"1.17"'
+        'LooseVersion("1.18")': '"1.18"'
+        'LooseVersion("1.19")': '"1.19"'
+        'LooseVersion("1.20")': '"1.20"'
+        'LooseVersion(_np_version)': '_np_version'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.compat.numpy.function' # checksum: 5fbf97fa
+- module-name: 'pandas.compat.numpy.function' # checksum: b0aad543
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
-        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': "'_np_version >= \"1.17.0\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(__version__) >= LooseVersion("1.17.0")': '__version__ >= "1.17.0"'
+        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': '_np_version >= "1.17.0"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.arrays._arrow_utils' # checksum: 398ecf0
+- module-name: 'pandas.core.arrays._arrow_utils' # checksum: de3b626c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': "'pyarrow.__version__ >= \"0.15\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': 'pyarrow.__version__ >= "0.15"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.arrays.string_arrow' # checksum: 6ff6617
+- module-name: 'pandas.core.arrays.string_arrow' # checksum: 882a5a11
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(pa.__version__) < "1.0.0"': "'pa.__version__ < \"1.0.0\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(pa.__version__) < "1.0.0"': 'pa.__version__ < "1.0.0"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.computation.ops' # checksum: ce7ab56e
+- module-name: 'pandas.core.computation.ops' # checksum: 96e6926c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'NUMEXPR_VERSION < LooseVersion("2.6.9")': 'False'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.core.groupby.groupby' # checksum: fa0161e8
   anti-bloat:
@@ -3023,12 +3024,12 @@
         'maybe_use_numba(engine)': 'False'
       when: 'not use_numba'
 
-- module-name: 'pandas.core.util.numba_' # checksum: a126e56b
+- module-name: 'pandas.core.util.numba_' # checksum: 5a47bb5e
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': 'True'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.core.window' # checksum: e748c8ea
   implicit-imports:
@@ -3058,12 +3059,12 @@
         'PyQt4': 'ignore'
       when: 'plugin("no-qt")'
 
-- module-name: 'pandas.io.excel._base' # checksum: 53d399ba
+- module-name: 'pandas.io.excel._base' # checksum: 8868dc8b
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(xlrd.__version__)': "'xlrd.__version__'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(xlrd.__version__)': 'xlrd.__version__'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.io.formats' # checksum: bfd19d5d
   data-files:
@@ -3082,26 +3083,26 @@
     - depends:
         - 'jinja2'
 
-- module-name: 'pandas.io.orc' # checksum: a9b1ffdc
+- module-name: 'pandas.io.orc' # checksum: 6826194c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
-        'import distutils': "''"
+      replacements_plain:
+        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': 'pyarrow.__version__ < "0.13.0"'
+        'import distutils': ''
 
-- module-name: 'pandas.io.parquet' # checksum: 4f4a3110
+- module-name: 'pandas.io.parquet' # checksum: 7d41c774
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(self.api.__version__) >= "0.16"': "'self.api.__version__ >= \"0.16\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(self.api.__version__) >= "0.16"': 'self.api.__version__ >= "0.16"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.plotting._matplotlib.compat' # checksum: 837616d5
+- module-name: 'pandas.plotting._matplotlib.compat' # checksum: 83bfd28f
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'from distutils.version import LooseVersion': "''"
-        'op(LooseVersion(mpl.__version__), LooseVersion(version))': "'op(mpl.__version__, version)'"
+      replacements_plain:
+        'from distutils.version import LooseVersion': ''
+        'op(LooseVersion(mpl.__version__), LooseVersion(version))': 'op(mpl.__version__, version)'
 
 - module-name: 'pandas.util' # checksum: 94cd3530
   anti-bloat:
@@ -3278,11 +3279,11 @@
     - depends:
         - '.*.locale'
 
-- module-name: 'persistent._compat' # checksum: c8c2659a
+- module-name: 'persistent._compat' # checksum: 74566d77
   anti-bloat:
     - description: 'use own compilation for compatibility'
-      replacements:
-        "os.environ.get('PURE_PYTHON')": "'\"1\"'"
+      replacements_plain:
+        "os.environ.get('PURE_PYTHON')": '"1"'
 
 - module-name: 'persistent.ring' # checksum: ff2e6560
   implicit-imports:
@@ -3358,11 +3359,11 @@
         - 'PIL.XpmImagePlugin'
         - 'PIL.XVThumbImagePlugin'
 
-- module-name: 'PIL.ImageShow' # checksum: e11ea042
+- module-name: 'PIL.ImageShow' # checksum: 1ae9e8b3
   anti-bloat:
     - description: 'remove IPython reference'
-      replacements:
-        'from IPython.display import display as ipython_display': "'raise ImportError'"
+      replacements_plain:
+        'from IPython.display import display as ipython_display': 'raise ImportError'
       when: 'not use_ipython'
 
 - module-name: 'PIL.SpiderImagePlugin' # checksum: cb3e1ec1
@@ -4463,12 +4464,12 @@
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
-- module-name: 'scipy._lib._numpy_compat' # checksum: c054044d
+- module-name: 'scipy._lib._numpy_compat' # checksum: 58eb0d9e
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+      replacements_plain:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": '0'
+        'from numpy.testing import suppress_warnings': 'suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'
 
 - module-name: 'scipy._lib._testutils' # checksum: 5e3b539b
   anti-bloat:
@@ -4484,12 +4485,12 @@
       change_function:
         '_copy_func': "'(lambda f: f)'"
 
-- module-name: 'scipy.lib.numpy_compat' # checksum: c054044d
+- module-name: 'scipy.lib.numpy_compat' # checksum: 58eb0d9e
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+      replacements_plain:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": '0'
+        'from numpy.testing import suppress_warnings': 'suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'
 
 - module-name: 'scipy.linalg' # checksum: 3f43474e
   implicit-imports:
@@ -4590,10 +4591,10 @@
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
 
-- module-name: 'scipy.stats.morestats' # checksum: 8c6ba801
+- module-name: 'scipy.stats.morestats' # checksum: 170d0f71
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
+      replacements_plain:
         '@setastest(False)': ''
         'from numpy.testing.decorators import setastest': ''
 
@@ -4999,7 +5000,7 @@
         'import dask.array as da': 'raise ImportError'
       when: 'not use_dask'
 
-- module-name: 'sklearn._distributor_init' # checksum: f9ef476
+- module-name: 'sklearn._distributor_init' # checksum: 8597e1a6
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -5007,11 +5008,11 @@
           - ''
   anti-bloat:
     - description: 'remove site module and distutils usage'
-      replacements:
-        '_site.ENABLE_USER_SITE': "'False'"
-        'if _running_from_pip_package()': "'if False'"
-        'import distutils as _distutils': "'_distutils = None'"
-        'import site as _site': "'_site = None'"
+      replacements_plain:
+        '_site.ENABLE_USER_SITE': 'False'
+        'if _running_from_pip_package()': 'if False'
+        'import distutils as _distutils': '_distutils = None'
+        'import site as _site': '_site = None'
   implicit-imports:
     - depends:
         - '.python.keras'
@@ -5150,11 +5151,11 @@
     - depends:
         - 'sklearn.preprocessing._csr_polynomial_expansion'
 
-- module-name: 'sklearn.random_projection' # checksum: 88257b1b
+- module-name: 'sklearn.random_projection' # checksum: b68af3f8
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        'from numpy.testing import assert_equal': "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+      replacements_plain:
+        'from numpy.testing import assert_equal': 'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'
 
 - module-name: 'sklearn.svm' # checksum: 1126ac74
   implicit-imports:
@@ -5335,12 +5336,12 @@
         executable: 'yes'
       when: 'linux'
 
-- module-name: 'sphinx.util.docutils' # checksum: 6b3e2205
+- module-name: 'sphinx.util.docutils' # checksum: 4870f54d
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': 'tuple(int(d) for d in docutils.__version__.split("."))'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'sqlalchemy' # checksum: c3efbf7
   implicit-imports:
@@ -6143,11 +6144,11 @@
           - '_audio_microfrontend_op'
 
 # TODO: Maybe not really necessary, this should be avoided by itself instead.
-- module-name: 'tensorflow.lite.python.convert' # checksum: 83de5047
+- module-name: 'tensorflow.lite.python.convert' # checksum: 326784fc
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.spawn.find_executable(_deprecated_conversion_binary) is None': "'False'"
+      replacements_plain:
+        'distutils.spawn.find_executable(_deprecated_conversion_binary) is None': 'False'
         'import distutils.spawn': ''
 
 - module-name: 'tensorflow.lite.python.interpreter_wrapper' # checksum: 6742ae49
@@ -6237,11 +6238,11 @@
     - depends:
         - 'ml_dtypes'
 
-- module-name: 'tensorflow.python.framework.meta_graph' # checksum: b0a05a68
+- module-name: 'tensorflow.python.framework.meta_graph' # checksum: 13d13fb
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils_version.LooseVersion': "'str'"
+      replacements_plain:
+        'distutils_version.LooseVersion': 'str'
         'from distutils import version as distutils_version': ''
 
 - module-name: 'tensorflow.python.keras.utils.vis_utils' # checksum: 7d07a2d1
@@ -6251,11 +6252,11 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'tensorflow.python.ops.distributions.distribution' # checksum: 2f12fb17
+- module-name: 'tensorflow.python.ops.distributions.distribution' # checksum: 4b7ea33
   anti-bloat:
     - description: 'remove useless function copying'
-      replacements:
-        'class_attr_value.__doc__ = _update_docstring': "'class_attr_value___doc__ = _update_docstring'"
+      replacements_plain:
+        'class_attr_value.__doc__ = _update_docstring': 'class_attr_value___doc__ = _update_docstring'
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
@@ -6291,13 +6292,13 @@
           return orig_getsourcelines(obj)
       when: 'standalone'
 
-- module-name: 'tensorflow_core' # checksum: f377875c
+- module-name: 'tensorflow_core' # checksum: e1ad340d
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'import distutils as _distutils': "'_distutils = None'"
-        'import site as _site': "'_site = None'"
-        'if _running_from_pip_package()': "'if False'"
+      replacements_plain:
+        'import distutils as _distutils': '_distutils = None'
+        'import site as _site': '_site = None'
+        'if _running_from_pip_package()': 'if False'
 
 - module-name: 'tensorflow_probability.python' # checksum: 33557ce7
   anti-bloat:
