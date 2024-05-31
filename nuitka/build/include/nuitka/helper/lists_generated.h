@@ -7,18 +7,18 @@
 #include "nuitka/prelude.h"
 #endif
 
-extern PyObject *MAKE_LIST1(PyObject *arg0);
-extern PyObject *MAKE_LIST2(PyObject *arg0, PyObject *arg1);
-extern PyObject *MAKE_LIST3(PyObject *arg0, PyObject *arg1, PyObject *arg2);
-extern PyObject *MAKE_LIST4(PyObject *list);
-extern PyObject *MAKE_LIST5(PyObject *list);
-extern PyObject *MAKE_LIST6(PyObject *list);
-extern PyObject *MAKE_LIST7(PyObject *list);
-extern PyObject *MAKE_LIST8(PyObject *list);
-extern PyObject *MAKE_LIST9(PyObject *list);
-extern PyObject *MAKE_LIST10(PyObject *list);
-extern PyObject *MAKE_LIST11(PyObject *list);
-extern PyObject *MAKE_LIST12(PyObject *list);
+extern PyObject *MAKE_LIST1(PyThreadState *tstate, PyObject *arg0);
+extern PyObject *MAKE_LIST2(PyThreadState *tstate, PyObject *arg0, PyObject *arg1);
+extern PyObject *MAKE_LIST3(PyThreadState *tstate, PyObject *arg0, PyObject *arg1, PyObject *arg2);
+extern PyObject *MAKE_LIST4(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST5(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST6(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST7(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST8(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST9(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST10(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST11(PyThreadState *tstate, PyObject *list);
+extern PyObject *MAKE_LIST12(PyThreadState *tstate, PyObject *list);
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

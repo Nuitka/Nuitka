@@ -128,9 +128,9 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    if (Nuitka_Function_Check(func) == false) {
-        PyThreadState *tstate = PyThreadState_GET();
+    PyThreadState *tstate = PyThreadState_GET();
 
+    if (Nuitka_Function_Check(func) == false) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
@@ -140,7 +140,6 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     int offset = Nuitka_Function_GetFunctionCodeIndex(function, function_table_%(module_identifier)s);
 
     if (unlikely(offset == -1)) {
-        PyThreadState *tstate = PyThreadState_GET();
 #if 0
         PRINT_STRING("Looking for:");
         PRINT_ITEM(func);
@@ -150,7 +149,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(6);
+    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(tstate, 6);
     PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
     PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
     PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
@@ -161,14 +160,14 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     CHECK_OBJECT_DEEP(code_object_desc);
 
 
-    PyObject *result = MAKE_TUPLE_EMPTY(8);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
     PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
 #if PYTHON_VERSION >= 0x300
     PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
 #else
-    PyTuple_SET_ITEM0(result, 3, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
 #endif
     PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
 
@@ -176,13 +175,13 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         CHECK_OBJECT(function->m_constant_return_value);
         PyTuple_SET_ITEM0(result, 5, function->m_constant_return_value);
     } else {
-        PyTuple_SET_ITEM0(result, 5, Py_None);
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
     }
 
 #if PYTHON_VERSION >= 0x300
     PyTuple_SET_ITEM0(result, 6, function->m_qualname);
 #else
-    PyTuple_SET_ITEM0(result, 6, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
 #endif
 
     PyObject *closure = PyObject_GetAttr(
@@ -277,7 +276,9 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         // In case of an extension module loaded into a process, we need to call
         // initialization here because that's the first and potentially only time
         // we are going called.
-
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+        initNuitkaAllocators();
+#endif
         // Initialize the constant values used.
         _initBuiltinModule();
         createGlobalConstants(tstate);
@@ -506,15 +507,6 @@ template_module_external_entry_point = r"""
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
 #endif
 
-/* The name of the entry point for DLLs changed between CPython versions, and
- * this is here to hide that.
- */
-#if PYTHON_VERSION < 0x300
-#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
-#else
-#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
-#endif
-
 static PyObject *orig_dunder_file_value;
 
 #if PYTHON_VERSION >= 0x300
@@ -548,19 +540,14 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
     NULL,                /* m_doc */
-    -1,                  /* m_size */
+    %(module_def_size)s, /* m_size */
     NULL,                /* m_methods */
-    NULL,                /* m_reload */
+    NULL,                /* m_slots */
     NULL,                /* m_traverse */
     NULL,                /* m_clear */
     NULL,                /* m_free */
 };
 #endif
-
-/* The exported interface to CPython. On import of the module, this function
- * gets called. It has to have an exact function name, in cases it's a shared
- * library export. This is hidden behind the MOD_INIT_DECL macro.
- */
 
 // Actual name might be different when loaded as a package.
 static char const *module_full_name = %(module_name_cstr)s;
@@ -577,7 +564,60 @@ static void onModuleFileValueRelease(void *v) {
 }
 #endif
 
-MOD_INIT_DECL(%(module_identifier)s) {
+/* The exported interface to CPython. On import of the module, this function
+ * gets called. It has to have an exact function name, in cases it's a shared
+ * library export.
+ */
+
+
+static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = modulecode_%(module_identifier)s(tstate, module, NULL);
+
+#if PYTHON_VERSION < 0x300
+    // Our "__file__" value will not be respected by CPython and one
+    // way we can avoid it, is by having a capsule type, that when
+    // it gets released, we are called and repair the value.
+
+    if (HAS_ERROR_OCCURRED(tstate) == false) {
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+
+        PyObject *fake_file_value = PyCObject_FromVoidPtr(NULL, onModuleFileValueRelease);
+
+        UPDATE_STRING_DICT1(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___file__,
+            fake_file_value
+        );
+    }
+#else
+    if (result != NULL) {
+        // Make sure we undo the change of the "__file__" attribute during importing. We do not
+        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
+        orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
+        PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
+
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+    }
+#endif
+
+    return result;
+}
+
+#if %(module_def_size)s >= 0
+static int %(module_dll_entry_point)s_slot(PyObject *module) {
+    PyObject *result = %(module_dll_entry_point)s_phase2(module);
+
+    if (result == NULL) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+#endif
+
+NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
     if (_Py_PackageContext != NULL) {
         module_full_name = _Py_PackageContext;
     }
@@ -595,6 +635,8 @@ MOD_INIT_DECL(%(module_identifier)s) {
     );
 #else
     mdef_%(module_identifier)s.m_name = module_full_name;
+
+#if %(module_def_size)s == -1
     PyObject *module = PyModule_Create(&mdef_%(module_identifier)s);
     CHECK_OBJECT(module);
 
@@ -602,41 +644,23 @@ MOD_INIT_DECL(%(module_identifier)s) {
         NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModuleString(module_full_name, module);
         assert(res != false);
     }
+
+#endif
 #endif
 
-    PyThreadState *tstate = PyThreadState_GET();
+#if %(module_def_size)s >= 0
+    static PyModuleDef_Slot _module_slots[] = {
+        {Py_mod_exec, %(module_dll_entry_point)s_slot},
+        {0, NULL}
+    };
 
-#if PYTHON_VERSION < 0x300
-    modulecode_%(module_identifier)s(tstate, module, NULL);
+    mdef_%(module_identifier)s.m_slots = _module_slots;
 
-    // Our "__file__" value will not be respected by CPython and one
-    // way we can avoid it, is by having a capsule type, that when
-    // it gets released, we are called and repair the value.
-
-    if (HAS_ERROR_OCCURRED(tstate) == false) {
-        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
-
-        PyObject *fake_file_value = PyCObject_FromVoidPtr(NULL, onModuleFileValueRelease);
-
-        UPDATE_STRING_DICT1(
-            moduledict_%(module_identifier)s,
-            (Nuitka_StringObject *)const_str_plain___file__,
-            fake_file_value
-        );
-    }
+    return PyModuleDef_Init(&mdef_%(module_identifier)s);
+#elif PYTHON_VERSION >= 0x300
+    return %(module_dll_entry_point)s_phase2(module);
 #else
-    PyObject *result = modulecode_%(module_identifier)s(tstate, module, NULL);
-
-    if (result != NULL) {
-        // Make sure we undo the change of the "__file__" attribute during importing. We do not
-        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
-        orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
-        PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
-
-        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1(tstate, (PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
-    }
-
-    return result;
+    %(module_dll_entry_point)s_phase2(module);
 #endif
 }
 """

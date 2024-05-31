@@ -112,6 +112,22 @@ class ExpressionOsPathAbspathCall(ExpressionOsPathAbspathCallBase):
         return self, None, None
 
 
+class ExpressionOsPathNormpathCall(ExpressionOsPathAbspathCallBase):
+    kind = "EXPRESSION_OS_PATH_NORMPATH_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        result = makeConstantRefNode(
+            constant=os.path.normpath(self.subnode_path.getCompileTimeConstant()),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.normpath' call.",
+        )
+
+
 class ExpressionOsPathIsabsCall(ExpressionOsPathIsabsCallBase):
     kind = "EXPRESSION_OS_PATH_ISABS_CALL"
 

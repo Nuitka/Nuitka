@@ -59,10 +59,10 @@
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'Tkinter' # checksum: 16ff58dd
+- module-name: 'Tkinter' # checksum: 6eaa6fb1
   options:
     checks:
-      - console: 'recommend'
+      - macos_bundle: 'recommend'
         when: 'plugin("tk-inter")'
 
 - module-name: 'xml.sax.xmlreader' # checksum: 167cb032

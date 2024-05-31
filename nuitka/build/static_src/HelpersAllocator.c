@@ -8,7 +8,43 @@
 #include "nuitka/prelude.h"
 #endif
 
+void *(*python_obj_malloc)(void *ctx, size_t size) = NULL;
+void *(*python_mem_malloc)(void *ctx, size_t size) = NULL;
+void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize) = NULL;
+
+#if defined(Py_DEBUG)
+void *python_obj_ctx = NULL;
+void *python_mem_ctx = NULL;
+#endif
+
+void initNuitkaAllocators(void) {
+    // PyMem_SetupDebugHooks();
+
+    PyMemAllocatorEx allocators;
+
+    PyMem_GetAllocator(PYMEM_DOMAIN_OBJ, &allocators);
+
+#if defined(Py_DEBUG)
+    python_obj_ctx = allocators.ctx;
+#endif
+
+    python_obj_malloc = allocators.malloc;
+
+    PyMem_GetAllocator(PYMEM_DOMAIN_MEM, &allocators);
+
+#if defined(Py_DEBUG)
+    python_mem_ctx = allocators.ctx;
+#endif
+
+    python_mem_malloc = allocators.malloc;
+    python_mem_calloc = allocators.calloc;
+}
+
+#if PYTHON_VERSION >= 0x3b0
+
 typedef struct _gc_runtime_state GCState;
+
+#if PYTHON_VERSION < 0x3d0
 
 #define AS_GC(o) ((PyGC_Head *)(((char *)(o)) - sizeof(PyGC_Head)))
 #define FROM_GC(g) ((PyObject *)(((char *)(g)) + sizeof(PyGC_Head)))
@@ -596,8 +632,19 @@ static Py_ssize_t Nuitka_gc_collect_generations(PyThreadState *tstate) {
     return n;
 }
 
+#else
+
+static void Nuitka_Py_ScheduleGC(PyThreadState *tstate) {
+    if (!_Py_eval_breaker_bit_is_set(tstate, _PY_GC_SCHEDULED_BIT)) {
+        _Py_set_eval_breaker_bit(tstate, _PY_GC_SCHEDULED_BIT);
+    }
+}
+
+#endif
+
 // This is called during object creation and might trigger garbage collection
 void Nuitka_PyObject_GC_Link(PyObject *op) {
+#if PYTHON_VERSION < 0x3d0
     PyGC_Head *g = AS_GC(op);
 
     PyThreadState *tstate = _PyThreadState_GET();
@@ -614,7 +661,31 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         Nuitka_gc_collect_generations(tstate);
         gcstate->collecting = 0;
     }
+#else
+    PyGC_Head *gc = _Py_AS_GC(op);
+
+    // gc must be correctly aligned
+    _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
+
+    // TODO: Have this passed.
+
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+
+    gc->_gc_next = 0;
+    gc->_gc_prev = 0;
+
+    gcstate->young.count++;
+    gcstate->heap_size++;
+
+    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+#endif
 }
+
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

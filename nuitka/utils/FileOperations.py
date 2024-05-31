@@ -730,23 +730,31 @@ def removeDirectory(path, ignore_errors):
     """
 
     def onError(func, path, exc_info):
-        # Try again immediately, ignore what happened, pylint: disable=unused-argument
-        try:
-            func(path)
-        except OSError:
-            time.sleep(0.1)
-
-        func(path)
+        # Record what happened what happened, pylint: disable=unused-argument
+        last_error.append((func, path))
 
     with withFileLock("removing directory %s" % path):
         if os.path.exists(path):
-            try:
+            previous_error = []
+
+            while True:
+                last_error = []
                 shutil.rmtree(path, ignore_errors=False, onerror=onError)
-            except OSError:
-                if ignore_errors:
+
+                # onError as a side effect, modifies last_error
+                if previous_error == last_error:
+                    break
+
+                previous_error = list(last_error)
+                time.sleep(0.1)
+
+            # if it still exists, try one more time, this time not ignoring errors.
+            if os.path.exists(path):
+                try:
                     shutil.rmtree(path, ignore_errors=ignore_errors)
-                else:
-                    raise
+                except OSError:
+                    if not ignore_errors:
+                        raise
 
 
 def resetDirectory(path, ignore_errors):
@@ -1438,7 +1446,7 @@ def syncFileOutput(file_handle):
 
 def isFilesystemEncodable(filename):
     """Decide if a filename is safe for use as a file system path with tools."""
-    if os.name == "nt":
+    if os.name == "nt" and type(filename) is unicode:
         value = (
             unicodedata.normalize("NFKD", filename)
             .encode("ascii", "ignore")

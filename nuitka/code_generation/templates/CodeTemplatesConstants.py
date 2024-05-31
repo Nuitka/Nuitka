@@ -17,7 +17,7 @@ PyObject *global_constants[%(global_constants_count)d];
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's
 // enough for us to use it as sentinel value.
-PyObject *_sentinel_value = NULL;
+PyObject *Nuitka_sentinel_value = NULL;
 
 PyObject *Nuitka_dunder_compiled_value = NULL;
 
@@ -243,14 +243,16 @@ void checkGlobalConstants(void) {
 #endif
 
 void createGlobalConstants(PyThreadState *tstate) {
-    if (_sentinel_value == NULL) {
+    if (Nuitka_sentinel_value == NULL) {
 #if PYTHON_VERSION < 0x300
-        _sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
+        Nuitka_sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
 #else
         // The NULL value is not allowed for a capsule, so use something else.
-        _sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
+        Nuitka_sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
 #endif
-        assert(_sentinel_value);
+        assert(Nuitka_sentinel_value);
+
+        Py_SET_REFCNT_IMMORTAL(Nuitka_sentinel_value);
 
         _createGlobalConstants(tstate);
     }

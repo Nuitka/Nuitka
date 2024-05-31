@@ -11,12 +11,12 @@ void registerDillPluginTables(PyThreadState *tstate, char const *module_name, Py
     if (function_tables == NULL) {
         CLEAR_ERROR_OCCURRED(tstate);
 
-        function_tables = MAKE_DICT_EMPTY();
+        function_tables = MAKE_DICT_EMPTY(tstate);
         PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
     }
 
-    PyObject *funcs =
-        MAKE_TUPLE2_0(PyCFunction_New(reduce_compiled_function, NULL), PyCFunction_New(create_compiled_function, NULL));
+    PyObject *funcs = MAKE_TUPLE2_0(tstate, PyCFunction_New(reduce_compiled_function, NULL),
+                                    PyCFunction_New(create_compiled_function, NULL));
 
     PyDict_SetItemString(function_tables, module_name, funcs);
 }

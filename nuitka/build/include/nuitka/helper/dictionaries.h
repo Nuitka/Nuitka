@@ -388,7 +388,7 @@ extern PyObject *DICT_VIEWVALUES(PyObject *dict);
 extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 
 // Python dictionary copy, return a shallow copy of a dictionary.
-extern PyObject *DICT_COPY(PyObject *dict);
+extern PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict);
 
 // Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
@@ -396,14 +396,15 @@ extern void DICT_CLEAR(PyObject *dict);
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
-#if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL)
+#if PYTHON_VERSION >= 0x3a0 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL) &&                                  \
+    !defined(_NUITKA_EXPERIMENTAL_DISABLE_FREELIST_DICT)
 #define NUITKA_DICT_HAS_FREELIST 1
 
 // Replacement for PyDict_New that is faster
-extern PyObject *MAKE_DICT_EMPTY(void);
+extern PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate);
 #else
 #define NUITKA_DICT_HAS_FREELIST 0
-#define MAKE_DICT_EMPTY PyDict_New
+#define MAKE_DICT_EMPTY(tstate) PyDict_New()
 #endif
 
 // Create a dictionary from key/value pairs.

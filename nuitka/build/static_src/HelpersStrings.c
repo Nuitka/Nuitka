@@ -261,7 +261,7 @@ static PyObject *_NuitkaUnicode_New(Py_ssize_t length) {
     _PyUnicode_UTF8(unicode) = NULL;
     _PyUnicode_UTF8_LENGTH(unicode) = 0;
 
-    _PyUnicode_WSTR(unicode) = (Py_UNICODE *)PyObject_MALLOC(new_size);
+    _PyUnicode_WSTR(unicode) = (Py_UNICODE *)NuitkaObject_Malloc(new_size);
     if (!_PyUnicode_WSTR(unicode)) {
         Py_DECREF(unicode);
         PyErr_NoMemory();

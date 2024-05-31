@@ -163,7 +163,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunctionNoArgs(called);
@@ -512,7 +512,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 1);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -522,19 +522,19 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 1);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 1, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 1);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 1);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -549,7 +549,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
@@ -590,7 +590,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 1);
+                pos_args = MAKE_TUPLE(tstate, args, 1);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -663,7 +663,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 1);
+                            pos_args = MAKE_TUPLE(tstate, args, 1);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -762,7 +762,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 1);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -953,7 +953,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 1);
@@ -1298,7 +1298,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 2);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -1308,19 +1308,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 2);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 2, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 2);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 2);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -1335,7 +1335,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
@@ -1370,7 +1370,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 2);
+                pos_args = MAKE_TUPLE(tstate, args, 2);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -1442,7 +1442,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 2);
+                            pos_args = MAKE_TUPLE(tstate, args, 2);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -1541,7 +1541,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 2);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -1720,7 +1720,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 2);
@@ -2058,7 +2058,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 3);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -2068,19 +2068,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 3);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 3, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 3);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 3);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -2095,7 +2095,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
@@ -2130,7 +2130,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 3);
+                pos_args = MAKE_TUPLE(tstate, args, 3);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -2202,7 +2202,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 3);
+                            pos_args = MAKE_TUPLE(tstate, args, 3);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -2301,7 +2301,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 3);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -2480,7 +2480,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 3);
@@ -2818,7 +2818,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 4);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -2828,19 +2828,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 4);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 4, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 4);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 4);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -2855,7 +2855,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
@@ -2890,7 +2890,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 4);
+                pos_args = MAKE_TUPLE(tstate, args, 4);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -2962,7 +2962,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 4);
+                            pos_args = MAKE_TUPLE(tstate, args, 4);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -3061,7 +3061,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 4);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -3240,7 +3240,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 4);
@@ -3578,7 +3578,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 5);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -3588,19 +3588,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 5);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 5, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 5);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 5);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 5);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -3615,7 +3615,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
@@ -3650,7 +3650,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 5);
+                pos_args = MAKE_TUPLE(tstate, args, 5);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -3722,7 +3722,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 5);
+                            pos_args = MAKE_TUPLE(tstate, args, 5);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -3821,7 +3821,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 5);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -4000,7 +4000,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 5);
@@ -4338,7 +4338,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 6);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -4348,19 +4348,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 6);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 6, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 6);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 6);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 6);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -4375,7 +4375,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
@@ -4410,7 +4410,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 6);
+                pos_args = MAKE_TUPLE(tstate, args, 6);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -4482,7 +4482,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 6);
+                            pos_args = MAKE_TUPLE(tstate, args, 6);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -4581,7 +4581,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 6);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -4760,7 +4760,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 6);
@@ -5098,7 +5098,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 7);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -5108,19 +5108,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 7);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 7, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 7);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 7);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 7);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -5135,7 +5135,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
@@ -5170,7 +5170,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 7);
+                pos_args = MAKE_TUPLE(tstate, args, 7);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -5242,7 +5242,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 7);
+                            pos_args = MAKE_TUPLE(tstate, args, 7);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -5341,7 +5341,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 7);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -5520,7 +5520,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 7);
@@ -5858,7 +5858,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 8);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -5868,19 +5868,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 8);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 8, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 8);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 8);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 8);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -5895,7 +5895,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
@@ -5930,7 +5930,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 8);
+                pos_args = MAKE_TUPLE(tstate, args, 8);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -6002,7 +6002,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 8);
+                            pos_args = MAKE_TUPLE(tstate, args, 8);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -6101,7 +6101,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 8);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -6280,7 +6280,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 8);
@@ -6618,7 +6618,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 9);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -6628,19 +6628,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 9);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 9, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 9);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 9);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 9);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -6655,7 +6655,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
@@ -6690,7 +6690,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 9);
+                pos_args = MAKE_TUPLE(tstate, args, 9);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -6762,7 +6762,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 9);
+                            pos_args = MAKE_TUPLE(tstate, args, 9);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -6861,7 +6861,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 9);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -7040,7 +7040,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 9);
@@ -7378,7 +7378,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-            PyObject *pos_args = MAKE_TUPLE(args, 10);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
             if (flags & METH_KEYWORDS) {
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             } else {
@@ -7388,19 +7388,19 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             Py_DECREF(pos_args);
 #else
             if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-                PyObject *pos_args = MAKE_TUPLE(args, 10);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
                 result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
                 Py_DECREF(pos_args);
             } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
                 result = (*(_PyCFunctionFast)method)(self, (PyObject **)args, 10, NULL);
 #else
-                PyObject *pos_args = MAKE_TUPLE(args, 10);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
                 result = (*(_PyCFunctionFast)method)(self, &pos_args, 10);
                 Py_DECREF(pos_args);
 #endif
             } else {
-                PyObject *pos_args = MAKE_TUPLE(args, 10);
+                PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
                 result = (*method)(self, pos_args);
                 Py_DECREF(pos_args);
             }
@@ -7415,7 +7415,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
@@ -7450,7 +7450,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                 obj = called_type->tp_alloc(called_type, 0);
                 CHECK_OBJECT(obj);
             } else {
-                pos_args = MAKE_TUPLE(args, 10);
+                pos_args = MAKE_TUPLE(tstate, args, 10);
                 obj = called_type->tp_new(called_type, pos_args, NULL);
             }
 
@@ -7522,7 +7522,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
                         }
                     } else {
                         if (pos_args == NULL) {
-                            pos_args = MAKE_TUPLE(args, 10);
+                            pos_args = MAKE_TUPLE(tstate, args, 10);
                         }
 
                         if (unlikely(type->tp_init(obj, pos_args, NULL) < 0)) {
@@ -7621,7 +7621,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 10);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -7800,7 +7800,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
 #endif
-#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
+#if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
         PyObject *result = callPythonFunction(called, args, 10);
@@ -8141,7 +8141,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 1);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8229,7 +8229,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 1);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8400,7 +8400,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 2);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8488,7 +8488,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 2);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8659,7 +8659,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 3);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8747,7 +8747,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 3);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -8918,7 +8918,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 4);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9006,7 +9006,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 4);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9177,7 +9177,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 5);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9265,7 +9265,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 5);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9436,7 +9436,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 6);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9524,7 +9524,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 6);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9695,7 +9695,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 7);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9783,7 +9783,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 7);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -9954,7 +9954,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 8);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10042,7 +10042,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 8);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10213,7 +10213,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 9);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10301,7 +10301,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *call
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 9);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10472,7 +10472,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 10);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10560,7 +10560,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *cal
         return NULL;
     }
 
-    PyObject *pos_args = MAKE_TUPLE(args, 10);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
 
     PyObject *named_args = _PyDict_NewPresized(nkwargs);
 
@@ -10718,7 +10718,7 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-        PyObject *pos_args = MAKE_TUPLE(args + 1, 0);
+        PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
 
         if (flags & METH_KEYWORDS) {
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
@@ -10729,19 +10729,19 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 0);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
             result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 0, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 0);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
             result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
             Py_DECREF(pos_args);
 #endif
         } else {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 0);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
             result = (*method)(self, pos_args);
             Py_DECREF(pos_args);
         }
@@ -10760,7 +10760,7 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 1);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -10820,7 +10820,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-        PyObject *pos_args = MAKE_TUPLE(args + 1, 1);
+        PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
 
         if (flags & METH_KEYWORDS) {
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
@@ -10831,19 +10831,19 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 1);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
             result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 1, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 1);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
             result = (*(_PyCFunctionFast)method)(self, &pos_args, 2);
             Py_DECREF(pos_args);
 #endif
         } else {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 1);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 1);
             result = (*method)(self, pos_args);
             Py_DECREF(pos_args);
         }
@@ -10862,7 +10862,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, P
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 2);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -10915,7 +10915,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-        PyObject *pos_args = MAKE_TUPLE(args + 1, 2);
+        PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
 
         if (flags & METH_KEYWORDS) {
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
@@ -10926,19 +10926,19 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 2);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
             result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 2, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 2);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
             result = (*(_PyCFunctionFast)method)(self, &pos_args, 3);
             Py_DECREF(pos_args);
 #endif
         } else {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 2);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 2);
             result = (*method)(self, pos_args);
             Py_DECREF(pos_args);
         }
@@ -10957,7 +10957,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, P
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 3);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 
@@ -11010,7 +11010,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-        PyObject *pos_args = MAKE_TUPLE(args + 1, 3);
+        PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
 
         if (flags & METH_KEYWORDS) {
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
@@ -11021,19 +11021,19 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
         Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 3);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
             result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
             Py_DECREF(pos_args);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
             result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 3, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 3);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
             result = (*(_PyCFunctionFast)method)(self, &pos_args, 4);
             Py_DECREF(pos_args);
 #endif
         } else {
-            PyObject *pos_args = MAKE_TUPLE(args + 1, 3);
+            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 3);
             result = (*method)(self, pos_args);
             Py_DECREF(pos_args);
         }
@@ -11052,7 +11052,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyThreadState *tstate, PyObject *called, P
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *pos_args = MAKE_TUPLE(args, 4);
+    PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
 
     PyObject *result = CALL_FUNCTION(tstate, called, pos_args, NULL);
 

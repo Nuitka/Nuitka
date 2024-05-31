@@ -11,9 +11,7 @@ console is disabled. This reads Yaml configuration.
 from nuitka.Options import (
     isOnefileMode,
     isStandaloneMode,
-    mayDisableConsoleWindow,
     shallCreateAppBundle,
-    shallDisableConsoleWindow,
 )
 from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Utils import isMacOS
@@ -72,37 +70,6 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
                 % full_name.asString()
             )
 
-    def _checkConsoleMode(self, full_name, console):
-        if console == "no":
-            if shallDisableConsoleWindow() is not True:
-                self.sysexit(
-                    "Error, when using '%s', you have to use '--disable-console' option."
-                    % full_name
-                )
-        elif console == "yes":
-            pass
-        elif console == "recommend":
-            if shallDisableConsoleWindow() is None:
-                if isMacOS():
-                    downside_message = """\
-Otherwise high resolution will not be available and a terminal window will open"""
-                else:
-                    downside_message = """\
-Otherwise a terminal window will open"""
-
-                self.info(
-                    """\
-Note, when using '%s', consider using '--disable-console' option. %s. However \
-for debugging, terminal output is the easiest way to see informative traceback \
-and error information, so delay this until your program is working and remove \
-once you find it non-working, and use '--enable-console' to make it explicit \
-and not see this message."""
-                    % (full_name, downside_message)
-                )
-
-        else:
-            self.sysexitIllegalOptionValue(full_name, "console", console)
-
     def _checkMacOSBundleMode(self, full_name, macos_bundle):
         if macos_bundle == "yes":
             if isStandaloneMode() and not shallCreateAppBundle():
@@ -114,8 +81,15 @@ Error, package '%s' requires '--macos-create-app-bundle' to be used or else it c
         elif macos_bundle == "no":
             pass
         elif macos_bundle == "recommend":
-            # TODO: Not really recommending with a message it yet.
-            pass
+            self.info(
+                """\
+Note, when using '%s', consider using '--macos-create-app-bundle' option. \
+Otherwise high resolution will not be available and a terminal window will \
+open. However for debugging, terminal output is the easiest way to see \
+informative traceback and error information, so launch it from there if \
+possible."""
+                % full_name
+            )
         else:
             self.sysexitIllegalOptionValue(full_name, "macos_bundle", macos_bundle)
 
@@ -150,12 +124,6 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                         description=check.get("description", "not given"),
                         condition=condition,
                     )
-
-                    if mayDisableConsoleWindow():
-                        self._checkConsoleMode(
-                            full_name=full_name,
-                            console=check.get("console", "yes"),
-                        )
 
                     if isMacOS():
                         self._checkMacOSBundleMode(

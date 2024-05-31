@@ -120,7 +120,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
         if dirs is not None:
             if type(dirs) is not list or not dirs:
                 self.sysexit(
-                    "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
+                    "Error, requiring list below 'dirs' entry for '%s' entry."
                     % module_name
                 )
 
@@ -134,6 +134,27 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                         reason="package data directory '%s' for %r"
                         % (data_dir, module_name.asString()),
                         tags="config",
+                    )
+
+        raw_dirs = data_file_config.get("raw_dirs")
+        if raw_dirs is not None:
+            if type(raw_dirs) is not list or not raw_dirs:
+                self.sysexit(
+                    "Error, requiring list below 'raw_dirs' entry for '%s' entry."
+                    % module_name
+                )
+
+            for raw_dir in raw_dirs:
+                source_path = os.path.join(module_folder, raw_dir)
+
+                if os.path.isdir(source_path):
+                    yield self.makeIncludedDataDirectory(
+                        source_path=source_path,
+                        dest_path=os.path.join(target_dir, raw_dir),
+                        reason="package raw directory '%s' for %r"
+                        % (raw_dir, module_name.asString()),
+                        tags="config",
+                        raw=True,
                     )
 
         include_pyi_file = data_file_config.get("include-pyi-file")
