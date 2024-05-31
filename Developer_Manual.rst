@@ -828,31 +828,31 @@ Added new CPython suites
 
 When adding a test suite, for a new version, proceed like this, of
 course while adapting of course the names. These are the commands used
-for adding CPython311 based on the CPython310 branch.
+for adding CPython313 based on the CPython312 branch.
 
 .. code:: bash
 
    # Switch to a new branch.
-   git checkout CPython310
-   git branch CPython311
-   git checkout CPython311
+   git checkout CPython312
+   git branch CPython313
+   git checkout CPython313
 
    # Delete all but root commit
    git reset --hard `git log --root --oneline --reverse | head -1 | cut -d' ' -f1`
 
    # Switch test data to upstream ones.
    rm -rf test
-   cp -r ~/repos/Nuitka-references/final/Python-3.11.0/Lib/test test
+   cp -r ~/repos/Nuitka-references/final/Python-3.13.0/Lib/test test
    git add test
 
    # Update commit message to mention proper Python version.
-   git commit --amend -m "Initial commit of Python tests as in 3.11.0"
+   git commit --amend -m "Initial commit of Python tests as in 3.13.0"
 
    # Push to github, setting upstream for branch.
    git push -u
 
    # Cherry pick the removal commits from previous branches.
-   git log origin/CPython310 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
+   git log origin/CPython312 --reverse --oneline | grep ' Removed' | cut -d' ' -f1 | xargs git cherry-pick
    # When being prompted for merge conflicts with the deleted files:
    git status | sed -n 's/deleted by them://p' | xargs git rm --ignore-unmatch x ; git cherry-pick --continue
 
@@ -860,27 +860,27 @@ for adding CPython311 based on the CPython310 branch.
    git push
 
    # Cherry pick the first commit of 'run_all.py', the copy it from the last state, and amend the commits.
-   git log --reverse origin/CPython310 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython310 -- run_all.py
+   git log --reverse origin/CPython312 --oneline -- run_all.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython312 -- run_all.py
    chmod +x run_all.py
-   sed -i -e 's#python3.10#python3.11#' run_all.py
+   sed -i -e 's#python3.12#python3.13#' run_all.py
    git commit --amend --no-edit run_all.py
 
    # Same for 'update_doctest_generated.py'
-   git log --reverse origin/CPython310 --oneline -- update_doctest_generated.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython310 -- update_doctest_generated.py
+   git log --reverse origin/CPython312 --oneline -- update_doctest_generated.py | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython312 -- update_doctest_generated.py
    chmod +x update_doctest_generated.py
-   sed -i -e 's#python3.10#python3.11#' update_doctest_generated.py
+   sed -i -e 's#python3.12#python3.13#' update_doctest_generated.py
    git commit --amend --no-edit update_doctest_generated.py
 
    # Same for .gitignore
-   git log --reverse origin/CPython310 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
-   git checkout origin/CPython310 -- .gitignore
+   git log --reverse origin/CPython312 --oneline -- .gitignore | head -1 | cut -d' ' -f1 | xargs git cherry-pick
+   git checkout origin/CPython312 -- .gitignore
    git commit --amend --no-edit .gitignore
 
    # Now cherry-pick all commits of test support, these disable network, audio, GUI, random filenames and more
    # and are crucial for deterministic outputs and non-reliance on outside stuff.
-   git log --reverse origin/CPython310 --oneline -- test/support/__init__.py | tail -n +2 | cut -d' ' -f1 | xargs git cherry-pick
+   git log --reverse origin/CPython312 --oneline -- test/support/__init__.py | tail -n +2 | cut -d' ' -f1 | xargs git cherry-pick
 
    git push
 
