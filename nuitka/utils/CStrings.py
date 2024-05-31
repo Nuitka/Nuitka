@@ -63,16 +63,23 @@ def encodePythonUnicodeToC(value):
     assert type(value) is unicode, type(value)
 
     result = ""
+    last_was_hex = False
 
     for c in value:
         cv = ord(c)
 
         if c == "\\":
             result += "\\\\"
+            last_was_hex = False
         elif 34 < cv < 128:
+            if last_was_hex:
+                result += '" L"'
+
             result += c
+            last_was_hex = False
         else:
             result += r"\x%04x" % cv
+            last_was_hex = True
 
     return 'L"%s"' % result
 

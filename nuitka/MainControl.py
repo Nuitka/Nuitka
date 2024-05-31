@@ -87,7 +87,10 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     resetDirectory,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import (
+    getPackageDirFilename,
+    getSharedLibrarySuffix,
+)
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -569,7 +572,6 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
 
     options = {
-        "result_name": OutputDirectories.getResultBasePath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
@@ -692,7 +694,9 @@ def runSconsBackend():
         options["abiflags"] = abiflags
 
     if Options.shallMakeModule():
-        options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
+        options["result_exe"] = OutputDirectories.getResultBasePath(
+            onefile=False
+        ) + getSharedLibrarySuffix(preferred=True)
 
     link_module_libs = getModuleLinkerLibs()
     if link_module_libs:
@@ -759,7 +763,7 @@ def runSconsBackend():
     return result
 
 
-def callExecPython(args, add_path):
+def callExecPython(args, add_path, uac):
     if add_path:
         if "PYTHONPATH" in os.environ:
             os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
@@ -769,7 +773,7 @@ def callExecPython(args, add_path):
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
-    callExecProcess(args)
+    callExecProcess(args, uac=uac)
 
 
 def _executeMain(binary_filename):
@@ -779,7 +783,11 @@ def _executeMain(binary_filename):
     else:
         args = (binary_filename, binary_filename)
 
-    callExecPython(add_path=False, args=args)
+    callExecPython(
+        args=args,
+        add_path=False,
+        uac=isWin32Windows() and Options.shallAskForWindowsAdminRights(),
+    )
 
 
 def _executeModule(tree):
@@ -824,7 +832,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
     else:
         args = (sys.executable, "python", "-c", python_command)
 
-    callExecPython(add_path=True, args=args)
+    callExecPython(args=args, add_path=True, uac=False)
 
 
 def compileTree():
@@ -1085,9 +1093,7 @@ def _main():
     if Options.shallMakeModule():
         base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-        if os.path.isdir(base_path) and os.path.isfile(
-            os.path.join(base_path, "__init__.py")
-        ):
+        if os.path.isdir(base_path) and getPackageDirFilename(base_path):
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \

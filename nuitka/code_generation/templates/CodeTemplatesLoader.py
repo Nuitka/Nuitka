@@ -124,7 +124,9 @@ void copyFrozenModulesTo(struct _frozen *destination) {
 #if PYTHON_VERSION >= 0x3b0
         destination->is_package = current->size < 0;
         destination->size = Py_ABS(destination->size);
+#if PYTHON_VERSION < 0x3d0
         destination->get_code = NULL;
+#endif
 #endif
         if (destination->name == NULL) break;
 

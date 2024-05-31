@@ -37,6 +37,7 @@ from nuitka.utils.Execution import (
     withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
+    areSamePaths,
     changeFilenameExtension,
     deleteFile,
     getDirectoryRealPath,
@@ -46,6 +47,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath,
     putTextFileContents,
+    renameFile,
     withDirectoryChange,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
@@ -58,7 +60,7 @@ from nuitka.utils.Utils import (
 )
 
 from .SconsCaching import checkCachingSuccess
-from .SconsUtils import flushSconsReports
+from .SconsUtils import flushSconsReports, getSconsReportValue
 
 
 def getSconsDataPath():
@@ -336,10 +338,9 @@ def runScons(options, env_values, scons_filename):
             options = copy.deepcopy(options)
             source_dir = options["source_dir"]
             options["source_dir"] = "."
-            options["result_name"] = getExternalUsePath(
-                options["result_name"], only_dirname=True
-            )
             options["nuitka_src"] = getExternalUsePath(options["nuitka_src"])
+
+            orig_result_exe = options.get("result_exe")
             if "result_exe" in options:
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
@@ -370,6 +371,7 @@ def runScons(options, env_values, scons_filename):
                     source_dir=source_dir, scons_command=scons_command
                 )
 
+                source_dir = getExternalUsePath(source_dir)
             try:
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
@@ -380,6 +382,20 @@ def runScons(options, env_values, scons_filename):
         flushSconsReports()
 
         if "source_dir" in options and result == 0:
+            if "result_exe" in options:
+                scons_created_exe = getSconsReportValue(
+                    source_dir or options["source_dir"], "TARGET"
+                )
+
+                if not os.path.exists(scons_created_exe):
+                    Tracing.scons_logger.sysexit(
+                        "Error, scons failed to create the expected file %r. "
+                        % scons_created_exe
+                    )
+
+                if not areSamePaths(options["result_exe"], scons_created_exe):
+                    renameFile(scons_created_exe, orig_result_exe)
+
             checkCachingSuccess(source_dir or options["source_dir"])
 
         return result == 0
@@ -475,8 +491,8 @@ def setCommonSconsOptions(options):
     if Options.shallDisableCCacheUsage():
         options["disable_ccache"] = asBoolStr(True)
 
-    if Options.shallDisableConsoleWindow() and Options.mayDisableConsoleWindow():
-        options["disable_console"] = asBoolStr(True)
+    if isWin32Windows() and Options.getWindowsConsoleMode() != "attach":
+        options["console_mode"] = Options.getWindowsConsoleMode()
 
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()

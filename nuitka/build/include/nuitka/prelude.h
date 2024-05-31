@@ -148,7 +148,11 @@ NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_Get
 
 // Uncompiled generator integration requires these.
 #if PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION >= 0x3d0
+#include <opcode_ids.h>
+#else
 #include <internal/pycore_opcode.h>
+#endif
 // Clashes with our helper names.
 #undef CALL_FUNCTION
 #endif
@@ -168,6 +172,13 @@ NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_Get
 #include <internal/pycore_object.h>
 #else
 #include <objimpl.h>
+#endif
+
+#if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_freelist.h>
+#include <internal/pycore_intrinsics.h>
+#include <internal/pycore_modsupport.h>
+#include <internal/pycore_setobject.h>
 #endif
 
 #undef Py_BUILD_CORE
@@ -272,8 +283,15 @@ NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObje
 #define PyUnicode_UTF8(op)                                                                                             \
     (assert(PyUnicode_IS_READY(op)),                                                                                   \
      PyUnicode_IS_COMPACT_ASCII(op) ? ((char *)((PyASCIIObject *)(op) + 1)) : _PyUnicode_UTF8(op))
+#ifdef __NUITKA_NO_ASSERT__
 #define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
-
+#else
+NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObject *object) {
+    char const *result = PyUnicode_UTF8(object);
+    assert(result != NULL);
+    return result;
+}
+#endif
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringOrUnicode_CheckExact PyUnicode_CheckExact
@@ -412,6 +430,21 @@ extern PyThreadState *_PyThreadState_Current;
 #define PyFloat_SET_DOUBLE(op, value) ((PyFloatObject *)(op))->ob_fval = value
 #endif
 
+#ifndef Py_NewRef
+static inline PyObject *_Py_NewRef(PyObject *obj) {
+    Py_INCREF(obj);
+    return obj;
+}
+
+static inline PyObject *_Py_XNewRef(PyObject *obj) {
+    Py_XINCREF(obj);
+    return obj;
+}
+
+#define Py_NewRef(obj) _Py_NewRef((PyObject *)(obj))
+#define Py_XNewRef(obj) _Py_XNewRef((PyObject *)(obj))
+#endif
+
 // For older Python, we don't have a feature "CLASS" anymore, that's implied now.
 #if PYTHON_VERSION < 0x300
 #define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
@@ -452,7 +485,7 @@ typedef long nuitka_digit;
 #include "nuitka/compiled_function.h"
 
 /* Sentinel PyObject to be used for all our call iterator endings. */
-extern PyObject *_sentinel_value;
+extern PyObject *Nuitka_sentinel_value;
 
 /* Value to use for __compiled__ value of all modules. */
 extern PyObject *Nuitka_dunder_compiled_value;

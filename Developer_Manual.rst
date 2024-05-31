@@ -329,7 +329,7 @@ Look at this code examples from Python:
 This pretty much is what makes properties bad. One would hope ``B().x``
 to be ``2``, but instead it's not changed. Because of the way properties
 take the functions and not members, and because they then are not part
-of the class, they cannot be overloaded without re-declaring them.
+of the class, they cannot be overloaded without redeclaring them.
 
 Overloading is then not at all obvious anymore. Now imagine having a
 setter and only overloading the getter. How to update the property

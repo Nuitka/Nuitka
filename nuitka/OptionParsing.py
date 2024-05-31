@@ -287,8 +287,8 @@ follow_group.add_option(
     default=[],
     help="""\
 Do not follow to that module name even if used, or if a package name, to the
-whole package in any case, overrides all other options. Can be given multiple
-times. Default empty.""",
+whole package in any case, overrides all other options. This can also contain
+patterns, e.g. "*.tests". Can be given multiple times. Default empty.""",
 )
 
 follow_group.add_option(
@@ -452,6 +452,18 @@ data_group.add_option(
     require_compiling=False,
     help="""\
 Output the data files found for a given package name. Default not done.""",
+)
+
+data_group.add_option(
+    "--include-raw-dir",
+    action="append",
+    dest="raw_dirs",
+    metavar="DIRECTORY",
+    default=[],
+    help="""\
+Include raw directories completely in the distribution. This is
+recursive. Check '--include-data-dir' to use the sane option.
+Default empty.""",
 )
 
 
@@ -1288,9 +1300,7 @@ os_group.add_option(
     action="store_true",
     dest="disable_console",
     default=None,
-    help="""\
-When compiling for Windows or macOS, disable the console window and create a GUI
-application. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 os_group.add_option(
@@ -1298,10 +1308,22 @@ os_group.add_option(
     action="store_false",
     dest="disable_console",
     default=None,
+    help=SUPPRESS_HELP,
+)
+
+os_group.add_option(
+    "--windows-console-mode",
+    action="store",
+    dest="console_mode",
+    choices=("force", "disable", "attach"),
+    metavar="CONSOLE_MODE",
+    default=None,
     help="""\
-When compiling for Windows or macOS, enable the console window and create a console
-application. This disables hints from certain modules, e.g. "PySide" that suggest
-to disable it. Defaults to true.""",
+Select console mode to use. Default mode is 'force' and creates a
+console window if not available, i.e. the program was started from one. With
+'disable' it doesn't create or use a console. With 'attach' an existing console
+will be used for outputs. Default is 'force'.
+""",
 )
 
 os_group.add_option(

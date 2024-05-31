@@ -124,7 +124,7 @@ static PyObject *Nuitka_Coroutine_get_cr_await(struct Nuitka_CoroutineObject *co
         Py_INCREF(coroutine->m_yield_from);
         return coroutine->m_yield_from;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -154,7 +154,7 @@ static PyObject *Nuitka_Coroutine_get_frame(struct Nuitka_CoroutineObject *corou
         Py_INCREF(coroutine->m_frame);
         return (PyObject *)coroutine->m_frame;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -222,7 +222,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         struct Nuitka_CoroutineObject *yieldfrom_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yield_from)->m_coroutine;
 
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
 
         struct Nuitka_ExceptionPreservationItem no_exception_state;
         INIT_ERROR_OCCURRED_STATE(&no_exception_state);
@@ -245,7 +245,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
         if (error == NULL) {
-            Py_INCREF(Py_None);
+            Py_INCREF_IMMORTAL(Py_None);
             *returned_value = Py_None;
         } else if (likely(EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopIteration))) {
             // The sub-generator has given an exception. In case of
@@ -593,9 +593,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
 
     switch (res) {
     case PYGEN_RETURN:
-        if (result == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
-        } else {
+        if (result != NULL) {
             if (result != Py_None) {
                 Nuitka_SetStopIterationValue(tstate, result);
             }
@@ -670,7 +668,7 @@ static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine
     if (unlikely(r == false)) {
         return NULL;
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -1353,12 +1351,15 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
     // we have the line number stored.
 
     int addr = _PyInterpreterFrame_LASTI(frame) * sizeof(_Py_CODEUNIT);
+#if PYTHON_VERSION < 0x3d0
     return PyCode_Addr2Line(frame->f_code, addr);
+#else
+    return PyCode_Addr2Line((PyCodeObject *)frame->f_executable, addr);
+#endif
 }
 
-static PyObject *computeCoroutineOrigin(int origin_depth) {
-    PyThreadState *tstate = _PyThreadState_GET();
-    _PyInterpreterFrame *current_frame = tstate->cframe->current_frame;
+static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
+    _PyInterpreterFrame *current_frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 
     // Create result tuple with correct size.
     int frame_count = 0;
@@ -1367,11 +1368,11 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
         frame = frame->previous;
         frame_count += 1;
     }
-    PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(frame_count);
+    PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(tstate, frame_count);
 
     frame = current_frame;
     for (int i = 0; i < frame_count; i++) {
-        PyCodeObject *code = frame->f_code;
+        PyCodeObject *code = Nuitka_InterpreterFrame_GetCodeObject(frame);
 
         int line = Nuitka_PyInterpreterFrame_GetLine(frame);
 
@@ -1386,7 +1387,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
 }
 
 #elif PYTHON_VERSION >= 0x370
-static PyObject *computeCoroutineOrigin(int origin_depth) {
+static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
     PyFrameObject *frame = PyEval_GetFrame();
 
     int frame_count = 0;
@@ -1396,13 +1397,13 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
         frame_count += 1;
     }
 
-    PyObject *cr_origin = MAKE_TUPLE_EMPTY(frame_count);
+    PyObject *cr_origin = MAKE_TUPLE_EMPTY(tstate, frame_count);
 
     frame = PyEval_GetFrame();
 
     for (int i = 0; i < frame_count; i++) {
-        PyObject *frame_info =
-            Py_BuildValue("OiO", frame->f_code->co_filename, PyFrame_GetLineNumber(frame), frame->f_code->co_name);
+        PyObject *frame_info = Py_BuildValue("OiO", Nuitka_Frame_GetCodeObject(frame)->co_filename,
+                                             PyFrame_GetLineNumber(frame), frame->f_code->co_name);
 
         assert(frame_info);
 
@@ -1478,7 +1479,7 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     if (origin_depth == 0) {
         result->m_origin = NULL;
     } else {
-        result->m_origin = computeCoroutineOrigin(origin_depth);
+        result->m_origin = computeCoroutineOrigin(tstate, origin_depth);
     }
 #endif
 
@@ -1496,9 +1497,12 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
 static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
 #if PYTHON_VERSION < 0x3c0
     return (PyCodeObject *)gen->gi_code;
-#else
+#elif PYTHON_VERSION < 0x3d0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return frame->f_code;
+#else
+    _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
+    return (PyCodeObject *)frame->f_executable;
 #endif
 }
 

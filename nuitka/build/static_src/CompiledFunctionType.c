@@ -45,13 +45,11 @@ static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function)
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
-    return Nuitka_String_FromFormat("<compiled_function %s at %p>",
 #if PYTHON_VERSION < 0x300
-                                    Nuitka_String_AsString(function->m_name),
+    return Nuitka_String_FromFormat("<compiled_function %s at %p>", Nuitka_String_AsString(function->m_name), function);
 #else
-                                    Nuitka_String_AsString(function->m_qualname),
+    return Nuitka_String_FromFormat("<compiled_function %U at %p>", function->m_qualname, function);
 #endif
-                                    function);
 }
 
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
@@ -192,7 +190,9 @@ static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *function
     assert(_PyObject_GC_IS_TRACKED(function));
 
     if (function->m_dict == NULL) {
-        function->m_dict = MAKE_DICT_EMPTY();
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+        function->m_dict = MAKE_DICT_EMPTY(tstate);
     }
 
     CHECK_OBJECT(function->m_dict);
@@ -309,9 +309,10 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *funct
     assert(_PyObject_GC_IS_TRACKED(function));
 
     if (function->m_closure_given > 0) {
-        return MAKE_TUPLE((PyObject *const *)function->m_closure, function->m_closure_given);
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+        return MAKE_TUPLE(tstate, (PyObject *const *)function->m_closure, function->m_closure_given);
     } else {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 }
@@ -440,7 +441,9 @@ static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *f
     assert(_PyObject_GC_IS_TRACKED(function));
 
     if (function->m_annotations == NULL) {
-        function->m_annotations = MAKE_DICT_EMPTY();
+        PyThreadState *tstate = PyThreadState_GET();
+
+        function->m_annotations = MAKE_DICT_EMPTY(tstate);
     }
     CHECK_OBJECT(function->m_annotations);
 
@@ -520,13 +523,19 @@ static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *func
 #if PYTHON_VERSION >= 0x3c0
 static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *function, PyObject *value) {
     CHECK_OBJECT((PyObject *)function);
+    CHECK_OBJECT_X(value);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
 
-    PyThreadState *tstate = PyThreadState_GET();
+    if (unlikely(value == NULL || !PyTuple_Check(value))) {
+        PyThreadState *tstate = PyThreadState_GET();
 
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "readonly attribute");
-    return -1;
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__type_params__ must be set to a tuple");
+        return -1;
+    }
+
+    Py_SETREF(function->m_type_params, Py_NewRef(value));
+    return 0;
 }
 
 static PyObject *Nuitka_Function_get_type_params(struct Nuitka_FunctionObject *function) {
@@ -547,7 +556,9 @@ static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *function, Py
     CHECK_OBJECT_X(value);
 
     if (function->m_dict == NULL) {
-        function->m_dict = MAKE_DICT_EMPTY();
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+        function->m_dict = MAKE_DICT_EMPTY(tstate);
     }
 
     if (value == NULL) {
@@ -663,10 +674,12 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
     PRINT_NEW_LINE();
 #endif
 
+    PyThreadState *tstate = PyThreadState_GET();
+
     PyObject *annotations = function->m_annotations;
     if (annotations != NULL) {
         if (DICT_SIZE(annotations) != 0) {
-            annotations = DICT_COPY(annotations);
+            annotations = DICT_COPY(tstate, annotations);
         } else {
             annotations = NULL;
         }
@@ -675,7 +688,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
     PyObject *kwdefaults = function->m_kwdefaults;
     if (kwdefaults != NULL) {
         if (DICT_SIZE(kwdefaults) != 0) {
-            kwdefaults = DICT_COPY(kwdefaults);
+            kwdefaults = DICT_COPY(tstate, kwdefaults);
         } else {
             kwdefaults = NULL;
         }
@@ -727,6 +740,10 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     Py_DECREF(function->m_name);
 #if PYTHON_VERSION >= 0x300
     Py_DECREF(function->m_qualname);
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+    Py_DECREF(function->m_type_params);
 #endif
 
     // These may actually resurrect the object, not?
@@ -1004,7 +1021,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(PyThreadState *tstate, struct
 
     PyObject *result = Py_True;
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1021,8 +1038,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(PyThreadState *tstate, struc
     }
 
     PyObject *result = Py_False;
-
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1248,7 +1264,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 #endif
 
     if (defaults == NULL) {
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         defaults = Py_None;
     }
     CHECK_OBJECT(defaults);
@@ -1316,6 +1332,11 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     result->m_vectorcall = (vectorcallfunc)Nuitka_Function_tp_vectorcall;
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+    result->m_type_params = const_tuple_empty;
+    assert(_Py_IsImmortal(result->m_type_params));
 #endif
 
     Nuitka_GC_Track(result);
@@ -1885,7 +1906,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
     return kw_found;
 }
 
-static PyObject *COPY_DICT_KW(PyObject *dict_value);
+static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value);
 
 static bool MAKE_STAR_DICT_DICTIONARY_COPY(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                                            PyObject **python_pars, PyObject *kw) {
@@ -1893,9 +1914,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(PyThreadState *tstate, struct Nuitka_
     assert(star_dict_index != -1);
 
     if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
-        python_pars[star_dict_index] = MAKE_DICT_EMPTY();
+        python_pars[star_dict_index] = MAKE_DICT_EMPTY(tstate);
     } else {
-        python_pars[star_dict_index] = COPY_DICT_KW(kw);
+        python_pars[star_dict_index] = COPY_DICT_KW(tstate, kw);
 
         if (unlikely(python_pars[star_dict_index] == NULL)) {
             formatErrorKeywordsMustBeString(tstate, function);
@@ -2026,30 +2047,30 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(PyThreadState *tstate,
     return kw_found;
 }
 
-static void makeStarListTupleCopy(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
-                                  PyObject *const *args, Py_ssize_t args_size) {
+static void makeStarListTupleCopy(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                  PyObject **python_pars, PyObject *const *args, Py_ssize_t args_size) {
     assert(function->m_args_star_list_index != -1);
     Py_ssize_t list_star_index = function->m_args_star_list_index;
 
     // Copy left-over argument values to the star list parameter given.
     if (args_size > function->m_args_positional_count) {
         python_pars[list_star_index] =
-            MAKE_TUPLE(&args[function->m_args_positional_count], args_size - function->m_args_positional_count);
+            MAKE_TUPLE(tstate, &args[function->m_args_positional_count], args_size - function->m_args_positional_count);
     } else {
         python_pars[list_star_index] = const_tuple_empty;
         Py_INCREF(const_tuple_empty);
     }
 }
 
-static void makeStarListTupleCopyMethod(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
-                                        PyObject *const *args, Py_ssize_t args_size) {
+static void makeStarListTupleCopyMethod(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
+                                        PyObject **python_pars, PyObject *const *args, Py_ssize_t args_size) {
     assert(function->m_args_star_list_index != -1);
     Py_ssize_t list_star_index = function->m_args_star_list_index;
 
     // Copy left-over argument values to the star list parameter given.
     if (args_size + 1 > function->m_args_positional_count) {
-        python_pars[list_star_index] =
-            MAKE_TUPLE(&args[function->m_args_positional_count - 1], args_size + 1 - function->m_args_positional_count);
+        python_pars[list_star_index] = MAKE_TUPLE(tstate, &args[function->m_args_positional_count - 1],
+                                                  args_size + 1 - function->m_args_positional_count);
     } else {
         python_pars[list_star_index] = const_tuple_empty;
         Py_INCREF(const_tuple_empty);
@@ -2137,7 +2158,7 @@ static bool _handleArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_Funct
 #endif
 
     if (function->m_args_star_list_index != -1) {
-        makeStarListTupleCopy(function, python_pars, args, args_size);
+        makeStarListTupleCopy(tstate, function, python_pars, args, args_size);
     }
 
     return true;
@@ -2156,7 +2177,7 @@ static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_
         // Without self, there can only be star list to get the object as its
         // first element. Or we complain about illegal arguments.
         if (function->m_args_star_list_index == 0) {
-            python_pars[0] = MAKE_TUPLE_EMPTY(args_size + 1);
+            python_pars[0] = MAKE_TUPLE_EMPTY(tstate, args_size + 1);
             PyTuple_SET_ITEM0(python_pars[0], 0, object);
 
             for (Py_ssize_t i = 0; i < args_size; i++) {
@@ -2241,7 +2262,7 @@ static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_
 #endif
 
     if (function->m_args_star_list_index != -1) {
-        makeStarListTupleCopyMethod(function, python_pars, args, args_size);
+        makeStarListTupleCopyMethod(tstate, function, python_pars, args, args_size);
     }
 
     return true;
@@ -2371,7 +2392,7 @@ static bool _handleArgumentsPlain(PyThreadState *tstate, struct Nuitka_FunctionO
 #endif
 
     if (function->m_args_star_list_index != -1) {
-        makeStarListTupleCopy(function, python_pars, args, args_size);
+        makeStarListTupleCopy(tstate, function, python_pars, args, args_size);
     }
 
     return true;
@@ -2438,7 +2459,7 @@ static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObjec
 #endif
 
     if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY();
+        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY(tstate);
     }
 
     return true;
@@ -2490,7 +2511,7 @@ static bool parseArgumentsMethodPos(PyThreadState *tstate, struct Nuitka_Functio
 #endif
 
     if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY();
+        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY(tstate);
     }
 
     return true;

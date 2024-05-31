@@ -44,21 +44,19 @@ static PyMemberDef Nuitka_Method_members[] = {
     {NULL}};
 
 static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
-#if PYTHON_VERSION < 0x300
     PyThreadState *tstate = PyThreadState_GET();
 
+#if PYTHON_VERSION < 0x300
     // spell-checker: ignore instancemethod
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
 #elif PYTHON_VERSION < 0x340
-    PyThreadState *tstate = PyThreadState_GET();
-
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle method objects");
     return NULL;
 #else
-    PyObject *result = MAKE_TUPLE_EMPTY(2);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 2);
     PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
-    PyObject *arg_tuple = MAKE_TUPLE2(method->m_object, method->m_function->m_name);
+    PyObject *arg_tuple = MAKE_TUPLE2(tstate, method->m_object, method->m_function->m_name);
     PyTuple_SET_ITEM(result, 1, arg_tuple);
 
     CHECK_OBJECT_DEEP(result);
@@ -91,13 +89,13 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    PyObject *result = MAKE_TUPLE_EMPTY(5);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 5);
     PyTuple_SET_ITEM(result, 0, newobj_func);
-    PyObject *type_tuple = MAKE_TUPLE1((PyObject *)&Nuitka_Method_Type);
+    PyObject *type_tuple = MAKE_TUPLE1(tstate, (PyObject *)&Nuitka_Method_Type);
     PyTuple_SET_ITEM(result, 1, type_tuple);
-    PyTuple_SET_ITEM0(result, 2, Py_None);
-    PyTuple_SET_ITEM0(result, 3, Py_None);
-    PyTuple_SET_ITEM0(result, 4, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 2, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
+    PyTuple_SET_ITEM_IMMORTAL(result, 4, Py_None);
 
     CHECK_OBJECT_DEEP(result);
 
@@ -323,13 +321,13 @@ static PyObject *Nuitka_Method_tp_repr(struct Nuitka_MethodObject *method) {
 #endif
 
 #if PYTHON_VERSION < 0x350
-        PyObject *result = Nuitka_String_FromFormat(
-            "<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
-            Nuitka_String_AsString(method->m_function->m_name), Nuitka_String_AsString_Unchecked(object_repr));
+        PyObject *result =
+            Nuitka_String_FromFormat("<bound compiled_method %s.%s of %s>", GET_CLASS_NAME(method->m_class),
+                                     Nuitka_String_AsString_Unchecked(method->m_function->m_name),
+                                     Nuitka_String_AsString_Unchecked(object_repr));
 #else
-        PyObject *result = PyUnicode_FromFormat("<bound compiled_method %s of %s>",
-                                                Nuitka_String_AsString(method->m_function->m_qualname),
-                                                Nuitka_String_AsString_Unchecked(object_repr));
+        PyObject *result =
+            PyUnicode_FromFormat("<bound compiled_method %U of %U>", method->m_function->m_qualname, object_repr);
 #endif
 
         Py_DECREF(object_repr);
@@ -399,7 +397,7 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
         result = BOOL_FROM(!b_res);
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 

@@ -14,19 +14,24 @@ extern volatile int _Py_Ticker;
 #ifdef NUITKA_USE_PYCORE_THREAD_STATE
 
 #if PYTHON_VERSION < 0x380
+
 // Signals pending got their own indicator only in 3.8, covered by calls to do before.
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval2->pending.calls_to_do._value)
-#else
+#elif PYTHON_VERSION < 0x3d0
 #define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
-#endif
-
-NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
-#if PYTHON_VERSION >= 0x390
-    _PyRuntimeState *const runtime = tstate->interp->runtime;
 #else
-    _PyRuntimeState *const runtime = &_PyRuntime;
+#define HAS_WORK_TO_DO(ceval, ceval2) _Py_eval_breaker_bit_is_set(tstate, _PY_SIGNALS_PENDING_BIT | _PY_CALLS_TO_DO_BIT)
 #endif
 
+#ifndef Py_GIL_DISABLED
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
+#if PYTHON_VERSION < 0x390
+    _PyRuntimeState *const runtime = &_PyRuntime;
+#else
+    _PyRuntimeState *const runtime = tstate->interp->runtime;
+#endif
+
+#if PYTHON_VERSION < 0x3d0
     // This was split in 2 parts in 3.9 or higher.
     struct _ceval_runtime_state *ceval = &runtime->ceval;
 #if PYTHON_VERSION >= 0x390
@@ -34,7 +39,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 #else
     struct _ceval_runtime_state *ceval2 = ceval;
 #endif
-
+#endif
     // Pending signals or calls to do
     if (HAS_WORK_TO_DO(ceval, ceval2)) {
         int res = Py_MakePendingCalls();
@@ -44,12 +49,9 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
         }
     }
 
-#ifdef PY_NOGIL
-    /* load eval breaker */
-    uintptr_t b = _Py_atomic_load_uintptr(&tstate->eval_breaker);
-
+#if PYTHON_VERSION >= 0x3d0
     /* GIL drop request */
-    if ((b & EVAL_PENDING_SIGNALS) != 0) {
+    if (_Py_eval_breaker_bit_is_set(tstate, _PY_GIL_DROP_REQUEST_BIT)) {
 #else
     /* GIL drop request */
     if (ceval2->gil_drop_request._value) {
@@ -70,6 +72,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 
     return true;
 }
+#endif
 
 #else
 

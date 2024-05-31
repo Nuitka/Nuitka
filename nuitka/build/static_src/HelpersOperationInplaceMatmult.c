@@ -85,7 +85,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, P
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -101,7 +101,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, P
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -179,7 +179,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, P
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -287,7 +287,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, 
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -303,7 +303,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, 
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -377,7 +377,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, 
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
@@ -499,7 +499,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
             goto exit_inplace_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     {
@@ -530,7 +530,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
                         goto exit_inplace_result_object;
                     }
 
-                    Py_DECREF(x);
+                    Py_DECREF_IMMORTAL(x);
                     slot2 = NULL;
                 }
             }
@@ -542,7 +542,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         if (slot2 != NULL) {
@@ -553,7 +553,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
                 goto exit_inplace_result_object;
             }
 
-            Py_DECREF(x);
+            Py_DECREF_IMMORTAL(x);
         }
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'

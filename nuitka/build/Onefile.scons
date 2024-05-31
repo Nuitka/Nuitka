@@ -126,8 +126,8 @@ trace_mode = getArgumentBool("trace_mode", False)
 # good with the compiler in question.
 lto_mode = getArgumentDefaulted("lto_mode", "auto")
 
-# Windows subsystem mode: Disable console for windows builds.
-disable_console = getArgumentBool("disable_console", False)
+# Console mode specified
+console_mode = getArgumentDefaulted("console_mode", "attach")
 
 # Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
@@ -265,7 +265,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
-env.disable_console = disable_console
+env.console_mode = console_mode
 env.source_dir = source_dir
 env.nuitka_src = nuitka_src
 env.low_memory = False  # Never a concern in this case.
@@ -536,7 +536,7 @@ if env.gcc_mode:
         env=env,
     )
 
-writeSconsReport(env)
+writeSconsReport(env=env, target=target)
 
 setSconsProgressBarTotal(name="Onefile", total=len(source_files))
 

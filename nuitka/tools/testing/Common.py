@@ -41,7 +41,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
-from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
 from .SearchModes import (
     SearchModeByPattern,
@@ -205,7 +205,7 @@ def getTempDir():
                 os.path.dirname(os.path.abspath(sys.modules["__main__"].__file__))
             )
             + "-",
-            dir=tempfile.gettempdir() if not os.path.exists("/var/tmp") else "/var/tmp",
+            dir=None if not (isLinux() and os.path.exists("/var/tmp")) else "/var/tmp",
         )
 
         def removeTempDir():
@@ -520,7 +520,7 @@ def displayRuntimeTraces(logger, path):
 
     if os.name == "posix":
         # Run with traces to help debugging, specifically in CI environment.
-        if getOS() in ("Darwin", "FreeBSD"):
+        if isMacOS() or isFreeBSD():
             test_logger.info("dtruss:")
             os.system("sudo dtruss %s" % path)
         else:
@@ -731,6 +731,7 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
 
 def createSearchMode():
     # Dealing with many options, pylint: disable=too-many-branches
+    # Return driven, pylint: disable=too-many-return-statements
 
     parser = OptionParser()
 
@@ -804,7 +805,9 @@ Defaults to off.""",
         else:
             return SearchModeImmediate()
     elif mode == "resume":
-        return SearchModeResume(sys.modules["__main__"].__file__)
+        return SearchModeResume(sys.modules["__main__"].__file__, skip=False)
+    elif mode == "skip":
+        return SearchModeResume(sys.modules["__main__"].__file__, skip=True)
     elif mode == "only":
         if options.pattern:
             pattern = options.pattern.replace("/", os.path.sep)
@@ -1882,7 +1885,11 @@ def getLocalWebServerDir(base_dir):
     web_dir = os.path.join(getTempDir(), "local-web-server", base_dir)
 
     if _web_server_process is None:
-        web_server_directory_supporting_pythons = ("3.11", "3.10", "3.9", "3.8", "3.7")
+        web_server_directory_supporting_pythons = tuple(
+            python_version
+            for python_version in getTestExecutionPythonVersions()
+            if python_version not in ("3.6", "3.5", "3.4", "2.7", "2.6")
+        )
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,

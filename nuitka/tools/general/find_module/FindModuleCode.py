@@ -20,6 +20,7 @@ from nuitka.importing.Importing import (
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import callProcess, getExecutablePath
 from nuitka.utils.FileOperations import relpath
+from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -76,9 +77,9 @@ def editModuleCode(module_search_desc):
         tools_logger.sysexit("Error, did not find '%s' module" % module_name)
     else:
         if os.path.isdir(module_filename):
-            candidate = os.path.join(module_filename, ("__init__.py"))
+            candidate = getPackageDirFilename(module_filename)
 
-            if os.path.isfile(candidate):
+            if candidate is not None:
                 module_filename = candidate
 
         if os.path.isdir(module_filename):

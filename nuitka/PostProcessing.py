@@ -11,7 +11,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
-from nuitka.finalizations.FinalizeMarkups import getImportedNames
+from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
@@ -25,6 +25,7 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     getFileSize,
     hasFilenameExtension,
+    isFilesystemEncodable,
     makePath,
     putTextFileContents,
     removeFileExecutablePermission,
@@ -285,11 +286,6 @@ def executePostProcessing():
 
     result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
-    if not os.path.exists(result_filename):
-        postprocessing_logger.sysexit(
-            "Error, scons failed to create the expected file %r. " % result_filename
-        )
-
     if isWin32Windows():
         if not Options.shallMakeModule():
             if python_version < 0x300:
@@ -387,7 +383,11 @@ set NUITKA_PYTHONPATH=%(python_path)s
             "dll_directory": dll_directory,
             "python_home": sys.prefix,
             "python_path": ";".join(sys.path),
-            "exe_filename": os.path.basename(result_filename),
+            "exe_filename": os.path.basename(
+                result_filename
+                if isFilesystemEncodable(result_filename)
+                else getExternalUsePath(result_filename)
+            ),
         }
 
         putTextFileContents(cmd_filename, cmd_contents)
@@ -420,7 +420,8 @@ __name__ = ...
 """
             % {
                 "imports": "\n".join(
-                    "import %s" % module_name for module_name in getImportedNames()
+                    "import %s" % module_name
+                    for module_name in getImportedModuleNames()
                 )
             },
             encoding="utf-8",

@@ -22,6 +22,9 @@
 #ifdef _WIN32
 #undef SEP
 #define SEP '\\'
+#define SEP_L L'\\'
+#else
+#define SEP_L SEP
 #endif
 
 #ifdef _WIN32
@@ -66,6 +69,7 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
     // Skip to the end
     while (*buffer != 0) {
         buffer++;
+        buffer_size -= 1;
     }
 
     while (*module_name) {
@@ -90,20 +94,17 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
 
 #if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 
-static void appendModuleNameAsPathW(wchar_t *buffer, char const *module_name, size_t buffer_size) {
-    // Skip to the end
-    while (*buffer != 0) {
-        buffer++;
-    }
+static void appendModuleNameAsPathW(wchar_t *buffer, PyObject *module_name, size_t buffer_size) {
+    wchar_t const *module_name_wstr = PyUnicode_AsWideCharString(module_name, NULL);
 
-    while (*module_name) {
-        char c = *module_name++;
+    while (*module_name_wstr != 0) {
+        wchar_t c = *module_name_wstr++;
 
-        if (c == '.') {
-            c = SEP;
+        if (c == L'.') {
+            c = SEP_L;
         }
 
-        appendCharSafeW(buffer, c, buffer_size);
+        appendWCharSafeW(buffer, c, buffer_size);
     }
 }
 #endif
@@ -199,7 +200,9 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
-        PyObject *path_list = MAKE_LIST_EMPTY(1);
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *path_list = MAKE_LIST_EMPTY(tstate, 1);
         if (unlikely(path_list == NULL)) {
             return NULL;
         }
@@ -313,7 +316,7 @@ static PyObject *_getImportingSuffixesByPriority(PyThreadState *tstate, int kind
     static PyObject *result = NULL;
 
     if (result == NULL) {
-        result = MAKE_LIST_EMPTY(0);
+        result = MAKE_LIST_EMPTY(tstate, 0);
 
         PyObject *imp_module = PyImport_ImportModule("imp");
         PyObject *get_suffixes_func = PyObject_GetAttrString(imp_module, "get_suffixes");
@@ -371,7 +374,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
         return false;
     }
 
-    PyObject *candidates = MAKE_LIST_EMPTY(0);
+    PyObject *candidates = MAKE_LIST_EMPTY(tstate, 0);
 
     // Search only relative to the parent name of course.
     char const *module_relative_name_str = Nuitka_String_AsString(module_name) + strlen(parent_module_name) + 1;
@@ -434,7 +437,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
                 PyObject *fullpath = JOIN_PATH2(directory, candidate);
 
                 if (installed_extension_modules == NULL) {
-                    installed_extension_modules = MAKE_DICT_EMPTY();
+                    installed_extension_modules = MAKE_DICT_EMPTY(tstate);
                 }
 
 // Force path to unicode, to have easier consumption, as we need a wchar_t or char *
@@ -458,11 +461,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     return result;
 }
 
-#ifdef _WIN32
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const wchar_t *filename);
-#else
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const char *filename);
-#endif
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename);
 
 static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObject *module_name,
                                                   PyObject *extension_module_filename) {
@@ -561,7 +560,7 @@ static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyOb
         PySys_WriteStderr("import %s # denied responsibility\n", name);
     }
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -638,11 +637,46 @@ typedef PyObject *(*entrypoint_t)(void);
 static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package);
 #endif
 
-#ifdef _WIN32
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const wchar_t *filename) {
+static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char *buffer, size_t buffer_size,
+                                                     char const *name) {
+
+#if PYTHON_VERSION >= 0x350
+    PyObject *name_bytes_obj = PyBytes_FromString(name);
+    PyObject *name_obj = BYTES_DECODE2(tstate, name_bytes_obj, Nuitka_String_FromString("utf8"));
+    Py_DECREF(name_bytes_obj);
+
+    PyObject *name_ascii = UNICODE_ENCODE2(tstate, name_obj, const_str_plain_ascii);
+
+    if (name_ascii == NULL) {
+        DROP_ERROR_OCCURRED(tstate);
+
+        PyObject *name_punycode = UNICODE_ENCODE2(tstate, name_obj, const_str_plain_punycode);
+
+        CHECK_OBJECT(name_punycode);
+
+        snprintf(buffer, buffer_size, "PyInitU_%s", PyBytes_AsString(name_punycode));
+
+        Py_DECREF(name_punycode);
+    } else {
+        Py_DECREF(name_ascii);
+
+        snprintf(buffer, buffer_size, "PyInit_%s", name);
+    }
+    Py_DECREF(name_obj);
 #else
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const char *filename) {
+
+    snprintf(buffer, buffer_size,
+#if PYTHON_VERSION < 0x300
+             "init%s",
+#else
+             "PyInit_%s",
 #endif
+             name);
+#endif
+}
+
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name,
+                                         const filename_char_t *filename) {
     // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
@@ -658,13 +692,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     }
 
     char entry_function_name[1024];
-    snprintf(entry_function_name, sizeof(entry_function_name),
-#if PYTHON_VERSION < 0x300
-             "init%s",
-#else
-             "PyInit_%s",
-#endif
-             name);
+    _fillExtensionModuleDllEntryFunctionName(tstate, entry_function_name, sizeof(entry_function_name), name);
 
 #ifdef _WIN32
     if (isVerbose()) {
@@ -701,15 +729,18 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         // Report either way even if failed to get error message.
         if (size == 0) {
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
-                          error_code);
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed with error code %d", filename,
+                                    error_code);
+
+            assert(ret >= 0);
         } else {
             // Strip trailing newline.
             if (size >= 2 && error_message[size - 2] == '\r' && error_message[size - 1] == '\n') {
                 size -= 2;
                 error_message[size] = '\0';
             }
-            PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
+            int ret = PyOS_snprintf(buffer, sizeof(buffer), "LoadLibraryExW '%S' failed: %s", filename, error_message);
+            assert(ret >= 0);
         }
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_ImportError, buffer);
@@ -911,20 +942,23 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #endif
     CHECK_OBJECT(filename_obj);
 
+#if PYTHON_VERSION < 0x3d0
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
                                              ,
                                              Nuitka_GetSysModules()
 #endif
-
     );
+#endif
 
     Py_DECREF(full_name_obj);
     Py_DECREF(filename_obj);
 
+#if PYTHON_VERSION < 0x3d0
     if (unlikely(res == -1)) {
         return NULL;
     }
+#endif
 #endif
 
     return module;
@@ -984,7 +1018,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
 
         appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), sizeof(filename) / sizeof(wchar_t));
         appendCharSafeW(filename, SEP, sizeof(filename) / sizeof(wchar_t));
-        appendModuleNameAsPathW(filename, entry->name, sizeof(filename) / sizeof(wchar_t));
+        appendModuleNameAsPathW(filename, module_name, sizeof(filename) / sizeof(wchar_t));
         appendStringSafeW(filename, ".pyd", sizeof(filename) / sizeof(wchar_t));
 #else
         char filename[MAXPATHLEN + 1] = {0};
@@ -1114,7 +1148,7 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
         return result;
     }
 
-    Py_INCREF(Py_None);
+    Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
@@ -1222,7 +1256,7 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
         result = Py_None;
     }
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1237,7 +1271,9 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
         return NULL;
     }
 
-    PyObject *result = MAKE_LIST_EMPTY(0);
+    NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *result = MAKE_LIST_EMPTY(tstate, 0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
@@ -1293,9 +1329,9 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             Py_DECREF(old);
         }
 
-        PyObject *r = MAKE_TUPLE_EMPTY(2);
+        PyObject *r = MAKE_TUPLE_EMPTY(tstate, 2);
         PyTuple_SET_ITEM(r, 0, name);
-        PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
+        PyTuple_SET_ITEM_IMMORTAL(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
         LIST_APPEND1(result, r);
 
@@ -1448,7 +1484,7 @@ static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, 
         return NULL;
     }
 
-    PyObject *args = MAKE_TUPLE2(module_name, (PyObject *)&Nuitka_Loader_Type);
+    PyObject *args = MAKE_TUPLE2(tstate, module_name, (PyObject *)&Nuitka_Loader_Type);
 
     PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
@@ -1534,7 +1570,7 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
             PySys_WriteStderr("import %s # denied responsibility\n", full_name);
         }
 
-        Py_INCREF(Py_None);
+        Py_INCREF_IMMORTAL(Py_None);
         return Py_None;
     }
 
@@ -1674,12 +1710,12 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         return NULL;
     }
 
-    PyObject *temp = MAKE_LIST_EMPTY(0);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *temp = MAKE_LIST_EMPTY(tstate, 0);
 
     Py_ssize_t pos = 0;
     PyObject *distribution_name;
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     while (Nuitka_DistributionNext(&pos, &distribution_name)) {
         bool include = false;

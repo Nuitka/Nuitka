@@ -38,7 +38,15 @@ class PackageConfigYaml(object):
 
         assert type(file_data) is bytes
         data = parseYaml(file_data)
-        assert type(data) is list
+
+        if not data:
+            general.sysexit(
+                """\
+Error, empty (or malformed?) user package configuration '%s' used."""
+                % name
+            )
+
+        assert type(data) is list, type(data)
 
         self.data = OrderedDict()
 

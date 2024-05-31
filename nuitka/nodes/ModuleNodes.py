@@ -20,6 +20,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
+from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ChildrenHavingMixins import (
@@ -971,13 +972,14 @@ class PythonMainModule(CompiledPythonModule):
 class PythonExtensionModule(PythonModuleBase):
     kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules", "technical")
+    __slots__ = ("used_modules", "module_filename", "technical")
 
     avoid_duplicates = set()
 
     def __init__(
         self,
         module_name,
+        module_filename,
         reason,
         technical,
         source_ref,
@@ -1005,11 +1007,17 @@ class PythonExtensionModule(PythonModuleBase):
 
         self.used_modules = None
 
+        if os.path.isdir(module_filename):
+            module_filename = os.path.join(
+                module_filename, "__init__" + getSharedLibrarySuffix(preferred=False)
+            )
+        self.module_filename = module_filename
+
     def finalize(self):
         del self.used_modules
 
     def getFilename(self):
-        return self.source_ref.getFilename()
+        return self.module_filename
 
     @staticmethod
     def startTraversal():

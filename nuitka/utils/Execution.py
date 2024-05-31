@@ -421,8 +421,17 @@ def createProcess(
 
 
 def executeProcess(
-    command, env=None, stdin=False, shell=False, external_cwd=False, timeout=None
+    command,
+    env=None,
+    stdin=False,
+    shell=False,
+    external_cwd=False,
+    timeout=None,
+    logger=None,
 ):
+    if logger is not None:
+        logger.info("Executing command '%s'." % " ".join(command), keep_format=True)
+
     process = createProcess(
         command=command, env=env, stdin=stdin, shell=shell, external_cwd=external_cwd
     )

@@ -54,7 +54,7 @@ def generateListCreationCode(to_name, expression, emit, context):
 
         helper_code = generateElementCode(elements[0])
 
-        emit("%s = MAKE_LIST_EMPTY(%d);" % (result_name, len(elements)))
+        emit("%s = MAKE_LIST_EMPTY(tstate, %d);" % (result_name, len(elements)))
 
         needs_exception_exit = any(
             element.mayRaiseException(BaseException) for element in elements[1:]
@@ -187,7 +187,7 @@ def generateListOperationCopyCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "list_copy_result", expression, emit, context
     ) as result_name:
-        emit("%s = LIST_COPY(%s);" % (result_name, list_arg_name))
+        emit("%s = LIST_COPY(tstate, %s);" % (result_name, list_arg_name))
 
         getErrorExitCode(
             check_name=result_name,

@@ -39,7 +39,13 @@ from nuitka.Tracing import (
     setQuiet,
 )
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import getExternalUsePath
+from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
+    deleteFile,
+    getExternalUsePath,
+    getFilenameExtension,
+    isFilesystemEncodable,
+)
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
     isDebianBasedLinux,
@@ -104,17 +110,11 @@ source_dir = getArgumentRequired("source_dir")
 nuitka_src = getArgumentRequired("nuitka_src")
 static_src = os.path.join(source_dir, "static")
 
-# The name of executable or extension module that we produce.
-result_base_path = getArgumentRequired("result_name")
-
-# The name of executable that we produce (in executable mode).
-result_exe = getArgumentDefaulted("result_exe", None)
+# The name of executable that we are supposed to produce.
+result_exe = getArgumentRequired("result_exe")
 
 # Name of the main program (in executable mode, typically __main__ but can be in a package too.)
 main_module_name = getArgumentDefaulted("main_module_name", "__main__")
-
-# The suffix for an extension module (in module mode).
-module_suffix = getArgumentDefaulted("module_suffix", None)
 
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
@@ -167,8 +167,8 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
-# Windows subsystem mode: Disable console for windows builds.
-disable_console = getArgumentBool("disable_console", False)
+# Console mode specified
+console_mode = getArgumentDefaulted("console_mode", "attach")
 
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
@@ -354,7 +354,7 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.unstripped_mode = unstripped_mode
-env.disable_console = disable_console
+env.console_mode = console_mode
 env.source_dir = source_dir
 env.nuitka_src = nuitka_src
 env.low_memory = low_memory
@@ -470,6 +470,8 @@ if env.debug_mode:
                     "-Werror",
                 ]
             )
+        else:
+            env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
         env.Append(
             CCFLAGS=[
@@ -503,6 +505,9 @@ if env.debug_mode:
         # Disable warnings, that CPython headers already show.
         if python_version >= (3, 4):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+
+        if python_version >= (3, 13):
+            env.Append(CCFLAGS=["/wd4324"])
 
         # We use null arrays in our structure Python declarations, which C11 does
         # not really allow, but should work.
@@ -636,6 +641,9 @@ Error, no 'Python.h' %s headers can be found at '%s', dependency \
 not satisfied!"""
                 % ("debug" if python_debug else "development", candidates)
             )
+
+    if python_version >= (3, 13):
+        yield os.path.join(candidate, "internal", "mimalloc")
 
     if env.self_compiled_python_uninstalled:
         yield python_prefix_external
@@ -908,9 +916,32 @@ def discoverSourceFiles():
 
 source_files = discoverSourceFiles()
 
+# Remove the target file to avoid cases where it falsely doesn't get rebuild
+# and then lingers from previous builds,
+deleteFile(result_exe, must_exist=False)
+
+# Workaround for MinGW64 not supporting unicode result paths for "-o" basename.
+if os.name == "nt" and not isFilesystemEncodable(result_exe):
+    result_exe = os.path.join(
+        os.path.dirname(result_exe),
+        "_nuitka_temp.pyd" if module_mode else "_nuitka_temp.exe",
+    )
+
+    deleteFile(result_exe, must_exist=False)
+
 if module_mode:
-    # For Python modules, the standard shared library extension is not what
-    # gets used. spell-checker: ignore SHLIBSUFFIX
+    # For Python modules, the standard shared library extension is not what gets
+    # used. spell-checker: ignore SHLIBSUFFIX
+    module_suffix = getFilenameExtension(result_exe)
+    result_base_path = changeFilenameExtension(result_exe, "")
+
+    extra_suffix = getFilenameExtension(result_base_path)
+    if extra_suffix != "":
+        module_suffix = extra_suffix + module_suffix
+        result_base_path = changeFilenameExtension(result_base_path, "")
+
+    assert getFilenameExtension(result_base_path) == "", result_base_path
+
     env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
@@ -922,10 +953,6 @@ else:
 # Use compiler/linker flags provided via environment variables
 importEnvironmentVariableSettings(env)
 
-# Remove the target file to avoid cases where it falsely doesn't get rebuild
-# and then lingers from previous builds,
-if os.path.exists(target[0].abspath):
-    os.unlink(target[0].abspath)
 
 if job_count:
     scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
@@ -1059,7 +1086,7 @@ if env.msvc_mode and not disable_ccache:
         source_dir=source_dir,
     )
 
-writeSconsReport(env)
+writeSconsReport(env=env, target=target)
 
 setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_files))
 
