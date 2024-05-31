@@ -84,6 +84,34 @@ def _checkValues(logger, filename, module_name, section, value):
                     )
                     result = False
 
+            if k == "replacements":
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s cannot be empty."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+                    elif not _isParsable(d):
+                        logger.info(
+                            """\
+%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
+                            % (filename, module_name, section, k, v),
+                            keep_format=True,
+                        )
+                        result = False
+
+            if k == "replacements_plain":
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s cannot be empty."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+
             if k in ("dest_path", "relative_path") and v != normpath(v):
                 logger.info(
                     "%s: %s config value of %s %s should be normalized posix path, with '/' style slashes."
