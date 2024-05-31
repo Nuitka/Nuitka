@@ -1824,6 +1824,13 @@
       replacements_plain:
         'from keras.testing_infra.test_utils import layer_test': ''
 
+- module-name: 'keras.src' # checksum: 9760fd72
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from keras.src.testing_infra import test_utils': 'test_utils = None'
+      when: 'not use_unittest'
+
 - module-name: 'keras.src.utils.vis_utils' # checksum: 7d07a2d1
   anti-bloat:
     - description: 'remove IPython reference'
