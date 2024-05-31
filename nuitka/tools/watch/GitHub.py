@@ -6,11 +6,7 @@
 import os
 import sys
 
-from nuitka.tools.quality.Git import (
-    getCurrentBranchName,
-    getModifiedPaths,
-    getRemoteURL,
-)
+from nuitka.tools.quality.Git import getModifiedPaths, getRemoteURL
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import callProcess, check_call
 
@@ -21,8 +17,6 @@ def checkInNuitkaWatch():
         "git@github.com:Nuitka/Nuitka-Watch.git",
         "https://github.com/Nuitka/Nuitka-Watch",
     ), remote_url
-    branch_name = getCurrentBranchName()
-    assert branch_name == "main", branch_name
     assert os.path.exists(".git")
 
 

@@ -90,7 +90,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_LON
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -101,7 +101,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_LON
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -279,7 +279,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_LONG_OBJEC
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -291,7 +291,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_LONG_OBJEC
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -302,7 +302,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_LONG_OBJEC
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -524,7 +524,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_OBJECT_LO
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -535,7 +535,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_OBJECT_LO
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -722,7 +722,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_LONG_OBJE
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -734,7 +734,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_LONG_OBJE
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -745,7 +745,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_LONG_OBJE
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -981,7 +981,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_INT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -992,7 +992,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_INT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1171,7 +1171,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_INT_OBJECT
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -1183,7 +1183,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_INT_OBJECT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -1194,7 +1194,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_INT_OBJECT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1421,7 +1421,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_OBJECT_IN
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -1432,7 +1432,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_OBJECT_IN
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1619,7 +1619,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_INT_OBJEC
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -1631,7 +1631,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_INT_OBJEC
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -1642,7 +1642,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_BITAND_NBOOL_INT_OBJEC
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -1909,7 +1909,7 @@ static PyObject *_BINARY_OPERATION_BITAND_OBJECT_LONG_INT(PyObject *operand1, Py
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -1958,7 +1958,7 @@ static nuitka_bool _BINARY_OPERATION_BITAND_NBOOL_LONG_INT(PyObject *operand1, P
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     // Statically recognized that coercion is not possible with these types
@@ -2060,7 +2060,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_SET
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -2071,7 +2071,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_OBJECT_SET
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2204,7 +2204,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_SET_OBJECT
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -2216,7 +2216,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_SET_OBJECT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -2227,7 +2227,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_BITAND_OBJECT_SET_OBJECT
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2403,7 +2403,7 @@ static PyObject *_BINARY_OPERATION_BITAND_OBJECT_OBJECT_OBJECT(PyObject *operand
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -2415,7 +2415,7 @@ static PyObject *_BINARY_OPERATION_BITAND_OBJECT_OBJECT_OBJECT(PyObject *operand
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -2426,7 +2426,7 @@ static PyObject *_BINARY_OPERATION_BITAND_OBJECT_OBJECT_OBJECT(PyObject *operand
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300
@@ -2599,7 +2599,7 @@ static nuitka_bool _BINARY_OPERATION_BITAND_NBOOL_OBJECT_OBJECT(PyObject *operan
                     goto exit_binary_result_object;
                 }
 
-                Py_DECREF(x);
+                Py_DECREF_IMMORTAL(x);
                 slot2 = NULL;
             }
         }
@@ -2611,7 +2611,7 @@ static nuitka_bool _BINARY_OPERATION_BITAND_NBOOL_OBJECT_OBJECT(PyObject *operan
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
     if (slot2 != NULL) {
@@ -2622,7 +2622,7 @@ static nuitka_bool _BINARY_OPERATION_BITAND_NBOOL_OBJECT_OBJECT(PyObject *operan
             goto exit_binary_result_object;
         }
 
-        Py_DECREF(x);
+        Py_DECREF_IMMORTAL(x);
     }
 
 #if PYTHON_VERSION < 0x300

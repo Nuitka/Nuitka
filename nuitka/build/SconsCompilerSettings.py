@@ -637,7 +637,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Don't export anything by default, this should create smaller executables.
         env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
-        if env.debug_mode:
+        if env.debug_mode and "allow-c-warnings" not in env.experimental_flags:
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
@@ -780,12 +780,18 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         if not env.clang_mode:
             env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
 
-        if env.disable_console:
+    # Even if console is forced, for Win32 it means to specify Windows
+    # subsystem, we can still attach or create.
+    if env.console_mode != "force":
+        if env.mingw_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-    if env.mingw_mode or env.msvc_mode:
-        if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+        elif env.msvc_mode:
+            env.Append(LINKFLAGS=["/SUBSYSTEM:windows"])
+            env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+
+    if env.console_mode == "attach" and os.name == "nt":
+        env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
 
     # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
     if env.mingw_mode and not env.clang_mode:

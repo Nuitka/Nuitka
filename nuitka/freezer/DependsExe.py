@@ -20,6 +20,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getWindowsLongPathName,
     isFilenameBelowPath,
+    isFilesystemEncodable,
     putTextFileContents,
     withFileLock,
 )
@@ -160,10 +161,14 @@ def parseDependsExeOutput(filename):
 
 
 def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
-    dwp_filename = os.path.join(source_dir, os.path.basename(binary_filename) + ".dwp")
-    output_filename = os.path.join(
-        source_dir, os.path.basename(binary_filename) + ".depends"
-    )
+    source_dir = getExternalUsePath(source_dir)
+    temp_base_name = os.path.basename(binary_filename)
+
+    if not isFilesystemEncodable(temp_base_name):
+        temp_base_name = "dependency_walker"
+
+    dwp_filename = os.path.join(source_dir, temp_base_name + ".dwp")
+    output_filename = os.path.join(source_dir, temp_base_name + ".depends")
 
     # User query should only happen once if at all.
     with withFileLock(

@@ -227,13 +227,22 @@ def makeIncludedDataDirectory(
     ignore_suffixes=(),
     only_suffixes=(),
     normalize=True,
+    raw=False,
 ):
     assert isRelativePath(dest_path), dest_path
     assert os.path.isdir(source_path), source_path
 
-    ignore_dirs = tuple(ignore_dirs) + default_ignored_dirs
-    ignore_filenames = tuple(ignore_filenames) + default_ignored_filenames
-    ignore_suffixes = tuple(ignore_suffixes) + default_ignored_suffixes
+    ignore_dirs = tuple(ignore_dirs)
+    if not raw:
+        ignore_dirs += default_ignored_dirs
+
+    ignore_filenames = tuple(ignore_filenames)
+    if not raw:
+        ignore_filenames += default_ignored_filenames
+
+    ignore_suffixes = tuple(ignore_suffixes)
+    if not raw:
+        ignore_suffixes += default_ignored_suffixes
 
     for filename in getFileList(
         source_path,
@@ -255,7 +264,7 @@ def makeIncludedDataDirectory(
             tags=tags,
         )
 
-        included_datafile.tags.add("data-dir-contents")
+        included_datafile.tags.add("raw-dir-contents" if raw else "data-dir-contents")
 
         yield included_datafile
 

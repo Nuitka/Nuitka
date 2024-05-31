@@ -259,7 +259,7 @@ def generateBuiltinSlice3Code(to_name, expression, emit, context):
         to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICE_OBJECT3(%s, %s, %s);"
+            "%s = MAKE_SLICE_OBJECT3(tstate, %s, %s, %s);"
             % (
                 result_name,
                 lower_name,
@@ -288,7 +288,7 @@ def generateBuiltinSlice2Code(to_name, expression, emit, context):
         to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICE_OBJECT2(%s, %s);"
+            "%s = MAKE_SLICE_OBJECT2(tstate, %s, %s);"
             % (
                 result_name,
                 lower_name,
@@ -316,7 +316,7 @@ def generateBuiltinSlice1Code(to_name, expression, emit, context):
         to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICE_OBJECT1(%s);"
+            "%s = MAKE_SLICE_OBJECT1(tstate, %s);"
             % (
                 result_name,
                 upper_name,

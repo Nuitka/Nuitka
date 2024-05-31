@@ -109,7 +109,7 @@ class SearchModeByPattern(SearchModeBase):
 
 
 class SearchModeResume(SearchModeBase):
-    def __init__(self, tests_path):
+    def __init__(self, tests_path, skip):
         SearchModeBase.__init__(self)
 
         tests_path = os.path.normcase(os.path.abspath(tests_path))
@@ -134,6 +134,7 @@ class SearchModeResume(SearchModeBase):
             self.resume_from = None
 
         self.active = not self.resume_from
+        self.skip = skip
 
     def consider(self, dirname, filename):
         parts = [dirname, filename]
@@ -151,6 +152,9 @@ class SearchModeResume(SearchModeBase):
 
         if areSamePaths(path, self.resume_from):
             self.active = True
+
+            if self.skip:
+                return False
 
         return self.active
 

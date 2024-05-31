@@ -29,6 +29,8 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
         return NULL;
     }
 
+    CHECK_OBJECT(object);
+
     if (Nuitka_Generator_Check(object)) {
         struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)object;
 
@@ -112,6 +114,64 @@ static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", (PyCF
 
 #endif
 
+#if PYTHON_VERSION >= 0x3c0
+
+static char *kw_list_depth[] = {(char *)"depth", NULL};
+
+static bool Nuitka_FrameIsCompiled(_PyInterpreterFrame *frame) {
+    return ((frame->frame_obj != NULL) && Nuitka_Frame_Check((PyObject *)frame->frame_obj));
+}
+
+static bool Nuitka_FrameIsIncomplete(_PyInterpreterFrame *frame) {
+    bool r = _PyFrame_IsIncomplete(frame);
+
+    return r;
+}
+
+static PyObject *orig_sys_getframemodulename = NULL;
+
+static PyObject *_sys_getframemodulename_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *depth_arg = NULL;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:_getframemodulename", kw_list_depth, &depth_arg)) {
+        return NULL;
+    }
+
+    PyObject *index_value = Nuitka_Number_IndexAsLong(depth_arg ? depth_arg : const_int_0);
+
+    if (unlikely(index_value == NULL)) {
+        return NULL;
+    }
+
+    Py_ssize_t depth_ssize = PyLong_AsSsize_t(index_value);
+
+    Py_DECREF(index_value);
+
+    PyThreadState *tstate = _PyThreadState_GET();
+
+    _PyInterpreterFrame *frame = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
+    while ((frame != NULL) && ((Nuitka_FrameIsIncomplete(frame)) || depth_ssize-- > 0)) {
+        frame = frame->previous;
+    }
+
+    if ((frame != NULL) && (Nuitka_FrameIsCompiled(frame))) {
+        PyObject *frame_globals = PyObject_GetAttrString((PyObject *)frame->frame_obj, "f_globals");
+
+        PyObject *result = LOOKUP_ATTRIBUTE(tstate, frame_globals, const_str_plain___name__);
+        Py_DECREF(frame_globals);
+
+        return result;
+    }
+
+    return CALL_FUNCTION_WITH_SINGLE_ARG(tstate, orig_sys_getframemodulename, depth_arg);
+}
+
+// spell-checker: ignore getframemodulename
+static PyMethodDef _method_def_sys_getframemodulename_replacement = {
+    "getcoroutinestate", (PyCFunction)_sys_getframemodulename_replacement, METH_VARARGS | METH_KEYWORDS, NULL};
+
+#endif
+
 /* Replace inspect functions with ones that handle compiles types too. */
 void patchInspectModule(PyThreadState *tstate) {
     static bool is_done = false;
@@ -149,13 +209,11 @@ void patchInspectModule(PyThreadState *tstate) {
     old_getgeneratorstate = PyObject_GetAttrString(module_inspect, "getgeneratorstate");
     CHECK_OBJECT(old_getgeneratorstate);
 
-    if (PyFunction_Check(old_getgeneratorstate)) {
-        PyObject *inspect_getgeneratorstate_replacement =
-            PyCFunction_New(&_method_def_inspect_getgeneratorstate_replacement, NULL);
-        CHECK_OBJECT(inspect_getgeneratorstate_replacement);
+    PyObject *inspect_getgeneratorstate_replacement =
+        PyCFunction_New(&_method_def_inspect_getgeneratorstate_replacement, NULL);
+    CHECK_OBJECT(inspect_getgeneratorstate_replacement);
 
-        PyObject_SetAttrString(module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement);
-    }
+    PyObject_SetAttrString(module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement);
 
 #if PYTHON_VERSION >= 0x350
     // Patch "inspect.getcoroutinestate" unless it is already patched.
@@ -217,6 +275,16 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 
 #endif
 
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+    orig_sys_getframemodulename = Nuitka_SysGetObject("_getframemodulename");
+
+    PyObject *sys_getframemodulename_replacement =
+        PyCFunction_New(&_method_def_sys_getframemodulename_replacement, NULL);
+    CHECK_OBJECT(sys_getframemodulename_replacement);
+
+    Nuitka_SysSetObject("_getframemodulename", sys_getframemodulename_replacement);
 #endif
 
     is_done = true;

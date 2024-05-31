@@ -71,6 +71,10 @@ struct Nuitka_FunctionObject {
     PyObject *m_qualname;
 #endif
 
+#if PYTHON_VERSION >= 0x3c0
+    PyObject *m_type_params;
+#endif
+
     // Constant return value to use.
     PyObject *m_constant_return_value;
 

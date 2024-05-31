@@ -82,6 +82,7 @@ def getConstantDefaultPopulation():
         "staticmethod",
         "classmethod",
         "keys",
+        "get",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",
@@ -181,6 +182,10 @@ def getConstantDefaultPopulation():
     if python_version >= 0x350:
         # Patching the types module.
         result.append("types")
+
+        # Converting module names
+        result.append("ascii")
+        result.append("punycode")
 
     if not Options.shallMakeModule():
         result.append("__main__")

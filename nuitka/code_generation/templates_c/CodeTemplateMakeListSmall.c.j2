@@ -1,6 +1,6 @@
 {#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
-PyObject *MAKE_LIST{{args_count}}(
+PyObject *MAKE_LIST{{args_count}}(PyThreadState *tstate,
 {% for i in range(args_count) %}
 {% if i != 0 %}
     ,
@@ -9,7 +9,7 @@ PyObject *MAKE_LIST{{args_count}}(
 {% endfor %}
 ) {
 
-    PyObject *result = MAKE_LIST_EMPTY({{args_count}});
+    PyObject *result = MAKE_LIST_EMPTY(tstate, {{args_count}});
 
     if (unlikely(result == NULL)) {
         return NULL;

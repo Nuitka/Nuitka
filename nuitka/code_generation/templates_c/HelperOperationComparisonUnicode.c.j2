@@ -1,6 +1,6 @@
 {#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
-static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{left.getCheckValueCode("operand1")}}
     {{right.getCheckValueCode("operand2")}}
 
@@ -16,8 +16,8 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
 {% endif %}
 
         // Convert to target type.
-        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
-        {{target.getTakeReferenceStatement("result")}}
+        {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
+        {{ target.getTakeReferenceStatement("result", immortal=True) }}
         return result;
     }
 
@@ -60,8 +60,8 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         }
     }
 
-    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
-    {{target.getTakeReferenceStatement("result")}}
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 #else
     bool r;
@@ -77,8 +77,8 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         r = (cmp == 0);
     }
 
-    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
-    {{target.getTakeReferenceStatement("result")}}
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 #endif
 {% else %}
@@ -91,9 +91,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
     return r;
 {% else %}
     // Convert to target type if necessary
-    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == Py_True")}};
-    Py_DECREF(r);
-    {{target.getTakeReferenceStatement("result")}}
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == Py_True")}};
+    Py_DECREF_IMMORTAL(r);
+    {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 {% endif %}
 {% endif %}

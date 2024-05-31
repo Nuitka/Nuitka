@@ -82,9 +82,9 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     // TODO: Avoid this from happening, we should not call it then.
     if (exc_value == Py_None) {
         *match = Py_None;
-        Py_INCREF(*match);
+        Py_INCREF_IMMORTAL(*match);
         *rest = Py_None;
-        Py_INCREF(*rest);
+        Py_INCREF_IMMORTAL(*rest);
 
         return 0;
     }
@@ -100,7 +100,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
             Py_INCREF(*match);
         } else {
             // Old style plain exception, put it into an exception group.
-            PyObject *exception_tuple = MAKE_TUPLE1_0(exc_value);
+            PyObject *exception_tuple = MAKE_TUPLE1_0(tstate, exc_value);
             PyObject *wrapped = _PyExc_CreateExceptionGroup("", exception_tuple);
             Py_DECREF(exception_tuple);
 
@@ -112,7 +112,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
         }
 
         *rest = Py_None;
-        Py_INCREF(*rest);
+        Py_INCREF_IMMORTAL(*rest);
 
         return 0;
     }
@@ -142,10 +142,10 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     }
 
     *match = Py_None;
-    Py_INCREF(*match);
+    Py_INCREF_IMMORTAL(*match);
 
     *rest = Py_None;
-    Py_INCREF(*rest);
+    Py_INCREF_IMMORTAL(*rest);
 
     return 0;
 }

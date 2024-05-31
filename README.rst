@@ -846,10 +846,10 @@ This is an example workflow that builds on all 3 OSes
 
       steps:
          - name: Check-out repository
-         uses: actions/checkout@v3
+         uses: actions/checkout@v4
 
          - name: Setup Python
-         uses: actions/setup-python@v4
+         uses: actions/setup-python@v5
          with:
             python-version: '3.10'
             cache: 'pip'
@@ -892,11 +892,6 @@ this should then be a bundle.
    #    nuitka-project: --standalone
    #    nuitka-project: --macos-create-app-bundle
    #
-   # Debugging options, controlled via environment variable at compile time.
-   # nuitka-project-if: os.getenv("DEBUG_COMPILATION", "no") == "yes"
-   #     nuitka-project: --enable-console
-   # nuitka-project-else:
-   #     nuitka-project: --disable-console
 
 ********
  Tweaks
@@ -948,21 +943,10 @@ descriptive text is to be given.
 Console Window
 ==============
 
-On Windows, the console is opened by programs unless you say so. Nuitka
-defaults to this, effectively being only good for terminal programs, or
-programs where the output is requested to be seen. There is a difference
-in ``pythonw.exe`` and ``python.exe`` along those lines. This is
-replicated in Nuitka with the option ``--disable-console``. Nuitka
-recommends you to consider this in case you are using ``PySide6`` e.g.
-and other GUI packages, e.g. ``wx``, but it leaves the decision up to
-you. In case, you know your program is console application, just using
-``--enable-console`` which will get rid of these kinds of outputs from
-Nuitka.
-
-.. note::
-
-   The ``pythonw.exe`` is never good to be used with Nuitka, as you
-   cannot see its output.
+On Windows, the console is not opened by programs unless you say so.
+Nuitka defaults to not show it, you can force it by using
+``--console=force`` though, then the program will open a new terminal
+Window when its executed.
 
 Splash screen
 =============
@@ -1414,10 +1398,11 @@ which you expect to be inside the onefile binary, access them like this.
 Windows Programs without console give no errors
 ===============================================
 
-For debugging purposes, remove ``--disable-console`` or use the options
-``--force-stdout-spec`` and ``--force-stderr-spec`` with paths as
-documented for ``--onefile-tempdir-spec`` above. These can be relative
-to the program or absolute, so you can see the outputs given.
+For debugging purposes, use the options ``--force-stdout-spec`` and
+``--force-stderr-spec`` with paths as documented for
+``--onefile-tempdir-spec`` above. These can be relative to the program
+or absolute, so you can see the outputs given. Also you can run the
+program on a terminal prompt like ``CMD.exe`` to see its outputs.
 
 Deep copying uncompiled functions
 =================================

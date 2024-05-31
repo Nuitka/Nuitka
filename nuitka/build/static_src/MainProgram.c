@@ -34,6 +34,7 @@
 #define SYSFLAG_UNBUFFERED 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
+#define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #endif
 
 // It doesn't work for MinGW64 to update the standard output handles early on,
@@ -46,6 +47,10 @@
 #endif
 #else
 #define NUITKA_STANDARD_HANDLES_EARLY 0
+#endif
+
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#include "HelpersConsole.c"
 #endif
 
 extern PyCodeObject *codeobj_main;
@@ -328,20 +333,23 @@ static PyObject *EXECUTE_MAIN_MODULE(PyThreadState *tstate, char const *module_n
     return IMPORT_EMBEDDED_MODULE(tstate, module_name);
 }
 
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 #include "nuitka_windows_service.h"
 
 // Callback from Windows Service logic.
-bool SvcStartPython(void) {
+void SvcStartPython(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     EXECUTE_MAIN_MODULE(tstate, NUITKA_MAIN_MODULE_NAME, NUITKA_MAIN_IS_PACKAGE_BOOL);
 
-    if (HAS_ERROR_OCCURRED(tstate)) {
-        return true;
-    } else {
-        return false;
-    }
+    NUITKA_PRINT_TIMING("SvcStartPython() Python exited.")
+
+    int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+    // TODO: Log exception and call ReportSvcStatus
+
+    NUITKA_PRINT_TIMING("SvcStartPython(): Calling Py_Exit.");
+    Py_Exit(exit_code);
 }
 
 void SvcStopPython(void) { PyErr_SetInterrupt(); }
@@ -409,12 +417,12 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
         }
 
         if (i == 1) {
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
             if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                 NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
                 SvcInstall();
-                NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
+                NUITKA_CANNOT_GET_HERE("main(): SvcInstall must not return");
             }
 #endif
         }
@@ -801,7 +809,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 // reason.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1 && PYTHON_VERSION >= 0x370
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
-    PyObject *args = MAKE_DICT_EMPTY();
+    PyObject *args = MAKE_DICT_EMPTY(tstate);
 
     DICT_SET_ITEM(args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
     DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
@@ -837,7 +845,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #if NUITKA_STANDARD_HANDLES_EARLY == 0
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     {
-#ifdef _WIN32
+#if defined(_WIN32)
         PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDOUT_PATH);
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
@@ -912,15 +920,23 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 }
 
 static void Nuitka_Py_Initialize(void) {
+#if PYTHON_VERSION > 0x350 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ALLOCATORS)
+    initNuitkaAllocators();
+#endif
+
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
+#if PYTHON_VERSION < 0x3d0
     PyStatus status = _PyRuntime_Initialize();
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
     }
     NUITKA_MAY_BE_UNUSED _PyRuntimeState *runtime = &_PyRuntime;
     assert(!runtime->initialized);
+#else
+    PyStatus status;
+#endif
 
     PyConfig config;
     _PyConfig_InitCompatConfig(&config);
@@ -998,23 +1014,13 @@ static void Nuitka_Py_Initialize(void) {
 static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, filename_char_t const *template_path) {
     filename_char_t filename_buffer[1024];
 
-    // TODO: We should only have one that works with filename_char_t rather than having
-    // to make a difference here.
-#ifdef _WIN32
-    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
+    bool res =
+        expandTemplatePathFilename(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
 
     if (res == false) {
-        wprintf(L"Error, couldn't expand pattern '%lS'\n", template_path);
+        printf("Error, couldn't expand pattern '" FILENAME_FORMAT_STR "'\n", template_path);
         abort();
     }
-#else
-    bool res = expandTemplatePath(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(filename_char_t));
-
-    if (res == false) {
-        printf("Error, couldn't expand pattern: '%s'\n", template_path);
-        abort();
-    }
-#endif
 
     if (GetStdHandle(std_handle_id) == 0) {
         FILE *file_handle;
@@ -1129,7 +1135,13 @@ int main(int argc, char **argv) {
     atexit(Nuitka_at_exit);
 #endif
 
-    // First things, set up stdout/stderr according to user specification.
+    // Attach to the parent console respecting redirection only, otherwise we
+    // cannot even output traces.
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+    inheritAttachedConsole();
+#endif
+
+    // Set up stdout/stderr according to user specification.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1
 #if defined(NUITKA_FORCED_STDOUT_PATH)
 #ifdef _WIN32
@@ -1416,6 +1428,57 @@ orig_argv = argv;
     }
 #endif
 
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+    if (needs_stdout_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONOUT$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stdout", stdout_file);
+    }
+
+    if (needs_stderr_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONOUT$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stderr", stderr_file);
+    }
+
+    if (needs_stdin_attaching) {
+        PyObject *filename = Nuitka_String_FromString("CONIN$");
+        // This defaults to "utf-8" internally. We may add an argument of use
+        // platform ones in the future.
+        PyObject *encoding = NULL;
+
+        // CPython core requires stdin to be buffered due to methods usage, and it won't matter
+        // here much.
+        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding);
+
+        Py_DECREF(filename);
+
+        Nuitka_SysSetObject("stdin", stdin_file);
+    }
+#endif
+
     NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
     setInputOutputHandles(tstate);
 
@@ -1444,8 +1507,10 @@ orig_argv = argv;
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader(tstate);
 
+#if PYTHON_VERSION < 0x3d0
     /* Initialize warnings module. */
     _PyWarnings_Init();
+#endif
 
 #if NO_PYTHON_WARNINGS && PYTHON_VERSION >= 0x342 && PYTHON_VERSION < 0x3a0 && defined(_NUITKA_FULL_COMPAT)
     // For full compatibility bump the warnings registry version,
