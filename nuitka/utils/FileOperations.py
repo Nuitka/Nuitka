@@ -42,6 +42,7 @@ from nuitka.Tracing import (
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import (
+    decoratorRetries,
     isLinux,
     isMacOS,
     isWin32OrPosixWindows,
@@ -718,7 +719,7 @@ def addFilenameExtension(path, extension):
     return path
 
 
-def removeDirectory(path, ignore_errors):
+def removeDirectory(path, logger, ignore_errors, extra_recommendation):
     """Remove a directory recursively.
 
     On Windows, it happens that operations fail, and succeed when retried,
@@ -729,36 +730,52 @@ def removeDirectory(path, ignore_errors):
     it hopefully only briefly.
     """
 
-    def onError(func, path, exc_info):
-        # Record what happened what happened, pylint: disable=unused-argument
-        last_error.append((func, path))
-
     with withFileLock("removing directory %s" % path):
         if os.path.exists(path):
-            previous_error = []
 
-            while True:
-                last_error = []
-                shutil.rmtree(path, ignore_errors=False, onerror=onError)
+            @decoratorRetries(
+                logger=logger,
+                purpose="delete '%s'" % path,
+                consequence="the path is not fully removed",
+                extra_recommendation=extra_recommendation,
+            )
+            def _removeDirectory():
+                def onError(func, path, exc_info):
+                    # Record what happened what happened, pylint: disable=unused-argument
+                    last_error.append((func, path))
 
-                # onError as a side effect, modifies last_error
-                if previous_error == last_error:
-                    break
+                previous_error = []
 
-                previous_error = list(last_error)
-                time.sleep(0.1)
+                # Try deleting while ignoring errors first.
+                while True:
+                    last_error = []
+                    shutil.rmtree(path, ignore_errors=False, onerror=onError)
 
-            # if it still exists, try one more time, this time not ignoring errors.
-            if os.path.exists(path):
-                try:
-                    shutil.rmtree(path, ignore_errors=ignore_errors)
-                except OSError:
-                    if not ignore_errors:
-                        raise
+                    # onError as a side effect, modifies last_error
+                    if previous_error == last_error:
+                        break
+
+                    previous_error = list(last_error)
+                    time.sleep(0.2)
+
+                # If it still exists, try one more time, this time not ignoring errors.
+                if os.path.exists(path):
+                    try:
+                        shutil.rmtree(path, ignore_errors=ignore_errors)
+                    except OSError:
+                        if not ignore_errors:
+                            raise
+
+            _removeDirectory()
 
 
-def resetDirectory(path, ignore_errors):
-    removeDirectory(path=path, ignore_errors=ignore_errors)
+def resetDirectory(path, logger, ignore_errors, extra_recommendation):
+    removeDirectory(
+        path=path,
+        logger=logger,
+        ignore_errors=ignore_errors,
+        extra_recommendation=extra_recommendation,
+    )
     makePath(path)
 
 
