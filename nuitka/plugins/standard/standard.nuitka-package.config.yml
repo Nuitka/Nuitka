@@ -446,10 +446,12 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'bokeh' # checksum: e1035750
+- module-name: 'bokeh' # checksum: cd9c2e63
   data-files:
     dirs:
       - '_sri'
+    patterns:
+      - '_sri.json'
 
 - module-name: 'bokeh.core' # checksum: 3dbea61d
   data-files:
