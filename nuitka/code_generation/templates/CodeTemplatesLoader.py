@@ -78,11 +78,17 @@ static void _loadBytesCodesBlob(PyThreadState *tstate) {
 }
 
 
+// Call this to initialize the "__compiled__" value for use in modules and
+// functions.
+extern void setupCompiledValue(PyThreadState *tstate);
+
 void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == false) {
         _loadBytesCodesBlob(tstate);
         registerMetaPathBasedUnfreezer(meta_path_loader_entries, bytecode_data);
+
+        setupCompiledValue(tstate);
 
         init_done = true;
     }
