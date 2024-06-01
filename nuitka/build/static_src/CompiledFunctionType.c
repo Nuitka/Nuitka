@@ -441,7 +441,7 @@ static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *f
     assert(_PyObject_GC_IS_TRACKED(function));
 
     if (function->m_annotations == NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
+        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
         function->m_annotations = MAKE_DICT_EMPTY(tstate);
     }
