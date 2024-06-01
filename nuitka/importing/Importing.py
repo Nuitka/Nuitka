@@ -638,7 +638,12 @@ def _unpackPathElement(path_entry):
                         zip_ref.extractall(target_dir)
                         zip_ref.close()
                     except BaseException:
-                        removeDirectory(target_dir, ignore_errors=True)
+                        removeDirectory(
+                            target_dir,
+                            logger=recursion_logger,
+                            ignore_errors=True,
+                            extra_recommendation=None,
+                        )
                         raise
 
                 _egg_files[path_entry] = target_dir

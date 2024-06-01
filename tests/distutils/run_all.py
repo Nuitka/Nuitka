@@ -92,10 +92,20 @@ def _handleCase(python_version, nuitka_dir, filename):
 
     case_dir = os.path.join(os.getcwd(), filename)
 
-    removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
-    removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
+    removeDirectory(
+        os.path.join(case_dir, "build"),
+        logger=test_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
+    removeDirectory(
+        os.path.join(case_dir, "dist"),
+        logger=test_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
 
-    with withVirtualenv("venv_cpython") as venv:
+    with withVirtualenv("venv_cpython", logger=test_logger) as venv:
         if is_pyproject:
             venv.runCommand("pip install build")
 
@@ -165,10 +175,20 @@ def _handleCase(python_version, nuitka_dir, filename):
         assert exit_cpython == 0, exit_cpython
         my_print("EXIT was OK.")
 
-    removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
-    removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
+    removeDirectory(
+        os.path.join(case_dir, "build"),
+        logger=test_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
+    removeDirectory(
+        os.path.join(case_dir, "dist"),
+        logger=test_logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
 
-    with withVirtualenv("venv_nuitka") as venv:
+    with withVirtualenv("venv_nuitka", logger=test_logger) as venv:
         # Create the wheel with Nuitka compilation.
         if is_pyproject:
             venv.runCommand("pip install build")
@@ -194,7 +214,9 @@ def _handleCase(python_version, nuitka_dir, filename):
                 # Remove that left over from the install command.
                 removeDirectory(
                     path=os.path.join(nuitka_dir, "Nuitka.egg-info"),
+                    logger=test_logger,
                     ignore_errors=False,
+                    extra_recommendation=None,
                 )
 
             venv.runCommand(
