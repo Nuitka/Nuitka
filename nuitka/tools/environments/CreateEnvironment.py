@@ -37,6 +37,7 @@ def createEnvironmentFromReport(environment_folder, report_filename):
 
     with withVirtualenv(
         os.path.basename(environment_folder),
+        logger=tools_logger,
         base_dir=containing_folder,
         style="blue",
         delete=False,

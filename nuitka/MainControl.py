@@ -175,11 +175,19 @@ def _createMainModule():
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        resetDirectory(path=standalone_dir, ignore_errors=True)
+        resetDirectory(
+            path=standalone_dir,
+            logger=general,
+            ignore_errors=True,
+            extra_recommendation="Stop previous binary.",
+        )
 
         if Options.shallCreateAppBundle():
             resetDirectory(
-                path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
+                path=changeFilenameExtension(standalone_dir, ".app"),
+                logger=general,
+                ignore_errors=True,
+                extra_recommendation=None,
             )
 
     # Delete result file, to avoid confusion with previous build and to
@@ -1036,7 +1044,6 @@ def _main():
     copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
 
     if Options.isStandaloneMode():
-
         Plugins.onStandaloneDistributionFinished(dist_dir)
 
         if Options.isOnefileMode():
@@ -1045,7 +1052,12 @@ def _main():
             if Options.isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
 
-                removeDirectory(path=dist_dir, ignore_errors=False)
+                removeDirectory(
+                    path=dist_dir,
+                    logger=general,
+                    ignore_errors=False,
+                    extra_recommendation=None,
+                )
             else:
                 general.info(
                     "Keeping dist folder '%s' for inspection, no need to use it."
@@ -1062,7 +1074,12 @@ def _main():
         readSconsReport(source_dir)
         readSconsErrorReport(source_dir)
 
-        removeDirectory(path=source_dir, ignore_errors=False)
+        removeDirectory(
+            path=source_dir,
+            logger=general,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
         assert not os.path.exists(source_dir)
     else:
         general.info("Keeping build directory '%s'." % source_dir)

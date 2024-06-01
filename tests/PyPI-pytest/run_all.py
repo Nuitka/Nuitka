@@ -35,6 +35,7 @@ from nuitka.tools.testing.Common import (
     my_print,
     reportSkip,
     setup,
+    test_logger,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.utils.AppDirs import getCacheDir
@@ -42,7 +43,7 @@ from nuitka.utils.FileOperations import getFileContents
 
 
 def executeCommand(command):
-    my_print("Executing:", command, style="blue")
+    test_logger.info("Executing: %s" % command, style="blue")
 
     return os.system(command) == 0
 
@@ -123,7 +124,7 @@ def main():
 
             os.chdir(base_dir)
             with withVirtualenv(
-                "venv_%s" % package_name, delete=False, style="blue"
+                "venv_%s" % package_name, logger=test_logger, delete=False, style="blue"
             ) as venv:
                 dist_dir = os.path.join(package_dir, "dist")
 
@@ -211,12 +212,12 @@ def main():
                 venv.runCommand(commands=["cd %s" % package_dir, "git clean -q -dfx"])
 
         except Exception as e:
-            my_print(
+            test_logger.warning(
                 "Package",
                 package_name,
                 "ran into an exception during execution, traceback: ",
             )
-            my_print(e)
+            test_logger.info(repr(e))
             results.append((package_name, "ERROR", "ERROR"))
 
             continue

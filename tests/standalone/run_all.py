@@ -275,7 +275,12 @@ def main():
 
                 search_mode.onErrorDetected(1)
         finally:
-            removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+            removeDirectory(
+                filename[:-3] + ".dist",
+                logger=test_logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
 
     search_mode.finish()
 
