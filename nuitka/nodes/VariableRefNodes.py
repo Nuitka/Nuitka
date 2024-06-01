@@ -318,6 +318,23 @@ Subscript del to dictionary lowered to dictionary del."""
 Subscript look-up to dictionary lowered to dictionary look-up.""",
             )
 
+        if subscript.isCompileTimeConstant():
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                # TODO: That could probably be one single question.
+                if (
+                    attribute_node.isCompileTimeConstant()
+                    and not attribute_node.isMutable()
+                ):
+                    return trace_collection.getCompileTimeComputationResult(
+                        node=lookup_node,
+                        computation=lambda: attribute_node.getCompileTimeConstant()[
+                            subscript.getCompileTimeConstant()
+                        ],
+                        description="Subscript of variable immutable value.",
+                    )
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
