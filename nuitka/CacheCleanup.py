@@ -22,7 +22,12 @@ def _cleanCacheDirectory(cache_name, cache_dir):
         cache_logger.info(
             "Cleaning cache '%s' directory '%s'." % (cache_name, cache_dir)
         )
-        removeDirectory(cache_dir, ignore_errors=False)
+        removeDirectory(
+            cache_dir,
+            logger=cache_logger,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
         cache_logger.info("Done.")
 
 

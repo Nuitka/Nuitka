@@ -10,7 +10,6 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import unicode
-from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
     check_call,
@@ -25,8 +24,9 @@ from nuitka.utils.FileOperations import (
 
 
 class Virtualenv(object):
-    def __init__(self, env_dir):
+    def __init__(self, env_dir, logger):
         self.env_dir = os.path.abspath(env_dir)
+        self.logger = logger
 
     def runCommand(self, commands, env=None, style=None):
         if type(commands) in (str, unicode):
@@ -41,12 +41,14 @@ class Virtualenv(object):
             command = " && ".join(commands)
 
             if style is not None:
-                my_print("Executing: %s" % command, style=style)
+                self.logger.info("Executing: %s" % command, style=style)
 
             with withEnvironmentVarsOverridden(env):
                 exit_code = os.system(command)
                 if exit_code != 0:
-                    my_print("Failure %s for: %s" % (exit_code, command), style=style)
+                    self.logger.info(
+                        "Failure %s for: %s" % (exit_code, command), style=style
+                    )
 
                     raise NuitkaCalledProcessError(
                         exit_code, command, output=None, stderr=None
@@ -69,7 +71,7 @@ class Virtualenv(object):
             command = " && ".join(commands)
 
             if style is not None:
-                my_print("Executing: %s" % command, style=style)
+                self.logger.info("Executing: %s" % command, style=style)
 
             # Use subprocess and also return outputs, stdout, stderr, result
             return executeProcess(
@@ -82,14 +84,16 @@ class Virtualenv(object):
 
 
 @contextmanager
-def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None):
+def withVirtualenv(
+    env_name, logger, base_dir=None, python=None, delete=True, style=None
+):
     """Create a virtualenv and change into it.
 
     Activating for actual use will be your task.
     """
 
     if style is not None:
-        my_print("Creating a virtualenv:")
+        logger.info("Creating a virtualenv:")
 
     if python is None:
         python = sys.executable
@@ -105,19 +109,29 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
     else:
         env_dir = env_name
 
-    removeDirectory(env_dir, ignore_errors=False)
+    removeDirectory(
+        env_dir,
+        logger=logger,
+        ignore_errors=False,
+        extra_recommendation=None,
+    )
 
     with withDirectoryChange(base_dir, allow_none=True):
         command = [python, "-m", "virtualenv", env_name]
         if style is not None:
-            my_print("Executing: %s" % " ".join(command), style=style)
+            logger.info("Executing: %s" % " ".join(command), style=style)
         check_call(command)
 
     try:
-        yield Virtualenv(env_dir)
+        yield Virtualenv(env_dir, logger=logger)
     finally:
         if delete:
-            removeDirectory(env_dir, ignore_errors=False)
+            removeDirectory(
+                env_dir,
+                logger=logger,
+                ignore_errors=False,
+                extra_recommendation=None,
+            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

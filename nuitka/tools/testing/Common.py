@@ -209,7 +209,12 @@ def getTempDir():
         )
 
         def removeTempDir():
-            removeDirectory(path=tmp_dir, ignore_errors=True)
+            removeDirectory(
+                path=tmp_dir,
+                logger=test_logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
 
         atexit.register(removeTempDir)
 
@@ -368,7 +373,12 @@ def _removeCPythonTestSuiteDir():
     # Cleanup, some tests apparently forget that.
     try:
         if os.path.isdir("@test"):
-            removeDirectory("@test", ignore_errors=False)
+            removeDirectory(
+                "@test",
+                logger=test_logger,
+                ignore_errors=False,
+                extra_recommendation=None,
+            )
         elif os.path.isfile("@test"):
             os.unlink("@test")
     except OSError:
