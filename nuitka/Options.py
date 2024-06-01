@@ -1200,7 +1200,7 @@ instead. It also has the extra mode 'attach' to consider."""
                         else "--enable-console"
                     ),
                     "--windows-console-module=%s"
-                    % ("force" if options.disable_console else "disable"),
+                    % ("disable" if options.disable_console else "force"),
                 )
             )
         else:
