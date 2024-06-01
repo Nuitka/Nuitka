@@ -12,6 +12,8 @@ spell-checker: ignore execl, Popen
 import os
 import sys
 
+from nuitka.Options import shallExecuteImmediately
+
 
 def callExecProcess(args, uac):
     """Do exec in a portable way preserving exit code.
@@ -82,6 +84,9 @@ def reExecuteNuitka(pgo_filename):
         args.append("--pgo-python-input=%s" % pgo_filename)
     else:
         os.environ["NUITKA_SYS_PREFIX"] = sys.prefix
+
+    if shallExecuteImmediately():
+        args.append("--run")
 
     # Same arguments as before.
     args += sys.argv[1:]
