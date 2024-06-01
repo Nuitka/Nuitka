@@ -1228,7 +1228,7 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     """:returns: bool derived from ``--run``"""
-    return options.immediate_execution
+    return options is not None and options.immediate_execution
 
 
 def shallRunInDebugger():
