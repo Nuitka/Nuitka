@@ -161,17 +161,18 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
     # Could special case ">=1" or "==0" with truth checks potentially, but that
     # is for generic optimization to recognize, we don't know much about the
     # matched value at this point yet.
-    conditions.append(
-        makeComparisonExpression(
-            left=ExpressionBuiltinLen(
-                value=make_against(),
+    if min_length > 0 or exact:
+        conditions.append(
+            makeComparisonExpression(
+                left=ExpressionBuiltinLen(
+                    value=make_against(),
+                    source_ref=source_ref,
+                ),
+                right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
+                comparator="Eq" if exact else "GtE",
                 source_ref=source_ref,
-            ),
-            right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
-            comparator="Eq" if exact else "GtE",
-            source_ref=source_ref,
+            )
         )
-    )
 
     star_pos = None
 
