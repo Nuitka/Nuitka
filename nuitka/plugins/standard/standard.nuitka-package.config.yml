@@ -1746,6 +1746,13 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jinja2.environment' # checksum: c71498fb
+  anti-bloat:
+    - description: 'remove Python3.5 only code'
+      no-auto-follow:
+        'jinja2.asyncsupport': 'ignore'
+      when: 'before_python35'
+
 - module-name: 'joblib._dask' # checksum: e3ae7a22
   anti-bloat:
     - description: 'remove optional dask usage'
