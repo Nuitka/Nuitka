@@ -55,6 +55,17 @@ elif sys.platform == "linux":
     printf(b"Hello, %s\n", b"World!")
 
     print("OK.")
+elif sys.platform == "darwin":
+    libc = ctypes.CDLL("libc.dylib")
+
+    printf = libc.printf
+    # TODO: Not sure why it gives (null) for output, but as long it's
+    # compatible, we are good.
+    printf(b"Hello, %s\n", b"World!")
+
+    print("OK.")
+else:
+    print("Not doing much for %s" % sys.platform)
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
