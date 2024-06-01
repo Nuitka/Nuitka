@@ -301,6 +301,12 @@
       change_function:
         'test': "'(lambda: None)'"
 
+- module-name: 'sysconfig' # checksum: f2059e78
+  anti-bloat:
+    - replacements:
+        'osname, host, release, version, machine = os.uname()': "'osname, host, release, version, machine = os.uname(); osname = %r' % os.uname()[0]"
+      when: 'not win32'
+
 - module-name: 'tabnanny' # checksum: 6a44b57d
   anti-bloat:
     - description: 'remove module ability to run as a binary'
