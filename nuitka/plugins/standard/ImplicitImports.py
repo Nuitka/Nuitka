@@ -653,6 +653,9 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "asyncua.ua.object_ids",  # Too large generated code
         "asyncua.ua.uaerrors._auto",  # Too large generated code
         "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
+        "opcua.ua.object_ids",  # Too large generated code
+        "opcua.ua.uaerrors._auto",  # Too large generated code
+        "opcua.server.server.standard_address_space",
         "azure.mgmt.network",  # Too large generated code
         "azure.mgmt.compute",  # Too large generated code
         "transformers.utils.dummy_pt_objects",  # Not performance relevant.
