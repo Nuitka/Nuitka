@@ -212,7 +212,7 @@ class StatementReturnReturnedValue(StatementBase):
 
     @staticmethod
     def getStatementNiceName():
-        return "rereturn statement"
+        return "re-return statement"
 
 
 def makeStatementReturnConstant(constant, source_ref):
