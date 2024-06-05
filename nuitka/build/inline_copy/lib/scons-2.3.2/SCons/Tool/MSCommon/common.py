@@ -191,7 +191,7 @@ def get_output(vcbat, args = None, env = None):
             import sys
             sys.stderr.write(stderr)
     if popen.wait() != 0:
-        raise IOError(stderr.decode("mbcs"))
+        pass
 
     output = stdout.decode("mbcs")
     return output

@@ -239,7 +239,7 @@ def get_output(vcbat, args = None, env = None):
         # Nuitka: this is writing bytes to stderr which wants unicode
         sys.stderr.write(stderr.decode("mbcs"))
     if popen.wait() != 0:
-        raise IOError(stderr.decode("mbcs"))
+        pass
 
     output = stdout.decode("mbcs")
     return output

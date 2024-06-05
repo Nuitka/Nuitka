@@ -297,7 +297,7 @@ def get_output(vcbat, args=None, env=None):
         # this at least prevents errors from getting swallowed.
         sys.stderr.write(stderr.decode(OEM))
     if popen.wait() != 0:
-        raise IOError(stderr.decode(OEM))
+        pass
 
     return stdout.decode(OEM)
 
