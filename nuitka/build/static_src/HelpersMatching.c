@@ -90,6 +90,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
 int MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
     // Need to use get_method with default value, so "defaultdict" do not
     // mutate. TODO: Use a cached value across the "match".
+    // spell-checker: ignore defaultdict
     PyObject *get_method = LOOKUP_ATTRIBUTE(tstate, map, const_str_plain_get);
     if (unlikely(get_method == NULL)) {
         return -1;
