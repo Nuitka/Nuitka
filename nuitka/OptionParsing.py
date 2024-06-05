@@ -1294,39 +1294,6 @@ del tracing_group
 os_group = parser.add_option_group("General OS controls")
 
 os_group.add_option(
-    "--disable-console",
-    "--macos-disable-console",
-    "--windows-disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=None,
-    help=SUPPRESS_HELP,
-)
-
-os_group.add_option(
-    "--enable-console",
-    action="store_false",
-    dest="disable_console",
-    default=None,
-    help=SUPPRESS_HELP,
-)
-
-os_group.add_option(
-    "--windows-console-mode",
-    action="store",
-    dest="console_mode",
-    choices=("force", "disable", "attach"),
-    metavar="CONSOLE_MODE",
-    default=None,
-    help="""\
-Select console mode to use. Default mode is 'force' and creates a
-console window if not available, i.e. the program was started from one. With
-'disable' it doesn't create or use a console. With 'attach' an existing console
-will be used for outputs. Default is 'force'.
-""",
-)
-
-os_group.add_option(
     "--force-stdout-spec",
     "--windows-force-stdout-spec",
     action="store",
@@ -1360,11 +1327,18 @@ del os_group
 windows_group = parser.add_option_group("Windows specific controls")
 
 windows_group.add_option(
-    "--windows-dependency-tool",
+    "--windows-console-mode",
     action="store",
-    dest="dependency_tool",
+    dest="console_mode",
+    choices=("force", "disable", "attach"),
+    metavar="CONSOLE_MODE",
     default=None,
-    help=SUPPRESS_HELP,
+    help="""\
+Select console mode to use. Default mode is 'force' and creates a
+console window unless the program was started from one. With 'disable'
+it doesn't create or use a console at all. With 'attach' an existing
+console will be used for outputs. Default is 'force'.
+""",
 )
 
 windows_group.add_option(
@@ -1417,6 +1391,33 @@ windows_group.add_option(
 Request Windows User Control, to enforce running from a few folders only, remote
 desktop access. (Windows only). Defaults to off.""",
 )
+
+windows_group.add_option(
+    "--disable-console",
+    "--macos-disable-console",
+    "--windows-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+windows_group.add_option(
+    "--enable-console",
+    action="store_false",
+    dest="disable_console",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+windows_group.add_option(
+    "--windows-dependency-tool",
+    action="store",
+    dest="dependency_tool",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
 
 del windows_group
 

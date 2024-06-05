@@ -577,14 +577,6 @@ filename. Default is standard output.
 .IP
 General OS controls:
 .TP
-\fB\-\-windows\-console\-mode\fR=\fI\,CONSOLE_MODE\/\fR
-Select console mode to use. Default mode is 'force'
-and creates a console window if not available, i.e.
-the program was started from one. With 'disable' it
-doesn't create or use a console. With 'attach' an
-existing console will be used for outputs. Default is
-\&'force'.
-.TP
 \fB\-\-force\-stdout\-spec\fR=\fI\,FORCE_STDOUT_SPEC\/\fR
 Force standard output of the program to go to this
 location. Useful for programs with disabled console
@@ -602,6 +594,14 @@ Nuitka commercial. Defaults to not active, use e.g.
 check User Manual for full list of available values.
 .IP
 Windows specific controls:
+.TP
+\fB\-\-windows\-console\-mode\fR=\fI\,CONSOLE_MODE\/\fR
+Select console mode to use. Default mode is 'force'
+and creates a console window if not available, i.e.
+the program was started from one. With 'disable' it
+doesn't create or use a console. With 'attach' an
+existing console will be used for outputs. Default is
+\&'force'.
 .TP
 \fB\-\-windows\-icon\-from\-ico\fR=\fI\,ICON_PATH\/\fR
 Add executable icon. Can be given multiple times for
