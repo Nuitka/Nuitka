@@ -69,7 +69,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
-from nuitka.Tracing import general, inclusion_logger
+from nuitka.Tracing import general, inclusion_logger, pgo_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
@@ -534,11 +534,11 @@ def _runCPgoBinary():
                 source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
             ),
         ):
-            _exit_code = _runPgoBinary()
+            exit_code_pgo = _runPgoBinary()
 
         pgo_data_collected = os.path.exists(msvc_pgc_filename)
     else:
-        _exit_code = _runPgoBinary()
+        exit_code_pgo = _runPgoBinary()
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
@@ -547,12 +547,17 @@ def _runCPgoBinary():
 
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
 
+    if exit_code_pgo != 0:
+        pgo_logger.warning(
+            "Error, PGO compiled program error exited. Make sure it works fully before using '--pgo' option."
+        )
+
     if not pgo_data_collected:
-        general.sysexit(
+        pgo_logger.sysexit(
             "Error, no PGO information produced, did the created binary run at all?"
         )
 
-    general.info("Successfully collected C level PGO information.", style="blue")
+    pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
 
 def _runPythonPgoBinary():
