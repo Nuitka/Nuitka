@@ -189,10 +189,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         # TODO: We might want to track per exception, pylint: disable=unused-argument
 
-        if collection is None:
-            collection = self
-
         if self.exception_collections is not None:
+            if collection is None:
+                collection = self
+
             self.exception_collections.append(
                 TraceCollectionBranch(parent=collection, name="exception")
             )
