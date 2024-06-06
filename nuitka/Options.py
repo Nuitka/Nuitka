@@ -2453,6 +2453,17 @@ def shallShowExecutedCommands():
     return isExperimental("show-commands")
 
 
+def getTargetPythonDescription():
+    """:returns: tuple(python_version,OS/arch) string derived from ``--target``"""
+    if options.target_spec is not None:
+        # TODO: Only one we are working on right now.
+        assert options.target_spec == "wasi"
+
+        return python_version, "wasi"
+
+    return None
+
+
 def getFcfProtectionMode():
     """:returns: string derived from ``--fcf-protection``"""
     return options.cf_protection

@@ -1737,6 +1737,23 @@ Default empty.""",
 
 del plugin_group
 
+target_group = parser.add_option_group("Cross compilation")
+
+
+target_group.add_option(
+    "--target",
+    action="store",
+    dest="target_desc",
+    metavar="TARGET_DESC",
+    default=None,
+    help="""\
+Cross compilation target. Highly experimental and in development, not
+supposed to work yet. We are working on '--target=wasi' and nothing
+else yet.""",
+)
+
+del target_group
+
 
 def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.

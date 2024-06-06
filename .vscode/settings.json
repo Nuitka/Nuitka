@@ -374,6 +374,7 @@
         "vmprof",
         "vshape",
         "wargv",
+        "wasi",
         "wcsicmp",
         "winlibs",
         "wmain",
