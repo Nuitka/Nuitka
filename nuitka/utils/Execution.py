@@ -289,7 +289,16 @@ def wrapCommandForDebuggerForExec(*args):
             general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
     if gdb_path is not None:
-        args = (gdb_path, "gdb", "-ex=run", "-ex=where", "-ex=quit", "--args") + args
+        args = (
+            gdb_path,
+            "gdb",
+            "-q",
+            "-ex=set pagination off",
+            "-ex=run",
+            "-ex=where",
+            "-ex=quit",
+            "--args",
+        ) + args
     else:
         args = (lldb_path, "lldb", "-o", "run", "-o", "bt", "-o", "quit", "--") + args
 
