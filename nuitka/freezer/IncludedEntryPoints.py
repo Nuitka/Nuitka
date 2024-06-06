@@ -229,6 +229,13 @@ def addIncludedEntryPoint(entry_point):
             if areSamePaths(
                 entry_point.source_path, standalone_entry_point.source_path
             ):
+                if (
+                    standalone_entry_point.kind == "extension"
+                    and entry_point.kind == "dll"
+                ):
+                    entry_point = _makeIgnoredEntryPoint(entry_point)
+                    break
+
                 return
 
             if isShowInclusion():
@@ -323,6 +330,15 @@ def addExtensionModuleEntryPoint(module):
             ),
         )
     )
+
+
+def getIncludedExtensionModule(source_path):
+    for standalone_entry_point in standalone_entry_points:
+        if standalone_entry_point.kind == "extension":
+            if areSamePaths(source_path, standalone_entry_point.source_path):
+                return standalone_entry_point
+
+    return None
 
 
 def getStandaloneEntryPoints():
