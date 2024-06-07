@@ -661,7 +661,15 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
         # Path must be normalized for this to be correct, but entry points enforced that.
         count = dest_path.count(os.path.sep)
 
-        rpath = os.path.join("$ORIGIN", *([".."] * count))
+        # TODO: This ought to depend on actual presence of used DLLs with middle
+        # paths and not just do it, but maybe there is not much harm in it.
+        if count > 0:
+            rpath = ":".join(
+                os.path.join("$ORIGIN", *([".."] * c)) for c in range(count, 0, -1)
+            )
+        else:
+            rpath = "$ORIGIN"
+
         setSharedLibraryRPATH(target_filename, rpath)
 
     if isWin32Windows() and isUnstripped():

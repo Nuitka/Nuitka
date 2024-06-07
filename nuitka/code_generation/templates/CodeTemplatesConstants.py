@@ -111,6 +111,37 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
 #endif
 
+
+    setDistributionsMetadata(%(metadata_values)s);
+}
+
+// In debug mode we can check that the constants were not tampered with in any
+// given moment. We typically do it at program exit, but we can add extra calls
+// for sanity.
+#ifndef __NUITKA_NO_ASSERT__
+void checkGlobalConstants(void) {
+// TODO: Ask constant code to check values.
+
+}
+#endif
+
+void createGlobalConstants(PyThreadState *tstate) {
+    if (Nuitka_sentinel_value == NULL) {
+#if PYTHON_VERSION < 0x300
+        Nuitka_sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
+#else
+        // The NULL value is not allowed for a capsule, so use something else.
+        Nuitka_sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
+#endif
+        assert(Nuitka_sentinel_value);
+
+        Py_SET_REFCNT_IMMORTAL(Nuitka_sentinel_value);
+
+        _createGlobalConstants(tstate);
+    }
+}
+
+void setupCompiledValue(PyThreadState *tstate) {
     static PyTypeObject Nuitka_VersionInfoType;
 
     // Same fields as "sys.version_info" except no serial number.
@@ -228,35 +259,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
-
-    setDistributionsMetadata(%(metadata_values)s);
 }
 
-// In debug mode we can check that the constants were not tampered with in any
-// given moment. We typically do it at program exit, but we can add extra calls
-// for sanity.
-#ifndef __NUITKA_NO_ASSERT__
-void checkGlobalConstants(void) {
-// TODO: Ask constant code to check values.
-
-}
-#endif
-
-void createGlobalConstants(PyThreadState *tstate) {
-    if (Nuitka_sentinel_value == NULL) {
-#if PYTHON_VERSION < 0x300
-        Nuitka_sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
-#else
-        // The NULL value is not allowed for a capsule, so use something else.
-        Nuitka_sentinel_value = PyCapsule_New((void *)27, "sentinel", NULL);
-#endif
-        assert(Nuitka_sentinel_value);
-
-        Py_SET_REFCNT_IMMORTAL(Nuitka_sentinel_value);
-
-        _createGlobalConstants(tstate);
-    }
-}
 """
 
 from . import TemplateDebugWrapper  # isort:skip
