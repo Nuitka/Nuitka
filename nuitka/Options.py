@@ -901,6 +901,7 @@ version '%s' instead or newer Nuitka."""
                 )
             )
 
+    # spell-checker: ignore releaselevel
     if sys.version_info.releaselevel != "final":
         if python_version_str not in getNotYetSupportedPythonVersions():
             Tracing.general.sysexit(
@@ -1199,8 +1200,8 @@ instead. It also has the extra mode 'attach' to consider."""
                         if options.disable_console
                         else "--enable-console"
                     ),
-                    "--windows-console-module=%s"
-                    % ("force" if options.disable_console else "disable"),
+                    "--windows-console-mode=%s"
+                    % ("disable" if options.disable_console else "force"),
                 )
             )
         else:
@@ -1227,7 +1228,7 @@ def shallTraceExecution():
 
 def shallExecuteImmediately():
     """:returns: bool derived from ``--run``"""
-    return options.immediate_execution
+    return options is not None and options.immediate_execution
 
 
 def shallRunInDebugger():

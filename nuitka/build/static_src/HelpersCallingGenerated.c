@@ -90,6 +90,44 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, NULL, 0, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = const_tuple_empty;
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -162,6 +200,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -471,6 +510,46 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 1, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 1);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -548,6 +627,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -883,6 +963,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 1, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -952,6 +1068,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -1273,6 +1390,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 2, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 2);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -1334,6 +1491,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -1666,6 +1824,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 2, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -1719,6 +1913,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -2033,6 +2228,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 3, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 3);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2094,6 +2329,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -2426,6 +2662,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 3, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2479,6 +2751,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -2793,6 +3066,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 4, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 4);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2854,6 +3167,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -3186,6 +3500,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 4, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3239,6 +3589,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -3553,6 +3904,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 5, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 5);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3614,6 +4005,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -3946,6 +4338,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 5, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3999,6 +4427,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -4313,6 +4742,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 6, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 6);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -4374,6 +4843,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -4706,6 +5176,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 6, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -4759,6 +5265,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -5073,6 +5580,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 7, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 7);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5134,6 +5681,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -5466,6 +6014,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 7, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5519,6 +6103,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -5833,6 +6418,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 8, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 8);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5894,6 +6519,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -6226,6 +6852,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 8, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -6279,6 +6941,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -6593,6 +7256,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 9, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 9);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -6654,6 +7357,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -6986,6 +7690,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 9, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -7039,6 +7779,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -7353,6 +8094,46 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 10, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            PyObject *pos_args = MAKE_TUPLE(tstate, args, 10);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+
+            Py_DECREF(pos_args);
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -7414,6 +8195,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
@@ -7746,6 +8528,42 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
+#if PYTHON_VERSION >= 0x380
+#ifdef _NUITKA_FULL_COMPAT
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+#endif
+
+        int flags = PyCFunction_GET_FLAGS(called);
+
+        PyObject *result;
+
+        if (!(flags & METH_VARARGS)) {
+            vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+            assert(func != NULL);
+            result = func(called, args, 10, NULL);
+
+            CHECK_OBJECT_X(result);
+        } else {
+            PyCFunction method = PyCFunction_GET_FUNCTION(called);
+            PyObject *self = PyCFunction_GET_SELF(called);
+
+            if (flags & METH_KEYWORDS) {
+                result = (*(PyCFunctionWithKeywords)(void (*)(void))method)(self, pos_args, NULL);
+            } else {
+                result = (*method)(self, pos_args);
+            }
+        }
+
+#ifdef _NUITKA_FULL_COMPAT
+        Py_LeaveRecursiveCall();
+#endif
+        CHECK_OBJECT_X(result);
+
+        return Nuitka_CheckFunctionResult(tstate, called, result);
+#else
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -7799,6 +8617,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
 
             return Nuitka_CheckFunctionResult(tstate, called, result);
         }
+#endif
 #endif
 #if PYTHON_VERSION < 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
