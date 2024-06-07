@@ -731,7 +731,7 @@ def removeDirectory(path, ignore_errors):
 
     def onError(func, path, exc_info):
         # Record what happened what happened, pylint: disable=unused-argument
-        last_error.append(func, path)
+        last_error.append((func, path))
 
     with withFileLock("removing directory %s" % path):
         if os.path.exists(path):

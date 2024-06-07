@@ -49,7 +49,11 @@ from .DllDependenciesMacOS import (
 )
 from .DllDependenciesPosix import detectBinaryPathDLLsPosix
 from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
-from .IncludedEntryPoints import addIncludedEntryPoint, makeDllEntryPoint
+from .IncludedEntryPoints import (
+    addIncludedEntryPoint,
+    getIncludedExtensionModule,
+    makeDllEntryPoint,
+)
 
 
 def checkFreezingModuleSet():
@@ -241,7 +245,7 @@ def _reduceToPythonPath(used_dlls):
 def _detectUsedDLLs(standalone_entry_point, source_dir):
     binary_filename = standalone_entry_point.source_path
     try:
-        used_dlls = _detectBinaryDLLs(
+        used_dll_paths = _detectBinaryDLLs(
             is_main_executable=standalone_entry_point.kind == "executable",
             source_dir=source_dir,
             original_filename=standalone_entry_point.source_path,
@@ -258,7 +262,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         # Plugins generally decide if they allow dependencies from the outside
         # based on the package name.
 
-        if standalone_entry_point.module_name is not None and used_dlls:
+        if standalone_entry_point.module_name is not None and used_dll_paths:
             module_name, module_filename, _kind, finding = locateModule(
                 standalone_entry_point.module_name, parent_package=None, level=0
             )
@@ -277,35 +281,46 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                 )
 
             if allow_outside_dependencies is False:
-                used_dlls = _reduceToPythonPath(used_dlls)
+                used_dll_paths = _reduceToPythonPath(used_dll_paths)
 
         # Allow plugins can prevent inclusion, this may discard things from used_dlls.
         removed_dlls = Plugins.removeDllDependencies(
-            dll_filename=binary_filename, dll_filenames=used_dlls
+            dll_filename=binary_filename, dll_filenames=used_dll_paths
         )
-        used_dlls = tuple(OrderedSet(used_dlls) - OrderedSet(removed_dlls))
+        used_dll_paths = tuple(OrderedSet(used_dll_paths) - OrderedSet(removed_dlls))
 
-        for used_dll in used_dlls:
-            dest_path = os.path.basename(used_dll)
+        for used_dll_path in used_dll_paths:
+            extension_standalone_entry_point = getIncludedExtensionModule(used_dll_path)
+            if extension_standalone_entry_point is not None:
+                # Sometimes an extension module is used like a DLL, make sure to
+                # remove it as a DLL then, there is no value in keeping those. Need
+                # to keep it's destination path from that extension module then.
+                dest_path = extension_standalone_entry_point.dest_path
+            elif (
+                standalone_entry_point.package_name is not None
+                and standalone_entry_point.package_name.hasOneOfNamespaces(
+                    "openvino",
+                    "av",
+                )
+                and areInSamePaths(standalone_entry_point.source_path, used_dll_path)
+            ):
+                # TODO: If used by a DLL from the same folder, put it there,
+                # otherwise top level, but for now this is limited to a few cases
+                # where required that way (openvino) or known to be good only (av),
+                # because it broke other things. spell-checker: ignore openvino
 
-            # TODO: If used by a DLL from the same folder, put it there,
-            # otherwise top level, but for now this is limited to a few cases
-            # where required that way (openvino) or known to be good only (av),
-            # because it broke other things. spell-checker: ignore openvino
-            if standalone_entry_point.package_name in (
-                "openvino",
-                "av",
-            ) and areInSamePaths(standalone_entry_point.source_path, used_dll):
                 dest_path = os.path.normpath(
                     os.path.join(
                         os.path.dirname(standalone_entry_point.dest_path),
-                        dest_path,
+                        os.path.basename(used_dll_path),
                     )
                 )
+            else:
+                dest_path = os.path.basename(used_dll_path)
 
             dll_entry_point = makeDllEntryPoint(
                 logger=inclusion_logger,
-                source_path=used_dll,
+                source_path=used_dll_path,
                 dest_path=dest_path,
                 module_name=standalone_entry_point.module_name,
                 package_name=standalone_entry_point.package_name,

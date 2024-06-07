@@ -9,6 +9,11 @@
     - depends:
         - 'asyncio'
 
+- module-name: '_osx_support' # checksum: e893ad4b
+  anti-bloat:
+    - no-auto-follow:
+        'distutils': 'ignore'
+
 - module-name: '_zoneinfo' # checksum: 8de2a2bd
   implicit-imports:
     - depends:
