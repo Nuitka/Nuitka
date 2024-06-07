@@ -1,3 +1,14 @@
+.. image:: https://img.shields.io/pypi/pyversions/Nuitka.svg
+    :target: https://badge.fury.io/py/Nuitka
+.. image:: https://badge.fury.io/py/Nuitka.svg
+    :target: https://badge.fury.io/py/Nuitka
+.. image:: https://www.bestpractices.dev/projects/8158/badge
+    :target: https://www.bestpractices.dev/en/projects/8158
+.. image:: https://api.securityscorecards.dev/projects/github.com/Nuitka/Nuitka/badge
+    :target: https://securityscorecards.dev/viewer/?uri=github.com/Nuitka/Nuitka
+.. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
+    :target: CODE_OF_CONDUCT.md
+
 ####################
  Nuitka User Manual
 ####################
@@ -14,7 +25,7 @@ credits.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.11)
+**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.12)
 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
@@ -92,7 +103,7 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.11) are supported. If
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.12) are supported. If
 at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
