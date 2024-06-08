@@ -23,43 +23,49 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
     PyObject *match_args = NULL;
     PyTypeObject *type = (PyTypeObject *)matched_type;
 
-    // First, the positional sub-patterns:
-    match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
-    Py_ssize_t actual;
-
     PyObject *seen = NULL;
     bool needs_check = positional_count + keywords_count > 1;
     if (needs_check) {
         seen = PySet_New(NULL);
     }
 
-    if (match_args) {
-        if (unlikely(!PyTuple_CheckExact(match_args))) {
-            PyErr_Format(PyExc_TypeError, "%s.__match_args__ must be a tuple (got %s)", type->tp_name,
-                         Py_TYPE(match_args)->tp_name);
-            Py_DECREF(match_args);
-            return NULL;
-        }
+    assert(positional_count + keywords_count > 0);
 
-        actual = PyTuple_GET_SIZE(match_args);
-    } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
-        if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
-            if (positional_count > 1) {
-                FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, 1);
+    // First, the positional sub-patterns if any.
+    if (positional_count > 0) {
+        match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
+        Py_ssize_t actual;
+
+        if (match_args) {
+            if (unlikely(!PyTuple_CheckExact(match_args))) {
+                PyErr_Format(PyExc_TypeError, "%s.__match_args__ must be a tuple (got %s)", type->tp_name,
+                             Py_TYPE(match_args)->tp_name);
+                Py_DECREF(match_args);
                 return NULL;
             }
 
-            return MAKE_TUPLE1(tstate, matched);
+            actual = PyTuple_GET_SIZE(match_args);
+        } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
+            if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
+                if (positional_count > 1) {
+                    FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, 1);
+                    return NULL;
+                }
+
+                assert(keywords_count == 0);
+
+                return MAKE_TUPLE1(tstate, matched);
+            }
+
+            actual = 0;
+        } else {
+            return NULL;
         }
 
-        actual = 0;
-    } else {
-        return NULL;
-    }
-
-    if (positional_count > actual) {
-        FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, actual);
-        return NULL;
+        if (positional_count > actual) {
+            FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, actual);
+            return NULL;
+        }
     }
 
     PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, positional_count + keywords_count);
@@ -134,7 +140,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
         PyTuple_SET_ITEM(result, positional_count + i, arg_value);
     }
 
-    Py_DECREF(match_args);
+    Py_XDECREF(match_args);
     return result;
 }
 

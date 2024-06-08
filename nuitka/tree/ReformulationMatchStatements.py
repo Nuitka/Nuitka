@@ -22,6 +22,7 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.DictionaryNodes import StatementDictOperationRemove
 from nuitka.nodes.MatchNodes import ExpressionMatchArgs
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinarySub
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import makeStatementReturnConstant
 from nuitka.nodes.SubscriptNodes import (
@@ -176,16 +177,23 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
 
     star_pos = None
 
-    count = seq_pattern = None
+    def makeOffsetNode(count):
+        if star_pos is None:
+            return makeConstantRefNode(constant=count, source_ref=source_ref)
+        else:
+            return ExpressionOperationBinarySub(
+                ExpressionBuiltinLen(
+                    value=make_against(),
+                    source_ref=source_ref,
+                ),
+                makeConstantRefNode(
+                    constant=len(pattern.patterns) - count,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
 
     for count, seq_pattern in enumerate(pattern.patterns):
-        # offset from the start.
-        if star_pos is None:
-            offset = count
-        else:
-            # offset from the end.
-            offset = -(len(pattern.patterns) - count)
-
         if seq_pattern.__class__ is ast.MatchStar:
             star_pos = count
 
@@ -225,9 +233,7 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
                 # It's called before return, pylint: disable=cell-var-from-loop
                 make_against=lambda: ExpressionSubscriptLookup(
                     expression=make_against(),
-                    subscript=makeConstantRefNode(
-                        constant=offset, source_ref=source_ref
-                    ),
+                    subscript=makeOffsetNode(count),
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
