@@ -128,9 +128,9 @@ getattrofunc PyObject_GenericGetAttr_resolved;
 setattrofunc PyObject_GenericSetAttr_resolved;
 
 // Our wrapper for "PyType_Ready" that takes care of trying to avoid DLL entry
-// points for generic attributes.
+// points for generic attributes. spell-checker: ignore aiter
 void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
-                         bool self_iter, bool await_self_iter, bool self_aiter) {
+                         bool self_iter, bool await_self_iter, bool await_self_aiter) {
     assert(type->tp_base == NULL);
 
     PyObject_GenericGetAttr_resolved = PyBaseObject_Type.tp_getattro;
@@ -159,13 +159,13 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
         type->tp_as_async->am_await = PyObject_SelfIter;
     }
 
-    if (self_aiter) {
+    if (await_self_aiter) {
         assert(type->tp_as_async->am_aiter == NULL);
         type->tp_as_async->am_aiter = PyObject_SelfIter;
     }
 #else
     assert(!await_self_iter);
-    assert(!self_aiter);
+    assert(!await_self_aiter);
 #endif
 
     NUITKA_MAY_BE_UNUSED int res = PyType_Ready(type);
