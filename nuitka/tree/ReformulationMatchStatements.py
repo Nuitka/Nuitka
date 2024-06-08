@@ -10,14 +10,14 @@ source code comments with Developer Manual sections.
 
 import ast
 
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeCheck,
-    makeExpressionAttributeLookup,
-)
+from nuitka.nodes.AttributeNodes import ExpressionAttributeCheck
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
-from nuitka.nodes.ComparisonNodes import makeComparisonExpression
+from nuitka.nodes.ComparisonNodes import (
+    ExpressionComparisonIs,
+    makeComparisonExpression,
+)
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.DictionaryNodes import StatementDictOperationRemove
@@ -318,41 +318,45 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
 
 
 def _buildMatchClass(provider, pattern, make_against, source_ref):
+    # Slightly complicated, due to using an outline body and there is also
+    # keyword and positional arguments to deal with, pylint: disable=too-many-locals
+
     cls_node = buildNode(provider, pattern.cls, source_ref)
 
-    assignments = []
-
-    conditions = [
-        ExpressionBuiltinIsinstance(
-            instance=make_against(),
-            classes=cls_node,
-            source_ref=source_ref,
-        )
-    ]
-
-    assert not (pattern.patterns and pattern.kwd_patterns), (
-        source_ref,
-        ast.dump(pattern),
-    )
     assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), (
         source_ref,
         ast.dump(pattern),
     )
 
-    for count, pos_pattern in enumerate(pattern.patterns):
-        # TODO: Not reusing Match args, is very wasteful for performance, but
-        # temporary variable handling is a bit of a problem in this so far,
-        # we should create an outline function for it, but match value args
-        # ought to be global probably, so they can be shared.
+    if len(pattern.kwd_attrs) + len(pattern.patterns) == 0:
+        conditions = [
+            ExpressionBuiltinIsinstance(
+                instance=make_against(),
+                classes=cls_node,
+                source_ref=source_ref,
+            )
+        ]
+        assignments = None
 
+        return conditions, assignments
+
+    class_conditions_list = []
+    class_assignments_list = []
+
+    outline_body = ExpressionOutlineBody(
+        provider=provider, name="match_class", source_ref=source_ref
+    )
+    tmp_match_args = outline_body.allocateTempVariable(
+        temp_scope=None, name="match_args", temp_type="PyObject *"
+    )
+
+    for count, pos_pattern in enumerate(pattern.patterns):
         # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
-                expression=ExpressionMatchArgs(
-                    expression=make_against(),
-                    max_allowed=len(pattern.patterns),
-                    source_ref=source_ref,
+                expression=ExpressionTempVariableRef(
+                    variable=tmp_match_args, source_ref=source_ref
                 ),
                 subscript=makeConstantRefNode(constant=count, source_ref=source_ref),
                 source_ref=source_ref,
@@ -361,38 +365,138 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
             source_ref=source_ref,
         )
 
-        if item_conditions:
-            conditions.extend(item_conditions)
+        class_conditions_list.append(item_conditions)
+        class_assignments_list.append(item_assignments)
 
-        if item_assignments:
-            assignments.extend(item_assignments)
-
-    for key, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
-        conditions.append(
-            ExpressionAttributeCheck(
-                expression=make_against(),
-                attribute_name=key,
-                source_ref=source_ref,
-            )
-        )
-
+    for count, (key, kwd_pattern) in enumerate(
+        zip(pattern.kwd_attrs, pattern.kwd_patterns)
+    ):
         # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
-            make_against=lambda: makeExpressionAttributeLookup(
-                expression=make_against(),
-                attribute_name=key,
+            make_against=lambda: ExpressionSubscriptLookup(
+                expression=ExpressionTempVariableRef(
+                    variable=tmp_match_args, source_ref=source_ref
+                ),
+                subscript=makeConstantRefNode(
+                    constant=count + len(pattern.patterns), source_ref=source_ref
+                ),
                 source_ref=source_ref,
             ),
             pattern=kwd_pattern,
             source_ref=source_ref,
         )
 
-        if item_conditions:
-            conditions.extend(item_conditions)
+        item_conditions = item_conditions or []
 
-        if item_assignments:
-            assignments.extend(item_assignments)
+        item_conditions.insert(
+            0,
+            ExpressionAttributeCheck(
+                expression=make_against(),
+                attribute_name=key,
+                source_ref=source_ref,
+            ),
+        )
+
+        class_conditions_list.append(item_conditions)
+        class_assignments_list.append(item_assignments)
+
+    statements = []
+
+    for count, (class_conditions, class_assignments) in enumerate(
+        zip(class_conditions_list, class_assignments_list)
+    ):
+        class_assignments = class_assignments or ()
+
+        if class_conditions:
+            class_conditions = makeAndNode(
+                values=class_conditions, source_ref=source_ref
+            )
+        else:
+            class_conditions = makeConstantRefNode(constant=True, source_ref=source_ref)
+
+        if count == len(class_assignments_list) - 1:
+            class_assignments = list(class_assignments or ())
+            class_assignments.append(
+                makeStatementReturnConstant(constant=True, source_ref=source_ref)
+            )
+
+        statements.append(
+            makeStatementConditional(
+                condition=class_conditions,
+                yes_branch=makeStatementsSequence(
+                    statements=class_assignments,
+                    allow_none=False,
+                    source_ref=source_ref,
+                ),
+                no_branch=makeStatementReturnConstant(
+                    constant=False, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+    assert statements
+
+    statements = [
+        makeStatementAssignmentVariable(
+            variable=tmp_match_args,
+            source=ExpressionMatchArgs(
+                expression=make_against(),
+                # TODO: Maybe use a temp variable instead for caching.
+                match_type=cls_node.makeClone(),
+                max_allowed=len(pattern.patterns),
+                keywords=pattern.kwd_attrs,
+                source_ref=source_ref,
+            ),
+            source_ref=source_ref,
+        ),
+        makeStatementConditional(
+            condition=ExpressionComparisonIs(
+                ExpressionTempVariableRef(
+                    variable=tmp_match_args, source_ref=source_ref
+                ),
+                makeConstantRefNode(constant=None, source_ref=source_ref),
+                source_ref=source_ref,
+            ),
+            yes_branch=makeStatementsSequence(
+                statements=(
+                    makeStatementReleaseVariable(
+                        variable=tmp_match_args, source_ref=source_ref
+                    ),
+                    makeStatementReturnConstant(constant=False, source_ref=source_ref),
+                ),
+                allow_none=False,
+                source_ref=source_ref,
+            ),
+            no_branch=None,
+            source_ref=source_ref,
+        ),
+        makeTryFinallyStatement(
+            provider=provider,
+            tried=statements,
+            final=makeStatementReleaseVariable(
+                variable=tmp_match_args, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        ),
+    ]
+
+    body = makeStatementsSequence(
+        statements=statements, allow_none=False, source_ref=source_ref
+    )
+
+    outline_body.setChildBody(body)
+
+    conditions = [
+        ExpressionBuiltinIsinstance(
+            instance=make_against(),
+            classes=cls_node,
+            source_ref=source_ref,
+        ),
+        outline_body,
+    ]
+    assignments = None
 
     return conditions, assignments
 

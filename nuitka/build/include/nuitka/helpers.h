@@ -343,7 +343,8 @@ extern PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, Py
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
-extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed);
+extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *matched_type,
+                                  Py_ssize_t positional_count, PyObject **keywords, Py_ssize_t keywords_count);
 #endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyThreadState *tstate, PyObject *module) {
