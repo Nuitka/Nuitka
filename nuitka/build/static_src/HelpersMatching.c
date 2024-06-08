@@ -18,13 +18,20 @@ static void FORMAT_MATCH_MISMATCH_ERROR(PyTypeObject *type, Py_ssize_t max_allow
                  ((PyTypeObject *)type)->tp_name, max_allowed, plural_form, actual);
 }
 
-PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed) {
+PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *matched_type,
+                           Py_ssize_t positional_count, PyObject **keywords, Py_ssize_t keywords_count) {
     PyObject *match_args = NULL;
-    PyTypeObject *type = Py_TYPE(matched);
+    PyTypeObject *type = (PyTypeObject *)matched_type;
 
     // First, the positional sub-patterns:
     match_args = LOOKUP_ATTRIBUTE(tstate, (PyObject *)type, const_str_plain___match_args__);
     Py_ssize_t actual;
+
+    PyObject *seen = NULL;
+    bool needs_check = positional_count + keywords_count > 1;
+    if (needs_check) {
+        seen = PySet_New(NULL);
+    }
 
     if (match_args) {
         if (unlikely(!PyTuple_CheckExact(match_args))) {
@@ -37,8 +44,8 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
         actual = PyTuple_GET_SIZE(match_args);
     } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(tstate)) {
         if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
-            if (max_allowed > 1) {
-                FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, 1);
+            if (positional_count > 1) {
+                FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, 1);
                 return NULL;
             }
 
@@ -50,14 +57,14 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
         return NULL;
     }
 
-    if (max_allowed > actual) {
-        FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, actual);
+    if (positional_count > actual) {
+        FORMAT_MATCH_MISMATCH_ERROR(type, positional_count, actual);
         return NULL;
     }
 
-    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, actual);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(tstate, positional_count + keywords_count);
 
-    for (Py_ssize_t i = 0; i < max_allowed; i++) {
+    for (Py_ssize_t i = 0; i < positional_count; i++) {
         PyObject *arg_name = PyTuple_GET_ITEM(match_args, i);
 
         if (unlikely(!PyUnicode_CheckExact(arg_name))) {
@@ -72,28 +79,74 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t 
             return NULL;
         }
 
+        if (needs_check) {
+            if (i != 0 && PySet_Contains(seen, arg_name)) {
+                _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
+                              ((PyTypeObject *)type)->tp_name, arg_name);
+
+                return NULL;
+            }
+
+            PySet_Add(seen, arg_name);
+        }
+
         PyObject *arg_value = LOOKUP_ATTRIBUTE(tstate, matched, arg_name);
         if (unlikely(arg_value == NULL)) {
+            DROP_ERROR_OCCURRED(tstate);
+
             Py_DECREF(match_args);
             Py_DECREF(result);
 
-            return NULL;
+            Py_INCREF_IMMORTAL(Py_None);
+            return Py_None;
         }
 
         PyTuple_SET_ITEM(result, i, arg_value);
+    }
+
+    for (Py_ssize_t i = 0; i < keywords_count; i++) {
+        PyObject *arg_name = keywords[i];
+        CHECK_OBJECT(arg_name);
+        assert(PyUnicode_CheckExact(arg_name));
+
+        if (needs_check) {
+            if (PySet_Contains(seen, arg_name)) {
+                _PyErr_Format(tstate, PyExc_TypeError, "%s() got multiple sub-patterns for attribute %R",
+                              ((PyTypeObject *)type)->tp_name, arg_name);
+
+                return NULL;
+            }
+
+            PySet_Add(seen, arg_name);
+        }
+
+        PyObject *arg_value = LOOKUP_ATTRIBUTE(tstate, matched, arg_name);
+        if (unlikely(arg_value == NULL)) {
+            DROP_ERROR_OCCURRED(tstate);
+
+            Py_DECREF(match_args);
+            Py_DECREF(result);
+
+            Py_INCREF_IMMORTAL(Py_None);
+            return Py_None;
+        }
+
+        PyTuple_SET_ITEM(result, positional_count + i, arg_value);
     }
 
     Py_DECREF(match_args);
     return result;
 }
 
-int MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
+bool MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
     // Need to use get_method with default value, so "defaultdict" do not
     // mutate. TODO: Use a cached value across the "match".
     // spell-checker: ignore defaultdict
     PyObject *get_method = LOOKUP_ATTRIBUTE(tstate, map, const_str_plain_get);
     if (unlikely(get_method == NULL)) {
-        return -1;
+        // TODO: Maybe only drop AttributeError?
+        DROP_ERROR_OCCURRED(tstate);
+        return false;
     }
 
     PyObject *args[] = {key, Nuitka_sentinel_value};
@@ -103,18 +156,18 @@ int MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key) {
     Py_XDECREF(get_method);
 
     if (unlikely(value == NULL)) {
-        return -1;
+        return false;
     }
 
     if (value == Nuitka_sentinel_value) {
         Py_DECREF_IMMORTAL(value);
 
-        return 0;
+        return false;
     }
 
     Py_DECREF(value);
 
-    return 1;
+    return true;
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

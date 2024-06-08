@@ -3,26 +3,31 @@
 
 """ Nodes for match statement for Python3.10+ """
 
-from .ChildrenHavingMixins import ChildHavingExpressionMixin
+from .ChildrenHavingMixins import ChildrenHavingExpressionMatchTypeMixin
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionTupleShapeExactMixin
 
 
 class ExpressionMatchArgs(
-    ExpressionTupleShapeExactMixin, ChildHavingExpressionMixin, ExpressionBase
+    ExpressionTupleShapeExactMixin,
+    ChildrenHavingExpressionMatchTypeMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_MATCH_ARGS"
 
-    named_children = ("expression",)
+    named_children = ("expression", "match_type")
 
-    __slots__ = ("max_allowed",)
+    __slots__ = ("positional_count", "keywords")
 
-    def __init__(self, expression, max_allowed, source_ref):
-        ChildHavingExpressionMixin.__init__(self, expression=expression)
+    def __init__(self, expression, match_type, max_allowed, keywords, source_ref):
+        ChildrenHavingExpressionMatchTypeMixin.__init__(
+            self, expression=expression, match_type=match_type
+        )
 
         ExpressionBase.__init__(self, source_ref)
 
-        self.max_allowed = max_allowed
+        self.positional_count = max_allowed
+        self.keywords = tuple(keywords)
 
     def computeExpression(self, trace_collection):
         # TODO: May know that match args doesn't raise from the shape of
@@ -31,6 +36,12 @@ class ExpressionMatchArgs(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def getPositionalArgsCount(self):
+        return self.positional_count
+
+    def getKeywordArgs(self):
+        return self.keywords
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
