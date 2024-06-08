@@ -161,13 +161,13 @@ class ExpressionMatchSubscriptCheck(
 
             return result, tags, change_desc
 
-        trace_collection.onExceptionRaiseExit(BaseException)
+        if subscript.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_subscript.mayRaiseException(exception_type)
 
 
 class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
