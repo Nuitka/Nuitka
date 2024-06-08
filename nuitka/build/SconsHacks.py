@@ -142,7 +142,11 @@ def myDetect(self, progs):
             return None
 
     # Note: Actually, with our inline copy, this is maybe not supposed to
-    # happen at all
+    # happen a lot at all. It's a bit hard to pass debug flag to here, or
+    # else we could assert it.
+    # for p in progs:
+    #     if p not in ("x86_64-conda-linux-gnu-gcc", "gcc", "cc", "g++"):
+    #         assert False, p
 
     return orig_detect(self, progs)
 
