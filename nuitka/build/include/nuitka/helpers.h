@@ -334,7 +334,7 @@ extern void patchTracebackDealloc(void);
 // Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
 
-// Default __init__ slot wrapper.
+// Default __init__ slot wrapper, spell-checker: ignore initproc
 extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
@@ -414,6 +414,8 @@ extern PyObject *Py_SysVersionInfo;
 
 extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
+// Our wrapper for "PyType_Ready" that takes care of trying to avoid DLL entry
+// points for generic attributes. spell-checker: ignore aiter
 extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
                                 bool self_iter, bool await_self_iter, bool self_aiter);
 
