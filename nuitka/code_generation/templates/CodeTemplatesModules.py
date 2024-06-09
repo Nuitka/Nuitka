@@ -619,7 +619,9 @@ static int %(module_dll_entry_point)s_slot(PyObject *module) {
 
 NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
     if (_Py_PackageContext != NULL) {
-        module_full_name = _Py_PackageContext;
+        if (strcmp(module_full_name, _Py_PackageContext) != 0) {
+            module_full_name = strdup(_Py_PackageContext);
+        }
     }
 
 #if PYTHON_VERSION < 0x300
