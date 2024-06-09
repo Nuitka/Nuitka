@@ -10,7 +10,7 @@
 {% from 'HelperSlotsTuple.c.j2' import tuple_slot %}
 {% from 'HelperSlotsList.c.j2' import list_slot %}
 {% from 'HelperSlotsSet.c.j2' import set_slot %}
-{% macro operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) %}
+{% macro operation_unsupported_error_exit(props, operator, inplace, left, right, type1, type2, exit_result_exception) %}
 {% set args = [] %}
 {% if left == object_desc %}
 {% do args.append("%s->tp_name" % type1) %}
@@ -24,15 +24,15 @@
 {% set right_name_3 = "'%s'" % ("%s" if right == object_desc else right.getTypeName3()) %}
 {% if (left_name_2 == left_name_3 and right_name_2 == right_name_3) or left.python_requirement or right.python_requirement %}
 {% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator, inplace) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
 {% else %}
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator, inplace) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
 {% endif %}
 {% else %}
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator, inplace) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
 #else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator, inplace) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
 #endif
 {% endif %}
     {{ goto_exit(props, exit_result_exception) }}
@@ -129,7 +129,7 @@
         }
     }
 {% endmacro %}
-{% macro binary_operation(props, operator, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
+{% macro binary_operation(props, operator, inplace, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
 {% set slot1_relevant = left == object_desc or left.hasSlot(nb_slot) %}
 {% set slot2_relevant = right == object_desc or (left != right and right.hasSlot(nb_slot)) %}
 {% set error_needed = 1 %}
@@ -375,7 +375,7 @@
 {% endif %}
 
 {% if error_needed == 1 %}
-    {{ operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) }}
+    {{ operation_unsupported_error_exit(props, operator, inplace, left, right, type1, type2, exit_result_exception) }}
 {% else %}
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 {% endif %}

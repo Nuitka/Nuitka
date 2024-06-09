@@ -324,7 +324,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): '%s' and 'float'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -668,7 +668,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'float' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1057,9 +1057,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_LONG(PyObject **o
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1275,9 +1275,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_LONG_OBJECT(PyObject **o
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1616,7 +1616,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_OBJECT_INT(PyObject **op
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1909,7 +1909,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_INT_OBJECT(PyObject **op
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'int' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -2099,9 +2099,9 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_LONG(PyObject **operand1, PyObje
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'float' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'float' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -2173,9 +2173,9 @@ static inline bool _INPLACE_OPERATION_POW_LONG_FLOAT(PyObject **operand1, PyObje
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'long' and 'float'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'int' and 'float'");
 #endif
         goto exit_inplace_exception;
     }
@@ -2241,7 +2241,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_INT(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'float' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2313,7 +2313,7 @@ static inline bool _INPLACE_OPERATION_POW_INT_FLOAT(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'int' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -2379,7 +2379,7 @@ static inline bool _INPLACE_OPERATION_POW_LONG_INT(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2451,7 +2451,7 @@ static inline bool _INPLACE_OPERATION_POW_INT_LONG(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -2764,7 +2764,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for **=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }

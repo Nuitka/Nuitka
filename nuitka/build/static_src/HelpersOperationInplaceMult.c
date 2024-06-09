@@ -256,7 +256,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_INT(PyObject **o
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -531,7 +531,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_INT_OBJECT(PyObject **o
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -850,9 +850,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_LONG(PyObject **
         // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1084,9 +1084,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_LONG_OBJECT(PyObject **
         }
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1368,7 +1368,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject *
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1605,7 +1605,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject *
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1730,9 +1730,9 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObj
         // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1810,9 +1810,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObj
         // No sequence repeat slot sq_repeat available for this type.
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'float'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'float'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1884,7 +1884,7 @@ static inline bool _INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObje
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'float' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -1962,7 +1962,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObje
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -2034,7 +2034,7 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObjec
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2112,7 +2112,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObjec
         }
         // No sequence repeat slot sq_repeat available for this type.
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -2411,7 +2411,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_STR(PyObject **operand1, PyObject
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'str'");
         goto exit_inplace_exception;
     }
 
@@ -2572,7 +2572,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_UNICODE(PyObject **operand1, PyOb
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'unicode'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'unicode'");
         goto exit_inplace_exception;
     }
 
@@ -2733,7 +2733,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_TUPLE(PyObject **operand1, PyObje
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'tuple'");
         goto exit_inplace_exception;
     }
 
@@ -2894,7 +2894,7 @@ static inline bool _INPLACE_OPERATION_MULT_INT_LIST(PyObject **operand1, PyObjec
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'list'");
         goto exit_inplace_exception;
     }
 
@@ -3075,9 +3075,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_UNICODE(PyObject **operand1, PyO
         }
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'unicode'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'unicode'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'str'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'str'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3250,7 +3250,7 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_BYTES(PyObject **operand1, PyObj
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'bytes'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'bytes'");
         goto exit_inplace_exception;
     }
 
@@ -3429,9 +3429,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_TUPLE(PyObject **operand1, PyObj
         }
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'tuple'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'tuple'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3610,9 +3610,9 @@ static inline bool _INPLACE_OPERATION_MULT_LONG_LIST(PyObject **operand1, PyObje
         }
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'long' and 'list'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: 'int' and 'list'");
 #endif
         goto exit_inplace_exception;
     }
@@ -4641,7 +4641,7 @@ static inline bool _INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, Py
             }
         }
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }
