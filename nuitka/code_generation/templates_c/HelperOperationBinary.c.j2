@@ -15,7 +15,7 @@
 #endif
 
     {% set props = {"exits": {}} %}
-    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_binary_result_object", "exit_binary_result_cbool_ok", "exit_binary_result_nbool", "exit_binary_exception") }}
+    {{ binary_operation(props, operator, False, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_binary_result_object", "exit_binary_result_cbool_ok", "exit_binary_result_nbool", "exit_binary_exception") }}
 
 {% if "exit_binary_result_object" in props["exits"] %}
 exit_binary_result_object:

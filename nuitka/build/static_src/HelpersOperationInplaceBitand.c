@@ -195,9 +195,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_LONG(PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -412,9 +412,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_LONG_OBJECT(PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -683,7 +683,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_INT(PyObject *
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -905,7 +905,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_INT_OBJECT(PyObject *
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'int' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1076,7 +1076,7 @@ static inline bool _INPLACE_OPERATION_BITAND_LONG_INT(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'long' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -1148,7 +1148,7 @@ static inline bool _INPLACE_OPERATION_BITAND_INT_LONG(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'int' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -1320,7 +1320,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_SET(PyObject *
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: '%s' and 'set'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: '%s' and 'set'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1504,7 +1504,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_SET_OBJECT(PyObject *
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'set' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: 'set' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1783,7 +1783,7 @@ static inline bool _INPLACE_OPERATION_BITAND_OBJECT_OBJECT(PyObject **operand1, 
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }
