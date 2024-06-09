@@ -18,7 +18,7 @@ include bin/measure-construct-performance
 include bin/nuitka
 include bin/nuitka-run
 
-include misc/*.bat
+include misc/*.cmd
 include tests/run-tests
 
 include nuitka/plugins/standard/*.yml
