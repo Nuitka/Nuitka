@@ -195,7 +195,12 @@ def executePASS1():
         source_dir = os.path.join(base_dir, package)
         target_dir = package
 
-        removeDirectory(path=target_dir, ignore_errors=False)
+        removeDirectory(
+            path=target_dir,
+            logger=test_logger,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
 
         os.mkdir(target_dir)
 
