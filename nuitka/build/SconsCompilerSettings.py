@@ -990,9 +990,15 @@ def reportCCompiler(env, context, output_func):
             ".".join(str(d) for d in env.gcc_version),
         )
     elif isClangName(env.the_cc_name):
+        clang_version = myDetectVersion(env, env.the_cc_name)
+        if clang_version is None:
+            clang_version = "not found"
+        else:
+            clang_version = ".".join(str(d) for d in clang_version)
+
         cc_output = "%s %s" % (
             env.the_cc_name,
-            ".".join(str(d) for d in myDetectVersion(env, env.the_cc_name)),
+            clang_version,
         )
     else:
         cc_output = env.the_cc_name
