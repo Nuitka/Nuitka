@@ -17,7 +17,11 @@ import sys
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import getOnefileChildGraceTime, isOnefileMode
+from nuitka.Options import (
+    getOnefileChildGraceTime,
+    isExperimental,
+    isOnefileMode,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import (
     isAnacondaPython,
@@ -84,7 +88,7 @@ def _getSconsBinaryCall():
 
     inline_path = os.path.join(_getSconsInlinePath(), "bin", "scons.py")
 
-    if os.path.exists(inline_path):
+    if os.path.exists(inline_path) and not isExperimental("force-system-scons"):
         return [
             _getPythonForSconsExePath(),
             "-W",
