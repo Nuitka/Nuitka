@@ -36,9 +36,9 @@ static inline bool _INPLACE_OPERATION_MATMULT_LONG_LONG(PyObject **operand1, PyO
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'long' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'int' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -107,9 +107,9 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, P
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -185,9 +185,9 @@ static inline bool _INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, P
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -241,7 +241,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(PyObject **operand1, P
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'float' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -308,7 +308,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, 
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and 'float'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -382,7 +382,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, 
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: 'float' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: 'float' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -558,7 +558,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
 
         // Statically recognized that coercion is not possible with Python3 only operator '@'
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @: '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for @=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }
