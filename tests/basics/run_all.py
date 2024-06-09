@@ -25,7 +25,6 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    decideNeeds2to3,
     getDebugPython,
     scanDirectoryForTestCases,
     setup,

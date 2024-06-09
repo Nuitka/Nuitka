@@ -36,7 +36,6 @@ from nuitka.tools.specialize.SpecializePython import (
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
-    decideNeeds2to3,
     my_print,
     scanDirectoryForTestCases,
     setup,
