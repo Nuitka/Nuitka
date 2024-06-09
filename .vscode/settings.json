@@ -95,6 +95,7 @@
         "__class_getitem__",
         "__cplusplus",
         "__delattr__",
+        "__firstlineno__",
         "__getitem__",
         "__newobj__",
         "__warningregistry__",
