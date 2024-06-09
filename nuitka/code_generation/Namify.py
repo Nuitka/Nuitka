@@ -33,6 +33,8 @@ def namifyConstant(constant):
     if constant_type is int:
         if constant == 0:
             result = "int_0"
+        elif constant < -10000000 or constant > 10000000:
+            result = "int_hex_%s" % hex(constant)[2:]
         elif constant > 0:
             result = "int_pos_%d" % constant
         else:
