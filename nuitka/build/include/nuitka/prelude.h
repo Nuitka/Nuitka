@@ -106,12 +106,23 @@ extern _PyRuntimeState _PyRuntime;
 
 static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
 
-static inline static_builtin_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp, PyTypeObject *self) {
+// Changed internal type access for Python3.13
+#if PYTHON_VERSION < 0x3d0
+#define managed_static_type_state static_builtin_state
+
+static inline managed_static_type_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp,
+                                                                         PyTypeObject *self) {
     return &(interp->types.builtins[Nuitka_static_builtin_index_get(self)]);
 }
+#else
+static inline managed_static_type_state *Nuitka_static_builtin_state_get(PyInterpreterState *interp,
+                                                                         PyTypeObject *self) {
+    return &(interp->types.builtins.initialized[Nuitka_static_builtin_index_get(self)]);
+}
+#endif
 
-NUITKA_MAY_BE_UNUSED static inline static_builtin_state *Nuitka_PyStaticType_GetState(PyInterpreterState *interp,
-                                                                                      PyTypeObject *self) {
+NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticType_GetState(PyInterpreterState *interp,
+                                                                                           PyTypeObject *self) {
     assert(self->tp_flags & _Py_TPFLAGS_STATIC_BUILTIN);
     return Nuitka_static_builtin_state_get(interp, self);
 }
