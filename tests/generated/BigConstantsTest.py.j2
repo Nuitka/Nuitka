@@ -2,7 +2,12 @@
 
 # This test contains a very big constant, and this is to demonstrate we don't
 # create it at compile time.
-print({{"1234" * 17000}})
+import sys
+
+try:
+    print(0x{{"1234" * 17000}})
+except ValueError as e:
+    print(e)
 
 {#     Python test originally created or extracted from other peoples work. The #}
 {#     parts from me are licensed as below. It is at least Free Software where  #}
