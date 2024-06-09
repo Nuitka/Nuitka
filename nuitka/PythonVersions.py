@@ -104,6 +104,7 @@ python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
 
+# TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():
     """Error message of the concrete Python in case an exec occurs in a
     function that takes a closure variable.
@@ -159,6 +160,13 @@ def getUnboundLocalErrorErrorTemplate():
             sys.exit("Error, cannot detect expected error message.")
 
     return getUnboundLocalErrorErrorTemplate.result
+
+
+def getDictFromkeysNoArgErrorMessage():
+    try:
+        dict.fromkeys()
+    except TypeError as e:
+        return e.args[0]
 
 
 _needs_set_literal_reverse_insertion = None

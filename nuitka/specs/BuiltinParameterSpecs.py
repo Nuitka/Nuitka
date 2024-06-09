@@ -736,7 +736,7 @@ class BuiltinMethodParameterSpecBase(BuiltinParameterSpec):
     ):
         BuiltinParameterSpec.__init__(
             self,
-            name="bytes." + name,
+            name=self.method_prefix + "." + name,
             arg_names=arg_names,
             default_count=default_count,
             list_star_arg=list_star_arg,
