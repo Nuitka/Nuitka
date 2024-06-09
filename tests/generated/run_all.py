@@ -210,7 +210,7 @@ def main():
                 filename=filename,
                 extra_flags=extra_flags,
                 search_mode=search_mode,
-                needs_2to3=decideNeeds2to3(filename),
+                needs_2to3=False,
             )
 
     search_mode.finish()
