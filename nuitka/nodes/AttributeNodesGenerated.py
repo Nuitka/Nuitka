@@ -32,6 +32,7 @@ spell-checker: ignore winmode zfill
 """
 
 
+from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage
 from nuitka.specs.BuiltinBytesOperationSpecs import (
     bytes_capitalize_spec,
     bytes_center_spec,
@@ -260,7 +261,10 @@ from .ListOperationNodes import (
     ExpressionListOperationReverse,
 )
 from .NodeBases import SideEffectsFromChildrenMixin
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpression,
+    wrapExpressionWithNodeSideEffects,
+)
 from .StrNodes import (
     ExpressionStrOperationCapitalize,
     ExpressionStrOperationCenter2,
@@ -2857,6 +2861,11 @@ class ExpressionAttributeLookupDictFromkeys(
             node=call_node,
             builtin_class=wrapExpressionDictOperationFromkeys,
             builtin_spec=dict_fromkeys_spec,
+            empty_special_class=lambda source_ref: makeRaiseExceptionReplacementExpression(
+                expression=dict_arg,
+                exception_type="TypeError",
+                exception_value=getDictFromkeysNoArgErrorMessage(),
+            ),
         )
 
         result = wrapExpressionWithNodeSideEffects(old_node=dict_arg, new_node=result)
