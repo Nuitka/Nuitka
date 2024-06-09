@@ -326,6 +326,8 @@
         "staticmethod",
         "stdlib",
         "strchr",
+        "strcmp",
+        "strdup",
         "subclasscheck",
         "sysexit",
         "sysflag",
