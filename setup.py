@@ -325,7 +325,10 @@ except AttributeError:
 else:
     easy_install.get_script_args = get_script_args
 
-binary_suffix = "%d" % sys.version_info[0]
+if str is bytes:
+    binary_suffix = "2"
+else:
+    binary_suffix = ""
 
 if os.name == "nt" and not isMSYS2MingwPython():
     console_scripts = []
@@ -342,12 +345,12 @@ else:
 
 scripts = []
 
-# For Windows, there are batch files to launch Nuitka.
+# For Windows, there are CMD batch files to launch Nuitka.
 if os.name == "nt" and not isMSYS2MingwPython():
-    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
+    scripts += ["misc/nuitka.cmd", "misc/nuitka-run.cmd"]
 
     if "nuitka.plugins.commercial" in nuitka_packages:
-        scripts.append("misc/nuitka-decrypt.bat")
+        scripts.append("misc/nuitka-decrypt.cmd")
 
 
 # With this, we can enforce a binary package.
