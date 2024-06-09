@@ -38,12 +38,7 @@ catching and passing in exceptions raised.
 import marshal
 import os
 
-from nuitka import (
-    ModuleRegistry,
-    Options,
-    OutputDirectories,
-    SourceCodeReferences,
-)
+from nuitka import ModuleRegistry, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode
 from nuitka.BytecodeCaching import (
     getCachedImportedModuleUsageAttempts,
@@ -118,7 +113,16 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
-from nuitka.Options import shallWarnUnusualCode
+from nuitka.Options import (
+    getMainEntryPointFilenames,
+    hasPythonFlagNoSite,
+    hasPythonFlagPackageMode,
+    isShowMemory,
+    isStandaloneMode,
+    shallDisableBytecodeCacheUsage,
+    shallMakeModule,
+    shallWarnUnusualCode,
+)
 from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -815,7 +819,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
     if is_module:
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
-        if is_main and not Options.hasPythonFlagNoSite():
+        if is_main and not hasPythonFlagNoSite():
             statements.append(
                 StatementExpressionOnly(
                     expression=makeExpressionImportModuleFixed(
@@ -1115,7 +1119,7 @@ def _createModule(
         if (
             mode == "bytecode"
             and not is_top
-            and not Options.shallDisableBytecodeCacheUsage()
+            and not shallDisableBytecodeCacheUsage()
             and hasCachedImportedModuleUsageAttempts(
                 module_name=module_name, source_code=source_code, source_ref=source_ref
             )
@@ -1154,7 +1158,7 @@ def _createModule(
 
 
 def createModuleTree(module, source_ref, ast_tree, is_main):
-    if Options.isShowMemory():
+    if isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     module_body = buildParseTree(
@@ -1172,17 +1176,19 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
 
     completeVariableClosures(module)
 
-    if Options.isShowMemory():
+    if isShowMemory():
         memory_watch.finish(
             "Memory usage changed loading module '%s'" % module.getFullName()
         )
 
 
-def buildMainModuleTree(filename, source_code):
+def buildMainModuleTree(source_code):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
-    if Options.shallMakeModule():
+    filename = getMainEntryPointFilenames()[0]
+
+    if shallMakeModule():
         module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
 
         if module_name is None:
@@ -1192,7 +1198,7 @@ def buildMainModuleTree(filename, source_code):
             )
     else:
         # TODO: Doesn't work for deeply nested packages at all.
-        if Options.hasPythonFlagPackageMode():
+        if hasPythonFlagPackageMode():
             module_name = ModuleName(os.path.basename(filename) + ".__main__")
         else:
             module_name = ModuleName("__main__")
@@ -1203,13 +1209,13 @@ def buildMainModuleTree(filename, source_code):
         module_filename=filename,
         source_code=source_code,
         is_top=True,
-        is_main=not Options.shallMakeModule(),
+        is_main=not shallMakeModule(),
         module_kind="py",
         is_fake=source_code is not None,
         hide_syntax_error=False,
     )
 
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         module.setStandardLibraryModules(
             early_module_names=detectEarlyImports(),
             stdlib_modules_names=detectStdlibAutoInclusionModules(),
@@ -1314,8 +1320,8 @@ def buildModule(
         logger=general,
     )
 
-    if Options.hasPythonFlagPackageMode():
-        if is_top and Options.shallMakeModule():
+    if hasPythonFlagPackageMode():
+        if is_top and shallMakeModule():
             optimization_logger.warning(
                 "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
             )

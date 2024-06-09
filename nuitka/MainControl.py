@@ -141,13 +141,10 @@ def _createMainModule():
         assert not Options.shallMakeModule()
 
         main_module = buildMainModuleTree(
-            # TODO: Should not be given.
-            filename=main_filenames[0],
             source_code=createMultidistMainSourceCode(main_filenames),
         )
     else:
         main_module = buildMainModuleTree(
-            filename=main_filenames[0],
             source_code=None,
         )
 
