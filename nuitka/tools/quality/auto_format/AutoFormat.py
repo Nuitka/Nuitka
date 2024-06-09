@@ -50,8 +50,8 @@ from .YamlFormatter import formatYaml
 # black no longer supports Python 2 syntax, and sometimes removes import
 # parts of syntax used in tests
 BLACK_SKIP_LIST = [
-    "tests/basics/ClassesTest.py",
-    "tests/basics/ExecEvalTest.py",
+    "tests/basics/ClassesTest_2.py",
+    "tests/basics/ExecEvalTest_2.py",
     "tests/basics/HelloWorldTest_2.py",
     "tests/basics/OverflowFunctionsTest_2.py",
     "tests/basics/PrintingTest_2.py",

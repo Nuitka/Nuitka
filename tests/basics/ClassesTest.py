@@ -1,6 +1,21 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+from __future__ import print_function
+
+import pprint
+
+
+def displayDir(l):
+    if "__firstlineno__" in l:
+        l.remove("__firstlineno__")
+
+    if "__static_attributes__" in l:
+        l.remove("__static_attributes__")
+
+    return pprint.pformat(l)
+
+
 def displayDict(d):
     if "__loader__" in d:
         d = dict(d)
@@ -10,22 +25,24 @@ def displayDict(d):
         d = dict(d)
         d["__file__"] = "<__file__ removed>"
 
+    if "__firstlineno__" in d:
+        d = dict(d)
+        del d["__firstlineno__"]
+
     # Avoid recursion that we don't offer for classes.
     if "__locals__" in d:
         d = dict(d)
         del d["__locals__"]
 
-    import pprint
-
     return pprint.pformat(d)
 
 
 class SimpleClass:
-    " The class documentation."  # Leading space on purpose.
+    "The class documentation."  # Leading space on purpose.
 
     # TODO: Doesn't work with Python3, because we don't yet make our own dict
     # visible.  print locals()
-    print "Class locals, while building", displayDict(locals())
+    print("Class locals, while building", displayDict(locals()))
 
     class_var = 1
 
@@ -43,30 +60,30 @@ class SimpleClass:
         return "something"
 
 
-print "Simple class:", SimpleClass
-print "Lives in", SimpleClass.__module__
-print "Documentation", SimpleClass.__doc__
-print "Instantiate simple class:", SimpleClass(14)
-print "Call simple class normal method:", SimpleClass(11).normal_method(1, 2)
-print "Call simple class static method:", SimpleClass(11).static_method()
+print("Simple class:", SimpleClass)
+print("Lives in", SimpleClass.__module__)
+print("Documentation", SimpleClass.__doc__)
+print("Instantiate simple class:", SimpleClass(14))
+print("Call simple class normal method:", SimpleClass(11).normal_method(1, 2))
+print("Call simple class static method:", SimpleClass(11).static_method())
 
 
 class MetaClass(type):
     def __init__(cls, name, bases, dictionary):
-        print "MetaClass is called."
-        cls.addedin = 5
+        print("MetaClass is called.")
+        cls.added_in = 5
 
 
-print MetaClass
+print(MetaClass)
 
 
 class ComplexClass:
     __metaclass__ = MetaClass
 
 
-print ComplexClass, dir(ComplexClass)
+print(ComplexClass, displayDir(dir(ComplexClass)))
 
-print ComplexClass, hasattr(ComplexClass, "addedin") and ComplexClass.addedin
+print(ComplexClass, hasattr(ComplexClass, "added_in") and ComplexClass.added_in)
 
 
 def function():
@@ -80,21 +97,21 @@ def function():
     return DynamicClass
 
 
-print function(), function().y
+print(function(), function().y)
 
 
-def strangeClassBehaviour():
+def strangeClassBehavior():
     class StrangeClass(object):
         count = 0
 
         def __new__(cls):
-            print "__new__"
+            print("__new__")
 
             cls.count += 1
             return object.__new__(cls)
 
         def __del__(self):
-            print "__del__"
+            print("__del__")
 
             cls = self.__class__
             cls.count -= 1
@@ -105,7 +122,7 @@ def strangeClassBehaviour():
     return x.count
 
 
-print "Strange class with __new__ and __del__ overloads", strangeClassBehaviour()
+print("Strange class with __new__ and __del__ overloads", strangeClassBehavior())
 
 
 class ClosureLocalizer:
@@ -122,24 +139,27 @@ class ClosureLocalizer:
         pass
 
 
-print "Class with a name from module level renamed to local", ClosureLocalizer.function
-print "Class method decorated", ClosureLocalizer().x.decorated
+print("Class with a name from module level renamed to local", ClosureLocalizer.function)
+print("Class method decorated", ClosureLocalizer().x.decorated)
 
-print "Class with decorator and meta class:"
+print("Class with decorator and meta class:")
 
 
-def classdecorator(cls):
-    print "cls decorator", cls.addedin
+def class_decorator(cls):
+    try:
+        print("cls decorator", cls.added_in)
+    except AttributeError:
+        print("cls decorator has not added")
 
     return cls
 
 
-@classdecorator
+@class_decorator
 class MyClass:
     __metaclass__ = MetaClass
 
 
-print "Class that updates its locals:",
+print("Class that updates its locals:")
 
 
 class DictUpdating:
@@ -151,7 +171,7 @@ class DictUpdating:
         locals()["test_%s" % f] = f
 
 
-print "Changed values", DictUpdating.b, DictUpdating.test_4
+print("Changed values", DictUpdating.b, DictUpdating.test_4)
 
 
 def functionThatOffersClosureToPassThroughClass(x):
@@ -165,8 +185,7 @@ def functionThatOffersClosureToPassThroughClass(x):
     return Foo()
 
 
-print functionThatOffersClosureToPassThroughClass(6)(2),
-print x
+print(functionThatOffersClosureToPassThroughClass(6)(2), x)
 
 
 class NameCollisionClosure:
@@ -174,7 +193,7 @@ class NameCollisionClosure:
         return x
 
 
-print NameCollisionClosure, NameCollisionClosure().x()
+print(NameCollisionClosure, NameCollisionClosure().x())
 
 
 class ClassesWithNestedClass:
@@ -183,10 +202,12 @@ class ClassesWithNestedClass:
             return {"a": 2}
 
 
-print "Classes:"
-print ClassesWithNestedClass,
-print ClassesWithNestedClass().NestedClass,
-print ClassesWithNestedClass().NestedClass().getDict()
+print(
+    "Classes:",
+    ClassesWithNestedClass,
+    ClassesWithNestedClass().NestedClass,
+    ClassesWithNestedClass().NestedClass().getDict(),
+)
 
 secondary = "global closure wins"
 
@@ -203,7 +224,9 @@ class ClassWithModuleVariableCollisionMain:
             self.attr = secondary
 
 
-print ClassWithModuleVariableCollisionMain, ClassWithModuleVariableCollisionMain().value
+print(
+    ClassWithModuleVariableCollisionMain, ClassWithModuleVariableCollisionMain().value
+)
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
