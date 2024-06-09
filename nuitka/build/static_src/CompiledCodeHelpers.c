@@ -674,7 +674,7 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 }
 
 // Helper functions for print. Need to play nice with Python softspace
-// behaviour.
+// behavior.
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_DEFINE_BUILTIN(print);
