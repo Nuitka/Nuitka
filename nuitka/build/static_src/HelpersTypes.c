@@ -168,6 +168,10 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
     assert(!await_self_aiter);
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+    type->tp_flags |= Py_TPFLAGS_IMMUTABLETYPE;
+#endif
+
     NUITKA_MAY_BE_UNUSED int res = PyType_Ready(type);
     assert(res >= 0);
 }
