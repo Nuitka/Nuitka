@@ -264,7 +264,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject 
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -546,7 +546,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject 
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -873,9 +873,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_LONG(PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1091,9 +1091,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_LONG_OBJECT(PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1372,7 +1372,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObjec
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and 'float'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1605,7 +1605,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObjec
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'float' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1736,9 +1736,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, Py
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'float' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1810,9 +1810,9 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_FLOAT(PyObject **operand1, Py
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'long' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'long' and 'float'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and 'float'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1878,7 +1878,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_INT(PyObject **operand1, PyO
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'float' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -1950,7 +1950,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_FLOAT(PyObject **operand1, PyO
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -2016,7 +2016,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyOb
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'long' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2088,7 +2088,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyOb
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: 'int' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -2564,7 +2564,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /: '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for /=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }

@@ -30,7 +30,7 @@
 {% endif %}
 
     {
-        {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
+        {{ binary_operation(props, operator, True, nb_slot, left, right, "type1", "type2", "*operand1", "operand2", "exit_inplace_result_object", "exit_inplace_result_cbool_ok", "exit_inplace_result_nbool", "exit_inplace_exception") }}
     }
 
 {% if "exit_inplace_result_object" in props["exits"] %}
