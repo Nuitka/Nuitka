@@ -1486,6 +1486,30 @@ def openPickleFile(filename, mode, protocol=-1):
         )
 
 
+def isLegalPath(path):
+    illegal_suffixes = "/\\"
+    illegal_chars = "\0"
+
+    if isWin32Windows():
+        illegal_chars += r'*"/<>:|?'
+
+        illegal_chars += "".join(chr(x) for x in range(1, 32))
+        illegal_suffixes += " ."
+
+    if isMacOS():
+        illegal_chars += ":"
+
+    for c in path:
+        if c in illegal_chars:
+            return False, "contains illegal character %r" % c
+
+    for illegal_suffix in illegal_suffixes:
+        if path.endswith(illegal_suffix):
+            return False, "contains illegal suffix %r" % illegal_suffix
+
+    return True, None
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
