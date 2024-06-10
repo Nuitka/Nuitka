@@ -26,7 +26,7 @@ from nuitka.Options import (
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.Tracing import options_logger
+from nuitka.Tracing import general, options_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
     containsPathElements,
@@ -36,6 +36,7 @@ from nuitka.utils.FileOperations import (
     getFilenameExtension,
     getFileSize,
     isFilenameBelowPath,
+    isLegalPath,
     isRelativePath,
     makePath,
     openTextFile,
@@ -98,6 +99,14 @@ class IncludedDataFile(object):
         self.kind = kind
         self.source_path = source_path
         self.dest_path = os.path.normpath(dest_path)
+
+        is_legal, illegal_reason = isLegalPath(dest_path)
+        if not is_legal:
+            general.sysexit(
+                "Error, cannot add data file with '%s' path, as '%s'"
+                % (dest_path, illegal_reason)
+            )
+
         self.reason = reason
         self.data = data
         self.tags = tags_set
@@ -159,8 +168,8 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     if isAcceleratedMode():
         if "package_data" not in tags and not areSamePaths(source_path, dest_path):
             tracer.sysexit(
-                "Error, cannot change paths for data files in accelerated mode '%s'."
-                % dest_path
+                "Error, cannot change paths for data files in accelerated mode from '%s' to '%s'."
+                % (source_path, dest_path)
             )
     else:
         inside = True
