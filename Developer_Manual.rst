@@ -675,8 +675,6 @@ For fine grained control, it has the following options:
                          Default is False.
    --no-python2.7        Do not use Python 2.7 even if available on the system.
                          Default is False.
-   --no-python3.3        Do not use Python 3.3 even if available on the system.
-                         Default is False.
    --no-python3.4        Do not use Python 3.4 even if available on the system.
                          Default is False.
    --no-python3.5        Do not use Python 3.5 even if available on the system.

@@ -300,15 +300,6 @@ Do not use Python2.7 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
-        "--no-python3.3",
-        action="store_true",
-        dest="no33",
-        default=False,
-        help="""\
-Do not use Python3.3 even if available on the system. Default is %default.""",
-    )
-
-    parser.add_option(
         "--no-python3.4",
         action="store_true",
         dest="no34",
@@ -437,8 +428,6 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.no26 = True
         if sys.version_info[0:2] != (2, 7):
             options.no27 = True
-        if sys.version_info[0:2] != (3, 3):
-            options.no33 = True
         if sys.version_info[0:2] != (3, 4):
             options.no34 = True
         if sys.version_info[0:2] != (3, 5):
@@ -586,8 +575,6 @@ def main():
             return False
         if command == "python2.7" and options.no27:
             return False
-        if command == "python3.3" and options.no33:
-            return False
         if command == "python3.4" and options.no34:
             return False
         if command == "python3.5" and options.no35:
@@ -612,8 +599,6 @@ def main():
         if command == "python2.6" and sys.version_info[0:2] == (2, 6):
             return True
         if command == "python2.7" and sys.version_info[0:2] == (2, 7):
-            return True
-        if command == "python3.3" and sys.version_info[0:2] == (3, 3):
             return True
         if command == "python3.4" and sys.version_info[0:2] == (3, 4):
             return True
@@ -974,11 +959,6 @@ def main():
         execute_tests("python2.7-nodebug", "python2.7", "")
     else:
         my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
-
-    if checkExecutableCommand("python3.3"):
-        execute_tests("python3.3-nodebug", "python3.3", "")
-    else:
-        my_print("Cannot execute tests with Python 3.3, disabled or not installed.")
 
     if checkExecutableCommand("python3.4"):
         execute_tests("python3.4-nodebug", "python3.4", "")
