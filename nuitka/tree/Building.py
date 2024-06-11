@@ -288,9 +288,9 @@ def buildTryFinallyNode2(provider, node, source_ref):
 
 
 def buildTryNode(provider, node, source_ref):
-    # Note: This variant is used for Python3.3 or higher only, older stuff uses
-    # the above ones, this one merges try/except with try/finally in the
-    # "ast". We split it up again, as it's logically separated of course.
+    # Note: This variant is used for Python3 only, older stuff uses the above
+    # ones, this one merges try/except with try/finally in the "ast". We split
+    # it up again, as it's logically separated of course.
 
     # Shortcut missing try/finally.
     if not node.handlers:
