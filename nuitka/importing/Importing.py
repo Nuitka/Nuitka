@@ -185,7 +185,7 @@ def hasMainScriptDirectory():
 def isPackageDir(dirname):
     """Decide if a directory is a package.
 
-    Before Python3.3 it's required to have a "__init__.py" file, but then
+    Before Python3 it's required to have a "__init__.py" file, but then
     it became impossible to decide, and for extra fun, there is also the
     extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
