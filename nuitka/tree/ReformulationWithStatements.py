@@ -308,13 +308,13 @@ def buildWithNode(provider, node, source_ref):
     # manual. Catches exceptions, and provides them to "__exit__", while making
     # the "__enter__" value available under a given name.
 
-    # Before Python3.3, multiple context managers are not visible in the parse
+    # Before Python3, multiple context managers are not visible in the parse
     # tree, now we need to handle it ourselves.
     if hasattr(node, "items"):
         context_exprs = [item.context_expr for item in node.items]
         assign_targets = [item.optional_vars for item in node.items]
     else:
-        # Make it a list for before Python3.3
+        # Make it a list for before Python3
         context_exprs = [node.context_expr]
         assign_targets = [node.optional_vars]
 
@@ -344,7 +344,7 @@ def buildAsyncWithNode(provider, node, source_ref):
     # manual. Catches exceptions, and provides them to "__exit__", while making
     # the "__enter__" value available under a given name.
 
-    # Before Python3.3, multiple context managers are not visible in the parse
+    # Before Python3, multiple context managers are not visible in the parse
     # tree, now we need to handle it ourselves.
     context_exprs = [item.context_expr for item in node.items]
     assign_targets = [item.optional_vars for item in node.items]
