@@ -3406,7 +3406,7 @@
         'display': 'un-callable'
       when: 'not use_ipython'
 
-- module-name: 'pkg_resources' # checksum: 9cc15580
+- module-name: 'pkg_resources' # checksum: d0674fc2
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
       replacements_plain:
@@ -3416,6 +3416,12 @@
       replacements_plain:
         'def load(self, require=True,': 'def load(self, require=False,'
         'if not require or args or kwargs:': 'if False:'
+    - description: 'disable deprecation warnings'
+      replacements_plain:
+        'warnings.warn(': 'if False: warnings.warn('
+  implicit-imports:
+    - depends:
+        - 'pkg_resources.extern'
 
 - module-name: 'pkg_resources._vendor.appdirs' # checksum: 9d4faeee
   anti-bloat:
