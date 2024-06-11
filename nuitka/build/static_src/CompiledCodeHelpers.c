@@ -2117,6 +2117,10 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersDumpBacktraces.c"
 #endif
 
+#ifdef _NUITKA_INLINE_COPY_HACL
+#include "Hacl_Hash_SHA2.c"
+#endif
+
 #include "HelpersJitSources.c"
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -38,7 +38,6 @@ from nuitka.Tracing import (
     scons_logger,
     setQuiet,
 )
-from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
@@ -555,35 +554,6 @@ if env.static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
 
-def detectHostMultiArch():
-    stdout = check_output("dpkg-architecture")
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if line.startswith(b"DEB_HOST_MULTI_ARCH="):
-            return line.split("=", 1)[1].decode("utf8")
-
-    return None
-
-
-if env.gcc_mode and env.debian_python:
-    # TODO: Seems rather meaningless nowadays and hard codes this to not be
-    # self compiled or so.
-    if python_version == (3, 3):
-        host_multi_arch = detectHostMultiArch()
-
-        if host_multi_arch is not None:
-            env.Append(
-                CCFLAGS=[
-                    "-I"
-                    + os.path.join(
-                        "/usr/include/", host_multi_arch, "python" + python_abi_version
-                    )
-                ]
-            )
-
-
 def _detectPythonHeaderPath():
     if os.name == "nt":
         # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
@@ -826,6 +796,17 @@ env.Append(
         os.path.join(env.nuitka_src, "inline_copy", "libbacktrace"),
     ]
 )
+
+if env.standalone_mode and env.debian_python and python_version >= (3, 12):
+    env.Append(
+        CPPPATH=[
+            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
+            os.path.join(
+                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
+            ),
+        ]
+    )
+    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
 
 # Set load libpython from binary directory default
 if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
