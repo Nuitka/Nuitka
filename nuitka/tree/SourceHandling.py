@@ -266,6 +266,10 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3B0 > python_version >= 0x3A0
         elif basename == "python3.11":
             result = 0x3C0 > python_version >= 0x3B0
+        elif basename == "python3.12":
+            result = 0x3D0 > python_version >= 0x3C0
+        elif basename == "python3.13":
+            result = 0x3E0 > python_version >= 0x3D0
         else:
             result = None
 
