@@ -207,7 +207,7 @@ def isDebianPackagePython():
 
     if python_version < 0x300:
         return hasattr(sys, "_multiarch")
-    else:
+    elif python_version < 0x3C0:
         with withNoDeprecationWarning():
             try:
                 from distutils.dir_util import _multiarch
@@ -215,6 +215,11 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
+    else:
+        import sysconfig
+
+        # Need to check there for Debian patch, pylint: disable=protected-access
+        return "deb_system" in sysconfig._INSTALL_SCHEMES
 
 
 def isFedoraPackagePython():
