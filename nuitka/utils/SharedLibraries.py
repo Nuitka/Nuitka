@@ -600,7 +600,7 @@ def _getFileCommandOutput(filename):
 
 
 def hasUniversalOrMatchingMacOSArchitecture(filename):
-    assert isMacOS()
+    assert isMacOS() and os.path.isfile(filename), filename
 
     file_output = _getFileCommandOutput(filename)
 
