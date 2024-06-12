@@ -29,7 +29,7 @@ you have provided at least the information below, and discard up to here:
   It should be taken from this output if there specific packages involved, e.g. `numpy`, you are
   expected to shorten this to the relevant ones.
 
-  > python -m pip freeze
+  > python -m pip list -v
 
 - Many times when you get an error from Nuitka, your setup may be special
 
