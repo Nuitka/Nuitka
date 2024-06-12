@@ -3143,10 +3143,11 @@
       replacements_plain:
         'if name == "testing":': 'if False:'
 
-- module-name: 'panel' # checksum: 29e3adc1
+- module-name: 'panel' # checksum: 87b79d62
   data-files:
     dirs:
       - '_templates'
+      - 'template'
       - 'layout'
       - 'theme'
     patterns:
