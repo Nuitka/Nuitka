@@ -1,13 +1,11 @@
 .. image:: https://img.shields.io/pypi/pyversions/Nuitka.svg
-    :target: https://badge.fury.io/py/Nuitka
+   :target: https://pypi.org/project/Nuitka
+
 .. image:: https://badge.fury.io/py/Nuitka.svg
-    :target: https://badge.fury.io/py/Nuitka
-.. image:: https://www.bestpractices.dev/projects/8158/badge
-    :target: https://www.bestpractices.dev/en/projects/8158
-.. image:: https://api.securityscorecards.dev/projects/github.com/Nuitka/Nuitka/badge
-    :target: https://securityscorecards.dev/viewer/?uri=github.com/Nuitka/Nuitka
+   :target: https://pypi.org/project/Nuitka
+
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-    :target: CODE_OF_CONDUCT.md
+   :target: CODE_OF_CONDUCT.md
 
 ####################
  Nuitka User Manual
