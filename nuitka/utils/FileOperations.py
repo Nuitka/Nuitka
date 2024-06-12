@@ -291,7 +291,7 @@ def _restoreWindowsPath(orig_path, path):
             drive_real_path = os.path.realpath(drive + "\\")
             assert path.startswith(drive_real_path)
 
-            path = drive + path[len(drive_real_path) :]
+            path = drive + "\\" + path[len(drive_real_path) :]
     else:
         path = path.strip(os.path.sep)
 
