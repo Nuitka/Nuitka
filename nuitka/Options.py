@@ -1796,6 +1796,23 @@ def getExperimentalIndications():
         return ()
 
 
+def getDebugModeIndications():
+    result = []
+
+    for debug_option_value_name in ("debug_immortal",):
+        if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
+            continue
+
+        if _isDebug():
+            if getattr(options, debug_option_value_name) is not False:
+                result.append(debug_option_value_name)
+        else:
+            if getattr(options, debug_option_value_name) is True:
+                result.append(debug_option_value_name)
+
+    return result
+
+
 def shallExplainImports():
     """:returns: bool derived from ``--explain-imports``"""
     return options is not None and options.explain_imports
