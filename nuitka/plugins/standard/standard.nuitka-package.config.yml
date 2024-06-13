@@ -2020,6 +2020,11 @@
     - depends:
         - 'lxml.etree'
 
+- module-name: 'lxml.sax' # checksum: 291d11ed
+  implicit-imports:
+    - depends:
+        - 'xml.sax'
+
 - module-name: 'magic' # checksum: 803cd877
   data-files:
     dirs:
