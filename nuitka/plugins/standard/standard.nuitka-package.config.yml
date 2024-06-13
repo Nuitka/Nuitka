@@ -7626,6 +7626,16 @@
         prefixes:
           - 'zaber-motion-lib'
 
+- module-name: 'zeroconf._listener' # checksum: a6a63ed5
+  implicit-imports:
+    - depends:
+        - 'zeroconf._handlers.answers'
+
+- module-name: 'zeroconf._services.info' # checksum: abf003b9
+  implicit-imports:
+    - depends:
+        - 'zeroconf._utils.ipaddress'
+
 - module-name: 'zmq' # checksum: b0320bcc
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
