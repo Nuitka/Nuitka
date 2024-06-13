@@ -765,6 +765,25 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--no-debug-immortal-assumptions",
+    action="store_false",
+    dest="debug_immortal",
+    default=None,
+    help="""\
+Disable check normally done with "--debug". With Python3.12+ do not check known
+immortal object assumptions. Some C libraries corrupt them. Defaults to check
+being made if "--debug" is on.""",
+)
+
+debug_group.add_option(
+    "--debug-immortal-assumptions",
+    action="store_true",
+    dest="debug_immortal",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
     "--unstripped",
     "--unstriped",
     action="store_true",
