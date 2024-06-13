@@ -173,7 +173,7 @@ def prepareEnvironment(mingw_mode):
 
 
 def createEnvironment(
-    mingw_mode, msvc_version, target_arch, experimental, no_deployment
+    mingw_mode, msvc_version, target_arch, experimental, no_deployment, debug_modes
 ):
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
@@ -270,6 +270,9 @@ def createEnvironment(
 
     _enableFlagSettings(env, "experimental", experimental)
     env.experimental_flags = experimental
+
+    _enableFlagSettings(env, "debug", debug_modes)
+    env.debug_modes_flags = debug_modes
 
     return env
 
