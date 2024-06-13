@@ -371,6 +371,12 @@ Debug features:
 Executing all self checks possible to find errors in
 Nuitka, do not use for production. Defaults to off.
 .TP
+\fB\-\-no\-debug\-immortal\-assumptions\fR
+Disable check normally done with "\-\-debug". With
+Python3.12+ do not check known immortal object
+assumptions. Some C libraries corrupt them. Defaults
+to check being made if "\-\-debug" is on.
+.TP
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for
 better debugger interaction. Defaults to off.

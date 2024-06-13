@@ -108,12 +108,12 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
 #if PYTHON_VERSION < 0x3c0
 #define Py_INCREF_IMMORTAL(value) Py_INCREF(value)
 #define Py_DECREF_IMMORTAL(value) Py_DECREF(value)
-#elif defined(__NUITKA_NO_ASSERT__)
-#define Py_INCREF_IMMORTAL(value)
-#define Py_DECREF_IMMORTAL(value)
-#else
+#elif defined(_NUITKA_DEBUG_DEBUG_IMMORTAL)
 #define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
 #define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
+#else
+#define Py_INCREF_IMMORTAL(value)
+#define Py_DECREF_IMMORTAL(value)
 #endif
 
 // Macro introduced with Python3.9 or higher, make it generally available.
