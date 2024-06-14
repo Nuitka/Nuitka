@@ -1887,10 +1887,13 @@
     - depends:
         - 'win32timezone'
 
-- module-name: 'kivy' # checksum: aa55c3a4
+- module-name: 'kivy' # checksum: f6e12f66
   data-files:
     dirs:
       - 'data'
+  implicit-imports:
+    - depends:
+        - 'kivy.uix.*'
 
   options:
     checks:
