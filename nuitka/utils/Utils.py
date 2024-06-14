@@ -456,6 +456,15 @@ def raiseWindowsError(message):
     )
 
 
+def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
+    # Hack, we need this to bootstrap and it's actually living in __main__
+    # module of nuitka package and renamed to where we can get at easily for
+    # other uses. pylint: disable=no-name-in-module,redefined-outer-name
+    from nuitka import getLaunchingNuitkaProcessEnvironmentValue
+
+    return getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name)
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

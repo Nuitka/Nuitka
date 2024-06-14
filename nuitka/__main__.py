@@ -14,6 +14,36 @@ or package, that can contain all used modules too.
 import os
 import sys
 
+_cached_process_environments = {}
+
+
+def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
+    if environment_variable_name not in _cached_process_environments:
+        _cached_process_environments[environment_variable_name] = os.getenv(
+            environment_variable_name
+        )
+        if _cached_process_environments[environment_variable_name] is not None:
+            del os.environ[environment_variable_name]
+
+    value = _cached_process_environments[environment_variable_name]
+
+    if value is not None and ":" not in value:
+        value = None
+
+    if value is not None:
+        pid, value = value.split(":", 1)
+
+        try:
+            pid = int(pid)
+        except ValueError:
+            value = None
+        else:
+            if os.name != "nt":
+                if pid != os.getpid():
+                    value = None
+
+    return value
+
 
 def main():
     # PyLint for Python3 thinks we import from ourselves if we really
@@ -35,21 +65,25 @@ def main():
         )
         sys.exit(1)
 
-    if "NUITKA_BINARY_NAME" in os.environ:
-        sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
+    nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_BINARY_NAME")
+    if nuitka_binary_name is not None:
+        sys.argv[0] = nuitka_binary_name
 
-    if "NUITKA_PYTHONPATH_AST" in os.environ:
+    nuitka_pythonpath_ast = getLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_PYTHONPATH_AST"
+    )
+
+    if nuitka_pythonpath_ast is not None:
         # Restore the PYTHONPATH gained from the site module, that we chose not
         # to have imported during compilation. For loading "ast" module, we need
         # one element, that is not necessarily in our current path, but we use
         # that to evaluate the current path.
-        sys.path = [os.environ["NUITKA_PYTHONPATH_AST"]]
+        sys.path = [nuitka_pythonpath_ast]
         import ast
 
-        del os.environ["NUITKA_PYTHONPATH_AST"]
-
-        sys.path = ast.literal_eval(os.environ["NUITKA_PYTHONPATH"])
-        del os.environ["NUITKA_PYTHONPATH"]
+        sys.path = ast.literal_eval(
+            getLaunchingNuitkaProcessEnvironmentValue("NUITKA_PYTHONPATH")
+        )
     else:
         # Remove path element added for being called via "__main__.py", this can
         # only lead to trouble, having e.g. a "distutils" in sys.path that comes
@@ -103,6 +137,13 @@ def main():
 
     warnings.simplefilter("ignore", DeprecationWarning)
 
+    # Hack, we need this to bootstrap and it's actually living in __main__
+    # module of nuitka package and renamed to where we can get at easily for
+    # other uses.
+    __import__("nuitka").getLaunchingNuitkaProcessEnvironmentValue = (
+        getLaunchingNuitkaProcessEnvironmentValue
+    )
+
     from nuitka import Options  # isort:skip
 
     Options.parseArgs()
@@ -151,11 +192,15 @@ def main():
 
 
 if __name__ == "__main__":
-    if "NUITKA_PACKAGE_HOME" in os.environ:
-        sys.path.insert(0, os.environ["NUITKA_PACKAGE_HOME"])
+    _nuitka_package_home = getLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_PACKAGE_HOME"
+    )
+    if _nuitka_package_home is not None:
+        sys.path.insert(0, _nuitka_package_home)
 
         import nuitka  # just to have it loaded from there, pylint: disable=unused-import
 
+        assert sys.path[0] is _nuitka_package_home
         del sys.path[0]
 
     main()

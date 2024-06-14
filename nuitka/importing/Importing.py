@@ -49,7 +49,11 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     hasUniversalOrMatchingMacOSArchitecture,
 )
-from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
+from nuitka.utils.Utils import (
+    getLaunchingNuitkaProcessEnvironmentValue,
+    isMacOS,
+    isWin32OrPosixWindows,
+)
 
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -724,7 +728,7 @@ def _findModuleInPath(module_name):
     # executed, while we normally search in PYTHONPATH after it was executed,
     # and on some systems, that fails.
     if package_name is None and module_name == "site":
-        candidate = os.getenv("NUITKA_SITE_FILENAME")
+        candidate = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME")
 
         if candidate:
             return candidate, "py"
