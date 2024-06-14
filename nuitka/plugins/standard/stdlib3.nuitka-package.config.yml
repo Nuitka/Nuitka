@@ -254,6 +254,13 @@
         "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
       when: 'not module_mode'
 
+- module-name: 'opcode' # checksum: bef1771d
+  implicit-imports:
+    # Overcome default non-inclusion of this module, required now
+    - depends:
+        - '_opcode'
+      when: 'python313_or_higher'
+
 - module-name: 'pdb' # checksum: 447bd07e
   anti-bloat:
     - description: 'remove module ability to run as a binary'
