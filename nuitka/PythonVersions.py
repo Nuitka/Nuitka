@@ -261,6 +261,12 @@ def getPythonABI():
     return abiflags
 
 
+def getLaunchingSystemPrefixPath():
+    from nuitka.utils.Utils import getLaunchingNuitkaProcessEnvironmentValue
+
+    return getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SYS_PREFIX")
+
+
 _the_sys_prefix = None
 
 
