@@ -7469,6 +7469,12 @@
       replacements_plain:
         "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
 
+- module-name: 'webview.platforms.winforms' # checksum: 38f993f6
+  anti-bloat:
+    - replacements_plain:
+        'ExtractIconW(handle, sys.executable, 0)': 'ExtractIconW(handle, sys.argv[0], 0)'
+      when: 'standalone and win32'
+
 - module-name: 'werkzeug.serving' # checksum: fcfdb30e
   anti-bloat:
     - description: 'remove ability to run with reloader'
