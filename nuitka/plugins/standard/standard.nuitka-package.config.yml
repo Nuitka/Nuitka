@@ -1104,6 +1104,16 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
+- module-name: 'en_core_web_sm' # checksum: 8ee8e024
+  data-files:
+    dirs:
+      - '.'
+    patterns:
+      - '**/*.bin'
+
+    include-metadata:
+      - 'en_core_web_sm'
+
 - module-name: 'enchant' # checksum: 810a705a
   data-files:
     dirs:
@@ -2888,8 +2898,8 @@
 - module-name: 'paddleocr' # checksum: 90264499
   import-hacks:
     - global-sys-path:
-          # This package forces itself into "sys.path" and expects absolute
-          # imports from all of these to be available.
+        # This package forces itself into "sys.path" and expects absolute
+        # imports from all of these to be available.
         - ''
         - 'ppstructure'
         - 'tools/infer'
@@ -3466,6 +3476,11 @@
       change_function:
         'embedded_data_path': "'(lambda: app_path())'"
 
+- module-name: 'playwright_stealth' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'plotly.graph_objects' # checksum: bf6dd64b
   anti-bloat:
     - description: 'remove IPython reference'
@@ -3586,9 +3601,18 @@
         'from extract_textpoint_fast import generate_pivot_list_fast, restore_poly': 'from .extract_textpoint_fast import generate_pivot_list_fast, restore_poly'
   import-hacks:
     - global-sys-path:
-          # This package forces itself into "sys.path" and expects absolute
-          # imports to be available.
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
         - ''
+
+- module-name: 'preshed.counter' # checksum: 1e9d1989
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'preshed.tests': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'preshed.cymem'
 
 - module-name: 'psutil' # checksum: 24d7eb52
   anti-bloat:
@@ -4654,6 +4678,11 @@
         executable: 'yes'
       when: 'win32'
 
+- module-name: 'selenium_stealth' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
@@ -5323,6 +5352,49 @@
         prefixes:
           - 'libsndfile'
       when: 'macos'
+
+- module-name: 'spacy' # checksum: 99c1e2c8
+  data-files:
+    dirs:
+      - '.'
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'spacy.tests': 'ignore'
+
+- module-name: 'spacy.pipeline' # checksum: 285ab011
+  implicit-imports:
+    - depends:
+        - 'thinc.extra.*'
+        - 'spacy.pipeline.ner'
+
+- module-name: 'spacy.pipeline._parser_internals' # checksum: 36eb559e
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline._parser_internals._beam_utils'
+        - 'spacy.pipeline._parser_internals._state'
+        - 'spacy.pipeline._parser_internals.arc_eager'
+        - 'spacy.pipeline._parser_internals.nonproj'
+        - 'spacy.pipeline._parser_internals.stateclass'
+        - 'spacy.pipeline._parser_internals.transition_system'
+        - 'spacy.pipeline._parser_internals.ner'
+
+- module-name: 'spacy.pipeline.dep_parser' # checksum: c61d0958
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline.transition_parser'
+
+- module-name: 'spacy.util' # checksum: 39e3b324
+  implicit-imports:
+    - depends:
+        - 'spacy.lang.*'
+
+- module-name: 'spacy.vocab' # checksum: 73f7507a
+  implicit-imports:
+    - depends:
+        - 'spacy.lang.lex_attrs'
+        - 'spacy.parts_of_speech'
+        - 'spacy.lang.norm_exceptions'
 
 - module-name: 'sparse' # checksum: 7a56f74f
   options:
@@ -6367,10 +6439,41 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'thinc' # checksum: 22203f3f
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'thinc.tests': 'ignore'
+
+- module-name: 'thinc.backends' # checksum: 7aaf0f6e
+  data-files:
+    patterns:
+      - '*.cu'
+
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'thinc.tests': 'ignore'
+
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
     - depends:
         - 'blis'
+
+- module-name: 'thinc.backends.numpy_ops' # checksum: a904b0a4
+  implicit-imports:
+    - depends:
+        - 'thinc.backends.linalg'
+
+- module-name: 'thinc.backends.numpy_ops.NumpyOps' # checksum: 53774cbb
+  implicit-imports:
+    - depends:
+        - 'blis'
+
+- module-name: 'thinc.layers.concatenate' # checksum: 90d2f7a2
+  implicit-imports:
+    - depends:
+        - 'blis.py'
 
 - module-name: 'tifffile.tifffile' # checksum: 9838c964
   anti-bloat:
