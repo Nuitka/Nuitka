@@ -92,6 +92,8 @@ except ImportError:
             yield "kivy.graphics.cgl_backend.cgl_gl"
         elif full_name == "kivymd.app":
             yield self.locateModules("kivymd.uix")
+        elif full_name == "kivy.core.clipboard":
+            yield "kivy.core.clipboard.clipboard_winctypes"
 
     def getExtraDlls(self, module):
         """Copy extra shared libraries or data for this installation.
