@@ -1873,10 +1873,15 @@
     - depends:
         - 'win32timezone'
 
-- module-name: 'kivy' # checksum: 810a705a
+- module-name: 'kivy' # checksum: aa55c3a4
   data-files:
     dirs:
       - 'data'
+
+  options:
+    checks:
+      - description: 'Kivy is a GUI framework'
+        macos_bundle: 'recommend'
 
 - module-name: 'kivy._clock' # checksum: fbb1ca92
   implicit-imports:
