@@ -261,6 +261,24 @@ def getPythonABI():
     return abiflags
 
 
+_the_launching_sys_prefix = None
+
+
+def getLaunchingSystemPrefixPath():
+    global _the_launching_sys_prefix  # Cached result, pylint: disable=global-statement
+
+    if _the_launching_sys_prefix is None:
+        from nuitka.utils.Utils import (
+            getLaunchingNuitkaProcessEnvironmentValue,
+        )
+
+        _the_launching_sys_prefix = getLaunchingNuitkaProcessEnvironmentValue(
+            "NUITKA_SYS_PREFIX"
+        )
+
+    return None
+
+
 _the_sys_prefix = None
 
 

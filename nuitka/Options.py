@@ -43,6 +43,7 @@ from nuitka.PythonFlavors import (
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
+    getLaunchingSystemPrefixPath,
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
@@ -60,6 +61,7 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
+    getLaunchingNuitkaProcessEnvironmentValue,
     getLinuxDistribution,
     getMacOSRelease,
     getOS,
@@ -414,10 +416,16 @@ Error, the Python from Windows app store is not supported.""",
             % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
         )
 
-    if os.getenv("NUITKA_REEXECUTION") and not isAllowedToReexecute():
+    if (
+        getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
+        and not isAllowedToReexecute()
+    ):
         Tracing.general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )
+
+    # Force to persist this one early.
+    getLaunchingSystemPrefixPath()
 
     if options.progress_bar:
         Progress.enableProgressBar()
