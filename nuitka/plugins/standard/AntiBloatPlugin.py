@@ -375,8 +375,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         # To allow detection if it did anything.
         change_count = 0
 
-        for replace_src, replace_code in anti_bloat_config.get(
-            "replacements", {}
+        for replace_src, replace_code in (
+            anti_bloat_config.get("replacements") or {}
         ).items():
             # Avoid the eval, if the replace doesn't hit.
             if replace_src not in source_code:
@@ -401,8 +401,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in anti_bloat_config.get(
-            "replacements_plain", {}
+        for replace_src, replace_dst in (
+            anti_bloat_config.get("replacements_plain") or {}
         ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
@@ -410,8 +410,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in anti_bloat_config.get(
-            "replacements_re", {}
+        for replace_src, replace_dst in (
+            anti_bloat_config.get("replacements_re") or {}
         ).items():
             old = source_code
             source_code = re.sub(replace_src, replace_dst, source_code)
