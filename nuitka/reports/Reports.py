@@ -40,7 +40,11 @@ from nuitka.OutputDirectories import (
 )
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
+from nuitka.PythonVersions import (
+    getLaunchingSystemPrefixPath,
+    getSystemPrefixPath,
+    python_version_full_str,
+)
 from nuitka.Tracing import ReportingSystemExit, reports_logger
 from nuitka.utils.Distributions import (
     getDistributionInstallerName,
@@ -236,7 +240,7 @@ def _getReportPathPrefixes():
     if _report_prefixes is None:
         _report_prefixes = []
 
-        sys_prefix = os.getenv("NUITKA_SYS_PREFIX", sys.prefix)
+        sys_prefix = getLaunchingSystemPrefixPath() or sys.prefix
         real_sys_prefix = getSystemPrefixPath()
 
         if real_sys_prefix != sys_prefix:

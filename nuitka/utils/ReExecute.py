@@ -12,8 +12,6 @@ spell-checker: ignore execl, Popen
 import os
 import sys
 
-from nuitka.Options import shallExecuteImmediately
-
 
 def callExecProcess(args, uac):
     """Do exec in a portable way preserving exit code.
@@ -57,6 +55,10 @@ def callExecProcess(args, uac):
         os.execl(*args)
 
 
+def setLaunchingNuitkaProcessEnvironmentValue(environment_variable_name, value):
+    os.environ[environment_variable_name] = str(os.getpid()) + ":" + value
+
+
 def reExecuteNuitka(pgo_filename):
     # Execute with full path as the process name, so it can find itself and its
     # libraries.
@@ -75,18 +77,18 @@ def reExecuteNuitka(pgo_filename):
 
     args += ["-S", our_filename]
 
-    os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
-    os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
-        os.path.abspath(sys.modules["nuitka"].__path__[0])
+    setLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_BINARY_NAME", sys.modules["__main__"].__file__
+    )
+    setLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_PACKAGE_HOME",
+        os.path.dirname(os.path.abspath(sys.modules["nuitka"].__path__[0])),
     )
 
     if pgo_filename is not None:
         args.append("--pgo-python-input=%s" % pgo_filename)
     else:
-        os.environ["NUITKA_SYS_PREFIX"] = sys.prefix
-
-    if shallExecuteImmediately():
-        args.append("--run")
+        setLaunchingNuitkaProcessEnvironmentValue("NUITKA_SYS_PREFIX", sys.prefix)
 
     # Same arguments as before.
     args += sys.argv[1:]
@@ -103,7 +105,7 @@ def reExecuteNuitka(pgo_filename):
         if site_filename.endswith(".pyc"):
             site_filename = site_filename[:-4] + ".py"
 
-        os.environ["NUITKA_SITE_FILENAME"] = site_filename
+        setLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME", site_filename)
 
         # Note: As side effect, this might modify the "sys.path" too.
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
@@ -112,21 +114,23 @@ def reExecuteNuitka(pgo_filename):
         if user_site is not None:
             os.environ["NUITKA_USER_SITE"] = repr(user_site)
 
-    os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
+    setLaunchingNuitkaProcessEnvironmentValue("NUITKA_PYTHONPATH", repr(sys.path))
 
     # In some environments, initial "sys.path" does not contain enough to load
     # "ast" module, which however we use to decode "NUITKA_PYTHONPATH", this
     # helps solve the chicken and egg problem.
     import ast
 
-    os.environ["NUITKA_PYTHONPATH_AST"] = os.path.dirname(ast.__file__)
+    setLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_PYTHONPATH_AST", os.path.dirname(ast.__file__)
+    )
 
     if sys.flags.no_site:
         os.environ["NUITKA_NOSITE_FLAG"] = "1"
 
     os.environ["PYTHONHASHSEED"] = "0"
 
-    os.environ["NUITKA_REEXECUTION"] = "1"
+    setLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION", "1")
 
     # Does not return:
     callExecProcess(args, uac=False)
