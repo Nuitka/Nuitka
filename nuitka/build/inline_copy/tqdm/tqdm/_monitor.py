@@ -41,7 +41,10 @@ class TMonitor(Thread):
     def exit(self):
         self.was_killed.set()
         if self is not current_thread():
-            self.join()
+            if str is bytes:
+                self.join()
+            else:
+                self.join(timeout=1.0)
         return self.report()
 
     def get_instances(self):
