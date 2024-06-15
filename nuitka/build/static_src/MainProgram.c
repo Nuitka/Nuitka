@@ -1114,6 +1114,17 @@ static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *
 static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called by C exit()"); }
 #endif
 
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAILT)
+#include <signal.h>
+static void nuitka_segfault_handler(int sig) {
+    puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
+    puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
+    puts("for solutions.");
+
+    exit(-SIGSEGV);
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -1126,6 +1137,12 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
 #endif
+
+    // Installer a segfault handler that outputs a helpful message.
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAILT)
+    signal(SIGSEGV, nuitka_segfault_handler);
+#endif
+
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
     INIT_C_BACKTRACES();
     DUMP_C_BACKTRACE();

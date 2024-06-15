@@ -779,7 +779,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 2aa22aa9
+- module-name: 'cv2' # checksum: 586ad888
   data-files:
     dirs:
       - 'qt/fonts'
@@ -794,21 +794,26 @@
           - 'opencv_videoio'
       when: 'win32'
   anti-bloat:
-    - description: 'workaround for colliding native module import'
+    - description: 'workaround for config module as code'
       context:
         - 'import textwrap'
         - 'import pkgutil'
-        - 'from nuitka.utils.Importing import getSharedLibrarySuffix'
       replacements_plain:
         ? "load_first_config([\n"
         : 'if False: (['
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+    - description: 'workaround for colliding native module import'
+      replacements:
         # Before OpenCV 4.6
-        'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
-        # After OpenCV 4.6
-        'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
-      when: 'standalone'
+        'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
+      # After OpenCV 4.6
+        'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
+      when: 'standalone and before_python312'
+    - description: 'workaround for colliding native module import'
+      replacements:
+        'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
+      when: 'standalone and python312_or_higher'
   implicit-imports:
     - depends:
         - 'cv2.cv2'
@@ -1098,6 +1103,16 @@
     - description: 'avoid useless duplication of traceback module'
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
+
+- module-name: 'en_core_web_sm' # checksum: 8ee8e024
+  data-files:
+    dirs:
+      - '.'
+    patterns:
+      - '**/*.bin'
+
+    include-metadata:
+      - 'en_core_web_sm'
 
 - module-name: 'enchant' # checksum: 810a705a
   data-files:
@@ -1872,10 +1887,15 @@
     - depends:
         - 'win32timezone'
 
-- module-name: 'kivy' # checksum: 810a705a
+- module-name: 'kivy' # checksum: aa55c3a4
   data-files:
     dirs:
       - 'data'
+
+  options:
+    checks:
+      - description: 'Kivy is a GUI framework'
+        macos_bundle: 'recommend'
 
 - module-name: 'kivy._clock' # checksum: fbb1ca92
   implicit-imports:
@@ -2033,6 +2053,11 @@
   implicit-imports:
     - depends:
         - 'lxml.etree'
+
+- module-name: 'lxml.sax' # checksum: 291d11ed
+  implicit-imports:
+    - depends:
+        - 'xml.sax'
 
 - module-name: 'magic' # checksum: 803cd877
   data-files:
@@ -2893,8 +2918,8 @@
 - module-name: 'paddleocr' # checksum: 90264499
   import-hacks:
     - global-sys-path:
-          # This package forces itself into "sys.path" and expects absolute
-          # imports from all of these to be available.
+        # This package forces itself into "sys.path" and expects absolute
+        # imports from all of these to be available.
         - ''
         - 'ppstructure'
         - 'tools/infer'
@@ -3465,6 +3490,11 @@
       change_function:
         'embedded_data_path': "'(lambda: app_path())'"
 
+- module-name: 'playwright_stealth' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'plotly.graph_objects' # checksum: bf6dd64b
   anti-bloat:
     - description: 'remove IPython reference'
@@ -3585,9 +3615,18 @@
         'from extract_textpoint_fast import generate_pivot_list_fast, restore_poly': 'from .extract_textpoint_fast import generate_pivot_list_fast, restore_poly'
   import-hacks:
     - global-sys-path:
-          # This package forces itself into "sys.path" and expects absolute
-          # imports to be available.
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
         - ''
+
+- module-name: 'preshed.counter' # checksum: 1e9d1989
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'preshed.tests': 'ignore'
+  implicit-imports:
+    - depends:
+        - 'preshed.cymem'
 
 - module-name: 'psutil' # checksum: 24d7eb52
   anti-bloat:
@@ -4653,6 +4692,11 @@
         executable: 'yes'
       when: 'win32'
 
+- module-name: 'selenium_stealth' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
@@ -5322,6 +5366,49 @@
         prefixes:
           - 'libsndfile'
       when: 'macos'
+
+- module-name: 'spacy' # checksum: 99c1e2c8
+  data-files:
+    dirs:
+      - '.'
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'spacy.tests': 'ignore'
+
+- module-name: 'spacy.pipeline' # checksum: 285ab011
+  implicit-imports:
+    - depends:
+        - 'thinc.extra.*'
+        - 'spacy.pipeline.ner'
+
+- module-name: 'spacy.pipeline._parser_internals' # checksum: 36eb559e
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline._parser_internals._beam_utils'
+        - 'spacy.pipeline._parser_internals._state'
+        - 'spacy.pipeline._parser_internals.arc_eager'
+        - 'spacy.pipeline._parser_internals.nonproj'
+        - 'spacy.pipeline._parser_internals.stateclass'
+        - 'spacy.pipeline._parser_internals.transition_system'
+        - 'spacy.pipeline._parser_internals.ner'
+
+- module-name: 'spacy.pipeline.dep_parser' # checksum: c61d0958
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline.transition_parser'
+
+- module-name: 'spacy.util' # checksum: 39e3b324
+  implicit-imports:
+    - depends:
+        - 'spacy.lang.*'
+
+- module-name: 'spacy.vocab' # checksum: 73f7507a
+  implicit-imports:
+    - depends:
+        - 'spacy.lang.lex_attrs'
+        - 'spacy.parts_of_speech'
+        - 'spacy.lang.norm_exceptions'
 
 - module-name: 'sparse' # checksum: 7a56f74f
   options:
@@ -6366,10 +6453,40 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'thinc' # checksum: a21af6c5
+  dlls:
+    - from_filenames:
+        relative_path: 'backends'
+        prefixes:
+          - '_custom_kernels'
+          - '_murmur3'
+        suffixes:
+          - 'cu'
+
+  anti-bloat:
+    - description: 'do not follow tests'
+      no-auto-follow:
+        'thinc.tests': 'ignore'
+
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
     - depends:
         - 'blis'
+
+- module-name: 'thinc.backends.numpy_ops' # checksum: a904b0a4
+  implicit-imports:
+    - depends:
+        - 'thinc.backends.linalg'
+
+- module-name: 'thinc.backends.numpy_ops.NumpyOps' # checksum: 53774cbb
+  implicit-imports:
+    - depends:
+        - 'blis'
+
+- module-name: 'thinc.layers.concatenate' # checksum: 90d2f7a2
+  implicit-imports:
+    - depends:
+        - 'blis.py'
 
 - module-name: 'tifffile.tifffile' # checksum: 9838c964
   anti-bloat:
@@ -7365,6 +7482,12 @@
       replacements_plain:
         "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
 
+- module-name: 'webview.platforms.winforms' # checksum: 38f993f6
+  anti-bloat:
+    - replacements_plain:
+        'ExtractIconW(handle, sys.executable, 0)': 'ExtractIconW(handle, sys.argv[0], 0)'
+      when: 'standalone and win32'
+
 - module-name: 'werkzeug.serving' # checksum: fcfdb30e
   anti-bloat:
     - description: 'remove ability to run with reloader'
@@ -7634,6 +7757,16 @@
     - from_filenames:
         prefixes:
           - 'zaber-motion-lib'
+
+- module-name: 'zeroconf._listener' # checksum: a6a63ed5
+  implicit-imports:
+    - depends:
+        - 'zeroconf._handlers.answers'
+
+- module-name: 'zeroconf._services.info' # checksum: abf003b9
+  implicit-imports:
+    - depends:
+        - 'zeroconf._utils.ipaddress'
 
 - module-name: 'zmq' # checksum: b0320bcc
   dlls:
