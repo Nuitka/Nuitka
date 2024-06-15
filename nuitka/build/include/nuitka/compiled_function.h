@@ -116,6 +116,8 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
                                            PyObject *code_object_desc, PyObject *constant_return_value,
                                            PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
                                            function_impl_code const *function_table, int function_table_size);
+extern PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate,
+                                                              struct Nuitka_FunctionObject *function);
 #endif
 
 static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
