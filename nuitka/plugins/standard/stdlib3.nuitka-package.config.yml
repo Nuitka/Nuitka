@@ -9,10 +9,26 @@
     - depends:
         - 'asyncio'
 
+- module-name: '_curses_panel' # checksum: c9b072ec
+  implicit-imports:
+    - depends:
+        - 'curses'
+
+- module-name: '_elementtree' # checksum: 109ba176
+  implicit-imports:
+    - depends:
+        - 'xml.etree.ElementPath'
+        - 'pyexpat'
+
 - module-name: '_osx_support' # checksum: e893ad4b
   anti-bloat:
     - no-auto-follow:
         'distutils': 'ignore'
+
+- module-name: '_ssl' # checksum: 84c2a8c5
+  implicit-imports:
+    - depends:
+        - 'socket'
 
 - module-name: '_zoneinfo' # checksum: 8de2a2bd
   implicit-imports:
@@ -237,6 +253,13 @@
       replacements_plain:
         "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
       when: 'not module_mode'
+
+- module-name: 'opcode' # checksum: bef1771d
+  implicit-imports:
+    # Overcome default non-inclusion of this module, required now
+    - depends:
+        - '_opcode'
+      when: 'python313_or_higher'
 
 - module-name: 'pdb' # checksum: 447bd07e
   anti-bloat:

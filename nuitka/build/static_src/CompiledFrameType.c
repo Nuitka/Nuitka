@@ -986,11 +986,6 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     Py_DECREF(filename_str);
 #endif
 
-    if (result == NULL) {
-        PyErr_PrintEx(0);
-    }
-
-    CHECK_OBJECT(result);
     return result;
 }
 
