@@ -24,6 +24,10 @@ sys.path.insert(
 
 import shutil
 
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     check_output,
     checkLoadedFileAccesses,
@@ -40,7 +44,11 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.utils.Execution import NuitkaCalledProcessError
-from nuitka.utils.FileOperations import getFileContents, openTextFile
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    openTextFile,
+    withDirectoryChange,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -63,19 +71,16 @@ def main():
     done = set()
 
     def decide(root, filename):
-        if os.path.sep + "Cython" + os.path.sep in root:
-            return False
+        # TODO: Should not have matplotlib, msgpack here, find out why it is.
+        for ignore_package in ("matplotlib", "black", "Cython", "msgpack"):
+            if (
+                root.endswith(os.path.sep + ignore_package)
+                or os.path.sep + ignore_package + os.path.sep in root
+            ):
+                return False
 
-        if (
-            root.endswith(os.path.sep + "matplotlib")
-            or os.path.sep + "matplotlib" + os.path.sep in root
-        ):
-            return False
-
+        # This is a DLL only
         if filename.endswith("linux-gnu_d.so"):
-            return False
-
-        if root.endswith(os.path.sep + "msgpack"):
             return False
 
         first_part = filename.split(".")[0]
@@ -91,6 +96,8 @@ def main():
     current_dir = os.path.normcase(current_dir)
 
     def action(stage_dir, root, path):
+        report_filename = "test-compilation-report.xml"
+
         command = [
             sys.executable,
             os.path.join("..", "..", "bin", "nuitka"),
@@ -99,6 +106,7 @@ def main():
             "--output-dir=%s" % stage_dir,
             "--remove-output",
             "--no-progressbar",
+            "--report=%s" % report_filename,
         ]
 
         filename = os.path.join(stage_dir, "importer.py")
@@ -151,19 +159,21 @@ def main():
             except Exception:
                 raise
             else:
-                assert os.path.exists(filename[:-3] + ".dist")
+                compilation_report = parseCompilationReport(report_filename)
 
-                binary_filename = os.path.join(
-                    filename[:-3] + ".dist",
-                    "importer.exe" if os.name == "nt" else "importer",
+                binary_filename = getCompilationOutputBinary(
+                    compilation_report=compilation_report,
+                    prefixes=(("${cwd}", os.getcwd()),),
                 )
-                loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                    logger=test_logger,
-                    command=[binary_filename],
-                )
+
+                with withDirectoryChange(stage_dir):
+                    loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                        logger=test_logger,
+                        command=[binary_filename],
+                    )
 
                 outside_accesses = checkLoadedFileAccesses(
-                    loaded_filenames=loaded_filenames, current_dir=os.getcwd()
+                    loaded_filenames=loaded_filenames, current_dir=stage_dir
                 )
 
                 if outside_accesses:
