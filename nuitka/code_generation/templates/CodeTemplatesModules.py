@@ -149,16 +149,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(tstate, 6);
-    PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
-    PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
-    PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
-    PyTuple_SET_ITEM0(code_object_desc, 3, function->m_code_object->co_varnames);
-    PyTuple_SET_ITEM(code_object_desc, 4, PyLong_FromLong(function->m_code_object->co_argcount));
-    PyTuple_SET_ITEM(code_object_desc, 5, PyLong_FromLong(function->m_code_object->co_flags));
-
-    CHECK_OBJECT_DEEP(code_object_desc);
-
+    PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
 
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
     PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
