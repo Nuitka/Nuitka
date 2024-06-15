@@ -103,7 +103,12 @@ def _getScanDirectories(package_name, original_dir):
     scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
 
     if package_name is not None:
-        scan_dirs.extend(getPackageSpecificDLLDirectories(package_name))
+        scan_dirs.extend(
+            getPackageSpecificDLLDirectories(
+                package_name=package_name,
+                consider_plugins=False,
+            )
+        )
 
     if original_dir is not None:
         scan_dirs.append(original_dir)

@@ -340,6 +340,7 @@
         "subclasscheck",
         "sysexit",
         "sysflag",
+        "terminfo",
         "Termux",
         "ternaryfunc",
         "Themida",

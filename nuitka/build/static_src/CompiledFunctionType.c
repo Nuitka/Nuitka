@@ -1151,13 +1151,21 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
     int flags_int = PyLong_AsLong(flags);
     assert(flags_int != -1);
 
+    PyObject *kw_only_count = PyTuple_GET_ITEM(code_object_desc, 6);
+    int kw_only_count_int = PyLong_AsLong(kw_only_count);
+    assert(kw_only_count_int != -1);
+
+    PyObject *pos_only_count = PyTuple_GET_ITEM(code_object_desc, 7);
+    int pos_only_count_int = PyLong_AsLong(pos_only_count);
+    assert(pos_only_count_int != -1);
+
     PyCodeObject *code_object =
         MAKE_CODE_OBJECT(filename, line_int, flags_int, function_name, function_qualname, arg_names,
                          NULL, // freevars
-                         arg_count_int,
-                         0, // TODO: Missing kw_only_count
-                         0  // TODO: Missing pos_only_count
-        );
+                         arg_count_int, kw_only_count_int, pos_only_count_int);
+    if (unlikely(code_object == NULL)) {
+        return NULL;
+    }
 
     Py_ssize_t closure_size;
 
@@ -1209,6 +1217,37 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
     return result;
 }
 
+PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate, struct Nuitka_FunctionObject *function) {
+    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(tstate, 8);
+
+    PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
+    PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
+    PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
+#if PYTHON_VERSION < 0x3b0
+    PyTuple_SET_ITEM0(code_object_desc, 3, function->m_code_object->co_varnames);
+#else
+    // spell-checker: ignore PyCode_GetVarnames
+    PyTuple_SET_ITEM(code_object_desc, 3, PyCode_GetVarnames(function->m_code_object));
+#endif
+    PyTuple_SET_ITEM(code_object_desc, 4, PyLong_FromLong(function->m_code_object->co_argcount));
+    PyTuple_SET_ITEM(code_object_desc, 5, PyLong_FromLong(function->m_code_object->co_flags));
+
+#if PYTHON_VERSION < 0x380
+    PyTuple_SET_ITEM(code_object_desc, 6, const_int_0);
+#else
+    PyTuple_SET_ITEM(code_object_desc, 6, PyLong_FromLong(function->m_code_object->co_posonlyargcount));
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+    PyTuple_SET_ITEM(code_object_desc, 7, const_int_0);
+#else
+    PyTuple_SET_ITEM(code_object_desc, 7, PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
+#endif
+
+    CHECK_OBJECT_DEEP(code_object_desc);
+
+    return code_object_desc;
+}
 #endif
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
