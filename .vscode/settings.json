@@ -78,7 +78,8 @@
         "xlocinfo": "c",
         "xlocnum": "c",
         "xloctime": "c",
-        "xmemory": "c"
+        "xmemory": "c",
+        "xiosbase": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
