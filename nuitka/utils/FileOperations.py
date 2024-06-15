@@ -290,7 +290,7 @@ def _restoreWindowsPath(orig_path, path):
             drive_real_path = os.path.realpath(drive + "\\")
             assert path.startswith(drive_real_path)
 
-            path = drive + path[len(drive_real_path) :]
+            path = drive + "\\" + path[len(drive_real_path) :]
     else:
         path = path.strip(os.path.sep)
 
@@ -1467,6 +1467,43 @@ def openPickleFile(filename, mode, protocol=-1):
         return file_handle, pickle._Pickler(  # pylint: disable=protected-access
             file_handle, protocol
         )
+
+
+def isLegalPath(path):
+    illegal_suffixes = "/\\"
+    illegal_chars = "\0"
+
+    if isWin32Windows():
+        illegal_chars += r'*"/<>:|?'
+
+        illegal_chars += "".join(chr(x) for x in range(1, 32))
+        illegal_suffixes += " ."
+
+    if isMacOS():
+        illegal_chars += ":"
+
+    for c in path:
+        if c in illegal_chars:
+            return False, "contains illegal character %r" % c
+
+    for illegal_suffix in illegal_suffixes:
+        if path.endswith(illegal_suffix):
+            return False, "contains illegal suffix %r" % illegal_suffix
+
+    return True, None
+
+
+def getParentDirectories(path):
+    """Get all parent directories of a path in descending order."""
+
+    while 1:
+        old_path = path
+        path = os.path.dirname(path)
+
+        if not path or path == old_path:
+            return
+
+        yield path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

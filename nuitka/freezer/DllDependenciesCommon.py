@@ -8,6 +8,7 @@ import os
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Plugins import Plugins
+from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -22,7 +23,12 @@ def getLdLibraryPath(package_name, python_rpaths, original_dir):
         if python_rpaths:
             ld_library_path.update(python_rpaths)
 
-        ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
+        ld_library_path.update(
+            getPackageSpecificDLLDirectories(
+                package_name=package_name,
+                consider_plugins=True,
+            )
+        )
         if original_dir is not None:
             ld_library_path.add(original_dir)
 
@@ -31,13 +37,26 @@ def getLdLibraryPath(package_name, python_rpaths, original_dir):
     return _ld_library_cache[key]
 
 
-def getPackageSpecificDLLDirectories(package_name, consider_plugins=True):
+def getPackageSpecificDLLDirectories(
+    package_name, consider_plugins, allow_not_found=False
+):
     scan_dirs = OrderedSet()
 
     if package_name is not None:
         package_dir = locateModule(
             module_name=package_name, parent_package=None, level=0
         )[1]
+
+        if package_dir is None:
+            if allow_not_found:
+                return scan_dirs
+
+            inclusion_logger.sysexit(
+                """\
+Error, failed to locate package '%s' while trying to look up DLL dependencies, \
+that should not happen. Please report the issue."""
+                % package_name
+            )
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
@@ -51,7 +70,13 @@ def getPackageSpecificDLLDirectories(package_name, consider_plugins=True):
 
     # TODO: Move this to plugins DLLs section.
     if package_name == "torchvision" and consider_plugins:
-        scan_dirs.update(getPackageSpecificDLLDirectories(ModuleName("torch")))
+        scan_dirs.update(
+            getPackageSpecificDLLDirectories(
+                package_name=ModuleName("torch"),
+                consider_plugins=True,
+                allow_not_found=True,
+            )
+        )
 
     return scan_dirs
 
