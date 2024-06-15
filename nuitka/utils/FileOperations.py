@@ -291,7 +291,7 @@ def _restoreWindowsPath(orig_path, path):
             drive_real_path = os.path.realpath(drive + "\\")
             assert path.startswith(drive_real_path)
 
-            path = drive + path[len(drive_real_path) :]
+            path = drive + "\\" + path[len(drive_real_path) :]
     else:
         path = path.strip(os.path.sep)
 
@@ -1508,6 +1508,19 @@ def isLegalPath(path):
             return False, "contains illegal suffix %r" % illegal_suffix
 
     return True, None
+
+
+def getParentDirectories(path):
+    """Get all parent directories of a path in descending order."""
+
+    while 1:
+        old_path = path
+        path = os.path.dirname(path)
+
+        if not path or path == old_path:
+            return
+
+        yield path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
