@@ -166,8 +166,26 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_RELATIVE_PATH_FROM_NAME(char const *n
     return result;
 }
 
-static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_object, char const *name,
-                                          bool is_package) {
+static PyObject *_makeDunderPathObject(PyThreadState *tstate, PyObject *module_path_entry) {
+    CHECK_OBJECT(module_path_entry);
+
+    PyObject *path_list = MAKE_LIST_EMPTY(tstate, 1);
+    if (unlikely(path_list == NULL)) {
+        return NULL;
+    }
+
+    int res = PyList_SetItem(path_list, 0, module_path_entry);
+    if (unlikely(res != 0)) {
+        return NULL;
+    }
+    Py_INCREF(module_path_entry);
+
+    CHECK_OBJECT(path_list);
+    return path_list;
+}
+
+static PyObject *loadModuleFromCodeObject(PyThreadState *tstate, PyObject *module, PyCodeObject *code_object,
+                                          char const *name, bool is_package) {
     assert(code_object != NULL);
 
     {
@@ -200,20 +218,9 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
-        NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
+        PyObject *path_list = _makeDunderPathObject(tstate, module_path_entry);
 
-        PyObject *path_list = MAKE_LIST_EMPTY(tstate, 1);
-        if (unlikely(path_list == NULL)) {
-            return NULL;
-        }
-
-        int res = PyList_SetItem(path_list, 0, module_path_entry);
-        if (unlikely(res != 0)) {
-            return NULL;
-        }
-        Py_INCREF(module_path_entry);
-
-        res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
+        int res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
         if (unlikely(res != 0)) {
             return NULL;
         }
@@ -461,7 +468,8 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
     return result;
 }
 
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename);
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
+                                         bool is_package);
 
 static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObject *module_name,
                                                   PyObject *extension_module_filename) {
@@ -479,7 +487,9 @@ static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObjec
     char const *extension_module_filename_str = Nuitka_String_AsString(extension_module_filename);
 #endif
 
-    return callIntoExtensionModule(tstate, Nuitka_String_AsString(module_name), extension_module_filename_str);
+    // TODO: The value of "is_package" is guessed, maybe infer from filename being
+    // a "__init__.so" and the like.
+    return callIntoExtensionModule(tstate, Nuitka_String_AsString(module_name), extension_module_filename_str, false);
 }
 
 #endif
@@ -675,8 +685,27 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 #endif
 }
 
-static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name,
-                                         const filename_char_t *filename) {
+#ifdef _NUITKA_STANDALONE
+// Append the the entry name from full path module name with dots,
+// and translate these into directory separators.
+static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename_size, char const *module_name_cstr,
+                                      PyObject *module_name) {
+#ifdef _WIN32
+    appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), filename_size);
+    appendCharSafeW(filename, SEP, filename_size);
+    appendModuleNameAsPathW(filename, module_name, filename_size);
+    appendStringSafeW(filename, ".pyd", filename_size);
+#else
+    appendStringSafe(filename, getBinaryDirectoryHostEncoded(true), filename_size);
+    appendCharSafe(filename, SEP, filename_size);
+    appendModuleNameAsPath(filename, module_name_cstr, filename_size);
+    appendStringSafe(filename, ".so", filename_size);
+#endif
+}
+#endif
+
+static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
+                                         bool is_package) {
     // Determine the package name and basename of the module to load.
     char const *dot = strrchr(full_name, '.');
     char const *name;
@@ -836,7 +865,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
 
-        PyObject *spec_value = createModuleSpec(tstate, full_name_obj, NULL, false);
+        PyObject *origin = Nuitka_String_FromFilename(filename);
+
+        PyObject *spec_value = createModuleSpec(tstate, full_name_obj, origin, is_package);
+        CHECK_OBJECT(spec_value);
 
         module = PyModule_FromDefAndSpec(def, spec_value);
 
@@ -848,16 +880,25 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             return NULL;
         }
 
-        setModuleFileValue(tstate, module, filename);
-        PyObject_SetAttrString((PyObject *)spec_value, "origin",
-                               LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__));
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
+
+        setModuleFileValue(tstate, module, filename);
+
+        /* Set __path__ properly, unlike frozen module importer does. */
+        PyObject *path_list = _makeDunderPathObject(tstate, origin);
+
+        int res = PyObject_SetAttr(module, const_str_plain___path__, path_list);
+        if (unlikely(res != 0)) {
+            return NULL;
+        }
+
+        Py_DECREF(path_list);
 
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
-        int res = PyModule_ExecDef(module, def);
+        res = PyModule_ExecDef(module, def);
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_False);
 
         Py_DECREF(spec_value);
@@ -1011,35 +1052,22 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
 #ifdef _NUITKA_STANDALONE
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
-        // Append the the entry name from full path module name with dots,
-        // and translate these into directory separators.
-#ifdef _WIN32
-        wchar_t filename[MAXPATHLEN + 1] = {0};
-
-        appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), sizeof(filename) / sizeof(wchar_t));
-        appendCharSafeW(filename, SEP, sizeof(filename) / sizeof(wchar_t));
-        appendModuleNameAsPathW(filename, module_name, sizeof(filename) / sizeof(wchar_t));
-        appendStringSafeW(filename, ".pyd", sizeof(filename) / sizeof(wchar_t));
-#else
-        char filename[MAXPATHLEN + 1] = {0};
-
-        appendStringSafe(filename, getBinaryDirectoryHostEncoded(true), sizeof(filename));
-        appendCharSafe(filename, SEP, sizeof(filename));
-        appendModuleNameAsPath(filename, entry->name, sizeof(filename));
-        appendStringSafe(filename, ".so", sizeof(filename));
-
-#endif
+        filename_char_t filename[MAXPATHLEN + 1] = {0};
+        _makeModuleCFilenameValue(filename, sizeof(filename) / sizeof(filename_char_t), entry->name, module_name);
 
         // Set "__spec__" and "__file__", some modules expect it early.
         setModuleFileValue(tstate, module, filename);
+
+        bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
+
 #if PYTHON_VERSION >= 0x350
-        PyObject *spec_value =
-            createModuleSpec(tstate, module_name, LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), false);
+        PyObject *spec_value = createModuleSpec(tstate, module_name,
+                                                LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), is_package);
 
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
 #endif
 
-        callIntoExtensionModule(tstate, entry->name, filename);
+        callIntoExtensionModule(tstate, entry->name, filename, is_package);
     } else
 #endif
         if ((entry->flags & NUITKA_BYTECODE_FLAG) != 0) {
@@ -1055,7 +1083,8 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
             abort();
         }
 
-        return loadModuleFromCodeObject(module, code_object, entry->name, (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
+        return loadModuleFromCodeObject(tstate, module, code_object, entry->name,
+                                        (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
     } else {
         assert((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0);
         assert(entry->python_initfunc);

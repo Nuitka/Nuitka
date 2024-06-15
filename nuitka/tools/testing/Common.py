@@ -25,6 +25,7 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import (
     check_output,
     createProcess,
+    executeProcess,
     getNullInput,
     getNullOutput,
 )
@@ -34,6 +35,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getFileList,
+    getParentDirectories,
     isFilenameSameAsOrBelowPath,
     makePath,
     openTextFile,
@@ -470,9 +472,13 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 def checkSucceedsWithCPython(filename):
     command = [_python_executable, filename]
 
-    result = subprocess.call(command, stdout=getNullOutput(), stderr=subprocess.STDOUT)
+    stdout, stderr, exit_code = executeProcess(command)
 
-    return result == 0
+    if exit_code != 0:
+        my_print("stdout", stdout)
+        my_print("stderr", stderr)
+
+    return exit_code == 0
 
 
 def getDebugPython():
@@ -1392,6 +1398,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
     current_dir = os.path.normpath(current_dir)
     current_dir = os.path.normcase(current_dir)
     current_dir_ext = os.path.normcase(getExternalUsePath(current_dir))
+    current_dir_real = os.path.realpath(current_dir)
 
     illegal_accesses = []
 
@@ -1436,6 +1443,17 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if loaded_filename.startswith(current_dir_ext):
             continue
 
+        if loaded_filename.startswith(current_dir_real):
+            continue
+
+        # Parent directories are OK too
+        if (
+            loaded_filename in getParentDirectories(current_dir)
+            or loaded_filename in getParentDirectories(current_dir_ext)
+            or loaded_filename in getParentDirectories(current_dir_real)
+        ):
+            continue
+
         ignore = True
         for ignored_dir in (
             # System configuration is OK
@@ -1456,6 +1474,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             # Themes may of course be loaded.
             "/usr/share/themes",
             # Terminal info files are OK too.
+            "/usr/share/terminfo",
             "/lib/terminfo",
         ):
             if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
@@ -1762,6 +1781,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 
         # macOS uses these:
         if loaded_basename in (
+            "libc.dylib",
             "libcrypto.1.0.0.dylib",
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
