@@ -159,7 +159,11 @@ def _createMainModule():
                 % distribution_name
             )
 
-        addDistributionMetadataValue(distribution_name, distribution)
+        addDistributionMetadataValue(
+            distribution_name=distribution_name,
+            distribution=distribution,
+            reason="user requested",
+        )
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
@@ -258,15 +262,11 @@ def _createMainModule():
         checkFreezingModuleSet()
 
     # Check if distribution meta data is included, that cannot be used.
-    for distribution_name, (
-        package_name,
-        _metadata,
-        _entry_points,
-    ) in getDistributionMetadataValues():
-        if not ModuleRegistry.hasDoneModule(package_name):
+    for distribution_name, meta_data_value in getDistributionMetadataValues():
+        if not ModuleRegistry.hasDoneModule(meta_data_value.module_name):
             inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."
-                % (distribution_name, package_name)
+                % (distribution_name, meta_data_value.module_name)
             )
 
     # Allow plugins to comment on final module set.
