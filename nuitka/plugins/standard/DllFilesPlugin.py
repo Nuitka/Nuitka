@@ -41,7 +41,7 @@ class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
     def isRelevant():
         return isStandaloneMode()
 
-    def _handleDllConfigFromFilenames(self, dest_path, dll_config, full_name):
+    def _handleDllConfigFromFilenames(self, dll_config, full_name, dest_path):
         # A lot of details here, pylint: disable=too-many-locals
 
         # The "when" is at that level too for these.
@@ -260,7 +260,9 @@ conditions are missing, or this version of the module needs treatment added."""
                 full_name=full_name, condition=dll_config.get("when", "True")
             ):
                 for dll_entry_point in self._handleDllConfig(
-                    dll_config=dll_config, full_name=full_name, count=count
+                    dll_config=dll_config,
+                    full_name=full_name,
+                    count=count,
                 ):
                     yield dll_entry_point
                     found += 1
