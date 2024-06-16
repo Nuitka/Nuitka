@@ -271,8 +271,7 @@ def getArchitecture():
             return "arm64"
         else:
             return "x86"
-    else:
-        return os.uname()[4]
+    return os.uname()[4]
 
 
 def getCPUCoreCount():
