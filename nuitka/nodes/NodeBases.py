@@ -319,8 +319,9 @@ class NodeBase(NodeMetaClassBase):
         # For overload by module nodes
         return False
 
-    def isExpressionBuiltin(self):
-        return self.kind.startswith("EXPRESSION_BUILTIN_")
+    @staticmethod
+    def isExpressionBuiltin():
+        return False
 
     @staticmethod
     def isStatementAssignmentVariable():
