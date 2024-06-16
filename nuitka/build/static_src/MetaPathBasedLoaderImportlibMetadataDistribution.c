@@ -13,7 +13,16 @@
 static PyObject *metadata_values_dict = NULL;
 
 // For initialization of the metadata dictionary during startup.
-void setDistributionsMetadata(PyObject *metadata_values) { metadata_values_dict = metadata_values; }
+void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_values) {
+    metadata_values_dict = MAKE_DICT_EMPTY(tstate);
+
+    // We get the items passed, and need to add it to the dictionary.
+    int res = PyDict_MergeFromSeq2(metadata_values_dict, metadata_values, 1);
+    assert(res == 0);
+
+    // PRINT_ITEM(metadata_values_dict);
+    // PRINT_NEW_LINE();
+}
 
 bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) {
     PyObject *value;
