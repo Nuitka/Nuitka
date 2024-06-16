@@ -8,6 +8,7 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
+import subprocess
 import sys
 from optparse import OptionParser
 
@@ -219,6 +220,27 @@ def _updatePacmanFile(installed_python, case_data, dry_run, result_path):
     return changed_pipenv_file, pipenv_filename
 
 
+def _execPipenvCommand(installed_python, command, retry=False):
+    try:
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                command,
+                "--python",
+                installed_python.getPythonExe(),
+            ]
+        )
+    except subprocess.CalledProcessError:
+        if command in ("install", "update") and not retry:
+            _execPipenvCommand(installed_python, "--rm")
+            _execPipenvCommand(installed_python, command)
+
+        else:
+            raise
+
+
 def _updatePipenvLockFile(
     installed_python, dry_run, pipenv_filename_full, no_pipenv_update
 ):
@@ -229,16 +251,7 @@ def _updatePipenvLockFile(
                 % pipenv_filename_full
             )
 
-            check_call(
-                [
-                    installed_python.getPythonExe(),
-                    "-m",
-                    "pipenv",
-                    "install",
-                    "--python",
-                    installed_python.getPythonExe(),
-                ]
-            )
+            _execPipenvCommand(installed_python, "install")
 
         elif not dry_run:
             watch_logger.info(
@@ -246,16 +259,7 @@ def _updatePipenvLockFile(
                 % pipenv_filename_full
             )
 
-            check_call(
-                [
-                    installed_python.getPythonExe(),
-                    "-m",
-                    "pipenv",
-                    "update",
-                    "--python",
-                    installed_python.getPythonExe(),
-                ]
-            )
+            _execPipenvCommand(installed_python, "update")
     else:
         watch_logger.info(
             "Working with pipenv file '%s' to install virtualenv, may take a while."
