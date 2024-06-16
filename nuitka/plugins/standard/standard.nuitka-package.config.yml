@@ -2204,6 +2204,14 @@
         - 'matplotlib.backends.backend_wx'
         - 'wx'
 
+- module-name: 'matplotlib.backends.qt_compat' # checksum: b3a099d2
+  anti-bloat:
+    - description: 'avoid shiboken dependencies in case of no-qt plugin'
+      no-auto-follow:
+        'shiboken2': 'ignore'
+        'shiboken6': 'ignore'
+      when: 'use_noqt'
+
 - module-name: 'matplotlib.figure' # checksum: e03fe475
   anti-bloat:
     - description: 'remove IPython reference'

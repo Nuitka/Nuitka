@@ -88,8 +88,7 @@ except ImportError:
         elif full_name == "kivy.graphics.cgl":
             yield "kivy.graphics.cgl_backend"
         elif full_name == "kivy.graphics.cgl_backend":
-            if isMacOS():
-                yield "kivy.graphics.cgl_backend.cgl_glew"
+            yield "kivy.graphics.cgl_backend.cgl_glew"
             yield "kivy.graphics.cgl_backend.cgl_sdl2"
         elif full_name == "kivy.graphics.cgl_backend.cgl_glew":
             yield "kivy.graphics.cgl_backend.cgl_gl"
