@@ -50,6 +50,7 @@ from nuitka.utils.FileOperations import (
     withDirectoryChange,
 )
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isMacOS
 
 
 def displayError(dirname, filename):
@@ -62,6 +63,14 @@ def displayError(dirname, filename):
     displayFileContents("inclusion log", inclusion_log_path)
 
 
+# TODO: Should not have matplotlib, msgpack here, find out why it is.
+ignore_packages = ("matplotlib", "black", "Cython", "msgpack", "numba")
+
+if isMacOS():
+    # Not supported on macOS
+    ignore_packages += ("PyQt6",)
+
+
 def main():
     setup(suite="extension_modules", needs_io_encoding=True)
     search_mode = createSearchMode()
@@ -71,8 +80,7 @@ def main():
     done = set()
 
     def decide(root, filename):
-        # TODO: Should not have matplotlib, msgpack here, find out why it is.
-        for ignore_package in ("matplotlib", "black", "Cython", "msgpack"):
+        for ignore_package in ignore_packages:
             if (
                 root.endswith(os.path.sep + ignore_package)
                 or os.path.sep + ignore_package + os.path.sep in root
@@ -138,7 +146,16 @@ def main():
             # Make it an error to find unwanted bloat compiled in.
             output.write("# nuitka-project: --noinclude-default-mode=error\n")
 
+            # TODO: This won't be bloat for long anymore.
+            output.write("# nuitka-project: --noinclude-numba-mode=warning\n")
+
             output.write("# nuitka-project: --standalone\n")
+
+            if isMacOS():
+                output.write("# nuitka-project: --macos-create-app-bundle\n")
+
+                if module_name.hasNamespace("PyQt5"):
+                    output.write("# nuitka-project: --onefile\n")
 
             output.write("import " + module_name.asString() + "\n")
             output.write("print('OK.')")
@@ -196,7 +213,8 @@ def main():
 
                 assert not outside_accesses, outside_accesses
 
-                shutil.rmtree(filename[:-3] + ".dist")
+                if os.path.exists(filename[:-3] + ".dist"):
+                    shutil.rmtree(filename[:-3] + ".dist")
         else:
             my_print("SKIP (does not work with CPython)")
 
