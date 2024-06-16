@@ -1283,6 +1283,28 @@
     dirs:
       - 'templates'
 
+- module-name: 'fontTools.cu2qu.cu2qu' # checksum: 5673e8a6
+  implicit-imports:
+    - depends:
+        - 'fontTools.cu2qu.errors'
+
+- module-name: 'fontTools.feaLib.lexer' # checksum: d92ed463
+  implicit-imports:
+    - depends:
+        - 'fontTools.feaLib.error'
+        - 'fontTools.feaLib.location'
+
+- module-name: 'fontTools.misc.bezierTools' # checksum: 7bee054
+  implicit-imports:
+    - depends:
+        - 'fontTools.misc.arrayTools'
+        - 'fontTools.misc.transform'
+
+- module-name: 'fontTools.qu2cu.qu2cu' # checksum: bdfe3a4f
+  implicit-imports:
+    - depends:
+        - 'fontTools.misc.bezierTools'
+
 - module-name: 'Foundation' # checksum: f269907b
   options:
     checks:
@@ -3917,6 +3939,16 @@
     - acceptable-missing-dlls:
         - 'libqpdf'
 
+- module-name: 'PyQt5.pylupdate' # checksum: 4fa39a08
+  implicit-imports:
+    - depends:
+        - 'PyQt5.QtCore'
+
+- module-name: 'PyQt5.pyrcc' # checksum: 4fa39a08
+  implicit-imports:
+    - depends:
+        - 'PyQt5.QtCore'
+
 - module-name: 'PyQt6' # checksum: 9ddfb6bb
   options:
     checks:
@@ -4157,6 +4189,12 @@
   implicit-imports:
     - depends:
         - 'PySide6.support.deprecated'
+
+- module-name: 'PySide6.QtHttpServer' # checksum: edeef99d
+  implicit-imports:
+    - depends:
+        - 'PySide6.QtConcurrent'
+        - 'PySide6.QtWebSockets'
 
 - module-name: 'pysnmp.smi' # checksum: d8623e4b
   data-files:
@@ -4535,6 +4573,16 @@
       replacements_plain:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": '0'
         'from numpy.testing import suppress_warnings': 'suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'
+
+- module-name: 'scipy._lib._test_deprecation_call' # checksum: 2db6b2eb
+  implicit-imports:
+    - depends:
+        - 'scipy._lib._test_deprecation_def'
+
+- module-name: 'scipy._lib._test_deprecation_def' # checksum: 10d680aa
+  implicit-imports:
+    - depends:
+        - 'scipy._lib.deprecation'
 
 - module-name: 'scipy._lib._testutils' # checksum: 5e3b539b
   anti-bloat:
