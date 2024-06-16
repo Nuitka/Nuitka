@@ -85,6 +85,9 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
     elif module.isPythonExtensionModule():
         flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
+        if module.isExtensionModulePackage():
+            flags.append("NUITKA_PACKAGE_FLAG")
+
         return template_metapath_loader_extension_module_entry % {
             "module_name": module_c_name,
             "flags": " | ".join(flags),
