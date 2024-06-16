@@ -17,11 +17,16 @@ import os
 import sys
 
 from nuitka import Options
+from nuitka.__past__ import unicode
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.ModuleRegistry import getRootTopModule
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC
-from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
+from nuitka.utils.Distributions import (
+    getDistribution,
+    getDistributionTopLevelPackageNames,
+)
 from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
@@ -129,7 +134,19 @@ def getConstantsDefinitionCode():
                 sys.base_exec_prefix
             )
 
-    metadata_values_code = constant_accessor.getConstantCode(metadata_values)
+    runtime_metadata_values = tuple(
+        (
+            distribution_name,
+            (
+                metadata_value.module_name,
+                metadata_value.metadata,
+                metadata_value.entry_points_data,
+            ),
+        )
+        for distribution_name, metadata_value in sorted(metadata_values.items())
+    )
+
+    metadata_values_code = constant_accessor.getConstantCode(runtime_metadata_values)
 
     lines.insert(
         0,
@@ -164,24 +181,50 @@ def getConstantsDefinitionCode():
     return header, body
 
 
+MetaDataDescription = makeNamedtupleClass(
+    "MetaDataDescription",
+    (
+        "module_name",
+        "metadata",
+        "entry_points_data",
+        "reasons",
+    ),
+)
+
 metadata_values = {}
 
 
-def addDistributionMetadataValue(name, distribution):
+def addDistributionMetadataValue(distribution_name, distribution, reason):
+    assert type(distribution_name) in (str, unicode), distribution_name
+
     # Extract what we need to from the distribution object.
-    metadata = str(
-        distribution.read_text("METADATA") or distribution.read_text("PKG-INFO") or ""
-    )
+    if distribution_name not in metadata_values:
+        # The user doesn't have this handy.
+        if distribution is None:
+            distribution = getDistribution(distribution_name)
 
-    entry_points = str(distribution.read_text("entry_points.txt") or "")
+        metadata = str(
+            distribution.read_text("METADATA")
+            or distribution.read_text("PKG-INFO")
+            or ""
+        )
 
-    package_name = getDistributionTopLevelPackageNames(distribution)[0]
+        entry_points_data = str(distribution.read_text("entry_points.txt") or "")
 
-    metadata_values[name] = (package_name, metadata, entry_points)
+        module_name = getDistributionTopLevelPackageNames(distribution)[0]
+
+        metadata_values[distribution_name] = MetaDataDescription(
+            module_name=module_name,
+            metadata=metadata,
+            entry_points_data=entry_points_data,
+            reasons=[reason],
+        )
+    else:
+        metadata_values[distribution_name].reasons.append(reason)
 
 
 def getDistributionMetadataValues():
-    return sorted(tuple(metadata_values.items()))
+    return sorted(metadata_values.items())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

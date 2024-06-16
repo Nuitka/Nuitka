@@ -187,7 +187,12 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
             distribution = getDistribution(distribution_name)
 
             if distribution is not None:
-                addDistributionMetadataValue(distribution_name, distribution)
+                addDistributionMetadataValue(
+                    distribution_name=distribution_name,
+                    distribution=distribution,
+                    reason="According to Yaml configuration 'include-metadata' for '%s'"
+                    % module_name.asString(),
+                )
 
     def considerDataFiles(self, module):
         full_name = module.getFullName()
