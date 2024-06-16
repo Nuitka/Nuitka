@@ -945,6 +945,13 @@ release will add it. In the mean time use '%s' instead."""
                 )
             )
 
+    if not isPythonWithGil():
+        Tracing.general.warning(
+            """\
+The Python without GIL is only experimentally supported by \
+and recommended only for use in Nuitka development and testing."""
+        )
+
     default_reference_mode = (
         "runtime" if shallMakeModule() or isStandaloneMode() else "original"
     )
