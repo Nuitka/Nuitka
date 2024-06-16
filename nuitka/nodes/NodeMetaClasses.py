@@ -36,6 +36,16 @@ def _checkBases(name, bases):
             raise NuitkaNodeDesignError(name, "All bases must set __slots__.", base)
 
 
+@staticmethod
+def returnTrueShared():
+    return True
+
+
+@staticmethod
+def returnFalseShared():
+    return False
+
+
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
@@ -113,21 +123,27 @@ class NodeCheckMetaClass(ABCMeta):
 
             # Automatically add checker methods for everything to the common
             # base class
-            checker_method = "is" + kind_to_name_part
+            checker_method_name = "is" + kind_to_name_part
 
-            # TODO: How about making these two functions, one to statically
-            # return True and False, and put one in the base class, and one
-            # in the new class, would be slightly faster.
-            def checkKind(self):
-                return self.kind == kind
-
-            # Add automatic checker methods to the node base class.
+            # Add automatic checker "False" to the node base class.
             from .NodeBases import NodeBase
 
-            if not hasattr(NodeBase, checker_method):
-                setattr(NodeBase, checker_method, checkKind)
+            if not hasattr(NodeBase, checker_method_name):
+                setattr(NodeBase, checker_method_name, returnFalseShared)
 
         ABCMeta.__init__(cls, name, bases, dictionary)
+
+        if not name.endswith(("Base", "Mixin")):
+            if kind.startswith("EXPRESSION_BUILTIN_"):
+                cls.isExpressionBuiltin = returnTrueShared
+
+            # Add automatic checker "True" to the node class.
+            if getattr(cls, checker_method_name) is returnFalseShared.__func__:
+
+                def checkKind(self):
+                    return self.kind == kind
+
+                setattr(cls, checker_method_name, checkKind)
 
 
 # For every node type, there is a test, and then some more members,
