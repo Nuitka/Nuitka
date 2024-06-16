@@ -486,6 +486,10 @@ def getModuleLinkerLibs():
         return result
 
 
+def isPythonWithGil():
+    return python_version < 0x3D0 or sys.flags.gil
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
