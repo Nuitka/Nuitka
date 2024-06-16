@@ -258,10 +258,14 @@ def isCPythonOfficialPackage():
     sys_prefix = getSystemPrefixPath()
 
     # For macOS however, it's very knowable.
-    if isMacOS() and isFilenameBelowPath(
-        path="/Library/Frameworks/Python.framework/Versions/", filename=sys_prefix
-    ):
-        return True
+    if isMacOS():
+        for candidate in (
+            "/Library/Frameworks/Python.framework/Versions/",
+            "/Library/Frameworks/PythonT.framework/Versions/",
+        ):
+
+            if isFilenameBelowPath(path=candidate, filename=sys_prefix):
+                return True
 
     # For Windows, we check registry.
     if isWin32Windows():
