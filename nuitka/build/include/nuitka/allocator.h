@@ -134,7 +134,16 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
     _PyInterpreterState_GET()->object_state.reftotal++;
 #endif
 #endif
+#if !defined(Py_GIL_DISABLED)
     op->ob_refcnt = 1;
+#else
+    op->ob_tid = _Py_ThreadId();
+    op->_padding = 0;
+    op->ob_mutex = (struct _PyMutex){0};
+    op->ob_gc_bits = 0;
+    op->ob_ref_local = 1;
+    op->ob_ref_shared = 0;
+#endif
 }
 #else
 #define Nuitka_Py_NewReference(op) _Py_NewReference(op)
@@ -280,7 +289,20 @@ static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
 
 // To allow us marking some of our own values as immortal.
 #if PYTHON_VERSION >= 0x3c0
-static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) { object->ob_refcnt = _Py_IMMORTAL_REFCNT; }
+static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
+    // Normally done only with 3.13, but it makes sense to do this.
+    if (_PyObject_IS_GC(object) && _PyObject_GC_IS_TRACKED(object)) {
+        Nuitka_GC_UnTrack(object);
+    }
+
+#ifdef Py_GIL_DISABLED
+    object->ob_tid = _Py_UNOWNED_TID;
+    object->ob_ref_local = _Py_IMMORTAL_REFCNT_LOCAL;
+    object->ob_ref_shared = 0;
+#else
+    object->ob_refcnt = _Py_IMMORTAL_REFCNT;
+#endif
+}
 #else
 #define Py_SET_REFCNT_IMMORTAL(object)
 #endif
