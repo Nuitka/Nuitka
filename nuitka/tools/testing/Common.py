@@ -1339,6 +1339,8 @@ def checkTestRequirements(filename):
 
         if os.path.isfile(candidate):
             filename = candidate
+        else:
+            filename = os.path.join(filename, getMainProgramFilename(filename))
 
     for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
@@ -1811,11 +1813,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if isMacOS():
             ignore = True
             for ignored_dir in (
-                "/System/Library/PrivateFrameworks",
-                "/System/Library/CoreServices",
-                "/System/Library/Frameworks/",
-                "/System/Library/dyld",
-                "/System/Library/Preferences",
+                "/System/Library",
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
                 "/usr/lib/system/",
@@ -1825,6 +1823,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                     ignore = False
                     break
             if not ignore:
+                continue
+
+            if loaded_filename == "/System/Library":
                 continue
 
             if loaded_filename == "/usr/libexec/rosetta/runtime":
