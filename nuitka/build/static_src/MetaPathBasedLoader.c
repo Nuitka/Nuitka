@@ -689,16 +689,24 @@ static void _fillExtensionModuleDllEntryFunctionName(PyThreadState *tstate, char
 // Append the the entry name from full path module name with dots,
 // and translate these into directory separators.
 static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename_size, char const *module_name_cstr,
-                                      PyObject *module_name) {
+                                      PyObject *module_name, bool is_package) {
 #ifdef _WIN32
     appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), filename_size);
     appendCharSafeW(filename, SEP, filename_size);
     appendModuleNameAsPathW(filename, module_name, filename_size);
+    if (is_package) {
+        appendCharSafeW(filename, SEP, filename_size);
+        appendStringSafeW(filename, "__init__", filename_size);
+    }
     appendStringSafeW(filename, ".pyd", filename_size);
 #else
     appendStringSafe(filename, getBinaryDirectoryHostEncoded(true), filename_size);
     appendCharSafe(filename, SEP, filename_size);
     appendModuleNameAsPath(filename, module_name_cstr, filename_size);
+    if (is_package) {
+        appendCharSafe(filename, SEP, filename_size);
+        appendStringSafe(filename, "__init__", filename_size);
+    }
     appendStringSafe(filename, ".so", filename_size);
 #endif
 }
@@ -1060,17 +1068,30 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
                             struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
 #ifdef _NUITKA_STANDALONE
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
+        bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
+
         filename_char_t filename[MAXPATHLEN + 1] = {0};
-        _makeModuleCFilenameValue(filename, sizeof(filename) / sizeof(filename_char_t), entry->name, module_name);
+        _makeModuleCFilenameValue(filename, sizeof(filename) / sizeof(filename_char_t), entry->name, module_name,
+                                  is_package);
 
         // Set "__spec__" and "__file__", some modules expect it early.
         setModuleFileValue(tstate, module, filename);
 
-        bool is_package = (entry->flags & NUITKA_PACKAGE_FLAG) != 0;
+        if (is_package) {
+            SET_ATTRIBUTE(tstate, module, const_str_plain___package__, module_name);
+        }
 
 #if PYTHON_VERSION >= 0x350
         PyObject *spec_value = createModuleSpec(tstate, module_name,
                                                 LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), is_package);
+
+        // Not needed, submodule_search_locations is nothing we use.
+#if 0
+
+        if (is_package) {
+            LIST_APPEND1(PyObject_GetAttrString(spec_value, "submodule_search_locations"), OS_PATH_DIRNAME(tstate, LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__)));
+        }
+#endif
 
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
 #endif
