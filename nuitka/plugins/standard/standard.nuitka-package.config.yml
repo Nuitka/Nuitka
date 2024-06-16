@@ -1104,16 +1104,6 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
-- module-name: 'en_core_web_sm' # checksum: 8ee8e024
-  data-files:
-    dirs:
-      - '.'
-    patterns:
-      - '**/*.bin'
-
-    include-metadata:
-      - 'en_core_web_sm'
-
 - module-name: 'enchant' # checksum: 810a705a
   data-files:
     dirs:
@@ -5436,38 +5426,40 @@
       no-auto-follow:
         'spacy.tests': 'ignore'
 
-- module-name: 'spacy.pipeline' # checksum: 285ab011
+- module-name: 'spacy.morphology' # checksum: fc4c0a90
   implicit-imports:
     - depends:
-        - 'thinc.extra.*'
+        - 'spacy.parts_of_speech'
+
+- module-name: 'spacy.pipeline' # checksum: e8faf1dd
+  implicit-imports:
+    - depends:
         - 'spacy.pipeline.ner'
 
-- module-name: 'spacy.pipeline._parser_internals' # checksum: 36eb559e
+- module-name: 'spacy.pipeline._parser_internals._beam_utils' # checksum: 21162b2b
   implicit-imports:
     - depends:
-        - 'spacy.pipeline._parser_internals._beam_utils'
-        - 'spacy.pipeline._parser_internals._state'
-        - 'spacy.pipeline._parser_internals.arc_eager'
-        - 'spacy.pipeline._parser_internals.nonproj'
-        - 'spacy.pipeline._parser_internals.stateclass'
-        - 'spacy.pipeline._parser_internals.transition_system'
-        - 'spacy.pipeline._parser_internals.ner'
+        - 'thinc.extra.search'
 
 - module-name: 'spacy.pipeline.dep_parser' # checksum: c61d0958
   implicit-imports:
     - depends:
         - 'spacy.pipeline.transition_parser'
 
+- module-name: 'spacy.pipeline.transition_parser' # checksum: bbff8187
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline._parser_internals.*'
+
 - module-name: 'spacy.util' # checksum: 39e3b324
   implicit-imports:
     - depends:
         - 'spacy.lang.*'
 
-- module-name: 'spacy.vocab' # checksum: 73f7507a
+- module-name: 'spacy.vocab' # checksum: bfa3250b
   implicit-imports:
     - depends:
         - 'spacy.lang.lex_attrs'
-        - 'spacy.parts_of_speech'
         - 'spacy.lang.norm_exceptions'
 
 - module-name: 'sparse' # checksum: 7a56f74f
@@ -6519,25 +6511,21 @@
       no-auto-follow:
         'thinc.tests': 'ignore'
 
-- module-name: 'thinc.backends' # checksum: 7aaf0f6e
+- module-name: 'thinc.backends' # checksum: a9d80ab6
   data-files:
     patterns:
       - '*.cu'
-
-  anti-bloat:
-    - description: 'do not follow tests'
-      no-auto-follow:
-        'thinc.tests': 'ignore'
 
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
     - depends:
         - 'blis'
 
-- module-name: 'thinc.backends.numpy_ops' # checksum: a904b0a4
+- module-name: 'thinc.backends.numpy_ops' # checksum: 33d82a78
   implicit-imports:
     - depends:
         - 'thinc.backends.linalg'
+        - 'preshed.maps'
 
 - module-name: 'thinc.backends.numpy_ops.NumpyOps' # checksum: 53774cbb
   implicit-imports:
