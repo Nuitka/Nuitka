@@ -205,6 +205,61 @@
             "name": "Mac",
             "includePath": [
                 "${myDefaultIncludePath}",
+                "/Library/Frameworks/Python.framework/Versions/3.12/include/python3.12"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3C0"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Mac-Py313",
+            "includePath": [
+                "${myDefaultIncludePath}",
+                "/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3D0"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Mac-Py313-noGIL",
+            "includePath": [
+                "${myDefaultIncludePath}",
+                "/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3D0",
+                "Py_GIL_DISABLED=1"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Mac-Py311",
+            "includePath": [
+                "${myDefaultIncludePath}",
                 "/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11"
             ],
             "defines": [
