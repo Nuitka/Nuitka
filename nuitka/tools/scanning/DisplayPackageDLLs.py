@@ -60,7 +60,7 @@ def displayDLLs(module_name):
     if not hasMainScriptDirectory():
         addMainScriptDirectory(os.getcwd())
 
-    module_name, package_directory, _module_kind, finding = locateModule(
+    module_name, package_directory, module_kind, finding = locateModule(
         module_name=module_name, parent_package=None, level=0
     )
 
@@ -79,10 +79,11 @@ def displayDLLs(module_name):
 
     activatePlugins()
 
-    package_filename = getPackageDirFilename(package_directory)
+    if module_kind != "extension":
+        package_filename = getPackageDirFilename(package_directory)
 
-    if package_filename is not None:
-        readSourceCodeFromFilename(module_name, package_filename, pre_load=False)
+        if package_filename is not None:
+            readSourceCodeFromFilename(module_name, package_filename, pre_load=False)
 
     tools_logger.info("Checking package directory '%s' .. " % package_directory)
 
