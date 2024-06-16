@@ -19,6 +19,7 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
+from nuitka.PythonVersions import isPythonWithGil
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
@@ -1852,6 +1853,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "Version": getNuitkaVersion(),
         "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
+        "GIL": isPythonWithGil(),
     }
 
     if isLinux():
