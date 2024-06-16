@@ -45,7 +45,11 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
 
         # Default to near module or inside package folder.
         if target_dir is None:
-            if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+            if (
+                module.isCompiledPythonPackage()
+                or module.isUncompiledPythonPackage()
+                or module.isExtensionModulePackage()
+            ):
                 target_dir = module_name.asPath()
             else:
                 package_name = module_name.getPackageName()
