@@ -47,6 +47,7 @@ from nuitka.PythonVersions import (
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
+    isPythonWithGil,
     python_version,
     python_version_str,
 )
@@ -275,6 +276,8 @@ def _getVersionInformationValues():
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
+    if python_version >= 0x3D0:
+        yield "GIL: %s" % ("yes" if isPythonWithGil() else "no")
     yield "Executable: %s" % sys.executable
     yield "OS: %s" % getOS()
     yield "Arch: %s" % getArchitecture()
@@ -1828,7 +1831,7 @@ def shallExplainImports():
 
 def isStandaloneMode():
     """:returns: bool derived from ``--standalone``"""
-    return options.is_standalone
+    return options.is_standalone or options.list_package_dlls
 
 
 def isOnefileMode():
