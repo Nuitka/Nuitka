@@ -1796,6 +1796,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
             "libffi.dylib",
+            "libfribidi.dylib",
         ):
             continue
 
@@ -1814,6 +1815,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/System/Library/CoreServices",
                 "/System/Library/Frameworks/",
                 "/System/Library/dyld",
+                "/System/Library/Preferences",
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
                 "/usr/lib/system/",
