@@ -202,6 +202,10 @@ class PythonModuleBase(NodeBase):
 
             return result
 
+    @staticmethod
+    def isExtensionModulePackage():
+        return False
+
 
 class CompiledPythonModule(
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
@@ -972,7 +976,7 @@ class PythonMainModule(CompiledPythonModule):
 class PythonExtensionModule(PythonModuleBase):
     kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules", "module_filename", "technical")
+    __slots__ = ("used_modules", "module_filename", "technical", "is_package")
 
     avoid_duplicates = set()
 
@@ -1009,8 +1013,14 @@ class PythonExtensionModule(PythonModuleBase):
 
         if os.path.isdir(module_filename):
             module_filename = getPackageDirFilename(module_filename)
+            self.is_package = True
+        else:
+            self.is_package = False
 
         self.module_filename = module_filename
+
+    def isExtensionModulePackage(self):
+        return self.is_package
 
     def finalize(self):
         del self.used_modules
