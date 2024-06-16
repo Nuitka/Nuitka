@@ -8,7 +8,7 @@
 import os
 import re
 
-from nuitka import Options
+from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.utils.FileOperations import listDllFilesFromDirectory
@@ -42,7 +42,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
-        return Options.isStandaloneMode()
+        return isStandaloneMode()
 
     # This is used by our exec below, to capture the dll directory without using a free
     # variable.
@@ -75,7 +75,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
 
         # Fake the "__file__" to the proper value to the exec.
         exec_globals = {
-            "__file__": self.locateModule(module_name) + "\\__init__.py",
+            "__file__": source_filename,
             "add_dll_directory": self._add_dll_directory,
         }
 
@@ -110,6 +110,10 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
                 detection_name="delvewheel_version",
                 detection_value=delvewheel_version,
             )
+
+    def getModuleSpecificDllPaths(self, module_name):
+        if module_name in self.dll_directories:
+            yield self.dll_directories[module_name]
 
     def getExtraDlls(self, module):
         full_name = module.getFullName()
