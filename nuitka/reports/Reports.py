@@ -16,6 +16,7 @@ from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsUtils import readSconsErrorReport
+from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -188,6 +189,11 @@ def _getReportInputData(aborted):
             continue
 
         module_exclusions[_using_module_name][_module_name] = _reason
+
+    included_metadata = dict(
+        (distribution_name, meta_data_value.reasons)
+        for distribution_name, meta_data_value in getDistributionMetadataValues()
+    )
 
     memory_infos = getMemoryInfos()
 
@@ -567,6 +573,22 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 size=str(included_datafile.getFileSize()),
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
+            )
+
+    if report_input_data["included_metadata"]:
+        metadata_node = TreeXML.appendTreeElement(
+            root,
+            "metadata",
+        )
+
+        for distribution_name, reasons in sorted(
+            report_input_data["included_metadata"].items()
+        ):
+            TreeXML.appendTreeElement(
+                metadata_node,
+                "included_metadata",
+                name=distribution_name,
+                reason=". ".join(reasons),
             )
 
     for standalone_entry_point in getStandaloneEntryPoints():
