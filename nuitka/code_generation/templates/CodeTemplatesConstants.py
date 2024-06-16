@@ -56,7 +56,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
 }
 #endif
 
-extern void setDistributionsMetadata(PyObject *metadata_values);
+extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_items);
 
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
@@ -229,7 +229,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
 
-    setDistributionsMetadata(%(metadata_values)s);
+    // Register included meta data.
+    setDistributionsMetadata(tstate, %(metadata_values)s);
 }
 
 // In debug mode we can check that the constants were not tampered with in any
