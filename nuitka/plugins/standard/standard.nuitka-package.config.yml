@@ -2466,7 +2466,7 @@
           def __init__(self, name):
             pass
 
-- module-name: 'numpy.core' # checksum: 5769f3c9
+- module-name: 'numpy.core' # checksum: 4ed88aa0
   anti-bloat:
     - description: 'remove misleading numpy message'
       replacements_plain:
@@ -2478,6 +2478,7 @@
     - depends:
         - 'numpy.core._dtype_ctypes'
         - 'numpy.core._multiarray_tests'
+        - 'numpy._core._multiarray_tests'
 
 - module-name: 'numpy.core.overrides' # checksum: 48ac7e42
   anti-bloat:
