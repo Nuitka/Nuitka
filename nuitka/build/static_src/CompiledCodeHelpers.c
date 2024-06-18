@@ -860,6 +860,17 @@ bool PRINT_STRING(char const *str) {
     }
 }
 
+bool PRINT_STRING_W(wchar_t const *str) {
+    if (str) {
+        PyObject *tmp = NuitkaUnicode_FromWideChar(str, -1);
+        bool res = PRINT_ITEM(tmp);
+        Py_DECREF(tmp);
+        return res;
+    } else {
+        return PRINT_STRING("<nullstr>");
+    }
+}
+
 bool PRINT_FORMAT(char const *fmt, ...) {
     va_list args;
     va_start(args, fmt);
