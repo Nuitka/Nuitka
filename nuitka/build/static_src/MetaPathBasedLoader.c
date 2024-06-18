@@ -174,11 +174,7 @@ static PyObject *_makeDunderPathObject(PyThreadState *tstate, PyObject *module_p
         return NULL;
     }
 
-    int res = PyList_SetItem(path_list, 0, module_path_entry);
-    if (unlikely(res != 0)) {
-        return NULL;
-    }
-    Py_INCREF(module_path_entry);
+    PyList_SET_ITEM0(path_list, 0, module_path_entry);
 
     CHECK_OBJECT(path_list);
     return path_list;
