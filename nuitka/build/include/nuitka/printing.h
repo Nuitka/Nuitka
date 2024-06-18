@@ -9,6 +9,7 @@
 extern bool PRINT_NEW_LINE(void);
 extern bool PRINT_ITEM(PyObject *object);
 extern bool PRINT_STRING(char const *str);
+extern bool PRINT_STRING_W(wchar_t const *str);
 extern bool PRINT_FORMAT(char const *fmt, ...);
 extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
