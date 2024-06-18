@@ -811,8 +811,8 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     result->m_interpreter_frame.f_funcobj = NULL;
 #else
     result->m_interpreter_frame.f_func = NULL;
-    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
 #endif
+    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
     result->m_frame.f_frame = &result->m_interpreter_frame;
 
     assert(!_PyFrame_IsIncomplete(&result->m_interpreter_frame));
