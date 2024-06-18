@@ -287,6 +287,23 @@ def getOtoolDependencyOutput(filename, package_specific_dirs):
         return _getOToolCommandOutput("-L", filename)
 
 
+def parseOtoolListingOutput(output):
+    paths = OrderedSet()
+
+    for line in output.split(b"\n")[1:]:
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        if not line:
+            continue
+
+        filename = line.split(" (", 1)[0].strip()
+
+        paths.add(filename)
+
+    return paths
+
+
 def _getDLLVersionMacOS(filename):
     output = _getOToolCommandOutput("-D", filename).splitlines()
 
@@ -469,24 +486,31 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
         This is obviously macOS specific.
     """
     command = ["install_name_tool"]
+
+    needs_call = False
     for old_path, new_path in mapping:
-        command += ("-change", old_path, new_path)
+        if old_path != new_path:
+            command += ("-change", old_path, new_path)
+            needs_call = True
 
     if rpath is not None:
         command += ("-add_rpath", os.path.join(rpath, "."))
+        needs_call = True
 
     if id_path is not None:
         command += ("-id", id_path)
+        needs_call = True
 
     command.append(filename)
 
-    with withMadeWritableFileMode(filename):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=command,
-            absence_message=_install_name_tool_usage,
-            stderr_filter=_filterInstallNameToolErrorOutput,
-        )
+    if needs_call:
+        with withMadeWritableFileMode(filename):
+            executeToolChecked(
+                logger=postprocessing_logger,
+                command=command,
+                absence_message=_install_name_tool_usage,
+                stderr_filter=_filterInstallNameToolErrorOutput,
+            )
 
 
 def getPyWin32Dir():
