@@ -1725,6 +1725,20 @@
         - 'imageio.plugins.simpleitk'
         - 'imageio.plugins.pillow'
 
+- module-name: 'imageio_ffmpeg' # checksum: cbcd4133
+  dlls:
+    - from_filenames:
+        relative_path: 'binaries'
+        prefixes:
+          - 'ffmpeg'
+        executable: 'yes'
+
+- module-name: 'imageio_ffmpeg._utils' # checksum: 30a79be9
+  anti-bloat:
+    - description: 'Resolve correct path for ffmpeg binary'
+      replacements_plain:
+        'return str(path.parent)': 'return os.path.join(os.path.dirname(__file__), "binaries")'
+
 - module-name: 'imagej' # checksum: 763ace32
   anti-bloat:
     - description: 'compile time resolve version metadata'
