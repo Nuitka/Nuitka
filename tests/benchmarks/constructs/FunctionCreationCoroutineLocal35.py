@@ -6,25 +6,24 @@ import itertools
 module_var = None
 
 
-def calledRepeatedly(x):
-    # Force frame usage for now
+def calledRepeatedly():
+    # Force a local frame for now
     module_var
 
+    # We measure making a local function that will remain unused.
     # construct_begin
-    def returningValue():
-        yield x
+    async def returningValue():
+        return 1
 
     # construct_alternative
-    def returningValue():
-        yield module_var
-
+    returningValue = 1
     # construct_end
 
-    return returningValue, x
+    return returningValue
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly(x)
+    calledRepeatedly()
 
 print("OK.")
 
