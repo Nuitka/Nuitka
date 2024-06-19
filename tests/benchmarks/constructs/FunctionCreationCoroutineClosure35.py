@@ -11,12 +11,12 @@ def calledRepeatedly(x):
     module_var
 
     # construct_begin
-    def returningValue():
-        yield x
+    async def returningValue():
+        return x
 
     # construct_alternative
-    def returningValue():
-        yield module_var
+    async def returningValue():
+        return module_var
 
     # construct_end
 
