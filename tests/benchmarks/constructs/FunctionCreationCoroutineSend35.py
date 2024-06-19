@@ -6,25 +6,33 @@ import itertools
 module_var = None
 
 
-def calledRepeatedly(x):
-    # Force frame usage for now
+async def returningValueCoro():
+    return 1
+
+
+def calledRepeatedly():
+    # Force a local frame for now
     module_var
 
+    coro = returningValueCoro()
+
     # construct_begin
-    def returningValue():
-        yield x
-
-    # construct_alternative
-    def returningValue():
-        yield module_var
-
+    try:
+        coro.send(None)
+    except StopIteration:
+        pass
     # construct_end
 
-    return returningValue, x
+    try:
+        coro.send(None)
+    except (RuntimeError, StopIteration):
+        pass
+
+    return coro
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly(x)
+    calledRepeatedly()
 
 print("OK.")
 
