@@ -164,7 +164,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     if (offset == -5) {
         CHECK_OBJECT(function->m_constant_return_value);
-        PyTuple_SET_ITEM0(result, 5, function->m_constant_return_value);
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, function->m_constant_return_value);
     } else {
         PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
     }

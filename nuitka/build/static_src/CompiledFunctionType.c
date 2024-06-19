@@ -288,7 +288,7 @@ static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObj
     }
     CHECK_OBJECT(result);
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1057,7 +1057,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(PyThreadState *tstate,
 
     PyObject *result = function->m_constant_return_value;
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1209,7 +1209,7 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
 
         Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
 
-        Py_INCREF(constant_return_value);
+        Py_INCREF_IMMORTAL(constant_return_value);
     }
 
     assert(result->m_c_code != NULL);
