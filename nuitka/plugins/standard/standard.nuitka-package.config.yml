@@ -165,11 +165,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'aspose' # checksum: 4f20a71e
+- module-name: 'aspose' # checksum: 9babf530
   data-files:
     patterns:
       - '"**/*"+extension_std_suffix'
       - '**/*.dll'
+    when: 'not nuitka_python'
   anti-bloat:
     - no-follow:
         'aspose.*': 'workaround for aspose needing to load its submodules'
@@ -779,7 +780,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 586ad888
+- module-name: 'cv2' # checksum: 4170eee
   data-files:
     dirs:
       - 'qt/fonts'
@@ -809,11 +810,11 @@
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
       # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
-      when: 'standalone and before_python312'
+      when: 'standalone and before_python312 and not nuitka_python'
     - description: 'workaround for colliding native module import'
       replacements:
         'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
-      when: 'standalone and python312_or_higher'
+      when: 'standalone and python312_or_higher and not nuitka_python'
   implicit-imports:
     - depends:
         - 'cv2.cv2'
