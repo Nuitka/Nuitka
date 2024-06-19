@@ -2422,7 +2422,7 @@
       replacements_plain:
         'import numexpr.tests': 'raise ImportError'
 
-- module-name: 'numpy' # checksum: c99de05
+- module-name: 'numpy' # checksum: d50b5b5e
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -2443,8 +2443,14 @@
       when: 'is_conda_package("numpy")'
 
   anti-bloat:
-    - replacements_plain:
+    - description: 'avoid URLs for AV noise'
+      replacements_plain:
         'https://': ''
+    - description: 'remove numpy.distutils references'
+      no-auto-follow:
+        'numpy.distutils': 'ignore'
+      when: 'not use_setuptools'
+
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -2466,7 +2472,7 @@
           def __init__(self, name):
             pass
 
-- module-name: 'numpy.core' # checksum: 5769f3c9
+- module-name: 'numpy.core' # checksum: 4ed88aa0
   anti-bloat:
     - description: 'remove misleading numpy message'
       replacements_plain:
@@ -2478,6 +2484,7 @@
     - depends:
         - 'numpy.core._dtype_ctypes'
         - 'numpy.core._multiarray_tests'
+        - 'numpy._core._multiarray_tests'
 
 - module-name: 'numpy.core.overrides' # checksum: 48ac7e42
   anti-bloat:
@@ -2486,7 +2493,7 @@
         'add_docstring(implementation, dispatcher.__doc__)': "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
         'public_api.__code__ = ': ''
 
-- module-name: 'numpy.ctypeslib' # checksum: 664cfa3e
+- module-name: 'numpy.ctypeslib' # checksum: a3e2afc6
   anti-bloat:
     - description: 'remove numpy.distutils references'
       context:
@@ -2495,6 +2502,14 @@
         'from numpy.distutils.misc_util import get_shared_lib_extension': ''
         'get_shared_lib_extension()': 'repr(numpy.distutils.misc_util.get_shared_lib_extension())'
         'get_shared_lib_extension(is_python_ext=True)': 'repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'
+      when: 'not use_setuptools'
+
+- module-name: 'numpy.lib._utils_impl' # checksum: db52e110
+  anti-bloat:
+    - description: 'Avoid pydoc usage'
+      change_function:
+        'info': 'un-callable'
+      when: 'not use_pydoc'
 
 - module-name: 'numpy.lib.utils' # checksum: 26f115fc
   anti-bloat:
