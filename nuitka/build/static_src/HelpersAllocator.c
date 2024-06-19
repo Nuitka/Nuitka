@@ -82,8 +82,6 @@ static void Nuitka_invoke_gc_callback(PyThreadState *tstate, const char *phase, 
     PyObject *info = NULL;
 
     if (PyList_GET_SIZE(gcstate->callbacks) != 0) {
-        assert(false);
-
         info =
             Py_BuildValue("{sisnsn}", "generation", generation, "collected", collected, "uncollectable", uncollectable);
 
