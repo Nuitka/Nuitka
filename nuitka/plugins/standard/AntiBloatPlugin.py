@@ -40,6 +40,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         noinclude_setuptools_mode,
         noinclude_pytest_mode,
         noinclude_unittest_mode,
+        noinclude_pydoc_mode,
         noinclude_ipython_mode,
         noinclude_dask_mode,
         noinclude_numba_mode,
@@ -47,7 +48,8 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         custom_choices,
         show_changes,
     ):
-        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches,too-many-statements
+        # Many details, due to many repetitive arguments,
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         NuitkaYamlPluginBase.__init__(self)
 
@@ -60,6 +62,8 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
             noinclude_pytest_mode = noinclude_default_mode
         if noinclude_unittest_mode is None:
             noinclude_unittest_mode = noinclude_default_mode
+        if noinclude_pydoc_mode is None:
+            noinclude_pydoc_mode = noinclude_default_mode
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
         if noinclude_dask_mode is None:
@@ -177,6 +181,11 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         else:
             self.control_tags["use_dask"] = True
 
+        if noinclude_pydoc_mode != "allow":
+            self.handled_modules["pydoc"] = noinclude_pydoc_mode, "pydoc"
+        else:
+            self.control_tags["use_pydoc"] = True
+
         if noinclude_numba_mode != "allow":
             self.handled_modules["numba"] = noinclude_numba_mode, "numba"
             self.handled_modules["sparse"] = noinclude_numba_mode, "numba"
@@ -291,6 +300,17 @@ dependencies, and should definitely be avoided. Also handles 'nose' imports.""",
             help="""\
 What to do if a unittest import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-pydoc-mode",
+            action="store",
+            dest="noinclude_pydoc_mode",
+            choices=_mode_choices,
+            default=None,
+            help="""\
+What to do if a pydoc import is encountered. This package use is mark of useless
+code for deployments and should be avoided.""",
         )
 
         group.add_option(
