@@ -863,7 +863,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #if PYTHON_VERSION >= 0x3b0
                              PyObject *function_qualname,
 #endif
-                             PyObject *argnames, PyObject *freevars, int arg_count
+                             PyObject *arg_names, PyObject *free_vars, int arg_count
 #if PYTHON_VERSION >= 0x300
                              ,
                              int kw_only_count
@@ -892,17 +892,17 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     }
 #endif
 
-    if (argnames == NULL) {
-        argnames = const_tuple_empty;
+    if (arg_names == NULL || arg_names == Py_None) {
+        arg_names = const_tuple_empty;
     }
-    CHECK_OBJECT(argnames);
-    assert(PyTuple_Check(argnames));
+    CHECK_OBJECT(arg_names);
+    assert(PyTuple_Check(arg_names));
 
-    if (freevars == NULL) {
-        freevars = const_tuple_empty;
+    if (free_vars == NULL || free_vars == Py_None) {
+        free_vars = const_tuple_empty;
     }
-    CHECK_OBJECT(freevars);
-    assert(PyTuple_Check(freevars));
+    CHECK_OBJECT(free_vars);
+    assert(PyTuple_Check(free_vars));
 
     // The PyCode_New has funny code that interns, mutating the tuple that owns
     // it. Really serious non-immutable shit. We have triggered that changes
@@ -911,9 +911,10 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     // TODO: Reactivate once code object creation becomes un-streaming driven
     // and we can pass the extra args with no worries.
 
-    // Py_hash_t hash = DEEP_HASH(argnames);
+    // Py_hash_t hash = DEEP_HASH(arg_names);
 #endif
 
+    // spell-checker: ignore lnotab
 #if PYTHON_VERSION < 0x300
     PyObject *code = const_str_empty;
     PyObject *lnotab = const_str_empty;
@@ -940,7 +941,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
     // For Python 3.11 this value is checked, even if not used.
 #if PYTHON_VERSION >= 0x3b0
-    int nlocals = (int)PyTuple_GET_SIZE(argnames);
+    int nlocals = (int)PyTuple_GET_SIZE(arg_names);
 #else
     int nlocals = 0;
 #endif
@@ -966,8 +967,8 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                                                      code,              // code (bytecode)
                                                      const_tuple_empty, // consts (we are not going to be compatible)
                                                      const_tuple_empty, // names (we are not going to be compatible)
-                                                     argnames,          // varnames (we are not going to be compatible)
-                                                     freevars,          // freevars
+                                                     arg_names,         // varnames (we are not going to be compatible)
+                                                     free_vars,         // freevars
                                                      const_tuple_empty, // cellvars (we are not going to be compatible)
                                                      filename,          // filename
                                                      function_name,     // name
@@ -982,7 +983,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #endif
     );
 
-    // assert(DEEP_HASH(tstate, argnames) == hash);
+    // assert(DEEP_HASH(tstate, arg_names) == hash);
 
 #if PYTHON_VERSION < 0x300
     Py_DECREF(filename_str);
