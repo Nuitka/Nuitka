@@ -47,32 +47,32 @@ extern struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCode
 // Create a code object for the given filename and function name
 
 #if PYTHON_VERSION < 0x300
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count);
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count);
 #elif PYTHON_VERSION < 0x380
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count, kw_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count);
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count, int kw_only_count);
 #elif PYTHON_VERSION < 0x3b0
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count, pos_only_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count, kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count,
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count, int kw_only_count,
                                     int pos_only_count);
 #else
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,             \
+    makeCodeObject(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,           \
                    kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *function_qualname, PyObject *argnames, PyObject *freevars, int arg_count,
-                                    int kw_only_count, int pos_only_count);
+                                    PyObject *function_qualname, PyObject *arg_names, PyObject *free_vars,
+                                    int arg_count, int kw_only_count, int pos_only_count);
 #endif
 
 NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {

@@ -510,652 +510,684 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
 }
 
 static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data,
-                                                 int count) {
+                                                 int count);
 
-    for (int _i = 0; _i < count; _i++) {
-        // Make sure we discover failures to assign.
-        *output = NULL;
-        bool is_object;
+static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject **output, unsigned char const *data) {
 
-        char c = *((char const *)data++);
+    // Make sure we discover failures to assign.
+    *output = NULL;
+    bool is_object;
+
+    char c = *((char const *)data++);
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        unsigned char const *data_old = data;
-        printf("Type %c for %d of %d:\n", c, _i, count);
+    unsigned char const *data_old = data;
+    printf("Type %c for %d of %d:\n", c, _i, count);
 #endif
-        switch (c) {
+    switch (c) {
 
-        case 'p': {
-            assert(_i > 0);
+    case 'p': {
+        *output = *(output - 1);
+        is_object = true;
 
-            *output = *(output - 1);
-            is_object = true;
+        break;
+    }
+    case 'T': {
+        int size = (int)_unpackVariableLength(&data);
 
-            break;
+        PyObject *t = PyTuple_New(size);
+
+        if (size > 0) {
+            data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
         }
-        case 'T': {
-            int size = (int)_unpackVariableLength(&data);
 
-            PyObject *t = PyTuple_New(size);
+        insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
 
-            if (size > 0) {
-                data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
-            }
+        *output = t;
+        is_object = true;
 
-            insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
+        break;
+    }
+    case 'L': {
+        int size = (int)_unpackVariableLength(&data);
 
-            *output = t;
-            is_object = true;
+        PyObject *l = PyList_New(size);
 
-            break;
+        if (size > 0) {
+            data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
         }
-        case 'L': {
-            int size = (int)_unpackVariableLength(&data);
 
-            PyObject *l = PyList_New(size);
+        insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
 
-            if (size > 0) {
-                data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
-            }
+        *output = l;
+        is_object = true;
 
-            insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
+        break;
+    }
+    case 'D': {
+        int size = (int)_unpackVariableLength(&data);
 
-            *output = l;
-            is_object = true;
+        PyObject *d = _PyDict_NewPresized(size);
 
-            break;
-        }
-        case 'D': {
-            int size = (int)_unpackVariableLength(&data);
+        if (size > 0) {
+            NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
+            NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-            PyObject *d = _PyDict_NewPresized(size);
-
-            if (size > 0) {
-                NUITKA_DYNAMIC_ARRAY_DECL(keys, PyObject *, size);
-                NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
-
-                data = _unpackBlobConstants(tstate, &keys[0], data, size);
-                data = _unpackBlobConstants(tstate, &values[0], data, size);
-
-                for (int i = 0; i < size; i++) {
-                    PyDict_SetItem(d, keys[i], values[i]);
-                }
-            }
-
-            insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
-
-            *output = d;
-            is_object = true;
-
-            break;
-        }
-        case 'P':
-        case 'S': {
-            int size = (int)_unpackVariableLength(&data);
-
-            PyObject *s;
-
-            if (c == 'S') {
-                s = PySet_New(NULL);
-            } else {
-                if (size == 0) {
-                    // Get at the frozenset singleton of CPython and use it too. Some things
-                    // rely on it being a singleton across the board.
-                    static PyObject *empty_frozenset = NULL;
-
-                    if (empty_frozenset == NULL) {
-                        empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)&PyFrozenSet_Type,
-                                                                        Nuitka_Bytes_FromStringAndSize("", 0));
-                    }
-
-                    s = empty_frozenset;
-                } else {
-                    s = PyFrozenSet_New(NULL);
-                }
-            }
-
-            if (size > 0) {
-                NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
-
-                data = _unpackBlobConstants(tstate, &values[0], data, size);
-
-                for (int i = 0; i < size; i++) {
-                    PySet_Add(s, values[i]);
-                }
-            }
-
-            // sets are cached globally too.
-            if (c == 'S') {
-                insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
-            } else {
-                insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash,
-                                            (richcmpfunc)our_set_richcompare);
-            }
-
-            *output = s;
-            is_object = true;
-
-            break;
-        }
-#if PYTHON_VERSION < 0x300
-        case 'i': {
-            // TODO: Use fixed sizes for small values, e.g. byte sized.
-            long value = unpackValueLong(&data);
-
-            PyObject *i = PyInt_FromLong(value);
-
-            insertToDictCache(int_cache, &i);
-
-            *output = i;
-            is_object = true;
-
-            break;
-        }
-#endif
-        case 'l': {
-            // TODO: Use fixed sizes for small values, e.g. byte, word sized.
-            long value = unpackValueLong(&data);
-
-            PyObject *l = Nuitka_LongFromCLong(value);
-
-            // Avoid the long cache, won't do anything useful for small ints
-#if PYTHON_VERSION >= 0x300
-            if (value < NUITKA_STATIC_SMALLINT_VALUE_MIN || value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
-#endif
-            {
-                insertToDictCache(long_cache, &l);
-            }
-
-            *output = l;
-            is_object = true;
-
-            break;
-        }
-        case 'q': {
-            long long value = unpackValueLongLong(&data);
-
-            PyObject *l = PyLong_FromLongLong(value);
-
-            insertToDictCache(long_cache, &l);
-
-            *output = l;
-            is_object = true;
-
-            break;
-        }
-        case 'g': {
-            PyObject *result = PyLong_FromLong(0);
-
-            unsigned char sign = *data++;
-            int size = unpackValueInt(&data);
-
-            PyObject *shift = PyLong_FromLong(8 * sizeof(unsigned long long));
+            data = _unpackBlobConstants(tstate, &keys[0], data, size);
+            data = _unpackBlobConstants(tstate, &values[0], data, size);
 
             for (int i = 0; i < size; i++) {
-                result = PyNumber_InPlaceLshift(result, shift);
-
-                unsigned long long value = unpackValueUnsignedLongLong(&data);
-                PyObject *part = PyLong_FromUnsignedLongLong(value);
-                result = PyNumber_InPlaceAdd(result, part);
-                Py_DECREF(part);
+                PyDict_SetItem(d, keys[i], values[i]);
             }
+        }
 
-            Py_DECREF(shift);
+        insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
 
-            if (sign == '-') {
-                // TODO: There is a negate function
-                PyObject *neg = PyLong_FromLong(-1);
-                result = PyNumber_InPlaceMultiply(result, neg);
-                Py_DECREF(neg);
+        *output = d;
+        is_object = true;
+
+        break;
+    }
+    case 'P':
+    case 'S': {
+        int size = (int)_unpackVariableLength(&data);
+
+        PyObject *s;
+
+        if (c == 'S') {
+            s = PySet_New(NULL);
+        } else {
+            if (size == 0) {
+                // Get at the frozenset singleton of CPython and use it too. Some things
+                // rely on it being a singleton across the board.
+                static PyObject *empty_frozenset = NULL;
+
+                if (empty_frozenset == NULL) {
+                    empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, (PyObject *)&PyFrozenSet_Type,
+                                                                    Nuitka_Bytes_FromStringAndSize("", 0));
+                }
+
+                s = empty_frozenset;
+            } else {
+                s = PyFrozenSet_New(NULL);
             }
-
-            insertToDictCache(long_cache, &result);
-
-            *output = result;
-            is_object = true;
-
-            break;
         }
-        case 'f': {
-            double value = unpackValueFloat(&data);
 
-            PyObject *f = PyFloat_FromDouble(value);
+        if (size > 0) {
+            NUITKA_DYNAMIC_ARRAY_DECL(values, PyObject *, size);
 
-            // Floats are cached globally too.
-            insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_richcompare);
+            data = _unpackBlobConstants(tstate, &values[0], data, size);
 
-            *output = f;
-            is_object = true;
-
-            break;
+            for (int i = 0; i < size; i++) {
+                PySet_Add(s, values[i]);
+            }
         }
-        case 'j': {
-            double real = unpackValueFloat(&data);
-            double imag = unpackValueFloat(&data);
 
-            *output = PyComplex_FromDoubles(real, imag);
-            is_object = true;
-
-            break;
+        // sets are cached globally too.
+        if (c == 'S') {
+            insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
+        } else {
+            insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
         }
-        case 'J': {
-            PyObject *parts[2];
 
-            // Complex via float is done for ones that are 0, nan, float.
-            data = _unpackBlobConstants(tstate, &parts[0], data, 2);
+        *output = s;
+        is_object = true;
 
-            *output = BUILTIN_COMPLEX2(tstate, parts[0], parts[1]);
-            is_object = true;
-
-            break;
-        }
+        break;
+    }
 #if PYTHON_VERSION < 0x300
-        case 'a':
-        case 'c': {
-            // Python2 str, potentially attribute, zero terminated.
-            size_t size = strlen((const char *)data);
+    case 'i': {
+        // TODO: Use fixed sizes for small values, e.g. byte sized.
+        long value = unpackValueLong(&data);
 
-            PyObject *s = PyString_FromStringAndSize((const char *)data, size);
-            CHECK_OBJECT(s);
+        PyObject *i = PyInt_FromLong(value);
 
-            data += size + 1;
+        insertToDictCache(int_cache, &i);
 
-            if (c == 'a') {
-                PyString_InternInPlace(&s);
-            }
+        *output = i;
+        is_object = true;
 
-            *output = s;
-            is_object = true;
-
-            break;
-        }
-#else
-        case 'c': {
-            // Python3 bytes, zero terminated.
-            size_t size = strlen((const char *)data);
-
-            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
-            CHECK_OBJECT(b);
-
-            data += size + 1;
-
-            // Empty bytes value is here as well.
-            if (size > 1) {
-                insertToDictCache(bytes_cache, &b);
-            }
-
-            *output = b;
-            is_object = true;
-
-            break;
-        }
+        break;
+    }
 #endif
-        case 'd': {
-            // Python2 str length 1 str, potentially attribute, or Python3 single byte
+    case 'l': {
+        // TODO: Use fixed sizes for small values, e.g. byte, word sized.
+        long value = unpackValueLong(&data);
 
+        PyObject *l = Nuitka_LongFromCLong(value);
+
+        // Avoid the long cache, won't do anything useful for small ints
+#if PYTHON_VERSION >= 0x300
+        if (value < NUITKA_STATIC_SMALLINT_VALUE_MIN || value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
+#endif
+        {
+            insertToDictCache(long_cache, &l);
+        }
+
+        *output = l;
+        is_object = true;
+
+        break;
+    }
+    case 'q': {
+        long long value = unpackValueLongLong(&data);
+
+        PyObject *l = PyLong_FromLongLong(value);
+
+        insertToDictCache(long_cache, &l);
+
+        *output = l;
+        is_object = true;
+
+        break;
+    }
+    case 'g': {
+        PyObject *result = PyLong_FromLong(0);
+
+        unsigned char sign = *data++;
+        int size = unpackValueInt(&data);
+
+        PyObject *shift = PyLong_FromLong(8 * sizeof(unsigned long long));
+
+        for (int i = 0; i < size; i++) {
+            result = PyNumber_InPlaceLshift(result, shift);
+
+            unsigned long long value = unpackValueUnsignedLongLong(&data);
+            PyObject *part = PyLong_FromUnsignedLongLong(value);
+            result = PyNumber_InPlaceAdd(result, part);
+            Py_DECREF(part);
+        }
+
+        Py_DECREF(shift);
+
+        if (sign == '-') {
+            // TODO: There is a negate function
+            PyObject *neg = PyLong_FromLong(-1);
+            result = PyNumber_InPlaceMultiply(result, neg);
+            Py_DECREF(neg);
+        }
+
+        insertToDictCache(long_cache, &result);
+
+        *output = result;
+        is_object = true;
+
+        break;
+    }
+    case 'f': {
+        double value = unpackValueFloat(&data);
+
+        PyObject *f = PyFloat_FromDouble(value);
+
+        // Floats are cached globally too.
+        insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_richcompare);
+
+        *output = f;
+        is_object = true;
+
+        break;
+    }
+    case 'j': {
+        double real = unpackValueFloat(&data);
+        double imag = unpackValueFloat(&data);
+
+        *output = PyComplex_FromDoubles(real, imag);
+        is_object = true;
+
+        break;
+    }
+    case 'J': {
+        PyObject *parts[2];
+
+        // Complex via float is done for ones that are 0, nan, float.
+        data = _unpackBlobConstants(tstate, &parts[0], data, 2);
+
+        *output = BUILTIN_COMPLEX2(tstate, parts[0], parts[1]);
+        is_object = true;
+
+        break;
+    }
 #if PYTHON_VERSION < 0x300
-            PyObject *s = PyString_FromStringAndSize((const char *)data, 1);
-            data += 1;
-            *output = s;
-#else
-            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, 1);
-            data += 1;
-            *output = b;
-#endif
+    case 'a':
+    case 'c': {
+        // Python2 str, potentially attribute, zero terminated.
+        size_t size = strlen((const char *)data);
 
-            is_object = true;
+        PyObject *s = PyString_FromStringAndSize((const char *)data, size);
+        CHECK_OBJECT(s);
 
-            break;
+        data += size + 1;
+
+        if (c == 'a') {
+            PyString_InternInPlace(&s);
         }
-        case 'w': {
-            // Python2 unicode, Python3 str length 1, potentially attribute in Python3
 
-            PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
-            data += 1;
+        *output = s;
+        is_object = true;
 
-#if PYTHON_VERSION >= 0x300
-            PyUnicode_InternInPlace(&u);
+        break;
+    }
 #else
-            insertToDictCache(unicode_cache, &u);
-#endif
+    case 'c': {
+        // Python3 bytes, zero terminated.
+        size_t size = strlen((const char *)data);
 
-            *output = u;
-            is_object = true;
+        PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
+        CHECK_OBJECT(b);
 
-            break;
-        }
-        case 'b': {
-            // Python2 str or Python3 bytes, length indicated.
-            int size = (int)_unpackVariableLength(&data);
-            assert(size > 1);
+        data += size + 1;
 
-            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
-            CHECK_OBJECT(b);
-
-            data += size;
-
-#if PYTHON_VERSION >= 0x300
+        // Empty bytes value is here as well.
+        if (size > 1) {
             insertToDictCache(bytes_cache, &b);
+        }
+
+        *output = b;
+        is_object = true;
+
+        break;
+    }
+#endif
+    case 'd': {
+        // Python2 str length 1 str, potentially attribute, or Python3 single byte
+
+#if PYTHON_VERSION < 0x300
+        PyObject *s = PyString_FromStringAndSize((const char *)data, 1);
+        data += 1;
+        *output = s;
+#else
+        PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, 1);
+        data += 1;
+        *output = b;
 #endif
 
-            *output = b;
-            is_object = true;
+        is_object = true;
 
-            break;
-        }
+        break;
+    }
+    case 'w': {
+        // Python2 unicode, Python3 str length 1, potentially attribute in Python3
 
-        case 'B': {
-            int size = (int)_unpackVariableLength(&data);
+        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
+        data += 1;
 
-            PyObject *b = PyByteArray_FromStringAndSize((const char *)data, size);
-            data += size;
-
-            *output = b;
-            is_object = true;
-
-            break;
-        }
 #if PYTHON_VERSION >= 0x300
-        case 'a': // Python3 attributes
-#endif
-        case 'u': { // Python2 unicode, Python3 str, zero terminated.
-            size_t size = strlen((const char *)data);
-#if PYTHON_VERSION < 0x300
-            PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
+        PyUnicode_InternInPlace(&u);
 #else
-            PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
+        insertToDictCache(unicode_cache, &u);
 #endif
-            data += size + 1;
+
+        *output = u;
+        is_object = true;
+
+        break;
+    }
+    case 'b': {
+        // Python2 str or Python3 bytes, length indicated.
+        int size = (int)_unpackVariableLength(&data);
+        assert(size > 1);
+
+        PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
+        CHECK_OBJECT(b);
+
+        data += size;
 
 #if PYTHON_VERSION >= 0x300
-            if (c == 'a') {
-                PyUnicode_InternInPlace(&u);
-            }
-#else
-            insertToDictCache(unicode_cache, &u);
+        insertToDictCache(bytes_cache, &b);
 #endif
 
-            *output = u;
-            is_object = true;
+        *output = b;
+        is_object = true;
 
-            break;
+        break;
+    }
+
+    case 'B': {
+        int size = (int)_unpackVariableLength(&data);
+
+        PyObject *b = PyByteArray_FromStringAndSize((const char *)data, size);
+        data += size;
+
+        *output = b;
+        is_object = true;
+
+        break;
+    }
+#if PYTHON_VERSION >= 0x300
+    case 'a': // Python3 attributes
+#endif
+    case 'u': { // Python2 unicode, Python3 str, zero terminated.
+        size_t size = strlen((const char *)data);
+#if PYTHON_VERSION < 0x300
+        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
+#else
+        PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
+#endif
+        data += size + 1;
+
+#if PYTHON_VERSION >= 0x300
+        if (c == 'a') {
+            PyUnicode_InternInPlace(&u);
         }
-        case 'v': {
-            int size = (int)_unpackVariableLength(&data);
+#else
+        insertToDictCache(unicode_cache, &u);
+#endif
+
+        *output = u;
+        is_object = true;
+
+        break;
+    }
+    case 'v': {
+        int size = (int)_unpackVariableLength(&data);
 
 #if PYTHON_VERSION < 0x300
-            PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
+        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
-            PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
+        PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
-            data += size;
+        data += size;
 
 #if PYTHON_VERSION < 0x300
-            insertToDictCache(unicode_cache, &u);
+        insertToDictCache(unicode_cache, &u);
 #endif
 
-            *output = u;
-            is_object = true;
+        *output = u;
+        is_object = true;
 
-            break;
-        }
-        case 'n': {
-            *output = Py_None;
-            is_object = true;
+        break;
+    }
+    case 'n': {
+        *output = Py_None;
+        is_object = true;
 
-            break;
-        }
-        case 't': {
-            *output = Py_True;
-            is_object = true;
+        break;
+    }
+    case 't': {
+        *output = Py_True;
+        is_object = true;
 
-            break;
-        }
-        case 'F': {
-            *output = Py_False;
-            is_object = true;
+        break;
+    }
+    case 'F': {
+        *output = Py_False;
+        is_object = true;
 
-            break;
-        }
-        case ':': {
-            // Slice object
-            PyObject *items[3];
-            data = _unpackBlobConstants(tstate, &items[0], data, 3);
+        break;
+    }
+    case ':': {
+        // Slice object
+        PyObject *items[3];
+        data = _unpackBlobConstants(tstate, &items[0], data, 3);
 
-            PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
+        PyObject *s = MAKE_SLICE_OBJECT3(tstate, items[0], items[1], items[2]);
 
-            *output = s;
-            is_object = true;
+        *output = s;
+        is_object = true;
 
-            break;
-        }
-        case ';': {
-            // (x)range objects
+        break;
+    }
+    case ';': {
+        // (x)range objects
 #if PYTHON_VERSION < 0x300
-            long start = unpackValueLong(&data);
-            long stop = unpackValueLong(&data);
-            long step = unpackValueLong(&data);
+        long start = unpackValueLong(&data);
+        long stop = unpackValueLong(&data);
+        long step = unpackValueLong(&data);
 
-            PyObject *s = MAKE_XRANGE(tstate, start, stop, step);
+        PyObject *s = MAKE_XRANGE(tstate, start, stop, step);
 #else
-            PyObject *items[3];
-            data = _unpackBlobConstants(tstate, &items[0], data, 3);
+        PyObject *items[3];
+        data = _unpackBlobConstants(tstate, &items[0], data, 3);
 
-            PyObject *s = BUILTIN_XRANGE3(tstate, items[0], items[1], items[2]);
+        PyObject *s = BUILTIN_XRANGE3(tstate, items[0], items[1], items[2]);
 #endif
-            *output = s;
-            is_object = true;
+        *output = s;
+        is_object = true;
 
-            break;
-        }
-        case 'M': {
-            // Anonymous builtin by table index value.
-            unsigned char anon_index = *data++;
+        break;
+    }
+    case 'M': {
+        // Anonymous builtin by table index value.
+        unsigned char anon_index = *data++;
 
-            *output = _unpackAnonValue(anon_index);
-            is_object = true;
+        *output = _unpackAnonValue(anon_index);
+        is_object = true;
 
-            break;
-        }
-        case 'Q': {
-            // Anonymous builtin by table index value.
-            unsigned char special_index = *data++;
+        break;
+    }
+    case 'Q': {
+        // Anonymous builtin by table index value.
+        unsigned char special_index = *data++;
 
-            *output = _unpackSpecialValue(special_index);
-            is_object = true;
+        *output = _unpackSpecialValue(special_index);
+        is_object = true;
 
-            break;
-        }
-        case 'O': {
-            // Builtin by name. TODO: Define number table shared by C and Python
-            // serialization to avoid using strings here.
-            char const *builtin_name = (char const *)data;
-            data = _unpackValueCString(data);
+        break;
+    }
+    case 'O': {
+        // Builtin by name. TODO: Define number table shared by C and Python
+        // serialization to avoid using strings here.
+        char const *builtin_name = (char const *)data;
+        data = _unpackValueCString(data);
 
-            *output = PyObject_GetAttrString((PyObject *)builtin_module, builtin_name);
-            is_object = true;
+        *output = PyObject_GetAttrString((PyObject *)builtin_module, builtin_name);
+        is_object = true;
 
-            break;
-        }
-        case 'E': {
-            // Builtin exception by name. TODO: Define number table shared by C and Python
-            // serialization to avoid using strings here.
-            char const *builtin_exception_name = (char const *)data;
-            data = _unpackValueCString(data);
+        break;
+    }
+    case 'E': {
+        // Builtin exception by name. TODO: Define number table shared by C and Python
+        // serialization to avoid using strings here.
+        char const *builtin_exception_name = (char const *)data;
+        data = _unpackValueCString(data);
 
-            *output = PyObject_GetAttrString((PyObject *)builtin_module, builtin_exception_name);
-            is_object = true;
+        *output = PyObject_GetAttrString((PyObject *)builtin_module, builtin_exception_name);
+        is_object = true;
 
-            break;
-        }
-        case 'Z': {
-            unsigned char v = *data++;
+        break;
+    }
+    case 'Z': {
+        unsigned char v = *data++;
 
-            PyObject *z = NULL;
+        PyObject *z = NULL;
 
-            switch (v) {
-            case 0: {
-                static PyObject *_const_float_0_0 = NULL;
+        switch (v) {
+        case 0: {
+            static PyObject *_const_float_0_0 = NULL;
 
-                if (_const_float_0_0 == NULL) {
-                    _const_float_0_0 = PyFloat_FromDouble(0.0);
-                }
-                z = _const_float_0_0;
-
-                break;
+            if (_const_float_0_0 == NULL) {
+                _const_float_0_0 = PyFloat_FromDouble(0.0);
             }
-            case 1: {
-                static PyObject *_const_float_minus_0_0 = NULL;
-
-                if (_const_float_minus_0_0 == NULL) {
-                    _const_float_minus_0_0 = PyFloat_FromDouble(0.0);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_SET_DOUBLE(_const_float_minus_0_0,
-                                       copysign(PyFloat_AS_DOUBLE(_const_float_minus_0_0), -1.0));
-                }
-                z = _const_float_minus_0_0;
-
-                break;
-            }
-
-            case 2: {
-                static PyObject *_const_float_plus_nan = NULL;
-
-                if (_const_float_plus_nan == NULL) {
-                    _const_float_plus_nan = PyFloat_FromDouble(Py_NAN);
-
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
-                    PyFloat_SET_DOUBLE(_const_float_plus_nan, copysign(PyFloat_AS_DOUBLE(_const_float_plus_nan), 1.0));
-                }
-                z = _const_float_plus_nan;
-
-                break;
-            }
-            case 3: {
-                static PyObject *_const_float_minus_nan = NULL;
-
-                if (_const_float_minus_nan == NULL) {
-                    _const_float_minus_nan = PyFloat_FromDouble(Py_NAN);
-
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
-                    PyFloat_SET_DOUBLE(_const_float_minus_nan,
-                                       copysign(PyFloat_AS_DOUBLE(_const_float_minus_nan), -1.0));
-                }
-                z = _const_float_minus_nan;
-
-                break;
-            }
-            case 4: {
-                static PyObject *_const_float_plus_inf = NULL;
-
-                if (_const_float_plus_inf == NULL) {
-                    _const_float_plus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_SET_DOUBLE(_const_float_plus_inf, copysign(PyFloat_AS_DOUBLE(_const_float_plus_inf), 1.0));
-                }
-                z = _const_float_plus_inf;
-
-                break;
-            }
-            case 5: {
-                static PyObject *_const_float_minus_inf = NULL;
-
-                if (_const_float_minus_inf == NULL) {
-                    _const_float_minus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_SET_DOUBLE(_const_float_minus_inf,
-                                       copysign(PyFloat_AS_DOUBLE(_const_float_minus_inf), -1.0));
-                }
-                z = _const_float_minus_inf;
-
-                break;
-            }
-            default: {
-                PRINT_FORMAT("Missing decoding for %d\n", (int)c);
-                NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
-            }
-            }
-
-            // Floats are cached globally too.
-            insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_richcompare);
-
-            *output = z;
-            is_object = true;
+            z = _const_float_0_0;
 
             break;
         }
-        case 'X': {
-            // Blob data pointer, user knowns size.
-            int size = unpackValueInt(&data);
+        case 1: {
+            static PyObject *_const_float_minus_0_0 = NULL;
 
-            *output = (PyObject *)data;
-            is_object = false;
+            if (_const_float_minus_0_0 == NULL) {
+                _const_float_minus_0_0 = PyFloat_FromDouble(0.0);
 
-            data += size;
+                // Older Python3 has variable signs from C, so be explicit about it.
+                PyFloat_SET_DOUBLE(_const_float_minus_0_0, copysign(PyFloat_AS_DOUBLE(_const_float_minus_0_0), -1.0));
+            }
+            z = _const_float_minus_0_0;
 
             break;
         }
-#if PYTHON_VERSION >= 0x390
-        case 'G': {
-            // GenericAlias object
-            PyObject *items[2];
-            data = _unpackBlobConstants(tstate, &items[0], data, 2);
 
-            PyObject *g = Py_GenericAlias(items[0], items[1]);
+        case 2: {
+            static PyObject *_const_float_plus_nan = NULL;
 
-            // TODO: Maybe deduplicate.
-            *output = g;
+            if (_const_float_plus_nan == NULL) {
+                _const_float_plus_nan = PyFloat_FromDouble(Py_NAN);
 
-            is_object = true;
+                // Older Python3 has variable signs for NaN from C, so be explicit about it.
+                PyFloat_SET_DOUBLE(_const_float_plus_nan, copysign(PyFloat_AS_DOUBLE(_const_float_plus_nan), 1.0));
+            }
+            z = _const_float_plus_nan;
+
             break;
         }
-#endif
-#if PYTHON_VERSION >= 0x3a0
-        case 'H': {
-            // UnionType object
-            PyObject *args;
-            data = _unpackBlobConstants(tstate, &args, data, 1);
+        case 3: {
+            static PyObject *_const_float_minus_nan = NULL;
 
-            PyObject *union_type = MAKE_UNION_TYPE(args);
+            if (_const_float_minus_nan == NULL) {
+                _const_float_minus_nan = PyFloat_FromDouble(Py_NAN);
 
-            // TODO: Maybe deduplicate.
-            *output = union_type;
+                // Older Python3 has variable signs for NaN from C, so be explicit about it.
+                PyFloat_SET_DOUBLE(_const_float_minus_nan, copysign(PyFloat_AS_DOUBLE(_const_float_minus_nan), -1.0));
+            }
+            z = _const_float_minus_nan;
 
-            is_object = true;
             break;
         }
-#endif
-        case '.': {
-            PRINT_FORMAT("Missing values %d\n", count - _i);
-            NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
+        case 4: {
+            static PyObject *_const_float_plus_inf = NULL;
+
+            if (_const_float_plus_inf == NULL) {
+                _const_float_plus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
+
+                // Older Python3 has variable signs from C, so be explicit about it.
+                PyFloat_SET_DOUBLE(_const_float_plus_inf, copysign(PyFloat_AS_DOUBLE(_const_float_plus_inf), 1.0));
+            }
+            z = _const_float_plus_inf;
+
+            break;
         }
-        default:
+        case 5: {
+            static PyObject *_const_float_minus_inf = NULL;
+
+            if (_const_float_minus_inf == NULL) {
+                _const_float_minus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
+
+                // Older Python3 has variable signs from C, so be explicit about it.
+                PyFloat_SET_DOUBLE(_const_float_minus_inf, copysign(PyFloat_AS_DOUBLE(_const_float_minus_inf), -1.0));
+            }
+            z = _const_float_minus_inf;
+
+            break;
+        }
+        default: {
             PRINT_FORMAT("Missing decoding for %d\n", (int)c);
             NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
         }
-
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        printf("Size for %c was %d\n", c, data - data_old);
-#endif
-
-        // Discourage in-place operations from modifying these. These
-        // might be put into containers, therefore take 2 refs to be
-        // accounting for the container too.
-        if (is_object == true) {
-            CHECK_OBJECT(*output);
-
-#if PYTHON_VERSION < 0x3c0
-            Py_INCREF(*output);
-            Py_INCREF(*output);
-#else
-            Py_SET_REFCNT_IMMORTAL(*output);
-#endif
         }
 
-        // PRINT_ITEM(*output);
-        // PRINT_NEW_LINE();
+        // Floats are cached globally too.
+        insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_richcompare);
+
+        *output = z;
+        is_object = true;
+
+        break;
+    }
+    case 'X': {
+        // Blob data pointer, user knowns size.
+        int size = unpackValueInt(&data);
+
+        *output = (PyObject *)data;
+        is_object = false;
+
+        data += size;
+
+        break;
+    }
+#if PYTHON_VERSION >= 0x390
+    case 'G': {
+        // GenericAlias object
+        PyObject *items[2];
+        data = _unpackBlobConstants(tstate, &items[0], data, 2);
+
+        PyObject *g = Py_GenericAlias(items[0], items[1]);
+
+        // TODO: Maybe deduplicate.
+        *output = g;
+
+        is_object = true;
+        break;
+    }
+#endif
+#if PYTHON_VERSION >= 0x3a0
+    case 'H': {
+        // UnionType object
+        PyObject *args;
+        data = _unpackBlobConstants(tstate, &args, data, 1);
+
+        PyObject *union_type = MAKE_UNION_TYPE(args);
+
+        // TODO: Maybe deduplicate.
+        *output = union_type;
+
+        is_object = true;
+        break;
+    }
+#endif
+    case 'C': {
+        // Code object, without the filename, we let the module do that, depending on
+        // the source mode.
+        int line = unpackValueInt(&data);
+        int flags = unpackValueInt(&data);
+
+        PyObject *function_name;
+        data = _unpackBlobConstant(tstate, &function_name, data);
+        // TODO: Version specific if we have this
+#if PYTHON_VERSION >= 0x3b0
+        PyObject *function_qualname;
+        data = _unpackBlobConstant(tstate, &function_qualname, data);
+#endif
+        PyObject *arg_names;
+        data = _unpackBlobConstant(tstate, &arg_names, data);
+        PyObject *free_vars;
+        data = _unpackBlobConstant(tstate, &free_vars, data);
+        int arg_count = unpackValueInt(&data);
+
+#if PYTHON_VERSION >= 0x300
+        int kw_only_count = unpackValueInt(&data);
+#if PYTHON_VERSION >= 0x380
+        int pos_only_count = unpackValueInt(&data);
+#endif
+#endif
+        // Filename will be supplied later during usage.
+        *output = (PyObject *)MAKE_CODE_OBJECT(Py_None, line, flags, function_name, function_qualname, arg_names,
+                                               free_vars, arg_count, kw_only_count, pos_only_count);
+
+        is_object = true;
+        break;
+    }
+    case '.': {
+        PRINT_STRING("Missing blob values\n");
+        NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
+    }
+    default:
+        PRINT_FORMAT("Missing decoding for %d\n", (int)c);
+        NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
+    }
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+    printf("Size for %c was %d\n", c, data - data_old);
+#endif
+
+    // Discourage in-place operations from modifying these. These
+    // might be put into containers, therefore take 2 refs to be
+    // accounting for the container too.
+    if (is_object == true) {
+        CHECK_OBJECT(*output);
+
+#if PYTHON_VERSION < 0x3c0
+        Py_INCREF(*output);
+        Py_INCREF(*output);
+#else
+        Py_SET_REFCNT_IMMORTAL(*output);
+#endif
+    }
+
+    return data;
+}
+
+static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data,
+                                                 int count) {
+    for (int _i = 0; _i < count; _i++) {
+        data = _unpackBlobConstant(tstate, output, data);
 
         output += 1;
     }
