@@ -102,6 +102,10 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["numpy.distutils"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
