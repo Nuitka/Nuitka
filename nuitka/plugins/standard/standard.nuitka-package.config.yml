@@ -4643,6 +4643,11 @@
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
 
+- module-name: 'scipy.signal' # checksum: 4ded0e67
+  implicit-imports:
+    - depends:
+        - 'scipy.special._cdflib'
+
 - module-name: 'scipy.sparse.csgraph' # checksum: 8997608e
   implicit-imports:
     - depends:
