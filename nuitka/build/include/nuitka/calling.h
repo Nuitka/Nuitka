@@ -11,7 +11,7 @@
 // For exception test formatting and call code mostly.
 extern char const *GET_CALLABLE_NAME(PyObject *object);
 extern char const *GET_CALLABLE_DESC(PyObject *object);
-extern char const *GET_CLASS_NAME(PyObject *klass);
+extern char const *GET_CLASS_NAME(PyObject *class_object);
 extern char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance);
 
 // Also used in generated helper code.
