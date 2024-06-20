@@ -182,7 +182,7 @@ static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *va
 }
 #endif
 
-static PyGetSetDef Nuitka_Cell_getsetlist[] = {
+static PyGetSetDef Nuitka_Cell_tp_getset[] = {
 #if PYTHON_VERSION < 0x370
     {(char *)"cell_contents", (getter)Nuitka_Cell_get_contents, NULL, NULL},
 #else
@@ -218,12 +218,12 @@ PyTypeObject Nuitka_Cell_Type = {
 #else
     Nuitka_Cell_tp_richcompare, // tp_richcompare
 #endif
-    0,                      // tp_weaklistoffset
-    0,                      // tp_iter
-    0,                      // tp_iternext
-    0,                      // tp_methods
-    0,                      // tp_members
-    Nuitka_Cell_getsetlist, // tp_getset
+    0,                     // tp_weaklistoffset
+    0,                     // tp_iter
+    0,                     // tp_iternext
+    0,                     // tp_methods
+    0,                     // tp_members
+    Nuitka_Cell_tp_getset, // tp_getset
 };
 
 void _initCompiledCellType(void) { Nuitka_PyType_Ready(&Nuitka_Cell_Type, NULL, true, false, false, false, false); }
