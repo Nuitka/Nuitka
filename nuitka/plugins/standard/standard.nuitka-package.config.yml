@@ -493,6 +493,19 @@
     patterns:
       - 'cacert.pem'
 
+- module-name: 'bpy' # checksum: 210495b
+  data-files:
+    dirs:
+      - '.'
+      - 'materialx'
+      - 'usd'
+    raw_dirs:
+      - '4.1'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - ''
+
 - module-name: 'branca' # checksum: 7c7e6a4e
   data-files:
     dirs:
