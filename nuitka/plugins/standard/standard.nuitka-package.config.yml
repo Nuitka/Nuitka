@@ -726,6 +726,14 @@
     dirs:
       - 'resources'
 
+- module-name: 'cpuinfo.cpuinfo' # checksum: 9cf591d7
+  anti-bloat:
+    - description: 'workaround for forking itself'
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+        'getattr(sys, "frozen", False)': 'True'
+      when: 'win32'
+
 - module-name: 'Crypto.Util._raw_api' # checksum: 6e46e262
   data-files:
     empty_dirs:
@@ -5934,7 +5942,16 @@
         'skiptests': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'tables' # checksum: 590cadeb
+- module-name: 'tables' # checksum: 44b1f61b
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libblosc2'
+        suffixes:
+          - 'pyd'
+          - 'dll'
+      when: 'win32'
+
   anti-bloat:
     - description: 'remove tables.tests usage'
       replacements_plain:
