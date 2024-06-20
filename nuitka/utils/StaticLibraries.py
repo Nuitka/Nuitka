@@ -12,6 +12,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
+    isRyePython,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -22,7 +23,12 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general
 
 from .FileOperations import getFileContentByLine, getFileList
-from .Utils import getLinuxDistribution, isDebianBasedLinux, isWin32Windows
+from .Utils import (
+    getLinuxDistribution,
+    isDebianBasedLinux,
+    isMacOS,
+    isWin32Windows,
+)
 
 _ldconf_paths = None
 
@@ -38,14 +44,15 @@ def locateStaticLinkLibrary(dll_name):
 
 def _locateStaticLinkLibrary(dll_name):
     # singleton, pylint: disable=global-statement
+
     #
     global _ldconf_paths
 
     if _ldconf_paths is None:
         _ldconf_paths = OrderedSet()
 
-        for conf_filemame in getFileList("/etc/ld.so.conf.d", only_suffixes=".conf"):
-            for conf_line in getFileContentByLine(conf_filemame):
+        for conf_filename in getFileList("/etc/ld.so.conf.d", only_suffixes=".conf"):
+            for conf_line in getFileContentByLine(conf_filename):
                 conf_line = conf_line.split("#", 1)[0]
                 conf_line = conf_line.strip()
 
@@ -142,53 +149,56 @@ def _getSystemStaticLibPythonPath():
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
+
+        return None
+
+    if isMacOS() and isRyePython():
+        return None
+
+    candidate = os.path.join(sys_prefix, "lib", "libpython" + python_abi_version + ".a")
+
+    if os.path.exists(candidate):
+        return candidate
+
+    # For Python2 this works. TODO: Figure out Debian and Python3.
+    if (
+        python_version < 0x300
+        and isDebianPackagePython()
+        and isDebianSuitableForStaticLinking()
+    ):
+        candidate = locateStaticLinkLibrary("python" + python_abi_version)
     else:
+        candidate = None
+
+    if candidate is not None and os.path.exists(candidate):
+        # Also check libz, can be missing
+        if not locateStaticLinkLibrary("z"):
+            general.warning(
+                "Error, missing 'libz-dev' installation needed for static lib-python."
+            )
+
+        return candidate
+
+    # This is not necessarily only for Python3 on Debian, but maybe others as well,
+    # but that's what's been tested. spell-checker: ignore libpl
+    if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
         candidate = os.path.join(
-            sys_prefix, "lib", "libpython" + python_abi_version + ".a"
+            _getSysConfigVarLIBPL(),
+            "libpython" + python_abi_version + "-pic.a",
         )
 
         if os.path.exists(candidate):
             return candidate
 
-        # For Python2 this works. TODO: Figure out Debian and Python3.
-        if (
-            python_version < 0x300
-            and isDebianPackagePython()
-            and isDebianSuitableForStaticLinking()
-        ):
-            candidate = locateStaticLinkLibrary("python" + python_abi_version)
-        else:
-            candidate = None
+    libpl = _getSysConfigVarLIBPL()
+    if libpl is not None:
+        candidate = os.path.join(
+            libpl,
+            "libpython" + python_abi_version + ".a",
+        )
 
-        if candidate is not None and os.path.exists(candidate):
-            # Also check libz, can be missing
-            if not locateStaticLinkLibrary("z"):
-                general.warning(
-                    "Error, missing 'libz-dev' installation needed for static lib-python."
-                )
-
+        if os.path.exists(candidate):
             return candidate
-
-        # This is not necessarily only for Python3 on Debian, but maybe others as well,
-        # but that's what's been tested.
-        if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
-            candidate = os.path.join(
-                _getSysConfigVarLIBPL(),
-                "libpython" + python_abi_version + "-pic.a",
-            )
-
-            if os.path.exists(candidate):
-                return candidate
-
-        libpl = _getSysConfigVarLIBPL()
-        if libpl is not None:
-            candidate = os.path.join(
-                libpl,
-                "libpython" + python_abi_version + ".a",
-            )
-
-            if os.path.exists(candidate):
-                return candidate
 
     return None
 
