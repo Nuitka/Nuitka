@@ -1153,7 +1153,7 @@ static PyMethodDef Nuitka_Coroutine_methods[] = {{"send", (PyCFunction)Nuitka_Co
 
 // TODO: Set "__doc__" automatically for method clones of compiled types from
 // the documentation of built-in original type.
-static PyGetSetDef Nuitka_Coroutine_getsetlist[] = {
+static PyGetSetDef Nuitka_Coroutine_tp_getset[] = {
     {(char *)"__name__", (getter)Nuitka_Coroutine_get_name, (setter)Nuitka_Coroutine_set_name, NULL},
     {(char *)"__qualname__", (getter)Nuitka_Coroutine_get_qualname, (setter)Nuitka_Coroutine_set_qualname, NULL},
     {(char *)"cr_await", (getter)Nuitka_Coroutine_get_cr_await, (setter)NULL, NULL},
@@ -1210,7 +1210,7 @@ PyTypeObject Nuitka_Coroutine_Type = {
     0,                                                                  // tp_iternext
     Nuitka_Coroutine_methods,                                           // tp_methods
     Nuitka_Coroutine_members,                                           // tp_members
-    Nuitka_Coroutine_getsetlist,                                        // tp_getset
+    Nuitka_Coroutine_tp_getset,                                         // tp_getset
     0,                                                                  // tp_base
     0,                                                                  // tp_dict
     0,                                                                  // tp_descr_get

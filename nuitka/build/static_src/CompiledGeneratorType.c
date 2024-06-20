@@ -1562,7 +1562,7 @@ static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator
     return -1;
 }
 
-static PyGetSetDef Nuitka_Generator_getsetlist[] = {
+static PyGetSetDef Nuitka_Generator_tp_getset[] = {
 #if PYTHON_VERSION < 0x350
     {(char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL},
 #else
@@ -1630,7 +1630,7 @@ PyTypeObject Nuitka_Generator_Type = {
     (iternextfunc)Nuitka_Generator_tp_iternext,          // tp_iternext
     Nuitka_Generator_methods,                            // tp_methods
     NULL,                                                // tp_members
-    Nuitka_Generator_getsetlist,                         // tp_getset
+    Nuitka_Generator_tp_getset,                          // tp_getset
     0,                                                   // tp_base
     0,                                                   // tp_dict
     0,                                                   // tp_descr_get
