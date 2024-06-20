@@ -52,7 +52,11 @@ from nuitka.Options import (
     shallMakeModule,
     shallShowExecutedCommands,
 )
-from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isDebianPackagePython,
+    isNuitkaPython,
+)
 from nuitka.PythonVersions import (
     getTestExecutionPythonVersions,
     python_version,
@@ -131,6 +135,7 @@ def _getEvaluationContext():
             "anaconda": isAnacondaPython(),
             "is_conda_package": isDistributionCondaPackage,
             "debian_python": isDebianPackagePython(),
+            "nuitka_python": isNuitkaPython(),
             "standalone": isStandaloneMode(),
             "module_mode": shallMakeModule(),
             "deployment": isDeploymentMode(),
@@ -195,8 +200,11 @@ def _getEvaluationContext():
         _context_dict["before_python3"] = python_version < 0x300
         _context_dict["python3_or_higher"] = python_version >= 0x300
 
-        _context_dict["extension_std_suffix"] = getSharedLibrarySuffix(preferred=True)
-        _context_dict["extension_suffix"] = getSharedLibrarySuffix(preferred=False)
+        if not isNuitkaPython():
+            _context_dict["extension_std_suffix"] = getSharedLibrarySuffix(
+                preferred=True
+            )
+            _context_dict["extension_suffix"] = getSharedLibrarySuffix(preferred=False)
 
     return _context_dict
 
