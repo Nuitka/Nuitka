@@ -165,11 +165,12 @@
     dirs:
       - 'resources'
 
-- module-name: 'aspose' # checksum: 4f20a71e
+- module-name: 'aspose' # checksum: 9babf530
   data-files:
     patterns:
       - '"**/*"+extension_std_suffix'
       - '**/*.dll'
+    when: 'not nuitka_python'
   anti-bloat:
     - no-follow:
         'aspose.*': 'workaround for aspose needing to load its submodules'
@@ -788,7 +789,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 586ad888
+- module-name: 'cv2' # checksum: 4170eee
   data-files:
     dirs:
       - 'qt/fonts'
@@ -818,11 +819,11 @@
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
       # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % extension_suffix'
-      when: 'standalone and before_python312'
+      when: 'standalone and before_python312 and not nuitka_python'
     - description: 'workaround for colliding native module import'
       replacements:
         'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
-      when: 'standalone and python312_or_higher'
+      when: 'standalone and python312_or_higher and not nuitka_python'
   implicit-imports:
     - depends:
         - 'cv2.cv2'
@@ -1733,6 +1734,20 @@
         - 'imageio.plugins.freeimage'
         - 'imageio.plugins.simpleitk'
         - 'imageio.plugins.pillow'
+
+- module-name: 'imageio_ffmpeg' # checksum: cbcd4133
+  dlls:
+    - from_filenames:
+        relative_path: 'binaries'
+        prefixes:
+          - 'ffmpeg'
+        executable: 'yes'
+
+- module-name: 'imageio_ffmpeg._utils' # checksum: 77b155b9
+  anti-bloat:
+    - description: 'Resolve correct path for ffmpeg binary'
+      replacements_plain:
+        'return str(path.parent)': 'return os.path.join(os.path.dirname(__file__), "binaries")'
 
 - module-name: 'imagej' # checksum: 763ace32
   anti-bloat:
@@ -3381,7 +3396,7 @@
     - depends:
         - 'PIL._tkinter_finder'
 
-- module-name: 'PIL.Image' # checksum: bf79a54d
+- module-name: 'PIL.Image' # checksum: 560d430e
   anti-bloat:
     - description: 'avoid Qt dependency'
       no-auto-follow:
@@ -3391,7 +3406,10 @@
       no-auto-follow:
         'PIL.ImageQt': 'ignore'
       when: 'plugin("no-qt")'
-
+    - description: 'avoid numpy dependency'
+      no-auto-follow:
+        'numpy': 'ignore'
+        'packaging': 'ignore'
   implicit-imports:
     - depends:
         - 'PIL.BlpImagePlugin'
@@ -4651,6 +4669,11 @@
   anti-bloat:
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
+
+- module-name: 'scipy.signal' # checksum: 4ded0e67
+  implicit-imports:
+    - depends:
+        - 'scipy.special._cdflib'
 
 - module-name: 'scipy.sparse.csgraph' # checksum: 8997608e
   implicit-imports:
