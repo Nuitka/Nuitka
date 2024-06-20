@@ -52,16 +52,14 @@ elif sys.platform == "linux":
 
     printf = libc.printf
     # printf.argtypes = (ctypes.c_char_p, ctypes.c_char_p)
-    printf(b"Hello, %s\n", b"World!")
+    printf(b"Hello, %s\n", b"World!\0")
 
     print("OK.")
 elif sys.platform == "darwin":
     libc = ctypes.CDLL("libc.dylib")
 
-    printf = libc.printf
-    # TODO: Not sure why it gives (null) for output, but as long it's
-    # compatible, we are good.
-    printf(b"Hello, %s\n", b"World!")
+    puts = libc.puts
+    puts(b"Hello, World\0")
 
     print("OK.")
 else:
