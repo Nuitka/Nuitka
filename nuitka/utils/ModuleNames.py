@@ -112,12 +112,18 @@ class ModuleName(str):
             yield parent_package
 
     def getRelativePackageName(self, level):
-        result = ".".join(self.asString().split(".")[: -level + 1])
+        assert level >= 0
 
-        if result == "":
-            return None
-        else:
-            return ModuleName(result)
+        parts = self.asString().split(".")
+
+        while level > 0:
+            if not parts:
+                return None
+
+            del parts[-1]
+            level -= 1
+
+        return ModuleName(".".join(parts))
 
     def getTopLevelPackageName(self):
         """Get the top level package name.
