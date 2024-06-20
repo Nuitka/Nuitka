@@ -375,8 +375,6 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
 
         Nuitka_MarkAsyncgenAsNotRunning(asyncgen);
 
-        tstate = PyThreadState_GET();
-
         // Remove the back frame from asyncgen if it's there.
         if (asyncgen->m_frame) {
             // assert(tstate->frame == &asyncgen->m_frame->m_frame);
