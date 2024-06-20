@@ -586,46 +586,18 @@ static PyObject *_nuitka_loader_get_data(PyObject *self, PyObject *args, PyObjec
     return GET_FILE_BYTES(tstate, filename);
 }
 
-#ifdef _WIN32
-static void setModuleFileValue(PyThreadState *tstate, PyObject *module, wchar_t const *filename) {
-#else
-static void setModuleFileValue(PyThreadState *tstate, PyObject *module, char const *filename) {
-#endif
-    bool needs_update = false;
+static void setModuleFileValue(PyThreadState *tstate, PyObject *module, filename_char_t const *filename) {
+    CHECK_OBJECT(module);
+    assert(filename != NULL);
 
-    PyObject *existing_file_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
+    assert(PyModule_Check(module));
 
-#if PYTHON_VERSION < 0x300
-    if (existing_file_value != NULL) {
-        if (PyCObject_Check(existing_file_value)) {
-            PyObject_DelAttr(module, const_str_plain___file__);
-            existing_file_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__);
-        }
-    }
-#endif
+    PyObject *dict = PyModule_GetDict(module);
 
-    if (existing_file_value == NULL) {
-        CLEAR_ERROR_OCCURRED(tstate);
-        needs_update = true;
-    } else {
-        if (existing_file_value == Py_None) {
-            needs_update = true;
-        }
-
-        Py_DECREF(existing_file_value);
-    }
-
-    if (needs_update) {
-#ifdef _WIN32
-        int res = SET_ATTRIBUTE(tstate, module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
-#else
-        int res = SET_ATTRIBUTE(tstate, module, const_str_plain___file__, PyUnicode_FromString(filename));
-#endif
-        if (unlikely(res < 0)) {
-            // Might be refuted, which wouldn't be harmful.
-            CLEAR_ERROR_OCCURRED(tstate);
-        }
-    }
+    // TODO: We should have DICT_SET_ITEM0/1 for these things.
+    PyObject *new_file_value = Nuitka_String_FromFilename(filename);
+    DICT_SET_ITEM(dict, const_str_plain___file__, new_file_value);
+    Py_DECREF(new_file_value);
 }
 
 #if PYTHON_VERSION < 0x300
@@ -930,6 +902,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     } else {
         def = PyModule_GetDef(module);
 
+        def->m_base.m_init = entrypoint;
+
         // Set "__spec__" and "__file__" after load.
         setModuleFileValue(tstate, module, filename);
         PyObject *full_name_obj = Nuitka_String_FromString(full_name);
@@ -988,11 +962,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #else
     PyObject *full_name_obj = PyUnicode_FromString(full_name);
     CHECK_OBJECT(full_name_obj);
-#ifdef _WIN32
-    PyObject *filename_obj = NuitkaUnicode_FromWideChar(filename, -1);
-#else
-    PyObject *filename_obj = PyUnicode_FromString(filename);
-#endif
+    PyObject *filename_obj = Nuitka_String_FromFilename(filename);
+
     CHECK_OBJECT(filename_obj);
 
 #if PYTHON_VERSION < 0x3d0
@@ -1069,28 +1040,6 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
         filename_char_t filename[MAXPATHLEN + 1] = {0};
         _makeModuleCFilenameValue(filename, sizeof(filename) / sizeof(filename_char_t), entry->name, module_name,
                                   is_package);
-
-        // Set "__spec__" and "__file__", some modules expect it early.
-        setModuleFileValue(tstate, module, filename);
-
-        if (is_package) {
-            SET_ATTRIBUTE(tstate, module, const_str_plain___package__, module_name);
-        }
-
-#if PYTHON_VERSION >= 0x350
-        PyObject *spec_value = createModuleSpec(tstate, module_name,
-                                                LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__), is_package);
-
-        // Not needed, submodule_search_locations is nothing we use.
-#if 0
-
-        if (is_package) {
-            LIST_APPEND1(PyObject_GetAttrString(spec_value, "submodule_search_locations"), OS_PATH_DIRNAME(tstate, LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___file__)));
-        }
-#endif
-
-        SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
-#endif
 
         callIntoExtensionModule(tstate, entry->name, filename, is_package);
     } else
