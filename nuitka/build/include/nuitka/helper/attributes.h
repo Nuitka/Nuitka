@@ -35,7 +35,7 @@ extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObjec
 
 // Find an attribute in a class, Python2 only.
 #if PYTHON_VERSION < 0x300
-extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name);
+extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name);
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);

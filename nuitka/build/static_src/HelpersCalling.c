@@ -287,39 +287,39 @@ char const *GET_CALLABLE_DESC(PyObject *object) {
     }
 }
 
-char const *GET_CLASS_NAME(PyObject *klass) {
-    if (klass == NULL) {
+char const *GET_CLASS_NAME(PyObject *class_object) {
+    if (class_object == NULL) {
         return "?";
     } else {
 #if PYTHON_VERSION < 0x300
-        if (PyClass_Check(klass)) {
-            return Nuitka_String_AsString(((PyClassObject *)klass)->cl_name);
+        if (PyClass_Check(class_object)) {
+            return Nuitka_String_AsString(((PyClassObject *)class_object)->cl_name);
         }
 #endif
 
-        if (!PyType_Check(klass)) {
-            klass = (PyObject *)Py_TYPE(klass);
+        if (!PyType_Check(class_object)) {
+            class_object = (PyObject *)Py_TYPE(class_object);
         }
 
-        return ((PyTypeObject *)klass)->tp_name;
+        return ((PyTypeObject *)class_object)->tp_name;
     }
 }
 
 char const *GET_INSTANCE_CLASS_NAME(PyThreadState *tstate, PyObject *instance) {
     // TODO: Why not use our own attribute lookup here.
-    PyObject *klass = PyObject_GetAttr(instance, const_str_plain___class__);
+    PyObject *class_object = PyObject_GetAttr(instance, const_str_plain___class__);
 
     // Fallback to type as this cannot fail.
-    if (klass == NULL) {
+    if (class_object == NULL) {
         CLEAR_ERROR_OCCURRED(tstate);
 
-        klass = (PyObject *)Py_TYPE(instance);
-        Py_INCREF(klass);
+        class_object = (PyObject *)Py_TYPE(instance);
+        Py_INCREF(class_object);
     }
 
-    char const *result = GET_CLASS_NAME(klass);
+    char const *result = GET_CLASS_NAME(class_object);
 
-    Py_DECREF(klass);
+    Py_DECREF(class_object);
 
     return result;
 }
