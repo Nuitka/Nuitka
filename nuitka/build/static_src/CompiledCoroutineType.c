@@ -466,8 +466,6 @@ static PySendResult _Nuitka_Coroutine_sendR(PyThreadState *tstate, struct Nuitka
 
         Nuitka_MarkCoroutineAsNotRunning(coroutine);
 
-        tstate = PyThreadState_GET();
-
         // Remove the back frame from coroutine if it's there.
         if (coroutine->m_frame) {
             // assert(tstate->frame == &coroutine->m_frame->m_frame);
