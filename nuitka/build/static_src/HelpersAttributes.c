@@ -124,7 +124,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -276,7 +276,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -393,7 +393,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -558,7 +558,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -727,7 +727,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -929,7 +929,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             descrsetfunc func = Py_TYPE(descr)->tp_descr_set;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 int res = func(descr, target, value);
                 Py_DECREF(descr);
 

@@ -42,7 +42,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -262,7 +262,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject *s
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
