@@ -344,7 +344,7 @@ def findModule(module_name, parent_package, level):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            parent_package = parent_package.getRelativePackageName(level)
+            parent_package = parent_package.getRelativePackageName(level - 1)
         else:
             return None, None, None, "not-found"
 
