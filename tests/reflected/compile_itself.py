@@ -330,7 +330,12 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 target_dir = os.path.join(tmp_dir, target)
 
-                removeDirectory(path=target_dir, ignore_errors=False)
+                removeDirectory(
+                    logger=test_logger,
+                    path=target_dir,
+                    ignore_errors=False,
+                    extra_recommendation=None,
+                )
 
                 command = [
                     nuitka,
