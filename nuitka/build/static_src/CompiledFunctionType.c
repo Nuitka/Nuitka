@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <structmember.h>
 
-// spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
+// spell-checker: ignore qualname,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
 
 #if _DEBUG_REFCOUNTS
 int count_active_Nuitka_Function_Type;
@@ -24,7 +24,7 @@ int count_released_Nuitka_Function_Type;
 #endif
 
 // tp_descr_get slot, bind a function to an object.
-static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
+static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *class_object) {
     assert(Nuitka_Function_Check(function));
     CHECK_OBJECT((PyObject *)function);
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -36,7 +36,7 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
     }
 #endif
 
-    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, object == Py_None ? NULL : object, klass);
+    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, object == Py_None ? NULL : object, class_object);
 }
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
