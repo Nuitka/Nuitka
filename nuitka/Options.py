@@ -913,7 +913,7 @@ version '%s' instead or newer Nuitka."""
             )
 
     # spell-checker: ignore releaselevel
-    if sys.version_info.releaselevel != "final":
+    if sys.version_info.releaselevel not in ("final", "candidate"):
         if python_version_str not in getNotYetSupportedPythonVersions():
             Tracing.general.sysexit(
                 """\
