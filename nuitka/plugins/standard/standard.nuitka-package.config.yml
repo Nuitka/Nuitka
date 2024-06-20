@@ -5943,15 +5943,11 @@
         'skiptests': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'tables' # checksum: 44b1f61b
+- module-name: 'tables' # checksum: fc7f4f37
   dlls:
     - from_filenames:
         prefixes:
           - 'libblosc2'
-        suffixes:
-          - 'pyd'
-          - 'dll'
-      when: 'win32'
 
   anti-bloat:
     - description: 'remove tables.tests usage'
