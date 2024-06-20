@@ -11903,7 +11903,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -12069,7 +12069,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyThreadState *tstate, PyObject *source, PyObject 
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -12129,7 +12129,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -12295,7 +12295,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *source, P
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -12354,7 +12354,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -12520,7 +12520,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -12579,7 +12579,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -12745,7 +12745,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -12804,7 +12804,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -12970,7 +12970,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -13029,7 +13029,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -13195,7 +13195,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -13254,7 +13254,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -13420,7 +13420,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -13479,7 +13479,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -13645,7 +13645,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -13704,7 +13704,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -13870,7 +13870,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -13929,7 +13929,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -14095,7 +14095,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyThreadState *tstate, PyObject *source, PyObje
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
@@ -14154,7 +14154,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *called_object = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -14320,7 +14320,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             func = Py_TYPE(descr)->tp_descr_get;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 PyObject *called_object = func(descr, source, (PyObject *)type);
                 Py_DECREF(descr);
 
