@@ -113,6 +113,19 @@ def isHomebrewPython():
     return False
 
 
+def isRyePython():
+    if isMacOS():
+        import sysconfig
+
+        # We didn't find a better one, since they do not leave much of any trace
+        # otherwise than an unusable "libpython.a"
+        # spell-checker: ignore isysroot,flto,ldflags
+        value = sysconfig.get_config_var("_OSX_SUPPORT_INITIAL_PY_CORE_LDFLAGS")
+        return value is not None and "-flto=thin" in value and "-isysroot" in value
+
+    return False
+
+
 def isPyenvPython():
     if isWin32Windows():
         return False
@@ -335,6 +348,8 @@ def getPythonFlavorName():
         return "Alpine Python"
     elif isHomebrewPython():
         return "Homebrew Python"
+    elif isRyePython():
+        return "Rye Python"
     elif isApplePython():
         return "Apple Python"
     elif isPyenvPython():
