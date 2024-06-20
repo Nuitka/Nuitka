@@ -126,7 +126,7 @@
             "intelliSenseMode": "${default}"
         },
         {
-            "name": "Linux-Python3.10",
+            "name": "Linux",
             "includePath": [
                 "/usr/include",
                 "${myDefaultIncludePath}",
