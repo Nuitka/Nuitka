@@ -3347,7 +3347,7 @@
     - depends:
         - 'PIL._tkinter_finder'
 
-- module-name: 'PIL.Image' # checksum: bf79a54d
+- module-name: 'PIL.Image' # checksum: 560d430e
   anti-bloat:
     - description: 'avoid Qt dependency'
       no-auto-follow:
@@ -3357,7 +3357,10 @@
       no-auto-follow:
         'PIL.ImageQt': 'ignore'
       when: 'plugin("no-qt")'
-
+    - description: 'avoid numpy dependency'
+      no-auto-follow:
+        'numpy': 'ignore'
+        'packaging': 'ignore'
   implicit-imports:
     - depends:
         - 'PIL.BlpImagePlugin'
