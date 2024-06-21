@@ -437,6 +437,15 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        very_trusted_node = self.variable_trace.getAttributeNodeVeryTrusted()
+        if very_trusted_node is not None:
+            return (
+                very_trusted_node.makeClone(),
+                "new_expression",
+                lambda: "Forward propagating value of %s from very trusted %s value."
+                % (self.getVariableName(), very_trusted_node.kind),
+            )
+
         if variable.isModuleVariable() and (
             variable.hasDefiniteWrites() is False or variable.getName() == "super"
         ):
@@ -603,7 +612,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
                     return (
                         bool(attribute_node.getCompileTimeConstant()),
                         attribute_node.makeClone(),
-                        "Using very trusted constant truth value.",
+                        "Using trusted constant's truth value.",
                     )
 
         # TODO: This is probably only default stuff here, that could be compressed.
