@@ -310,6 +310,7 @@
         "PyErr_WriteUnraisable",
         "pygsheets",
         "pylint",
+        "PyNumber_InPlaceLshift",
         "pyproject",
         "pyqt",
         "pyside",
