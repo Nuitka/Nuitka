@@ -6038,6 +6038,14 @@
         'from tenacity.tornadoweb import TornadoRetrying': 'pass'
       when: 'not use_tornado'
 
+- module-name: 'tendo.singleton' # checksum: ca7e6fc2
+  options:
+    checks:
+      # TODO: Actually change the default to product name, file version, etc. from __compiled__ or from plugin variables
+      - description: "need to use cached onefile mode with 'tendo.singleton' to work correctly"
+        support_info: 'warning'
+        when: 'onefile and not onefile_cached'
+
 - module-name: 'tensorboard' # checksum: 5e3de759
   anti-bloat:
     - description: 'remove IPython reference'
