@@ -157,7 +157,7 @@ template_read_mvar_unclear = """\
 """
 
 template_read_locals_dict_with_fallback = """\
-%(to_name)s = DICT_GET_ITEM0(tstate, %(locals_dict)s, %(var_name)s);
+%(to_name)s = %(dict_get_item)s(tstate, %(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
 %(fallback)s
@@ -169,13 +169,27 @@ template_read_locals_dict_without_fallback = """\
 """
 
 
-template_read_locals_mapping_with_fallback = """\
+# Fallback has no ref, so take one to agree with PyObject_GetItem doing
+# it.
+template_read_locals_mapping_with_fallback_no_ref = """\
 %(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
 
 if (%(to_name)s == NULL) {
     if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
+    } else {
+        goto %(exception_exit)s;
+    }
+}
+"""
+
+template_read_locals_mapping_with_fallback_ref = """\
+%(to_name)s = PyObject_GetItem(%(locals_dict)s, %(var_name)s);
+
+if (%(to_name)s == NULL) {
+    if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
+%(fallback)s
     } else {
         goto %(exception_exit)s;
     }
