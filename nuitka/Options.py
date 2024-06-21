@@ -2082,6 +2082,16 @@ def getFileVersionTuple():
     return _parseVersionNumber(options.file_version)
 
 
+def getProductFileVersion():
+    if options.product_version:
+        if options.file_version:
+            return "%s-%s" % (options.product_version, options.file_version)
+        else:
+            return options.product_version
+    else:
+        return options.file_version
+
+
 def getWindowsSplashScreen():
     """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
     return options.splash_screen_image
