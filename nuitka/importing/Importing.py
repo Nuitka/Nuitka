@@ -599,7 +599,11 @@ def _findModuleInPath2(package_name, module_name, search_path):
     if (
         found_candidate.module_type == "C_EXTENSION"
         and isMacOS()
-        and not hasUniversalOrMatchingMacOSArchitecture(found_candidate.full_path)
+        and not hasUniversalOrMatchingMacOSArchitecture(
+            getPackageDirFilename(found_candidate.full_path)
+            if os.path.isdir(found_candidate.full_path)
+            else found_candidate.full_path
+        )
     ):
         # Not usable for target architecture.
         raise ImportError
