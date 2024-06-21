@@ -322,7 +322,7 @@ def hasPackageDirFilename(path):
 def getPackageDirFilename(path):
     assert os.path.isdir(path)
 
-    for suffix in getSharedLibrarySuffixes() + (".py",):
+    for suffix in (".py",) + getSharedLibrarySuffixes():
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):
