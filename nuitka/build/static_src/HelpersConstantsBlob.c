@@ -395,33 +395,6 @@ static int unpackValueInt(unsigned char const **data) {
     return size;
 }
 
-static long unpackValueLong(unsigned char const **data) {
-    long size;
-
-    memcpy(&size, *data, sizeof(size));
-    *data += sizeof(size);
-
-    return size;
-}
-
-static long long unpackValueLongLong(unsigned char const **data) {
-    long long size;
-
-    memcpy(&size, *data, sizeof(size));
-    *data += sizeof(size);
-
-    return size;
-}
-
-static unsigned long long unpackValueUnsignedLongLong(unsigned char const **data) {
-    unsigned long long size;
-
-    memcpy(&size, *data, sizeof(size));
-    *data += sizeof(size);
-
-    return size;
-}
-
 static double unpackValueFloat(unsigned char const **data) {
     double size;
 
@@ -635,9 +608,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         break;
     }
 #if PYTHON_VERSION < 0x300
+    case 'I':
     case 'i': {
-        // TODO: Use fixed sizes for small values, e.g. byte sized.
-        long value = unpackValueLong(&data);
+        long value = (long)_unpackVariableLength(&data);
+        if (c == 'I') {
+            value = -value;
+        }
 
         PyObject *i = PyInt_FromLong(value);
 
@@ -649,11 +625,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         break;
     }
 #endif
-    case 'l': {
-        // TODO: Use fixed sizes for small values, e.g. byte, word sized.
-        long value = unpackValueLong(&data);
+    case 'l':
+    case 'q': {
+        // Positive/negative integer value with abs value < 2**31
+        uint64_t value = _unpackVariableLength(&data);
 
-        PyObject *l = Nuitka_LongFromCLong(value);
+        PyObject *l = Nuitka_LongFromCLong((c == 'l') ? ((long)value) : (-(long)value));
 
         // Avoid the long cache, won't do anything useful for small ints
 #if PYTHON_VERSION >= 0x300
@@ -668,42 +645,27 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 
         break;
     }
-    case 'q': {
-        long long value = unpackValueLongLong(&data);
-
-        PyObject *l = PyLong_FromLongLong(value);
-
-        insertToDictCache(long_cache, &l);
-
-        *output = l;
-        is_object = true;
-
-        break;
-    }
+    case 'G':
     case 'g': {
         PyObject *result = PyLong_FromLong(0);
 
-        unsigned char sign = *data++;
-        int size = unpackValueInt(&data);
+        int size = (int)_unpackVariableLength(&data);
 
-        PyObject *shift = PyLong_FromLong(8 * sizeof(unsigned long long));
+        PyObject *shift = PyLong_FromLong(31);
 
         for (int i = 0; i < size; i++) {
             result = PyNumber_InPlaceLshift(result, shift);
 
-            unsigned long long value = unpackValueUnsignedLongLong(&data);
-            PyObject *part = PyLong_FromUnsignedLongLong(value);
+            uint64_t value = _unpackVariableLength(&data);
+            PyObject *part = Nuitka_LongFromCLong((long)value);
             result = PyNumber_InPlaceAdd(result, part);
             Py_DECREF(part);
         }
 
         Py_DECREF(shift);
 
-        if (sign == '-') {
-            // TODO: There is a negate function
-            PyObject *neg = PyLong_FromLong(-1);
-            result = PyNumber_InPlaceMultiply(result, neg);
-            Py_DECREF(neg);
+        if (c == 'G') {
+            Nuitka_LongSetSignNegative(result);
         }
 
         insertToDictCache(long_cache, &result);
@@ -928,16 +890,19 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case ';': {
         // (x)range objects
+        PyObject *items[3];
+        data = _unpackBlobConstants(tstate, &items[0], data, 3);
 #if PYTHON_VERSION < 0x300
-        long start = unpackValueLong(&data);
-        long stop = unpackValueLong(&data);
-        long step = unpackValueLong(&data);
+        assert(PyInt_CheckExact(items[0]));
+        assert(PyInt_CheckExact(items[1]));
+        assert(PyInt_CheckExact(items[2]));
+
+        long start = PyInt_AS_LONG(items[0]);
+        long stop = PyInt_AS_LONG(items[1]);
+        long step = PyInt_AS_LONG(items[2]);
 
         PyObject *s = MAKE_XRANGE(tstate, start, stop, step);
 #else
-        PyObject *items[3];
-        data = _unpackBlobConstants(tstate, &items[0], data, 3);
-
         PyObject *s = BUILTIN_XRANGE3(tstate, items[0], items[1], items[2]);
 #endif
         *output = s;
@@ -1093,7 +1058,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         break;
     }
 #if PYTHON_VERSION >= 0x390
-    case 'G': {
+    case 'A': {
         // GenericAlias object
         PyObject *items[2];
         data = _unpackBlobConstants(tstate, &items[0], data, 2);
