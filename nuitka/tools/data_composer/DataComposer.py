@@ -277,7 +277,7 @@ def _writeConstantValue(output, constant_value):
     elif constant_type is BlobData:
         constant_value = constant_value.getData()
         output.write(b"X")
-        output.write(struct.pack("i", len(constant_value)))
+        output.write(_encodeVariableLength(len(constant_value)))
         output.write(constant_value)
     elif constant_type is BuiltinGenericAliasValue:
         output.write(b"A")
