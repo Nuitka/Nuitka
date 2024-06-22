@@ -1048,7 +1048,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'X': {
         // Blob data pointer, user knowns size.
-        int size = unpackValueInt(&data);
+        uint64_t size = _unpackVariableLength(&data);
 
         *output = (PyObject *)data;
         is_object = false;
