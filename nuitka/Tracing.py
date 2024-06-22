@@ -20,6 +20,7 @@ import sys
 import textwrap
 import traceback
 
+from nuitka.__past__ import BrokenPipeError  # pylint: disable=redefined-builtin
 from nuitka.utils.Utils import isWin32Windows
 
 # Written by Options module.
