@@ -437,12 +437,15 @@ def _updateCase(
 
                         need_compile = True
                     elif old_nuitka_version == nuitka_version:
-                        watch_logger.info(
-                            "Skipping compilation with identical Nuitka for '%s'."
-                            % pipenv_filename_full
-                        )
+                        if old_report_root.attrib["completion"] != "yes":
+                            need_compile = True
+                        else:
+                            watch_logger.info(
+                                "Skipping compilation with identical Nuitka for '%s'."
+                                % pipenv_filename_full
+                            )
 
-                        need_compile = False
+                            need_compile = False
                     else:
                         watch_logger.info(
                             "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
