@@ -61,11 +61,16 @@ def _parseIndexDiffLine(line):
     }
 
 
-def getStagedFileChangeDesc():
+def getCheckoutFileChangeDesc(staged):
     # Only file additions and modifications
-    output = check_output(
-        ["git", "diff-index", "--cached", "--diff-filter=AM", "--no-renames", "HEAD"]
-    )
+    command = ["git", "diff-index", "--diff-filter=AM", "--no-renames"]
+
+    if staged:
+        command.append("--cached")
+
+    command.append("HEAD")
+
+    output = check_output(command)
 
     for line in output.splitlines():
         if str is not bytes:
@@ -167,7 +172,7 @@ def updateFileIndex(diff_entry, new_object_hash):
     )
 
 
-def updateWorkingFile(path, orig_object_hash, new_object_hash):
+def updateGitFile(path, orig_object_hash, new_object_hash, staged):
     patch = check_output(
         ["git", "diff", "--no-color", orig_object_hash, new_object_hash]
     )
@@ -187,9 +192,16 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
     # Substitute object hashes in patch header with path to working tree file
     patch = b"\n".join(updateLine(line) for line in patch.splitlines()) + b"\n"
 
+    command = ["git", "apply"]
+
+    if not staged:
+        command.append("--cached")
+
+    command.append("-")
+
     # Apply the patch.
     output, err, exit_code = executeProcess(
-        ["git", "apply", "-"],
+        command,
         stdin=patch,
     )
 
