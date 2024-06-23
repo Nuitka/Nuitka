@@ -343,6 +343,20 @@ def _addModulesToReport(root, report_input_data, diffable):
                 "volatile" if diffable else "%.2f" % timing_info.time_used
             )
 
+            if timing_info.micro_passes:
+                timing_xml_node.attrib["micro_passes"] = str(timing_info.micro_passes)
+
+            if timing_info.merge_counts:
+                merged_total = 0
+
+                for branch_count, merge_count in timing_info.merge_counts.items():
+                    merged_total += branch_count * merge_count
+
+                max_merge_size = max(timing_info.merge_counts)
+
+                timing_xml_node.attrib["max_branch_merge"] = str(max_merge_size)
+                timing_xml_node.attrib["merged_total"] = str(merged_total)
+
             module_xml_node.append(timing_xml_node)
 
         distributions = report_input_data["module_distribution_usages"][module_name]
