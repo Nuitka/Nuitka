@@ -7548,6 +7548,11 @@
         'ExtractIconW(handle, sys.executable, 0)': 'ExtractIconW(handle, sys.argv[0], 0)'
       when: 'standalone and win32'
 
+- module-name: 'werkzeug.debug.repr' # checksum: f8cccd39
+  anti-bloat:
+    - no-auto-follow:
+        'pydoc': 'ignore'
+
 - module-name: 'werkzeug.serving' # checksum: fcfdb30e
   anti-bloat:
     - description: 'remove ability to run with reloader'
