@@ -26,7 +26,7 @@ from nuitka.utils.Timing import TimerReport
 from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
-from .TraceCollections import withChangeIndicationsTo
+from .TraceCollections import fetchMergeCounts, withChangeIndicationsTo
 
 tag_set = None
 
@@ -68,7 +68,12 @@ def optimizeCompiledPythonModule(module):
     # allow to continue the loop even without changes one more time.
     unchanged_count = 0
 
+    # Count the micro passes, so we can see how often we looped
+    micro_pass = 0
+
     while True:
+        micro_pass += 1
+
         tag_set.clear()
 
         try:
@@ -120,7 +125,7 @@ def optimizeCompiledPythonModule(module):
 
     considerUsedModules(module=module, pass_count=pass_count)
 
-    return touched
+    return touched, micro_pass
 
 
 def optimizeUncompiledPythonModule(module):
@@ -156,14 +161,12 @@ def optimizeModule(module):
 
     if module.isPythonExtensionModule():
         optimizeExtensionModule(module)
-        changed = False
+        return False, 0
     elif module.isCompiledPythonModule():
-        changed = optimizeCompiledPythonModule(module)
+        return optimizeCompiledPythonModule(module)
     else:
         optimizeUncompiledPythonModule(module)
-        changed = False
-
-    return changed
+        return False, 0
 
 
 pass_count = 0
@@ -250,8 +253,6 @@ def restoreFromXML(text):
 def makeOptimizationPass():
     """Make a single pass for optimization, indication potential completion."""
 
-    # Controls complex optimization
-
     finished = True
 
     ModuleRegistry.startTraversal()
@@ -284,14 +285,14 @@ def makeOptimizationPass():
         with TimerReport(
             message="Optimizing %s" % module_name, decider=False
         ) as module_timer:
-            changed = optimizeModule(current_module)
-
-            # module_timer=module_time_report.getTimer()
+            changed, micro_passes = optimizeModule(current_module)
 
         ModuleRegistry.addModuleOptimizationTimeInformation(
             module_name=module_name,
             pass_number=pass_count,
             time_used=module_timer.getDelta(),
+            micro_passes=micro_passes,
+            merge_counts=fetchMergeCounts(),
         )
 
         _traceProgressModuleEnd(current_module)
