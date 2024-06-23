@@ -583,6 +583,7 @@ class ExpressionFunctionBody(
         parameters,
         flags,
         auto_release,
+        code_prefix,
         source_ref,
     ):
         ExpressionFunctionEntryPointBase.__init__(
@@ -590,7 +591,7 @@ class ExpressionFunctionBody(
             provider=provider,
             name=name,
             code_object=code_object,
-            code_prefix="function",
+            code_prefix=code_prefix,
             flags=flags,
             auto_release=auto_release,
             source_ref=source_ref,
@@ -779,6 +780,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
         parameters,
         flags,
         auto_release,
+        code_prefix,
         source_ref,
     ):
         ExpressionFunctionBody.__init__(
@@ -790,6 +792,7 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             parameters=parameters,
             flags=flags,
             auto_release=auto_release,
+            code_prefix=code_prefix,
             source_ref=source_ref,
         )
 
