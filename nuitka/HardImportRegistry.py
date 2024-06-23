@@ -10,6 +10,8 @@ know how to handle these.
 import os
 import sys
 
+from nuitka import Options
+from nuitka.Constants import isConstant
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
@@ -191,6 +193,27 @@ else:
 module_typing_trust = {
     "TYPE_CHECKING": trust_constant,
 }
+
+
+def makeTypingModuleTrust():
+    result = {}
+
+    if python_version >= 0x350:
+        import typing
+
+        constant_typing_values = ("TYPE_CHECKING", "Text")
+        for name in typing.__all__:
+            if name not in constant_typing_values:
+                trust = trust_exist
+                if Options.is_debug:
+                    assert not isConstant(getattr(typing, name))
+            else:
+                trust = trust_constant
+                if Options.is_debug:
+                    assert isConstant(getattr(typing, name))
+
+            result[name] = trust
+
 
 module_os_trust = {
     "name": trust_constant,
