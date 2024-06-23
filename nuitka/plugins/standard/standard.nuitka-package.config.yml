@@ -6419,9 +6419,11 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: d4c83239
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: f4d18284
   anti-bloat:
     - description: 'reduce keras usage'
+      replacements_re:
+        '(package_name = "(.*?)")': '\1; import \2'
       replacements:
         'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
