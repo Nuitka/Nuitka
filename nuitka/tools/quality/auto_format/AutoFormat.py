@@ -19,7 +19,7 @@ from nuitka.tools.quality.Git import (
     getFileHashContent,
     putFileHashContent,
     updateFileIndex,
-    updateWorkingFile,
+    updateGitFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.quality.yamllint.YamlChecker import checkYamlSchema
@@ -827,7 +827,9 @@ def autoFormatFile(
                 if git_stage:
                     new_hash_value = putFileHashContent(tmp_filename)
                     updateFileIndex(git_stage, new_hash_value)
-                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                    updateGitFile(
+                        filename, git_stage["dst_hash"], new_hash_value, staged=True
+                    )
                 else:
                     copyFile(tmp_filename, filename)
 
