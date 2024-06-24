@@ -2488,6 +2488,13 @@
         - 'numpy.ma'
         - 'numpy.matrixlib'
 
+- module-name: 'numpy._core.overrides' # checksum: cda0efc0
+  anti-bloat:
+    - description: 'workaround numpy issues with compiled code'
+      replacements_plain:
+        'add_docstring(implementation, dispatcher.__doc__)': "add_docstring(implementation, dispatcher.__doc__ or '')"
+        'public_api.__code__ = ': ''
+
 - module-name: 'numpy._pytesttester' # checksum: 5e3b539b
   anti-bloat:
     - description: 'remove numpy testing framework'
