@@ -352,13 +352,14 @@ def executeToolChecked(
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
 
-    process = subprocess.Popen(
-        command,
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
+    with withEnvironmentVarOverridden("LC_ALL", "C"):
+        process = subprocess.Popen(
+            command,
+            stdin=getNullInput(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
 
     stdout, stderr = process.communicate()
     result = process.poll()
