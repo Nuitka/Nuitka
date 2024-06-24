@@ -442,6 +442,33 @@ static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReade
     return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, abspath);
 }
 
+static PyObject *Nuitka_ResourceReaderFiles_get_parent(struct Nuitka_ResourceReaderFilesObject *files) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
+
+    PyObject *abspath = OS_PATH_ABSPATH(tstate, path);
+
+    if (unlikely(abspath == NULL)) {
+        return NULL;
+    }
+
+    PyObject *dirname = OS_PATH_DIRNAME(tstate, abspath);
+
+    if (unlikely(dirname == NULL)) {
+        return NULL;
+    }
+
+    return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, dirname);
+}
+
+static int Nuitka_ResourceReaderFiles_set_parent(struct Nuitka_ResourceReaderFilesObject *files, PyObject *value) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_AttributeError, "readonly attribute");
+    return -1;
+}
+
 static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"iterdir", (PyCFunction)Nuitka_ResourceReaderFiles_iterdir, METH_NOARGS, NULL},
     {"read_bytes", (PyCFunction)Nuitka_ResourceReaderFiles_read_bytes, METH_NOARGS, NULL},
@@ -505,6 +532,8 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_Resourc
 
 static PyGetSetDef Nuitka_ResourceReaderFiles_getset[] = {
     {(char *)"name", (getter)Nuitka_ResourceReaderFiles_get_name, (setter)Nuitka_ResourceReaderFiles_set_name, NULL},
+    {(char *)"parent", (getter)Nuitka_ResourceReaderFiles_get_parent, (setter)Nuitka_ResourceReaderFiles_set_parent,
+     NULL},
     {NULL}};
 
 // Initialized during readying the type for nb_truediv
