@@ -343,6 +343,7 @@
         "strchr",
         "strcmp",
         "strdup",
+        "strrchr",
         "subclasscheck",
         "sysexit",
         "sysflag",
