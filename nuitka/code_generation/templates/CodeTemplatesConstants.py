@@ -3,6 +3,7 @@
 
 """ Templates for the constants handling.
 
+spell-checker: ignore structseq
 """
 
 template_constants_reading = r"""
@@ -113,7 +114,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     static PyTypeObject Nuitka_VersionInfoType;
 
-    // Same fields as "sys.version_info" except no serial number.
+    // Same fields as "sys.version_info" except no serial number
+    // spell-checker: ignore releaselevel
     static PyStructSequence_Field Nuitka_VersionInfoFields[] = {
         {(char *)"major", (char *)"Major release number"},
         {(char *)"minor", (char *)"Minor release number"},
