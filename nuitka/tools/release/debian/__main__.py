@@ -83,7 +83,7 @@ def main():
     # Complex stuff, pylint: disable=too-many-statements
 
     # Make sure error messages are in English.
-    os.environ["LANG"] = "C"
+    os.environ["LC_ALL"] = "C"
 
     options, codename = parseArgs()
 
