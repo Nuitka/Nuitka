@@ -2585,12 +2585,13 @@
         'info': 'un-callable'
       when: 'not use_pydoc'
 
-- module-name: 'numpy.lib.utils' # checksum: 26f115fc
+- module-name: 'numpy.lib.utils' # checksum: bdb2ffa6
   anti-bloat:
     - description: 'remove pydoc usage'
       replacements_plain:
         '.pydoc.allmethods(object)': '()'
         'import pydoc': ''
+      when: 'not use_pydoc'
 
 - module-name: 'numpy.random' # checksum: e43161e7
   implicit-imports:
