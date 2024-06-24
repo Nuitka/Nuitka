@@ -75,7 +75,10 @@ from inspect import getsource
                     ("matplotlib_version", "__version__"),
                 ),
             )
-        except NuitkaCalledProcessError:
+        except NuitkaCalledProcessError as e:
+            if self.isDebug():
+                self.info("Exception during detection: %r" % e)
+
             if "MPLBACKEND" not in os.environ:
                 self.sysexit(
                     """\

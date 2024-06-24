@@ -1625,6 +1625,11 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         plugins_logger.info(message, prefix=cls.plugin_name, keep_format=keep_format)
 
     @classmethod
+    def debug(cls, message, keep_format=False):
+        if Options.is_debug:
+            cls.info(message, keep_format=keep_format)
+
+    @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
         plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
