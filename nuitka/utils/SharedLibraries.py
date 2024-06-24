@@ -344,14 +344,25 @@ def getSharedLibraryRPATH(filename):
 
 
 def _filterPatchelfErrorOutput(stderr):
+    non_errors = []
+
+    def isNonErrorExit(line):
+        if b"cannot find section '.dynamic'" in line:
+            non_errors.append(line)
+
+            return True
+
+        return False
+
     stderr = b"\n".join(
         line
         for line in stderr.splitlines()
         if line
         if b"warning: working around" not in line
+        if not isNonErrorExit(line)
     )
 
-    return None, stderr
+    return (0 if non_errors else None), stderr
 
 
 _patchelf_usage = """\
