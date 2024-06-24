@@ -17,11 +17,7 @@ from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import (
-    executeToolChecked,
-    withEnvironmentPathAdded,
-    withEnvironmentVarOverridden,
-)
+from .Execution import executeToolChecked, withEnvironmentPathAdded
 from .FileOperations import (
     addFileExecutablePermission,
     changeFilenameExtension,
@@ -87,13 +83,12 @@ def locateDLL(dll_name):
             name=dll_name, paths=["/lib", "/usr/lib", "/usr/local/lib"]
         )
 
-    with withEnvironmentVarOverridden("LANG", "C"):
-        # TODO: Could and probably should cache "ldconfig -p" output to avoid forks
-        output = executeToolChecked(
-            logger=postprocessing_logger,
-            command=("/sbin/ldconfig", "-p"),
-            absence_message=_ldconfig_usage,
-        )
+    # TODO: Could and probably should cache "ldconfig -p" output to avoid forks
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("/sbin/ldconfig", "-p"),
+        absence_message=_ldconfig_usage,
+    )
 
     dll_map = {}
 
@@ -383,13 +378,12 @@ installed. Use 'apt/dnf/yum install patchelf' first.""",
 
 def _setSharedLibraryRPATHElf(filename, rpath):
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
-    with withEnvironmentVarOverridden("LANG", "C"):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=("patchelf", "--set-rpath", rpath, filename),
-            stderr_filter=_filterPatchelfErrorOutput,
-            absence_message=_patchelf_usage,
-        )
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=("patchelf", "--set-rpath", rpath, filename),
+        stderr_filter=_filterPatchelfErrorOutput,
+        absence_message=_patchelf_usage,
+    )
 
 
 def _filterInstallNameToolErrorOutput(stderr):
@@ -788,20 +782,19 @@ def cleanupHeaderForAndroid(filename):
     created by default.
     """
 
-    with withEnvironmentVarOverridden("LANG", "C"):
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=("patchelf", "--shrink-rpath", filename),
-            stderr_filter=_filterPatchelfErrorOutput,
-            absence_message=_patchelf_usage,
-        )
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=("patchelf", "--shrink-rpath", filename),
+        stderr_filter=_filterPatchelfErrorOutput,
+        absence_message=_patchelf_usage,
+    )
 
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=("termux-elf-cleaner", "--quiet", filename),
-            absence_message=_termux_elf_cleaner_usage,
-            optional=True,
-        )
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=("termux-elf-cleaner", "--quiet", filename),
+        absence_message=_termux_elf_cleaner_usage,
+        optional=True,
+    )
 
 
 _nm_usage = """\
