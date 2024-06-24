@@ -22,7 +22,12 @@ def checkIconUsage(logger, icon_path):
     if needs_conversion:
         try:
             import imageio  # pylint: disable=I0021,import-error,unused-import
-        except ImportError:
+        except ImportError as e:
+            from nuitka import Options
+
+            if Options.is_debug:
+                logger.info("Exception importing 'imageio' is %s" % repr(e))
+
             logger.sysexit(
                 """\
 Need to install 'imageio' to automatically convert the non native \
