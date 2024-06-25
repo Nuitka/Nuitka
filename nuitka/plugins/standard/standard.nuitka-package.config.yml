@@ -4582,6 +4582,11 @@
           def __init__(self, name):
             pass
 
+- module-name: 'scipy._lib.array_api_compat.numpy' # checksum: 4d6580fa
+  implicit-imports:
+    - depends:
+        - 'scipy._lib.array_api_compat.numpy.fft'
+
 - module-name: 'scipy.integrate._quadrature' # checksum: 97a85907
   anti-bloat:
     - description: 'remove useless function copying'
