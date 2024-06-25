@@ -15,9 +15,8 @@ from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     getKind,
@@ -83,11 +82,6 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
             variable=variables[count], source=value, source_ref=source_ref
         )
 
-    def makeReleaseStatement(count):
-        return makeStatementReleaseVariable(
-            variable=variables[count], source_ref=source_ref
-        )
-
     def makeValueComparisonReturn(left, right, comparator):
         yield makeStatementAssignmentVariable(
             variable=tmp_variable,
@@ -115,12 +109,12 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         )
 
     statements = []
-    final = []
+    release_variables = []
 
     for count, value in enumerate(rights):
         if value is not rights[-1]:
             statements.append(makeTempAssignment(count, value))
-            final.append(makeReleaseStatement(count))
+            release_variables.append(variables[count])
             right = ExpressionTempVariableRef(
                 variable=variables[count], source_ref=source_ref
             )
@@ -148,18 +142,14 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                     source_ref=source_ref,
                 )
             )
-            final.append(
-                makeStatementReleaseVariable(
-                    variable=tmp_variable, source_ref=source_ref
-                )
-            )
+            release_variables.append(tmp_variable)
 
     outline_body.setChildBody(
         makeStatementsSequenceFromStatement(
-            statement=makeTryFinallyStatement(
+            statement=makeTryFinallyReleaseStatement(
                 provider=outline_body,
                 tried=statements,
-                final=final,
+                variables=release_variables,
                 source_ref=source_ref,
             )
         )

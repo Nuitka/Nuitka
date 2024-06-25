@@ -42,7 +42,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -53,7 +52,7 @@ from .InternalModule import (
     once_decorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -190,16 +189,10 @@ def getListUnpackingHelper():
 
     args_variable = result.getVariableForAssignment(variable_name="args")
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=tmp_result_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
+    release_variables = (
+        tmp_result_variable,
+        tmp_iter_variable,
+        tmp_item_variable,
     )
 
     tried = makeStatementsSequenceFromStatements(
@@ -229,10 +222,10 @@ def getListUnpackingHelper():
 
     result.setChildBody(
         makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=result,
                 tried=tried,
-                final=final,
+                variables=release_variables,
                 source_ref=internal_source_ref,
             )
         )
@@ -302,16 +295,10 @@ def getSetUnpackingHelper():
 
     args_variable = result.getVariableForAssignment(variable_name="args")
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=tmp_result_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
+    release_variables = (
+        tmp_result_variable,
+        tmp_iter_variable,
+        tmp_item_variable,
     )
 
     tried = makeStatementsSequenceFromStatements(
@@ -341,10 +328,10 @@ def getSetUnpackingHelper():
 
     result.setChildBody(
         makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=result,
                 tried=tried,
-                final=final,
+                variables=release_variables,
                 source_ref=internal_source_ref,
             )
         )
