@@ -51,12 +51,12 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
 )
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
-from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
+from .ReformulationImportStatements import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
@@ -580,21 +580,15 @@ def buildParameterAnnotations(provider, node, source_ref):
     # spell-checker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
-    if python_version < 0x300 or hasPythonFlagNoAnnotations():
+    if not getFutureSpec().use_annotations:
         return None
-
-    # Starting with Python 3.4, the names of parameters are mangled in
-    # annotations as well.
-    if python_version < 0x340:
-        mangle = lambda variable_name: variable_name
-    else:
-        mangle = lambda variable_name: mangleName(variable_name, provider)
 
     keys = []
     values = []
 
+    # The names of parameters are mangled in annotations as well.
     def addAnnotation(key, value):
-        keys.append(mangle(key))
+        keys.append(mangleName(key, provider))
         values.append(value)
 
     def extractArgAnnotation(arg):
