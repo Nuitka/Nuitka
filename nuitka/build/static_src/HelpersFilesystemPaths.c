@@ -37,7 +37,7 @@
 #include "nuitka/safe_string_ops.h"
 
 #if defined(__OpenBSD__)
-void _getBinaryPath2(char *epath) {
+void _getBinaryPath2(char *binary_filename) {
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC_ARGS;
@@ -62,7 +62,7 @@ void _getBinaryPath2(char *epath) {
     const char *comm = argv[0];
 
     if (*comm == '/' || *comm == '.') {
-        if (realpath(comm, epath) == NULL) {
+        if (realpath(comm, binary_filename) == NULL) {
             abort();
         }
     } else {
@@ -76,9 +76,9 @@ void _getBinaryPath2(char *epath) {
         }
 
         while (path) {
-            snprintf(epath, PATH_MAX, "%s/%s", path, comm);
+            snprintf(binary_filename, PATH_MAX, "%s/%s", path, comm);
 
-            if (!stat(epath, &st) && (st.st_mode & S_IXUSR)) {
+            if (!stat(binary_filename, &st) && (st.st_mode & S_IXUSR)) {
                 break;
             }
 
