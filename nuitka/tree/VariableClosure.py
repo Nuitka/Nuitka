@@ -28,7 +28,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -37,7 +36,7 @@ from nuitka.Variables import isSharedAmongScopes, releaseSharedScopeInformation
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -158,7 +157,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                 source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
                             ),
-                            makeTryFinallyStatement(
+                            makeTryFinallyReleaseStatement(
                                 provider=provider,
                                 tried=(
                                     makeStatementAssignmentVariable(
@@ -184,9 +183,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                 ),
-                                final=makeStatementReleaseVariable(
-                                    variable=tmp_variable, source_ref=node.source_ref
-                                ),
+                                variables=(tmp_variable,),
                                 source_ref=node.source_ref,
                             ),
                         )

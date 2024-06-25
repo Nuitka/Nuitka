@@ -41,15 +41,14 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import (
-    makeStatementReleaseVariable,
-    makeStatementsReleaseVariables,
-)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .TreeHelpers import (
     buildFrameNode,
     buildNodeTuple,
@@ -191,7 +190,7 @@ def buildClassNode2(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider,
                 tried=StatementTry(
                     tried=makeStatementsSequenceFromStatement(
@@ -222,11 +221,8 @@ def buildClassNode2(provider, node, source_ref):
                     return_handler=None,
                     source_ref=source_ref,
                 ),
-                final=makeStatementReleaseVariable(
-                    variable=tmp_base, source_ref=source_ref
-                ),
+                variables=(tmp_base,),
                 source_ref=source_ref,
-                public_exc=False,
             ),
         )
     else:
@@ -370,13 +366,10 @@ def buildClassNode2(provider, node, source_ref):
         )
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=function_body,
         tried=statements,
-        final=makeStatementsReleaseVariables(
-            variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
-            source_ref=source_ref,
-        ),
+        variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
         source_ref=source_ref,
     )
 
