@@ -736,9 +736,11 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 }
 
 static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+    CHECK_OBJECT(value);
+
     PyThreadState *tstate = PyThreadState_GET();
 
-    if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
+    if (generator->m_status == status_Unused && value != Py_None) {
         // Buggy CPython 3.10 refuses to allow later usage.
 #if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3a2
         Nuitka_MarkGeneratorAsFinished(generator);
