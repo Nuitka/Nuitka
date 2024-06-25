@@ -1268,6 +1268,7 @@ def _makeModuleBodyTooComplex(
         Importing.warned_about.add(module_filename)
 
         # Known harmless case, not causing issues, lets not warn about it.
+        # spell-checker: ignore sympy,numberfields
         if module_name != "sympy.polys.numberfields.resolvent_lookup":
             recursion_logger.info(
                 """\
