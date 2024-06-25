@@ -34,7 +34,6 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 from nuitka.PythonVersions import python_version
 
@@ -42,7 +41,10 @@ from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import (
     makeTryExceptSingleHandlerNodeWithPublish,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -285,19 +287,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         ),
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=provider,
         tried=statements,
-        final=(
-            makeStatementReleaseVariable(
-                variable=tmp_source_variable, source_ref=with_exit_source_ref
-            ),
-            makeStatementReleaseVariable(
-                variable=tmp_enter_variable, source_ref=with_exit_source_ref
-            ),
-            makeStatementReleaseVariable(
-                variable=tmp_exit_variable, source_ref=with_exit_source_ref
-            ),
+        variables=(
+            tmp_source_variable,
+            tmp_enter_variable,
+            tmp_exit_variable,
         ),
         source_ref=source_ref,
     )

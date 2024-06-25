@@ -18,15 +18,13 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromAwaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -133,11 +131,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         statements=statements, allow_none=True, source_ref=source_ref
     )
 
-    cleanup_statements = (
-        makeStatementReleaseVariable(
-            variable=tmp_value_variable, source_ref=source_ref
-        ),
-        makeStatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
+    cleanup_variables = (
+        tmp_value_variable,
+        tmp_iter_variable,
     )
 
     if else_block is not None:
@@ -168,12 +164,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
         ),
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=provider,
             tried=StatementLoop(loop_body=loop_body, source_ref=source_ref),
-            final=StatementsSequence(
-                statements=cleanup_statements, source_ref=source_ref
-            ),
+            variables=cleanup_variables,
             source_ref=source_ref,
         ),
     )

@@ -50,14 +50,16 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationImportStatements import getFutureSpec
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
@@ -754,20 +756,16 @@ def _wrapFunctionWithSpecialNestedArgs(
 
     outer_body.setChildBody(
         makeStatementsSequenceFromStatement(
-            statement=makeTryFinallyStatement(
+            statement=makeTryFinallyReleaseStatement(
                 provider=outer_body,
                 tried=statements,
-                final=[
-                    makeStatementReleaseVariable(
-                        variable=variable, source_ref=source_ref
-                    )
-                    for variable in sorted(
+                variables=tuple(
+                    sorted(
                         outer_body.getTempVariables(),
                         key=lambda variable: variable.getName(),
                     )
-                ],
+                ),
                 source_ref=source_ref,
-                public_exc=False,
             )
         )
     )
@@ -889,7 +887,7 @@ def buildFunctionWithParsing(
 def addFunctionVariableReleases(function):
     assert function.isExpressionFunctionBodyBase()
 
-    releases = []
+    release_variables = []
 
     # We attach everything to the function definition source location.
     source_ref = function.getSourceReference()
@@ -899,18 +897,19 @@ def addFunctionVariableReleases(function):
         if variable.getOwner() is not function:
             continue
 
-        releases.append(
-            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
-        )
+        release_variables.append(variable)
 
-    if releases:
+    if release_variables:
         body = function.subnode_body
 
         if body.isStatementsFrame():
             body = makeStatementsSequenceFromStatement(statement=body)
 
-        body = makeTryFinallyStatement(
-            provider=function, tried=body, final=releases, source_ref=source_ref
+        body = makeTryFinallyReleaseStatement(
+            provider=function,
+            tried=body,
+            variables=release_variables,
+            source_ref=source_ref,
         )
 
         function.setChildBody(makeStatementsSequenceFromStatement(statement=body))
