@@ -6030,6 +6030,11 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'telethon' # checksum: a76d75f1
+  anti-bloat:
+    - description: 'avoid annotations bloat'
+      annotations: 'no'
+
 - module-name: 'tenacity' # checksum: 64bd1802
   anti-bloat:
     # It would be nice
