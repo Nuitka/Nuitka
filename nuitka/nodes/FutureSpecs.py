@@ -32,10 +32,11 @@ class FutureSpec(object):
         "barry_bdfl",
         "generator_stop",
         "future_annotations",
+        "use_annotations",
     )
 
     @counted_init
-    def __init__(self):
+    def __init__(self, use_annotations):
         self.future_division = _future_division_default
         self.unicode_literals = False
         self.absolute_import = _future_absolute_import_default
@@ -43,6 +44,9 @@ class FutureSpec(object):
         self.barry_bdfl = False
         self.generator_stop = _future_generator_stop_default
         self.future_annotations = _future_annotations_default
+
+        # Attaching our special modes here still.
+        self.use_annotations = use_annotations
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -95,6 +99,9 @@ class FutureSpec(object):
 
     def enableFutureAnnotations(self):
         self.future_annotations = True
+
+    def shallUseAnnotations(self):
+        return self.use_annotations
 
     def isFutureAnnotations(self):
         return self.future_annotations

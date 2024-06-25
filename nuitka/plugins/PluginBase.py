@@ -1070,6 +1070,26 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def decideAnnotations(self, module_name):
+        """Decide whether to include annotations from source code.
+
+        Notes:
+            Has only effect if the code is compiled. Source is not
+            changed, but annotations are skipped in parsing.
+
+        Args:
+            module_name: name of module
+
+        Returns:
+            "None" takes no influence, "True" keeps annotations, "False"
+            removes them. Plugins must agree and ought to return
+            "None" for cases they don't care about. In case of "None"
+            from all plugins, the "--python-flag=no_annotations" removes
+            them, a "True" value overrides that.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def getPreprocessorSymbols(self):
         """Decide which C defines to be used in compilation.
 

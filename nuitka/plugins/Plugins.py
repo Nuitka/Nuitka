@@ -1395,6 +1395,62 @@ class Plugins(object):
                 yield value
 
     @classmethod
+    def _decideWithoutDisagreement(
+        cls,
+        method_name,
+        call_per_plugin,
+        legal_values,
+        abstain_values,
+        get_default_value,
+    ):
+        result = abstain_values[0]
+        plugin_name = None
+
+        for plugin in getActivePlugins():
+            value = call_per_plugin(plugin)
+
+            if value not in legal_values:
+                plugin.sysexit(
+                    "Error, can only return '%s' from '%s' not %r"
+                    % (legal_values, method_name, value)
+                )
+
+            if value in abstain_values:
+                continue
+
+            if value != result:
+                if result in abstain_values:
+                    result = value
+                    plugin_name = plugin.plugin_name
+                else:
+                    plugin.sysexit(
+                        "Error, conflicting value '%s' with plug-in '%s' value '%s'."
+                        % (value, plugin_name, result)
+                    )
+        if result in abstain_values:
+            result = get_default_value()
+
+        return result
+
+    decide_annotations_cache = {}
+
+    @classmethod
+    def decideAnnotations(cls, module_name):
+        if str is bytes:
+            return False
+
+        if module_name not in cls.decide_annotations_cache:
+            cls.decide_annotations_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideAnnotations(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideAnnotations",
+                get_default_value=lambda: not Options.hasPythonFlagNoAnnotations(),
+            )
+
+        return cls.decide_annotations_cache[module_name]
+
+    @classmethod
     def decideAllowOutsideDependencies(cls, module_name):
         result = None
         plugin_name = None

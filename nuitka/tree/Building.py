@@ -783,19 +783,18 @@ setBuildingDispatchers(
 )
 
 
-def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
+def buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables. pylint: disable=too-many-branches
 
     # Maybe one day, we do exec inlining again, that is what this is for,
     # then is_module won't be True, for now it always is.
-    pushFutureSpec()
-    if is_module:
-        provider.setFutureSpec(getFutureSpec())
+    pushFutureSpec(provider.getFullName())
+    provider.setFutureSpec(getFutureSpec())
 
     body, doc = extractDocFromBody(ast_tree)
 
-    if is_module and is_main and python_version >= 0x360:
+    if is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
     try:
@@ -816,106 +815,105 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
 
     statements = []
 
-    if is_module:
-        # Add import of "site" module of main programs visibly in the node tree,
-        # so recursion and optimization can pick it up, checking its effects.
-        if is_main and not hasPythonFlagNoSite():
+    # Add import of "site" module of main programs visibly in the node tree,
+    # so recursion and optimization can pick it up, checking its effects.
+    if is_main and not hasPythonFlagNoSite():
+        statements.append(
+            StatementExpressionOnly(
+                expression=makeExpressionImportModuleFixed(
+                    using_module_name=provider.getParentModule().getFullName(),
+                    module_name="site",
+                    value_name="site",
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        for path_imported_name in getPthImportedPackages():
+            if isHardModuleWithoutSideEffect(path_imported_name):
+                continue
+
             statements.append(
                 StatementExpressionOnly(
                     expression=makeExpressionImportModuleFixed(
                         using_module_name=provider.getParentModule().getFullName(),
-                        module_name="site",
-                        value_name="site",
+                        module_name=path_imported_name,
+                        value_name=path_imported_name.getTopLevelPackageName(),
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
                 )
             )
 
-            for path_imported_name in getPthImportedPackages():
-                if isHardModuleWithoutSideEffect(path_imported_name):
-                    continue
-
-                statements.append(
-                    StatementExpressionOnly(
-                        expression=makeExpressionImportModuleFixed(
-                            using_module_name=provider.getParentModule().getFullName(),
-                            module_name=path_imported_name,
-                            value_name=path_imported_name.getTopLevelPackageName(),
-                            source_ref=source_ref,
-                        ),
-                        source_ref=source_ref,
-                    )
-                )
-
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__doc__",
-                source=makeConstantRefNode(
-                    constant=doc, source_ref=internal_source_ref, user_provided=True
-                ),
-                source_ref=internal_source_ref,
-            )
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__doc__",
+            source=makeConstantRefNode(
+                constant=doc, source_ref=internal_source_ref, user_provided=True
+            ),
+            source_ref=internal_source_ref,
         )
+    )
 
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__file__",
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__file__",
+            source=ExpressionModuleAttributeFileRef(
+                variable=provider.getVariableForReference("__file__"),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    )
+
+    if provider.isCompiledPythonPackage():
+        # This assigns "__path__" value.
+        statements.append(createPathAssignment(provider, internal_source_ref))
+
+    if python_version >= 0x340 and not is_main:
+        statements += (
+            StatementAssignmentAttribute(
+                expression=ExpressionModuleAttributeSpecRef(
+                    variable=provider.getVariableForReference("__spec__"),
+                    source_ref=internal_source_ref,
+                ),
+                attribute_name="origin",
                 source=ExpressionModuleAttributeFileRef(
                     variable=provider.getVariableForReference("__file__"),
                     source_ref=internal_source_ref,
                 ),
                 source_ref=internal_source_ref,
-            )
+            ),
+            StatementAssignmentAttribute(
+                expression=ExpressionModuleAttributeSpecRef(
+                    variable=provider.getVariableForReference("__spec__"),
+                    source_ref=internal_source_ref,
+                ),
+                attribute_name="has_location",
+                source=makeConstantRefNode(True, internal_source_ref),
+                source_ref=internal_source_ref,
+            ),
         )
 
         if provider.isCompiledPythonPackage():
-            # This assigns "__path__" value.
-            statements.append(createPathAssignment(provider, internal_source_ref))
-
-        if python_version >= 0x340 and not is_main:
-            statements += (
+            statements.append(
                 StatementAssignmentAttribute(
                     expression=ExpressionModuleAttributeSpecRef(
                         variable=provider.getVariableForReference("__spec__"),
                         source_ref=internal_source_ref,
                     ),
-                    attribute_name="origin",
-                    source=ExpressionModuleAttributeFileRef(
-                        variable=provider.getVariableForReference("__file__"),
+                    attribute_name="submodule_search_locations",
+                    source=ExpressionVariableNameRef(
+                        provider=provider,
+                        variable_name="__path__",
                         source_ref=internal_source_ref,
                     ),
                     source_ref=internal_source_ref,
-                ),
-                StatementAssignmentAttribute(
-                    expression=ExpressionModuleAttributeSpecRef(
-                        variable=provider.getVariableForReference("__spec__"),
-                        source_ref=internal_source_ref,
-                    ),
-                    attribute_name="has_location",
-                    source=makeConstantRefNode(True, internal_source_ref),
-                    source_ref=internal_source_ref,
-                ),
-            )
-
-            if provider.isCompiledPythonPackage():
-                statements.append(
-                    StatementAssignmentAttribute(
-                        expression=ExpressionModuleAttributeSpecRef(
-                            variable=provider.getVariableForReference("__spec__"),
-                            source_ref=internal_source_ref,
-                        ),
-                        attribute_name="submodule_search_locations",
-                        source=ExpressionVariableNameRef(
-                            provider=provider,
-                            variable_name="__path__",
-                            source_ref=internal_source_ref,
-                        ),
-                        source_ref=internal_source_ref,
-                    )
                 )
+            )
 
     if python_version >= 0x300:
         statements.append(
@@ -974,16 +972,13 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             )
         )
 
-    if is_module:
-        result = makeModuleFrame(
-            module=provider, statements=statements, source_ref=source_ref
-        )
+    result = makeModuleFrame(
+        module=provider, statements=statements, source_ref=source_ref
+    )
 
-        popFutureSpec()
+    popFutureSpec()
 
-        return result
-    else:
-        assert False
+    return result
 
 
 def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
@@ -1165,7 +1160,6 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         provider=module,
         ast_tree=ast_tree,
         source_ref=source_ref,
-        is_module=True,
         is_main=is_main,
     )
 
@@ -1247,7 +1241,7 @@ Cannot follow import to module '%s' because of '%s'."""
         reason=reason,
         is_top=False,
         mode="compiled",
-        future_spec=FutureSpec(),
+        future_spec=FutureSpec(use_annotations=False),
         source_ref=source_ref,
     )
 
