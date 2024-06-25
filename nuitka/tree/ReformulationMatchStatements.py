@@ -43,7 +43,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
@@ -478,12 +478,10 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
             no_branch=None,
             source_ref=source_ref,
         ),
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=provider,
             tried=statements,
-            final=makeStatementReleaseVariable(
-                variable=tmp_match_args, source_ref=source_ref
-            ),
+            variables=(tmp_match_args,),
             source_ref=source_ref,
         ),
     ]
@@ -769,12 +767,10 @@ def buildMatchNode(provider, node, source_ref):
                 source=subject_node,
                 source_ref=subject_node.getSourceReference(),
             ),
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=case_statements,
-                final=makeStatementReleaseVariable(
-                    variable=tmp_indicator_variable, source_ref=source_ref
-                ),
+                variables=(tmp_indicator_variable,),
                 source_ref=source_ref,
             ),
         ),

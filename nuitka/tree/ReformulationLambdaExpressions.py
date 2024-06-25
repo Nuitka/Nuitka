@@ -27,7 +27,6 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -36,7 +35,7 @@ from .ReformulationFunctionStatements import (
     buildParameterAnnotations,
     buildParameterKwDefaults,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -130,12 +129,10 @@ def buildLambdaNode(provider, node, source_ref):
                     source_ref=source_ref,
                 ),
             )
-            body = makeTryFinallyStatement(
+            body = makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=statements,
-                final=makeStatementReleaseVariable(
-                    variable=tmp_return_value, source_ref=source_ref
-                ),
+                variables=(tmp_return_value,),
                 source_ref=source_ref,
             )
         else:
