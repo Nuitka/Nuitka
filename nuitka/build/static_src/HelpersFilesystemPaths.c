@@ -437,6 +437,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
         result.error = true;
         result.error_code = errno;
         result.erroring_function = "open";
+        result.file_size = -1;
         return result;
     }
 
