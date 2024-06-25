@@ -67,7 +67,7 @@ from nuitka.nodes.VariableReleaseNodes import (
     makeStatementReleaseVariable,
     makeStatementsReleaseVariables,
 )
-from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
@@ -587,10 +587,13 @@ def buildAssignNode(provider, node, source_ref):
 
 def buildAnnAssignNode(provider, node, source_ref):
     """Python3.6 annotation assignment."""
-    # There are many cases to deal with here.
+    # There are many cases to deal with here, pylint: disable=too-many-branches
 
-    if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
-        provider.markAsNeedsAnnotationsDictionary()
+    use_annotations = getFutureSpec().shallUseAnnotations()
+
+    if use_annotations:
+        if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
+            provider.markAsNeedsAnnotationsDictionary()
 
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
@@ -627,7 +630,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
-        if not hasPythonFlagNoAnnotations() and (
+        if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
         ):
             annotation = buildAnnotationNode(provider, node.annotation, source_ref)
