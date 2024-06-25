@@ -26,6 +26,7 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -77,8 +78,10 @@ from __future__ imports must occur at the beginning of the file""",
 _future_specs = []
 
 
-def pushFutureSpec():
-    _future_specs.append(FutureSpec())
+def pushFutureSpec(module_name):
+    _future_specs.append(
+        FutureSpec(use_annotations=Plugins.decideAnnotations(module_name))
+    )
 
 
 def getFutureSpec():

@@ -185,7 +185,7 @@ def createNamespacePackage(module_name, reason, is_top, source_ref):
         reason=reason,
         is_top=is_top,
         mode="compiled",
-        future_spec=FutureSpec(),
+        future_spec=FutureSpec(use_annotations=False),
         source_ref=source_ref,
     )
 
