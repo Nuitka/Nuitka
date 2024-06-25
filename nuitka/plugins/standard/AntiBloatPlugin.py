@@ -14,7 +14,7 @@ import re
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
@@ -628,30 +628,32 @@ class %(class_name)s:
         return result
 
     def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
-        while 1:
-            config = self.config.get(using_module_name, section="anti-bloat")
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, bloat_mode_overrides in self.getYamlConfigItem(
+            module_name=using_module_name,
+            section="anti-bloat",
+            item_name="bloat-mode-overrides",
+            default={},
+            decide_relevant=(lambda config_item: intended_module_name in config_item),
+            recursive=True,
+        ):
+            return bloat_mode_overrides[intended_module_name]
 
-            if config:
-                for anti_bloat_config in config:
-                    bloat_mode_overrides = anti_bloat_config.get(
-                        "bloat-mode-overrides", ()
-                    )
+        return None
 
-                    if not bloat_mode_overrides:
-                        continue
-
-                    if self.evaluateCondition(
-                        full_name=intended_module_name,
-                        condition=anti_bloat_config.get("when", "True"),
-                    ):
-                        for module_name, mode in bloat_mode_overrides.items():
-                            if module_name == intended_module_name:
-                                return mode
-
-            using_module_name = using_module_name.getPackageName()
-
-            if not using_module_name:
-                break
+    def decideAnnotations(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, annotations_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="annotations",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return annotations_config_value == "yes"
 
         return None
 
