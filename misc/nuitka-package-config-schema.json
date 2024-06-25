@@ -232,6 +232,14 @@
                         "bloat-mode-overrides": {
                             "type": "object"
                         },
+                        "annotations": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "yes",
+                                "no"
+                            ]
+                        },
                         "when": {
                             "type": "string"
                         }
