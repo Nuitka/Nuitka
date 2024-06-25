@@ -26,10 +26,12 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     changeTextFileContents,
+    deleteFile,
     getFileContents,
     getFileList,
     listDir,
     makePath,
+    putTextFileContents,
     relpath,
     withDirectoryChange,
 )
@@ -350,6 +352,14 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
             output.write(stdout)
         with open("compiled-stderr.txt", "wb") as output:
             output.write(stderr)
+
+        if exit_nuitka == 0:
+            deleteFile("compiled-exit.txt", must_exist=False)
+        else:
+            putTextFileContents(
+                filename="compiled-exit.txt",
+                contents=str(exit_nuitka),
+            )
 
         if exit_nuitka != 0:
             sys.exit(
