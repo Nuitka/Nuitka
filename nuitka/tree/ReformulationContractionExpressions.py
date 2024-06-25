@@ -53,10 +53,7 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import (
-    makeStatementReleaseVariable,
-    makeStatementsReleaseVariables,
-)
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromAwaitable,
@@ -66,7 +63,7 @@ from nuitka.PythonVersions import python_version
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import makeAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
@@ -134,7 +131,7 @@ def _buildPython2ListContraction(provider, node, source_ref):
         temp_scope=None, name="contraction_result", temp_type="object"
     )
 
-    statements, release_statements = _buildContractionBodyNode(
+    statements, release_variables = _buildContractionBodyNode(
         provider=provider,
         node=node,
         emit_class=StatementListOperationAppend,
@@ -155,10 +152,10 @@ def _buildPython2ListContraction(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    statement = makeTryFinallyStatement(
+    statement = makeTryFinallyReleaseStatement(
         provider=function_body,
         tried=mergeStatements((statements, return_statement)),
-        final=release_statements,
+        variables=release_variables,
         source_ref=source_ref.atInternal(),
     )
 
@@ -289,7 +286,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=function_body,
                 tried=StatementReturn(
                     expression=maker_class(
@@ -300,15 +297,13 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                final=makeStatementReleaseVariable(
-                    variable=iter_tmp, source_ref=source_ref
-                ),
+                variables=(iter_tmp,),
                 source_ref=source_ref,
             ),
         )
     )
 
-    statements, release_statements = _buildContractionBodyNode(
+    statements, release_variables = _buildContractionBodyNode(
         provider=provider,
         node=node,
         emit_class=ExpressionYield,
@@ -326,10 +321,10 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         statements += (StatementGeneratorReturnNone(source_ref=source_ref),)
 
     statements = (
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=function_body,
             tried=statements,
-            final=release_statements,
+            variables=release_variables,
             source_ref=source_ref.atInternal(),
         ),
     )
@@ -566,11 +561,7 @@ def _buildContractionBodyNode(
     statements.append(current_body)
     statements = mergeStatements(statements)
 
-    release_statements = makeStatementsReleaseVariables(
-        variables=tmp_variables, source_ref=source_ref
-    )
-
-    return statements, release_statements
+    return statements, tmp_variables
 
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
@@ -591,7 +582,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         temp_scope=None, name="contraction", temp_type="object"
     )
 
-    statements, release_statements = _buildContractionBodyNode(
+    statements, release_variables = _buildContractionBodyNode(
         provider=provider,
         node=node,
         emit_class=emit_class,
@@ -624,10 +615,10 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
     )
 
     statements = (
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=function_body,
             tried=mergeStatements((statements, return_statement)),
-            final=release_statements,
+            variables=release_variables,
             source_ref=source_ref.atInternal(),
         ),
     )

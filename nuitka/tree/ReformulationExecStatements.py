@@ -26,7 +26,10 @@ from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .TreeHelpers import (
     buildNode,
     getKind,
@@ -351,17 +354,14 @@ exec: arg 1 must be a string, file, or code object""",
         ),
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=provider,
         tried=tried,
-        final=makeStatementsReleaseVariables(
-            variables=(
-                source_variable,
-                globals_keeper_variable,
-                locals_keeper_variable,
-                plain_indicator_variable,
-            ),
-            source_ref=source_ref,
+        variables=(
+            source_variable,
+            globals_keeper_variable,
+            locals_keeper_variable,
+            plain_indicator_variable,
         ),
         source_ref=source_ref,
     )

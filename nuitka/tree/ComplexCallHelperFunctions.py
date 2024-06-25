@@ -59,7 +59,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.PythonVersions import (
     getComplexCallSequenceErrorTemplate,
     python_version,
@@ -72,7 +71,7 @@ from .InternalModule import (
     once_decorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     makeCallNode,
     makeStatementsSequenceFromStatement,
@@ -643,17 +642,14 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
         source_ref=internal_source_ref,
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=result,
         tried=tried,
-        final=makeStatementsReleaseVariables(
-            variables=(
-                tmp_dict_variable,
-                tmp_iter_variable,
-                tmp_keys_variable,
-                tmp_key_variable,
-            ),
-            source_ref=internal_source_ref,
+        variables=(
+            tmp_dict_variable,
+            tmp_iter_variable,
+            tmp_keys_variable,
+            tmp_key_variable,
         ),
         source_ref=internal_source_ref,
     )
@@ -975,13 +971,10 @@ def _makeStarDictArgumentMergeToKwStatement(
         source_ref=internal_source_ref,
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=result,
         tried=tried,
-        final=makeStatementsReleaseVariables(
-            variables=tmp_variables,
-            source_ref=internal_source_ref,
-        ),
+        variables=tmp_variables,
         source_ref=internal_source_ref,
     )
 
@@ -2118,18 +2111,15 @@ def getFunctionCallHelperDictionaryUnpacking():
     )
 
     body = makeStatementsSequenceFromStatement(
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=result,
             tried=tried,
-            final=makeStatementsReleaseVariables(
-                variables=(
-                    tmp_result_variable,
-                    tmp_iter_variable,
-                    tmp_item_variable,
-                    tmp_iter2_variable,
-                    tmp_key_variable,
-                ),
-                source_ref=internal_source_ref,
+            variables=(
+                tmp_result_variable,
+                tmp_iter_variable,
+                tmp_item_variable,
+                tmp_iter2_variable,
+                tmp_key_variable,
             ),
             source_ref=internal_source_ref,
         )

@@ -25,12 +25,11 @@ from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
 
@@ -275,14 +274,10 @@ def buildImportFromNode(provider, node, source_ref):
         # Release the temporary module value as well.
         if multi_names:
             statements.append(
-                makeTryFinallyStatement(
+                makeTryFinallyReleaseStatement(
                     provider=provider,
                     tried=import_statements,
-                    final=(
-                        makeStatementReleaseVariable(
-                            variable=tmp_import_from, source_ref=source_ref
-                        ),
-                    ),
+                    variables=(tmp_import_from,),
                     source_ref=source_ref,
                 )
             )

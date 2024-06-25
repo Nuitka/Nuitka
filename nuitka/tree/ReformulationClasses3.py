@@ -76,7 +76,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.Options import isExperimental
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -90,7 +89,10 @@ from .InternalModule import (
 from .ReformulationDictionaryCreation import buildDictionaryUnpacking
 from .ReformulationSequenceCreation import buildTupleUnpacking
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .TreeHelpers import (
     buildFrameNode,
     buildNodeTuple,
@@ -339,6 +341,7 @@ def buildClassNode3(provider, node, source_ref):
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
     )
 
+    # TODO: Is this something similar to makeTryFinallyReleaseStatement
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
             provider=class_creation_function,
@@ -637,12 +640,10 @@ def buildClassNode3(provider, node, source_ref):
         if python_version >= 0x370:
             tmp_variables.insert(0, tmp_bases_orig)
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=provider,
         tried=statements,
-        final=makeStatementsReleaseVariables(
-            variables=tmp_variables, source_ref=source_ref
-        ),
+        variables=tmp_variables,
         source_ref=source_ref,
     )
 
@@ -798,17 +799,14 @@ def getClassBasesMroConversionHelper():
 
     result.setChildBody(
         makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=result,
                 tried=tried,
-                final=makeStatementsReleaseVariables(
-                    variables=(
-                        args_variable,
-                        tmp_result_variable,
-                        tmp_iter_variable,
-                        tmp_item_variable,
-                    ),
-                    source_ref=internal_source_ref,
+                variables=(
+                    args_variable,
+                    tmp_result_variable,
+                    tmp_iter_variable,
+                    tmp_item_variable,
                 ),
                 source_ref=internal_source_ref,
             )
@@ -1012,17 +1010,14 @@ def getClassSelectMetaClassHelper():
 
     result.setChildBody(
         makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=result,
                 tried=tried,
-                final=makeStatementsReleaseVariables(
-                    variables=(
-                        tmp_winner_variable,
-                        tmp_iter_variable,
-                        tmp_item_variable,
-                        tmp_item_type_variable,
-                    ),
-                    source_ref=internal_source_ref,
+                variables=(
+                    tmp_winner_variable,
+                    tmp_iter_variable,
+                    tmp_item_variable,
+                    tmp_item_type_variable,
                 ),
                 source_ref=internal_source_ref,
             )
