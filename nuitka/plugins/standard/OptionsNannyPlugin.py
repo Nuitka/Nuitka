@@ -13,7 +13,7 @@ from nuitka.Options import (
     isStandaloneMode,
     shallCreateAppBundle,
 )
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.Utils import isMacOS
 
 
