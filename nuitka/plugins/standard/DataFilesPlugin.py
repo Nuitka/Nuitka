@@ -11,7 +11,7 @@ import pkgutil
 from nuitka import Options
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.Distributions import getDistribution
 from nuitka.utils.FileOperations import (

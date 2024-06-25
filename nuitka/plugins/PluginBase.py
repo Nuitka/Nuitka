@@ -99,7 +99,6 @@ from nuitka.utils.Utils import (
     isWin32Windows,
     withNoWarning,
 )
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 _warned_unused_plugins = set()
 
@@ -1070,24 +1069,8 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def decideAnnotations(self, module_name):
-        """Decide whether to include annotations from source code.
-
-        Notes:
-            Has only effect if the code is compiled. Source is not
-            changed, but annotations are skipped in parsing.
-
-        Args:
-            module_name: name of module
-
-        Returns:
-            "None" takes no influence, "True" keeps annotations, "False"
-            removes them. Plugins must agree and ought to return
-            "None" for cases they don't care about. In case of "None"
-            from all plugins, the "--python-flag=no_annotations" removes
-            them, a "True" value overrides that.
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+    @staticmethod
+    def decideAnnotations(module_name):
         return None
 
     def getPreprocessorSymbols(self):
@@ -1656,114 +1639,6 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         )
 
 
-class NuitkaYamlPluginBase(NuitkaPluginBase):
-    """Nuitka base class for all plugins that use yaml config"""
-
-    def __init__(self):
-        self.config = getYamlPackageConfiguration()
-
-    def getYamlConfigItem(
-        self, module_name, section, item_name, decide_relevant, default, recursive
-    ):
-        while True:
-            module_configs = self.config.get(module_name, section=section)
-
-            if module_configs is not None:
-                for module_config in module_configs:
-                    config_item = module_config.get(item_name, default)
-
-                    # Avoid condition, if the item is not relevant
-                    if decide_relevant is not None and not decide_relevant(config_item):
-                        continue
-
-                    if not self.evaluateCondition(
-                        full_name=module_name,
-                        condition=module_config.get("when", "True"),
-                    ):
-                        continue
-
-                    if recursive:
-                        yield module_name, config_item
-                    else:
-                        yield config_item
-
-            if not recursive:
-                break
-
-            module_name = module_name.getPackageName()
-            if not module_name:
-                break
-
-    def getYamlConfigItemItems(
-        self, module_name, section, item_name, decide_relevant, recursive
-    ):
-        def dict_decide_relevant(item_dict):
-            if not item_dict:
-                return False
-
-            if decide_relevant is None:
-                return True
-
-            for key, value in item_dict.items():
-                if decide_relevant(key, value):
-                    return True
-
-            return False
-
-        for item_config in self.getYamlConfigItem(
-            module_name=module_name,
-            section=section,
-            item_name=item_name,
-            decide_relevant=dict_decide_relevant,
-            default={},
-            recursive=recursive,
-        ):
-            if recursive:
-                for key, value in item_config[1].items():
-                    if decide_relevant(key, value):
-                        yield item_config[0], key, value
-            else:
-                for key, value in item_config.items():
-                    if decide_relevant(key, value):
-                        yield key, value
-
-    def getYamlConfigItemSet(
-        self, module_name, section, item_name, decide_relevant, recursive
-    ):
-        for item_config in self.getYamlConfigItem(
-            module_name=module_name,
-            section=section,
-            item_name=item_name,
-            decide_relevant=None,
-            default=(),
-            recursive=recursive,
-        ):
-            if recursive:
-                for value in item_config[1]:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield item_config[0], value
-            else:
-                for value in item_config:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield value
-
-
-def standalone_only(func):
-    """For plugins that have functionality that should be done in standalone mode only."""
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        if isStandaloneMode():
-            return func(*args, **kwargs)
-        else:
-            if inspect.isgeneratorfunction(func):
-                return ()
-            else:
-                return None
-
-    return wrapped
-
-
 class TagContext(dict):
     def __init__(self, logger, full_name, config_name):
         dict.__init__(self)
@@ -1788,6 +1663,22 @@ class TagContext(dict):
                 "Identifier '%s' in %s of module '%s' is unknown."
                 % (key, self.config_name, self.full_name)
             )
+
+
+def standalone_only(func):
+    """For plugins that have functionality that should be done in standalone mode only."""
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if isStandaloneMode():
+            return func(*args, **kwargs)
+        else:
+            if inspect.isgeneratorfunction(func):
+                return ()
+            else:
+                return None
+
+    return wrapped
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
