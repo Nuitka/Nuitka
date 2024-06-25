@@ -504,6 +504,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):
+        # That is the ast names, spell-checker: ignore elts
         return (
             "Tuple",
             tuple(
@@ -1125,7 +1126,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
     elif kind == "Subscript":
         subscribed, subscript = detail
 
-        temp_scope = provider.allocateTempScope("inplace_assign_subscr")
+        temp_scope = provider.allocateTempScope("inplace_assign_subscript")
 
         tmp_variable1 = provider.allocateTempVariable(
             temp_scope=temp_scope, name="target", temp_type="object"
