@@ -13,7 +13,7 @@ import os
 import sys
 
 from nuitka.Options import isStandaloneMode
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import (
     getDistributionFromModuleName,
