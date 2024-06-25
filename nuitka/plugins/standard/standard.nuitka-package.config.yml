@@ -4679,10 +4679,11 @@
     - depends:
         - 'scipy.special._ufuncs_cxx'
 
-- module-name: 'scipy.special._ufuncs' # checksum: 4ded0e67
+- module-name: 'scipy.special._ufuncs' # checksum: 79044be3
   implicit-imports:
     - depends:
         - 'scipy.special._cdflib'
+        - 'scipy.special._special_ufuncs'
 
 - module-name: 'scipy.stats._fit' # checksum: 7547ad25
   anti-bloat:
