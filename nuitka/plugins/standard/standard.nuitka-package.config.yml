@@ -1082,6 +1082,34 @@
         'is_kernel': "'(lambda : False)'"
       when: 'not use_ipython'
 
+- module-name: 'django.core.management' # checksum: 480832b7
+  anti-bloat:
+    # This makes exceptions to the "*" dependency in the
+    # implicit-imports section below.
+    - no-follow:
+        'django.core.management.commands.test': 'disable tests'
+      when: 'not use_pytest'
+  implicit-imports:
+    - depends:
+        - 'django.core.management.commands.*'
+
+- module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'django.template.engine' # checksum: 19e5edde
+  implicit-imports:
+    - depends:
+        - 'django.templatetags.i18n'
+
+- module-name: 'django.template.library' # checksum: 87fd23ca
+  implicit-imports:
+    - depends:
+        - 'django.template.loader_tags'
+
 - module-name: 'dns.rdtypes' # checksum: 119feab4
   implicit-imports:
     - depends:
