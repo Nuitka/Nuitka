@@ -106,7 +106,7 @@ def _addActivePlugin(plugin_class, args, force=False):
     else:
         plugin_args = {}
 
-    with withPluginProblemReporting(plugin_class, "Plugin initialization failed", ()):
+    with withPluginProblemReporting(plugin_class, "plugin initialization", ()):
         plugin_instance = plugin_class(**plugin_args)
 
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
