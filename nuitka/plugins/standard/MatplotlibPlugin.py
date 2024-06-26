@@ -76,8 +76,7 @@ from inspect import getsource
                 ),
             )
         except NuitkaCalledProcessError as e:
-            if self.isDebug():
-                self.info("Exception during detection: %r" % e)
+            self.debug("Exception during detection: %r" % e)
 
             if "MPLBACKEND" not in os.environ:
                 self.sysexit(
