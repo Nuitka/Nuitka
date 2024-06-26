@@ -1436,6 +1436,7 @@ class Plugins(object):
 
     @classmethod
     def decideAnnotations(cls, module_name):
+        # For Python2 it's not a thing.
         if str is bytes:
             return False
 
@@ -1449,6 +1450,36 @@ class Plugins(object):
             )
 
         return cls.decide_annotations_cache[module_name]
+
+    decide_doc_strings_cache = {}
+
+    @classmethod
+    def decideDocStrings(cls, module_name):
+        if module_name not in cls.decide_doc_strings_cache:
+            cls.decide_doc_strings_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideDocStrings(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideDocStrings",
+                get_default_value=lambda: not Options.hasPythonFlagNoDocStrings(),
+            )
+
+        return cls.decide_doc_strings_cache[module_name]
+
+    decide_assertions_cache = {}
+
+    @classmethod
+    def decideAssertions(cls, module_name):
+        if module_name not in cls.decide_assertions_cache:
+            cls.decide_assertions_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideAssertions(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideAssertions",
+                get_default_value=lambda: not Options.hasPythonFlagNoAsserts(),
+            )
+
+        return cls.decide_assertions_cache[module_name]
 
     @classmethod
     def decideAllowOutsideDependencies(cls, module_name):
