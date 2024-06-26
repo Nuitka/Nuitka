@@ -1866,6 +1866,18 @@ static void Nuitka_Loader_tp_dealloc(struct Nuitka_LoaderObject *loader) {
 
 static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitproc visit, void *arg) { return 0; }
 
+static PyObject *Nuitka_Loader_get_name(struct Nuitka_LoaderObject *loader, void *closure) {
+    PyObject *result = Nuitka_String_FromString(loader->m_loader_entry->name);
+
+    return result;
+}
+static PyObject *Nuitka_Loader_get_path(struct Nuitka_LoaderObject *loader, void *closure) {
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = getModuleFileValue(tstate, loader->m_loader_entry);
+
+    return result;
+}
+
 static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader, void *closure) {
     PyObject *result = const_str_plain___nuitka__;
 
@@ -1874,6 +1886,8 @@ static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader,
 }
 
 static PyGetSetDef Nuitka_Loader_tp_getset[] = {{(char *)"__module__", (getter)Nuitka_Loader_get__module__, NULL, NULL},
+                                                {(char *)"name", (getter)Nuitka_Loader_get_name, NULL, NULL},
+                                                {(char *)"path", (getter)Nuitka_Loader_get_path, NULL, NULL},
                                                 {NULL}};
 
 PyTypeObject Nuitka_Loader_Type = {
