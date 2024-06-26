@@ -48,9 +48,6 @@ from nuitka.Options import (
     getProductFileVersion,
     getProductName,
     getProductVersion,
-    hasPythonFlagNoAnnotations,
-    hasPythonFlagNoAsserts,
-    hasPythonFlagNoDocStrings,
     isDeploymentMode,
     isOnefileMode,
     isOnefileTempDirMode,
@@ -125,6 +122,15 @@ def _getImportLibModule():
         return importlib
 
 
+def _makeEvaluationContext(logger, full_name, config_name):
+    context = TagContext(logger=logger, full_name=full_name, config_name=config_name)
+    context.update(control_tags)
+
+    context.update(_getEvaluationContext())
+
+    return context
+
+
 def _getEvaluationContext():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
@@ -158,9 +164,6 @@ def _getEvaluationContext():
             "version_str": _getPackageVersionStr,
             "get_dist_name": _getDistributionNameFromPackageName,
             "plugin": _isPluginActive,
-            "no_asserts": hasPythonFlagNoAsserts(),
-            "no_docstrings": hasPythonFlagNoDocStrings(),
-            "no_annotations": hasPythonFlagNoAnnotations(),
             # Iterating packages
             "iterate_modules": _iterate_module_names,
             # Locating package directories
@@ -1069,8 +1072,16 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    @staticmethod
-    def decideAnnotations(module_name):
+    def decideAnnotations(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def decideDocStrings(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def decideAsserts(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def getPreprocessorSymbols(self):
@@ -1437,10 +1448,9 @@ except ImportError:
     def evaluateExpression(
         self, full_name, expression, config_name, extra_context, single_value
     ):
-        context = TagContext(logger=self, full_name=full_name, config_name=config_name)
-        context.update(control_tags)
-
-        context.update(_getEvaluationContext())
+        context = _makeEvaluationContext(
+            logger=self, full_name=full_name, config_name=config_name
+        )
 
         def get_variable(variable_name):
             assert type(variable_name) is str, variable_name
@@ -1539,12 +1549,10 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         if condition == "False":
             return False
 
-        context = TagContext(
+        # TODO: Maybe add module name to config name?
+        context = _makeEvaluationContext(
             logger=self, full_name=full_name, config_name="'when' configuration"
         )
-        context.update(control_tags)
-
-        context.update(_getEvaluationContext())
 
         def get_parameter(parameter_name, default):
             result = Options.getModuleParameter(full_name, parameter_name)
@@ -1658,6 +1666,22 @@ class TagContext(dict):
         except KeyError:
             if key.startswith("use_"):
                 return False
+
+            if key == "no_asserts":
+                # TODO: This should be better decoupled.
+                from .Plugins import Plugins
+
+                return Plugins.decideAssertions(self.full_name) is False
+
+            if key == "no_docstrings":
+                from .Plugins import Plugins
+
+                return Plugins.decideDocStrings(self.full_name) is False
+
+            if key == "no_annotations":
+                from .Plugins import Plugins
+
+                return Plugins.decideAnnotations(self.full_name) is False
 
             self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
