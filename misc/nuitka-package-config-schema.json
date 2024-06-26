@@ -240,6 +240,22 @@
                                 "no"
                             ]
                         },
+                        "doc_strings": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "yes",
+                                "no"
+                            ]
+                        },
+                        "asserts": {
+                            "type": "string",
+                            "enum": [
+                                "default",
+                                "yes",
+                                "no"
+                            ]
+                        },
                         "when": {
                             "type": "string"
                         }
