@@ -1637,16 +1637,31 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
 
                 list_str = UNICODE_CONCAT(tstate, list_str, current);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
             } else if (missing == 1) {
                 PyObject *old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, and_str, list_str);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
                 old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, current, list_str);
+
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
 
                 Py_DECREF(old);
             } else {
@@ -1654,10 +1669,20 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
 
                 list_str = UNICODE_CONCAT(tstate, comma_str, list_str);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
                 old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, current, list_str);
+
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
 
                 Py_DECREF(old);
             }
