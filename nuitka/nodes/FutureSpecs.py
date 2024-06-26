@@ -24,6 +24,9 @@ _future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
+    # We are using a bunch of flags here, Python decides them and then we add
+    # even more modes ourselves, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "future_division",
         "unicode_literals",
@@ -55,7 +58,7 @@ class FutureSpec(object):
         return "<FutureSpec %s>" % ",".join(self.asFlags())
 
     def clone(self):
-        result = FutureSpec()
+        result = FutureSpec(use_annotations=self.use_annotations)
 
         result.future_division = self.future_division
         result.unicode_literals = self.unicode_literals
@@ -144,7 +147,10 @@ def fromFlags(flags):
     if "" in flags:
         flags.remove("")
 
-    result = FutureSpec()
+    # TODO: For persistence, that's not very good, but it's actually only using
+    # our "no_annotations" flag during building phase, which is completed here,
+    # but we might have to add it in the future to XML differently.
+    result = FutureSpec(use_annotations=False)
 
     if "CO_FUTURE_DIVISION" in flags:
         result.enableFutureDivision()

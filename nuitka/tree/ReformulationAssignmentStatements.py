@@ -569,7 +569,7 @@ def buildAssignNode(provider, node, source_ref):
 
 def buildAnnAssignNode(provider, node, source_ref):
     """Python3.6 annotation assignment."""
-    # There are many cases to deal with here.
+    # There are many cases to deal with here, pylint: disable=too-many-branches
 
     use_annotations = getFutureSpec().shallUseAnnotations()
 
