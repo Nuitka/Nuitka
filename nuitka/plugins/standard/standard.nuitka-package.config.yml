@@ -2517,6 +2517,13 @@
         - 'numpy.ma'
         - 'numpy.matrixlib'
 
+- module-name: 'numpy._core.overrides' # checksum: cda0efc0
+  anti-bloat:
+    - description: 'workaround numpy issues with compiled code'
+      replacements_plain:
+        'add_docstring(implementation, dispatcher.__doc__)': "add_docstring(implementation, dispatcher.__doc__ or '')"
+        'public_api.__code__ = ': ''
+
 - module-name: 'numpy._pytesttester' # checksum: 5e3b539b
   anti-bloat:
     - description: 'remove numpy testing framework'
@@ -4551,7 +4558,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 30cb05e1
+- module-name: 'scipy' # checksum: 80d3c475
   data-files:
     patterns:
       - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -4572,8 +4579,10 @@
       no-auto-follow:
         'cupy': 'ignore'
         'torch': 'ignore'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
 
-- module-name: 'scipy._distributor_init' # checksum: 576c57d8
+- module-name: 'scipy._distributor_init' # checksum: 47635231
   anti-bloat:
     - description: 'workaround for scipy DLL loading'
       append_plain: |
@@ -4583,7 +4592,7 @@
           libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
           for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
             WinDLL(filename)
-      when: 'win32 and version("scipy") >= (1, 9, 2)'
+      when: 'win32 and (1,14) > version("scipy") >= (1,9,2)'
 
 - module-name: 'scipy._lib' # checksum: 4063ed73
   implicit-imports:
@@ -4623,6 +4632,11 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: 'scipy._lib.array_api_compat.numpy' # checksum: 4d6580fa
+  implicit-imports:
+    - depends:
+        - 'scipy._lib.array_api_compat.numpy.fft'
 
 - module-name: 'scipy.integrate._quadrature' # checksum: 97a85907
   anti-bloat:
@@ -4669,11 +4683,6 @@
   anti-bloat:
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
-
-- module-name: 'scipy.signal' # checksum: 4ded0e67
-  implicit-imports:
-    - depends:
-        - 'scipy.special._cdflib'
 
 - module-name: 'scipy.sparse.csgraph' # checksum: 8997608e
   implicit-imports:
@@ -6465,9 +6474,11 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: d4c83239
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: f4d18284
   anti-bloat:
     - description: 'reduce keras usage'
+      replacements_re:
+        '(package_name = "(.*?)")': '\1; import \2'
       replacements:
         'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
@@ -7592,6 +7603,11 @@
     - replacements_plain:
         'ExtractIconW(handle, sys.executable, 0)': 'ExtractIconW(handle, sys.argv[0], 0)'
       when: 'standalone and win32'
+
+- module-name: 'werkzeug.debug.repr' # checksum: f8cccd39
+  anti-bloat:
+    - no-auto-follow:
+        'pydoc': 'ignore'
 
 - module-name: 'werkzeug.serving' # checksum: fcfdb30e
   anti-bloat:

@@ -33,7 +33,7 @@ from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows, isWin32Windows
 
 def initScons():
     # Avoid localized outputs.
-    os.environ["LANG"] = "C"
+    os.environ["LC_ALL"] = "C"
 
     def no_sync(self):
         # That's a noop, pylint: disable=unused-argument

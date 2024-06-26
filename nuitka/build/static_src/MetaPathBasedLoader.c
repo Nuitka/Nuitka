@@ -1694,9 +1694,9 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
 
         if (extension_module_filename != NULL) {
             // Set filename attribute
-            res = SET_ATTRIBUTE(tstate, module, const_str_plain___file__, extension_module_filename);
+            bool b_res = SET_ATTRIBUTE(tstate, module, const_str_plain___file__, extension_module_filename);
 
-            if (unlikely(res < 0)) {
+            if (unlikely(b_res == false)) {
                 // Might be refuted, which wouldn't be harmful.
                 CLEAR_ERROR_OCCURRED(tstate);
             }
