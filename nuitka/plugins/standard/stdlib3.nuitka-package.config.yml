@@ -25,6 +25,11 @@
     - no-auto-follow:
         'distutils': 'ignore'
 
+- module-name: '_sitebuiltins' # checksum: f8cccd39
+  anti-bloat:
+    - no-auto-follow:
+        'pydoc': 'ignore'
+
 - module-name: '_ssl' # checksum: 84c2a8c5
   implicit-imports:
     - depends:
@@ -404,6 +409,12 @@
   implicit-imports:
     - depends:
         - 'xml.sax.expatreader'
+
+- module-name: 'xmlrpc.server' # checksum: 105ff40e
+  anti-bloat:
+    - replacements_plain:
+        'import pydoc': ''
+      when: 'not use_pydoc'
 
 - module-name: 'zipapp' # checksum: 6a44b57d
   anti-bloat:
