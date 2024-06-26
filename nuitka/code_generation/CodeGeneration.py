@@ -250,7 +250,6 @@ from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
-    generateNuitkaLoaderCreationCode,
     getModuleCode,
 )
 from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
@@ -873,7 +872,6 @@ addExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
-        "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
         "EXPRESSION_PKGUTIL_GET_DATA_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF": generateImportModuleNameHardCode,
