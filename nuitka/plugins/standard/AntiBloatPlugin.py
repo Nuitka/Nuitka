@@ -657,6 +657,36 @@ class %(class_name)s:
 
         return None
 
+    def decideDocStrings(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, doc_strings_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="doc_strings",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return doc_strings_config_value == "yes"
+
+        return None
+
+    def decideAsserts(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, asserts_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="asserts",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return asserts_config_value == "yes"
+
+        return None
+
     def _applyNoFollowConfiguration(self, module_name):
         for (
             config_of_module_name,
