@@ -28,6 +28,8 @@ void Nuitka_PreserveHeap(void *dest, ...) {
         memcpy(w, source, size);
         w += size;
     }
+
+    va_end(ap);
 }
 
 void Nuitka_RestoreHeap(void *source, ...) {
@@ -46,6 +48,8 @@ void Nuitka_RestoreHeap(void *source, ...) {
         memcpy(dest, w, size);
         w += size;
     }
+
+    va_end(ap);
 }
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
