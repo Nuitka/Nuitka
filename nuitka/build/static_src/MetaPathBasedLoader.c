@@ -1869,7 +1869,7 @@ static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitpr
 static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader, void *closure) {
     PyObject *result = const_str_plain___nuitka__;
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
