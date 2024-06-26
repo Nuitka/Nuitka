@@ -631,6 +631,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         uint64_t value = _unpackVariableLength(&data);
 
         PyObject *l = Nuitka_LongFromCLong((c == 'l') ? ((long)value) : (-(long)value));
+        assert(l != NULL);
 
         // Avoid the long cache, won't do anything useful for small ints
 #if PYTHON_VERSION >= 0x300
@@ -658,6 +659,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 
             uint64_t value = _unpackVariableLength(&data);
             PyObject *part = Nuitka_LongFromCLong((long)value);
+            assert(part != NULL);
             result = PyNumber_InPlaceAdd(result, part);
             Py_DECREF(part);
         }
