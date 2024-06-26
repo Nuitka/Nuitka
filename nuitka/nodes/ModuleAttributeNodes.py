@@ -16,7 +16,7 @@ quickly, in others they will present boundaries for optimization.
 from nuitka import Options
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
+from .ExpressionBases import ExpressionBase
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
@@ -161,25 +161,6 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
                 "Using constant '__spec__' value for main module.",
             )
 
-        return self, None, None
-
-
-class ExpressionNuitkaLoaderCreation(ExpressionNoSideEffectsMixin, ExpressionBase):
-    __slots__ = ("provider",)
-
-    kind = "EXPRESSION_NUITKA_LOADER_CREATION"
-
-    def __init__(self, provider, source_ref):
-        ExpressionBase.__init__(self, source_ref)
-
-        self.provider = provider
-
-    def finalize(self):
-        del self.parent
-        del self.provider
-
-    def computeExpressionRaw(self, trace_collection):
-        # Nothing can be done here.
         return self, None, None
 
 

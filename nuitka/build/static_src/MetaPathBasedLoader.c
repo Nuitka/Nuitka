@@ -1405,35 +1405,6 @@ PyObject *getImportLibBootstrapModule(void) {
 }
 #endif
 
-#if PYTHON_VERSION >= 0x340
-
-static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *module;
-    PyObject *unused;
-
-    int res =
-        PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kw_list_find_module, &module, &unused);
-
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
-
-    PyThreadState *tstate = PyThreadState_GET();
-
-    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module),
-                                Nuitka_GetFilenameObject(tstate, module));
-}
-
-static PyObject *getModuleSpecClass(PyObject *importlib_module) {
-    static PyObject *module_spec_class = NULL;
-
-    if (module_spec_class == NULL) {
-        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
-    }
-
-    return module_spec_class;
-}
-
 static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
     PyObject *dir_name = getModuleDirectory(tstate, entry);
 
@@ -1468,6 +1439,35 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
     Py_DECREF(module_filename);
 
     return result;
+}
+
+#if PYTHON_VERSION >= 0x340
+
+static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *module;
+    PyObject *unused;
+
+    int res =
+        PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kw_list_find_module, &module, &unused);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module),
+                                Nuitka_GetFilenameObject(tstate, module));
+}
+
+static PyObject *getModuleSpecClass(PyObject *importlib_module) {
+    static PyObject *module_spec_class = NULL;
+
+    if (module_spec_class == NULL) {
+        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
+    }
+
+    return module_spec_class;
 }
 
 static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package) {
@@ -1866,6 +1866,18 @@ static void Nuitka_Loader_tp_dealloc(struct Nuitka_LoaderObject *loader) {
 
 static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitproc visit, void *arg) { return 0; }
 
+static PyObject *Nuitka_Loader_get_name(struct Nuitka_LoaderObject *loader, void *closure) {
+    PyObject *result = Nuitka_String_FromString(loader->m_loader_entry->name);
+
+    return result;
+}
+static PyObject *Nuitka_Loader_get_path(struct Nuitka_LoaderObject *loader, void *closure) {
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = getModuleFileValue(tstate, loader->m_loader_entry);
+
+    return result;
+}
+
 static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader, void *closure) {
     PyObject *result = const_str_plain___nuitka__;
 
@@ -1874,6 +1886,8 @@ static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader,
 }
 
 static PyGetSetDef Nuitka_Loader_tp_getset[] = {{(char *)"__module__", (getter)Nuitka_Loader_get__module__, NULL, NULL},
+                                                {(char *)"name", (getter)Nuitka_Loader_get_name, NULL, NULL},
+                                                {(char *)"path", (getter)Nuitka_Loader_get_path, NULL, NULL},
                                                 {NULL}};
 
 PyTypeObject Nuitka_Loader_Type = {
