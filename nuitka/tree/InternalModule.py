@@ -42,7 +42,6 @@ def once_decorator(func):
     return replacement
 
 
-@once_decorator
 def getInternalModule():
     """Get the singleton internal module."""
 
@@ -63,6 +62,7 @@ def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
         parameters=parameters,
         flags=None,
         auto_release=None,
+        code_prefix="helper_function",
         source_ref=internal_source_ref,
     )
 
