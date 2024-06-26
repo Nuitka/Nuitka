@@ -496,17 +496,18 @@ class CodeNodeMixin(object):
             provider = self.getParentVariableProvider().getEntryPoint()
             parent_name = provider.getCodeName()
 
-            uid = "_%d" % provider.getChildUID(self)
-
-            assert isinstance(self, CodeNodeMixin)
-
-            if self.name:
-                name = uid + "_" + self.name.strip("<>")
+            if self.code_prefix == "helper_function":
+                name = self.name
             else:
-                name = uid
+                uid = "_%d" % provider.getChildUID(self)
 
-            if str is not bytes:
-                name = name.encode("ascii", "c_identifier").decode()
+                if self.name:
+                    name = uid + "_" + self.name.strip("<>")
+                else:
+                    name = uid
+
+                if str is not bytes:
+                    name = name.encode("ascii", "c_identifier").decode()
 
             self.code_name = "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
 
