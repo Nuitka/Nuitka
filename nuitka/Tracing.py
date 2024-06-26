@@ -197,37 +197,40 @@ def _aliasStyle(style):
 
 
 def _my_print(file_output, is_atty, args, kwargs):
-    if "style" in kwargs:
-        style = kwargs["style"]
-        del kwargs["style"]
+    try:
+        if "style" in kwargs:
+            style = kwargs["style"]
+            del kwargs["style"]
 
-        if "end" in kwargs:
-            end = kwargs["end"]
-            del kwargs["end"]
+            if "end" in kwargs:
+                end = kwargs["end"]
+                del kwargs["end"]
+            else:
+                end = "\n"
+
+            if style is not None and is_atty:
+                enable_style = _getEnableStyleCode(style)
+
+                if enable_style is None:
+                    raise ValueError(
+                        "%r is an invalid value for keyword argument style" % style
+                    )
+
+                _enableAnsi()
+
+                print(enable_style, end="", **kwargs)
+
+            print(*args, end=end, **kwargs)
+
+            if style is not None and is_atty:
+                print(_getDisableStyleCode(), end="", **kwargs)
         else:
-            end = "\n"
+            print(*args, **kwargs)
 
-        if style is not None and is_atty:
-            enable_style = _getEnableStyleCode(style)
-
-            if enable_style is None:
-                raise ValueError(
-                    "%r is an invalid value for keyword argument style" % style
-                )
-
-            _enableAnsi()
-
-            print(enable_style, end="", **kwargs)
-
-        print(*args, end=end, **kwargs)
-
-        if style is not None and is_atty:
-            print(_getDisableStyleCode(), end="", **kwargs)
-    else:
-        print(*args, **kwargs)
-
-    # Flush the output.
-    file_output.flush()
+        # Flush the output.
+        file_output.flush()
+    except BrokenPipeError:
+        pass
 
 
 def my_print(*args, **kwargs):
