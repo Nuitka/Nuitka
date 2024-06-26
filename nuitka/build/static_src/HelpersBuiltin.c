@@ -619,9 +619,9 @@ PyObject *BUILTIN_TYPE3(PyThreadState *tstate, PyObject *module_name, PyObject *
     Py_DECREF(pos_args);
 
     if (HAS_ATTR_BOOL(tstate, result, const_str_plain___module__) == false) {
-        int res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
+        bool b_res = SET_ATTRIBUTE(tstate, result, const_str_plain___module__, module_name);
 
-        if (res < 0) {
+        if (b_res == false) {
             Py_DECREF(result);
             return NULL;
         }
