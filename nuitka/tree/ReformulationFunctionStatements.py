@@ -872,6 +872,7 @@ def buildFunctionWithParsing(
         doc=function_doc,
         parameters=parameters,
         auto_release=None,
+        code_prefix="function",
         source_ref=source_ref,
     )
 
