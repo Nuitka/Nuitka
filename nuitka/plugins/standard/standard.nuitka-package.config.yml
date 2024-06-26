@@ -4596,7 +4596,7 @@
       bloat-mode-overrides:
         'pydoc': 'allow'
 
-- module-name: 'scipy._distributor_init' # checksum: 47635231
+- module-name: 'scipy._distributor_init' # checksum: c312b65
   anti-bloat:
     - description: 'workaround for scipy DLL loading'
       append_plain: |
@@ -4606,7 +4606,7 @@
           libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
           for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
             WinDLL(filename)
-      when: 'win32 and (1,14) > version("scipy") >= (1,9,2)'
+      when: 'win32 and standalone and (1,14) > version("scipy") >= (1,9,2)'
 
 - module-name: 'scipy._lib' # checksum: 4063ed73
   implicit-imports:
