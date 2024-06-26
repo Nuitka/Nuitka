@@ -1277,6 +1277,8 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_functions, struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given);
 
+    assert(closure_given == 0 || closure != NULL);
+
     memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
 
