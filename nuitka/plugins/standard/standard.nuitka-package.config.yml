@@ -1671,6 +1671,11 @@
         - 'cairo'
         - 'gtk'
 
+- module-name: 'gym_tetris' # checksum: b8aa0fea
+  data-files:
+    dirs:
+      - '_roms'
+
 - module-name: 'gymnasium.envs.registration' # checksum: 4f0b7bbb
   anti-bloat:
     - description: 'better error message for environment backends'
@@ -2435,6 +2440,15 @@
   data-files:
     patterns:
       - 'dist.*'
+
+- module-name: 'nes_py' # checksum: 1f3cc2b5
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib_nes_env'
+        suffixes:
+          - 'pyd'
+      when: 'win32'
 
 - module-name: 'networkx' # checksum: 6f2aa88a
   anti-bloat:
