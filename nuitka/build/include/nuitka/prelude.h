@@ -27,9 +27,10 @@
 
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
+   spell-checker: ignore initproc,initfunc
  */
-#define initproc python_initproc
-#define initfunc python_initfunc
+#define initproc python_init_proc
+#define initfunc python_init_func
 #define initstate python_initstate
 
 // Python 3.11 headers give these warnings
@@ -251,11 +252,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #define NUITKA_DYNAMIC_ARRAY_DECL(VARIABLE_NAME, ELEMENT_TYPE, COUNT) ELEMENT_TYPE VARIABLE_NAME[COUNT];
 #endif
 
-// Stringizing, to make strings out of defines use XSTRINGIZED(SOME_DEFINE) needs
-// to level of defines to work.
-#define _STRINGIZED(ARG) #ARG
-#define STRINGIZED(ARG) _STRINGIZED(ARG)
-
 /* Python3 removed PyInt instead of renaming PyLong, and PyObject_Str instead
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
@@ -415,9 +411,9 @@ extern PyThreadState *_PyThreadState_Current;
 #endif
 
 #if PYTHON_VERSION < 0x300
-#define RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
+#define TP_RICHCOMPARE(t) (PyType_HasFeature((t), Py_TPFLAGS_HAVE_RICHCOMPARE) ? (t)->tp_richcompare : NULL)
 #else
-#define RICHCOMPARE(t) ((t)->tp_richcompare)
+#define TP_RICHCOMPARE(t) ((t)->tp_richcompare)
 #endif
 
 // For older Python we need to define this ourselves.
@@ -522,7 +518,7 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka_data_decoder.h"
 #else
 #define DECODE(x) assert(x)
-#define UNTRANSLATE(x) (x)
+#define UN_TRANSLATE(x) (x)
 #endif
 
 #if _NUITKA_EXPERIMENTAL_FILE_TRACING

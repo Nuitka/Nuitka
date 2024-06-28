@@ -344,7 +344,7 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
             # for at least "LONG", maybe others. spell-checker: ignore RICHCOMPARE
 
             assert self is object_desc, self
-            return "RICHCOMPARE(%s)" % operand
+            return "TP_RICHCOMPARE(%s)" % operand
         elif slot == "tp_compare":
             return operand + "->tp_compare"
         else:
