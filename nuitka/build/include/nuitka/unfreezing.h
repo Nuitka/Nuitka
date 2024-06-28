@@ -18,8 +18,8 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_initfunc)(PyThreadState *tstate, PyObject *module,
-                                     struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
+typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,
+                                      struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
 
 #if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE) &&                                 \
     defined(_NUITKA_FILE_REFERENCE_ORIGINAL_MODE)
@@ -31,7 +31,7 @@ struct Nuitka_MetaPathBasedLoaderEntry {
     char const *name;
 
     // Entry function if compiled module, otherwise NULL.
-    module_initfunc python_initfunc;
+    module_init_func python_init_func;
 
     // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
@@ -55,8 +55,8 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.
  */
-extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
-                                           unsigned char **bytecode_data);
+extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
+                                        unsigned char **bytecode_data);
 
 /* Create a loader object responsible for a package. */
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);

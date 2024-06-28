@@ -448,7 +448,7 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         Py_hash_t hash = Nuitka_HashFromPointer(value);
         return PyInt_FromLong(hash);
     }
@@ -467,7 +467,7 @@ Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
 #endif
@@ -490,7 +490,7 @@ Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
 #endif

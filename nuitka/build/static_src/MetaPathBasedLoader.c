@@ -252,7 +252,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findEntry(char const *name) {
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UNTRANSLATE(current->name);
+            current->name = UN_TRANSLATE(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -280,7 +280,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry *findContainingPackageEntry(char c
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UNTRANSLATE(current->name);
+            current->name = UN_TRANSLATE(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -705,6 +705,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     }
 
 #ifndef _NUITKA_EXPERIMENTAL_DEBUG_STANDALONE
+    // Disable all but critical errors, prevents dialogs from showing.
+    // spell-checker: ignore SEM_FAILCRITICALERRORS
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
@@ -1061,7 +1063,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
                                         (entry->flags & NUITKA_PACKAGE_FLAG) != 0);
     } else {
         assert((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) == 0);
-        assert(entry->python_initfunc);
+        assert(entry->python_init_func);
 
         {
             NUITKA_MAY_BE_UNUSED bool res = Nuitka_SetModule(module_name, module);
@@ -1072,7 +1074,7 @@ static PyObject *loadModule(PyThreadState *tstate, PyObject *module, PyObject *m
 #if PYTHON_VERSION < 0x300
         NUITKA_MAY_BE_UNUSED
 #endif
-        PyObject *result = entry->python_initfunc(tstate, module, entry);
+        PyObject *result = entry->python_init_func(tstate, module, entry);
         CHECK_OBJECT_X(result);
 
 #if PYTHON_VERSION >= 0x300
@@ -1291,7 +1293,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
 
     while (current->name != NULL) {
         if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            current->name = UNTRANSLATE(current->name);
+            current->name = UN_TRANSLATE(current->name);
             current->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -1779,7 +1781,7 @@ static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, Py
 
     while (entry->name != NULL) {
         if ((entry->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-            entry->name = UNTRANSLATE(entry->name);
+            entry->name = UN_TRANSLATE(entry->name);
             entry->flags -= NUITKA_TRANSLATED_FLAG;
         }
 
@@ -1934,8 +1936,8 @@ PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry)
     return (PyObject *)result;
 }
 
-void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries,
-                                    unsigned char **bytecode_data) {
+void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries,
+                                 unsigned char **bytecode_data) {
     // Do it only once.
     if (loader_entries) {
         assert(_loader_entries == loader_entries);
@@ -1959,7 +1961,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
             while (current->name != NULL) {
                 if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-                    current->name = UNTRANSLATE(current->name);
+                    current->name = UN_TRANSLATE(current->name);
                     current->flags -= NUITKA_TRANSLATED_FLAG;
                 }
 
