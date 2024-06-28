@@ -4,9 +4,9 @@
 """ Functions to handle git staged content.
 
 Inspired from https://raw.githubusercontent.com/hallettj/git-format-staged/master/git-format-staged
-
 Original author: Jesse Hallett <jesse@sitr.us>
 
+spell-checker: ignore Hallett
 """
 
 import os
@@ -161,6 +161,7 @@ def putFileHashContent(filename):
 
 
 def updateFileIndex(diff_entry, new_object_hash):
+    # spell-checker: ignore cacheinfo
     check_call(
         [
             "git",
