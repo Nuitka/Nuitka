@@ -42,7 +42,8 @@ def onCompilationReportChange(filename, git_stage):
 
         new_hash_value = putFileHashContent(tmp_filename)
 
-        updateGitFile(filename, git_stage["src_hash"], new_hash_value, staged=False)
+        if git_stage["src_hash"] != new_hash_value:
+            updateGitFile(filename, git_stage["src_hash"], new_hash_value, staged=False)
 
 
 def onFileChange(git_stage):
