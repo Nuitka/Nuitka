@@ -59,7 +59,7 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, &mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
+        loadConstantsBlob(tstate, &mod_consts[0], UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__

@@ -335,7 +335,7 @@ extern void patchTracebackDealloc(void);
 extern void _initSlotCompare(void);
 
 // Default __init__ slot wrapper, spell-checker: ignore initproc
-extern python_initproc default_tp_init_wrapper;
+extern python_init_proc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.

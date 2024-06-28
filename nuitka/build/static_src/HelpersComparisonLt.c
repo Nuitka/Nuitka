@@ -71,7 +71,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     // If the types are equal, we may get away immediately except for instances.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
-        richcmpfunc frich = RICHCOMPARE(type1);
+        richcmpfunc frich = TP_RICHCOMPARE(type1);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_LT);
@@ -132,7 +132,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -147,7 +147,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -160,7 +160,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -265,7 +265,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -282,7 +282,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -297,7 +297,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -367,7 +367,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     // If the types are equal, we may get away immediately except for instances.
     if (type1 == type2 && !PyInstance_Check(operand1)) {
 
-        richcmpfunc frich = RICHCOMPARE(type1);
+        richcmpfunc frich = TP_RICHCOMPARE(type1);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_LT);
@@ -436,7 +436,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -459,7 +459,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -480,7 +480,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -593,7 +593,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     richcmpfunc f;
 
     if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -618,7 +618,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -641,7 +641,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -839,7 +839,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -974,7 +974,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -1118,7 +1118,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -1146,7 +1146,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -1251,7 +1251,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -1283,7 +1283,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -1505,7 +1505,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -1664,7 +1664,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -1832,7 +1832,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -1876,7 +1876,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -1989,7 +1989,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -2037,7 +2037,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -2212,7 +2212,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -2347,7 +2347,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -2491,7 +2491,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -2519,7 +2519,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -2624,7 +2624,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -2656,7 +2656,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -2858,7 +2858,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -3017,7 +3017,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -3185,7 +3185,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -3229,7 +3229,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -3342,7 +3342,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     richcmpfunc f;
 
     if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -3390,7 +3390,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -3589,7 +3589,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -3724,7 +3724,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -3868,7 +3868,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -3896,7 +3896,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -4001,7 +4001,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -4033,7 +4033,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -4255,7 +4255,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -4414,7 +4414,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -4582,7 +4582,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -4626,7 +4626,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -4739,7 +4739,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -4787,7 +4787,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -4939,7 +4939,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -5074,7 +5074,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -5218,7 +5218,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -5246,7 +5246,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -5351,7 +5351,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -5383,7 +5383,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -5559,7 +5559,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -5718,7 +5718,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -5886,7 +5886,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -5930,7 +5930,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -6043,7 +6043,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -6091,7 +6091,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -6281,7 +6281,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -6416,7 +6416,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -6560,7 +6560,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -6588,7 +6588,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -6693,7 +6693,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -6725,7 +6725,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -6936,7 +6936,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -7095,7 +7095,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -7263,7 +7263,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -7307,7 +7307,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -7420,7 +7420,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -7468,7 +7468,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -7636,7 +7636,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -7771,7 +7771,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -7913,7 +7913,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -7941,7 +7941,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -8046,7 +8046,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -8078,7 +8078,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -8264,7 +8264,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -8423,7 +8423,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -8589,7 +8589,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -8633,7 +8633,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -8746,7 +8746,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -8794,7 +8794,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -8991,7 +8991,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -9126,7 +9126,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -9268,7 +9268,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -9296,7 +9296,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -9401,7 +9401,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -9433,7 +9433,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -9644,7 +9644,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -9803,7 +9803,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -9969,7 +9969,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -10013,7 +10013,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -10126,7 +10126,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     richcmpfunc f;
 
     if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -10174,7 +10174,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -10378,7 +10378,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -10513,7 +10513,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -10655,7 +10655,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -10683,7 +10683,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -10788,7 +10788,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -10820,7 +10820,7 @@ PyObject *RICH_COMPARE_LT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -11032,7 +11032,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
 
@@ -11191,7 +11191,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = RICHCOMPARE(type1);
+    f = TP_RICHCOMPARE(type1);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_LT);
@@ -11357,7 +11357,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
@@ -11401,7 +11401,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
         Py_DECREF_IMMORTAL(result);
     }
 
-    f = RICHCOMPARE(type2);
+    f = TP_RICHCOMPARE(type2);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_GT);
 
@@ -11514,7 +11514,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     richcmpfunc f;
 
     if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -11562,7 +11562,7 @@ nuitka_bool RICH_COMPARE_LT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = RICHCOMPARE(type2);
+        f = TP_RICHCOMPARE(type2);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_GT);
