@@ -601,19 +601,21 @@ static void resolveFileSymbolicLink(char *resolved_filename, char const *filenam
 
 #ifdef _WIN32
 wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
-    static wchar_t binary_filename[MAXPATHLEN + 1];
-    static bool init_done = false;
+    static wchar_t binary_filename[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
 
-    if (init_done == false) {
-        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+    wchar_t *buffer = resolve_symlinks ? binary_filename : binary_filename_resolved;
+    assert(sizeof(binary_filename) == sizeof(binary_filename_resolved));
+
+    if (buffer[0] == 0) {
+        DWORD res = GetModuleFileNameW(NULL, buffer, sizeof(binary_filename) / sizeof(wchar_t));
         assert(res != 0);
 
         // Resolve any symlinks we were invoked via
-        resolveFileSymbolicLink(binary_filename, binary_filename, sizeof(binary_filename) / sizeof(wchar_t),
-                                resolve_symlinks);
+        resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
     }
 
-    return binary_filename;
+    return buffer;
 }
 #endif
 
