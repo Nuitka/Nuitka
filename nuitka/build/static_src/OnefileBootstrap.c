@@ -810,6 +810,33 @@ extern bool checkSplashScreen(void);
 #endif
 #endif
 
+#ifdef _WIN32
+static wchar_t *getCommandLineForChildProcess(void) {
+    int argc;
+    LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    assert(argv != NULL);
+    assert(argc > 0);
+
+    static wchar_t result[32768];
+    result[0] = 0;
+
+    appendWStringSafeW(result, getBinaryPath(), sizeof(result) / sizeof(wchar_t));
+
+    for (int i = 1; i < argc; i++) {
+        appendWStringSafeW(result, argv[i], sizeof(result) / sizeof(wchar_t));
+
+        if (i != argc - 1) {
+            appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
+        }
+    }
+
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
+    wprintf(L"Command line composed to '%ls'\n", result);
+#endif
+    return result;
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -1082,12 +1109,12 @@ int main(int argc, char **argv) {
 
     PROCESS_INFORMATION pi;
 
-    bool_res = CreateProcessW(first_filename,        // application name
-                              GetCommandLineW(),     // command line
-                              NULL,                  // process attributes
-                              NULL,                  // thread attributes
-                              TRUE,                  // inherit handles
-                              NORMAL_PRIORITY_CLASS, // creation flags
+    bool_res = CreateProcessW(first_filename,                  // application name
+                              getCommandLineForChildProcess(), // command line
+                              NULL,                            // process attributes
+                              NULL,                            // thread attributes
+                              TRUE,                            // inherit handles
+                              NORMAL_PRIORITY_CLASS,           // creation flags
                               NULL, NULL, &si, &pi);
 
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");

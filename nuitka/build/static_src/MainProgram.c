@@ -1126,6 +1126,10 @@ static void nuitka_segfault_handler(int sig) {
 }
 #endif
 
+#ifdef _WIN32
+extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -1277,9 +1281,14 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
     orig_argv = convertCommandLineParameters(argc, argv);
 #elif PYTHON_VERSION < 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 1
+    NUITKA_PRINT_TRACE("main(): Calling getCommandLineToArgvA.");
     orig_argv = getCommandLineToArgvA(GetCommandLineA());
 #else
 orig_argv = argv;
+#endif
+
+#if _NUITKA_NATIVE_WCHAR_ARGV == 1 && !defined(_NUITKA_ONEFILE_MODE)
+    orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
 #endif
 
     // Make sure the compiled path of Python is replaced.
