@@ -1125,8 +1125,10 @@ static void nuitka_segfault_handler(int sig) {
 }
 #endif
 
-#ifdef _WIN32
+#if _NUITKA_NATIVE_WCHAR_ARGV == 1
 extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
+#else
+extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
@@ -1276,6 +1278,11 @@ int main(int argc, char **argv) {
 
     /* Initial command line handling only. */
 
+// Make sure, we use the absolute program path for argv[0]
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 0
+    argv[0] = (char *)getBinaryFilenameHostEncoded(true);
+#endif
+
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
     orig_argv = convertCommandLineParameters(argc, argv);
@@ -1286,8 +1293,9 @@ int main(int argc, char **argv) {
 orig_argv = argv;
 #endif
 
-#if _NUITKA_NATIVE_WCHAR_ARGV == 1 && !defined(_NUITKA_ONEFILE_MODE)
-    orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
+// Make sure, we use the absolute program path for argv[0]
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1
+    orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(true);
 #endif
 
     // Make sure the compiled path of Python is replaced.
