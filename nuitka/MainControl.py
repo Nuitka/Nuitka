@@ -1150,6 +1150,8 @@ def main():
     except BaseException:
         try:
             writeCompilationReports(aborted=True)
+        except KeyboardInterrupt:
+            general.warning("""Report writing was prevented by user interrupt.""")
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
             general.warning(
                 """\
