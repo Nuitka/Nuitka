@@ -1173,6 +1173,10 @@ int main(int argc, char **argv) {
         exit_code = 2;
     } else if (pid == 0) {
         // Child process
+
+        // Make sure, we use the absolute program path for argv[0]
+        argv[0] = getBinaryPath();
+
         execv(first_filename, argv);
 
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
