@@ -137,7 +137,8 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3a0"
+                "PYTHON_VERSION=0x3a0",
+                "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
@@ -156,7 +157,8 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3B0"
+                "PYTHON_VERSION=0x3B0",
+                "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
@@ -175,7 +177,8 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3C0"
+                "PYTHON_VERSION=0x3C0",
+                "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
