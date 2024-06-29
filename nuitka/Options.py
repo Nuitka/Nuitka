@@ -1571,7 +1571,7 @@ def _shallUseStaticLibPython():
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        if isAnacondaPython() and not isMacOS() and not isWin32Windows():
+        if isAnacondaPython() and not isWin32Windows():
             return (
                 True,
                 "Nuitka on Anaconda needs package for static libpython installed. Execute 'conda install libpython-static'.",
