@@ -680,6 +680,32 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API)
+extern _Thread_local const char *pkgcontext;
+#endif
+
+static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
+// TODO: The locking APIs for 3.13 give errors here that are not explained
+// yet.
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3d0
+    // spell-checker: ignore pkgcontext
+    const char *old_context = _PyRuntime.imports.pkgcontext;
+    _PyRuntime.imports.pkgcontext = new_context;
+#if PYTHON_VERSION >= 0x3c0 && defined(_NUITKA_USE_UNEXPOSED_API)
+    pkgcontext = new_context;
+#endif
+    return old_context;
+#elif PYTHON_VERSION >= 0x370
+    char const *old_context = _Py_PackageContext;
+    _Py_PackageContext = (char *)new_context;
+    return old_context;
+#else
+    char *old_context = _Py_PackageContext;
+    _Py_PackageContext = (char *)new_context;
+    return (char const *)old_context;
+#endif
+}
+
 static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full_name, const filename_char_t *filename,
                                          bool is_package) {
     // Determine the package name and basename of the module to load.
@@ -795,13 +821,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #endif
     assert(entrypoint);
 
-#if PYTHON_VERSION < 0x370
-    char *old_context = _Py_PackageContext;
-#else
-    char const *old_context = _Py_PackageContext;
-#endif
-
-    _Py_PackageContext = (char *)package;
+    char const *old_context = NuitkaImport_SwapPackageContext(package);
 
     // Finally call into the DLL.
     PGO_onModuleEntered(full_name);
@@ -822,7 +842,13 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         PySys_WriteStderr("import %s # return from entrypoint\n", full_name);
     }
 
-    _Py_PackageContext = old_context;
+#if 0
+    PRINT_STRING("FRESH");
+    PRINT_ITEM(module);
+    PRINT_NEW_LINE();
+#endif
+
+    NuitkaImport_SwapPackageContext(old_context);
 
 #if PYTHON_VERSION < 0x300
     PyObject *module = Nuitka_GetModuleString(tstate, full_name);
