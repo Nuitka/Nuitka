@@ -96,7 +96,8 @@ def addMacOSCodeSignature(filenames):
         identity = detectMacIdentity()
 
     command = [
-        "codesign",
+        # Need to avoid Anaconda codesign.
+        "/usr/bin/codesign",
         "-s",
         identity,
         "--force",
