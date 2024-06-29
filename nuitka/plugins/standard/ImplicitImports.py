@@ -255,6 +255,9 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
             elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
+            elif full_name == crypto_module_name + ".Cipher.PKCS1_OAEP":
+                yield crypto_module_name + ".Cipher._pkcs1_decode"
+
             elif full_name == crypto_module_name + ".Math._IntegerCustom":
                 yield crypto_module_name + ".Math._modexp"
 
