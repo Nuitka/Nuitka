@@ -26,6 +26,7 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFloorDivUnsupported,
     ControlFlowDescriptionFormatError,
+    ControlFlowDescriptionFullEscape,
     ControlFlowDescriptionLshiftUnsupported,
     ControlFlowDescriptionMatmultUnsupported,
     ControlFlowDescriptionModUnsupported,
@@ -1729,7 +1730,9 @@ class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
 
 
-class ShapeTypeType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
+class ShapeTypeTypeBase(ShapeNotNumberMixin, ShapeBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+
     __slots__ = ()
 
     typical_value = int
@@ -1754,6 +1757,23 @@ class ShapeTypeType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
         return hasattr(int, attribute_name)
+
+
+if python_version < 0x390:
+
+    class ShapeTypeType(ShapeNotContainerMixin, ShapeTypeTypeBase):
+        __slots__ = ()
+
+else:
+
+    class ShapeTypeType(ShapeTypeTypeBase):
+        __slots__ = ()
+
+        @staticmethod
+        def getOperationUnaryReprEscape():
+            # We can't really say it's element based, since it may not be iterable
+            # still.
+            return ControlFlowDescriptionFullEscape
 
 
 tshape_type = ShapeTypeType()
