@@ -1059,7 +1059,8 @@ class PythonExtensionModule(PythonModuleBase):
 
             if pyi_filename is not None:
                 pyi_deps = parsePyIFile(
-                    module_name=self.getFullName(), pyi_filename=pyi_filename
+                    module_name=self.getFullName(),
+                    pyi_filename=pyi_filename,
                 )
 
                 # These are not to be taken serious.
