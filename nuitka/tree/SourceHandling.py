@@ -192,7 +192,8 @@ def readSourceCodeFromFilenameWithInformation(
         contributing_plugins = ()
 
     if (
-        Options.shallShowSourceModifications(module_name)
+        module_name is not None
+        and Options.shallShowSourceModifications(module_name)
         and source_code_modified != source_code
     ):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)
@@ -324,7 +325,14 @@ def parsePyIFile(module_name, pyi_filename):
     in_import_part = ""
     in_quote = None
 
-    for line in getFileContentByLine(pyi_filename):
+    pyi_contents = readSourceCodeFromFilename(
+        # Do not pass module name, or else plugins modify it, which they
+        # should not.
+        module_name=None,
+        source_filename=pyi_filename,
+    )
+
+    for line in pyi_contents.splitlines():
         line = line.strip()
 
         if in_quote:
