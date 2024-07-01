@@ -127,7 +127,7 @@ def _parseOtoolListingOutput(output):
     return result
 
 
-def _getNonVersionedDllFilenames(filename):
+def _getNonVersionedDllFilenames2(filename):
     yield filename
 
     if getArchitecture() == "arm64" and filename.endswith(".dylib"):
@@ -143,6 +143,25 @@ def _getNonVersionedDllFilenames(filename):
         # examples to be sure they are covered with tests.
         if getArchitecture() == "arm64":
             yield match.group(1) + "_arm64.dylib"
+
+
+def _getNonVersionedDllFilenames(dll_filename, package_name):
+    for filename in _getNonVersionedDllFilenames2(dll_filename):
+        yield filename
+
+    # Some build systems, internally prefix DLLs with package names, attempt
+    # those removed as well.
+    if package_name is not None:
+        package_prefix = package_name.asString() + "."
+
+        if os.path.basename(dll_filename).startswith(package_prefix):
+            dll_filename = os.path.join(
+                os.path.dirname(dll_filename),
+                os.path.basename(dll_filename)[len(package_prefix) :],
+            )
+
+            for filename in _getNonVersionedDllFilenames2(dll_filename):
+                yield filename
 
 
 def _resolveBinaryPathDLLsMacOS(
@@ -215,7 +234,9 @@ def _resolveBinaryPathDLLsMacOS(
             specific_suffix = so_suffixes[0]
             abi_suffix = so_suffixes[1]
 
-            for resolved_path_candidate in _getNonVersionedDllFilenames(resolved_path):
+            for resolved_path_candidate in _getNonVersionedDllFilenames(
+                dll_filename=resolved_path, package_name=package_name
+            ):
                 if os.path.exists(resolved_path_candidate):
                     resolved_path = resolved_path_candidate
                     break
