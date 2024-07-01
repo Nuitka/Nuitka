@@ -4679,10 +4679,11 @@
     - depends:
         - 'scipy.special._ufuncs_cxx'
 
-- module-name: 'scipy.special._ufuncs' # checksum: 4ded0e67
+- module-name: 'scipy.special._ufuncs' # checksum: 79044be3
   implicit-imports:
     - depends:
         - 'scipy.special._cdflib'
+        - 'scipy.special._special_ufuncs'
 
 - module-name: 'scipy.stats._fit' # checksum: 7547ad25
   anti-bloat:
@@ -7261,6 +7262,11 @@
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
+
+- module-name: 'tsdownsample._rust' # checksum: d072aa03
+  implicit-imports:
+    - depends:
+        - 'numpy.core.multiarray'
 
 - module-name: 'tsfresh.feature_extraction.data' # checksum: 59682295
   anti-bloat:
