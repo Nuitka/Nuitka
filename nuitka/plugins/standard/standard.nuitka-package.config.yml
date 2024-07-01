@@ -453,6 +453,18 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
+- module-name: 'black' # checksum: 33fdf1ff
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
+
+- module-name: 'black.handle_ipynb_magics' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'bokeh' # checksum: cd9c2e63
   data-files:
     dirs:
@@ -1838,6 +1850,12 @@
   implicit-imports:
     - depends:
         - 'jarowinkler._initialize_cpp'
+
+- module-name: 'jedi' # checksum: 6be45546
+  anti-bloat:
+    - description: 'allow pydoc inside jedi, too dependent to remove'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
 
 - module-name: 'jinja2.environment' # checksum: c71498fb
   anti-bloat:
