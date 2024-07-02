@@ -7372,11 +7372,6 @@
       - description: "Disabled careful handling of KeyboardInterrupt in 'trio'"
         support_info: 'info'
 
-- module-name: 'yt_dlp'
-  implicit-imports:
-    - depends:
-        - 'yt_dlp.utils._deprecated'
-
 - module-name: 'trio._core._multierror' # checksum: 15c0e7fc
   anti-bloat:
     - description: 'remove IPython reference'
@@ -7909,6 +7904,11 @@
     patterns:
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
+
+- module-name: 'yt_dlp' # checksum: 7c4ae87e
+  implicit-imports:
+    - depends:
+        - 'yt_dlp.utils._deprecated'
 
 - module-name: 'zaber_motion' # checksum: 11ddc56d
   implicit-imports:
