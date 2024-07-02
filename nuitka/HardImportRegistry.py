@@ -163,8 +163,10 @@ module_sys_trust = {
     "maxsize": trust_constant,
     "byteorder": trust_constant,
     "builtin_module_names": trust_constant,
-    "stdout": trust_exist,
-    "stderr": trust_exist,
+    # TODO: Their lookups would have to be nodes, and copy with them being
+    # potentially unassigned.
+    #    "stdout": trust_exist,
+    #    "stderr": trust_exist,
     "exit": trust_node,
 }
 
