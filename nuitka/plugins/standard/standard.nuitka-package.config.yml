@@ -3824,7 +3824,7 @@
     - depends:
         - 'pyarrow.vendored.version'
 
-- module-name: 'pyarrow.vendored.docscrape' # checksum: f18b6919
+- module-name: 'pyarrow.vendored.docscrape' # checksum: b2d4bca8
   anti-bloat:
     - description: 'remove sphinx reference'
       replacements_plain:
@@ -3832,6 +3832,8 @@
     - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+      bloat-mode-overrides:
+        'pydoc': 'allow'
 
 - module-name: 'pyaxmlparser.resources' # checksum: 1d442429
   data-files:
