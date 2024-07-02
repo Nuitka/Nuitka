@@ -1433,35 +1433,6 @@ PyObject *getImportLibBootstrapModule(void) {
 }
 #endif
 
-#if PYTHON_VERSION >= 0x340
-
-static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *module;
-    PyObject *unused;
-
-    int res =
-        PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kw_list_find_module, &module, &unused);
-
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
-
-    PyThreadState *tstate = PyThreadState_GET();
-
-    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module),
-                                Nuitka_GetFilenameObject(tstate, module));
-}
-
-static PyObject *getModuleSpecClass(PyObject *importlib_module) {
-    static PyObject *module_spec_class = NULL;
-
-    if (module_spec_class == NULL) {
-        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
-    }
-
-    return module_spec_class;
-}
-
 static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
     PyObject *dir_name = getModuleDirectory(tstate, entry);
 
@@ -1496,6 +1467,35 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
     Py_DECREF(module_filename);
 
     return result;
+}
+
+#if PYTHON_VERSION >= 0x340
+
+static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *module;
+    PyObject *unused;
+
+    int res =
+        PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kw_list_find_module, &module, &unused);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module),
+                                Nuitka_GetFilenameObject(tstate, module));
+}
+
+static PyObject *getModuleSpecClass(PyObject *importlib_module) {
+    static PyObject *module_spec_class = NULL;
+
+    if (module_spec_class == NULL) {
+        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
+    }
+
+    return module_spec_class;
 }
 
 static PyObject *createModuleSpec(PyThreadState *tstate, PyObject *module_name, PyObject *origin, bool is_package) {
