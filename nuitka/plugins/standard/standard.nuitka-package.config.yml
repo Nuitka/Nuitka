@@ -4459,6 +4459,90 @@
     dirs:
       - 'fonts'
 
+- module-name: 'quarchpy' # checksum: 34fe1529
+  dlls:
+    - from_filenames:
+        relative_path: 'connection_specific/usb_libs/MS64'
+        prefixes:
+          - 'libusb'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'connection_specific/usb_libs/MS32'
+        prefixes:
+          - 'libusb'
+      when: 'win32 and not arch_amd64'
+
+  anti-bloat:
+    - no-auto-follow:
+        'quarchpy.docs': 'ignore'
+  import-hacks:
+    - global-sys-path:
+        - ''
+        - 'debug'
+        - 'connection_specific'
+        - 'connection_specific/serial'
+        - 'connection_specific/QPS'
+        - 'connection_specific/usb_libs'
+        - 'connection_specific/serial/tools'
+        - 'disk_test'
+
+- module-name: 'quarchpy.connection_specific.connection_QIS' # checksum: 9643f64d
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'from connection_specific.StreamChannels import StreamGroups': 'from .StreamChannels import StreamGroups'
+
+- module-name: 'quarchpy.connection_specific.connection_Serial' # checksum: 64c1f359
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'import serial.tools.list_ports as serialList': 'from .serial.tools import list_ports as serialList'
+        'import serial': 'from . import serial'
+
+- module-name: 'quarchpy.connection_specific.connection_USB' # checksum: 7863076d
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'import usb1': 'from .usb_libs import usb1'
+
+- module-name: 'quarchpy.connection_specific.serial' # checksum: aa39e59f
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'from serialutil import *': 'from .serialutil import *'
+        'from serial.serialwin32 import Serial': 'from .serialwin32 import Serial'
+        'from serial.serialposix import Serial, PosixPollSerial, VTIMESerial  # noqa': 'from .serialposix import Serial, PosixPollSerial, VTIMESerial  # noqa'
+        'from serial.serialjava import Serial': 'from .serialjava import Serial'
+
+- module-name: 'quarchpy.connection_specific.serial.serialwin32' # checksum: 473754e
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'from serial import win32': 'from . import win32'
+        'from serial.serialutil import SerialBase, SerialException, to_bytes, portNotOpenError, writeTimeoutError': 'from .serialutil import SerialBase, SerialException, to_bytes, portNotOpenError, writeTimeoutError'
+        'import serial': 'from . import serialutil as serial'
+
+- module-name: 'quarchpy.connection_specific.serial.tools.list_ports' # checksum: 423af61b
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'from serial.tools.list_ports_windows import comports': 'from .list_ports_windows import comports'
+        'from serial.tools.list_ports_posix import comports': 'from .list_ports_posix import comports'
+
+- module-name: 'quarchpy.connection_specific.serial.tools.list_ports_windows' # checksum: 57e78a83
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'from serial.win32 import ULONG_PTR': 'from ..win32 import ULONG_PTR'
+        'from serial.tools import list_ports_common': 'from . import list_ports_common'
+        'import serial': ''
+
+- module-name: 'quarchpy.connection_specific.usb_libs.usb1' # checksum: c77cb559
+  anti-bloat:
+    - description: 'fix import'
+      replacements_plain:
+        'import libusb1': 'from . import libusb1'
+
 - module-name: 'randomname' # checksum: 8d6f0c80
   data-files:
     dirs:
