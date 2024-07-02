@@ -44,8 +44,8 @@ if sys.version_info >= (3, 8):\n\
 else:\n\
     from importlib_metadata import Distribution,distribution\n\
 class nuitka_distribution(Distribution):\n\
-    def __init__(self, base_path, metadata, entry_points):\n\
-        self.base_path = base_path; self.metadata_data = metadata\n\
+    def __init__(self, path, metadata, entry_points):\n\
+        self._path = path; self.metadata_data = metadata\n\
         self.entry_points_data = entry_points\n\
     def read_text(self, filename):\n\
         if filename == 'METADATA':\n\
@@ -53,7 +53,7 @@ class nuitka_distribution(Distribution):\n\
         elif filename == 'entry_points.txt':\n\
             return self.entry_points_data\n\
     def locate_file(self, path):\n\
-        return os.path.join(self.base_path, path)\n\
+        return os.path.join(self._path, path)\n\
 ";
 
         PyObject *nuitka_distribution_code_object = Py_CompileString(nuitka_distribution_code, "<exec>", Py_file_input);
