@@ -870,6 +870,11 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'dash._jupyter' # checksum: 681007fe
   anti-bloat:
     - description: 'remove IPython reference'
@@ -883,21 +888,6 @@
       replacements_plain:
         '"_pytest" in sys.modules': 'False'
       when: 'not use_pytest'
-
-- module-name: 'dash.dash_table' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
-
-- module-name: 'dash.dcc' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
-
-- module-name: 'dash.html' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
 
 - module-name: 'dask' # checksum: c72c99e9
   data-files:
@@ -3623,6 +3613,16 @@
   data-files:
     dirs:
       - '.'
+
+- module-name: 'plotly' # checksum: 35176d4
+  data-files:
+    dirs:
+      - 'package_data'
+      - 'package_data/templates'
+      - 'package_data/datasets'
+  implicit-imports:
+    - depends:
+        - 'plotly.version'
 
 - module-name: 'plotly.graph_objects' # checksum: bf6dd64b
   anti-bloat:
