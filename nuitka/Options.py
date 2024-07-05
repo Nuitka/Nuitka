@@ -1529,6 +1529,10 @@ def getMainEntryPointFilenames():
     return tuple(os.path.normpath(r).rstrip(os.path.sep) for r in result)
 
 
+def isMultidistMode():
+    return options is not None and options.mains and len(options.mains) > 1
+
+
 def shallOptimizeStringExec():
     """Inactive yet"""
     return False
