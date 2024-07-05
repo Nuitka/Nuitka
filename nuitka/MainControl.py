@@ -130,18 +130,16 @@ def _createMainModule():
     directory paths.
 
     """
-    # Many cases and details to deal with, pylint: disable=too-many-branches,too-many-locals
+    # Many cases and details to deal with, pylint: disable=too-many-branches
 
     Plugins.onBeforeCodeParsing()
 
-    main_filenames = Options.getMainEntryPointFilenames()
-
     # First, build the raw node tree from the source code.
-    if len(main_filenames) > 1:
+    if Options.isMultidistMode():
         assert not Options.shallMakeModule()
 
         main_module = buildMainModuleTree(
-            source_code=createMultidistMainSourceCode(main_filenames),
+            source_code=createMultidistMainSourceCode(),
         )
     else:
         main_module = buildMainModuleTree(
