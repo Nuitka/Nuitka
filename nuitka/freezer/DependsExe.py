@@ -44,6 +44,7 @@ def getDependsExePath():
         url=depends_url,
         is_arch_specific=getArchitecture(),
         binary="depends.exe",
+        unzip=True,
         flatten=True,
         specificity="",  # Note: If there ever was an update, put version here.
         message="""\

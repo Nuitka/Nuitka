@@ -92,6 +92,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                         url=url,
                         is_arch_specific=False,
                         specificity=url.rsplit("/", 2)[1],
+                        unzip=True,
                         flatten=True,
                         binary="ccache",
                         message="Nuitka will make use of ccache to speed up repeated compilation.",
