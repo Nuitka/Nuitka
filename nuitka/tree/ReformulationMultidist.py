@@ -18,7 +18,9 @@ def _stripPythonSuffix(filename):
         return filename
 
 
-def createMultidistMainSourceCode(main_filenames):
+def createMultidistMainSourceCode():
+    main_filenames = getMainEntryPointFilenames()
+
     main_basenames = [
         _stripPythonSuffix(os.path.basename(main_filename))
         for main_filename in main_filenames

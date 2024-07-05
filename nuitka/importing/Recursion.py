@@ -154,6 +154,9 @@ def _decideRecursion(
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
 
+    if using_module_name == "__main__" and Options.isMultidistMode():
+        return True, "Main program multidist entry points."
+
     if module_kind == "extension" and not Options.isStandaloneMode():
         return False, "Extension modules cannot be inspected."
 
