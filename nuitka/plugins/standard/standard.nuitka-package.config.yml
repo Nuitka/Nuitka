@@ -1090,7 +1090,29 @@
         'is_kernel': "'(lambda : False)'"
       when: 'not use_ipython'
 
-- module-name: 'django.core.management' # checksum: 480832b7
+- module-name: 'django' # checksum: 7652b420
+  anti-bloat:
+    - description: 'allow unittest inside django, too dependent to remove'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
+- module-name: 'django.conf' # checksum: 2d31f140
+  data-files:
+    dirs:
+      - 'locale/en'
+
+- module-name: 'django.core.management' # checksum: 261e0447
+  parameters:
+    - 'name': 'settings-module'
+      'values': 'checkModuleName(value)'
+  variables:
+    setup_code:
+      - 'import os, importlib'
+      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE"))'
+    declarations:
+      'django_installed_apps': 'settings.INSTALLED_APPS'
+    environment:
+      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", None)'
   anti-bloat:
     # This makes exceptions to the "*" dependency in the
     # implicit-imports section below.
@@ -1100,6 +1122,15 @@
   implicit-imports:
     - depends:
         - 'django.core.management.commands.*'
+        - 'get_parameter("settings-module", ())'
+        - '["%s.management.commands.*" % x for x in get_variable("django_installed_apps")]'
+        - 'get_variable("django_installed_apps")'
+
+  options:
+    checks:
+      - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
+        support_info: 'parameter'
+        when: 'standalone and get_parameter("settings-module", None) is None'
 
 - module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
   anti-bloat:
@@ -1107,6 +1138,18 @@
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+- module-name: 'django.db.backends' # checksum: 5a0c4e00
+  implicit-imports:
+    - depends:
+        - 'django.db.backends.dummy.*'
+
+- module-name: 'django.db.backends.base.creation' # checksum: f16012b0
+  anti-bloat:
+    - description: 'remove unittest reference'
+      no-auto-follow:
+        'unittest': 'ignore'
+      when: 'not use_unittest'
 
 - module-name: 'django.template.engine' # checksum: 19e5edde
   implicit-imports:
@@ -6782,9 +6825,10 @@
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
-- module-name: 'toga.platform' # checksum: 4db91cac
+- module-name: 'toga.platform' # checksum: c708442a
   variables:
-    setup_code: 'import toga.platform'
+    setup_code:
+      - 'import toga.platform'
     declarations:
       'toga_backend_module_name': 'toga.platform.get_platform_factory().__name__'
   anti-bloat:
@@ -7042,12 +7086,13 @@
         'get_pytest_test_cases': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'torch.utils._config_module' # checksum: 95196bd9
+- module-name: 'torch.utils._config_module' # checksum: 1613f7c7
   constants:
     declarations:
       'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config")]'
   variables:
-    setup_code: 'import importlib'
+    setup_code:
+      - 'import importlib'
     declarations:
       'torch_config_modules': 'dict((m,importlib.import_module(m)._compile_ignored_keys) for m in torch_config_module_candidates if hasattr(importlib.import_module(m), "_compile_ignored_keys"))'
 
