@@ -46,8 +46,17 @@
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
+                    "environment": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
                     "setup_code": {
-                        "type": "string"
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "declarations": {
                         "type": "object",

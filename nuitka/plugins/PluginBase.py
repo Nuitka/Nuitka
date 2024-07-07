@@ -74,7 +74,11 @@ from nuitka.utils.Distributions import (
     getDistributionName,
     isDistributionCondaPackage,
 )
-from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
+from nuitka.utils.Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    withEnvironmentVarsOverridden,
+)
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
@@ -1274,7 +1278,7 @@ except ImportError:
                 return None
 
             if Options.is_debug:
-                self.info(cmd)
+                self.info(cmd, keep_format=True)
 
             raise
 
@@ -1415,16 +1419,22 @@ except ImportError:
             for count, variable_config in enumerate(
                 self.config.get(full_name, section="variables")
             ):
-                setup_codes = variable_config.get("setup_code")
-                declarations = variable_config.get("declarations")
+                environment = variable_config.get("environment", {})
+                setup_codes = variable_config.get("setup_code", [])
+                if type(setup_codes) is str:
+                    setup_codes = setup_codes.splitlines()
+                declarations = variable_config.get("declarations", {})
 
-                if declarations and self.evaluateCondition(
+                if len(declarations) < 1:
+                    self.sysexit(
+                        "Error, no variable 'declarations' for %s makes no sense."
+                        % full_name
+                    )
+
+                if self.evaluateCondition(
                     full_name=full_name,
                     condition=variable_config.get("when", "True"),
                 ):
-                    if type(setup_codes) is str:
-                        setup_codes = setup_codes.splitlines()
-
                     setup_codes.extend(
                         "%s=%r" % (constant_name, constant_value)
                         for (
@@ -1433,11 +1443,31 @@ except ImportError:
                         ) in self.getExpressionConstants(full_name=full_name).items()
                     )
 
-                    info = self.queryRuntimeInformationMultiple(
-                        "%s_variables_%s" % (full_name.asString(), count),
-                        setup_codes=setup_codes,
-                        values=tuple(declarations.items()),
-                    )
+                    env_variables = {}
+
+                    for env_name, env_value in environment.items():
+                        env_variables[env_name] = self.evaluateExpressionOrConstant(
+                            full_name=full_name,
+                            expression=env_value,
+                            config_name="variables config #%d" % count,
+                            extra_context=None,
+                            single_value=True,
+                        )
+
+                    with withEnvironmentVarsOverridden(env_variables):
+                        info = self.queryRuntimeInformationMultiple(
+                            "%s_variables_%s" % (full_name.asString(), count),
+                            setup_codes=setup_codes,
+                            values=tuple(declarations.items()),
+                        )
+
+                    if Options.isExperimental("display-yaml-variables"):
+                        self.info("Evaluated %r" % info)
+
+                    if info is None:
+                        self.sysexit(
+                            "Error, failed to evaluate variables for %s." % full_name
+                        )
 
                     variables.update(info.asDict())
 

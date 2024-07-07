@@ -2520,7 +2520,13 @@ def getFcfProtectionMode():
 
 def getModuleParameter(module_name, parameter_name):
     """:returns: string derived from ``--module-parameter``"""
-    option_name = module_name.asString() + "-" + parameter_name
+
+    module_name_prefix = module_name.getTopLevelPackageName().asString()
+
+    if parameter_name.startswith(module_name_prefix + "-"):
+        option_name = parameter_name
+    else:
+        option_name = module_name_prefix + "-" + parameter_name
 
     for module_option in options.module_parameters:
         module_option_name, module_option_value = module_option.split("=", 1)
