@@ -6774,6 +6774,11 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'tinycudann.modules' # checksum: 2467d1b5
+  implicit-imports:
+    - depends:
+        - 'tinycudann_bindings._*_C'
+
 - module-name: 'tkextrafont' # checksum: 1bd90a67
   dlls:
     - from_filenames:
