@@ -51,7 +51,7 @@ Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence) {
         return tp_as_sequence->sq_length(sequence);
     }
 
-    return PyMapping_Size(sequence);
+    return Nuitka_PyMapping_Size(sequence);
 }
 
 PyObject *Nuitka_Number_Index(PyObject *item) {
