@@ -53,6 +53,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
+    isLegalPath,
     isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
@@ -118,6 +119,9 @@ def checkPathSpec(value, arg_name, allow_disable):
             "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
             % (arg_name, old, value)
         )
+
+    # This changes the '/' to '\' on Windows at least.
+    value = os.path.normpath(value)
 
     if "\n" in value or "\r" in value:
         Tracing.options_logger.sysexit(
@@ -223,6 +227,22 @@ Absolute run time paths of '%s' can only be at the start of \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
+
+        if value.startswith(candidate):
+            if value[len(candidate)] != os.path.sep:
+                Tracing.options_logger.sysexit(
+                    """Cannot use general system folder %s, without a path \
+separator '%s=%s', just appending to these is not allowed, needs to be \
+below them."""
+                    % (candidate, arg_name, value)
+                )
+
+    is_legal, reason = isLegalPath(value)
+    if not is_legal:
+        Tracing.options_logger.sysexit(
+            """Cannot use illegal paths '%s=%s', due to %s."""
+            % (arg_name, value, reason)
+        )
 
     return value
 
@@ -1921,8 +1941,7 @@ def getOnefileTempDirSpec():
         options.onefile_tempdir_spec or "{TEMP}" + os.path.sep + "onefile_{PID}_{TIME}"
     )
 
-    # This changes the '/' to '\' on Windows at least.
-    return os.path.normpath(result)
+    return result
 
 
 def getOnefileChildGraceTime():
@@ -2393,22 +2412,12 @@ def shallUseProgressBar():
 
 def getForcedStdoutPath():
     """*str* force program stdout output into that filename"""
-    result = options.force_stdout_spec
-
-    if result is not None:
-        result = os.path.normpath(result)
-
-    return result
+    return options.force_stdout_spec
 
 
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
-    result = options.force_stderr_spec
-
-    if result is not None:
-        result = os.path.normpath(result)
-
-    return result
+    return options.force_stderr_spec
 
 
 def shallShowSourceModifications(module_name):
