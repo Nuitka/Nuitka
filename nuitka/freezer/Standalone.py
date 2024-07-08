@@ -28,7 +28,11 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
-from nuitka.PythonFlavors import isAnacondaPython, isHomebrewPython
+from nuitka.PythonFlavors import (
+    getHomebrewInstallPath,
+    isAnacondaPython,
+    isHomebrewPython,
+)
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import areInSamePaths, isFilenameBelowPath
@@ -226,8 +230,11 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 def _reduceToPythonPath(used_dlls):
     inside_paths = getPythonUnpackedSearchPath()
 
-    if isAnacondaPython() or isHomebrewPython():
+    if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
+
+    if isHomebrewPython():
+        inside_paths.insert(0, getHomebrewInstallPath())
 
     def decideInside(dll_filename):
         return any(

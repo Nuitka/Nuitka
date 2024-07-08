@@ -113,6 +113,20 @@ def isHomebrewPython():
     return False
 
 
+def getHomebrewInstallPath():
+    assert isHomebrewPython()
+
+    candidate = getSystemPrefixPath()
+
+    while candidate != "/":
+        if os.path.isdir(os.path.join(candidate, "Cellar")):
+            return candidate
+
+        candidate = os.path.dirname(candidate)
+
+    sys.exit("Error, failed to locate homebrew installation path.")
+
+
 def isRyePython():
     if isMacOS():
         import sysconfig
