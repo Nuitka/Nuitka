@@ -824,8 +824,9 @@ class Plugins(object):
 
                 for desc in description:
                     if desc is None:
-                        pass
-                    elif len(desc) == 2:
+                        continue
+
+                    if len(desc) == 2:
                         code, reason = desc
                         flags = ()
                     else:
