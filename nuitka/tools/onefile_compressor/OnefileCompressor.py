@@ -20,7 +20,12 @@ from nuitka.Progress import (
 )
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import getFileList, getFileSize, makePath
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getFileList,
+    getFileSize,
+    makePath,
+)
 from nuitka.utils.Hashing import Hash, HashCRC32
 from nuitka.utils.Utils import (
     decoratorRetries,
@@ -206,6 +211,20 @@ def _getCacheFilename(binary_filename, low_memory):
     return os.path.join(cache_dir, hash_value.asHexDigest())
 
 
+def _getInputFileList(dist_dir, start_binary):
+    file_list = getFileList(dist_dir, normalize=False)
+    file_list_size = len(file_list)
+    file_list = [
+        filename for filename in file_list if not areSamePaths(filename, start_binary)
+    ]
+    file_list.insert(0, start_binary)
+
+    # If this fails, above code failed to find the start binary.
+    assert file_list_size == len(file_list)
+
+    return tuple(file_list)
+
+
 def attachOnefilePayload(
     dist_dir,
     onefile_output_filename,
@@ -236,9 +255,7 @@ def attachOnefilePayload(
             output_file.write(b"KA" + compression_indicator)
 
             # Move the binary to start immediately to the start position
-            file_list = getFileList(dist_dir, normalize=False)
-            file_list.remove(start_binary)
-            file_list.insert(0, start_binary)
+            file_list = _getInputFileList(dist_dir=dist_dir, start_binary=start_binary)
 
             if isWin32Windows():
                 filename_encoding = "utf-16le"
