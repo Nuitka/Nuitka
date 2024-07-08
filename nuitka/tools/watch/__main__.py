@@ -418,6 +418,8 @@ def _updateCase(
         with withDirectoryChange(result_path):
             # Update or create lockfile of pipenv.
             lock_filename = _updatePacmanLockFile()
+    else:
+        assert False, preferred_package_type
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
