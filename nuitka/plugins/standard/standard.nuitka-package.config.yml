@@ -2933,6 +2933,13 @@
     - depends:
         - 'numpy'
 
+- module-name: 'open3d' # checksum: 35ff624
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib'
+          - '*swrast_dri'
+
 - module-name: 'open_clip' # checksum: 1fe63667
   data-files:
     dirs:
