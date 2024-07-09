@@ -212,6 +212,9 @@ def getConstantDefaultPopulation():
         result.append("__aenter__")
         result.append("__aexit__")
 
+        # Exception group split method call
+        result.append("split")
+
     if isWin32Windows():
         result.append("fileno")
 
