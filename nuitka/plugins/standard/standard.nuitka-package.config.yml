@@ -6982,6 +6982,13 @@
       replacements_plain:
         'if inspect.isclass(obj)': 'if inspect.isclass(obj) and obj is not __loader__'
 
+- module-name: 'torch._dynamo.utils' # checksum: fd1c674
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'import_submodule': "'''(lambda mod: [importlib.import_module(mod.__name__ + '.' + p.name) for p in pkgutil.iter_modules(mod.__path__) if p.name[0] != '_'])'''"
+      append_plain: 'import pkgutil'
+
 - module-name: 'torch._dynamo.variables.builder' # checksum: 6ef7624b
   anti-bloat:
     - description: 'remove setuptools usage'
