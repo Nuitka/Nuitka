@@ -38,6 +38,7 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import (
     getResultRunFilename,
     getSourceDirectoryPath,
+    hasMainModule,
 )
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
@@ -224,9 +225,16 @@ def _getReportInputData(aborted):
 
     data_composer = getDataComposerReportValues()
 
-    output_run_filename = os.path.abspath(getResultRunFilename(onefile=isOnefileMode()))
-
-    scons_error_report_data = readSconsErrorReport(source_dir=getSourceDirectoryPath())
+    if hasMainModule():
+        output_run_filename = os.path.abspath(
+            getResultRunFilename(onefile=isOnefileMode())
+        )
+        scons_error_report_data = readSconsErrorReport(
+            source_dir=getSourceDirectoryPath()
+        )
+    else:
+        scons_error_report_data = {}
+        output_run_filename = "failed too early"
 
     return dict(
         (var_name, var_value)
