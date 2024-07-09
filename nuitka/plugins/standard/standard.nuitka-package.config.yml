@@ -1706,6 +1706,22 @@
       - 'VERSION'
       - 'lexicon.db'
 
+- module-name: 'gsplat.cuda._backend' # checksum: d537c97a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from rich.console import Console': ''
+        'from torch.utils.cpp_extension import _get_build_directory, load': ''
+      when: 'not use_setuptools'
+
+- module-name: 'gsplat.cuda_legacy._backend' # checksum: d537c97a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from rich.console import Console': ''
+        'from torch.utils.cpp_extension import _get_build_directory, load': ''
+      when: 'not use_setuptools'
+
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
     - depends:
