@@ -117,17 +117,15 @@ class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
         return True
 
 
-# TODO: Have a variation that knows dict shape or not statically.
-class ExpressionClassBodyP3(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
-    kind = "EXPRESSION_CLASS_BODY_P3"
+class ExpressionClassMappingBody(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
+    """For use in cases, where the Python3 class is possibly a mapping."""
 
-    __slots__ = ("needs_annotations_dict",)
+    kind = "EXPRESSION_CLASS_MAPPING_BODY"
 
-    if python_version >= 0x340:
-        __slots__ += ("qualname_setup",)
+    __slots__ = ("needs_annotations_dict", "qualname_setup")
 
     # Force creation with proper type.
-    locals_kind = "python3_class"
+    locals_kind = "python_mapping_class"
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionClassBodyBase.__init__(
@@ -140,16 +138,15 @@ class ExpressionClassBodyP3(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
 
         MarkNeedsAnnotationsMixin.__init__(self)
 
-        if python_version >= 0x340:
-            self.qualname_setup = None
+        self.qualname_setup = None
 
 
-class ExpressionClassBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBase):
-    kind = "EXPRESSION_CLASS_BODY_P2"
+class ExpressionClassDictBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBase):
+    kind = "EXPRESSION_CLASS_DICT_BODY_P2"
 
     __slots__ = ()
 
-    locals_kind = "python2_class"
+    locals_kind = "python_dict_class"
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionClassBodyBase.__init__(
@@ -159,6 +156,27 @@ class ExpressionClassBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBa
             doc=doc,
             source_ref=source_ref,
         )
+
+
+class ExpressionClassDictBody(MarkNeedsAnnotationsMixin, ExpressionClassDictBodyP2):
+    """For use in cases, where it's compile time pre-optimization determined to be a dictionary."""
+
+    kind = "EXPRESSION_CLASS_DICT_BODY"
+
+    __slots__ = ("needs_annotations_dict", "qualname_setup")
+
+    def __init__(self, provider, name, doc, source_ref):
+        ExpressionClassDictBodyP2.__init__(
+            self,
+            provider=provider,
+            name=name,
+            doc=doc,
+            source_ref=source_ref,
+        )
+
+        MarkNeedsAnnotationsMixin.__init__(self)
+
+        self.qualname_setup = None
 
 
 class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBase):

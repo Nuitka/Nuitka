@@ -844,9 +844,9 @@ addExpressionDispatchDict(
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
-        # TODO: Rename to make more clear it is an outline
-        "EXPRESSION_CLASS_BODY_P2": generateFunctionOutlineCode,
-        "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_MAPPING_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_DICT_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_DICT_BODY_P2": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
