@@ -19,7 +19,8 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
-    ExpressionClassBodyP3,
+    ExpressionClassDictBody,
+    ExpressionClassMappingBody,
     ExpressionSelectMetaclass,
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
@@ -121,10 +122,26 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
     )
 
 
+def _selectClassBody(_static_qualname):
+    if isExperimental("force-p2-class"):
+        return ExpressionClassDictBody
+    else:
+        return ExpressionClassMappingBody
+
+
+def _needsOrigBases(_static_qualname):
+    if isExperimental("force-p2-class"):
+        return False
+    elif python_version < 0x370:
+        return False
+    else:
+        return True
+
+
 def buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
     # which just has the complexity and optimization checks:
-    # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
     # according to Developer Manual.
@@ -147,7 +164,12 @@ def buildClassNode3(provider, node, source_ref):
         temp_scope=temp_scope, name="prepared", temp_type="object"
     )
 
-    class_creation_function = ExpressionClassBodyP3(
+    # Can be overridden, but for code object creation, we use that.
+    static_qualname = provider.getChildQualname(node.name)
+
+    class_body_class = _selectClassBody(static_qualname)
+
+    class_creation_function = class_body_class(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
@@ -168,7 +190,7 @@ def buildClassNode3(provider, node, source_ref):
 
     code_object = CodeObjectSpec(
         co_name=node.name,
-        co_qualname=provider.getChildQualname(node.name),
+        co_qualname=static_qualname,
         co_kind="Class",
         co_varnames=(),
         co_freevars=(),
@@ -249,7 +271,7 @@ def buildClassNode3(provider, node, source_ref):
         )
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         qualname_assign = statements[-1]
 
     if python_version >= 0x360 and class_creation_function.needsAnnotationsDictionary():
@@ -266,12 +288,14 @@ def buildClassNode3(provider, node, source_ref):
 
     statements.append(body)
 
+    needs_orig_bases = _needsOrigBases(static_qualname)
+
     if node.bases:
         tmp_bases = provider.allocateTempVariable(
             temp_scope=temp_scope, name="bases", temp_type="object"
         )
 
-        if python_version >= 0x370:
+        if needs_orig_bases:
             tmp_bases_orig = provider.allocateTempVariable(
                 temp_scope=temp_scope, name="bases_orig", temp_type="object"
             )
@@ -284,7 +308,9 @@ def buildClassNode3(provider, node, source_ref):
         def makeBasesRef():
             return makeConstantRefNode(constant=(), source_ref=source_ref)
 
-    if python_version >= 0x370 and node.bases:
+        needs_orig_bases = False
+
+    if node.bases and needs_orig_bases:
         statements.append(
             makeStatementConditional(
                 condition=makeComparisonExpression(
@@ -380,7 +406,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         statements.append(
             makeStatementAssignmentVariable(
-                variable=tmp_bases if python_version < 0x370 else tmp_bases_orig,
+                variable=tmp_bases_orig if needs_orig_bases else tmp_bases,
                 source=_buildBasesTupleCreationNode(
                     provider=provider, elements=node.bases, source_ref=source_ref
                 ),
@@ -388,7 +414,7 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-        if python_version >= 0x370:
+        if needs_orig_bases:
             bases_conversion = makeExpressionFunctionCall(
                 function=makeExpressionFunctionCreation(
                     function_ref=ExpressionFunctionRef(
@@ -460,7 +486,7 @@ def buildClassNode3(provider, node, source_ref):
 
         # Might become empty behind our back during conversion, therefore make the
         # check at run time for 3.7 or higher.
-        if python_version >= 0x370:
+        if needs_orig_bases:
             unspecified_metaclass_expression = ExpressionConditional(
                 condition=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
@@ -548,6 +574,17 @@ def buildClassNode3(provider, node, source_ref):
             ),
         )
 
+    if class_body_class is ExpressionClassDictBody:
+        prepare_condition = makeConstantRefNode(constant=False, source_ref=source_ref)
+    else:
+        prepare_condition = ExpressionAttributeCheck(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_metaclass, source_ref=source_ref
+            ),
+            attribute_name="__prepare__",
+            source_ref=source_ref,
+        )
+
     statements += (
         makeStatementAssignmentVariable(
             variable=tmp_metaclass,
@@ -606,13 +643,7 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=source_ref,
         ),
         makeStatementConditional(
-            condition=ExpressionAttributeCheck(
-                expression=ExpressionTempVariableRef(
-                    variable=tmp_metaclass, source_ref=source_ref
-                ),
-                attribute_name="__prepare__",
-                source_ref=source_ref,
-            ),
+            condition=prepare_condition,
             yes_branch=call_prepare,
             no_branch=makeStatementAssignmentVariable(
                 variable=tmp_prepared,
@@ -631,13 +662,13 @@ def buildClassNode3(provider, node, source_ref):
         ),
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         class_creation_function.qualname_setup = node.name, qualname_assign
 
     tmp_variables = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
     if node.bases:
         tmp_variables.insert(0, tmp_bases)
-        if python_version >= 0x370:
+        if needs_orig_bases:
             tmp_variables.insert(0, tmp_bases_orig)
 
     return makeTryFinallyReleaseStatement(
