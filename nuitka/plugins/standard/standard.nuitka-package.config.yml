@@ -4653,6 +4653,12 @@
         'self.console.is_jupyter': 'False'
       when: 'not use_ipython'
 
+- module-name: 'rich.pager' # checksum: 8ba7ab27
+  anti-bloat:
+    - description: 'allow pydoc inside rich pager, uses it'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
+
 - module-name: 'rich.pretty' # checksum: bdd67adb
   anti-bloat:
     - description: 'remove IPython reference'
