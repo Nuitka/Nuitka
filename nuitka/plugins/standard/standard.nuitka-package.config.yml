@@ -7475,6 +7475,12 @@
     - depends:
         - 'queue'
 
+- module-name: 'usb1' # checksum: 5cbb45ba
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libusb'
+
 - module-name: 'uvicorn' # checksum: e24c61dd
   implicit-imports:
     - depends:
