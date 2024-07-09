@@ -23,9 +23,9 @@ def getLocalsDictType(kind):
         locals_scope = LocalsDictExecHandle
     elif kind == "python_function":
         locals_scope = LocalsDictFunctionHandle
-    elif kind == "python3_class":
+    elif kind == "python_mapping_class":
         locals_scope = LocalsMappingHandle
-    elif kind == "python2_class":
+    elif kind == "python_dict_class":
         locals_scope = LocalsDictHandle
     elif kind == "module_dict":
         locals_scope = GlobalsDictHandle
@@ -345,6 +345,10 @@ class LocalsDictHandle(LocalsDictHandleBase):
         )
 
         self.markForLocalsDictPropagation()
+
+    @staticmethod
+    def setTypeShape(type_shape):
+        pass
 
 
 class LocalsMappingHandle(LocalsDictHandle):

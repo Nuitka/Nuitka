@@ -176,7 +176,7 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=14
+--max-parents=16
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10

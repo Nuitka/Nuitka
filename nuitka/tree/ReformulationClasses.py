@@ -11,7 +11,7 @@ source code comments with Developer Manual sections.
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ClassNodes import ExpressionClassBodyP2
+from nuitka.nodes.ClassNodes import ExpressionClassDictBody
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -69,7 +69,7 @@ def buildClassNode2(provider, node, source_ref):
 
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
-    function_body = ExpressionClassBodyP2(
+    function_body = ExpressionClassDictBody(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
