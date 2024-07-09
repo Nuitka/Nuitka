@@ -221,11 +221,11 @@ inline static void assertThreadFrameObject(Nuitka_ThreadStateFrameType *frame) {
 #endif
 }
 
-// Mark frame as currently executed. Starting with Python 3.4 that means it
+// Mark frame as currently executed. Starting with Python 3 that means it
 // can or cannot be cleared, or should lead to a generator close. For Python2
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 #if PYTHON_VERSION < 0x3b0
 
@@ -253,7 +253,7 @@ static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame
 #define Nuitka_Frame_MarkAsExecuting(frame) ;
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
 #if PYTHON_VERSION >= 0x3b0
@@ -269,7 +269,7 @@ static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *fr
 #define Nuitka_PythonFrame_MarkAsExecuting(frame) ;
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
 #if PYTHON_VERSION >= 0x3b0
@@ -396,7 +396,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
 
 // TODO: These can be moved to private code, once all C library is included by
 // compiled code helpers, but generators are currently not.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame,
                                                           PyObject *generator) {
 #if PYTHON_VERSION < 0x3b0

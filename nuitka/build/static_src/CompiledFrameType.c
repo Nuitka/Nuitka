@@ -528,7 +528,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     return 0;
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
@@ -556,7 +556,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     }
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     // For frames that are closed, we also need to close the generator.
     PyObject *f_gen = Nuitka_GetFrameGenerator(frame);
     if (f_gen != NULL) {
@@ -633,7 +633,7 @@ static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame) {
 }
 
 static PyMethodDef Nuitka_Frame_methods[] = {
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     {"clear", (PyCFunction)Nuitka_Frame_clear, METH_NOARGS, "F.clear(): clear most references held by the frame"},
 #endif
     {"__sizeof__", (PyCFunction)Nuitka_Frame_sizeof, METH_NOARGS, "F.__sizeof__() -> size of F in memory, in bytes"},
@@ -702,7 +702,7 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
 #endif
     Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
@@ -785,7 +785,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
     frame->f_lineno = code->co_firstlineno;
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     Nuitka_SetFrameGenerator(result, NULL);
 
     Nuitka_Frame_MarkAsNotExecuting(result);
