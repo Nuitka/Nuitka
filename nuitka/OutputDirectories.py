@@ -34,6 +34,11 @@ def setMainModule(main_module):
     _main_module = main_module
 
 
+def hasMainModule():
+    """For reporting to check if there is anything to talk about."""
+    return _main_module is not None
+
+
 def getSourceDirectoryPath(onefile=False):
     """Return path inside the build directory."""
 
