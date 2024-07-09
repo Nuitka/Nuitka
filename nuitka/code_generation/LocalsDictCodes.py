@@ -96,11 +96,11 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     is_dict = locals_scope.hasShapeDictionaryExact()
 
-    res_name = context.getIntResName()
-
     if is_dict:
+        res_name = context.getBoolResName()
+
         emit(
-            "%s = PyDict_SetItem(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -108,7 +108,17 @@ def generateLocalsDictSetCode(statement, emit, context):
                 value_arg_name,
             )
         )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=value_arg_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
     else:
+        res_name = context.getIntResName()
+
         emit(
             "%s = PyObject_SetItem(%s, %s, %s);"
             % (
@@ -119,13 +129,13 @@ def generateLocalsDictSetCode(statement, emit, context):
             )
         )
 
-    getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
-        release_name=value_arg_name,
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            release_name=value_arg_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateLocalsDictDelCode(statement, emit, context):
