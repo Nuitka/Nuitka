@@ -551,7 +551,7 @@ PyTypeObject Nuitka_Method_Type = {
     0,                                                // tp_weaklist
     0,                                                // tp_del
     0                                                 // tp_version_tag
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     ,
     0 /* tp_finalizer */
 #endif
