@@ -655,7 +655,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
         "pyglet.gl",  # Too large generated code
-        # "telethon.tl.types",  # Not performance relevant and slow C compile
+        "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
         "win32com.gen_py",  # Not performance relevant and slow C compile
