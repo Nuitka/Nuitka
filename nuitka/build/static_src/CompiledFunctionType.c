@@ -841,7 +841,7 @@ PyTypeObject Nuitka_Function_Type = {
     0,                                                  // tp_weaklist
     0,                                                  // tp_del
     0                                                   // tp_version_tag
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     ,
     0 // tp_finalizer
 #endif
@@ -878,7 +878,7 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
     assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
     assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     assert(Nuitka_Function_Type.tp_finalize != PyFunction_Type.tp_finalize || PyFunction_Type.tp_finalize == NULL);
 #endif
 

@@ -393,7 +393,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         function_body.qualname_setup = result.getVariableName()
 
     return result

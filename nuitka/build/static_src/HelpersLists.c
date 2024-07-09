@@ -227,7 +227,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     // Guess a iterator size if possible
     src_size = PyObject_LengthHint(other, 8);
 
