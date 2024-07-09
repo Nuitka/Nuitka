@@ -1910,6 +1910,17 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jaxtyping' # checksum: ee1c8e43
+  data-files:
+    include-metadata:
+      - 'jaxtyping'
+
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'jedi' # checksum: 6be45546
   anti-bloat:
     - description: 'allow pydoc inside jedi, too dependent to remove'
