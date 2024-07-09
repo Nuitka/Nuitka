@@ -236,7 +236,7 @@ PyObject *IMPORT_NAME_FROM_MODULE(PyThreadState *tstate, PyObject *module, PyObj
             Py_DECREF(filename);
             Py_DECREF(name);
 
-#elif PYTHON_VERSION >= 0x340 || !defined(_NUITKA_FULL_COMPAT)
+#elif PYTHON_VERSION >= 0x300 || !defined(_NUITKA_FULL_COMPAT)
             PyErr_Format(PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString(import_name));
 #else
             PyErr_Format(PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString(import_name));

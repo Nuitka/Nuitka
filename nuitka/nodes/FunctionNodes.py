@@ -86,11 +86,8 @@ class ExpressionFunctionBodyBase(
         "flags",
     )
 
-    if python_version >= 0x340:
-        __slots__ += ("qualname_provider",)
-
     if python_version >= 0x300:
-        __slots__ += ("non_local_declarations",)
+        __slots__ += ("qualname_provider", "non_local_declarations")
 
     # Might be None initially in some cases.
     named_children = ("body|optional+setter",)
@@ -118,13 +115,12 @@ class ExpressionFunctionBodyBase(
         # officially a child yet. Important during building.
         self.parent = provider
 
-        # Python3.4: Might be overridden by global statement on the class name.
-        # TODO: Make this class only code.
-        if python_version >= 0x340:
+        if python_version >= 0x300:
+            # Python3: Might be overridden by global statement on the class name.
+            # TODO: Make this class only code.
             self.qualname_provider = provider
 
-        # Non-local declarations.
-        if python_version >= 0x300:
+            # Non-local declarations if any.
             self.non_local_declarations = None
 
     @staticmethod
@@ -571,7 +567,7 @@ class ExpressionFunctionBody(
         "parameters",
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         __slots__ += ("qualname_setup",)
 
     def __init__(
@@ -613,7 +609,7 @@ class ExpressionFunctionBody(
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
 
-        if python_version >= 0x340:
+        if python_version >= 0x300:
             self.qualname_setup = None
 
         self.parameters = parameters

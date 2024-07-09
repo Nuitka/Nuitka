@@ -136,11 +136,8 @@ def getConstantDefaultPopulation():
         # Modules have that attribute starting with Python3
         result.append("__loader__")
 
-    if python_version >= 0x340:
-        result.append(
-            # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
-            "send"
-        )
+        # YIELD_FROM uses this
+        result.append("send")
 
     if python_version >= 0x300:
         result += (
@@ -175,7 +172,7 @@ def getConstantDefaultPopulation():
         if python_version < 0x300:
             result.append("long")
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         # Work with the __spec__ module attribute.
         result += ("__spec__", "_initializing", "parent")
 

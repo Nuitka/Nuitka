@@ -124,10 +124,10 @@ Monkey patching "multiprocessing" for compiled methods.""",
 
         # For the call stack, this may look bad or different to what CPython
         # does, but such is life. The forking module was split up into multiple
-        # modules in Python 3.4 so this is doubled. TODO: Move the version check
+        # modules in Python3 so this is doubled. TODO: Move the version check
         # into the code and let Nuitka compile time optimize it, which will also
         # make sure joblib support is there for Python2 as well.
-        if python_version >= 0x340:
+        if python_version >= 0x300:
             source_code += """
 def __nuitka_freeze_support():
     import sys
