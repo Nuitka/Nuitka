@@ -17,9 +17,7 @@ import sys
 _cached_process_environments = {}
 
 
-def getLaunchingNuitkaProcessEnvironmentValue(
-    environment_variable_name, must_exist=False
-):
+def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
     if environment_variable_name not in _cached_process_environments:
         _cached_process_environments[environment_variable_name] = os.getenv(
             environment_variable_name
@@ -67,14 +65,12 @@ def main():
         )
         sys.exit(1)
 
-    nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue(
-        "NUITKA_BINARY_NAME", must_exist=False
-    )
+    nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_BINARY_NAME")
     if nuitka_binary_name is not None:
         sys.argv[0] = nuitka_binary_name
 
     nuitka_pythonpath_ast = getLaunchingNuitkaProcessEnvironmentValue(
-        "NUITKA_PYTHONPATH_AST", must_exist=False
+        "NUITKA_PYTHONPATH_AST"
     )
 
     if nuitka_pythonpath_ast is not None:
