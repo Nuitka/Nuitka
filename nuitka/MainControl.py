@@ -544,12 +544,16 @@ def _runCPgoBinary():
 
     if exit_code_pgo != 0:
         pgo_logger.warning(
-            "Error, PGO compiled program error exited. Make sure it works fully before using '--pgo' option."
+            """\
+Error, the C PGO compiled program error exited. Make sure it works \
+fully before using '--pgo-c' option."""
         )
 
     if not pgo_data_collected:
         pgo_logger.sysexit(
-            "Error, no PGO information produced, did the created binary run at all?"
+            """\
+Error, no C PGO compiled program did not produce expected information, \
+did the created binary run at all?"""
         )
 
     pgo_logger.info("Successfully collected C level PGO information.", style="blue")
@@ -567,7 +571,9 @@ def _runPythonPgoBinary():
 
     if not os.path.exists(pgo_filename):
         general.sysexit(
-            "Error, no Python PGO information produced, did the created binary run (exit code %d) as expected?"
+            """\
+Error, no Python PGO information produced, did the created binary
+run (exit code %d) as expected?"""
             % exit_code
         )
 
@@ -629,6 +635,8 @@ def runSconsBackend():
         if Options.isOnefileTempDirMode():
             options["onefile_temp_mode"] = asBoolStr(True)
 
+    # TODO: Some things are going to hate that, we might need to bundle
+    # for accelerated mode still.
     if Options.shallCreateAppBundle():
         options["macos_bundle_mode"] = asBoolStr(True)
 
@@ -638,6 +646,9 @@ def runSconsBackend():
     if Options.getForcedStderrPath():
         options["forced_stderr_path"] = Options.getForcedStderrPath()
 
+    if Options.isProfile():
+        options["profile_mode"] = asBoolStr(True)
+
     if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = asBoolStr(True)
 
@@ -645,9 +656,6 @@ def runSconsBackend():
         options["frozen_modules"] = str(
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
-
-    if Options.isProfile():
-        options["profile_mode"] = asBoolStr(True)
 
     if hasPythonFlagNoWarnings():
         options["no_python_warnings"] = asBoolStr(True)
@@ -715,7 +723,7 @@ def runSconsBackend():
     # Allow plugins to build definitions.
     env_values.update(Plugins.getBuildDefinitions())
 
-    if Options.shallCreatePgoInput():
+    if Options.shallCreatePythonPgoInput():
         options["pgo_mode"] = "python"
 
         result = runScons(
@@ -734,11 +742,11 @@ def runSconsBackend():
         return True, options
 
         # Need to restart compilation from scratch here.
-    if Options.isPgoMode():
+    if Options.isCPgoMode():
         # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
         # and standalone mode proper support, which might need data files to be
         # there, which currently are not yet there, so it won't run.
-        if Options.isPgoMode():
+        if Options.isCPgoMode():
             options["pgo_mode"] = "generate"
 
             result = runScons(
@@ -1004,7 +1012,7 @@ def _main():
         )
 
     # Relaunch in case of Python PGO input to be produced.
-    if Options.shallCreatePgoInput():
+    if Options.shallCreatePythonPgoInput():
         # Will not return.
         pgo_filename = OutputDirectories.getPgoRunInputFilename()
         general.info(
