@@ -1089,7 +1089,8 @@ to work. You need to instead selectively add them with \
             )
 
     if (
-        not standalone_mode
+        not shallCreatePythonPgoInput()
+        and not standalone_mode
         and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
@@ -1117,7 +1118,7 @@ make sure that is intended."""
         options.static_libpython = "no"
 
     if (
-        not isPgoMode()
+        not isCPgoMode()
         and not isPythonPgoMode()
         and (getPgoArgs() or getPgoExecutable())
     ):
@@ -1125,15 +1126,19 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if isPgoMode():
+    if isCPgoMode():
         if isStandaloneMode():
             Tracing.optimization_logger.warning(
-                "Using PGO with standalone/onefile mode is not currently working. Expect errors."
+                """\
+Using C level PGO with standalone/onefile mode is not \
+currently working. Expect errors."""
             )
 
         if shallMakeModule():
             Tracing.optimization_logger.warning(
-                "Using PGO with module mode is not currently working. Expect errors."
+                """\
+Using C level PGO with module mode is not currently \
+working. Expect errors."""
             )
 
     if (
@@ -1337,6 +1342,9 @@ def shallFollowNoImports():
 
 def shallFollowAllImports():
     """:returns: bool derived from ``--follow-imports``"""
+    if shallCreatePythonPgoInput() and options.is_standalone:
+        return True
+
     return options.is_standalone or options.follow_all is True
 
 
@@ -1699,7 +1707,7 @@ def getJobLimit():
 
 
 def getLtoMode():
-    """:returns: bool derived from ``--lto`` or ``--pgo``"""
+    """:returns: bool derived from ``--lto``"""
     return options.lto
 
 
@@ -1862,11 +1870,17 @@ def shallExplainImports():
 
 def isStandaloneMode():
     """:returns: bool derived from ``--standalone``"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.is_standalone or options.list_package_dlls
 
 
 def isOnefileMode():
     """:returns: bool derived from ``--onefile``"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.is_onefile
 
 
@@ -1882,6 +1896,9 @@ def isOnefileTempDirMode():
         Using cached onefile execution when the spec doesn't contain
         volatile things.
     """
+    if shallCreatePythonPgoInput():
+        return False
+
     spec = getOnefileTempDirSpec()
 
     for candidate in (
@@ -1896,8 +1913,11 @@ def isOnefileTempDirMode():
     return False
 
 
-def isPgoMode():
-    """:returns: bool derived from ``--pgo``"""
+def isCPgoMode():
+    """:returns: bool derived from ``--pgo-c``"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.is_c_pgo
 
 
@@ -1911,7 +1931,7 @@ def getPythonPgoInput():
     return options.python_pgo_input
 
 
-def shallCreatePgoInput():
+def shallCreatePythonPgoInput():
     return isPythonPgoMode() and getPythonPgoInput() is None
 
 
@@ -2142,6 +2162,9 @@ def getMacOSTargetArch():
 
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.macos_create_bundle and isMacOS()
 
 
@@ -2412,11 +2435,17 @@ def shallUseProgressBar():
 
 def getForcedStdoutPath():
     """*str* force program stdout output into that filename"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.force_stdout_spec
 
 
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.force_stderr_spec
 
 
