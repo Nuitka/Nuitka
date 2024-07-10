@@ -351,6 +351,12 @@
         - 'av.plane'
         - 'av.video.plane'
 
+- module-name: 'azure.cognitiveservices.speech' # checksum: 571ec995
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'Microsoft.CognitiveServices.Speech'
+
 - module-name: 'babel' # checksum: 37b8fa6d
   data-files:
     dirs:
