@@ -14,25 +14,37 @@ or package, that can contain all used modules too.
 import os
 import sys
 
+_cached_process_environments = {}
 
-def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
-    value = os.getenv(environment_variable_name)
 
-    if value is not None and ":" in value:
+def getLaunchingNuitkaProcessEnvironmentValue(
+    environment_variable_name, must_exist=False
+):
+    if environment_variable_name not in _cached_process_environments:
+        _cached_process_environments[environment_variable_name] = os.getenv(
+            environment_variable_name
+        )
+        if _cached_process_environments[environment_variable_name] is not None:
+            del os.environ[environment_variable_name]
+
+    value = _cached_process_environments[environment_variable_name]
+
+    if value is not None and ":" not in value:
+        value = None
+
+    if value is not None:
         pid, value = value.split(":", 1)
 
         try:
             pid = int(pid)
         except ValueError:
-            return None
+            value = None
+        else:
+            if os.name != "nt":
+                if pid != os.getpid():
+                    value = None
 
-        if os.name != "nt":
-            if pid != os.getpid():
-                return None
-
-        del os.environ[environment_variable_name]
-
-        return value
+    return value
 
 
 def main():
@@ -55,12 +67,14 @@ def main():
         )
         sys.exit(1)
 
-    nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_BINARY_NAME")
+    nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue(
+        "NUITKA_BINARY_NAME", must_exist=False
+    )
     if nuitka_binary_name is not None:
         sys.argv[0] = nuitka_binary_name
 
     nuitka_pythonpath_ast = getLaunchingNuitkaProcessEnvironmentValue(
-        "NUITKA_PYTHONPATH_AST"
+        "NUITKA_PYTHONPATH_AST", must_exist=False
     )
 
     if nuitka_pythonpath_ast is not None:
