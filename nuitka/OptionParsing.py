@@ -1102,7 +1102,7 @@ del caching_group
 pgo_group = parser.add_option_group("PGO compilation choices")
 
 pgo_group.add_option(
-    "--pgo",
+    "--pgo-c",
     action="store_true",
     dest="is_c_pgo",
     default=False,
