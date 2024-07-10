@@ -7,7 +7,7 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka.__past__ import StringIO
+from nuitka.__past__ import BytesIO, StringIO
 
 
 def _indent(elem, level=0, more_sibs=False):
@@ -93,8 +93,11 @@ def toString(tree):
     return result
 
 
-def fromString(text):
-    return fromFile(StringIO(text))
+def fromString(text, use_lxml=False):
+    if type(text) is str:
+        return fromFile(StringIO(text), use_lxml=use_lxml)
+    else:
+        return fromFile(BytesIO(text), use_lxml=use_lxml)
 
 
 def fromFile(file_handle, use_lxml=False):
