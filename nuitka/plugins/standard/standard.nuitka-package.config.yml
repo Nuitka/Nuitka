@@ -2541,7 +2541,7 @@
           - 'pyd'
       when: 'win32'
 
-- module-name: 'networkx' # checksum: 6f2aa88a
+- module-name: 'networkx' # checksum: 87442f5d
   anti-bloat:
     - description: 'remove networkx.testing usage and pytest reference (via nose)'
       replacements_plain:
@@ -2551,6 +2551,9 @@
         'nose': 'ignore'
         'pytest': 'ignore'
       when: 'not use_pytest'
+    - description: 'remove optional package references'
+      no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
 
 - module-name: 'networkx.classes.backends' # checksum: 29bf8c92
   anti-bloat:
