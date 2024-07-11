@@ -660,10 +660,10 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
                                       PyObject *module_name, bool is_package) {
 #ifdef _WIN32
     appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), filename_size);
-    appendCharSafeW(filename, SEP, filename_size);
+    appendWCharSafeW(filename, SEP_L, filename_size);
     appendModuleNameAsPathW(filename, module_name, filename_size);
     if (is_package) {
-        appendCharSafeW(filename, SEP, filename_size);
+        appendWCharSafeW(filename, SEP_L, filename_size);
         appendStringSafeW(filename, "__init__", filename_size);
     }
     appendStringSafeW(filename, ".pyd", filename_size);
