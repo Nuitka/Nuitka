@@ -2914,6 +2914,13 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
+- module-name: 'onnx' # checksum: 5eb1b195
+  options:
+    checks:
+      - description: "onnx is is not supported with Python3.12 unless '--static-libpython' is used"
+        support_info: 'error'
+        when: 'python312_or_higher and not static_libpython'
+
 - module-name: 'onnxruntime' # checksum: 37a94e21
   dlls:
     - from_filenames:
@@ -3083,7 +3090,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 11103e47
+- module-name: 'paddle' # checksum: 27d0c647
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -3092,6 +3099,11 @@
           - 'mkl'
           - 'war'
           - 'common'
+  options:
+    checks:
+      - description: "paddle is is not supported with Python3.12 unless '--static-libpython' is used"
+        support_info: 'error'
+        when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:

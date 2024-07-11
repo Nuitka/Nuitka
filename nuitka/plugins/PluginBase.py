@@ -92,6 +92,7 @@ from nuitka.utils.ModuleNames import (
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
+from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     isAndroidBasedLinux,
@@ -187,6 +188,8 @@ def _getEvaluationContext():
             # Python version string
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
+            # Technical requirements
+            "static_libpython": getSystemStaticLibPythonPath() is not None,
             # Builtins
             "True": True,
             "False": False,
