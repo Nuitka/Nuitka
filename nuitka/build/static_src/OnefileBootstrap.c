@@ -821,7 +821,7 @@ static wchar_t *getCommandLineForChildProcess(void) {
     // Free memory allocated for CommandLineToArgvW arguments.
     LocalFree(argv);
 
-    int size = 0;
+    size_t size = 0;
 
     for (int i = 0; i < argc; i++) {
         size += wcslen(argv[i]);
