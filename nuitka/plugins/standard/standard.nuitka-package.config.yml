@@ -3165,11 +3165,10 @@
         - 'ppstructure/layout'
         - 'ppstructure/table'
 
-- module-name: 'paddleocr.paddleocr' # checksum: 8cf243fc
+- module-name: 'paddleocr.paddleocr' # checksum: 284bb6fd
   anti-bloat:
-    - replacements_plain:
-        'tools = _import_file(': ''
-        "    'tools', os.path.join(__dir__, 'tools/__init__.py'), make_importable=True)": 'from . import tools'
+    - replacements_re:
+        'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
 - module-name: 'panda3d' # checksum: ed772c0a
   data-files:
