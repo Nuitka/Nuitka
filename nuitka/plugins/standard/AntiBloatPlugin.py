@@ -14,6 +14,7 @@ import re
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.ModuleRegistry import getModuleByName
+from nuitka.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -438,10 +439,12 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             anti_bloat_config.get("replacements_re") or {}
         ).items():
             old = source_code
-            source_code = re.sub(replace_src, replace_dst, source_code)
+            source_code = re.sub(replace_src, replace_dst, source_code, re.S)
 
             if old != source_code:
                 change_count += 1
+            elif isExperimental("display-anti-bloat-mismatches"):
+                self.info("No match in %s no match %r" % (module_name, replace_src))
 
         append_code = anti_bloat_config.get("append_result", "")
         if type(append_code) in (tuple, list):
