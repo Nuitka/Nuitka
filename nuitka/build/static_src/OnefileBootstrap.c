@@ -810,36 +810,29 @@ extern bool checkSplashScreen(void);
 #endif
 #endif
 
-#if _WIN32
+#ifdef _WIN32
 static wchar_t *getCommandLineForChildProcess(void) {
     int argc;
     LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-
+    assert(argv != NULL);
     assert(argc > 0);
-    argv[0] = getBinaryPath();
 
-    // Free memory allocated for CommandLineToArgvW arguments.
-    LocalFree(argv);
-
-    size_t size = 0;
-
-    for (int i = 0; i < argc; i++) {
-        size += wcslen(argv[i]);
-    }
-
-    size += argc;
-
-    wchar_t *result = malloc((size + 1) * sizeof(wchar_t));
+    static wchar_t result[32768];
     result[0] = 0;
 
-    for (int i = 0; i < argc; i++) {
-        appendWStringSafeW(result, argv[i], size);
+    appendWStringSafeW(result, getBinaryPath(), sizeof(result) / sizeof(wchar_t));
+
+    for (int i = 1; i < argc; i++) {
+        appendWStringSafeW(result, argv[i], sizeof(result) / sizeof(wchar_t));
 
         if (i != argc - 1) {
-            appendCharSafeW(result, ' ', size);
+            appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
         }
     }
 
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
+    wprintf(L"Command line composed to '%ls'\n", result);
+#endif
     return result;
 }
 #endif
