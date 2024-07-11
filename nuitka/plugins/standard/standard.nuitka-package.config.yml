@@ -1846,6 +1846,13 @@
         'jinja2.asyncsupport': 'ignore'
       when: 'before_python35'
 
+- module-name: 'joblib.memory'
+  anti-bloat:
+    - description: 'remove pydoc'
+      replacements_plain:
+        'import pydoc': ''
+        'if inspect.isfunction(func):': 'if False:'
+
 - module-name: 'jinja2.lexer' # checksum: 1efd768a
   anti-bloat:
     - description: 'remove Python3 only code'
