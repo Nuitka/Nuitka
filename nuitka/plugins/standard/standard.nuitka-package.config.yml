@@ -1903,6 +1903,13 @@
       replacements_plain:
         'warnings.warn': ''
 
+- module-name: 'joblib.memory' # checksum: 49583532
+  anti-bloat:
+    - description: 'remove pydoc'
+      replacements_plain:
+        'import pydoc': ''
+        'if inspect.isfunction(func):': 'if False:'
+
 - module-name: 'jpype' # checksum: f75160d3
   data-files:
     dest_path: 'jpype'
