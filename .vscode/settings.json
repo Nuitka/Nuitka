@@ -138,6 +138,7 @@
         "clonglong",
         "closefd",
         "co_argcount",
+        "co_exceptiontable",
         "co_firstlineno",
         "co_freevars",
         "co_has_stardict",
