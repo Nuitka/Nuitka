@@ -972,8 +972,9 @@ c_compiler_group.add_option(
     metavar="N",
     default=None,
     help="""\
-Specify the allowed number of parallel C compiler jobs. Defaults to the
-system CPU count.""",
+Specify the allowed number of parallel C compiler jobs. Negative values
+are system CPU minus the given value. Defaults to the full system CPU
+count unless low memory mode is activated, then it defaults to 1.""",
 )
 
 c_compiler_group.add_option(
