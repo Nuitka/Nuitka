@@ -1040,7 +1040,7 @@ and recommended only for use in Nuitka development and testing."""
         getJobLimit()
     except ValueError:
         Tracing.options_logger.sysexit(
-            "For --jobs value, use positive integer values only, not, but not '%s'."
+            "For '--jobs' value, use integer values only, not, but not '%s'."
             % options.jobs
         )
 
@@ -1692,16 +1692,19 @@ def isShowScons():
 
 def getJobLimit():
     """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
-    if options.jobs is None:
-        if isLowMemory():
-            return 1
-        else:
-            return getCPUCoreCount()
+    jobs = options.jobs
 
-    result = int(options.jobs)
+    # Low memory has a default of 1.
+    if jobs is None and isLowMemory():
+        return 1
 
-    if result <= 0:
-        raise ValueError(result)
+    if jobs is None:
+        result = getCPUCoreCount()
+    else:
+        result = int(jobs)
+
+        if result <= 0:
+            result = max(1, getCPUCoreCount() + jobs)
 
     return result
 
