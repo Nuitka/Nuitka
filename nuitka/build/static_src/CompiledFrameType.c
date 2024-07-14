@@ -905,25 +905,64 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #if PYTHON_VERSION < 0x300
     PyObject *code = const_str_empty;
     PyObject *lnotab = const_str_empty;
-#else
-#if PYTHON_VERSION < 0x3b0
+    PyObject *consts = const_tuple_empty;
+    PyObject *names = const_tuple_empty;
+    int stacksize = 0;
+#elif PYTHON_VERSION < 0x3b0
     PyObject *code = const_bytes_empty;
     PyObject *lnotab = const_bytes_empty;
+    PyObject *consts = const_tuple_empty;
+    PyObject *names = const_tuple_empty;
+    int stacksize = 0;
 #else
     // Our code object needs to be recognizable, and Python doesn't store the
     // length anymore, so we need a non-empty one.
     static PyObject *empty_code = NULL;
-    if (empty_code == NULL) {
-        empty_code = PyBytes_FromString("\0\0");
-    }
-    PyObject *code = empty_code;
     static PyObject *lnotab = NULL;
-    if (lnotab == NULL) {
-        lnotab = PyBytes_FromStringAndSize("\x80\x00\xd8\x04\x08\x80"
-                                           "D",
-                                           7);
+    static PyObject *consts = NULL;
+    static PyObject *names = NULL;
+    // TODO: Seems removable.
+    static PyObject *exception_table = NULL;
+    static int stacksize = 0;
+
+    if (empty_code == NULL) {
+        // Only needed once here.
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *empty_code_module_object = Py_CompileString(
+            "def empty(): raise RuntimeError('Compiled function bytecode used')", "<exec>", Py_file_input);
+        NUITKA_MAY_BE_UNUSED PyObject *module =
+            PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
+        CHECK_OBJECT(module);
+
+        PyObject *empty_function = PyObject_GetAttrString(module, "empty");
+        CHECK_OBJECT(empty_function);
+        PyObject *empty_code_object = PyObject_GetAttrString(empty_function, "__code__");
+        CHECK_OBJECT(empty_code_object);
+
+        NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_empty_function");
+        assert(bool_res != false);
+
+        empty_code = PyObject_GetAttrString(empty_code_object, "co_code");
+        CHECK_OBJECT(empty_code);
+        lnotab = PyObject_GetAttrString(empty_code_object, "co_lnotab");
+        CHECK_OBJECT(lnotab);
+        consts = PyObject_GetAttrString(empty_code_object, "co_consts");
+        CHECK_OBJECT(consts);
+        names = PyObject_GetAttrString(empty_code_object, "co_names");
+        CHECK_OBJECT(names);
+        exception_table = PyObject_GetAttrString(empty_code_object, "co_exceptiontable");
+        CHECK_OBJECT(exception_table);
+
+        stacksize = (int)PyLong_AsLong(PyObject_GetAttrString(empty_code_object, "co_stacksize"));
     }
-#endif
+
+    PyObject *code = empty_code;
+    CHECK_OBJECT(empty_code);
+    CHECK_OBJECT(lnotab);
+    CHECK_OBJECT(consts);
+    CHECK_OBJECT(names);
+    CHECK_OBJECT(exception_table);
 #endif
 
     // For Python 3.11 this value is checked, even if not used.
@@ -949,11 +988,11 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                                                      kw_only_count, // kw-only count
 #endif
                                                      nlocals,           // nlocals
-                                                     0,                 // stacksize
+                                                     stacksize,         // stacksize
                                                      flags,             // flags
                                                      code,              // code (bytecode)
-                                                     const_tuple_empty, // consts (we are not going to be compatible)
-                                                     const_tuple_empty, // names (we are not going to be compatible)
+                                                     consts,            // consts (we are not going to be compatible)
+                                                     names,             // names (we are not going to be compatible)
                                                      arg_names,         // var_names (we are not going to be compatible)
                                                      free_vars,         // free_vars
                                                      const_tuple_empty, // cell_vars (we are not going to be compatible)
@@ -966,7 +1005,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                                                      lnotab // lnotab (table to translate code object)
 #if PYTHON_VERSION >= 0x3b0
                                                      ,
-                                                     const_bytes_empty // exception_table
+                                                     exception_table // exception_table
 #endif
     );
 

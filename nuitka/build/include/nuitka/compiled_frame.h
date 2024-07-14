@@ -79,12 +79,12 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 #if PYTHON_VERSION < 0x300
     return code->co_code == const_str_empty;
 #elif PYTHON_VERSION < 0x3b0
-    return code->co_code == const_str_empty;
-#elif PYTHON_VERSION < 0x3c0
-    return _PyCode_CODE(code)[0] == 0;
+    return code->co_code == const_bytes_empty;
 #else
-    _Py_CODEUNIT *code_unit = _PyCode_CODE(code);
-    return code_unit->op.code == 0;
+    // Starting for Python3.11, we just proper bytecode that raises
+    // "RuntimeError" itself, so this function is only used to
+    // optimize checks away.
+    return false;
 #endif
 }
 
