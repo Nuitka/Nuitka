@@ -75,6 +75,15 @@ is typically caused by corruption of its installation."""
         return None
 
 
+def _getDistributionInstallerFileContents(distribution):
+    installer_name = _getDistributionMetadataFileContents(distribution, "INSTALLER")
+
+    if installer_name:
+        installer_name = installer_name.strip().lower()
+
+    return installer_name
+
+
 def getDistributionTopLevelPackageNames(distribution):
     """Returns the top level package names for a distribution."""
     top_level_txt = _getDistributionMetadataFileContents(distribution, "top_level.txt")
@@ -360,14 +369,10 @@ def getDistributionInstallerName(distribution_name):
             else:
                 _distribution_to_installer[distribution_name] = "not_found"
         else:
-            installer_name = _getDistributionMetadataFileContents(
-                distribution, "INSTALLER"
-            )
+            installer_name = _getDistributionInstallerFileContents(distribution)
 
             if installer_name:
-                _distribution_to_installer[distribution_name] = (
-                    installer_name.strip().lower()
-                )
+                _distribution_to_installer[distribution_name] = installer_name
             elif isAnacondaPython():
                 _distribution_to_installer[distribution_name] = "conda"
             elif isPdmPackageInstallation(distribution):
@@ -408,6 +413,20 @@ def getDistributionName(distribution):
 
     if hasattr(distribution, "metadata"):
         result = distribution.metadata["Name"]
+
+        if result is None:
+            installer_name = _getDistributionInstallerFileContents(distribution)
+
+            if installer_name == "debian":
+                distribution_path = _getDistributionPath(distribution)
+
+                if distribution_path is not None:
+                    dir_name = os.path.basename(distribution_path)
+
+                    if dir_name.endswith(".dist-info"):
+                        dir_name = dir_name[:-10]
+
+                        result = dir_name.rsplit("-", 1)[0]
     else:
         result = distribution.project_name
 
