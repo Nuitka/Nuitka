@@ -6782,14 +6782,10 @@
       no-auto-follow:
         'thinc.tests': 'ignore'
 
-- module-name: 'thinc.backends' # checksum: 91e765bd
-  dlls:
-    - from_filenames:
-        prefixes:
-          - '_custom_kernels'
-          - '_murmur3'
-        suffixes:
-          - 'cu'
+- module-name: 'thinc.backends' # checksum: a9d80ab6
+  data-files:
+    patterns:
+      - '*.cu'
 
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
