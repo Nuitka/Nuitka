@@ -451,7 +451,9 @@ is used.
 .TP
 \fB\-\-jobs\fR=\fI\,N\/\fR
 Specify the allowed number of parallel C compiler
-jobs. Defaults to the system CPU count.
+jobs. Negative values are system CPU minus the given
+value. Defaults to the full system CPU count unless
+low memory mode is activated, then it defaults to 1.
 .TP
 \fB\-\-lto\fR=\fI\,choice\/\fR
 Use link time optimizations (MSVC, gcc, clang).
