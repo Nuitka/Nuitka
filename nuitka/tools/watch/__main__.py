@@ -232,7 +232,8 @@ def _execPipenvCommand(installed_python, command, retry=False):
                 command,
                 "--python",
                 installed_python.getPythonExe(),
-            ]
+            ],
+            logger=watch_logger,
         )
     except subprocess.CalledProcessError:
         if command in ("install", "update") and not retry:
@@ -473,6 +474,13 @@ def _updateCase(
                 need_compile = False
         else:
             need_compile = True
+
+        if not need_compile:
+            if os.path.exists("compiled-exit.txt"):
+                watch_logger.info(
+                    "Enforcing compilation of compiled program that failed to run."
+                )
+                need_compile = True
 
         if need_compile:
             _compileCase(
