@@ -801,7 +801,7 @@ env.Append(
     ]
 )
 
-if env.standalone_mode and env.debian_python and python_version >= (3, 12):
+if env.debian_python and python_version >= (3, 12):
     env.Append(
         CPPPATH=[
             os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
@@ -810,6 +810,7 @@ if env.standalone_mode and env.debian_python and python_version >= (3, 12):
             ),
         ]
     )
+
     env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
 
 # Set load libpython from binary directory default
