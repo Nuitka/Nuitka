@@ -20,7 +20,8 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
-# We emulate and use APIs of stdlib, spell-checker: ignore popenargs,creationflags,preexec_fn,setsid
+# We emulate and use APIs of stdlib,
+# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod
 
 
 def _getExecutablePath(filename, search_path):
@@ -294,6 +295,7 @@ def wrapCommandForDebuggerForExec(*args):
             "gdb",
             "-q",
             "-ex=set pagination off",
+            "-ex=set debuginfod enabled off",
             "-ex=run",
             "-ex=where",
             "-ex=quit",
