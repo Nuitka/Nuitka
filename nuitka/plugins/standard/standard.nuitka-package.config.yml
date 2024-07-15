@@ -163,7 +163,11 @@
 - module-name: 'arcade' # checksum: 3f9f0b7d
   data-files:
     dirs:
-      - 'resources'
+      - 'resources\system'
+  anti-bloat:
+    - no-auto-follow:
+        'examples': 'ignore'
+        'experimental': 'ignore'
 
 - module-name: 'aspose' # checksum: 9babf530
   data-files:
