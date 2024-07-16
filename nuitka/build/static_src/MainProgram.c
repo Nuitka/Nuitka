@@ -1703,6 +1703,7 @@ orig_argv = argv;
         }
 #endif
         PyDict_DelItemString(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
+        DROP_ERROR_OCCURRED(tstate);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");
