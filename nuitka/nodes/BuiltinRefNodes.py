@@ -27,7 +27,11 @@ from .ExceptionNodes import (
     ExpressionBuiltinMakeExceptionImportError,
     ExpressionBuiltinMakeExceptionModuleNotFoundError,
 )
-from .ExpressionBases import CompileTimeConstantExpressionBase
+from .ExpressionBases import (
+    CompileTimeConstantExpressionBase,
+    ExpressionBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .shapes.BuiltinTypeShapes import tshape_exception_class
 
 
@@ -66,6 +70,42 @@ def makeExpressionBuiltinTypeRef(builtin_name, source_ref):
     return makeConstantRefNode(
         constant=__builtins__[builtin_name], source_ref=source_ref
     )
+
+
+class ExpressionBuiltinPatchableTypeRef(ExpressionNoSideEffectsMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF"
+
+    __slots__ = ("builtin_name",)
+
+    def __init__(self, builtin_name, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.builtin_name = builtin_name
+
+    def finalize(self):
+        del self.parent
+
+    def computeExpressionRaw(self, trace_collection):
+        if self.parent.isExpressionCall():
+            result = makeExpressionBuiltinTypeRef(
+                builtin_name=self.builtin_name, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Treat 'builtins.%s' in call as built value reference."
+                % self.builtin_name,
+            )
+
+        return self, None, None
+
+    @staticmethod
+    def getModuleName():
+        return "builtins"
+
+    def getImportName(self):
+        return self.builtin_name
 
 
 quick_names = {"None": None, "True": True, "False": False}

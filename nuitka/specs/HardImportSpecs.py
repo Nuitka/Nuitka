@@ -168,12 +168,6 @@ ctypes_cdll_before_38_spec = BuiltinParameterSpec(
     default_count=4,
 )
 
-builtins_open_since_3_spec = BuiltinParameterSpec(
-    "builtins.open",
-    ("file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"),
-    default_count=7,
-)
-
 sys_exit_spec = BuiltinParameterSpecNoKeywords(
     "sys.exit", ("exit_code",), default_count=1
 )

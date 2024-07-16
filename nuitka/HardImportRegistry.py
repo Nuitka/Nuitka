@@ -12,6 +12,7 @@ import sys
 
 from nuitka import Options
 from nuitka.Constants import isConstant
+from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
@@ -179,6 +180,7 @@ else:
 module_builtins_trust = {}
 if python_version >= 0x300:
     module_builtins_trust["open"] = trust_node
+    trust_node_factory[("builtins", "open")] = makeBuiltinOpenRefNode
 
 if python_version < 0x300:
     module_sys_trust["exc_type"] = trust_may_exist

@@ -774,6 +774,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
+        "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
