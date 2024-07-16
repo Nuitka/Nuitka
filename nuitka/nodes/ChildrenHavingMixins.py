@@ -10,18 +10,18 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
-spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore __prepare__ append args autograph capitalize casefold center chars
+spell-checker: ignore clear copy count decode default delete dist distribution_name encode
+spell-checker: ignore encoding end endswith errors exit_code expandtabs
+spell-checker: ignore experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
-spell-checker: ignore experimental_implements experimental_relax_shapes extend file
-spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
-spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
-spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
-spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
-spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
-spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore experimental_implements experimental_relax_shapes extend fillchar
+spell-checker: ignore find format format_map formatmap fromkeys func get group handle
+spell-checker: ignore has_key haskey index input_signature insert isalnum isalpha isascii
+spell-checker: ignore isdecimal isdigit isidentifier islower isnumeric isprintable isspace
+spell-checker: ignore istitle isupper item items iterable iteritems iterkeys itervalues
+spell-checker: ignore jit_compile join keepends key keys kwargs ljust lower lstrip
+spell-checker: ignore maketrans maxsplit mode name new old p package
 spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
 spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
 spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
@@ -286,8 +286,9 @@ class ChildHavingBodyOptionalMixin(object):
 
     # This is generated for use in
     #   ExpressionAsyncgenObjectBody
-    #   ExpressionClassBodyP2
-    #   ExpressionClassBodyP3
+    #   ExpressionClassDictBody
+    #   ExpressionClassDictBodyP2
+    #   ExpressionClassMappingBody
     #   ExpressionCoroutineObjectBody
     #   ExpressionFunctionBody
     #   ExpressionFunctionPureBody
@@ -400,8 +401,9 @@ class ChildHavingBodyOptionalMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionAsyncgenObjectBodyMixin = ChildHavingBodyOptionalMixin
-ChildrenExpressionClassBodyP2Mixin = ChildHavingBodyOptionalMixin
-ChildrenExpressionClassBodyP3Mixin = ChildHavingBodyOptionalMixin
+ChildrenExpressionClassDictBodyMixin = ChildHavingBodyOptionalMixin
+ChildrenExpressionClassDictBodyP2Mixin = ChildHavingBodyOptionalMixin
+ChildrenExpressionClassMappingBodyMixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionCoroutineObjectBodyMixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionFunctionBodyMixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionFunctionPureBodyMixin = ChildHavingBodyOptionalMixin
@@ -7599,342 +7601,6 @@ class ChildHavingFallbackMixin(object):
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionLocalsMappingVariableRefOrFallbackMixin = ChildHavingFallbackMixin
 ChildrenExpressionLocalsVariableRefOrFallbackMixin = ChildHavingFallbackMixin
-
-
-class ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin(
-    object
-):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionBuiltinsOpen
-
-    def __init__(
-        self,
-        file,
-        mode,
-        buffering,
-        encoding,
-        errors,
-        newline,
-        closefd,
-        opener,
-    ):
-        file.parent = self
-
-        self.subnode_file = file
-
-        if mode is not None:
-            mode.parent = self
-
-        self.subnode_mode = mode
-
-        if buffering is not None:
-            buffering.parent = self
-
-        self.subnode_buffering = buffering
-
-        if encoding is not None:
-            encoding.parent = self
-
-        self.subnode_encoding = encoding
-
-        if errors is not None:
-            errors.parent = self
-
-        self.subnode_errors = errors
-
-        if newline is not None:
-            newline.parent = self
-
-        self.subnode_newline = newline
-
-        if closefd is not None:
-            closefd.parent = self
-
-        self.subnode_closefd = closefd
-
-        if opener is not None:
-            opener.parent = self
-
-        self.subnode_opener = opener
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        result = []
-        result.append(self.subnode_file)
-        value = self.subnode_mode
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_buffering
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_encoding
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_errors
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_newline
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_closefd
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        value = self.subnode_opener
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (
-            ("file", self.subnode_file),
-            ("mode", self.subnode_mode),
-            ("buffering", self.subnode_buffering),
-            ("encoding", self.subnode_encoding),
-            ("errors", self.subnode_errors),
-            ("newline", self.subnode_newline),
-            ("closefd", self.subnode_closefd),
-            ("opener", self.subnode_opener),
-        )
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_file
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_file = new_node
-
-            return
-
-        value = self.subnode_mode
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_mode = new_node
-
-            return
-
-        value = self.subnode_buffering
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_buffering = new_node
-
-            return
-
-        value = self.subnode_encoding
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_encoding = new_node
-
-            return
-
-        value = self.subnode_errors
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_errors = new_node
-
-            return
-
-        value = self.subnode_newline
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_newline = new_node
-
-            return
-
-        value = self.subnode_closefd
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_closefd = new_node
-
-            return
-
-        value = self.subnode_opener
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_opener = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "file": self.subnode_file.makeClone(),
-            "mode": (
-                self.subnode_mode.makeClone() if self.subnode_mode is not None else None
-            ),
-            "buffering": (
-                self.subnode_buffering.makeClone()
-                if self.subnode_buffering is not None
-                else None
-            ),
-            "encoding": (
-                self.subnode_encoding.makeClone()
-                if self.subnode_encoding is not None
-                else None
-            ),
-            "errors": (
-                self.subnode_errors.makeClone()
-                if self.subnode_errors is not None
-                else None
-            ),
-            "newline": (
-                self.subnode_newline.makeClone()
-                if self.subnode_newline is not None
-                else None
-            ),
-            "closefd": (
-                self.subnode_closefd.makeClone()
-                if self.subnode_closefd is not None
-                else None
-            ),
-            "opener": (
-                self.subnode_opener.makeClone()
-                if self.subnode_opener is not None
-                else None
-            ),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_file.finalize()
-        del self.subnode_file
-        if self.subnode_mode is not None:
-            self.subnode_mode.finalize()
-        del self.subnode_mode
-        if self.subnode_buffering is not None:
-            self.subnode_buffering.finalize()
-        del self.subnode_buffering
-        if self.subnode_encoding is not None:
-            self.subnode_encoding.finalize()
-        del self.subnode_encoding
-        if self.subnode_errors is not None:
-            self.subnode_errors.finalize()
-        del self.subnode_errors
-        if self.subnode_newline is not None:
-            self.subnode_newline.finalize()
-        del self.subnode_newline
-        if self.subnode_closefd is not None:
-            self.subnode_closefd.finalize()
-        del self.subnode_closefd
-        if self.subnode_opener is not None:
-            self.subnode_opener.finalize()
-        del self.subnode_opener
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def collectVariableAccesses(self, emit_read, emit_write):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_file.collectVariableAccesses(emit_read, emit_write)
-        subnode_mode = self.subnode_mode
-
-        if subnode_mode is not None:
-            self.subnode_mode.collectVariableAccesses(emit_read, emit_write)
-        subnode_buffering = self.subnode_buffering
-
-        if subnode_buffering is not None:
-            self.subnode_buffering.collectVariableAccesses(emit_read, emit_write)
-        subnode_encoding = self.subnode_encoding
-
-        if subnode_encoding is not None:
-            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
-        subnode_errors = self.subnode_errors
-
-        if subnode_errors is not None:
-            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
-        subnode_newline = self.subnode_newline
-
-        if subnode_newline is not None:
-            self.subnode_newline.collectVariableAccesses(emit_read, emit_write)
-        subnode_closefd = self.subnode_closefd
-
-        if subnode_closefd is not None:
-            self.subnode_closefd.collectVariableAccesses(emit_read, emit_write)
-        subnode_opener = self.subnode_opener
-
-        if subnode_opener is not None:
-            self.subnode_opener.collectVariableAccesses(emit_read, emit_write)
-
-
-# Assign the names that are easier to import with a stable name.
-ChildrenExpressionBuiltinsOpenMixin = ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin
 
 
 class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
