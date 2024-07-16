@@ -10,18 +10,18 @@
 
 WARNING, this code is GENERATED. Modify the template HardImportReferenceNode.py.j2 instead!
 
-spell-checker: ignore __prepare__ append args autograph buffering capitalize casefold
-spell-checker: ignore center chars clear closefd copy count decode default delete dist
-spell-checker: ignore distribution_name encode encoding end endswith errors exit_code
-spell-checker: ignore expandtabs experimental_attributes experimental_autograph_options
+spell-checker: ignore __prepare__ append args autograph capitalize casefold center chars
+spell-checker: ignore clear copy count decode default delete dist distribution_name encode
+spell-checker: ignore encoding end endswith errors exit_code expandtabs
+spell-checker: ignore experimental_attributes experimental_autograph_options
 spell-checker: ignore experimental_compile experimental_follow_type_hints
-spell-checker: ignore experimental_implements experimental_relax_shapes extend file
-spell-checker: ignore fillchar find format format_map formatmap fromkeys func get group
-spell-checker: ignore handle has_key haskey index input_signature insert isalnum isalpha
-spell-checker: ignore isascii isdecimal isdigit isidentifier islower isnumeric isprintable
-spell-checker: ignore isspace istitle isupper item items iterable iteritems iterkeys
-spell-checker: ignore itervalues jit_compile join keepends key keys kwargs ljust lower
-spell-checker: ignore lstrip maketrans maxsplit mode name new newline old opener p package
+spell-checker: ignore experimental_implements experimental_relax_shapes extend fillchar
+spell-checker: ignore find format format_map formatmap fromkeys func get group handle
+spell-checker: ignore has_key haskey index input_signature insert isalnum isalpha isascii
+spell-checker: ignore isdecimal isdigit isidentifier islower isnumeric isprintable isspace
+spell-checker: ignore istitle isupper item items iterable iteritems iterkeys itervalues
+spell-checker: ignore jit_compile join keepends key keys kwargs ljust lower lstrip
+spell-checker: ignore maketrans maxsplit mode name new old p package
 spell-checker: ignore package_or_requirement pairs partition path pop popitem prefix
 spell-checker: ignore prepare reduce_retracing remove replace resource resource_name
 spell-checker: ignore reverse rfind rindex rjust rpartition rsplit rstrip s sep setdefault
@@ -37,7 +37,6 @@ from nuitka.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
-    builtins_open_since_3_spec,
     ctypes_cdll_before_38_spec,
     ctypes_cdll_since_38_spec,
     importlib_metadata_backport_distribution_spec,
@@ -86,7 +85,6 @@ from .ChildrenHavingMixins import (
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
-    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
@@ -105,127 +103,6 @@ from .ExpressionShapeMixins import (
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 hard_import_node_classes = {}
-
-
-class ExpressionBuiltinsOpenRef(ExpressionImportModuleNameHardExistsSpecificBase):
-    """Function reference builtins.open"""
-
-    kind = "EXPRESSION_BUILTINS_OPEN_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="builtins",
-            import_name="open",
-            module_guaranteed=True,
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen on call trace before this. On next pass, if
-        # replaced, we might be better but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        from .BuiltinOpenNodes import makeExpressionBuiltinsOpenCall
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=makeExpressionBuiltinsOpenCall,
-            builtin_spec=builtins_open_since_3_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'builtins.open' recognized.",
-        )
-
-
-hard_import_node_classes[ExpressionBuiltinsOpenRef] = builtins_open_since_3_spec
-
-
-class ExpressionBuiltinsOpenCallBase(
-    ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin,
-    ExpressionBase,
-):
-    """Base class for BuiltinsOpenCall
-
-    Generated boiler plate code.
-    """
-
-    named_children = (
-        "file",
-        "mode|optional",
-        "buffering|optional",
-        "encoding|optional",
-        "errors|optional",
-        "newline|optional",
-        "closefd|optional",
-        "opener|optional",
-    )
-
-    __slots__ = ("attempted",)
-
-    spec = builtins_open_since_3_spec
-
-    def __init__(
-        self,
-        file,
-        mode,
-        buffering,
-        encoding,
-        errors,
-        newline,
-        closefd,
-        opener,
-        source_ref,
-    ):
-
-        ChildrenHavingFileModeOptionalBufferingOptionalEncodingOptionalErrorsOptionalNewlineOptionalClosefdOptionalOpenerOptionalMixin.__init__(
-            self,
-            file=file,
-            mode=mode,
-            buffering=buffering,
-            encoding=encoding,
-            errors=errors,
-            newline=newline,
-            closefd=closefd,
-            opener=opener,
-        )
-
-        ExpressionBase.__init__(self, source_ref)
-
-        self.attempted = False
-
-    def computeExpression(self, trace_collection):
-        if self.attempted or not builtins_open_since_3_spec.isCompileTimeComputable(
-            (
-                self.subnode_file,
-                self.subnode_mode,
-                self.subnode_buffering,
-                self.subnode_encoding,
-                self.subnode_errors,
-                self.subnode_newline,
-                self.subnode_closefd,
-                self.subnode_opener,
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
-
-        try:
-            return self.replaceWithCompileTimeValue(trace_collection)
-        finally:
-            self.attempted = True
-
-    @abstractmethod
-    def replaceWithCompileTimeValue(self, trace_collection):
-        pass
-
-    @staticmethod
-    def mayRaiseExceptionOperation():
-        return True
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
