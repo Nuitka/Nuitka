@@ -1121,7 +1121,8 @@ static void nuitka_segfault_handler(int sig) {
     puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
     puts("for solutions.");
 
-    exit(-SIGSEGV);
+    signal(SIGSEGV, SIG_DFL);
+    raise(SIGSEGV);
 }
 #endif
 
