@@ -163,11 +163,11 @@
 - module-name: 'arcade' # checksum: 3f9f0b7d
   data-files:
     dirs:
-      - 'resources\system'
+      - 'resources/system'
   anti-bloat:
     - no-auto-follow:
-        'examples': 'ignore'
-        'experimental': 'ignore'
+        'examples': 'Arcade examples are not be available unless you do "--include-module=acade.examples"'
+        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=acade.experimental"'
 
 - module-name: 'aspose' # checksum: 9babf530
   data-files:
