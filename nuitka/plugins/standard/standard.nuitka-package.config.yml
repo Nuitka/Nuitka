@@ -163,7 +163,7 @@
 - module-name: 'arcade' # checksum: 3f9f0b7d
   data-files:
     dirs:
-      - 'resources/system'
+      - 'resources/system/'
   anti-bloat:
     - no-auto-follow:
         'examples': 'Arcade examples are not be available unless you do "--include-module=acade.examples"'
