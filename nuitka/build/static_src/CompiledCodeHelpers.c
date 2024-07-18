@@ -1029,6 +1029,8 @@ bool PRINT_ITEM(PyObject *object) {
     }
 }
 
+bool PRINT_ITEM_LINE(PyObject *object) { return PRINT_ITEM(object) && PRINT_NEW_LINE(); }
+
 #if PYTHON_VERSION < 0x300
 
 static void set_slot(PyObject **slot, PyObject *value) {
