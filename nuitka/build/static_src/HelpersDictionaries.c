@@ -574,6 +574,15 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 
         return 0;
     }
+
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+    assert(value_addr != NULL);
+    PyObject *result = *value_addr;
+#endif
+
+    if (unlikely(result == NULL)) {
+        return 0;
+    }
 #endif
     return 1;
 #endif
