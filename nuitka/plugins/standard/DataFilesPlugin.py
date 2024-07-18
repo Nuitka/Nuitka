@@ -101,7 +101,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
 
             for empty_dir in empty_dirs:
                 yield self.makeIncludedEmptyDirectory(
-                    dest_path=os.path.join(target_dir, empty_dir),
+                    dest_path=os.path.normpath(os.path.join(target_dir, empty_dir)),
                     reason="empty dir needed for %r" % module_name.asString(),
                     tags="config",
                 )
@@ -134,7 +134,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 if os.path.isdir(source_path):
                     yield self.makeIncludedDataDirectory(
                         source_path=source_path,
-                        dest_path=os.path.join(target_dir, data_dir),
+                        dest_path=os.path.normpath(os.path.join(target_dir, data_dir)),
                         reason="package data directory '%s' for %r"
                         % (data_dir, module_name.asString()),
                         tags="config",
@@ -154,7 +154,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 if os.path.isdir(source_path):
                     yield self.makeIncludedDataDirectory(
                         source_path=source_path,
-                        dest_path=os.path.join(target_dir, raw_dir),
+                        dest_path=os.path.normpath(os.path.join(target_dir, raw_dir)),
                         reason="package raw directory '%s' for %r"
                         % (raw_dir, module_name.asString()),
                         tags="config",
