@@ -254,7 +254,7 @@ def _executePylint(filenames, pylint_options, extra_options):
         sys.exit("Error, segfault from pylint.")
 
     # Catch random crashes with non standard exit code.
-    if exit_code < 0 or exit_code >= 16:
+    if exit_code < 0 or exit_code >= 64:
         sys.exit("Error, strange crash with exit_code %d from pylint." % exit_code)
 
     stdout = _cleanupPylintOutput(stdout)
