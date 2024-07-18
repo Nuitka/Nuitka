@@ -1295,7 +1295,7 @@ orig_argv = argv;
 #endif
 
 // Make sure, we use the absolute program path for argv[0]
-#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1 && PYTHON_VERSION >= 0x300
     orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
 #endif
 
