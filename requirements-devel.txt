@@ -42,7 +42,8 @@ Jinja2 == 2.11.3 ; python_version == '2.7'
 Jinja2 == 3.1.4 ; python_version >= '3.7'
 
 # For the progress bar to look nice.
-tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
+tqdm == 4.64.1 ; python_version < '3.7'
+tqdm == 4.66.4 ; python_version >= '3.7'
 
 # Distutils test, packaging test for PyPI, fixed for Python2 breakage
 # of newer virtualenv.
