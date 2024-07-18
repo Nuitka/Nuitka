@@ -186,7 +186,7 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
         return NULL;
     }
 
-    PyObject *file_object = BUILTIN_OPEN_SIMPLE(tstate, file_name, "r", true, encoding);
+    PyObject *file_object = BUILTIN_OPEN_SIMPLE(tstate, file_name, "r", true, encoding, true);
 
     Py_DECREF(file_name);
 

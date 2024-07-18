@@ -162,7 +162,7 @@ extern PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObje
 // Small helper to open files with few arguments in C.
 extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filename);
 extern PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
-                                     PyObject *encoding);
+                                     PyObject *encoding, bool close_fd);
 
 // Small helper to read file contents with few arguments in C.
 extern PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename);
