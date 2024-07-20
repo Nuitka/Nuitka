@@ -162,7 +162,7 @@ extern PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObje
 // Small helper to open files with few arguments in C.
 extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filename);
 extern PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
-                                     PyObject *encoding);
+                                     PyObject *encoding, bool close_fd);
 
 // Small helper to read file contents with few arguments in C.
 extern PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename);
@@ -334,8 +334,8 @@ extern void patchTracebackDealloc(void);
 // Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
 
-// Default __init__ slot wrapper.
-extern python_initproc default_tp_init_wrapper;
+// Default __init__ slot wrapper, spell-checker: ignore initproc
+extern python_init_proc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
@@ -343,7 +343,8 @@ extern PyObject *SELECT_METACLASS(PyThreadState *tstate, PyObject *metaclass, Py
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
-extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, Py_ssize_t max_allowed);
+extern PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *matched_type,
+                                  Py_ssize_t positional_count, PyObject **keywords, Py_ssize_t keywords_count);
 #endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyThreadState *tstate, PyObject *module) {
@@ -413,6 +414,8 @@ extern PyObject *Py_SysVersionInfo;
 
 extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
+// Our wrapper for "PyType_Ready" that takes care of trying to avoid DLL entry
+// points for generic attributes. spell-checker: ignore aiter
 extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
                                 bool self_iter, bool await_self_iter, bool self_aiter);
 

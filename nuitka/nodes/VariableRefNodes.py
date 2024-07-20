@@ -318,6 +318,23 @@ Subscript del to dictionary lowered to dictionary del."""
 Subscript look-up to dictionary lowered to dictionary look-up.""",
             )
 
+        if subscript.isCompileTimeConstant():
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                # TODO: That could probably be one single question.
+                if (
+                    attribute_node.isCompileTimeConstant()
+                    and not attribute_node.isMutable()
+                ):
+                    return trace_collection.getCompileTimeComputationResult(
+                        node=lookup_node,
+                        computation=lambda: attribute_node.getCompileTimeConstant()[
+                            subscript.getCompileTimeConstant()
+                        ],
+                        description="Subscript of variable immutable value.",
+                    )
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
@@ -420,6 +437,15 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        very_trusted_node = self.variable_trace.getAttributeNodeVeryTrusted()
+        if very_trusted_node is not None:
+            return (
+                very_trusted_node.makeClone(),
+                "new_expression",
+                lambda: "Forward propagating value of %s from very trusted %s value."
+                % (self.getVariableName(), very_trusted_node.kind),
+            )
+
         if variable.isModuleVariable() and (
             variable.hasDefiniteWrites() is False or variable.getName() == "super"
         ):
@@ -494,7 +520,7 @@ Replaced read-only module attribute '__package__' with module attribute referenc
                 change_tags = "new_expression"
                 change_desc = """\
 Replaced read-only module attribute '__loader__' with module attribute reference."""
-            elif variable_name == "__spec__" and python_version >= 0x340:
+            elif variable_name == "__spec__" and python_version >= 0x300:
                 new_node = ExpressionModuleAttributeSpecRef(
                     variable=variable, source_ref=self.source_ref
                 )
@@ -586,7 +612,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
                     return (
                         bool(attribute_node.getCompileTimeConstant()),
                         attribute_node.makeClone(),
-                        "Using very trusted constant truth value.",
+                        "Using trusted constant's truth value.",
                     )
 
         # TODO: This is probably only default stuff here, that could be compressed.

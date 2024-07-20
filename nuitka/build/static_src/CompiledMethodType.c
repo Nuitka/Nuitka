@@ -243,16 +243,17 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
     }
 }
 
-static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *object, PyObject *klass) {
+static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *object,
+                                            PyObject *class_object) {
     // Don't rebind already bound methods.
     if (method->m_object != NULL) {
         Py_INCREF(method);
         return (PyObject *)method;
     }
 
-    if (method->m_class != NULL && klass != NULL) {
+    if (method->m_class != NULL && class_object != NULL) {
         // Quick subclass test, bound methods remain the same if the class is a sub class
-        int result = PyObject_IsSubclass(klass, method->m_class);
+        int result = PyObject_IsSubclass(class_object, method->m_class);
 
         if (unlikely(result < 0)) {
             return NULL;
@@ -262,7 +263,7 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
         }
     }
 
-    return Nuitka_Method_New(method->m_function, object, klass);
+    return Nuitka_Method_New(method->m_function, object, class_object);
 }
 
 static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, PyObject *name) {
@@ -446,13 +447,13 @@ static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
 static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObject *kw) {
     PyObject *func;
     PyObject *self;
-    PyObject *klass = NULL;
+    PyObject *class_object = NULL;
 
     if (!_PyArg_NoKeywords("compiled_method", kw)) {
         return NULL;
     }
 
-    if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &klass)) {
+    if (!PyArg_UnpackTuple(args, "compiled_method", 2, 3, &func, &self, &class_object)) {
         return NULL;
     }
 
@@ -469,7 +470,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
         self = NULL;
     }
 
-    if (self == NULL && klass == NULL) {
+    if (self == NULL && class_object == NULL) {
         PyThreadState *tstate = PyThreadState_GET();
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "unbound methods must have non-NULL im_class");
@@ -477,7 +478,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
     }
 
     if (Nuitka_Method_Check(func)) {
-        return Nuitka_Method_New(((struct Nuitka_MethodObject *)func)->m_function, self, klass);
+        return Nuitka_Method_New(((struct Nuitka_MethodObject *)func)->m_function, self, class_object);
     }
 
     if (Nuitka_Function_Check(func) == false) {
@@ -485,7 +486,7 @@ static PyObject *Nuitka_Method_tp_new(PyTypeObject *type, PyObject *args, PyObje
         return NULL;
     }
 
-    return Nuitka_Method_New((struct Nuitka_FunctionObject *)func, self, klass);
+    return Nuitka_Method_New((struct Nuitka_FunctionObject *)func, self, class_object);
 }
 
 PyTypeObject Nuitka_Method_Type = {
@@ -550,7 +551,7 @@ PyTypeObject Nuitka_Method_Type = {
     0,                                                // tp_weaklist
     0,                                                // tp_del
     0                                                 // tp_version_tag
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     ,
     0 /* tp_finalizer */
 #endif
@@ -560,7 +561,7 @@ void _initCompiledMethodType(void) {
     Nuitka_PyType_Ready(&Nuitka_Method_Type, &PyMethod_Type, false, true, false, false, false);
 }
 
-PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass) {
+PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object) {
     struct Nuitka_MethodObject *result;
 
     CHECK_OBJECT((PyObject *)function);
@@ -580,8 +581,8 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
 
     result->m_object = object;
     Py_XINCREF(object);
-    result->m_class = klass;
-    Py_XINCREF(klass);
+    result->m_class = class_object;
+    Py_XINCREF(class_object);
 
     result->m_weakrefs = NULL;
 

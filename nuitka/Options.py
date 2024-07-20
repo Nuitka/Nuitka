@@ -43,14 +43,17 @@ from nuitka.PythonFlavors import (
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
+    getLaunchingSystemPrefixPath,
     getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
+    isPythonWithGil,
     python_version,
     python_version_str,
 )
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
+    isLegalPath,
     isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
@@ -60,6 +63,7 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
+    getLaunchingNuitkaProcessEnvironmentValue,
     getLinuxDistribution,
     getMacOSRelease,
     getOS,
@@ -115,6 +119,9 @@ def checkPathSpec(value, arg_name, allow_disable):
             "Adapted '%s' option value from legacy quoting style to '%s' -> '%s'"
             % (arg_name, old, value)
         )
+
+    # This changes the '/' to '\' on Windows at least.
+    value = os.path.normpath(value)
 
     if "\n" in value or "\r" in value:
         Tracing.options_logger.sysexit(
@@ -221,6 +228,22 @@ start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
 
+        if value.startswith(candidate):
+            if value[len(candidate)] != os.path.sep:
+                Tracing.options_logger.sysexit(
+                    """Cannot use general system folder %s, without a path \
+separator '%s=%s', just appending to these is not allowed, needs to be \
+below them."""
+                    % (candidate, arg_name, value)
+                )
+
+    is_legal, reason = isLegalPath(value)
+    if not is_legal:
+        Tracing.options_logger.sysexit(
+            """Cannot use illegal paths '%s=%s', due to %s."""
+            % (arg_name, value, reason)
+        )
+
     return value
 
 
@@ -273,6 +296,8 @@ def _getVersionInformationValues():
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
+    if python_version >= 0x3D0:
+        yield "GIL: %s" % ("yes" if isPythonWithGil() else "no")
     yield "Executable: %s" % sys.executable
     yield "OS: %s" % getOS()
     yield "Arch: %s" % getArchitecture()
@@ -414,10 +439,16 @@ Error, the Python from Windows app store is not supported.""",
             % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
         )
 
-    if os.getenv("NUITKA_REEXECUTION") and not isAllowedToReexecute():
+    if (
+        getLaunchingNuitkaProcessEnvironmentValue("NUITKA_RE_EXECUTION")
+        and not isAllowedToReexecute()
+    ):
         Tracing.general.sysexit(
             "Error, not allowed to re-execute, but that has happened."
         )
+
+    # Force to persist this one early.
+    getLaunchingSystemPrefixPath()
 
     if options.progress_bar:
         Progress.enableProgressBar()
@@ -934,6 +965,13 @@ release will add it. In the mean time use '%s' instead."""
                 )
             )
 
+    if not isPythonWithGil():
+        Tracing.general.warning(
+            """\
+The Python without GIL is only experimentally supported by \
+and recommended only for use in Nuitka development and testing."""
+        )
+
     default_reference_mode = (
         "runtime" if shallMakeModule() or isStandaloneMode() else "original"
     )
@@ -1002,7 +1040,7 @@ release will add it. In the mean time use '%s' instead."""
         getJobLimit()
     except ValueError:
         Tracing.options_logger.sysexit(
-            "For --jobs value, use positive integer values only, not, but not '%s'."
+            "For '--jobs' value, use integer values only, not, but not '%s'."
             % options.jobs
         )
 
@@ -1051,7 +1089,8 @@ to work. You need to instead selectively add them with \
             )
 
     if (
-        not standalone_mode
+        not shallCreatePythonPgoInput()
+        and not standalone_mode
         and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
@@ -1079,7 +1118,7 @@ make sure that is intended."""
         options.static_libpython = "no"
 
     if (
-        not isPgoMode()
+        not isCPgoMode()
         and not isPythonPgoMode()
         and (getPgoArgs() or getPgoExecutable())
     ):
@@ -1087,15 +1126,19 @@ make sure that is intended."""
             "Providing PGO arguments without enabling PGO mode has no effect."
         )
 
-    if isPgoMode():
+    if isCPgoMode():
         if isStandaloneMode():
             Tracing.optimization_logger.warning(
-                "Using PGO with standalone/onefile mode is not currently working. Expect errors."
+                """\
+Using C level PGO with standalone/onefile mode is not \
+currently working. Expect errors."""
             )
 
         if shallMakeModule():
             Tracing.optimization_logger.warning(
-                "Using PGO with module mode is not currently working. Expect errors."
+                """\
+Using C level PGO with module mode is not currently \
+working. Expect errors."""
             )
 
     if (
@@ -1299,6 +1342,9 @@ def shallFollowNoImports():
 
 def shallFollowAllImports():
     """:returns: bool derived from ``--follow-imports``"""
+    if shallCreatePythonPgoInput() and options.is_standalone:
+        return True
+
     return options.is_standalone or options.follow_all is True
 
 
@@ -1511,6 +1557,10 @@ def getMainEntryPointFilenames():
     return tuple(os.path.normpath(r).rstrip(os.path.sep) for r in result)
 
 
+def isMultidistMode():
+    return options is not None and options.mains and len(options.mains) > 1
+
+
 def shallOptimizeStringExec():
     """Inactive yet"""
     return False
@@ -1553,7 +1603,7 @@ def _shallUseStaticLibPython():
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        if isAnacondaPython() and not isMacOS() and not isWin32Windows():
+        if isAnacondaPython() and not isWin32Windows():
             return (
                 True,
                 "Nuitka on Anaconda needs package for static libpython installed. Execute 'conda install libpython-static'.",
@@ -1642,22 +1692,25 @@ def isShowScons():
 
 def getJobLimit():
     """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
-    if options.jobs is None:
-        if isLowMemory():
-            return 1
-        else:
-            return getCPUCoreCount()
+    jobs = options.jobs
 
-    result = int(options.jobs)
+    # Low memory has a default of 1.
+    if jobs is None and isLowMemory():
+        return 1
 
-    if result <= 0:
-        raise ValueError(result)
+    if jobs is None:
+        result = getCPUCoreCount()
+    else:
+        result = int(jobs)
+
+        if result <= 0:
+            result = max(1, getCPUCoreCount() + jobs)
 
     return result
 
 
 def getLtoMode():
-    """:returns: bool derived from ``--lto`` or ``--pgo``"""
+    """:returns: bool derived from ``--lto``"""
     return options.lto
 
 
@@ -1796,6 +1849,23 @@ def getExperimentalIndications():
         return ()
 
 
+def getDebugModeIndications():
+    result = []
+
+    for debug_option_value_name in ("debug_immortal",):
+        if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
+            continue
+
+        if _isDebug():
+            if getattr(options, debug_option_value_name) is not False:
+                result.append(debug_option_value_name)
+        else:
+            if getattr(options, debug_option_value_name) is True:
+                result.append(debug_option_value_name)
+
+    return result
+
+
 def shallExplainImports():
     """:returns: bool derived from ``--explain-imports``"""
     return options is not None and options.explain_imports
@@ -1803,11 +1873,17 @@ def shallExplainImports():
 
 def isStandaloneMode():
     """:returns: bool derived from ``--standalone``"""
-    return options.is_standalone
+    if shallCreatePythonPgoInput():
+        return False
+
+    return options.is_standalone or options.list_package_dlls
 
 
 def isOnefileMode():
     """:returns: bool derived from ``--onefile``"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.is_onefile
 
 
@@ -1823,6 +1899,9 @@ def isOnefileTempDirMode():
         Using cached onefile execution when the spec doesn't contain
         volatile things.
     """
+    if shallCreatePythonPgoInput():
+        return False
+
     spec = getOnefileTempDirSpec()
 
     for candidate in (
@@ -1837,8 +1916,11 @@ def isOnefileTempDirMode():
     return False
 
 
-def isPgoMode():
-    """:returns: bool derived from ``--pgo``"""
+def isCPgoMode():
+    """:returns: bool derived from ``--pgo-c``"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.is_c_pgo
 
 
@@ -1852,7 +1934,7 @@ def getPythonPgoInput():
     return options.python_pgo_input
 
 
-def shallCreatePgoInput():
+def shallCreatePythonPgoInput():
     return isPythonPgoMode() and getPythonPgoInput() is None
 
 
@@ -1882,8 +1964,7 @@ def getOnefileTempDirSpec():
         options.onefile_tempdir_spec or "{TEMP}" + os.path.sep + "onefile_{PID}_{TIME}"
     )
 
-    # This changes the '/' to '\' on Windows at least.
-    return os.path.normpath(result)
+    return result
 
 
 def getOnefileChildGraceTime():
@@ -2047,6 +2128,16 @@ def getFileVersionTuple():
     return _parseVersionNumber(options.file_version)
 
 
+def getProductFileVersion():
+    if options.product_version:
+        if options.file_version:
+            return "%s-%s" % (options.product_version, options.file_version)
+        else:
+            return options.product_version
+    else:
+        return options.file_version
+
+
 def getWindowsSplashScreen():
     """:returns: bool derived from ``--onefile-windows-splash-screen-image``"""
     return options.splash_screen_image
@@ -2074,6 +2165,9 @@ def getMacOSTargetArch():
 
 def shallCreateAppBundle():
     """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
+    if shallCreatePythonPgoInput():
+        return False
+
     return options.macos_create_bundle and isMacOS()
 
 
@@ -2344,22 +2438,18 @@ def shallUseProgressBar():
 
 def getForcedStdoutPath():
     """*str* force program stdout output into that filename"""
-    result = options.force_stdout_spec
+    if shallCreatePythonPgoInput():
+        return False
 
-    if result is not None:
-        result = os.path.normpath(result)
-
-    return result
+    return options.force_stdout_spec
 
 
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
-    result = options.force_stderr_spec
+    if shallCreatePythonPgoInput():
+        return False
 
-    if result is not None:
-        result = os.path.normpath(result)
-
-    return result
+    return options.force_stderr_spec
 
 
 def shallShowSourceModifications(module_name):
@@ -2453,6 +2543,17 @@ def shallShowExecutedCommands():
     return isExperimental("show-commands")
 
 
+def getTargetPythonDescription():
+    """:returns: tuple(python_version,OS/arch) string derived from ``--target``"""
+    if options.target_spec is not None:
+        # TODO: Only one we are working on right now.
+        assert options.target_spec == "wasi"
+
+        return python_version, "wasi"
+
+    return None
+
+
 def getFcfProtectionMode():
     """:returns: string derived from ``--fcf-protection``"""
     return options.cf_protection
@@ -2460,7 +2561,13 @@ def getFcfProtectionMode():
 
 def getModuleParameter(module_name, parameter_name):
     """:returns: string derived from ``--module-parameter``"""
-    option_name = module_name.asString() + "-" + parameter_name
+
+    module_name_prefix = module_name.getTopLevelPackageName().asString()
+
+    if parameter_name.startswith(module_name_prefix + "-"):
+        option_name = parameter_name
+    else:
+        option_name = module_name_prefix + "-" + parameter_name
 
     for module_option in options.module_parameters:
         module_option_name, module_option_value = module_option.split("=", 1)

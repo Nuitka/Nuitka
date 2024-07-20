@@ -19,7 +19,7 @@ from nuitka.tools.quality.Git import (
     getFileHashContent,
     putFileHashContent,
     updateFileIndex,
-    updateWorkingFile,
+    updateGitFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.quality.yamllint.YamlChecker import checkYamlSchema
@@ -50,8 +50,8 @@ from .YamlFormatter import formatYaml
 # black no longer supports Python 2 syntax, and sometimes removes import
 # parts of syntax used in tests
 BLACK_SKIP_LIST = [
-    "tests/basics/ClassesTest.py",
-    "tests/basics/ExecEvalTest.py",
+    "tests/basics/ClassesTest_2.py",
+    "tests/basics/ExecEvalTest_2.py",
     "tests/basics/HelloWorldTest_2.py",
     "tests/basics/OverflowFunctionsTest_2.py",
     "tests/basics/PrintingTest_2.py",
@@ -827,7 +827,9 @@ def autoFormatFile(
                 if git_stage:
                     new_hash_value = putFileHashContent(tmp_filename)
                     updateFileIndex(git_stage, new_hash_value)
-                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                    updateGitFile(
+                        filename, git_stage["dst_hash"], new_hash_value, staged=True
+                    )
                 else:
                     copyFile(tmp_filename, filename)
 

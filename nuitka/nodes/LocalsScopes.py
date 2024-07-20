@@ -5,7 +5,6 @@
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaOptimizationError
-from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -24,9 +23,9 @@ def getLocalsDictType(kind):
         locals_scope = LocalsDictExecHandle
     elif kind == "python_function":
         locals_scope = LocalsDictFunctionHandle
-    elif kind == "python3_class":
+    elif kind == "python_mapping_class":
         locals_scope = LocalsMappingHandle
-    elif kind == "python2_class":
+    elif kind == "python_dict_class":
         locals_scope = LocalsDictHandle
     elif kind == "module_dict":
         locals_scope = GlobalsDictHandle
@@ -347,23 +346,22 @@ class LocalsDictHandle(LocalsDictHandleBase):
 
         self.markForLocalsDictPropagation()
 
+    @staticmethod
+    def setTypeShape(type_shape):
+        pass
+
 
 class LocalsMappingHandle(LocalsDictHandle):
     """Locals dict of a Python3 class with a mapping."""
 
-    __slots__ = ("type_shape",)
-
-    # TODO: Removable condition once Python 3.3 support is dropped.
-    if python_version >= 0x340:
-        __slots__ += ("prevented_propagation",)
+    __slots__ = ("type_shape", "prevented_propagation")
 
     def __init__(self, locals_name, owner):
         LocalsDictHandle.__init__(self, locals_name=locals_name, owner=owner)
 
         self.type_shape = tshape_unknown
 
-        if python_version >= 0x340:
-            self.prevented_propagation = False
+        self.prevented_propagation = False
 
     def getTypeShape(self):
         # TODO: Make mapping available for this.
@@ -375,22 +373,20 @@ class LocalsMappingHandle(LocalsDictHandle):
     def hasShapeDictionaryExact(self):
         return self.type_shape is tshape_dict
 
-    if python_version >= 0x340:
+    def markAsComplete(self, trace_collection):
+        # For this run, it cannot be done yet.
+        if self.prevented_propagation:
+            # False alarm, this is available.
+            self.prevented_propagation = False
+            return
 
-        def markAsComplete(self, trace_collection):
-            # For this run, it cannot be done yet.
-            if self.prevented_propagation:
-                # False alarm, this is available.
-                self.prevented_propagation = False
-                return
+        self.complete = True
 
-            self.complete = True
+    def preventLocalsDictPropagation(self):
+        self.prevented_propagation = True
 
-        def preventLocalsDictPropagation(self):
-            self.prevented_propagation = True
-
-        def isPreventedPropagation(self):
-            return self.prevented_propagation
+    def isPreventedPropagation(self):
+        return self.prevented_propagation
 
     def _considerPropagation(self, trace_collection):
         if not self.variables:

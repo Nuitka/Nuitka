@@ -45,6 +45,7 @@ def editModuleCode(module_search_desc):
 
             candidate = module_search_desc
 
+            # spell-checker: ignore ONEFIL
             while not candidate.endswith(".DIS") and not os.path.basename(
                 candidate
             ).startswith("ONEFIL"):
@@ -62,14 +63,23 @@ def editModuleCode(module_search_desc):
 
             candidate = module_search_desc
 
-            while not candidate.endswith(".dist"):
+            while not candidate.endswith(".dist") and candidate:
                 candidate = os.path.dirname(candidate)
 
-            module_name = relpath(module_search_desc, start=candidate).replace("/", ".")
+            if candidate:
+                module_name = relpath(module_search_desc, start=candidate).replace(
+                    "/", "."
+                )
+            else:
+                module_name = None
     else:
         module_name = ModuleName(module_search_desc)
 
-    if module_name is not None:
+    if module_name is None:
+        tools_logger.sysexit(
+            "Error, did not find module for '%s' " % module_search_desc
+        )
+    else:
         addMainScriptDirectory(os.getcwd())
         module_filename = findModuleCode(module_name)
 

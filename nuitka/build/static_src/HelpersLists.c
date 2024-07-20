@@ -227,7 +227,7 @@ bool LIST_EXTEND_FROM_ITERABLE(PyThreadState *tstate, PyObject *target, PyObject
 
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     // Guess a iterator size if possible
     src_size = PyObject_LengthHint(other, 8);
 
@@ -757,6 +757,8 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
         return list;
     }
 #else
+    Py_INCREF(iterable);
+
 #if PYTHON_VERSION >= 0x340
     if (Nuitka_PyObject_HasLen(iterable)) {
         Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
@@ -778,6 +780,8 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
 #endif
 
     bool res = LIST_EXTEND_FROM_ITERABLE(tstate, list, iterable);
+
+    Py_DECREF(iterable);
 
     if (unlikely(res == false)) {
         Py_DECREF(list);

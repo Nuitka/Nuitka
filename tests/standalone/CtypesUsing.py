@@ -52,9 +52,18 @@ elif sys.platform == "linux":
 
     printf = libc.printf
     # printf.argtypes = (ctypes.c_char_p, ctypes.c_char_p)
-    printf(b"Hello, %s\n", b"World!")
+    printf(b"Hello, %s\n", b"World!\0")
 
     print("OK.")
+elif sys.platform == "darwin":
+    libc = ctypes.CDLL("libc.dylib")
+
+    puts = libc.puts
+    puts(b"Hello, World\0")
+
+    print("OK.")
+else:
+    print("Not doing much for %s" % sys.platform)
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

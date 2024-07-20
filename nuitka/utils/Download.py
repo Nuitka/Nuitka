@@ -52,6 +52,7 @@ def getCachedDownload(
     name,
     url,
     binary,
+    unzip,
     flatten,
     is_arch_specific,
     specificity,
@@ -114,44 +115,52 @@ Fully automatic, cached. Proceed and download"""
                     % (url, e, download_path)
                 )
 
-    if not os.path.isfile(exe_path) and os.path.isfile(download_path):
-        Tracing.general.info("Extracting to '%s'" % exe_path)
+    if unzip:
+        if not os.path.isfile(exe_path) and os.path.isfile(download_path):
+            Tracing.general.info("Extracting to '%s'" % exe_path)
 
-        import zipfile
+            import zipfile
 
-        try:
-            # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
-            zip_file = zipfile.ZipFile(download_path)
+            try:
+                # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
+                zip_file = zipfile.ZipFile(download_path)
 
-            for zip_info in zip_file.infolist():
-                if zip_info.filename[-1] == "/":
-                    continue
+                for zip_info in zip_file.infolist():
+                    if zip_info.filename[-1] == "/":
+                        continue
 
-                if flatten:
-                    zip_info.filename = os.path.basename(zip_info.filename)
+                    if flatten:
+                        zip_info.filename = os.path.basename(zip_info.filename)
 
-                zip_file.extract(zip_info, nuitka_download_dir)
+                    zip_file.extract(zip_info, nuitka_download_dir)
 
-        except Exception:  # Catching anything zip throws, pylint: disable=broad-except
-            Tracing.general.info("Problem with the downloaded zip file, deleting it.")
+            except (
+                # Catching anything zip throws, pylint: disable=broad-except
+                Exception
+            ):
+                Tracing.general.info(
+                    "Problem with the downloaded zip file, deleting it."
+                )
 
-            deleteFile(binary, must_exist=False)
-            deleteFile(download_path, must_exist=True)
+                deleteFile(binary, must_exist=False)
+                deleteFile(download_path, must_exist=True)
 
-            Tracing.general.sysexit(
-                "Error, need '%s' as extracted from '%s'." % (binary, url)
-            )
+                Tracing.general.sysexit(
+                    "Error, need '%s' as extracted from '%s'." % (binary, url)
+                )
 
-    # Check success here, and make sure it's executable.
-    if os.path.isfile(exe_path):
-        addFileExecutablePermission(exe_path)
+        # Check success here, and make sure it's executable.
+        if os.path.isfile(exe_path):
+            addFileExecutablePermission(exe_path)
+        else:
+            if reject:
+                Tracing.general.sysexit(reject)
+
+            exe_path = None
+
+        return exe_path
     else:
-        if reject:
-            Tracing.general.sysexit(reject)
-
-        exe_path = None
-
-    return exe_path
+        return download_path
 
 
 def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
@@ -164,12 +173,9 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
         url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-16.0.6-11.0.1-msvcrt-r1/winlibs-i686-posix-dwarf-gcc-13.2.0-llvm-16.0.6-mingw-w64msvcrt-11.0.1-r1.zip"
         binary = r"mingw32\bin\gcc.exe"
     elif target_arch == "arm64":
-        url = None
+        return None
     else:
         assert False, target_arch
-
-    if url is None:
-        return None
 
     gcc_binary = getCachedDownload(
         name="mingw64",
@@ -177,6 +183,7 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
         is_arch_specific=target_arch,
         specificity=url.rsplit("/", 2)[1],
         binary=binary,
+        unzip=True,
         flatten=False,
         message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
         reject="Only this specific gcc is supported with Nuitka.",

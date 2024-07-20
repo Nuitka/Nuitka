@@ -48,7 +48,15 @@ def getInternalModule():
     return getRootTopModule()
 
 
+_internal_helper_names = set()
+
+
 def makeInternalHelperFunctionBody(name, parameters, inline_const_args=False):
+    # Make sure names of helpers are unique, the code names we choose require
+    # that to be true.
+    assert name not in _internal_helper_names
+    _internal_helper_names.add(name)
+
     if inline_const_args:
         node_class = ExpressionFunctionPureInlineConstBody
     else:

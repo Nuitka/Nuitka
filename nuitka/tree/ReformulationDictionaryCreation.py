@@ -47,7 +47,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -57,7 +56,7 @@ from .InternalModule import (
     once_decorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -214,16 +213,13 @@ def getDictUnpackingHelper():
 
     result.setChildBody(
         makeStatementsSequenceFromStatement(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=result,
                 tried=tried,
-                final=makeStatementsReleaseVariables(
-                    variables=(
-                        tmp_result_variable,
-                        tmp_iter_variable,
-                        tmp_item_variable,
-                    ),
-                    source_ref=internal_source_ref,
+                variables=(
+                    tmp_result_variable,
+                    tmp_iter_variable,
+                    tmp_item_variable,
                 ),
                 source_ref=internal_source_ref,
             )

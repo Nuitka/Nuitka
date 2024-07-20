@@ -18,7 +18,9 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <libgen.h>
+#if !defined(__wasi__)
 #include <pwd.h>
+#endif
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/mman.h>
@@ -35,7 +37,7 @@
 #include "nuitka/safe_string_ops.h"
 
 #if defined(__OpenBSD__)
-void _getBinaryPath2(char *epath) {
+void _getBinaryPath2(char *binary_filename) {
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC_ARGS;
@@ -60,7 +62,7 @@ void _getBinaryPath2(char *epath) {
     const char *comm = argv[0];
 
     if (*comm == '/' || *comm == '.') {
-        if (realpath(comm, epath) == NULL) {
+        if (realpath(comm, binary_filename) == NULL) {
             abort();
         }
     } else {
@@ -74,9 +76,9 @@ void _getBinaryPath2(char *epath) {
         }
 
         while (path) {
-            snprintf(epath, PATH_MAX, "%s/%s", path, comm);
+            snprintf(binary_filename, PATH_MAX, "%s/%s", path, comm);
 
-            if (!stat(epath, &st) && (st.st_mode & S_IXUSR)) {
+            if (!stat(binary_filename, &st) && (st.st_mode & S_IXUSR)) {
                 break;
             }
 
@@ -225,7 +227,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__)
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__wasi__)
 static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
@@ -435,6 +437,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
         result.error = true;
         result.error_code = errno;
         result.erroring_function = "open";
+        result.file_size = -1;
         return result;
     }
 
@@ -573,6 +576,9 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
 
 static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size,
                                     bool resolve_symlinks) {
+#ifdef __wasi__
+    copyStringSafe(resolved_filename, filename, resolved_filename_size);
+#else
     if (resolve_symlinks) {
         // At least on macOS, realpath cannot allocate a buffer, itself, so lets
         // use a local one, only on Linux we could use NULL argument and have a
@@ -589,24 +595,27 @@ static void resolveFileSymbolicLink(char *resolved_filename, char const *filenam
     } else {
         copyStringSafe(resolved_filename, filename, resolved_filename_size);
     }
+#endif
 }
 #endif
 
 #ifdef _WIN32
 wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
-    static wchar_t binary_filename[MAXPATHLEN + 1];
-    static bool init_done = false;
+    static wchar_t binary_filename[MAXPATHLEN + 1] = {0};
+    static wchar_t binary_filename_resolved[MAXPATHLEN + 1] = {0};
 
-    if (init_done == false) {
-        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+    wchar_t *buffer = resolve_symlinks ? binary_filename : binary_filename_resolved;
+    assert(sizeof(binary_filename) == sizeof(binary_filename_resolved));
+
+    if (buffer[0] == 0) {
+        DWORD res = GetModuleFileNameW(NULL, buffer, sizeof(binary_filename) / sizeof(wchar_t));
         assert(res != 0);
 
         // Resolve any symlinks we were invoked via
-        resolveFileSymbolicLink(binary_filename, binary_filename, sizeof(binary_filename) / sizeof(wchar_t),
-                                resolve_symlinks);
+        resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
     }
 
-    return binary_filename;
+    return buffer;
 }
 #endif
 
@@ -675,6 +684,9 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 
     // Resolve any symlinks we were invoked via
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
+#elif defined(__wasi__)
+    const char *wasi_filename = "program.wasm";
+    strncpy(binary_filename_resolved, wasi_filename, MAXPATHLEN);
 #elif defined(__OpenBSD__)
     _getBinaryPath2(binary_filename_target);
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
@@ -949,8 +961,10 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, pid_buffer, buffer_size);
             } else if (strcasecmp(var_name, "HOME") == 0) {
                 char const *home_path = getenv("HOME");
-
                 if (home_path == NULL) {
+#ifdef __wasi__
+                    return false;
+#else
                     struct passwd *pw_data = getpwuid(getuid());
 
                     if (unlikely(pw_data == NULL)) {
@@ -958,6 +972,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     }
 
                     home_path = pw_data->pw_dir;
+#endif
                 }
 
                 appendStringSafe(target, home_path, buffer_size);

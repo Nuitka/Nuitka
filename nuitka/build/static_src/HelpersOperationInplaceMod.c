@@ -241,7 +241,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_INT(PyObject **op
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -500,7 +500,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_INT_OBJECT(PyObject **op
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'int' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -804,9 +804,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_LONG(PyObject **o
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'long'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: '%s' and 'long'", type1->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'int'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: '%s' and 'int'", type1->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1022,9 +1022,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_LONG_OBJECT(PyObject **o
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'long' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'int' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -1310,7 +1310,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_FLOAT(PyObject **
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'float'", type1->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1550,7 +1550,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_FLOAT_OBJECT(PyObject **
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'float' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -1688,9 +1688,9 @@ static inline bool _INPLACE_OPERATION_MOD_FLOAT_LONG(PyObject **operand1, PyObje
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'float' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'float' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1762,9 +1762,9 @@ static inline bool _INPLACE_OPERATION_MOD_LONG_FLOAT(PyObject **operand1, PyObje
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'long' and 'float'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'int' and 'float'");
 #endif
         goto exit_inplace_exception;
     }
@@ -1830,7 +1830,7 @@ static inline bool _INPLACE_OPERATION_MOD_FLOAT_INT(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'float' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -1902,7 +1902,7 @@ static inline bool _INPLACE_OPERATION_MOD_INT_FLOAT(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'int' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -1968,7 +1968,7 @@ static inline bool _INPLACE_OPERATION_MOD_LONG_INT(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'long' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2040,7 +2040,7 @@ static inline bool _INPLACE_OPERATION_MOD_INT_LONG(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'int' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -2280,7 +2280,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_INT(PyObject **operand1, PyObject 
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -2363,7 +2363,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_LONG(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'long'");
         goto exit_inplace_exception;
     }
 
@@ -2446,7 +2446,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_FLOAT(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -2569,7 +2569,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_UNICODE(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'unicode'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'unicode'");
         goto exit_inplace_exception;
     }
 
@@ -2634,7 +2634,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_TUPLE(PyObject **operand1, PyObjec
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'tuple'");
         goto exit_inplace_exception;
     }
 
@@ -2699,7 +2699,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_LIST(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'list'");
         goto exit_inplace_exception;
     }
 
@@ -2764,7 +2764,7 @@ static inline bool _INPLACE_OPERATION_MOD_STR_DICT(PyObject **operand1, PyObject
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'dict'");
         goto exit_inplace_exception;
     }
 
@@ -2899,7 +2899,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_STR_OBJECT(PyObject **op
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -3021,7 +3021,7 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_INT(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -3105,9 +3105,9 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_LONG(PyObject **operand1, PyOb
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'long'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'long'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'int'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3190,9 +3190,9 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_FLOAT(PyObject **operand1, PyO
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'float'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'float'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3275,7 +3275,7 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_STR(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'str'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'str'");
         goto exit_inplace_exception;
     }
 
@@ -3358,7 +3358,7 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_BYTES(PyObject **operand1, PyO
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'bytes'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'bytes'");
         goto exit_inplace_exception;
     }
 
@@ -3462,9 +3462,9 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_TUPLE(PyObject **operand1, PyO
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'tuple'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'tuple'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3529,9 +3529,9 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_LIST(PyObject **operand1, PyOb
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'list'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'list'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3596,9 +3596,9 @@ static inline bool _INPLACE_OPERATION_MOD_UNICODE_DICT(PyObject **operand1, PyOb
         // Statically recognized that coercion is not possible with these types
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and 'dict'");
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and 'dict'");
 #endif
         goto exit_inplace_exception;
     }
@@ -3733,9 +3733,9 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_UNICODE_OBJECT(PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'unicode' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'unicode' and '%s'", type2->tp_name);
 #else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'str' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'str' and '%s'", type2->tp_name);
 #endif
         goto exit_inplace_exception;
     }
@@ -3857,7 +3857,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_LONG(PyObject **operand1, PyObje
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'int'");
         goto exit_inplace_exception;
     }
 
@@ -3940,7 +3940,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_FLOAT(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'float'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'float'");
         goto exit_inplace_exception;
     }
 
@@ -4064,7 +4064,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_UNICODE(PyObject **operand1, PyO
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'str'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'str'");
         goto exit_inplace_exception;
     }
 
@@ -4129,7 +4129,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_TUPLE(PyObject **operand1, PyObj
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'tuple'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'tuple'");
         goto exit_inplace_exception;
     }
 
@@ -4194,7 +4194,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_LIST(PyObject **operand1, PyObje
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'list'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'list'");
         goto exit_inplace_exception;
     }
 
@@ -4259,7 +4259,7 @@ static inline bool _INPLACE_OPERATION_MOD_BYTES_DICT(PyObject **operand1, PyObje
 
         // Statically recognized that coercion is not possible with these types
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'dict'");
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and 'dict'");
         goto exit_inplace_exception;
     }
 
@@ -4394,7 +4394,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_BYTES_OBJECT(PyObject **
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and '%s'", type2->tp_name);
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: 'bytes' and '%s'", type2->tp_name);
         goto exit_inplace_exception;
     }
 
@@ -4714,7 +4714,7 @@ static inline bool _INPLACE_OPERATION_MOD_OBJECT_OBJECT(PyObject **operand1, PyO
         }
 #endif
 
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and '%s'", type1->tp_name,
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%=: '%s' and '%s'", type1->tp_name,
                      type2->tp_name);
         goto exit_inplace_exception;
     }

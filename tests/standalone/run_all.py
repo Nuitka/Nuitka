@@ -118,6 +118,12 @@ def main():
         if not active:
             continue
 
+        # skip each test if their respective requirements are not met
+        requirements_met, error_message = checkTestRequirements(filename)
+        if not requirements_met:
+            reportSkip(error_message, ".", filename)
+            continue
+
         report_filename = "test-compilation-report.xml"
 
         extra_flags = [
@@ -132,12 +138,6 @@ def main():
             "--nowarn-mnemonic=debian-dist-packages",
             "--report=%s" % report_filename,
         ]
-
-        # skip each test if their respective requirements are not met
-        requirements_met, error_message = checkTestRequirements(filename)
-        if not requirements_met:
-            reportSkip(error_message, ".", filename)
-            continue
 
         if filename == "Urllib3Using.py" and os.name == "nt":
             reportSkip(
@@ -275,7 +275,12 @@ def main():
 
                 search_mode.onErrorDetected(1)
         finally:
-            removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+            removeDirectory(
+                filename[:-3] + ".dist",
+                logger=test_logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
 
     search_mode.finish()
 

@@ -23,6 +23,10 @@ def displayDict(d, remove_keys=()):
         d = dict(d)
         d["__file__"] = "<__file__ removed>"
 
+    if "__firstlineno__" in d:
+        d = dict(d)
+        del d["__firstlineno__"]
+
     if "__compiled__" in d:
         d = dict(d)
         del d["__compiled__"]

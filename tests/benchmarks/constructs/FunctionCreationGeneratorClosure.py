@@ -11,16 +11,16 @@ def calledRepeatedly(x):
     module_var
 
     # construct_begin
-    def empty():
+    def returningValue():
         yield x
 
     # construct_alternative
-    def empty():
+    def returningValue():
         yield module_var
 
     # construct_end
 
-    return empty, x
+    return returningValue, x
 
 
 for x in itertools.repeat(None, 50000):

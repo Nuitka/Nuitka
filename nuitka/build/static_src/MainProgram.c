@@ -850,7 +850,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
 #endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -867,7 +867,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding, false);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -888,19 +888,19 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         if (shallSetOutputHandleToNull("stdin")) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding, false);
 
             setStdinHandle(tstate, stdin_file);
         }
 
         if (shallSetOutputHandleToNull("stdout")) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding, false);
 
             setStdoutHandle(tstate, stdout_file);
         }
 
         if (shallSetOutputHandleToNull("stderr")) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding, false);
 
             setStderrHandle(tstate, stderr_file);
         }
@@ -1126,6 +1126,12 @@ static void nuitka_segfault_handler(int sig) {
 }
 #endif
 
+#if _NUITKA_NATIVE_WCHAR_ARGV == 1
+extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
+#else
+extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -1273,13 +1279,24 @@ int main(int argc, char **argv) {
 
     /* Initial command line handling only. */
 
+// Make sure, we use the absolute program path for argv[0]
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 0
+    argv[0] = (char *)getBinaryFilenameHostEncoded(false);
+#endif
+
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
     orig_argv = convertCommandLineParameters(argc, argv);
 #elif PYTHON_VERSION < 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 1
+    NUITKA_PRINT_TRACE("main(): Calling getCommandLineToArgvA.");
     orig_argv = getCommandLineToArgvA(GetCommandLineA());
 #else
 orig_argv = argv;
+#endif
+
+// Make sure, we use the absolute program path for argv[0]
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1 && PYTHON_VERSION >= 0x300
+    orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
 #endif
 
     // Make sure the compiled path of Python is replaced.
@@ -1453,7 +1470,7 @@ orig_argv = argv;
         // platform ones in the future.
         PyObject *encoding = NULL;
 
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -1470,7 +1487,7 @@ orig_argv = argv;
         // platform ones in the future.
         PyObject *encoding = NULL;
 
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -1489,7 +1506,7 @@ orig_argv = argv;
 
         // CPython core requires stdin to be buffered due to methods usage, and it won't matter
         // here much.
-        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding);
+        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding, false);
 
         Py_DECREF(filename);
 
@@ -1686,6 +1703,7 @@ orig_argv = argv;
         }
 #endif
         PyDict_DelItemString(Nuitka_GetSysModules(), NUITKA_MAIN_MODULE_NAME);
+        DROP_ERROR_OCCURRED(tstate);
 
 #if _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
         NUITKA_PRINT_TRACE("main(): Calling plugin SvcLaunchService() entry point.");

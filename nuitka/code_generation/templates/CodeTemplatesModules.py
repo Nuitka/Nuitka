@@ -59,7 +59,7 @@ static bool constants_created = false;
 /* Function to create module private constants. */
 static void createModuleConstants(PyThreadState *tstate) {
     if (constants_created == false) {
-        loadConstantsBlob(tstate, &mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
+        loadConstantsBlob(tstate, &mod_consts[0], UN_TRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
@@ -164,7 +164,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     if (offset == -5) {
         CHECK_OBJECT(function->m_constant_return_value);
-        PyTuple_SET_ITEM0(result, 5, function->m_constant_return_value);
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, function->m_constant_return_value);
     } else {
         PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
     }
@@ -404,7 +404,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
-    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type);
+    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, Nuitka_Loader_New(loader_entry));
 
 #if PYTHON_VERSION >= 0x340
 // Set the "__spec__" value

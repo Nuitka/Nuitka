@@ -15,9 +15,8 @@ from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -93,12 +92,10 @@ def buildPrintNode(provider, node, source_ref):
             )
 
         statements.append(
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=print_statements,
-                final=makeStatementReleaseVariable(
-                    variable=tmp_target_variable, source_ref=source_ref
-                ),
+                variables=(tmp_target_variable,),
                 source_ref=source_ref,
             )
         )

@@ -38,12 +38,7 @@ catching and passing in exceptions raised.
 import marshal
 import os
 
-from nuitka import (
-    ModuleRegistry,
-    Options,
-    OutputDirectories,
-    SourceCodeReferences,
-)
+from nuitka import ModuleRegistry, OutputDirectories, SourceCodeReferences
 from nuitka.__past__ import long, unicode
 from nuitka.BytecodeCaching import (
     getCachedImportedModuleUsageAttempts,
@@ -118,7 +113,16 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
-from nuitka.Options import shallWarnUnusualCode
+from nuitka.Options import (
+    getMainEntryPointFilenames,
+    hasPythonFlagNoSite,
+    hasPythonFlagPackageMode,
+    isShowMemory,
+    isStandaloneMode,
+    shallDisableBytecodeCacheUsage,
+    shallMakeModule,
+    shallWarnUnusualCode,
+)
 from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -284,9 +288,9 @@ def buildTryFinallyNode2(provider, node, source_ref):
 
 
 def buildTryNode(provider, node, source_ref):
-    # Note: This variant is used for Python3.3 or higher only, older stuff uses
-    # the above ones, this one merges try/except with try/finally in the
-    # "ast". We split it up again, as it's logically separated of course.
+    # Note: This variant is used for Python3 only, older stuff uses the above
+    # ones, this one merges try/except with try/finally in the "ast". We split
+    # it up again, as it's logically separated of course.
 
     # Shortcut missing try/finally.
     if not node.handlers:
@@ -779,19 +783,18 @@ setBuildingDispatchers(
 )
 
 
-def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
+def buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables. pylint: disable=too-many-branches
 
     # Maybe one day, we do exec inlining again, that is what this is for,
     # then is_module won't be True, for now it always is.
-    pushFutureSpec()
-    if is_module:
-        provider.setFutureSpec(getFutureSpec())
+    pushFutureSpec(provider.getFullName())
+    provider.setFutureSpec(getFutureSpec())
 
     body, doc = extractDocFromBody(ast_tree)
 
-    if is_module and is_main and python_version >= 0x360:
+    if is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
     try:
@@ -812,106 +815,105 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
 
     statements = []
 
-    if is_module:
-        # Add import of "site" module of main programs visibly in the node tree,
-        # so recursion and optimization can pick it up, checking its effects.
-        if is_main and not Options.hasPythonFlagNoSite():
+    # Add import of "site" module of main programs visibly in the node tree,
+    # so recursion and optimization can pick it up, checking its effects.
+    if is_main and not hasPythonFlagNoSite():
+        statements.append(
+            StatementExpressionOnly(
+                expression=makeExpressionImportModuleFixed(
+                    using_module_name=provider.getParentModule().getFullName(),
+                    module_name="site",
+                    value_name="site",
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
+        for path_imported_name in getPthImportedPackages():
+            if isHardModuleWithoutSideEffect(path_imported_name):
+                continue
+
             statements.append(
                 StatementExpressionOnly(
                     expression=makeExpressionImportModuleFixed(
                         using_module_name=provider.getParentModule().getFullName(),
-                        module_name="site",
-                        value_name="site",
+                        module_name=path_imported_name,
+                        value_name=path_imported_name.getTopLevelPackageName(),
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
                 )
             )
 
-            for path_imported_name in getPthImportedPackages():
-                if isHardModuleWithoutSideEffect(path_imported_name):
-                    continue
-
-                statements.append(
-                    StatementExpressionOnly(
-                        expression=makeExpressionImportModuleFixed(
-                            using_module_name=provider.getParentModule().getFullName(),
-                            module_name=path_imported_name,
-                            value_name=path_imported_name.getTopLevelPackageName(),
-                            source_ref=source_ref,
-                        ),
-                        source_ref=source_ref,
-                    )
-                )
-
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__doc__",
-                source=makeConstantRefNode(
-                    constant=doc, source_ref=internal_source_ref, user_provided=True
-                ),
-                source_ref=internal_source_ref,
-            )
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__doc__",
+            source=makeConstantRefNode(
+                constant=doc, source_ref=internal_source_ref, user_provided=True
+            ),
+            source_ref=internal_source_ref,
         )
+    )
 
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__file__",
+    statements.append(
+        StatementAssignmentVariableName(
+            provider=provider,
+            variable_name="__file__",
+            source=ExpressionModuleAttributeFileRef(
+                variable=provider.getVariableForReference("__file__"),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        )
+    )
+
+    if provider.isCompiledPythonPackage():
+        # This assigns "__path__" value.
+        statements.append(createPathAssignment(provider, internal_source_ref))
+
+    if python_version >= 0x340 and not is_main:
+        statements += (
+            StatementAssignmentAttribute(
+                expression=ExpressionModuleAttributeSpecRef(
+                    variable=provider.getVariableForReference("__spec__"),
+                    source_ref=internal_source_ref,
+                ),
+                attribute_name="origin",
                 source=ExpressionModuleAttributeFileRef(
                     variable=provider.getVariableForReference("__file__"),
                     source_ref=internal_source_ref,
                 ),
                 source_ref=internal_source_ref,
-            )
+            ),
+            StatementAssignmentAttribute(
+                expression=ExpressionModuleAttributeSpecRef(
+                    variable=provider.getVariableForReference("__spec__"),
+                    source_ref=internal_source_ref,
+                ),
+                attribute_name="has_location",
+                source=makeConstantRefNode(True, internal_source_ref),
+                source_ref=internal_source_ref,
+            ),
         )
 
         if provider.isCompiledPythonPackage():
-            # This assigns "__path__" value.
-            statements.append(createPathAssignment(provider, internal_source_ref))
-
-        if python_version >= 0x340 and not is_main:
-            statements += (
+            statements.append(
                 StatementAssignmentAttribute(
                     expression=ExpressionModuleAttributeSpecRef(
                         variable=provider.getVariableForReference("__spec__"),
                         source_ref=internal_source_ref,
                     ),
-                    attribute_name="origin",
-                    source=ExpressionModuleAttributeFileRef(
-                        variable=provider.getVariableForReference("__file__"),
+                    attribute_name="submodule_search_locations",
+                    source=ExpressionVariableNameRef(
+                        provider=provider,
+                        variable_name="__path__",
                         source_ref=internal_source_ref,
                     ),
                     source_ref=internal_source_ref,
-                ),
-                StatementAssignmentAttribute(
-                    expression=ExpressionModuleAttributeSpecRef(
-                        variable=provider.getVariableForReference("__spec__"),
-                        source_ref=internal_source_ref,
-                    ),
-                    attribute_name="has_location",
-                    source=makeConstantRefNode(True, internal_source_ref),
-                    source_ref=internal_source_ref,
-                ),
-            )
-
-            if provider.isCompiledPythonPackage():
-                statements.append(
-                    StatementAssignmentAttribute(
-                        expression=ExpressionModuleAttributeSpecRef(
-                            variable=provider.getVariableForReference("__spec__"),
-                            source_ref=internal_source_ref,
-                        ),
-                        attribute_name="submodule_search_locations",
-                        source=ExpressionVariableNameRef(
-                            provider=provider,
-                            variable_name="__path__",
-                            source_ref=internal_source_ref,
-                        ),
-                        source_ref=internal_source_ref,
-                    )
                 )
+            )
 
     if python_version >= 0x300:
         statements.append(
@@ -970,16 +972,13 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
             )
         )
 
-    if is_module:
-        result = makeModuleFrame(
-            module=provider, statements=statements, source_ref=source_ref
-        )
+    result = makeModuleFrame(
+        module=provider, statements=statements, source_ref=source_ref
+    )
 
-        popFutureSpec()
+    popFutureSpec()
 
-        return result
-    else:
-        assert False
+    return result
 
 
 def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
@@ -1115,7 +1114,7 @@ def _createModule(
         if (
             mode == "bytecode"
             and not is_top
-            and not Options.shallDisableBytecodeCacheUsage()
+            and not shallDisableBytecodeCacheUsage()
             and hasCachedImportedModuleUsageAttempts(
                 module_name=module_name, source_code=source_code, source_ref=source_ref
             )
@@ -1154,14 +1153,13 @@ def _createModule(
 
 
 def createModuleTree(module, source_ref, ast_tree, is_main):
-    if Options.isShowMemory():
+    if isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     module_body = buildParseTree(
         provider=module,
         ast_tree=ast_tree,
         source_ref=source_ref,
-        is_module=True,
         is_main=is_main,
     )
 
@@ -1172,17 +1170,19 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
 
     completeVariableClosures(module)
 
-    if Options.isShowMemory():
+    if isShowMemory():
         memory_watch.finish(
             "Memory usage changed loading module '%s'" % module.getFullName()
         )
 
 
-def buildMainModuleTree(filename, source_code):
+def buildMainModuleTree(source_code):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
 
-    if Options.shallMakeModule():
+    filename = getMainEntryPointFilenames()[0]
+
+    if shallMakeModule():
         module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
 
         if module_name is None:
@@ -1192,7 +1192,7 @@ def buildMainModuleTree(filename, source_code):
             )
     else:
         # TODO: Doesn't work for deeply nested packages at all.
-        if Options.hasPythonFlagPackageMode():
+        if hasPythonFlagPackageMode():
             module_name = ModuleName(os.path.basename(filename) + ".__main__")
         else:
             module_name = ModuleName("__main__")
@@ -1203,13 +1203,13 @@ def buildMainModuleTree(filename, source_code):
         module_filename=filename,
         source_code=source_code,
         is_top=True,
-        is_main=not Options.shallMakeModule(),
+        is_main=not shallMakeModule(),
         module_kind="py",
         is_fake=source_code is not None,
         hide_syntax_error=False,
     )
 
-    if Options.isStandaloneMode():
+    if isStandaloneMode():
         module.setStandardLibraryModules(
             early_module_names=detectEarlyImports(),
             stdlib_modules_names=detectStdlibAutoInclusionModules(),
@@ -1241,7 +1241,7 @@ Cannot follow import to module '%s' because of '%s'."""
         reason=reason,
         is_top=False,
         mode="compiled",
-        future_spec=FutureSpec(),
+        future_spec=FutureSpec(use_annotations=False),
         source_ref=source_ref,
     )
 
@@ -1268,6 +1268,7 @@ def _makeModuleBodyTooComplex(
         Importing.warned_about.add(module_filename)
 
         # Known harmless case, not causing issues, lets not warn about it.
+        # spell-checker: ignore sympy,numberfields
         if module_name != "sympy.polys.numberfields.resolvent_lookup":
             recursion_logger.info(
                 """\
@@ -1314,8 +1315,8 @@ def buildModule(
         logger=general,
     )
 
-    if Options.hasPythonFlagPackageMode():
-        if is_top and Options.shallMakeModule():
+    if hasPythonFlagPackageMode():
+        if is_top and shallMakeModule():
             optimization_logger.warning(
                 "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
             )

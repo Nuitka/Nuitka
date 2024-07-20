@@ -106,7 +106,7 @@ def _addActivePlugin(plugin_class, args, force=False):
     else:
         plugin_args = {}
 
-    with withPluginProblemReporting(plugin_class, "Plugin initialization failed", ()):
+    with withPluginProblemReporting(plugin_class, "plugin initialization", ()):
         plugin_instance = plugin_class(**plugin_args)
 
     assert isinstance(plugin_instance, NuitkaPluginBase), plugin_instance
@@ -824,8 +824,9 @@ class Plugins(object):
 
                 for desc in description:
                     if desc is None:
-                        pass
-                    elif len(desc) == 2:
+                        continue
+
+                    if len(desc) == 2:
                         code, reason = desc
                         flags = ()
                     else:
@@ -1393,6 +1394,93 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.getExtraConstantDefaultPopulation():
                 yield value
+
+    @classmethod
+    def _decideWithoutDisagreement(
+        cls,
+        method_name,
+        call_per_plugin,
+        legal_values,
+        abstain_values,
+        get_default_value,
+    ):
+        result = abstain_values[0]
+        plugin_name = None
+
+        for plugin in getActivePlugins():
+            value = call_per_plugin(plugin)
+
+            if value not in legal_values:
+                plugin.sysexit(
+                    "Error, can only return '%s' from '%s' not %r"
+                    % (legal_values, method_name, value)
+                )
+
+            if value in abstain_values:
+                continue
+
+            if value != result:
+                if result in abstain_values:
+                    result = value
+                    plugin_name = plugin.plugin_name
+                else:
+                    plugin.sysexit(
+                        "Error, conflicting value '%s' with plug-in '%s' value '%s'."
+                        % (value, plugin_name, result)
+                    )
+        if result in abstain_values:
+            result = get_default_value()
+
+        return result
+
+    decide_annotations_cache = {}
+
+    @classmethod
+    def decideAnnotations(cls, module_name):
+        # For Python2 it's not a thing.
+        if str is bytes:
+            return False
+
+        if module_name not in cls.decide_annotations_cache:
+            cls.decide_annotations_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideAnnotations(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideAnnotations",
+                get_default_value=lambda: not Options.hasPythonFlagNoAnnotations(),
+            )
+
+        return cls.decide_annotations_cache[module_name]
+
+    decide_doc_strings_cache = {}
+
+    @classmethod
+    def decideDocStrings(cls, module_name):
+        if module_name not in cls.decide_doc_strings_cache:
+            cls.decide_doc_strings_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideDocStrings(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideDocStrings",
+                get_default_value=lambda: not Options.hasPythonFlagNoDocStrings(),
+            )
+
+        return cls.decide_doc_strings_cache[module_name]
+
+    decide_assertions_cache = {}
+
+    @classmethod
+    def decideAssertions(cls, module_name):
+        if module_name not in cls.decide_assertions_cache:
+            cls.decide_assertions_cache[module_name] = cls._decideWithoutDisagreement(
+                call_per_plugin=lambda plugin: plugin.decideAssertions(module_name),
+                legal_values=(None, True, False),
+                abstain_values=(None,),
+                method_name="decideAssertions",
+                get_default_value=lambda: not Options.hasPythonFlagNoAsserts(),
+            )
+
+        return cls.decide_assertions_cache[module_name]
 
     @classmethod
     def decideAllowOutsideDependencies(cls, module_name):

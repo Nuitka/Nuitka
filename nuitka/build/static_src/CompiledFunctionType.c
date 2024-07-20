@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <structmember.h>
 
-// spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
+// spell-checker: ignore qualname,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
 
 #if _DEBUG_REFCOUNTS
 int count_active_Nuitka_Function_Type;
@@ -24,7 +24,7 @@ int count_released_Nuitka_Function_Type;
 #endif
 
 // tp_descr_get slot, bind a function to an object.
-static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
+static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *class_object) {
     assert(Nuitka_Function_Check(function));
     CHECK_OBJECT((PyObject *)function);
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -36,7 +36,7 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
     }
 #endif
 
-    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, object == Py_None ? NULL : object, klass);
+    return Nuitka_Method_New((struct Nuitka_FunctionObject *)function, object == Py_None ? NULL : object, class_object);
 }
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
@@ -288,7 +288,7 @@ static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObj
     }
     CHECK_OBJECT(result);
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -841,7 +841,7 @@ PyTypeObject Nuitka_Function_Type = {
     0,                                                  // tp_weaklist
     0,                                                  // tp_del
     0                                                   // tp_version_tag
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     ,
     0 // tp_finalizer
 #endif
@@ -878,7 +878,7 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_subclasses != PyFunction_Type.tp_subclasses || PyFunction_Type.tp_cache == NULL);
     assert(Nuitka_Function_Type.tp_weaklist != PyFunction_Type.tp_weaklist);
     assert(Nuitka_Function_Type.tp_del != PyFunction_Type.tp_del || PyFunction_Type.tp_del == NULL);
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     assert(Nuitka_Function_Type.tp_finalize != PyFunction_Type.tp_finalize || PyFunction_Type.tp_finalize == NULL);
 #endif
 
@@ -1057,7 +1057,7 @@ static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(PyThreadState *tstate,
 
     PyObject *result = function->m_constant_return_value;
 
-    Py_INCREF(result);
+    Py_INCREF_IMMORTAL(result);
     return result;
 }
 
@@ -1209,7 +1209,7 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
 
         Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
 
-        Py_INCREF(constant_return_value);
+        Py_INCREF_IMMORTAL(constant_return_value);
     }
 
     assert(result->m_c_code != NULL);
@@ -1276,6 +1276,8 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(free_list_functions, struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given);
+
+    assert(closure_given == 0 || closure != NULL);
 
     memcpy(&result->m_closure[0], closure, closure_given * sizeof(struct Nuitka_CellObject *));
     result->m_closure_given = closure_given;
@@ -1637,16 +1639,31 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
 
                 list_str = UNICODE_CONCAT(tstate, list_str, current);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
             } else if (missing == 1) {
                 PyObject *old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, and_str, list_str);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
                 old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, current, list_str);
+
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
 
                 Py_DECREF(old);
             } else {
@@ -1654,10 +1671,20 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
 
                 list_str = UNICODE_CONCAT(tstate, comma_str, list_str);
 
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
+
                 Py_DECREF(old);
                 old = list_str;
 
                 list_str = UNICODE_CONCAT(tstate, current, list_str);
+
+                if (unlikely(list_str == NULL)) {
+                    list_str = old;
+                    break;
+                }
 
                 Py_DECREF(old);
             }

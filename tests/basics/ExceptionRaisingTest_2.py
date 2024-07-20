@@ -357,7 +357,7 @@ def divide(a, b):
     return a / b
 
 
-def unraisableExceptionInDel():
+def raiseExceptionInDel():
     class C:
         def __del__(self):
             c = divide(1, 0)
@@ -369,7 +369,7 @@ def unraisableExceptionInDel():
     f()
 
 
-unraisableExceptionInDel()
+raiseExceptionInDel()
 print("*" * 20)
 
 print("Testing exception changes between generator switches:")

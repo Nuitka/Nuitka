@@ -14,8 +14,12 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.Tracing import tools_logger
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
-from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.Importing import (
+    getPackageDirFilename,
+    getSharedLibrarySuffixes,
+)
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getDllExportedSymbols
 from nuitka.utils.Utils import isMacOS
@@ -56,7 +60,7 @@ def displayDLLs(module_name):
     if not hasMainScriptDirectory():
         addMainScriptDirectory(os.getcwd())
 
-    module_name, package_directory, _module_kind, finding = locateModule(
+    module_name, package_directory, module_kind, finding = locateModule(
         module_name=module_name, parent_package=None, level=0
     )
 
@@ -71,12 +75,22 @@ def displayDLLs(module_name):
             % module_name.asString()
         )
 
+    from nuitka.plugins.Plugins import activatePlugins
+
+    activatePlugins()
+
+    if module_kind != "extension":
+        package_filename = getPackageDirFilename(package_directory)
+
+        if package_filename is not None:
+            readSourceCodeFromFilename(module_name, package_filename, pre_load=False)
+
     tools_logger.info("Checking package directory '%s' .. " % package_directory)
 
     count = 0
 
     for package_dll_dir in getPackageSpecificDLLDirectories(
-        module_name, consider_plugins=False
+        module_name, consider_plugins=True
     ):
         first = True
 

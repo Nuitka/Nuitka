@@ -47,44 +47,44 @@ extern struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyThreadState *tstate, PyCode
 // Create a code object for the given filename and function name
 
 #if PYTHON_VERSION < 0x300
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count);
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count);
 #elif PYTHON_VERSION < 0x380
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count, kw_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count);
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count, int kw_only_count);
 #elif PYTHON_VERSION < 0x3b0
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count, pos_only_count)
+    makeCodeObject(filename, line, flags, function_name, arg_names, free_vars, arg_count, kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count,
+                                    PyObject *arg_names, PyObject *free_vars, int arg_count, int kw_only_count,
                                     int pos_only_count);
 #else
-#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,     \
                          kw_only_count, pos_only_count)                                                                \
-    makeCodeObject(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,             \
+    makeCodeObject(filename, line, flags, function_name, function_qualname, arg_names, free_vars, arg_count,           \
                    kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
-                                    PyObject *function_qualname, PyObject *argnames, PyObject *freevars, int arg_count,
-                                    int kw_only_count, int pos_only_count);
+                                    PyObject *function_qualname, PyObject *arg_names, PyObject *free_vars,
+                                    int arg_count, int kw_only_count, int pos_only_count);
 #endif
 
 NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 #if PYTHON_VERSION < 0x300
     return code->co_code == const_str_empty;
 #elif PYTHON_VERSION < 0x3b0
-    return code->co_code == const_str_empty;
-#elif PYTHON_VERSION < 0x3c0
-    return _PyCode_CODE(code)[0] == 0;
+    return code->co_code == const_bytes_empty;
 #else
-    _Py_CODEUNIT *code_unit = _PyCode_CODE(code);
-    return code_unit->op.code == 0;
+    // Starting for Python3.11, we just proper bytecode that raises
+    // "RuntimeError" itself, so this function is only used to
+    // optimize checks away.
+    return false;
 #endif
 }
 
@@ -221,11 +221,11 @@ inline static void assertThreadFrameObject(Nuitka_ThreadStateFrameType *frame) {
 #endif
 }
 
-// Mark frame as currently executed. Starting with Python 3.4 that means it
+// Mark frame as currently executed. Starting with Python 3 that means it
 // can or cannot be cleared, or should lead to a generator close. For Python2
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 #if PYTHON_VERSION < 0x3b0
 
@@ -253,7 +253,7 @@ static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame
 #define Nuitka_Frame_MarkAsExecuting(frame) ;
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
 #if PYTHON_VERSION >= 0x3b0
@@ -269,7 +269,7 @@ static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *fr
 #define Nuitka_PythonFrame_MarkAsExecuting(frame) ;
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
 #if PYTHON_VERSION >= 0x3b0
@@ -396,7 +396,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
 
 // TODO: These can be moved to private code, once all C library is included by
 // compiled code helpers, but generators are currently not.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame,
                                                           PyObject *generator) {
 #if PYTHON_VERSION < 0x3b0

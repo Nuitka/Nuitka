@@ -43,10 +43,14 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
 )
 from nuitka.Options import (
-    hasPythonFlagNoAnnotations,
-    hasPythonFlagNoAsserts,
-    hasPythonFlagNoDocStrings,
+    getCompanyName,
+    getFileVersion,
+    getProductFileVersion,
+    getProductName,
+    getProductVersion,
     isDeploymentMode,
+    isOnefileMode,
+    isOnefileTempDirMode,
     isStandaloneMode,
     shallCreateAppBundle,
     shallMakeModule,
@@ -70,7 +74,11 @@ from nuitka.utils.Distributions import (
     getDistributionName,
     isDistributionCondaPackage,
 )
-from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
+from nuitka.utils.Execution import (
+    NuitkaCalledProcessError,
+    check_output,
+    withEnvironmentVarsOverridden,
+)
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
@@ -84,6 +92,7 @@ from nuitka.utils.ModuleNames import (
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
+from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     isAndroidBasedLinux,
@@ -92,7 +101,6 @@ from nuitka.utils.Utils import (
     isWin32Windows,
     withNoWarning,
 )
-from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 _warned_unused_plugins = set()
 
@@ -119,6 +127,15 @@ def _getImportLibModule():
         return importlib
 
 
+def _makeEvaluationContext(logger, full_name, config_name):
+    context = TagContext(logger=logger, full_name=full_name, config_name=config_name)
+    context.update(control_tags)
+
+    context.update(_getEvaluationContext())
+
+    return context
+
+
 def _getEvaluationContext():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
@@ -137,16 +154,21 @@ def _getEvaluationContext():
             "debian_python": isDebianPackagePython(),
             "nuitka_python": isNuitkaPython(),
             "standalone": isStandaloneMode(),
+            "onefile": isOnefileMode(),
+            "onefile_cached": not isOnefileTempDirMode(),
             "module_mode": shallMakeModule(),
             "deployment": isDeploymentMode(),
+            # Version information
+            "company": getCompanyName(),
+            "product": getProductName(),
+            "file_version": getFileVersion(),
+            "product_version": getProductVersion(),
+            "combined_version": getProductFileVersion(),
             # Querying package versions.
             "version": _getPackageVersion,
             "version_str": _getPackageVersionStr,
             "get_dist_name": _getDistributionNameFromPackageName,
             "plugin": _isPluginActive,
-            "no_asserts": hasPythonFlagNoAsserts(),
-            "no_docstrings": hasPythonFlagNoDocStrings(),
-            "no_annotations": hasPythonFlagNoAnnotations(),
             # Iterating packages
             "iterate_modules": _iterate_module_names,
             # Locating package directories
@@ -166,6 +188,8 @@ def _getEvaluationContext():
             # Python version string
             "python_version_str": python_version_str,
             "python_version_full_str": python_version_full_str,
+            # Technical requirements
+            "static_libpython": getSystemStaticLibPythonPath() is not None,
             # Builtins
             "True": True,
             "False": False,
@@ -1055,6 +1079,18 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def decideAnnotations(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def decideDocStrings(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def decideAsserts(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def getPreprocessorSymbols(self):
         """Decide which C defines to be used in compilation.
 
@@ -1245,7 +1281,7 @@ except ImportError:
                 return None
 
             if Options.is_debug:
-                self.info(cmd)
+                self.info(cmd, keep_format=True)
 
             raise
 
@@ -1386,16 +1422,22 @@ except ImportError:
             for count, variable_config in enumerate(
                 self.config.get(full_name, section="variables")
             ):
-                setup_codes = variable_config.get("setup_code")
-                declarations = variable_config.get("declarations")
+                environment = variable_config.get("environment", {})
+                setup_codes = variable_config.get("setup_code", [])
+                if type(setup_codes) is str:
+                    setup_codes = setup_codes.splitlines()
+                declarations = variable_config.get("declarations", {})
 
-                if declarations and self.evaluateCondition(
+                if len(declarations) < 1:
+                    self.sysexit(
+                        "Error, no variable 'declarations' for %s makes no sense."
+                        % full_name
+                    )
+
+                if self.evaluateCondition(
                     full_name=full_name,
                     condition=variable_config.get("when", "True"),
                 ):
-                    if type(setup_codes) is str:
-                        setup_codes = setup_codes.splitlines()
-
                     setup_codes.extend(
                         "%s=%r" % (constant_name, constant_value)
                         for (
@@ -1404,11 +1446,31 @@ except ImportError:
                         ) in self.getExpressionConstants(full_name=full_name).items()
                     )
 
-                    info = self.queryRuntimeInformationMultiple(
-                        "%s_variables_%s" % (full_name.asString(), count),
-                        setup_codes=setup_codes,
-                        values=tuple(declarations.items()),
-                    )
+                    env_variables = {}
+
+                    for env_name, env_value in environment.items():
+                        env_variables[env_name] = self.evaluateExpressionOrConstant(
+                            full_name=full_name,
+                            expression=env_value,
+                            config_name="variables config #%d" % count,
+                            extra_context=None,
+                            single_value=True,
+                        )
+
+                    with withEnvironmentVarsOverridden(env_variables):
+                        info = self.queryRuntimeInformationMultiple(
+                            "%s_variables_%s" % (full_name.asString(), count),
+                            setup_codes=setup_codes,
+                            values=tuple(declarations.items()),
+                        )
+
+                    if Options.isExperimental("display-yaml-variables"):
+                        self.info("Evaluated %r" % info)
+
+                    if info is None:
+                        self.sysexit(
+                            "Error, failed to evaluate variables for %s." % full_name
+                        )
 
                     variables.update(info.asDict())
 
@@ -1419,10 +1481,9 @@ except ImportError:
     def evaluateExpression(
         self, full_name, expression, config_name, extra_context, single_value
     ):
-        context = TagContext(logger=self, full_name=full_name, config_name=config_name)
-        context.update(control_tags)
-
-        context.update(_getEvaluationContext())
+        context = _makeEvaluationContext(
+            logger=self, full_name=full_name, config_name=config_name
+        )
 
         def get_variable(variable_name):
             assert type(variable_name) is str, variable_name
@@ -1521,12 +1582,10 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         if condition == "False":
             return False
 
-        context = TagContext(
+        # TODO: Maybe add module name to config name?
+        context = _makeEvaluationContext(
             logger=self, full_name=full_name, config_name="'when' configuration"
         )
-        context.update(control_tags)
-
-        context.update(_getEvaluationContext())
 
         def get_parameter(parameter_name, default):
             result = Options.getModuleParameter(full_name, parameter_name)
@@ -1610,118 +1669,15 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         plugins_logger.info(message, prefix=cls.plugin_name, keep_format=keep_format)
 
     @classmethod
+    def debug(cls, message, keep_format=False):
+        if Options.is_debug:
+            cls.info(message, keep_format=keep_format)
+
+    @classmethod
     def sysexit(cls, message, mnemonic=None, reporting=True):
         plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
-
-
-class NuitkaYamlPluginBase(NuitkaPluginBase):
-    """Nuitka base class for all plugins that use yaml config"""
-
-    def __init__(self):
-        self.config = getYamlPackageConfiguration()
-
-    def getYamlConfigItem(
-        self, module_name, section, item_name, decide_relevant, default, recursive
-    ):
-        while True:
-            module_configs = self.config.get(module_name, section=section)
-
-            if module_configs is not None:
-                for module_config in module_configs:
-                    config_item = module_config.get(item_name, default)
-
-                    # Avoid condition, if the item is not relevant
-                    if decide_relevant is not None and not decide_relevant(config_item):
-                        continue
-
-                    if not self.evaluateCondition(
-                        full_name=module_name,
-                        condition=module_config.get("when", "True"),
-                    ):
-                        continue
-
-                    if recursive:
-                        yield module_name, config_item
-                    else:
-                        yield config_item
-
-            if not recursive:
-                break
-
-            module_name = module_name.getPackageName()
-            if not module_name:
-                break
-
-    def getYamlConfigItemItems(
-        self, module_name, section, item_name, decide_relevant, recursive
-    ):
-        def dict_decide_relevant(item_dict):
-            if not item_dict:
-                return False
-
-            if decide_relevant is None:
-                return True
-
-            for key, value in item_dict.items():
-                if decide_relevant(key, value):
-                    return True
-
-            return False
-
-        for item_config in self.getYamlConfigItem(
-            module_name=module_name,
-            section=section,
-            item_name=item_name,
-            decide_relevant=dict_decide_relevant,
-            default={},
-            recursive=recursive,
-        ):
-            if recursive:
-                for key, value in item_config[1].items():
-                    if decide_relevant(key, value):
-                        yield item_config[0], key, value
-            else:
-                for key, value in item_config.items():
-                    if decide_relevant(key, value):
-                        yield key, value
-
-    def getYamlConfigItemSet(
-        self, module_name, section, item_name, decide_relevant, recursive
-    ):
-        for item_config in self.getYamlConfigItem(
-            module_name=module_name,
-            section=section,
-            item_name=item_name,
-            decide_relevant=None,
-            default=(),
-            recursive=recursive,
-        ):
-            if recursive:
-                for value in item_config[1]:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield item_config[0], value
-            else:
-                for value in item_config:
-                    if decide_relevant is None or decide_relevant(value):
-                        yield value
-
-
-def standalone_only(func):
-    """For plugins that have functionality that should be done in standalone mode only."""
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        if isStandaloneMode():
-            return func(*args, **kwargs)
-        else:
-            if inspect.isgeneratorfunction(func):
-                return ()
-            else:
-                return None
-
-    return wrapped
 
 
 class TagContext(dict):
@@ -1744,10 +1700,42 @@ class TagContext(dict):
             if key.startswith("use_"):
                 return False
 
+            if key == "no_asserts":
+                # TODO: This should be better decoupled.
+                from .Plugins import Plugins
+
+                return Plugins.decideAssertions(self.full_name) is False
+
+            if key == "no_docstrings":
+                from .Plugins import Plugins
+
+                return Plugins.decideDocStrings(self.full_name) is False
+
+            if key == "no_annotations":
+                from .Plugins import Plugins
+
+                return Plugins.decideAnnotations(self.full_name) is False
+
             self.logger.sysexit(
                 "Identifier '%s' in %s of module '%s' is unknown."
                 % (key, self.config_name, self.full_name)
             )
+
+
+def standalone_only(func):
+    """For plugins that have functionality that should be done in standalone mode only."""
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if isStandaloneMode():
+            return func(*args, **kwargs)
+        else:
+            if inspect.isgeneratorfunction(func):
+                return ()
+            else:
+                return None
+
+    return wrapped
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

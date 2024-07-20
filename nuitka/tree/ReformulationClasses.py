@@ -11,7 +11,7 @@ source code comments with Developer Manual sections.
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ClassNodes import ExpressionClassBodyP2
+from nuitka.nodes.ClassNodes import ExpressionClassDictBody
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -41,15 +41,14 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import (
-    makeStatementReleaseVariable,
-    makeStatementsReleaseVariables,
-)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .TreeHelpers import (
     buildFrameNode,
     buildNodeTuple,
@@ -70,7 +69,7 @@ def buildClassNode2(provider, node, source_ref):
 
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
-    function_body = ExpressionClassBodyP2(
+    function_body = ExpressionClassDictBody(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
@@ -191,7 +190,7 @@ def buildClassNode2(provider, node, source_ref):
                 ),
                 source_ref=source_ref,
             ),
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider,
                 tried=StatementTry(
                     tried=makeStatementsSequenceFromStatement(
@@ -222,11 +221,8 @@ def buildClassNode2(provider, node, source_ref):
                     return_handler=None,
                     source_ref=source_ref,
                 ),
-                final=makeStatementReleaseVariable(
-                    variable=tmp_base, source_ref=source_ref
-                ),
+                variables=(tmp_base,),
                 source_ref=source_ref,
-                public_exc=False,
             ),
         )
     else:
@@ -370,13 +366,10 @@ def buildClassNode2(provider, node, source_ref):
         )
     )
 
-    return makeTryFinallyStatement(
+    return makeTryFinallyReleaseStatement(
         provider=function_body,
         tried=statements,
-        final=makeStatementsReleaseVariables(
-            variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
-            source_ref=source_ref,
-        ),
+        variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
         source_ref=source_ref,
     )
 

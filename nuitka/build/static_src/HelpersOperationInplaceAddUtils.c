@@ -75,6 +75,7 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
         // Has to work.
         assert(res == 0);
     }
+    assert(wb.len >= 0);
 
     Py_ssize_t oldsize = PyBytes_GET_SIZE(*operand1);
 

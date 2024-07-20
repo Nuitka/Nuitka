@@ -22,7 +22,7 @@ int count_hit_frame_cache_instances = 0;
 #endif
 
 #if PYTHON_VERSION < 0x3b0
-static PyMemberDef Nuitka_Frame_memberlist[] = {
+static PyMemberDef Nuitka_Frame_members[] = {
     {(char *)"f_back", T_OBJECT, offsetof(PyFrameObject, f_back), READONLY | RESTRICTED},
     {(char *)"f_code", T_OBJECT, offsetof(PyFrameObject, f_code), READONLY | RESTRICTED},
     {(char *)"f_builtins", T_OBJECT, offsetof(PyFrameObject, f_builtins), READONLY | RESTRICTED},
@@ -31,12 +31,12 @@ static PyMemberDef Nuitka_Frame_memberlist[] = {
     {NULL}};
 
 #else
-#define Nuitka_Frame_memberlist 0
+#define Nuitka_Frame_members 0
 #endif
 
 #if PYTHON_VERSION < 0x300
 
-static PyObject *Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame) {
+static PyObject *_Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -51,7 +51,7 @@ static PyObject *Nuitka_Frame_get_exc_traceback(struct Nuitka_FrameObject *frame
     return result;
 }
 
-static int Nuitka_Frame_set_exc_traceback(struct Nuitka_FrameObject *frame, PyObject *traceback) {
+static int _Nuitka_Frame_set_exc_traceback(struct Nuitka_FrameObject *frame, PyObject *traceback) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -68,7 +68,7 @@ static int Nuitka_Frame_set_exc_traceback(struct Nuitka_FrameObject *frame, PyOb
     return 0;
 }
 
-static PyObject *Nuitka_Frame_get_exc_type(struct Nuitka_FrameObject *frame) {
+static PyObject *_Nuitka_Frame_get_exc_type(struct Nuitka_FrameObject *frame) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -85,7 +85,7 @@ static PyObject *Nuitka_Frame_get_exc_type(struct Nuitka_FrameObject *frame) {
     return result;
 }
 
-static int Nuitka_Frame_set_exc_type(struct Nuitka_FrameObject *frame, PyObject *exception_type) {
+static int _Nuitka_Frame_set_exc_type(struct Nuitka_FrameObject *frame, PyObject *exception_type) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -104,7 +104,7 @@ static int Nuitka_Frame_set_exc_type(struct Nuitka_FrameObject *frame, PyObject 
     return 0;
 }
 
-static PyObject *Nuitka_Frame_get_exc_value(struct Nuitka_FrameObject *frame) {
+static PyObject *_Nuitka_Frame_get_exc_value(struct Nuitka_FrameObject *frame) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -121,7 +121,7 @@ static PyObject *Nuitka_Frame_get_exc_value(struct Nuitka_FrameObject *frame) {
     return result;
 }
 
-static int Nuitka_Frame_set_exc_value(struct Nuitka_FrameObject *frame, PyObject *exception_value) {
+static int _Nuitka_Frame_set_exc_value(struct Nuitka_FrameObject *frame, PyObject *exception_value) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -139,7 +139,7 @@ static int Nuitka_Frame_set_exc_value(struct Nuitka_FrameObject *frame, PyObject
     return 0;
 }
 
-static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -150,7 +150,7 @@ static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, v
 
 #endif
 
-static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_locals(struct Nuitka_FrameObject *nuitka_frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)nuitka_frame));
     CHECK_OBJECT((PyObject *)nuitka_frame);
     assert(_PyObject_GC_IS_TRACKED(nuitka_frame));
@@ -237,7 +237,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
     }
 }
 
-static PyObject *Nuitka_Frame_getlineno(struct Nuitka_FrameObject *frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_lineno(struct Nuitka_FrameObject *frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -245,7 +245,7 @@ static PyObject *Nuitka_Frame_getlineno(struct Nuitka_FrameObject *frame, void *
     return PyInt_FromLong(frame->m_frame.f_lineno);
 }
 
-static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_trace(struct Nuitka_FrameObject *frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -255,7 +255,7 @@ static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *c
     return result;
 }
 
-static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
+static int _Nuitka_Frame_set_trace(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -267,7 +267,7 @@ static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, 
 }
 
 #if PYTHON_VERSION >= 0x370
-static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_trace_lines(struct Nuitka_FrameObject *frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -277,7 +277,7 @@ static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, vo
     return result;
 }
 
-static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
+static int _Nuitka_Frame_set_trace_lines(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -288,7 +288,7 @@ static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject
     return -1;
 }
 
-static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, void *closure) {
+static PyObject *_Nuitka_Frame_get_trace_opcodes(struct Nuitka_FrameObject *frame, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -298,7 +298,7 @@ static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, 
     return result;
 }
 
-static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
+static int _Nuitka_Frame_set_trace_opcodes(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);
     assert(_PyObject_GC_IS_TRACKED(frame));
@@ -310,32 +310,19 @@ static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObje
 }
 #endif
 
-#if PYTHON_VERSION >= 0x3b0
-static PyObject *Nuitka_Frame_getback(struct Nuitka_FrameObject *frame, void *closure) {
-    assert(Nuitka_Frame_CheckExact((PyObject *)frame));
-    CHECK_OBJECT((PyObject *)frame);
-    assert(_PyObject_GC_IS_TRACKED(frame));
-
-    return (PyObject *)PyFrame_GetBack(&frame->m_frame);
-}
-#endif
-
-static PyGetSetDef Nuitka_Frame_getsetlist[] = {
-    {(char *)"f_locals", (getter)Nuitka_Frame_getlocals, NULL, NULL},
-    {(char *)"f_lineno", (getter)Nuitka_Frame_getlineno, NULL, NULL},
-    {(char *)"f_trace", (getter)Nuitka_Frame_gettrace, (setter)Nuitka_Frame_settrace, NULL},
+static PyGetSetDef Nuitka_Frame_tp_getset[] = {
+    {(char *)"f_locals", (getter)_Nuitka_Frame_get_locals, NULL, NULL},
+    {(char *)"f_lineno", (getter)_Nuitka_Frame_get_lineno, NULL, NULL},
+    {(char *)"f_trace", (getter)_Nuitka_Frame_get_trace, (setter)_Nuitka_Frame_set_trace, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"f_restricted", (getter)Nuitka_Frame_get_restricted, NULL, NULL},
-    {(char *)"f_exc_traceback", (getter)Nuitka_Frame_get_exc_traceback, (setter)Nuitka_Frame_set_exc_traceback, NULL},
-    {(char *)"f_exc_type", (getter)Nuitka_Frame_get_exc_type, (setter)Nuitka_Frame_set_exc_type, NULL},
-    {(char *)"f_exc_value", (getter)Nuitka_Frame_get_exc_value, (setter)Nuitka_Frame_set_exc_value, NULL},
+    {(char *)"f_restricted", (getter)_Nuitka_Frame_get_restricted, NULL, NULL},
+    {(char *)"f_exc_traceback", (getter)_Nuitka_Frame_get_exc_traceback, (setter)_Nuitka_Frame_set_exc_traceback, NULL},
+    {(char *)"f_exc_type", (getter)_Nuitka_Frame_get_exc_type, (setter)_Nuitka_Frame_set_exc_type, NULL},
+    {(char *)"f_exc_value", (getter)_Nuitka_Frame_get_exc_value, (setter)_Nuitka_Frame_set_exc_value, NULL},
 #endif
 #if PYTHON_VERSION >= 0x370
-    {(char *)"f_trace_lines", (getter)Nuitka_Frame_gettracelines, (setter)Nuitka_Frame_settracelines, NULL},
-    {(char *)"f_trace_opcodes", (getter)Nuitka_Frame_gettraceopcodes, (setter)Nuitka_Frame_settraceopcodes, NULL},
-#endif
-#if PYTHON_VERSION >= 0x3b0
-    {(char *)"f_trace_lines", (getter)Nuitka_Frame_getback, NULL, NULL},
+    {(char *)"f_trace_lines", (getter)_Nuitka_Frame_get_trace_lines, (setter)_Nuitka_Frame_set_trace_lines, NULL},
+    {(char *)"f_trace_opcodes", (getter)_Nuitka_Frame_get_trace_opcodes, (setter)_Nuitka_Frame_set_trace_opcodes, NULL},
 #endif
     {NULL}};
 
@@ -541,7 +528,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
     return 0;
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
@@ -569,7 +556,7 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
     }
 #endif
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     // For frames that are closed, we also need to close the generator.
     PyObject *f_gen = Nuitka_GetFrameGenerator(frame);
     if (f_gen != NULL) {
@@ -646,7 +633,7 @@ static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame) {
 }
 
 static PyMethodDef Nuitka_Frame_methods[] = {
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     {"clear", (PyCFunction)Nuitka_Frame_clear, METH_NOARGS, "F.clear(): clear most references held by the frame"},
 #endif
     {"__sizeof__", (PyCFunction)Nuitka_Frame_sizeof, METH_NOARGS, "F.__sizeof__() -> size of F in memory, in bytes"},
@@ -680,8 +667,8 @@ PyTypeObject Nuitka_Frame_Type = {
     0,                                       // tp_iter
     0,                                       // tp_iternext
     Nuitka_Frame_methods,                    // tp_methods
-    Nuitka_Frame_memberlist,                 // tp_members
-    Nuitka_Frame_getsetlist,                 // tp_getset
+    Nuitka_Frame_members,                    // tp_members
+    Nuitka_Frame_tp_getset,                  // tp_getset
     0,                                       // tp_base
     0,                                       // tp_dict
 };
@@ -715,7 +702,7 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
     assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
 #endif
     Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
@@ -793,12 +780,12 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION < 0x3b0
     frame->f_lasti = -1;
-    frame->f_iblock = 0;
+    frame->f_iblock = 0; // spell-checker: ignore iblock
 #endif
 
     frame->f_lineno = code->co_firstlineno;
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     Nuitka_SetFrameGenerator(result, NULL);
 
     Nuitka_Frame_MarkAsNotExecuting(result);
@@ -808,7 +795,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     result->m_interpreter_frame.frame_obj = &result->m_frame;
     result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
 #if PYTHON_VERSION >= 0x3c0
-    result->m_interpreter_frame.f_funcobj = NULL;
+    result->m_interpreter_frame.f_funcobj = NULL; // spell-checker: ignore funcobj
 #else
     result->m_interpreter_frame.f_func = NULL;
 #endif
@@ -863,7 +850,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 #if PYTHON_VERSION >= 0x3b0
                              PyObject *function_qualname,
 #endif
-                             PyObject *argnames, PyObject *freevars, int arg_count
+                             PyObject *arg_names, PyObject *free_vars, int arg_count
 #if PYTHON_VERSION >= 0x300
                              ,
                              int kw_only_count
@@ -892,17 +879,17 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     }
 #endif
 
-    if (argnames == NULL) {
-        argnames = const_tuple_empty;
+    if (arg_names == NULL || arg_names == Py_None) {
+        arg_names = const_tuple_empty;
     }
-    CHECK_OBJECT(argnames);
-    assert(PyTuple_Check(argnames));
+    CHECK_OBJECT(arg_names);
+    assert(PyTuple_Check(arg_names));
 
-    if (freevars == NULL) {
-        freevars = const_tuple_empty;
+    if (free_vars == NULL || free_vars == Py_None) {
+        free_vars = const_tuple_empty;
     }
-    CHECK_OBJECT(freevars);
-    assert(PyTuple_Check(freevars));
+    CHECK_OBJECT(free_vars);
+    assert(PyTuple_Check(free_vars));
 
     // The PyCode_New has funny code that interns, mutating the tuple that owns
     // it. Really serious non-immutable shit. We have triggered that changes
@@ -911,36 +898,76 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     // TODO: Reactivate once code object creation becomes un-streaming driven
     // and we can pass the extra args with no worries.
 
-    // Py_hash_t hash = DEEP_HASH(argnames);
+    // Py_hash_t hash = DEEP_HASH(arg_names);
 #endif
 
+    // spell-checker: ignore lnotab
 #if PYTHON_VERSION < 0x300
     PyObject *code = const_str_empty;
     PyObject *lnotab = const_str_empty;
-#else
-#if PYTHON_VERSION < 0x3b0
+    PyObject *consts = const_tuple_empty;
+    PyObject *names = const_tuple_empty;
+    int stacksize = 0;
+#elif PYTHON_VERSION < 0x3b0
     PyObject *code = const_bytes_empty;
     PyObject *lnotab = const_bytes_empty;
+    PyObject *consts = const_tuple_empty;
+    PyObject *names = const_tuple_empty;
+    int stacksize = 0;
 #else
     // Our code object needs to be recognizable, and Python doesn't store the
     // length anymore, so we need a non-empty one.
     static PyObject *empty_code = NULL;
-    if (empty_code == NULL) {
-        empty_code = PyBytes_FromString("\0\0");
-    }
-    PyObject *code = empty_code;
     static PyObject *lnotab = NULL;
-    if (lnotab == NULL) {
-        lnotab = PyBytes_FromStringAndSize("\x80\x00\xd8\x04\x08\x80"
-                                           "D",
-                                           7);
+    static PyObject *consts = NULL;
+    static PyObject *names = NULL;
+    // TODO: Seems removable.
+    static PyObject *exception_table = NULL;
+    static int stacksize = 0;
+
+    if (empty_code == NULL) {
+        // Only needed once here.
+        PyThreadState *tstate = PyThreadState_GET();
+
+        PyObject *empty_code_module_object = Py_CompileString(
+            "def empty(): raise RuntimeError('Compiled function bytecode used')", "<exec>", Py_file_input);
+        NUITKA_MAY_BE_UNUSED PyObject *module =
+            PyImport_ExecCodeModule("nuitka_empty_function", empty_code_module_object);
+        CHECK_OBJECT(module);
+
+        PyObject *empty_function = PyObject_GetAttrString(module, "empty");
+        CHECK_OBJECT(empty_function);
+        PyObject *empty_code_object = PyObject_GetAttrString(empty_function, "__code__");
+        CHECK_OBJECT(empty_code_object);
+
+        NUITKA_MAY_BE_UNUSED bool bool_res = Nuitka_DelModuleString(tstate, "nuitka_empty_function");
+        assert(bool_res != false);
+
+        empty_code = PyObject_GetAttrString(empty_code_object, "co_code");
+        CHECK_OBJECT(empty_code);
+        lnotab = PyObject_GetAttrString(empty_code_object, "co_lnotab");
+        CHECK_OBJECT(lnotab);
+        consts = PyObject_GetAttrString(empty_code_object, "co_consts");
+        CHECK_OBJECT(consts);
+        names = PyObject_GetAttrString(empty_code_object, "co_names");
+        CHECK_OBJECT(names);
+        exception_table = PyObject_GetAttrString(empty_code_object, "co_exceptiontable");
+        CHECK_OBJECT(exception_table);
+
+        stacksize = (int)PyLong_AsLong(PyObject_GetAttrString(empty_code_object, "co_stacksize"));
     }
-#endif
+
+    PyObject *code = empty_code;
+    CHECK_OBJECT(empty_code);
+    CHECK_OBJECT(lnotab);
+    CHECK_OBJECT(consts);
+    CHECK_OBJECT(names);
+    CHECK_OBJECT(exception_table);
 #endif
 
     // For Python 3.11 this value is checked, even if not used.
 #if PYTHON_VERSION >= 0x3b0
-    int nlocals = (int)PyTuple_GET_SIZE(argnames);
+    int nlocals = (int)PyTuple_GET_SIZE(arg_names);
 #else
     int nlocals = 0;
 #endif
@@ -949,40 +976,40 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     // and is not available for Python2.
 
 #if PYTHON_VERSION >= 0x380
-    PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // argcount
+    PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // arg_count
 #else
-    PyCodeObject *result = PyCode_New(arg_count, // argcount
+    PyCodeObject *result = PyCode_New(arg_count, // arg_count
 #endif
 
 #if PYTHON_VERSION >= 0x300
 #if PYTHON_VERSION >= 0x380
-                                                     pos_only_count, // kw-only count
+                                                     pos_only_count, // pos-only count
 #endif
                                                      kw_only_count, // kw-only count
 #endif
                                                      nlocals,           // nlocals
-                                                     0,                 // stacksize
+                                                     stacksize,         // stacksize
                                                      flags,             // flags
                                                      code,              // code (bytecode)
-                                                     const_tuple_empty, // consts (we are not going to be compatible)
-                                                     const_tuple_empty, // names (we are not going to be compatible)
-                                                     argnames,          // varnames (we are not going to be compatible)
-                                                     freevars,          // freevars
-                                                     const_tuple_empty, // cellvars (we are not going to be compatible)
+                                                     consts,            // consts (we are not going to be compatible)
+                                                     names,             // names (we are not going to be compatible)
+                                                     arg_names,         // var_names (we are not going to be compatible)
+                                                     free_vars,         // free_vars
+                                                     const_tuple_empty, // cell_vars (we are not going to be compatible)
                                                      filename,          // filename
                                                      function_name,     // name
 #if PYTHON_VERSION >= 0x3b0
                                                      function_qualname, // qualname
 #endif
-                                                     line,  // firstlineno (offset of the code object)
+                                                     line,  // first_lineno (offset of the code object)
                                                      lnotab // lnotab (table to translate code object)
 #if PYTHON_VERSION >= 0x3b0
                                                      ,
-                                                     const_bytes_empty // exceptiontable
+                                                     exception_table // exception_table
 #endif
     );
 
-    // assert(DEEP_HASH(tstate, argnames) == hash);
+    // assert(DEEP_HASH(tstate, arg_names) == hash);
 
 #if PYTHON_VERSION < 0x300
     Py_DECREF(filename_str);

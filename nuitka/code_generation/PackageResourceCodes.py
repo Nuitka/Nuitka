@@ -160,7 +160,11 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
     distribution = expression.distribution
     original_name = expression.original_name
 
-    addDistributionMetadataValue(name=original_name, distribution=distribution)
+    addDistributionMetadataValue(
+        distribution_name=original_name,
+        distribution=distribution,
+        reason="static analysis",
+    )
 
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context

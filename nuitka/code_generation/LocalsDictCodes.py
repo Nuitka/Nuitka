@@ -22,7 +22,8 @@ from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesVariables import (
     template_read_locals_dict_with_fallback,
     template_read_locals_dict_without_fallback,
-    template_read_locals_mapping_with_fallback,
+    template_read_locals_mapping_with_fallback_no_ref,
+    template_read_locals_mapping_with_fallback_ref,
     template_read_locals_mapping_without_fallback,
 )
 
@@ -95,11 +96,11 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     is_dict = locals_scope.hasShapeDictionaryExact()
 
-    res_name = context.getIntResName()
-
     if is_dict:
+        res_name = context.getBoolResName()
+
         emit(
-            "%s = PyDict_SetItem(%s, %s, %s);"
+            "%s = DICT_SET_ITEM(%s, %s, %s);"
             % (
                 res_name,
                 locals_declaration,
@@ -107,7 +108,17 @@ def generateLocalsDictSetCode(statement, emit, context):
                 value_arg_name,
             )
         )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_name=value_arg_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
     else:
+        res_name = context.getIntResName()
+
         emit(
             "%s = PyObject_SetItem(%s, %s, %s);"
             % (
@@ -118,13 +129,13 @@ def generateLocalsDictSetCode(statement, emit, context):
             )
         )
 
-    getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
-        release_name=value_arg_name,
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            release_name=value_arg_name,
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateLocalsDictDelCode(statement, emit, context):
@@ -194,7 +205,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
         is_dict = locals_scope.hasShapeDictionaryExact()
 
-        assert not context.needsCleanup(value_name)
+        needs_ref = context.needsCleanup(value_name)
 
         if is_dict:
             template = template_read_locals_dict_with_fallback
@@ -205,12 +216,22 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
                 % {
                     "to_name": value_name,
                     "locals_dict": locals_declaration,
+                    "dict_get_item": (
+                        "DICT_GET_ITEM1" if needs_ref else "DICT_GET_ITEM0"
+                    ),
                     "fallback": fallback_codes,
                     "var_name": context.getConstantCode(constant=variable_name),
                 }
             )
+
+            if needs_ref:
+                context.addCleanupTempName(value_name)
         else:
-            template = template_read_locals_mapping_with_fallback
+            if needs_ref:
+                template = template_read_locals_mapping_with_fallback_ref
+            else:
+                template = template_read_locals_mapping_with_fallback_no_ref
+
             fallback_codes = indented(fallback_emit.codes, 2)
 
             emit(
@@ -226,7 +247,8 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
             # If the fallback took no reference, then make it do it
             # anyway.
-            context.addCleanupTempName(value_name)
+            if not needs_ref:
+                context.addCleanupTempName(value_name)
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):

@@ -6,25 +6,23 @@
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore klass
-
 #if PYTHON_VERSION < 0x300
-PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
-    CHECK_OBJECT(klass);
+PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name) {
+    CHECK_OBJECT(class_object);
     CHECK_OBJECT(attr_name);
 
-    assert(PyClass_Check(klass));
+    assert(PyClass_Check(class_object));
     assert(PyString_CheckExact(attr_name));
 
-    PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name);
+    PyObject *result = GET_STRING_DICT_VALUE((PyDictObject *)class_object->cl_dict, (PyStringObject *)attr_name);
 
     if (result == NULL) {
-        assert(PyTuple_Check(klass->cl_bases));
+        assert(PyTuple_Check(class_object->cl_bases));
 
-        Py_ssize_t base_count = PyTuple_GET_SIZE(klass->cl_bases);
+        Py_ssize_t base_count = PyTuple_GET_SIZE(class_object->cl_bases);
 
         for (Py_ssize_t i = 0; i < base_count; i++) {
-            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(klass->cl_bases, i), attr_name);
+            result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(class_object->cl_bases, i), attr_name);
 
             if (result != NULL) {
                 break;
@@ -124,7 +122,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyThreadState *tstate, PyObject *source, PyObject *at
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -276,7 +274,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyThreadState *tstate, PyObject *source) {
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -393,7 +391,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyThreadState *tstate, PyObject *source) {
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -558,7 +556,7 @@ bool HAS_ATTR_BOOL(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -727,7 +725,7 @@ int HAS_ATTR_BOOL2(PyThreadState *tstate, PyObject *source, PyObject *attr_name)
             if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
-                if (func != NULL && PyDescr_IsData(descr)) {
+                if (func != NULL && Nuitka_Descr_IsData(descr)) {
                     PyObject *result = func(descr, source, (PyObject *)type);
                     Py_DECREF(descr);
 
@@ -929,7 +927,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
         if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
             descrsetfunc func = Py_TYPE(descr)->tp_descr_set;
 
-            if (func != NULL && PyDescr_IsData(descr)) {
+            if (func != NULL && Nuitka_Descr_IsData(descr)) {
                 int res = func(descr, target, value);
                 Py_DECREF(descr);
 

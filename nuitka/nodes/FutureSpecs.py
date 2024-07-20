@@ -24,6 +24,9 @@ _future_annotations_default = python_version >= 0x400
 
 
 class FutureSpec(object):
+    # We are using a bunch of flags here, Python decides them and then we add
+    # even more modes ourselves, pylint: disable=too-many-instance-attributes
+
     __slots__ = (
         "future_division",
         "unicode_literals",
@@ -32,10 +35,11 @@ class FutureSpec(object):
         "barry_bdfl",
         "generator_stop",
         "future_annotations",
+        "use_annotations",
     )
 
     @counted_init
-    def __init__(self):
+    def __init__(self, use_annotations):
         self.future_division = _future_division_default
         self.unicode_literals = False
         self.absolute_import = _future_absolute_import_default
@@ -44,6 +48,9 @@ class FutureSpec(object):
         self.generator_stop = _future_generator_stop_default
         self.future_annotations = _future_annotations_default
 
+        # Attaching our special modes here still.
+        self.use_annotations = use_annotations
+
     if isCountingInstances():
         __del__ = counted_del()
 
@@ -51,7 +58,7 @@ class FutureSpec(object):
         return "<FutureSpec %s>" % ",".join(self.asFlags())
 
     def clone(self):
-        result = FutureSpec()
+        result = FutureSpec(use_annotations=self.use_annotations)
 
         result.future_division = self.future_division
         result.unicode_literals = self.unicode_literals
@@ -96,6 +103,9 @@ class FutureSpec(object):
     def enableFutureAnnotations(self):
         self.future_annotations = True
 
+    def shallUseAnnotations(self):
+        return self.use_annotations
+
     def isFutureAnnotations(self):
         return self.future_annotations
 
@@ -137,7 +147,10 @@ def fromFlags(flags):
     if "" in flags:
         flags.remove("")
 
-    result = FutureSpec()
+    # TODO: For persistence, that's not very good, but it's actually only using
+    # our "no_annotations" flag during building phase, which is completed here,
+    # but we might have to add it in the future to XML differently.
+    result = FutureSpec(use_annotations=False)
 
     if "CO_FUTURE_DIVISION" in flags:
         result.enableFutureDivision()

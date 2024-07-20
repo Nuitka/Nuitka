@@ -8,6 +8,7 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
+import subprocess
 import sys
 from optparse import OptionParser
 
@@ -25,10 +26,12 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     changeTextFileContents,
+    deleteFile,
     getFileContents,
     getFileList,
     listDir,
     makePath,
+    putTextFileContents,
     relpath,
     withDirectoryChange,
 )
@@ -219,6 +222,28 @@ def _updatePacmanFile(installed_python, case_data, dry_run, result_path):
     return changed_pipenv_file, pipenv_filename
 
 
+def _execPipenvCommand(installed_python, command, retry=False):
+    try:
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                command,
+                "--python",
+                installed_python.getPythonExe(),
+            ],
+            logger=watch_logger,
+        )
+    except subprocess.CalledProcessError:
+        if command in ("install", "update") and not retry:
+            _execPipenvCommand(installed_python, "--rm")
+            _execPipenvCommand(installed_python, command)
+
+        else:
+            raise
+
+
 def _updatePipenvLockFile(
     installed_python, dry_run, pipenv_filename_full, no_pipenv_update
 ):
@@ -229,16 +254,7 @@ def _updatePipenvLockFile(
                 % pipenv_filename_full
             )
 
-            check_call(
-                [
-                    installed_python.getPythonExe(),
-                    "-m",
-                    "pipenv",
-                    "install",
-                    "--python",
-                    installed_python.getPythonExe(),
-                ]
-            )
+            _execPipenvCommand(installed_python, "install")
 
         elif not dry_run:
             watch_logger.info(
@@ -246,16 +262,7 @@ def _updatePipenvLockFile(
                 % pipenv_filename_full
             )
 
-            check_call(
-                [
-                    installed_python.getPythonExe(),
-                    "-m",
-                    "pipenv",
-                    "update",
-                    "--python",
-                    installed_python.getPythonExe(),
-                ]
-            )
+            _execPipenvCommand(installed_python, "update")
     else:
         watch_logger.info(
             "Working with pipenv file '%s' to install virtualenv, may take a while."
@@ -293,8 +300,10 @@ def _updatePacmanLockFile():
     return pacman_lock_filename
 
 
-def _compileCase(case_data, case_dir, installed_python, lock_filename):
+def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     preferred_package_type = installed_python.getPreferredPackageType()
+
+    extra_options = []
 
     if preferred_package_type == "pip":
         run_command = [
@@ -306,14 +315,15 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
             installed_python.getPythonExe(),
             "python",
         ]
-        extra_options = []
     elif preferred_package_type == "pacman":
         run_command = ["python"]
 
-        # TODO: Bug in MSYS2 ccache, avoid using that.
-        extra_options = ["--disable-ccache"]
+        extra_options.append("--disable-ccache")
     else:
         assert False
+
+    if jobs is not None:
+        extra_options.append("--jobs=%s" % jobs)
 
     check_call(
         run_command
@@ -347,6 +357,14 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename):
         with open("compiled-stderr.txt", "wb") as output:
             output.write(stderr)
 
+        if exit_nuitka == 0:
+            deleteFile("compiled-exit.txt", must_exist=False)
+        else:
+            putTextFileContents(
+                filename="compiled-exit.txt",
+                contents=str(exit_nuitka),
+            )
+
         if exit_nuitka != 0:
             sys.exit(
                 "Error, failed to execute %s with code %d." % (binaries[0], exit_nuitka)
@@ -361,6 +379,7 @@ def _updateCase(
     nuitka_update_mode,
     installed_python,
     result_path,
+    jobs,
 ):
     # Many details and cases due to package method being handled here.
     # pylint: disable=too-many-branches,too-many-locals
@@ -404,6 +423,8 @@ def _updateCase(
         with withDirectoryChange(result_path):
             # Update or create lockfile of pipenv.
             lock_filename = _updatePacmanLockFile()
+    else:
+        assert False, preferred_package_type
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
@@ -433,12 +454,15 @@ def _updateCase(
 
                         need_compile = True
                     elif old_nuitka_version == nuitka_version:
-                        watch_logger.info(
-                            "Skipping compilation with identical Nuitka for '%s'."
-                            % pipenv_filename_full
-                        )
+                        if old_report_root.attrib["completion"] != "yes":
+                            need_compile = True
+                        else:
+                            watch_logger.info(
+                                "Skipping compilation with identical Nuitka for '%s'."
+                                % pipenv_filename_full
+                            )
 
-                        need_compile = False
+                            need_compile = False
                     else:
                         watch_logger.info(
                             "Skipping compilation of old Nuitka %s result with Nuitka %s for '%s'."
@@ -455,16 +479,26 @@ def _updateCase(
         else:
             need_compile = True
 
+        if not need_compile:
+            if os.path.exists("compiled-exit.txt"):
+                watch_logger.info(
+                    "Enforcing compilation of compiled program that failed to run."
+                )
+                need_compile = True
+
         if need_compile:
             _compileCase(
                 case_data=case_data,
                 case_dir=case_dir,
                 installed_python=installed_python,
                 lock_filename=lock_filename,
+                jobs=jobs,
             )
 
 
-def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mode):
+def updateCase(
+    case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mode, jobs
+):
     case_name = case_data["case"]
 
     watch_logger.info("Consider '%s' ... " % case_name)
@@ -520,10 +554,11 @@ def updateCase(case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mod
             nuitka_update_mode=nuitka_update_mode,
             installed_python=installed_python,
             result_path=result_path,
+            jobs=jobs,
         )
 
 
-def updateCases(case_dir, dry_run, no_pipenv_update, nuitka_update_mode):
+def updateCases(case_dir, dry_run, no_pipenv_update, nuitka_update_mode, jobs):
     for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
         updateCase(
             case_dir=case_dir,
@@ -531,6 +566,7 @@ def updateCases(case_dir, dry_run, no_pipenv_update, nuitka_update_mode):
             dry_run=dry_run,
             no_pipenv_update=no_pipenv_update,
             nuitka_update_mode=nuitka_update_mode,
+            jobs=jobs,
         )
 
 
@@ -603,6 +639,16 @@ Recompile even if the versions seems not changed. Default %default.""",
 PR to create. Default not making a PR.""",
     )
 
+    parser.add_option(
+        "--jobs",
+        action="store",
+        dest="jobs",
+        default=None,
+        help="""\
+Argument for jobs, in order to be nice use negative values
+to reserve cores.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) <= 1, positional_args
@@ -650,10 +696,11 @@ PR to create. Default not making a PR.""",
 
             with withDirectoryChange(os.path.dirname(case_filename)):
                 updateCases(
-                    os.path.dirname(case_filename),
+                    case_dir=os.path.dirname(case_filename),
                     dry_run=options.dry_run,
                     no_pipenv_update=options.no_pipenv_update,
                     nuitka_update_mode=options.nuitka_update_mode,
+                    jobs=options.jobs,
                 )
 
         if pr_category is not None:

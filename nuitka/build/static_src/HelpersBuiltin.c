@@ -165,10 +165,19 @@ PyObject *EVAL_CODE(PyThreadState *tstate, PyObject *code, PyObject *globals, Py
         return NULL;
     }
 
-    // Set the __builtins__ in globals, it is expected to be present.
-    if (PyDict_Check(globals) && DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__) == 0) {
-        if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
-            return NULL;
+    // Set the "__builtins__" value in globals, it is expected to be present.
+    assert(builtin_module != NULL);
+
+    if (PyDict_Check(globals)) {
+        const int res = DICT_HAS_ITEM(tstate, globals, const_str_plain___builtins__);
+
+        if (res == 0) {
+            if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
+                // Not really allowed to happen, so far this was seen only with
+                // C compilers getting the value of "res" wrong.
+                assert(false);
+                return NULL;
+            }
         }
     }
 
@@ -448,7 +457,7 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         Py_hash_t hash = Nuitka_HashFromPointer(value);
         return PyInt_FromLong(hash);
     }
@@ -467,7 +476,7 @@ Py_hash_t HASH_VALUE_WITH_ERROR(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
 #endif
@@ -490,7 +499,7 @@ Py_hash_t HASH_VALUE_WITHOUT_ERROR(PyThreadState *tstate, PyObject *value) {
     }
 
 #if PYTHON_VERSION < 0x300
-    if (likely(type->tp_compare == NULL && RICHCOMPARE(type) == NULL)) {
+    if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         return Nuitka_HashFromPointer(value);
     }
 #endif

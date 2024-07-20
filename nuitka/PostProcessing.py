@@ -12,12 +12,7 @@ import sys
 from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.ModuleRegistry import getImportedModuleNames
-from nuitka.PythonVersions import (
-    getPythonABI,
-    getTargetPythonDLLPath,
-    python_version,
-    python_version_str,
-)
+from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
@@ -35,6 +30,8 @@ from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     cleanupHeaderForAndroid,
+    getOtoolDependencyOutput,
+    parseOtoolListingOutput,
 )
 from nuitka.utils.Utils import isAndroidBasedLinux, isMacOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
@@ -317,10 +314,26 @@ def executePostProcessing():
         and not Options.shallMakeModule()
         and not Options.shallUseStaticLibPython()
     ):
-        python_abi_version = python_version_str + getPythonABI()
-        python_dll_filename = "libpython" + python_abi_version + ".dylib"
-        python_lib_path = os.path.join(sys.prefix, "lib")
-        python_dll_path = os.path.join(python_lib_path, python_dll_filename)
+        for dependency in parseOtoolListingOutput(
+            getOtoolDependencyOutput(result_filename, [])
+        ):
+            if os.path.basename(dependency).lower().startswith(("python", "libpython")):
+                python_dll_filename = dependency
+                break
+        else:
+            postprocessing_logger.sysexit(
+                """
+Error, expected 'libpython dependency not found. Please report the bug."""
+            )
+
+        python_lib_path = os.path.dirname(python_dll_filename)
+        python_dll_path = python_dll_filename
+
+        if not os.path.exists(python_lib_path):
+            python_lib_path = os.path.join(sys.prefix, "lib")
+            python_dll_path = os.path.join(
+                python_lib_path, os.path.basename(python_dll_filename)
+            )
 
         # Note: For CPython, and potentially others, the rpath for the Python
         # library needs to be set, so it will be detected as a dependency
@@ -330,10 +343,6 @@ def executePostProcessing():
             mapping=(
                 (
                     python_dll_filename,
-                    python_dll_path,
-                ),
-                (
-                    "@rpath/Python3.framework/Versions/%s/Python3" % python_version_str,
                     python_dll_path,
                 ),
             ),

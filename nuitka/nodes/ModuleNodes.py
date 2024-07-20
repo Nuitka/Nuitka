@@ -202,6 +202,10 @@ class PythonModuleBase(NodeBase):
 
             return result
 
+    @staticmethod
+    def isExtensionModulePackage():
+        return False
+
 
 class CompiledPythonModule(
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
@@ -972,7 +976,7 @@ class PythonMainModule(CompiledPythonModule):
 class PythonExtensionModule(PythonModuleBase):
     kind = "PYTHON_EXTENSION_MODULE"
 
-    __slots__ = ("used_modules", "module_filename", "technical")
+    __slots__ = ("used_modules", "module_filename", "technical", "is_package")
 
     avoid_duplicates = set()
 
@@ -1009,8 +1013,14 @@ class PythonExtensionModule(PythonModuleBase):
 
         if os.path.isdir(module_filename):
             module_filename = getPackageDirFilename(module_filename)
+            self.is_package = True
+        else:
+            self.is_package = False
 
         self.module_filename = module_filename
+
+    def isExtensionModulePackage(self):
+        return self.is_package
 
     def finalize(self):
         del self.used_modules
@@ -1026,24 +1036,31 @@ class PythonExtensionModule(PythonModuleBase):
         """Must be present as it's used in CPython library initialization."""
         return self.technical
 
-    def getPyIFilename(self):
+    def _getPyIFilename(self):
         """Get Python type description filename."""
 
         path = self.getFilename()
         filename = os.path.basename(path)
         dirname = os.path.dirname(path)
 
-        return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
+        for suffix in (".pyi", ".py"):
+            candidate = os.path.join(dirname, filename.split(".")[0]) + suffix
+
+            if os.path.exists(candidate):
+                return candidate
+
+        return None
 
     def _readPyIFile(self):
         """Read the .pyi file if present and scan for dependencies."""
 
         if self.used_modules is None:
-            pyi_filename = self.getPyIFilename()
+            pyi_filename = self._getPyIFilename()
 
-            if os.path.exists(pyi_filename):
+            if pyi_filename is not None:
                 pyi_deps = parsePyIFile(
-                    module_name=self.getFullName(), pyi_filename=pyi_filename
+                    module_name=self.getFullName(),
+                    pyi_filename=pyi_filename,
                 )
 
                 # These are not to be taken serious.

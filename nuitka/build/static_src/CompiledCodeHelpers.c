@@ -674,7 +674,7 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 }
 
 // Helper functions for print. Need to play nice with Python softspace
-// behaviour.
+// behavior.
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_DEFINE_BUILTIN(print);
@@ -860,6 +860,17 @@ bool PRINT_STRING(char const *str) {
     }
 }
 
+bool PRINT_STRING_W(wchar_t const *str) {
+    if (str) {
+        PyObject *tmp = NuitkaUnicode_FromWideChar(str, -1);
+        bool res = PRINT_ITEM(tmp);
+        Py_DECREF(tmp);
+        return res;
+    } else {
+        return PRINT_STRING("<nullstr>");
+    }
+}
+
 bool PRINT_FORMAT(char const *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -1018,6 +1029,8 @@ bool PRINT_ITEM(PyObject *object) {
     }
 }
 
+bool PRINT_ITEM_LINE(PyObject *object) { return PRINT_ITEM(object) && PRINT_NEW_LINE(); }
+
 #if PYTHON_VERSION < 0x300
 
 static void set_slot(PyObject **slot, PyObject *value) {
@@ -1027,26 +1040,26 @@ static void set_slot(PyObject **slot, PyObject *value) {
     Py_XDECREF(temp);
 }
 
-static void set_attr_slots(PyClassObject *klass) {
-    set_slot(&klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS(klass, const_str_plain___getattr__));
-    set_slot(&klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS(klass, const_str_plain___setattr__));
-    set_slot(&klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS(klass, const_str_plain___delattr__));
+static void set_attr_slots(PyClassObject *class_object) {
+    set_slot(&class_object->cl_getattr, FIND_ATTRIBUTE_IN_CLASS(class_object, const_str_plain___getattr__));
+    set_slot(&class_object->cl_setattr, FIND_ATTRIBUTE_IN_CLASS(class_object, const_str_plain___setattr__));
+    set_slot(&class_object->cl_delattr, FIND_ATTRIBUTE_IN_CLASS(class_object, const_str_plain___delattr__));
 }
 
-static bool set_dict(PyClassObject *klass, PyObject *value) {
+static bool set_dict(PyClassObject *class_object, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
         PyThreadState *tstate = PyThreadState_GET();
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "__dict__ must be a dictionary object");
         return false;
     } else {
-        set_slot(&klass->cl_dict, value);
-        set_attr_slots(klass);
+        set_slot(&class_object->cl_dict, value);
+        set_attr_slots(class_object);
 
         return true;
     }
 }
 
-static bool set_bases(PyClassObject *klass, PyObject *value) {
+static bool set_bases(PyClassObject *class_object, PyObject *value) {
     if (value == NULL || !PyTuple_Check(value)) {
 
         PyThreadState *tstate = PyThreadState_GET();
@@ -1066,7 +1079,7 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
                 return false;
             }
 
-            if (unlikely(PyClass_IsSubclass(base, (PyObject *)klass))) {
+            if (unlikely(PyClass_IsSubclass(base, (PyObject *)class_object))) {
                 PyThreadState *tstate = PyThreadState_GET();
 
                 SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
@@ -1075,14 +1088,14 @@ static bool set_bases(PyClassObject *klass, PyObject *value) {
             }
         }
 
-        set_slot(&klass->cl_bases, value);
-        set_attr_slots(klass);
+        set_slot(&class_object->cl_bases, value);
+        set_attr_slots(class_object);
 
         return true;
     }
 }
 
-static bool set_name(PyClassObject *klass, PyObject *value) {
+static bool set_name(PyClassObject *class_object, PyObject *value) {
     if (value == NULL || !PyDict_Check(value)) {
         PyThreadState *tstate = PyThreadState_GET();
 
@@ -1097,11 +1110,11 @@ static bool set_name(PyClassObject *klass, PyObject *value) {
         return false;
     }
 
-    set_slot(&klass->cl_name, value);
+    set_slot(&class_object->cl_name, value);
     return true;
 }
 
-static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObject *value) {
+static int nuitka_class_setattr(PyClassObject *class_object, PyObject *attr_name, PyObject *value) {
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
@@ -1109,72 +1122,72 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
 
         if (sattr_name[n - 2] == '_' && sattr_name[n - 1] == '_') {
             if (strcmp(sattr_name, "__dict__") == 0) {
-                if (set_dict(klass, value) == false) {
+                if (set_dict(class_object, value) == false) {
                     return -1;
                 } else {
                     return 0;
                 }
             } else if (strcmp(sattr_name, "__bases__") == 0) {
-                if (set_bases(klass, value) == false) {
+                if (set_bases(class_object, value) == false) {
                     return -1;
                 } else {
                     return 0;
                 }
             } else if (strcmp(sattr_name, "__name__") == 0) {
-                if (set_name(klass, value) == false) {
+                if (set_name(class_object, value) == false) {
                     return -1;
                 } else {
                     return 0;
                 }
             } else if (strcmp(sattr_name, "__getattr__") == 0) {
-                set_slot(&klass->cl_getattr, value);
+                set_slot(&class_object->cl_getattr, value);
             } else if (strcmp(sattr_name, "__setattr__") == 0) {
-                set_slot(&klass->cl_setattr, value);
+                set_slot(&class_object->cl_setattr, value);
             } else if (strcmp(sattr_name, "__delattr__") == 0) {
-                set_slot(&klass->cl_delattr, value);
+                set_slot(&class_object->cl_delattr, value);
             }
         }
     }
 
     if (value == NULL) {
-        int status = DICT_REMOVE_ITEM(klass->cl_dict, attr_name);
+        int status = DICT_REMOVE_ITEM(class_object->cl_dict, attr_name);
 
         if (status < 0) {
-            PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING(klass->cl_name),
-                         sattr_name);
+            PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'",
+                         PyString_AS_STRING(class_object->cl_name), sattr_name);
         }
 
         return status;
     } else {
-        return DICT_SET_ITEM(klass->cl_dict, attr_name, value) ? 0 : -1;
+        return DICT_SET_ITEM(class_object->cl_dict, attr_name, value) ? 0 : -1;
     }
 }
 
-static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name) {
+static PyObject *nuitka_class_getattr(PyClassObject *class_object, PyObject *attr_name) {
     char const *sattr_name = PyString_AsString(attr_name);
 
     if (sattr_name[0] == '_' && sattr_name[1] == '_') {
         if (strcmp(sattr_name, "__dict__") == 0) {
-            Py_INCREF(klass->cl_dict);
-            return klass->cl_dict;
+            Py_INCREF(class_object->cl_dict);
+            return class_object->cl_dict;
         } else if (strcmp(sattr_name, "__bases__") == 0) {
-            Py_INCREF(klass->cl_bases);
-            return klass->cl_bases;
+            Py_INCREF(class_object->cl_bases);
+            return class_object->cl_bases;
         } else if (strcmp(sattr_name, "__name__") == 0) {
-            if (klass->cl_name == NULL) {
+            if (class_object->cl_name == NULL) {
                 Py_INCREF_IMMORTAL(Py_None);
                 return Py_None;
             } else {
-                Py_INCREF(klass->cl_name);
-                return klass->cl_name;
+                Py_INCREF(class_object->cl_name);
+                return class_object->cl_name;
             }
         }
     }
 
-    PyObject *value = FIND_ATTRIBUTE_IN_CLASS(klass, attr_name);
+    PyObject *value = FIND_ATTRIBUTE_IN_CLASS(class_object, attr_name);
 
     if (unlikely(value == NULL)) {
-        PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING(klass->cl_name),
+        PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING(class_object->cl_name),
                      sattr_name);
         return NULL;
     }
@@ -1187,7 +1200,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
         Py_INCREF(value);
         return value;
     } else {
-        return tp_descr_get(value, (PyObject *)NULL, (PyObject *)klass);
+        return tp_descr_get(value, (PyObject *)NULL, (PyObject *)class_object);
     }
 }
 

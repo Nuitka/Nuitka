@@ -249,6 +249,16 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 )
 """
 
+attribute_shape_empty[
+    "fromkeys", "tshape_dict"
+] = """
+lambda source_ref: makeRaiseExceptionReplacementExpression(
+    expression=dict_arg,
+    exception_type="TypeError",
+    exception_value=getDictFromkeysNoArgErrorMessage(),
+)
+"""
+
 
 def emitGenerationWarning(emit, doc_string, template_name):
     generate_names = set()
@@ -358,7 +368,12 @@ def makeAttributeNodes():
 
         emit("from nuitka.nodes.ConstantRefNodes import makeConstantRefNode")
         emit(
-            "from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects"
+            """\
+from nuitka.nodes.NodeMakingHelpers import (
+    wrapExpressionWithNodeSideEffects,
+    makeRaiseExceptionReplacementExpression
+)
+            """
         )
 
         emit(
@@ -366,6 +381,8 @@ def makeAttributeNodes():
         )
 
         emit("from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup")
+
+        emit("from nuitka.PythonVersions import getDictFromkeysNoArgErrorMessage")
 
         # TODO: Maybe generate its effect instead of using a base class.
         emit("from .NodeBases import SideEffectsFromChildrenMixin")

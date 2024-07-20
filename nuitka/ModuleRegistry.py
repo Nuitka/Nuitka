@@ -279,14 +279,22 @@ def getModuleInfluences(module_name):
 module_timing_infos = {}
 
 ModuleOptimizationTimingInfo = collections.namedtuple(
-    "ModuleOptimizationTimingInfo", ("pass_number", "time_used")
+    "ModuleOptimizationTimingInfo",
+    ("pass_number", "time_used", "micro_passes", "merge_counts"),
 )
 
 
-def addModuleOptimizationTimeInformation(module_name, pass_number, time_used):
+def addModuleOptimizationTimeInformation(
+    module_name, pass_number, time_used, micro_passes, merge_counts
+):
     module_timing_info = list(module_timing_infos.get(module_name, []))
     module_timing_info.append(
-        ModuleOptimizationTimingInfo(pass_number=pass_number, time_used=time_used)
+        ModuleOptimizationTimingInfo(
+            pass_number=pass_number,
+            time_used=time_used,
+            micro_passes=micro_passes,
+            merge_counts=merge_counts,
+        )
     )
     module_timing_infos[module_name] = tuple(module_timing_info)
 

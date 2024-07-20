@@ -12,35 +12,37 @@ from optparse import OptionParser
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
-from nuitka.Tracing import my_print, tools_logger
+from nuitka.Tracing import tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
 
 
 def _checkNuitkaInVirtualenv(python):
     with withVirtualenv(
-        "venv_nuitka", style="blue", python=python.getPythonExe()
+        "venv_nuitka", logger=tools_logger, style="blue", python=python.getPythonExe()
     ) as venv:
-        my_print("Installing Nuitka into virtualenv:", style="blue")
-        my_print("*" * 40, style="blue")
+        tools_logger.info("Installing Nuitka into virtualenv:", style="blue")
+        tools_logger.info("*" * 40, style="blue")
         venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
-        my_print("*" * 40, style="blue")
+        tools_logger.info("*" * 40, style="blue")
 
-        my_print("Compiling basic test with runner:", style="blue")
-        my_print("*" * 40, style="blue")
+        tools_logger.info("Compiling basic test with runner:", style="blue")
+        tools_logger.info("*" * 40, style="blue")
         venv.runCommand(
             "nuitka%s ../tests/basics/AssertsTest.py" % python.getPythonVersion()[0],
             style="blue",
         )
-        my_print("*" * 40, style="blue")
+        tools_logger.info("*" * 40, style="blue")
 
-        my_print("Compiling basic test with recommended -m mode:", style="blue")
-        my_print("*" * 40, style="blue")
+        tools_logger.info(
+            "Compiling basic test with recommended -m mode:", style="blue"
+        )
+        tools_logger.info("*" * 40, style="blue")
         venv.runCommand(
             "python -m nuitka ../tests/basics/AssertsTest.py",
             style="blue",
         )
-        my_print("*" * 40, style="blue")
+        tools_logger.info("*" * 40, style="blue")
 
 
 def main():
@@ -80,14 +82,14 @@ Do not update the the container, use it if updating was done recently.
         assert branch_name == "main", branch_name
         assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
-    my_print("Working on Nuitka %r." % nuitka_version, style="blue")
+    tools_logger.info("Working on Nuitka %r." % nuitka_version, style="blue")
 
     shutil.rmtree("check_nuitka", ignore_errors=True)
     shutil.rmtree("dist", ignore_errors=True)
 
-    my_print("Creating documentation.", style="blue")
+    tools_logger.info("Creating documentation.", style="blue")
     checkReleaseDocumentation()
-    my_print("Creating source distribution.", style="blue")
+    tools_logger.info("Creating source distribution.", style="blue")
     assert (
         os.system("umask 0022 && chmod -R a+rX . && %s setup.py sdist" % sys.executable)
         == 0
@@ -119,7 +121,7 @@ Do not update the the container, use it if updating was done recently.
     assert os.system("twine check dist/*") == 0
 
     if not options.check:
-        my_print("Uploading source dist")
+        tools_logger.info("Uploading source dist")
         assert (
             os.system(
                 "twine upload --username=__token__ --password=%s dist/* "
@@ -127,9 +129,9 @@ Do not update the the container, use it if updating was done recently.
             )
             == 0
         )
-        my_print("Uploaded.")
+        tools_logger.info("Uploaded.")
     else:
-        my_print("Checked OK, but not uploaded.")
+        tools_logger.info("Checked OK, but not uploaded.")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

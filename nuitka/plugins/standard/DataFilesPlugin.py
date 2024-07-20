@@ -11,7 +11,7 @@ import pkgutil
 from nuitka import Options
 from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.Distributions import getDistribution
 from nuitka.utils.FileOperations import (
@@ -45,7 +45,11 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
 
         # Default to near module or inside package folder.
         if target_dir is None:
-            if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+            if (
+                module.isCompiledPythonPackage()
+                or module.isUncompiledPythonPackage()
+                or module.isExtensionModulePackage()
+            ):
                 target_dir = module_name.asPath()
             else:
                 package_name = module_name.getPackageName()
@@ -97,7 +101,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
 
             for empty_dir in empty_dirs:
                 yield self.makeIncludedEmptyDirectory(
-                    dest_path=os.path.join(target_dir, empty_dir),
+                    dest_path=os.path.normpath(os.path.join(target_dir, empty_dir)),
                     reason="empty dir needed for %r" % module_name.asString(),
                     tags="config",
                 )
@@ -130,7 +134,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 if os.path.isdir(source_path):
                     yield self.makeIncludedDataDirectory(
                         source_path=source_path,
-                        dest_path=os.path.join(target_dir, data_dir),
+                        dest_path=os.path.normpath(os.path.join(target_dir, data_dir)),
                         reason="package data directory '%s' for %r"
                         % (data_dir, module_name.asString()),
                         tags="config",
@@ -150,7 +154,7 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
                 if os.path.isdir(source_path):
                     yield self.makeIncludedDataDirectory(
                         source_path=source_path,
-                        dest_path=os.path.join(target_dir, raw_dir),
+                        dest_path=os.path.normpath(os.path.join(target_dir, raw_dir)),
                         reason="package raw directory '%s' for %r"
                         % (raw_dir, module_name.asString()),
                         tags="config",
@@ -187,7 +191,12 @@ class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
             distribution = getDistribution(distribution_name)
 
             if distribution is not None:
-                addDistributionMetadataValue(distribution_name, distribution)
+                addDistributionMetadataValue(
+                    distribution_name=distribution_name,
+                    distribution=distribution,
+                    reason="According to Yaml configuration 'include-metadata' for '%s'"
+                    % module_name.asString(),
+                )
 
     def considerDataFiles(self, module):
         full_name = module.getFullName()

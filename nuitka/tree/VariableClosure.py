@@ -28,7 +28,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -37,7 +36,7 @@ from nuitka.Variables import isSharedAmongScopes, releaseSharedScopeInformation
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -158,7 +157,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                 source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
                             ),
-                            makeTryFinallyStatement(
+                            makeTryFinallyReleaseStatement(
                                 provider=provider,
                                 tried=(
                                     makeStatementAssignmentVariable(
@@ -184,9 +183,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                 ),
-                                final=makeStatementReleaseVariable(
-                                    variable=tmp_variable, source_ref=node.source_ref
-                                ),
+                                variables=(tmp_variable,),
                                 source_ref=node.source_ref,
                             ),
                         )
@@ -294,32 +291,19 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         elif node.isExpressionGeneratorObjectBody():
             if python_version >= 0x300:
                 self._handleNonLocal(node)
-
-            # Only Python3.4 or later allows for generators to have qualname.
-            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionCoroutineObjectBody():
             self._handleNonLocal(node)
-
             self._handleQualnameSetup(node)
         elif node.isExpressionAsyncgenObjectBody():
             self._handleNonLocal(node)
-
             self._handleQualnameSetup(node)
-        elif node.isExpressionClassBodyP3():
+        elif node.isExpressionClassMappingBody():
             self._handleNonLocal(node)
-
-            # Python3.4 allows for class declarations to be made global, even
-            # after they were declared, so we need to fix this up.
-            if python_version >= 0x340:
-                self._handleQualnameSetup(node)
+            self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             if python_version >= 0x300:
                 self._handleNonLocal(node)
-
-            # Python 3.4 allows for class declarations to be made global, even
-            # after they were declared, so we need to fix this up.
-            if python_version >= 0x340:
                 self._handleQualnameSetup(node)
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.

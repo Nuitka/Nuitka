@@ -315,12 +315,18 @@ def setMainEntryPoint(binary_filename):
 
 
 def addExtensionModuleEntryPoint(module):
+    dest_path = module.getFullName().asPath()
+
+    if module.isExtensionModulePackage():
+        dest_path = os.path.join(dest_path, "__init__")
+
+    dest_path += getSharedLibrarySuffix(preferred=False)
+
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(
             logger=general,
             source_path=module.getFilename(),
-            dest_path=module.getFullName().asPath()
-            + getSharedLibrarySuffix(preferred=False),
+            dest_path=dest_path,
             module_name=module.getFullName(),
             package_name=module.getFullName().getPackageName(),
             reason=(

@@ -278,7 +278,7 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 #endif
 
         // Now release frame.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
         gen->gi_frame->f_gen = NULL;
 #endif
         gen->gi_frame = NULL;
@@ -331,7 +331,7 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 // Not done for earlier versions yet, indicate usability for compiled
 // generators, but it seems that mostly coroutines need it anyway, so the
 // benefit would be only for performance and not by a lot.
-#if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x3d0
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3d0
 #define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
 #endif
 

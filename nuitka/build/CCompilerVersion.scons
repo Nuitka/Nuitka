@@ -171,6 +171,7 @@ env = createEnvironment(
     target_arch=target_arch,
     experimental=experimental,
     no_deployment=(),
+    debug_modes=(),
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))

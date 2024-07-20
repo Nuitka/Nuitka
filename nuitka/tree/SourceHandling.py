@@ -17,10 +17,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general, my_print
-from nuitka.utils.FileOperations import (
-    getFileContentByLine,
-    putTextFileContents,
-)
+from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
@@ -192,7 +189,8 @@ def readSourceCodeFromFilenameWithInformation(
         contributing_plugins = ()
 
     if (
-        Options.shallShowSourceModifications(module_name)
+        module_name is not None
+        and Options.shallShowSourceModifications(module_name)
         and source_code_modified != source_code
     ):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)
@@ -324,7 +322,14 @@ def parsePyIFile(module_name, pyi_filename):
     in_import_part = ""
     in_quote = None
 
-    for line in getFileContentByLine(pyi_filename):
+    pyi_contents = readSourceCodeFromFilename(
+        # Do not pass module name, or else plugins modify it, which they
+        # should not.
+        module_name=None,
+        source_filename=pyi_filename,
+    )
+
+    for line in pyi_contents.splitlines():
         line = line.strip()
 
         if in_quote:
@@ -369,11 +374,11 @@ def parsePyIFile(module_name, pyi_filename):
                     if dot_count > 0:
                         if origin_name:
                             origin_name = module_name.getRelativePackageName(
-                                level=dot_count + 1
+                                level=dot_count
                             ).getChildNamed(origin_name)
                         else:
                             origin_name = module_name.getRelativePackageName(
-                                level=dot_count + 1
+                                level=dot_count - 1
                             )
 
                 if origin_name != module_name:
