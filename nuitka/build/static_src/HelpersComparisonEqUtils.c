@@ -13,7 +13,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-python_initproc default_tp_init_wrapper;
+python_init_proc default_tp_init_wrapper;
 
 #if PYTHON_VERSION < 0x300
 static cmpfunc default_tp_compare;

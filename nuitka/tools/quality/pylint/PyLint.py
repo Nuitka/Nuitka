@@ -176,7 +176,7 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=14
+--max-parents=16
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10
@@ -253,6 +253,10 @@ def _executePylint(filenames, pylint_options, extra_options):
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
 
+    # Catch random crashes with non standard exit code.
+    if exit_code < 0 or exit_code >= 64:
+        sys.exit("Error, strange crash with exit_code %d from pylint." % exit_code)
+
     stdout = _cleanupPylintOutput(stdout)
     stderr = _cleanupPylintOutput(stderr)
 
@@ -279,7 +283,7 @@ def _executePylint(filenames, pylint_options, extra_options):
 def hasPyLintBugTrigger(filename):
     """Decide if a filename should be skipped."""
     # Currently everything is good, but it's a useful hook, pylint_: disable=unused-argument
-    if filename == "nuitka/distutils/Build.py":
+    if os.path.normpath(filename) == os.path.normpath("nuitka/distutils/Build.py"):
         return True
 
     return False

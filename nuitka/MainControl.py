@@ -69,7 +69,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
-from nuitka.Tracing import general, inclusion_logger
+from nuitka.Tracing import general, inclusion_logger, pgo_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
@@ -130,24 +130,19 @@ def _createMainModule():
     directory paths.
 
     """
-    # Many cases and details to deal with, pylint: disable=too-many-branches,too-many-locals
+    # Many cases and details to deal with, pylint: disable=too-many-branches
 
     Plugins.onBeforeCodeParsing()
 
-    main_filenames = Options.getMainEntryPointFilenames()
-
     # First, build the raw node tree from the source code.
-    if len(main_filenames) > 1:
+    if Options.isMultidistMode():
         assert not Options.shallMakeModule()
 
         main_module = buildMainModuleTree(
-            # TODO: Should not be given.
-            filename=main_filenames[0],
-            source_code=createMultidistMainSourceCode(main_filenames),
+            source_code=createMultidistMainSourceCode(),
         )
     else:
         main_module = buildMainModuleTree(
-            filename=main_filenames[0],
             source_code=None,
         )
 
@@ -162,7 +157,11 @@ def _createMainModule():
                 % distribution_name
             )
 
-        addDistributionMetadataValue(distribution_name, distribution)
+        addDistributionMetadataValue(
+            distribution_name=distribution_name,
+            distribution=distribution,
+            reason="user requested",
+        )
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
@@ -175,11 +174,19 @@ def _createMainModule():
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        resetDirectory(path=standalone_dir, ignore_errors=True)
+        resetDirectory(
+            path=standalone_dir,
+            logger=general,
+            ignore_errors=True,
+            extra_recommendation="Stop previous binary.",
+        )
 
         if Options.shallCreateAppBundle():
             resetDirectory(
-                path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
+                path=changeFilenameExtension(standalone_dir, ".app"),
+                logger=general,
+                ignore_errors=True,
+                extra_recommendation=None,
             )
 
     # Delete result file, to avoid confusion with previous build and to
@@ -253,15 +260,11 @@ def _createMainModule():
         checkFreezingModuleSet()
 
     # Check if distribution meta data is included, that cannot be used.
-    for distribution_name, (
-        package_name,
-        _metadata,
-        _entry_points,
-    ) in getDistributionMetadataValues():
-        if not ModuleRegistry.hasDoneModule(package_name):
+    for distribution_name, meta_data_value in getDistributionMetadataValues():
+        if not ModuleRegistry.hasDoneModule(meta_data_value.module_name):
             inclusion_logger.sysexit(
                 "Error, including metadata for distribution '%s' without including related package '%s'."
-                % (distribution_name, package_name)
+                % (distribution_name, meta_data_value.module_name)
             )
 
     # Allow plugins to comment on final module set.
@@ -526,11 +529,11 @@ def _runCPgoBinary():
                 source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
             ),
         ):
-            _exit_code = _runPgoBinary()
+            exit_code_pgo = _runPgoBinary()
 
         pgo_data_collected = os.path.exists(msvc_pgc_filename)
     else:
-        _exit_code = _runPgoBinary()
+        exit_code_pgo = _runPgoBinary()
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
@@ -539,12 +542,21 @@ def _runCPgoBinary():
 
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
 
-    if not pgo_data_collected:
-        general.sysexit(
-            "Error, no PGO information produced, did the created binary run at all?"
+    if exit_code_pgo != 0:
+        pgo_logger.warning(
+            """\
+Error, the C PGO compiled program error exited. Make sure it works \
+fully before using '--pgo-c' option."""
         )
 
-    general.info("Successfully collected C level PGO information.", style="blue")
+    if not pgo_data_collected:
+        pgo_logger.sysexit(
+            """\
+Error, no C PGO compiled program did not produce expected information, \
+did the created binary run at all?"""
+        )
+
+    pgo_logger.info("Successfully collected C level PGO information.", style="blue")
 
 
 def _runPythonPgoBinary():
@@ -559,7 +571,9 @@ def _runPythonPgoBinary():
 
     if not os.path.exists(pgo_filename):
         general.sysexit(
-            "Error, no Python PGO information produced, did the created binary run (exit code %d) as expected?"
+            """\
+Error, no Python PGO information produced, did the created binary
+run (exit code %d) as expected?"""
             % exit_code
         )
 
@@ -621,6 +635,8 @@ def runSconsBackend():
         if Options.isOnefileTempDirMode():
             options["onefile_temp_mode"] = asBoolStr(True)
 
+    # TODO: Some things are going to hate that, we might need to bundle
+    # for accelerated mode still.
     if Options.shallCreateAppBundle():
         options["macos_bundle_mode"] = asBoolStr(True)
 
@@ -630,6 +646,9 @@ def runSconsBackend():
     if Options.getForcedStderrPath():
         options["forced_stderr_path"] = Options.getForcedStderrPath()
 
+    if Options.isProfile():
+        options["profile_mode"] = asBoolStr(True)
+
     if Options.shallTreatUninstalledPython():
         options["uninstalled_python"] = asBoolStr(True)
 
@@ -637,9 +656,6 @@ def runSconsBackend():
         options["frozen_modules"] = str(
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
-
-    if Options.isProfile():
-        options["profile_mode"] = asBoolStr(True)
 
     if hasPythonFlagNoWarnings():
         options["no_python_warnings"] = asBoolStr(True)
@@ -707,7 +723,7 @@ def runSconsBackend():
     # Allow plugins to build definitions.
     env_values.update(Plugins.getBuildDefinitions())
 
-    if Options.shallCreatePgoInput():
+    if Options.shallCreatePythonPgoInput():
         options["pgo_mode"] = "python"
 
         result = runScons(
@@ -726,11 +742,11 @@ def runSconsBackend():
         return True, options
 
         # Need to restart compilation from scratch here.
-    if Options.isPgoMode():
+    if Options.isCPgoMode():
         # For C level PGO, we have a 2 pass system. TODO: Make it more global for onefile
         # and standalone mode proper support, which might need data files to be
         # there, which currently are not yet there, so it won't run.
-        if Options.isPgoMode():
+        if Options.isCPgoMode():
             options["pgo_mode"] = "generate"
 
             result = runScons(
@@ -996,7 +1012,7 @@ def _main():
         )
 
     # Relaunch in case of Python PGO input to be produced.
-    if Options.shallCreatePgoInput():
+    if Options.shallCreatePythonPgoInput():
         # Will not return.
         pgo_filename = OutputDirectories.getPgoRunInputFilename()
         general.info(
@@ -1036,7 +1052,6 @@ def _main():
     copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
 
     if Options.isStandaloneMode():
-
         Plugins.onStandaloneDistributionFinished(dist_dir)
 
         if Options.isOnefileMode():
@@ -1045,7 +1060,12 @@ def _main():
             if Options.isRemoveBuildDir():
                 general.info("Removing dist folder '%s'." % dist_dir)
 
-                removeDirectory(path=dist_dir, ignore_errors=False)
+                removeDirectory(
+                    path=dist_dir,
+                    logger=general,
+                    ignore_errors=False,
+                    extra_recommendation=None,
+                )
             else:
                 general.info(
                     "Keeping dist folder '%s' for inspection, no need to use it."
@@ -1062,7 +1082,12 @@ def _main():
         readSconsReport(source_dir)
         readSconsErrorReport(source_dir)
 
-        removeDirectory(path=source_dir, ignore_errors=False)
+        removeDirectory(
+            path=source_dir,
+            logger=general,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
         assert not os.path.exists(source_dir)
     else:
         general.info("Keeping build directory '%s'." % source_dir)
@@ -1131,6 +1156,8 @@ def main():
     except BaseException:
         try:
             writeCompilationReports(aborted=True)
+        except KeyboardInterrupt:
+            general.warning("""Report writing was prevented by user interrupt.""")
         except BaseException as e:  # Catch all the things, pylint: disable=broad-except
             general.warning(
                 """\

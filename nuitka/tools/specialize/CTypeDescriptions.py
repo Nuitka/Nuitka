@@ -344,7 +344,7 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
             # for at least "LONG", maybe others. spell-checker: ignore RICHCOMPARE
 
             assert self is object_desc, self
-            return "RICHCOMPARE(%s)" % operand
+            return "TP_RICHCOMPARE(%s)" % operand
         elif slot == "tp_compare":
             return operand + "->tp_compare"
         else:
@@ -387,15 +387,21 @@ class TypeDescBase(getMetaClassBase("Type", require_slots=False)):
         pass
 
     @staticmethod
-    def getOperationErrorMessageName(operator):
-        if operator == "%":
-            return "%%"
-        elif operator == "**":
+    def getOperationErrorMessageName(operator, inplace):
+        operator = operator.replace("%", "%%")
+
+        if operator == "**" and not inplace:
             return "** or pow()"
         elif operator == "divmod":
+            assert not inplace
             return "divmod()"
-        else:
-            return operator
+
+        assert "=" not in operator, operator
+
+        if inplace:
+            operator = operator + "="
+
+        return operator
 
     def getReturnUnorderableTypeErrorCode(
         self, operator, left, right, operand1, operand2

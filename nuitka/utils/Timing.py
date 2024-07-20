@@ -83,7 +83,7 @@ class TimerReport(object):
         )
 
         if exception_type is None and above_threshold and self.decider():
-            self.logger.info(self.message % self.timer.getDelta())
+            self.logger.info(self.message % self.timer.getDelta(), keep_format=True)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

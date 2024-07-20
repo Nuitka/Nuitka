@@ -351,6 +351,12 @@
         - 'av.plane'
         - 'av.video.plane'
 
+- module-name: 'azure.cognitiveservices.speech' # checksum: 571ec995
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'Microsoft.CognitiveServices.Speech'
+
 - module-name: 'babel' # checksum: 37b8fa6d
   data-files:
     dirs:
@@ -447,6 +453,18 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
+- module-name: 'black' # checksum: 33fdf1ff
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
+
+- module-name: 'black.handle_ipynb_magics' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'bokeh' # checksum: cd9c2e63
   data-files:
     dirs:
@@ -492,6 +510,19 @@
       - 'data'
     patterns:
       - 'cacert.pem'
+
+- module-name: 'bpy' # checksum: 210495b
+  data-files:
+    dirs:
+      - '.'
+      - 'materialx'
+      - 'usd'
+    raw_dirs:
+      - '4.1'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - ''
 
 - module-name: 'branca' # checksum: 7c7e6a4e
   data-files:
@@ -857,6 +888,11 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash' # checksum: 3ebe1284
+  data-files:
+    dirs:
+      - '.'
+
 - module-name: 'dash._jupyter' # checksum: 681007fe
   anti-bloat:
     - description: 'remove IPython reference'
@@ -870,21 +906,6 @@
       replacements_plain:
         '"_pytest" in sys.modules': 'False'
       when: 'not use_pytest'
-
-- module-name: 'dash.dash_table' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
-
-- module-name: 'dash.dcc' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
-
-- module-name: 'dash.html' # checksum: 73ba5443
-  data-files:
-    patterns:
-      - 'package-info.json'
 
 - module-name: 'dask' # checksum: c72c99e9
   data-files:
@@ -902,11 +923,11 @@
     - depends:
         - 'pyarrow._*'
 
-- module-name: 'dask.dataframe._compat' # checksum: 78ecb250
+- module-name: 'dask.dataframe._compat' # checksum: a10ec27c
   anti-bloat:
     - description: 'remove pandas.testing reference'
       replacements_plain:
-        'import pandas.testing as tm': ''
+        'import pandas.testing as tm': 'tm=None'
 
 - module-name: 'dask.dataframe.utils' # checksum: 5af31dde
   anti-bloat:
@@ -1069,6 +1090,77 @@
         'is_kernel': "'(lambda : False)'"
       when: 'not use_ipython'
 
+- module-name: 'django' # checksum: 7652b420
+  anti-bloat:
+    - description: 'allow unittest inside django, too dependent to remove'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
+- module-name: 'django.conf' # checksum: 2d31f140
+  data-files:
+    dirs:
+      - 'locale/en'
+
+- module-name: 'django.core.management' # checksum: 261e0447
+  parameters:
+    - 'name': 'settings-module'
+      'values': 'checkModuleName(value)'
+  variables:
+    setup_code:
+      - 'import os, importlib'
+      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE"))'
+    declarations:
+      'django_installed_apps': 'settings.INSTALLED_APPS'
+    environment:
+      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", None)'
+  anti-bloat:
+    # This makes exceptions to the "*" dependency in the
+    # implicit-imports section below.
+    - no-follow:
+        'django.core.management.commands.test': 'disable tests'
+      when: 'not use_pytest'
+  implicit-imports:
+    - depends:
+        - 'django.core.management.commands.*'
+        - 'get_parameter("settings-module", ())'
+        - '["%s.management.commands.*" % x for x in get_variable("django_installed_apps")]'
+        - 'get_variable("django_installed_apps")'
+
+  options:
+    checks:
+      - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
+        support_info: 'parameter'
+        when: 'standalone and get_parameter("settings-module", None) is None'
+
+- module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'django.db.backends' # checksum: 5a0c4e00
+  implicit-imports:
+    - depends:
+        - 'django.db.backends.dummy.*'
+
+- module-name: 'django.db.backends.base.creation' # checksum: f16012b0
+  anti-bloat:
+    - description: 'remove unittest reference'
+      no-auto-follow:
+        'unittest': 'ignore'
+      when: 'not use_unittest'
+
+- module-name: 'django.template.engine' # checksum: 19e5edde
+  implicit-imports:
+    - depends:
+        - 'django.templatetags.i18n'
+
+- module-name: 'django.template.library' # checksum: 87fd23ca
+  implicit-imports:
+    - depends:
+        - 'django.template.loader_tags'
+
 - module-name: 'dns.rdtypes' # checksum: 119feab4
   implicit-imports:
     - depends:
@@ -1113,16 +1205,6 @@
     - description: 'avoid useless duplication of traceback module'
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
-
-- module-name: 'en_core_web_sm' # checksum: 8ee8e024
-  data-files:
-    dirs:
-      - '.'
-    patterns:
-      - '**/*.bin'
-
-    include-metadata:
-      - 'en_core_web_sm'
 
 - module-name: 'enchant' # checksum: 810a705a
   data-files:
@@ -1225,17 +1307,17 @@
     - depends:
         - 'fastapi.routing'
 
-- module-name: 'feedparser.html' # checksum: 65e0a1
+- module-name: 'feedparser.html' # checksum: 8b17e6bc
   anti-bloat:
     - description: 'use SGML code more naturally'
       context:
         - 'import inspect'
         - 'import textwrap'
         - 'import sgmllib'
-      replacements:
-        '__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__': "'pass'"
-        'def goahead(self, i):': "'def goahead(self, end):'"
-        'goahead.__code__ = sgmllib.SGMLParser.goahead.__code__': "'pass'"
+      replacements_plain:
+        '__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__': 'pass'
+        'def goahead(self, i):': 'def goahead(self, end):'
+        'goahead.__code__ = sgmllib.SGMLParser.goahead.__code__': 'pass'
       change_function:
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
@@ -1292,6 +1374,28 @@
   data-files:
     dirs:
       - 'templates'
+
+- module-name: 'fontTools.cu2qu.cu2qu' # checksum: 5673e8a6
+  implicit-imports:
+    - depends:
+        - 'fontTools.cu2qu.errors'
+
+- module-name: 'fontTools.feaLib.lexer' # checksum: d92ed463
+  implicit-imports:
+    - depends:
+        - 'fontTools.feaLib.error'
+        - 'fontTools.feaLib.location'
+
+- module-name: 'fontTools.misc.bezierTools' # checksum: 7bee054
+  implicit-imports:
+    - depends:
+        - 'fontTools.misc.arrayTools'
+        - 'fontTools.misc.transform'
+
+- module-name: 'fontTools.qu2cu.qu2cu' # checksum: bdfe3a4f
+  implicit-imports:
+    - depends:
+        - 'fontTools.misc.bezierTools'
 
 - module-name: 'Foundation' # checksum: f269907b
   options:
@@ -1602,6 +1706,22 @@
       - 'VERSION'
       - 'lexicon.db'
 
+- module-name: 'gsplat.cuda._backend' # checksum: d537c97a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from rich.console import Console': ''
+        'from torch.utils.cpp_extension import _get_build_directory, load': ''
+      when: 'not use_setuptools'
+
+- module-name: 'gsplat.cuda_legacy._backend' # checksum: d537c97a
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from rich.console import Console': ''
+        'from torch.utils.cpp_extension import _get_build_directory, load': ''
+      when: 'not use_setuptools'
+
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
     - depends:
@@ -1617,6 +1737,11 @@
         - 'gobject'
         - 'cairo'
         - 'gtk'
+
+- module-name: 'gym_tetris' # checksum: b8aa0fea
+  data-files:
+    dirs:
+      - '_roms'
 
 - module-name: 'gymnasium.envs.registration' # checksum: 4f0b7bbb
   anti-bloat:
@@ -1785,6 +1910,37 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jaxtyping' # checksum: ee1c8e43
+  data-files:
+    include-metadata:
+      - 'jaxtyping'
+
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+- module-name: 'jedi' # checksum: 6be45546
+  anti-bloat:
+    - description: 'allow pydoc inside jedi, too dependent to remove'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
+
+- module-name: 'jinja2.environment' # checksum: c71498fb
+  anti-bloat:
+    - description: 'remove Python3.5 only code'
+      no-auto-follow:
+        'jinja2.asyncsupport': 'ignore'
+      when: 'before_python35'
+
+- module-name: 'jinja2.lexer' # checksum: 1efd768a
+  anti-bloat:
+    - description: 'remove Python3 only code'
+      no-auto-follow:
+        'jinja2._identifier': 'ignore'
+      when: 'before_python3'
+
 - module-name: 'joblib._dask' # checksum: e3ae7a22
   anti-bloat:
     - description: 'remove optional dask usage'
@@ -1834,6 +1990,13 @@
     - description: 'workaround incorrect warning'
       replacements_plain:
         'warnings.warn': ''
+
+- module-name: 'joblib.memory' # checksum: 49583532
+  anti-bloat:
+    - description: 'remove pydoc'
+      replacements_plain:
+        'import pydoc': ''
+        'if inspect.isfunction(func):': 'if False:'
 
 - module-name: 'jpype' # checksum: f75160d3
   data-files:
@@ -1897,10 +2060,13 @@
     - depends:
         - 'win32timezone'
 
-- module-name: 'kivy' # checksum: aa55c3a4
+- module-name: 'kivy' # checksum: f6e12f66
   data-files:
     dirs:
       - 'data'
+  implicit-imports:
+    - depends:
+        - 'kivy.uix.*'
 
   options:
     checks:
@@ -2087,11 +2253,11 @@
     - depends:
         - 'markdown.extensions.*'
 
-- module-name: 'matplotlib' # checksum: 977975bb
+- module-name: 'matplotlib' # checksum: d5e66e6c
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
-      replacements:
-        '(root / ".git").exists()"': "'None'"
+      replacements_plain:
+        '(root / ".git").exists()"': 'None'
         'test.__test__ = False': ''
       change_function:
         '_init_tests': "'None'"
@@ -2301,15 +2467,15 @@
           return result[:_MAX_LENGTH] + ' [truncated]...'
       when: 'not use_unittest'
 
-- module-name: 'moto' # checksum: cd522fec
+- module-name: 'moto' # checksum: 8565eb96
   data-files:
     patterns:
       - 'ec2/resources/instance_types.json'
       - 'ec2/resources/amis.json'
   anti-bloat:
     - description: 'remove pytest testing framework'
-      replacements:
-        "imp.find_module('pytest')": "'None'"
+      replacements_plain:
+        "imp.find_module('pytest')": 'None'
       when: 'not use_pytest'
 
 - module-name: 'moviepy.audio.fx' # checksum: 1851bf53
@@ -2366,7 +2532,16 @@
     patterns:
       - 'dist.*'
 
-- module-name: 'networkx' # checksum: 6f2aa88a
+- module-name: 'nes_py' # checksum: 1f3cc2b5
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib_nes_env'
+        suffixes:
+          - 'pyd'
+      when: 'win32'
+
+- module-name: 'networkx' # checksum: 87442f5d
   anti-bloat:
     - description: 'remove networkx.testing usage and pytest reference (via nose)'
       replacements_plain:
@@ -2376,6 +2551,9 @@
         'nose': 'ignore'
         'pytest': 'ignore'
       when: 'not use_pytest'
+    - description: 'remove optional package references'
+      no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
 
 - module-name: 'networkx.classes.backends' # checksum: 29bf8c92
   anti-bloat:
@@ -2517,20 +2695,21 @@
         - 'numpy.core._multiarray_tests'
         - 'numpy._core._multiarray_tests'
 
-- module-name: 'numpy.core.overrides' # checksum: 48ac7e42
+- module-name: 'numpy.core.overrides' # checksum: cda0efc0
   anti-bloat:
     - description: 'workaround numpy issues with compiled code'
-      replacements:
-        'add_docstring(implementation, dispatcher.__doc__)': "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+      replacements_plain:
+        'add_docstring(implementation, dispatcher.__doc__)': "add_docstring(implementation, dispatcher.__doc__ or '')"
         'public_api.__code__ = ': ''
 
-- module-name: 'numpy.ctypeslib' # checksum: a3e2afc6
+- module-name: 'numpy.ctypeslib' # checksum: bed998c3
   anti-bloat:
     - description: 'remove numpy.distutils references'
       context:
         - 'import numpy.distutils.misc_util'
-      replacements:
+      replacements_plain:
         'from numpy.distutils.misc_util import get_shared_lib_extension': ''
+      replacements:
         'get_shared_lib_extension()': 'repr(numpy.distutils.misc_util.get_shared_lib_extension())'
         'get_shared_lib_extension(is_python_ext=True)': 'repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'
       when: 'not use_setuptools'
@@ -2542,12 +2721,13 @@
         'info': 'un-callable'
       when: 'not use_pydoc'
 
-- module-name: 'numpy.lib.utils' # checksum: 26f115fc
+- module-name: 'numpy.lib.utils' # checksum: bdb2ffa6
   anti-bloat:
     - description: 'remove pydoc usage'
       replacements_plain:
         '.pydoc.allmethods(object)': '()'
         'import pydoc': ''
+      when: 'not use_pydoc'
 
 - module-name: 'numpy.random' # checksum: e43161e7
   implicit-imports:
@@ -2737,6 +2917,13 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
+- module-name: 'onnx' # checksum: 5eb1b195
+  options:
+    checks:
+      - description: "onnx is is not supported with Python3.12 unless '--static-libpython' is used"
+        support_info: 'error'
+        when: 'python312_or_higher and not static_libpython'
+
 - module-name: 'onnxruntime' # checksum: 37a94e21
   dlls:
     - from_filenames:
@@ -2755,6 +2942,13 @@
   implicit-imports:
     - depends:
         - 'numpy'
+
+- module-name: 'open3d' # checksum: 35ff624
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib'
+          - '*swrast_dri'
 
 - module-name: 'open_clip' # checksum: 1fe63667
   data-files:
@@ -2899,7 +3093,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 11103e47
+- module-name: 'paddle' # checksum: 27d0c647
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -2908,6 +3102,11 @@
           - 'mkl'
           - 'war'
           - 'common'
+  options:
+    checks:
+      - description: "paddle is is not supported with Python3.12 unless '--static-libpython' is used"
+        support_info: 'error'
+        when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:
@@ -2969,11 +3168,10 @@
         - 'ppstructure/layout'
         - 'ppstructure/table'
 
-- module-name: 'paddleocr.paddleocr' # checksum: 8cf243fc
+- module-name: 'paddleocr.paddleocr' # checksum: 284bb6fd
   anti-bloat:
-    - replacements_plain:
-        'tools = _import_file(': ''
-        "    'tools', os.path.join(__dir__, 'tools/__init__.py'), make_importable=True)": 'from . import tools'
+    - replacements_re:
+        'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
 - module-name: 'panda3d' # checksum: ed772c0a
   data-files:
@@ -3051,49 +3249,43 @@
         'distutils.version.LooseVersion(version) < minimum_version': 'False'
         'import distutils.version': ''
 
-- module-name: 'pandas.compat.numpy' # checksum: a21ef6ec
+- module-name: 'pandas.compat.numpy' # checksum: 60947912
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        # TODO: Smells not only like regexp, must be one.
-        'LooseVersion("1.14")': "'\"1.14\"'"
-        'LooseVersion("1.15")': "'\"1.15\"'"
-        'LooseVersion("1.16")': "'\"1.16\"'"
-        'LooseVersion("1.17")': "'\"1.17\"'"
-        'LooseVersion("1.18")': "'\"1.18\"'"
-        'LooseVersion("1.19")': "'\"1.19\"'"
-        'LooseVersion("1.20")': "'\"1.20\"'"
-        'LooseVersion(_np_version)': "'_np_version'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(_np_version)': '_np_version'
+        'from distutils.version import LooseVersion': ''
+      replacements_re:
+        "LooseVersion\\([\"'](.*?)[\"']\\)": '"\1"'
 
-- module-name: 'pandas.compat.numpy.function' # checksum: 5fbf97fa
+- module-name: 'pandas.compat.numpy.function' # checksum: b0aad543
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
-        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': "'_np_version >= \"1.17.0\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(__version__) >= LooseVersion("1.17.0")': '__version__ >= "1.17.0"'
+        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': '_np_version >= "1.17.0"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.arrays._arrow_utils' # checksum: 398ecf0
+- module-name: 'pandas.core.arrays._arrow_utils' # checksum: de3b626c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': "'pyarrow.__version__ >= \"0.15\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': 'pyarrow.__version__ >= "0.15"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.arrays.string_arrow' # checksum: 6ff6617
+- module-name: 'pandas.core.arrays.string_arrow' # checksum: 882a5a11
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(pa.__version__) < "1.0.0"': "'pa.__version__ < \"1.0.0\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(pa.__version__) < "1.0.0"': 'pa.__version__ < "1.0.0"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.core.computation.ops' # checksum: ce7ab56e
+- module-name: 'pandas.core.computation.ops' # checksum: 96e6926c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'NUMEXPR_VERSION < LooseVersion("2.6.9")': 'False'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.core.groupby.groupby' # checksum: fa0161e8
   anti-bloat:
@@ -3102,12 +3294,12 @@
         'maybe_use_numba(engine)': 'False'
       when: 'not use_numba'
 
-- module-name: 'pandas.core.util.numba_' # checksum: a126e56b
+- module-name: 'pandas.core.util.numba_' # checksum: 5a47bb5e
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': 'True'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.core.window' # checksum: e748c8ea
   implicit-imports:
@@ -3137,12 +3329,12 @@
         'PyQt4': 'ignore'
       when: 'plugin("no-qt")'
 
-- module-name: 'pandas.io.excel._base' # checksum: 53d399ba
+- module-name: 'pandas.io.excel._base' # checksum: 8868dc8b
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(xlrd.__version__)': "'xlrd.__version__'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(xlrd.__version__)': 'xlrd.__version__'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'pandas.io.formats' # checksum: bfd19d5d
   data-files:
@@ -3161,26 +3353,26 @@
     - depends:
         - 'jinja2'
 
-- module-name: 'pandas.io.orc' # checksum: a9b1ffdc
+- module-name: 'pandas.io.orc' # checksum: 6826194c
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
-        'import distutils': "''"
+      replacements_plain:
+        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': 'pyarrow.__version__ < "0.13.0"'
+        'import distutils': ''
 
-- module-name: 'pandas.io.parquet' # checksum: 4f4a3110
+- module-name: 'pandas.io.parquet' # checksum: 7d41c774
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'LooseVersion(self.api.__version__) >= "0.16"': "'self.api.__version__ >= \"0.16\"'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        'LooseVersion(self.api.__version__) >= "0.16"': 'self.api.__version__ >= "0.16"'
+        'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.plotting._matplotlib.compat' # checksum: 837616d5
+- module-name: 'pandas.plotting._matplotlib.compat' # checksum: 83bfd28f
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'from distutils.version import LooseVersion': "''"
-        'op(LooseVersion(mpl.__version__), LooseVersion(version))': "'op(mpl.__version__, version)'"
+      replacements_plain:
+        'from distutils.version import LooseVersion': ''
+        'op(LooseVersion(mpl.__version__), LooseVersion(version))': 'op(mpl.__version__, version)'
 
 - module-name: 'pandas.util' # checksum: 94cd3530
   anti-bloat:
@@ -3188,10 +3380,11 @@
       replacements_plain:
         'if name == "testing":': 'if False:'
 
-- module-name: 'panel' # checksum: 29e3adc1
+- module-name: 'panel' # checksum: 87b79d62
   data-files:
     dirs:
       - '_templates'
+      - 'template'
       - 'layout'
       - 'theme'
     patterns:
@@ -3357,11 +3550,11 @@
     - depends:
         - '.*.locale'
 
-- module-name: 'persistent._compat' # checksum: c8c2659a
+- module-name: 'persistent._compat' # checksum: 74566d77
   anti-bloat:
     - description: 'use own compilation for compatibility'
-      replacements:
-        "os.environ.get('PURE_PYTHON')": "'\"1\"'"
+      replacements_plain:
+        "os.environ.get('PURE_PYTHON')": '"1"'
 
 - module-name: 'persistent.ring' # checksum: ff2e6560
   implicit-imports:
@@ -3440,11 +3633,11 @@
         - 'PIL.XpmImagePlugin'
         - 'PIL.XVThumbImagePlugin'
 
-- module-name: 'PIL.ImageShow' # checksum: e11ea042
+- module-name: 'PIL.ImageShow' # checksum: 1ae9e8b3
   anti-bloat:
     - description: 'remove IPython reference'
-      replacements:
-        'from IPython.display import display as ipython_display': "'raise ImportError'"
+      replacements_plain:
+        'from IPython.display import display as ipython_display': 'raise ImportError'
       when: 'not use_ipython'
 
 - module-name: 'PIL.SpiderImagePlugin' # checksum: cb3e1ec1
@@ -3542,6 +3735,16 @@
   data-files:
     dirs:
       - '.'
+
+- module-name: 'plotly' # checksum: 35176d4
+  data-files:
+    dirs:
+      - 'package_data'
+      - 'package_data/templates'
+      - 'package_data/datasets'
+  implicit-imports:
+    - depends:
+        - 'plotly.version'
 
 - module-name: 'plotly.graph_objects' # checksum: bf6dd64b
   anti-bloat:
@@ -3712,7 +3915,7 @@
     - depends:
         - 'pyarrow.vendored.version'
 
-- module-name: 'pyarrow.vendored.docscrape' # checksum: f18b6919
+- module-name: 'pyarrow.vendored.docscrape' # checksum: b2d4bca8
   anti-bloat:
     - description: 'remove sphinx reference'
       replacements_plain:
@@ -3720,6 +3923,8 @@
     - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+      bloat-mode-overrides:
+        'pydoc': 'allow'
 
 - module-name: 'pyaxmlparser.resources' # checksum: 1d442429
   data-files:
@@ -3952,6 +4157,16 @@
   import-hacks:
     - acceptable-missing-dlls:
         - 'libqpdf'
+
+- module-name: 'PyQt5.pylupdate' # checksum: 4fa39a08
+  implicit-imports:
+    - depends:
+        - 'PyQt5.QtCore'
+
+- module-name: 'PyQt5.pyrcc' # checksum: 4fa39a08
+  implicit-imports:
+    - depends:
+        - 'PyQt5.QtCore'
 
 - module-name: 'PyQt6' # checksum: 9ddfb6bb
   options:
@@ -4193,6 +4408,12 @@
   implicit-imports:
     - depends:
         - 'PySide6.support.deprecated'
+
+- module-name: 'PySide6.QtHttpServer' # checksum: edeef99d
+  implicit-imports:
+    - depends:
+        - 'PySide6.QtConcurrent'
+        - 'PySide6.QtWebSockets'
 
 - module-name: 'pysnmp.smi' # checksum: d8623e4b
   data-files:
@@ -4480,6 +4701,12 @@
         'self.console.is_jupyter': 'False'
       when: 'not use_ipython'
 
+- module-name: 'rich.pager' # checksum: 8ba7ab27
+  anti-bloat:
+    - description: 'allow pydoc inside rich pager, uses it'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
+
 - module-name: 'rich.pretty' # checksum: bdd67adb
   anti-bloat:
     - description: 'remove IPython reference'
@@ -4517,7 +4744,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 80d3c475
+- module-name: 'scipy' # checksum: f143defd
   data-files:
     patterns:
       - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -4534,14 +4761,16 @@
       when: 'win32'
 
   anti-bloat:
-    - description: 'torch and cupy checks should not cause usage'
+    - description: 'remove optional package references'
       no-auto-follow:
         'cupy': 'ignore'
         'torch': 'ignore'
+        'jax': 'ignore'
+        'dask': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
-- module-name: 'scipy._distributor_init' # checksum: 47635231
+- module-name: 'scipy._distributor_init' # checksum: c312b65
   anti-bloat:
     - description: 'workaround for scipy DLL loading'
       append_plain: |
@@ -4551,7 +4780,7 @@
           libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
           for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
             WinDLL(filename)
-      when: 'win32 and (1,14) > version("scipy") >= (1,9,2)'
+      when: 'win32 and standalone and (1,14) > version("scipy") >= (1,9,2)'
 
 - module-name: 'scipy._lib' # checksum: 4063ed73
   implicit-imports:
@@ -4567,12 +4796,22 @@
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
-- module-name: 'scipy._lib._numpy_compat' # checksum: c054044d
+- module-name: 'scipy._lib._numpy_compat' # checksum: 58eb0d9e
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+      replacements_plain:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": '0'
+        'from numpy.testing import suppress_warnings': 'suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'
+
+- module-name: 'scipy._lib._test_deprecation_call' # checksum: 2db6b2eb
+  implicit-imports:
+    - depends:
+        - 'scipy._lib._test_deprecation_def'
+
+- module-name: 'scipy._lib._test_deprecation_def' # checksum: 10d680aa
+  implicit-imports:
+    - depends:
+        - 'scipy._lib.deprecation'
 
 - module-name: 'scipy._lib._testutils' # checksum: 5e3b539b
   anti-bloat:
@@ -4581,6 +4820,12 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: 'scipy._lib.array_api_compat.common._helpers' # checksum: d79dca22
+  anti-bloat:
+    - description: 'remove optional package references'
+      no-auto-follow:
+        'numpy': 'ignore'
 
 - module-name: 'scipy._lib.array_api_compat.numpy' # checksum: 4d6580fa
   implicit-imports:
@@ -4593,12 +4838,12 @@
       change_function:
         '_copy_func': "'(lambda f: f)'"
 
-- module-name: 'scipy.lib.numpy_compat' # checksum: c054044d
+- module-name: 'scipy.lib.numpy_compat' # checksum: 58eb0d9e
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+      replacements_plain:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": '0'
+        'from numpy.testing import suppress_warnings': 'suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'
 
 - module-name: 'scipy.linalg' # checksum: 3f43474e
   implicit-imports:
@@ -4700,10 +4945,10 @@
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
 
-- module-name: 'scipy.stats.morestats' # checksum: 8c6ba801
+- module-name: 'scipy.stats.morestats' # checksum: 170d0f71
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
+      replacements_plain:
         '@setastest(False)': ''
         'from numpy.testing.decorators import setastest': ''
 
@@ -5114,7 +5359,7 @@
         'import dask.array as da': 'raise ImportError'
       when: 'not use_dask'
 
-- module-name: 'sklearn._distributor_init' # checksum: f9ef476
+- module-name: 'sklearn._distributor_init' # checksum: 8597e1a6
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -5122,11 +5367,11 @@
           - ''
   anti-bloat:
     - description: 'remove site module and distutils usage'
-      replacements:
-        '_site.ENABLE_USER_SITE': "'False'"
-        'if _running_from_pip_package()': "'if False'"
-        'import distutils as _distutils': "'_distutils = None'"
-        'import site as _site': "'_site = None'"
+      replacements_plain:
+        '_site.ENABLE_USER_SITE': 'False'
+        'if _running_from_pip_package()': 'if False'
+        'import distutils as _distutils': '_distutils = None'
+        'import site as _site': '_site = None'
   implicit-imports:
     - depends:
         - '.python.keras'
@@ -5265,11 +5510,11 @@
     - depends:
         - 'sklearn.preprocessing._csr_polynomial_expansion'
 
-- module-name: 'sklearn.random_projection' # checksum: 88257b1b
+- module-name: 'sklearn.random_projection' # checksum: b68af3f8
   anti-bloat:
     - description: 'remove numpy testing framework'
-      replacements:
-        'from numpy.testing import assert_equal': "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+      replacements_plain:
+        'from numpy.testing import assert_equal': 'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'
 
 - module-name: 'sklearn.svm' # checksum: 1126ac74
   implicit-imports:
@@ -5432,38 +5677,40 @@
       no-auto-follow:
         'spacy.tests': 'ignore'
 
-- module-name: 'spacy.pipeline' # checksum: 285ab011
+- module-name: 'spacy.morphology' # checksum: fc4c0a90
   implicit-imports:
     - depends:
-        - 'thinc.extra.*'
+        - 'spacy.parts_of_speech'
+
+- module-name: 'spacy.pipeline' # checksum: e8faf1dd
+  implicit-imports:
+    - depends:
         - 'spacy.pipeline.ner'
 
-- module-name: 'spacy.pipeline._parser_internals' # checksum: 36eb559e
+- module-name: 'spacy.pipeline._parser_internals._beam_utils' # checksum: 21162b2b
   implicit-imports:
     - depends:
-        - 'spacy.pipeline._parser_internals._beam_utils'
-        - 'spacy.pipeline._parser_internals._state'
-        - 'spacy.pipeline._parser_internals.arc_eager'
-        - 'spacy.pipeline._parser_internals.nonproj'
-        - 'spacy.pipeline._parser_internals.stateclass'
-        - 'spacy.pipeline._parser_internals.transition_system'
-        - 'spacy.pipeline._parser_internals.ner'
+        - 'thinc.extra.search'
 
 - module-name: 'spacy.pipeline.dep_parser' # checksum: c61d0958
   implicit-imports:
     - depends:
         - 'spacy.pipeline.transition_parser'
 
+- module-name: 'spacy.pipeline.transition_parser' # checksum: bbff8187
+  implicit-imports:
+    - depends:
+        - 'spacy.pipeline._parser_internals.*'
+
 - module-name: 'spacy.util' # checksum: 39e3b324
   implicit-imports:
     - depends:
         - 'spacy.lang.*'
 
-- module-name: 'spacy.vocab' # checksum: 73f7507a
+- module-name: 'spacy.vocab' # checksum: bfa3250b
   implicit-imports:
     - depends:
         - 'spacy.lang.lex_attrs'
-        - 'spacy.parts_of_speech'
         - 'spacy.lang.norm_exceptions'
 
 - module-name: 'sparse' # checksum: 7a56f74f
@@ -5493,12 +5740,12 @@
         executable: 'yes'
       when: 'linux'
 
-- module-name: 'sphinx.util.docutils' # checksum: 6b3e2205
+- module-name: 'sphinx.util.docutils' # checksum: 4870f54d
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
-        'from distutils.version import LooseVersion': "''"
+      replacements_plain:
+        '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': 'tuple(int(d) for d in docutils.__version__.split("."))'
+        'from distutils.version import LooseVersion': ''
 
 - module-name: 'sqlalchemy' # checksum: c3efbf7
   implicit-imports:
@@ -5964,6 +6211,11 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'telethon' # checksum: a76d75f1
+  anti-bloat:
+    - description: 'avoid annotations bloat'
+      annotations: 'no'
+
 - module-name: 'tenacity' # checksum: 64bd1802
   anti-bloat:
     # It would be nice
@@ -5972,6 +6224,14 @@
         'import tornado': 'raise ImportError'
         'from tenacity.tornadoweb import TornadoRetrying': 'pass'
       when: 'not use_tornado'
+
+- module-name: 'tendo.singleton' # checksum: ca7e6fc2
+  options:
+    checks:
+      # TODO: Actually change the default to product name, file version, etc. from __compiled__ or from plugin variables
+      - description: "need to use cached onefile mode with 'tendo.singleton' to work correctly"
+        support_info: 'warning'
+        when: 'onefile and not onefile_cached'
 
 - module-name: 'tensorboard' # checksum: 5e3de759
   anti-bloat:
@@ -6306,11 +6566,11 @@
           - '_audio_microfrontend_op'
 
 # TODO: Maybe not really necessary, this should be avoided by itself instead.
-- module-name: 'tensorflow.lite.python.convert' # checksum: 83de5047
+- module-name: 'tensorflow.lite.python.convert' # checksum: 326784fc
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.spawn.find_executable(_deprecated_conversion_binary) is None': "'False'"
+      replacements_plain:
+        'distutils.spawn.find_executable(_deprecated_conversion_binary) is None': 'False'
         'import distutils.spawn': ''
 
 - module-name: 'tensorflow.lite.python.interpreter_wrapper' # checksum: 6742ae49
@@ -6400,11 +6660,11 @@
     - depends:
         - 'ml_dtypes'
 
-- module-name: 'tensorflow.python.framework.meta_graph' # checksum: b0a05a68
+- module-name: 'tensorflow.python.framework.meta_graph' # checksum: 13d13fb
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils_version.LooseVersion': "'str'"
+      replacements_plain:
+        'distutils_version.LooseVersion': 'str'
         'from distutils import version as distutils_version': ''
 
 - module-name: 'tensorflow.python.keras.utils.vis_utils' # checksum: 7d07a2d1
@@ -6414,11 +6674,11 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'tensorflow.python.ops.distributions.distribution' # checksum: 2f12fb17
+- module-name: 'tensorflow.python.ops.distributions.distribution' # checksum: 4b7ea33
   anti-bloat:
     - description: 'remove useless function copying'
-      replacements:
-        'class_attr_value.__doc__ = _update_docstring': "'class_attr_value___doc__ = _update_docstring'"
+      replacements_plain:
+        'class_attr_value.__doc__ = _update_docstring': 'class_attr_value___doc__ = _update_docstring'
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
@@ -6456,13 +6716,13 @@
           return orig_getsourcelines(obj)
       when: 'standalone'
 
-- module-name: 'tensorflow_core' # checksum: f377875c
+- module-name: 'tensorflow_core' # checksum: e1ad340d
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'import distutils as _distutils': "'_distutils = None'"
-        'import site as _site': "'_site = None'"
-        'if _running_from_pip_package()': "'if False'"
+      replacements_plain:
+        'import distutils as _distutils': '_distutils = None'
+        'import site as _site': '_site = None'
+        'if _running_from_pip_package()': 'if False'
 
 - module-name: 'tensorflow_probability.python' # checksum: 33557ce7
   anti-bloat:
@@ -6522,25 +6782,21 @@
       no-auto-follow:
         'thinc.tests': 'ignore'
 
-- module-name: 'thinc.backends' # checksum: 7aaf0f6e
+- module-name: 'thinc.backends' # checksum: a9d80ab6
   data-files:
     patterns:
       - '*.cu'
-
-  anti-bloat:
-    - description: 'do not follow tests'
-      no-auto-follow:
-        'thinc.tests': 'ignore'
 
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
     - depends:
         - 'blis'
 
-- module-name: 'thinc.backends.numpy_ops' # checksum: a904b0a4
+- module-name: 'thinc.backends.numpy_ops' # checksum: 33d82a78
   implicit-imports:
     - depends:
         - 'thinc.backends.linalg'
+        - 'preshed.maps'
 
 - module-name: 'thinc.backends.numpy_ops.NumpyOps' # checksum: 53774cbb
   implicit-imports:
@@ -6579,6 +6835,11 @@
   data-files:
     patterns:
       - 'VERSION'
+
+- module-name: 'tinycudann.modules' # checksum: 2467d1b5
+  implicit-imports:
+    - depends:
+        - 'tinycudann_bindings._*_C'
 
 - module-name: 'tkextrafont' # checksum: 1bd90a67
   dlls:
@@ -6631,9 +6892,10 @@
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
-- module-name: 'toga.platform' # checksum: 4db91cac
+- module-name: 'toga.platform' # checksum: c708442a
   variables:
-    setup_code: 'import toga.platform'
+    setup_code:
+      - 'import toga.platform'
     declarations:
       'toga_backend_module_name': 'toga.platform.get_platform_factory().__name__'
   anti-bloat:
@@ -6741,6 +7003,13 @@
     - description: "work around our '__loader__' failing check"
       replacements_plain:
         'if inspect.isclass(obj)': 'if inspect.isclass(obj) and obj is not __loader__'
+
+- module-name: 'torch._dynamo.utils' # checksum: fd1c674
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'import_submodule': "'''(lambda mod: [importlib.import_module(mod.__name__ + '.' + p.name) for p in pkgutil.iter_modules(mod.__path__) if p.name[0] != '_'])'''"
+      append_plain: 'import pkgutil'
 
 - module-name: 'torch._dynamo.variables.builder' # checksum: 6ef7624b
   anti-bloat:
@@ -6891,12 +7160,13 @@
         'get_pytest_test_cases': 'un-callable'
       when: 'not use_pytest'
 
-- module-name: 'torch.utils._config_module' # checksum: 95196bd9
+- module-name: 'torch.utils._config_module' # checksum: 1613f7c7
   constants:
     declarations:
       'torch_config_module_candidates': '[m for m in iterate_modules("torch") if m.split(".")[-1] in ("config", "_config")]'
   variables:
-    setup_code: 'import importlib'
+    setup_code:
+      - 'import importlib'
     declarations:
       'torch_config_modules': 'dict((m,importlib.import_module(m)._compile_ignored_keys) for m in torch_config_module_candidates if hasattr(importlib.import_module(m), "_compile_ignored_keys"))'
 
@@ -7353,6 +7623,12 @@
     - depends:
         - 'queue'
 
+- module-name: 'usb1' # checksum: 5cbb45ba
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libusb'
+
 - module-name: 'uvicorn' # checksum: e24c61dd
   implicit-imports:
     - depends:
@@ -7576,10 +7852,11 @@
         - 'win32comext'
       when: 'win32'
 
-- module-name: 'win32com.server.register' # checksum: d2ea40f3
+- module-name: 'win32com.server.register' # checksum: cb126a6d
   anti-bloat:
     - replacements_plain:
-        'not pythoncom.frozen': 'False'
+        'pythoncom.frozen': '1'
+        'sys.frozen': 'True'
       change_function:
         'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
   implicit-imports:
@@ -7782,6 +8059,11 @@
     patterns:
       - 'Grammar.txt'
       - 'PatternGrammar.txt'
+
+- module-name: 'yt_dlp' # checksum: 7c4ae87e
+  implicit-imports:
+    - depends:
+        - 'yt_dlp.utils._deprecated'
 
 - module-name: 'zaber_motion' # checksum: 11ddc56d
   implicit-imports:

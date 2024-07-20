@@ -14,12 +14,7 @@ from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.PythonVersions import (
-    isPythonValidCLongLongValue,
-    isPythonValidCLongValue,
-    python_version,
-    sizeof_clonglong,
-)
+from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
     BlobData,
     BuiltinAnonValue,
@@ -33,6 +28,7 @@ from nuitka.utils.FileOperations import getFileSize, listDir, syncFileOutput
 from nuitka.utils.Json import writeJsonToFilename
 
 _max_uint64_t_value = 2**64 - 1
+_max_uint31_t_value = 2**31 - 1
 
 
 def _encodeVariableLength(value):
@@ -134,34 +130,36 @@ def _writeConstantValue(output, constant_value):
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is long:
-        if isPythonValidCLongValue(constant_value):
-            output.write(b"l" + struct.pack("l", constant_value))
-        elif isPythonValidCLongLongValue(constant_value):
-            output.write(b"q" + struct.pack("q", constant_value))
-        else:
-            output.write(b"g")
+        is_negative = constant_value < 0
+        abs_constant_value = abs(constant_value)
 
-            if constant_value < 0:
-                abs_constant_value = abs(constant_value)
-                output.write(b"-")
-            else:
-                abs_constant_value = constant_value
-                output.write(b"+")
+        if abs_constant_value < _max_uint31_t_value:
+            output.write(
+                (b"q" if is_negative else b"l")
+                + _encodeVariableLength(abs_constant_value)
+            )
+        else:
+            output.write(b"G" if is_negative else b"g")
 
             parts = []
 
-            mod_value = 2 ** (sizeof_clonglong * 8)
+            mod_value = 2**31
             while abs_constant_value > 0:
                 parts.append(abs_constant_value % mod_value)
-                abs_constant_value >>= sizeof_clonglong * 8
+                abs_constant_value >>= 31
 
-            output.write(struct.pack("i", len(parts)))
+            output.write(_encodeVariableLength(len(parts)))
             for part in reversed(parts):
-                output.write(struct.pack("Q", part))
+                output.write(_encodeVariableLength(part))
 
     elif constant_type is int:
-        # This is Python2 then. TODO: Special case smaller values.
-        output.write(b"i" + struct.pack("l", constant_value))
+        is_negative = constant_value < 0
+        abs_constant_value = abs(constant_value)
+        # This is Python2 then.
+
+        output.write(
+            (b"I" if is_negative else b"i") + _encodeVariableLength(abs_constant_value)
+        )
     elif constant_type is float:
         if constant_value == 0.0:
             if copysign(1, constant_value) == 1:
@@ -227,6 +225,8 @@ def _writeConstantValue(output, constant_value):
         _writeConstantValue(output, constant_value.step)
     elif constant_type is xrange:
         output.write(b";")
+        _last_written = None
+
         range_args = [
             int(v)
             for v in str(constant_value)[7 if str is bytes else 6 : -1].split(",")
@@ -240,7 +240,9 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        output.write(struct.pack("lll", *range_args))
+        _writeConstantValue(output, range_args[0])
+        _writeConstantValue(output, range_args[1])
+        _writeConstantValue(output, range_args[2])
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
@@ -275,10 +277,10 @@ def _writeConstantValue(output, constant_value):
     elif constant_type is BlobData:
         constant_value = constant_value.getData()
         output.write(b"X")
-        output.write(struct.pack("i", len(constant_value)))
+        output.write(_encodeVariableLength(len(constant_value)))
         output.write(constant_value)
     elif constant_type is BuiltinGenericAliasValue:
-        output.write(b"G")
+        output.write(b"A")
         _last_written = None
         _writeConstantValue(output, constant_value.origin)
         _writeConstantValue(output, constant_value.args)

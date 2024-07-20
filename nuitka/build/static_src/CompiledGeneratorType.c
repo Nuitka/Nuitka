@@ -353,9 +353,9 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nu
     else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
         retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
-        // Bug compatibility here, before 3.3 tuples were unrolled in calls, which is what
+        // Bug compatibility here, before Python3 tuples were unrolled in calls, which is what
         // PyObject_CallMethod does.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
         retval = PyObject_CallMethodObjArgs(yield_from, const_str_plain_send, send_value, NULL);
 #else
         retval = PyObject_CallMethod(yield_from, (char *)"send", (char *)"O", send_value);
@@ -623,7 +623,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             Nuitka_MarkGeneratorAsFinished(generator);
 
             if (generator->m_frame != NULL) {
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
                 Nuitka_SetFrameGenerator(generator->m_frame, NULL);
 #endif
                 Py_DECREF(generator->m_frame);
@@ -736,9 +736,11 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 }
 
 static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+    CHECK_OBJECT(value);
+
     PyThreadState *tstate = PyThreadState_GET();
 
-    if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
+    if (generator->m_status == status_Unused && value != Py_None) {
         // Buggy CPython 3.10 refuses to allow later usage.
 #if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3a2
         Nuitka_MarkGeneratorAsFinished(generator);
@@ -1350,7 +1352,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
     return result;
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generator) {
     if (generator->m_status != status_Running) {
         return;
@@ -1410,7 +1412,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     }
 
     if (generator->m_frame != NULL) {
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
         Nuitka_SetFrameGenerator(generator->m_frame, NULL);
 #endif
         Py_DECREF(generator->m_frame);
@@ -1562,7 +1564,7 @@ static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator
     return -1;
 }
 
-static PyGetSetDef Nuitka_Generator_getsetlist[] = {
+static PyGetSetDef Nuitka_Generator_tp_getset[] = {
 #if PYTHON_VERSION < 0x350
     {(char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL},
 #else
@@ -1630,7 +1632,7 @@ PyTypeObject Nuitka_Generator_Type = {
     (iternextfunc)Nuitka_Generator_tp_iternext,          // tp_iternext
     Nuitka_Generator_methods,                            // tp_methods
     NULL,                                                // tp_members
-    Nuitka_Generator_getsetlist,                         // tp_getset
+    Nuitka_Generator_tp_getset,                          // tp_getset
     0,                                                   // tp_base
     0,                                                   // tp_dict
     0,                                                   // tp_descr_get
@@ -1648,7 +1650,7 @@ PyTypeObject Nuitka_Generator_Type = {
     0,                                                   // tp_weaklist
     0,                                                   // tp_del
     0                                                    // tp_version_tag
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     ,
     (destructor)Nuitka_Generator_tp_finalizer // tp_finalize
 #endif
@@ -1694,7 +1696,7 @@ void _initCompiledGeneratorType(void) {
     assert(Nuitka_Generator_Type.tp_subclasses != PyGen_Type.tp_subclasses || PyGen_Type.tp_cache == NULL);
     assert(Nuitka_Generator_Type.tp_weaklist != PyGen_Type.tp_weaklist);
     assert(Nuitka_Generator_Type.tp_del != PyGen_Type.tp_del || PyGen_Type.tp_del == NULL);
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     assert(Nuitka_Generator_Type.tp_finalize != PyGen_Type.tp_finalize || PyGen_Type.tp_finalize == NULL);
 #endif
 

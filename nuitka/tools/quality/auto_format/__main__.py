@@ -10,7 +10,7 @@ from optparse import OptionParser
 
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
 from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
-from nuitka.tools.quality.Git import getStagedFileChangeDesc
+from nuitka.tools.quality.Git import getCheckoutFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
@@ -101,8 +101,11 @@ Defaults to off.""",
 
     if options.from_commit:
         assert not positional_args
-        for desc in getStagedFileChangeDesc():
-            autoFormatFile(desc["src_path"], git_stage=desc)
+        for git_stage in getCheckoutFileChangeDesc(staged=True):
+            autoFormatFile(
+                git_stage["src_path"],
+                git_stage=git_stage,
+            )
     else:
         if not positional_args:
             positional_args = [

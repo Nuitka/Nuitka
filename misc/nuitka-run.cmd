@@ -4,7 +4,7 @@ rem     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text 
 
 setlocal
 
-"%~dp0nuitka.bat --run %*"
+"%~dp0nuitka.cmd --run %*"
 
 endlocal
 

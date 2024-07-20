@@ -169,6 +169,11 @@ except NameError:
     BaseExceptionGroup = None
 
 try:
+    BrokenPipeError = BrokenPipeError  # pylint: disable=I0021,redefined-builtin
+except NameError:
+    BrokenPipeError = OSError
+
+try:
     _md5()
 except ValueError:
     # On FIPS compliant systems, checks might be enabled that require

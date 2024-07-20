@@ -51,6 +51,16 @@ from .ValueTraces import (
     ValueTraceUnknown,
 )
 
+# Keeping trace of how often branches are merged between calls
+_merge_counts = defaultdict(int)
+
+
+def fetchMergeCounts():
+    result = dict(_merge_counts)
+    _merge_counts.clear()
+    return result
+
+
 signalChange = None
 
 
@@ -189,10 +199,10 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         # TODO: We might want to track per exception, pylint: disable=unused-argument
 
-        if collection is None:
-            collection = self
-
         if self.exception_collections is not None:
+            if collection is None:
+                collection = self
+
             self.exception_collections.append(
                 TraceCollectionBranch(parent=collection, name="exception")
             )
@@ -754,6 +764,8 @@ class TraceCollectionBase(object):
             collection1 = collection_yes
             collection2 = collection_no
 
+        _merge_counts[2] += 1
+
         variable_versions = {}
 
         for variable, version in iterItems(collection1.variable_actives):
@@ -816,7 +828,8 @@ class TraceCollectionBase(object):
         elif merge_size == 2:
             return self.mergeBranches(*collections)
 
-        # print("Enter mergeMultipleBranches", len(collections))
+        _merge_counts[len(collections)] += 1
+
         with TimerReport(
             message="Running merge for %s took %%.2f seconds" % collections,
             decider=False,
@@ -873,6 +886,8 @@ class TraceCollectionBase(object):
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
         collection_replace.variable_actives = None
+
+        _merge_counts[1] += 1
 
     def onLoopBreak(self, collection=None):
         if collection is None:

@@ -7,16 +7,19 @@ module_var = None
 
 
 def calledRepeatedly():
+    # Force a local frame for now
+    module_var
+
     # We measure making a local function that will remain unused.
     # construct_begin
-    def empty():
+    def yieldingValue():
         yield 1
 
     # construct_alternative
-    empty = 1
+    yieldingValue = 1
     # construct_end
 
-    return empty
+    return yieldingValue
 
 
 for x in itertools.repeat(None, 50000):

@@ -156,6 +156,9 @@ deployment_mode = getArgumentBool("deployment", False)
 # Experimental indications. Do things that are not yet safe to do.
 no_deployment = getArgumentList("no_deployment", "")
 
+# Debug mode indications. Do check things with fine granularity.
+debug_modes = getArgumentList("debug_modes", "")
+
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
 
@@ -315,6 +318,7 @@ env = createEnvironment(
     target_arch=target_arch,
     experimental=experimental,
     no_deployment=no_deployment,
+    debug_modes=debug_modes,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))

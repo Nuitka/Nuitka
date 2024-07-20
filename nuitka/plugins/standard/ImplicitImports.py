@@ -15,7 +15,7 @@ import os
 from nuitka.__past__ import iter_modules, unicode
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
@@ -84,6 +84,31 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
         yield current
 
+    def _resolveImplicitImportsConfig(self, full_name, dependency):
+        if "(" in dependency:
+            value = self.evaluateExpression(
+                full_name=full_name,
+                expression=dependency,
+                config_name="depends value",
+                extra_context=None,
+                single_value=False,
+            )
+
+            if type(value) in (str, unicode):
+                value = (value,)
+
+            for v in value:
+                if "*" in v or "?" in v:
+                    for resolved in self._resolveModulePattern(v):
+                        yield resolved
+                else:
+                    yield v
+        elif "*" in dependency or "?" in dependency:
+            for resolved in self._resolveModulePattern(dependency):
+                yield resolved
+        else:
+            yield dependency
+
     def _handleImplicitImportsConfig(self, module, config):
         full_name = module.getFullName()
 
@@ -102,25 +127,11 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 else:
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()
 
-            if "(" in dependency:
-                value = self.evaluateExpression(
-                    full_name=full_name,
-                    expression=dependency,
-                    config_name="depends value",
-                    extra_context=None,
-                    single_value=False,
-                )
-
-                if type(value) in (str, unicode):
-                    value = (value,)
-
-                for v in value:
-                    yield v
-            elif "*" in dependency or "?" in dependency:
-                for resolved in self._resolveModulePattern(dependency):
-                    yield resolved
-            else:
-                yield dependency
+            for value in self._resolveImplicitImportsConfig(
+                full_name=full_name,
+                dependency=dependency,
+            ):
+                yield value
 
     def _getImportsByFullname(self, module, full_name):
         """Provides names of modules to imported implicitly."""
@@ -253,6 +264,9 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._ARC4"
 
             elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
+                yield crypto_module_name + ".Cipher._pkcs1_decode"
+
+            elif full_name == crypto_module_name + ".Cipher.PKCS1_OAEP":
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
             elif full_name == crypto_module_name + ".Math._IntegerCustom":

@@ -211,7 +211,12 @@ def getTempDir():
         )
 
         def removeTempDir():
-            removeDirectory(path=tmp_dir, ignore_errors=True)
+            removeDirectory(
+                path=tmp_dir,
+                logger=test_logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
 
         atexit.register(removeTempDir)
 
@@ -370,7 +375,12 @@ def _removeCPythonTestSuiteDir():
     # Cleanup, some tests apparently forget that.
     try:
         if os.path.isdir("@test"):
-            removeDirectory("@test", ignore_errors=False)
+            removeDirectory(
+                "@test",
+                logger=test_logger,
+                ignore_errors=False,
+                extra_recommendation=None,
+            )
         elif os.path.isfile("@test"):
             os.unlink("@test")
     except OSError:
@@ -1329,6 +1339,8 @@ def checkTestRequirements(filename):
 
         if os.path.isfile(candidate):
             filename = candidate
+        else:
+            filename = os.path.join(filename, getMainProgramFilename(filename))
 
     for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
@@ -1786,6 +1798,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
             "libffi.dylib",
+            "libfribidi.dylib",
         ):
             continue
 
@@ -1800,10 +1813,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         if isMacOS():
             ignore = True
             for ignored_dir in (
-                "/System/Library/PrivateFrameworks",
-                "/System/Library/CoreServices",
-                "/System/Library/Frameworks/",
-                "/System/Library/dyld",
+                "/System/Library",
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
                 "/usr/lib/system/",
@@ -1813,6 +1823,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                     ignore = False
                     break
             if not ignore:
+                continue
+
+            if loaded_filename == "/System/Library":
                 continue
 
             if loaded_filename == "/usr/libexec/rosetta/runtime":

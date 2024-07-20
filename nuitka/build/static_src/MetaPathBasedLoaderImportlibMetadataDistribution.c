@@ -13,7 +13,16 @@
 static PyObject *metadata_values_dict = NULL;
 
 // For initialization of the metadata dictionary during startup.
-void setDistributionsMetadata(PyObject *metadata_values) { metadata_values_dict = metadata_values; }
+void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_values) {
+    metadata_values_dict = MAKE_DICT_EMPTY(tstate);
+
+    // We get the items passed, and need to add it to the dictionary.
+    int res = PyDict_MergeFromSeq2(metadata_values_dict, metadata_values, 1);
+    assert(res == 0);
+
+    // PRINT_ITEM(metadata_values_dict);
+    // PRINT_NEW_LINE();
+}
 
 bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) {
     PyObject *value;
@@ -35,8 +44,8 @@ if sys.version_info >= (3, 8):\n\
 else:\n\
     from importlib_metadata import Distribution,distribution\n\
 class nuitka_distribution(Distribution):\n\
-    def __init__(self, base_path, metadata, entry_points):\n\
-        self.base_path = base_path; self.metadata_data = metadata\n\
+    def __init__(self, path, metadata, entry_points):\n\
+        self._path = path; self.metadata_data = metadata\n\
         self.entry_points_data = entry_points\n\
     def read_text(self, filename):\n\
         if filename == 'METADATA':\n\
@@ -44,7 +53,7 @@ class nuitka_distribution(Distribution):\n\
         elif filename == 'entry_points.txt':\n\
             return self.entry_points_data\n\
     def locate_file(self, path):\n\
-        return os.path.join(self.base_path, path)\n\
+        return os.path.join(self._path, path)\n\
 ";
 
         PyObject *nuitka_distribution_code_object = Py_CompileString(nuitka_distribution_code, "<exec>", Py_file_input);

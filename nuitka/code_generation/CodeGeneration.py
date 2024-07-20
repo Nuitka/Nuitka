@@ -250,7 +250,6 @@ from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
-    generateNuitkaLoaderCreationCode,
     getModuleCode,
 )
 from .NetworkxCodes import generateNetworkxUtilsDecoratorsArgmapCallCode
@@ -651,8 +650,10 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
         "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
         "EXPRESSION_SUBTYPE_CHECK": generateSubtypeCheckCode,
+        "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_MATCH_TYPE_CHECK_SEQUENCE": generateMatchTypeCheckSequenceCode,
         "EXPRESSION_MATCH_TYPE_CHECK_MAPPING": generateMatchTypeCheckMappingCode,
+        "EXPRESSION_MATCH_SUBSCRIPT_CHECK": generateMatchSubscriptCheckCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,
         "EXPRESSION_BUILTIN_VARS": generateBuiltinVarsCode,
         "EXPRESSION_BUILTIN_HASATTR": generateBuiltinHasattrCode,
@@ -773,6 +774,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
+        "EXPRESSION_BUILTIN_PATCHABLE_TYPE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
@@ -843,12 +845,11 @@ addExpressionDispatchDict(
         "EXPRESSION_OPERATION_NOT": generateOperationNotCode,
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
-        # TODO: Rename to make more clear it is an outline
-        "EXPRESSION_CLASS_BODY_P2": generateFunctionOutlineCode,
-        "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_MAPPING_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_DICT_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_DICT_BODY_P2": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
-        "EXPRESSION_MATCH_SUBSCRIPT_CHECK": generateMatchSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
         "EXPRESSION_SIDE_EFFECTS": generateSideEffectsCode,
@@ -872,7 +873,6 @@ addExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK": generateLocalsDictVariableRefOrFallbackCode,
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
-        "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
         "EXPRESSION_PKGUTIL_GET_DATA_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF": generateImportModuleNameHardCode,
@@ -945,7 +945,6 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_NORMPATH_CALL": generateOsPathNormpathCallCode,
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
-        "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         # TODO: Should have all of these generically or not. This one is required for now.
