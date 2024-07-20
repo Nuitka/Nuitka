@@ -50,14 +50,16 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
-from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationImportStatements import getFutureSpec
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
@@ -391,7 +393,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         function_body.qualname_setup = result.getVariableName()
 
     return result
@@ -580,21 +582,15 @@ def buildParameterAnnotations(provider, node, source_ref):
     # spell-checker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
-    if python_version < 0x300 or hasPythonFlagNoAnnotations():
+    if not getFutureSpec().use_annotations:
         return None
-
-    # Starting with Python 3.4, the names of parameters are mangled in
-    # annotations as well.
-    if python_version < 0x340:
-        mangle = lambda variable_name: variable_name
-    else:
-        mangle = lambda variable_name: mangleName(variable_name, provider)
 
     keys = []
     values = []
 
+    # The names of parameters are mangled in annotations as well.
     def addAnnotation(key, value):
-        keys.append(mangle(key))
+        keys.append(mangleName(key, provider))
         values.append(value)
 
     def extractArgAnnotation(arg):
@@ -760,20 +756,16 @@ def _wrapFunctionWithSpecialNestedArgs(
 
     outer_body.setChildBody(
         makeStatementsSequenceFromStatement(
-            statement=makeTryFinallyStatement(
+            statement=makeTryFinallyReleaseStatement(
                 provider=outer_body,
                 tried=statements,
-                final=[
-                    makeStatementReleaseVariable(
-                        variable=variable, source_ref=source_ref
-                    )
-                    for variable in sorted(
+                variables=tuple(
+                    sorted(
                         outer_body.getTempVariables(),
                         key=lambda variable: variable.getName(),
                     )
-                ],
+                ),
                 source_ref=source_ref,
-                public_exc=False,
             )
         )
     )
@@ -895,7 +887,7 @@ def buildFunctionWithParsing(
 def addFunctionVariableReleases(function):
     assert function.isExpressionFunctionBodyBase()
 
-    releases = []
+    release_variables = []
 
     # We attach everything to the function definition source location.
     source_ref = function.getSourceReference()
@@ -905,18 +897,19 @@ def addFunctionVariableReleases(function):
         if variable.getOwner() is not function:
             continue
 
-        releases.append(
-            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
-        )
+        release_variables.append(variable)
 
-    if releases:
+    if release_variables:
         body = function.subnode_body
 
         if body.isStatementsFrame():
             body = makeStatementsSequenceFromStatement(statement=body)
 
-        body = makeTryFinallyStatement(
-            provider=function, tried=body, final=releases, source_ref=source_ref
+        body = makeTryFinallyReleaseStatement(
+            provider=function,
+            tried=body,
+            variables=release_variables,
+            source_ref=source_ref,
         )
 
         function.setChildBody(makeStatementsSequenceFromStatement(statement=body))

@@ -376,13 +376,23 @@ def withNoWarning():
 
 
 def decoratorRetries(
-    logger, purpose, consequence, attempts=5, sleep_time=1, exception_type=OSError
+    logger,
+    purpose,
+    consequence,
+    extra_recommendation=None,
+    attempts=5,
+    sleep_time=1,
+    exception_type=OSError,
 ):
     """Make retries for errors on Windows.
 
     This executes a decorated function multiple times, and imposes a delay and
     a virus checker warning.
     """
+
+    recommendation = "Disable Anti-Virus, e.g. Windows Defender for build folders."
+    if extra_recommendation is not None:
+        recommendation = "%s. %s" % (extra_recommendation, recommendation)
 
     def inner(func):
         if os.name != "nt":
@@ -398,8 +408,9 @@ def decoratorRetries(
                         logger.warning(
                             """\
 Failed to %s in attempt %d due to %s.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                            % (purpose, attempt, str(e))
+%s
+Retrying after a second of delay."""
+                            % (purpose, attempt, str(e), recommendation)
                         )
 
                     else:
@@ -407,15 +418,17 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
                             logger.warning(
                                 """\
 Failed to %s in attempt %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                                % (purpose, attempt)
+%s
+Retrying after a second of delay."""
+                                % (purpose, attempt, recommendation)
                             )
                         else:
                             logger.warning(
                                 """\
 Failed to %s in attempt %d with error code %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                                % (purpose, attempt, e.errno)
+%s
+Retrying after a second of delay."""
+                                % (purpose, attempt, e.errno, recommendation)
                             )
 
                     time.sleep(sleep_time)
@@ -441,6 +454,15 @@ def raiseWindowsError(message):
         ctypes.GetLastError(),
         "%s (%s)" % (message, ctypes.FormatError(ctypes.GetLastError())),
     )
+
+
+def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
+    # Hack, we need this to bootstrap and it's actually living in __main__
+    # module of nuitka package and renamed to where we can get at easily for
+    # other uses. pylint: disable=no-name-in-module,redefined-outer-name
+    from nuitka import getLaunchingNuitkaProcessEnvironmentValue
+
+    return getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

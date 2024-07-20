@@ -3,6 +3,7 @@
 
 """ Templates for the constants handling.
 
+spell-checker: ignore structseq
 """
 
 template_constants_reading = r"""
@@ -56,7 +57,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
 }
 #endif
 
-extern void setDistributionsMetadata(PyObject *metadata_values);
+extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_items);
 
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
@@ -113,7 +114,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     static PyTypeObject Nuitka_VersionInfoType;
 
-    // Same fields as "sys.version_info" except no serial number.
+    // Same fields as "sys.version_info" except no serial number
+    // spell-checker: ignore releaselevel
     static PyStructSequence_Field Nuitka_VersionInfoFields[] = {
         {(char *)"major", (char *)"Major release number"},
         {(char *)"minor", (char *)"Minor release number"},
@@ -150,7 +152,6 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
     PyObject *binary_directory = getContainingDirectoryObject(false);
-    binary_directory = OS_PATH_ABSPATH(tstate, binary_directory);
 #ifdef _NUITKA_STANDALONE
 #ifndef _NUITKA_ONEFILE_MODE
     binary_directory = STRIP_DIRNAME(binary_directory);
@@ -229,7 +230,8 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
 
-    setDistributionsMetadata(%(metadata_values)s);
+    // Register included meta data.
+    setDistributionsMetadata(tstate, %(metadata_values)s);
 }
 
 // In debug mode we can check that the constants were not tampered with in any

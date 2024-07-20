@@ -256,7 +256,12 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     if Options.isRemoveBuildDir():
         onefile_logger.info("Removing onefile build directory '%s'." % source_dir)
 
-        removeDirectory(path=source_dir, ignore_errors=False)
+        removeDirectory(
+            path=source_dir,
+            logger=onefile_logger,
+            ignore_errors=False,
+            extra_recommendation=None,
+        )
         assert not os.path.exists(source_dir)
     else:
         onefile_logger.info("Keeping onefile build directory '%s'." % source_dir)

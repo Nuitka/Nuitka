@@ -8,6 +8,7 @@ objects, as well as tracebacks. They might be shared.
 
 """
 
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -131,6 +132,14 @@ class CodeObjectSpec(object):
             "co_is_optimized": self.is_optimized,
             "code_flags": ",".join(self.future_spec.asFlags()),
         }
+
+    def getHash(self):
+        return getStringHash(
+            "|".join(
+                "%s=%s" % (key, value)
+                for key, value in sorted(self.getDetails().items())
+            )
+        )
 
     def getCodeObjectKind(self):
         return self.co_kind

@@ -10,6 +10,9 @@ know how to handle these.
 import os
 import sys
 
+from nuitka import Options
+from nuitka.Constants import isConstant
+from nuitka.nodes.BuiltinOpenNodes import makeBuiltinOpenRefNode
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantSysVersionInfoRef
 from nuitka.PythonVersions import (
     getFutureModuleKeys,
@@ -161,8 +164,10 @@ module_sys_trust = {
     "maxsize": trust_constant,
     "byteorder": trust_constant,
     "builtin_module_names": trust_constant,
-    "stdout": trust_exist,
-    "stderr": trust_exist,
+    # TODO: Their lookups would have to be nodes, and copy with them being
+    # potentially unassigned.
+    #    "stdout": trust_exist,
+    #    "stderr": trust_exist,
     "exit": trust_node,
 }
 
@@ -175,6 +180,7 @@ else:
 module_builtins_trust = {}
 if python_version >= 0x300:
     module_builtins_trust["open"] = trust_node
+    trust_node_factory[("builtins", "open")] = makeBuiltinOpenRefNode
 
 if python_version < 0x300:
     module_sys_trust["exc_type"] = trust_may_exist
@@ -191,6 +197,27 @@ else:
 module_typing_trust = {
     "TYPE_CHECKING": trust_constant,
 }
+
+
+def makeTypingModuleTrust():
+    result = {}
+
+    if python_version >= 0x350:
+        import typing
+
+        constant_typing_values = ("TYPE_CHECKING", "Text")
+        for name in typing.__all__:
+            if name not in constant_typing_values:
+                trust = trust_exist
+                if Options.is_debug:
+                    assert not isConstant(getattr(typing, name))
+            else:
+                trust = trust_constant
+                if Options.is_debug:
+                    assert isConstant(getattr(typing, name))
+
+            result[name] = trust
+
 
 module_os_trust = {
     "name": trust_constant,

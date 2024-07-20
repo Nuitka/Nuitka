@@ -19,6 +19,7 @@ import sys
 from string import Formatter
 
 from nuitka.PythonFlavors import getPythonFlavorName
+from nuitka.PythonVersions import isPythonWithGil
 from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
@@ -765,6 +766,25 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--no-debug-immortal-assumptions",
+    action="store_false",
+    dest="debug_immortal",
+    default=None,
+    help="""\
+Disable check normally done with "--debug". With Python3.12+ do not check known
+immortal object assumptions. Some C libraries corrupt them. Defaults to check
+being made if "--debug" is on.""",
+)
+
+debug_group.add_option(
+    "--debug-immortal-assumptions",
+    action="store_true",
+    dest="debug_immortal",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
     "--unstripped",
     "--unstriped",
     action="store_true",
@@ -952,8 +972,9 @@ c_compiler_group.add_option(
     metavar="N",
     default=None,
     help="""\
-Specify the allowed number of parallel C compiler jobs. Defaults to the
-system CPU count.""",
+Specify the allowed number of parallel C compiler jobs. Negative values
+are system CPU minus the given value. Defaults to the full system CPU
+count unless low memory mode is activated, then it defaults to 1.""",
 )
 
 c_compiler_group.add_option(
@@ -1082,7 +1103,7 @@ del caching_group
 pgo_group = parser.add_option_group("PGO compilation choices")
 
 pgo_group.add_option(
-    "--pgo",
+    "--pgo-c",
     action="store_true",
     dest="is_c_pgo",
     default=False,
@@ -1294,39 +1315,6 @@ del tracing_group
 os_group = parser.add_option_group("General OS controls")
 
 os_group.add_option(
-    "--disable-console",
-    "--macos-disable-console",
-    "--windows-disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=None,
-    help=SUPPRESS_HELP,
-)
-
-os_group.add_option(
-    "--enable-console",
-    action="store_false",
-    dest="disable_console",
-    default=None,
-    help=SUPPRESS_HELP,
-)
-
-os_group.add_option(
-    "--windows-console-mode",
-    action="store",
-    dest="console_mode",
-    choices=("force", "disable", "attach"),
-    metavar="CONSOLE_MODE",
-    default=None,
-    help="""\
-Select console mode to use. Default mode is 'force' and creates a
-console window if not available, i.e. the program was started from one. With
-'disable' it doesn't create or use a console. With 'attach' an existing console
-will be used for outputs. Default is 'force'.
-""",
-)
-
-os_group.add_option(
     "--force-stdout-spec",
     "--windows-force-stdout-spec",
     action="store",
@@ -1360,11 +1348,18 @@ del os_group
 windows_group = parser.add_option_group("Windows specific controls")
 
 windows_group.add_option(
-    "--windows-dependency-tool",
+    "--windows-console-mode",
     action="store",
-    dest="dependency_tool",
+    dest="console_mode",
+    choices=("force", "disable", "attach"),
+    metavar="CONSOLE_MODE",
     default=None,
-    help=SUPPRESS_HELP,
+    help="""\
+Select console mode to use. Default mode is 'force' and creates a
+console window unless the program was started from one. With 'disable'
+it doesn't create or use a console at all. With 'attach' an existing
+console will be used for outputs. Default is 'force'.
+""",
 )
 
 windows_group.add_option(
@@ -1417,6 +1412,33 @@ windows_group.add_option(
 Request Windows User Control, to enforce running from a few folders only, remote
 desktop access. (Windows only). Defaults to off.""",
 )
+
+windows_group.add_option(
+    "--disable-console",
+    "--macos-disable-console",
+    "--windows-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+windows_group.add_option(
+    "--enable-console",
+    action="store_false",
+    dest="disable_console",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+windows_group.add_option(
+    "--windows-dependency-tool",
+    action="store",
+    dest="dependency_tool",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
 
 del windows_group
 
@@ -1736,6 +1758,23 @@ Default empty.""",
 
 del plugin_group
 
+target_group = parser.add_option_group("Cross compilation")
+
+
+target_group.add_option(
+    "--target",
+    action="store",
+    dest="target_desc",
+    metavar="TARGET_DESC",
+    default=None,
+    help="""\
+Cross compilation target. Highly experimental and in development, not
+supposed to work yet. We are working on '--target=wasi' and nothing
+else yet.""",
+)
+
+del target_group
+
 
 def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.
@@ -1815,6 +1854,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
         "Version": getNuitkaVersion(),
         "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
+        "GIL": isPythonWithGil(),
     }
 
     if isLinux():

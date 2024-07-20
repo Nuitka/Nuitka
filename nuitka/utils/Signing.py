@@ -48,6 +48,7 @@ def detectMacIdentity():
     if str is not bytes:
         output = output.decode("utf8")
 
+    signing_name = None
     result = None
 
     for line in output.splitlines():
@@ -96,7 +97,8 @@ def addMacOSCodeSignature(filenames):
         identity = detectMacIdentity()
 
     command = [
-        "codesign",
+        # Need to avoid Anaconda codesign.
+        "/usr/bin/codesign",
         "-s",
         identity,
         "--force",

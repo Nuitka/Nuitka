@@ -113,6 +113,20 @@ def isHomebrewPython():
     return False
 
 
+def getHomebrewInstallPath():
+    assert isHomebrewPython()
+
+    candidate = getSystemPrefixPath()
+
+    while candidate != "/":
+        if os.path.isdir(os.path.join(candidate, "Cellar")):
+            return candidate
+
+        candidate = os.path.dirname(candidate)
+
+    sys.exit("Error, failed to locate homebrew installation path.")
+
+
 def isRyePython():
     if isMacOS():
         import sysconfig
@@ -271,10 +285,14 @@ def isCPythonOfficialPackage():
     sys_prefix = getSystemPrefixPath()
 
     # For macOS however, it's very knowable.
-    if isMacOS() and isFilenameBelowPath(
-        path="/Library/Frameworks/Python.framework/Versions/", filename=sys_prefix
-    ):
-        return True
+    if isMacOS():
+        for candidate in (
+            "/Library/Frameworks/Python.framework/Versions/",
+            "/Library/Frameworks/PythonT.framework/Versions/",
+        ):
+
+            if isFilenameBelowPath(path=candidate, filename=sys_prefix):
+                return True
 
     # For Windows, we check registry.
     if isWin32Windows():

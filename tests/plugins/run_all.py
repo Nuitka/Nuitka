@@ -22,6 +22,7 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import (
+    checkTestRequirements,
     compareWithCPython,
     createSearchMode,
     getMainProgramFilename,
@@ -58,36 +59,42 @@ def main():
 
         active = search_mode.consider(dirname=None, filename=filename)
 
-        if active:
-            my_print("Consider output of recursively compiled program:", filename)
+        if not active:
+            continue
 
-            if filename in ("code_signing",):
-                if getCommercialVersion() is None:
-                    reportSkip(
-                        "Plugin only available in Nuitka commercial", ".", filename
-                    )
-                    continue
+        # skip each test if their respective requirements are not met
+        requirements_met, error_message = checkTestRequirements(filename)
+        if not requirements_met:
+            reportSkip(error_message, ".", filename)
+            continue
 
-                if not isWin32Windows():
-                    reportSkip("Plugin only works on Windows", ".", filename)
-                    continue
+        my_print("Consider output of recursively compiled program:", filename)
 
-            filename_main = getMainProgramFilename(filename)
+        if filename in ("code_signing",):
+            if getCommercialVersion() is None:
+                reportSkip("Plugin only available in Nuitka commercial", ".", filename)
+                continue
 
-            extra_python_path = [
-                os.path.abspath(os.path.join(filename, entry))
-                for entry in os.listdir(filename)
-                if entry.startswith("path")
-            ]
+            if not isWin32Windows():
+                reportSkip("Plugin only works on Windows", ".", filename)
+                continue
 
-            with withPythonPathChange(extra_python_path):
-                compareWithCPython(
-                    dirname=filename,
-                    filename=filename_main,
-                    extra_flags=extra_flags,
-                    search_mode=search_mode,
-                    needs_2to3=False,
-                )
+        filename_main = getMainProgramFilename(filename)
+
+        extra_python_path = [
+            os.path.abspath(os.path.join(filename, entry))
+            for entry in os.listdir(filename)
+            if entry.startswith("path")
+        ]
+
+        with withPythonPathChange(extra_python_path):
+            compareWithCPython(
+                dirname=filename,
+                filename=filename_main,
+                extra_flags=extra_flags,
+                search_mode=search_mode,
+                needs_2to3=False,
+            )
 
     search_mode.finish()
 

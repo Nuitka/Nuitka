@@ -7,6 +7,7 @@ This is a rather two sided beast, as it may be read or write. And we would like 
 to track it, so we can include files into the executable, or write more efficiently.
 """
 
+from .BuiltinRefNodes import ExpressionBuiltinPatchableTypeRef
 from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinOpenP2Mixin,
     ChildrenExpressionBuiltinOpenP3Mixin,
@@ -125,6 +126,10 @@ def makeExpressionBuiltinsOpenCall(
         opener=opener,
         source_ref=source_ref,
     )
+
+
+def makeBuiltinOpenRefNode(source_ref):
+    return ExpressionBuiltinPatchableTypeRef(builtin_name="open", source_ref=source_ref)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

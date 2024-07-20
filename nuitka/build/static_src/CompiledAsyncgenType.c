@@ -375,8 +375,6 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
 
         Nuitka_MarkAsyncgenAsNotRunning(asyncgen);
 
-        tstate = PyThreadState_GET();
-
         // Remove the back frame from asyncgen if it's there.
         if (asyncgen->m_frame) {
             // assert(tstate->frame == &asyncgen->m_frame->m_frame);
@@ -1050,7 +1048,7 @@ static PyAsyncMethods Nuitka_Asyncgen_as_async = {
 
 // TODO: Set "__doc__" automatically for method clones of compiled types from
 // the documentation of built-in original type.
-static PyGetSetDef Nuitka_Asyncgen_getsetlist[] = {
+static PyGetSetDef Nuitka_Asyncgen_tp_getset[] = {
     {(char *)"__name__", (getter)Nuitka_Asyncgen_get_name, (setter)Nuitka_Asyncgen_set_name, NULL},
     {(char *)"__qualname__", (getter)Nuitka_Asyncgen_get_qualname, (setter)Nuitka_Asyncgen_set_qualname, NULL},
     {(char *)"ag_await", (getter)Nuitka_Asyncgen_get_ag_await, (setter)NULL, NULL},
@@ -1095,7 +1093,7 @@ PyTypeObject Nuitka_Asyncgen_Type = {
     0,                                                                  // tp_iternext
     Nuitka_Asyncgen_methods,                                            // tp_methods
     Nuitka_Asyncgen_members,                                            // tp_members
-    Nuitka_Asyncgen_getsetlist,                                         // tp_getset
+    Nuitka_Asyncgen_tp_getset,                                          // tp_getset
     0,                                                                  // tp_base
     0,                                                                  // tp_dict
     0,                                                                  // tp_descr_get

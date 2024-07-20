@@ -35,7 +35,15 @@ def b():
 
 
 def displayable(dictionary):
-    return sorted(dictionary.items())
+    d = dict(dictionary)
+
+    if "__firstlineno__" in d:
+        del d["__firstlineno__"]
+
+    if "__static_attributes__" in d:
+        del d["__static_attributes__"]
+
+    return sorted(d.items())
 
 
 def m():

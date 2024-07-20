@@ -25,6 +25,7 @@ from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getOtoolDependencyOutput,
     getOtoolListing,
+    parseOtoolListingOutput,
 )
 from nuitka.utils.Utils import getArchitecture
 
@@ -109,17 +110,9 @@ def detectBinaryPathDLLsMacOS(
 
 
 def _parseOtoolListingOutput(output):
-    paths = OrderedSet()
+    result = OrderedSet()
 
-    for line in output.split(b"\n")[1:]:
-        if str is not bytes:
-            line = line.decode("utf8")
-
-        if not line:
-            continue
-
-        filename = line.split(" (", 1)[0].strip()
-
+    for filename in parseOtoolListingOutput(output):
         # Ignore dependency from system paths.
         if not isFilenameBelowPath(
             path=(
@@ -129,9 +122,9 @@ def _parseOtoolListingOutput(output):
             ),
             filename=filename,
         ):
-            paths.add(filename)
+            result.add(filename)
 
-    return paths
+    return result
 
 
 def _getNonVersionedDllFilenames2(filename):

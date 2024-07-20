@@ -238,7 +238,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyThreadState *tstate, Py
 #endif
 }
 
-int MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key);
+bool MATCH_MAPPING_KEY(PyThreadState *tstate, PyObject *map, PyObject *key);
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyThreadState *tstate, PyObject *target, PyObject *subscript,
                                                      Py_ssize_t int_subscript, PyObject *value) {

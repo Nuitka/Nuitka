@@ -1433,7 +1433,7 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
     """This is a plugins for suppression of all Qt binding plugins."""
 
     plugin_name = "no-qt"
-    plugin_desc = "Disable all Qt bindings for standalone mode."
+    plugin_desc = "Disable inclusion of all Qt bindings."
 
     warned_about = set()
 
@@ -1442,22 +1442,21 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
     ):
         top_package_name = module_name.getTopLevelPackageName()
 
-        if isStandaloneMode():
-            if top_package_name in getQtBindingNames():
-                if top_package_name not in self.warned_about:
-                    self.info(
-                        """\
+        if top_package_name in getQtBindingNames():
+            if isStandaloneMode() and top_package_name not in self.warned_about:
+                self.info(
+                    """\
 Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing \
 its use. As a result an "ImportError" might be given at run time. Uninstall \
 it for full compatible behavior with the uncompiled code to debug it."""
-                        % {
-                            "unwanted": top_package_name,
-                        }
-                    )
+                    % {
+                        "unwanted": top_package_name,
+                    }
+                )
 
-                    self.warned_about.add(top_package_name)
+                self.warned_about.add(top_package_name)
 
-                return (False, "Not included due to all Qt bindings disallowed.")
+            return (False, "Not included due to all Qt bindings disallowed.")
 
     def getEvaluationConditionControlTags(self):
         return {"use_noqt": True}

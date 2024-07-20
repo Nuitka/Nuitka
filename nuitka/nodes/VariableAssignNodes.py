@@ -798,7 +798,7 @@ class StatementAssignmentVariableConstantMutableTrusted(
 
     @staticmethod
     def hasVeryTrustedValue():
-        return True
+        return False
 
 
 class StatementAssignmentVariableConstantImmutableTrusted(
