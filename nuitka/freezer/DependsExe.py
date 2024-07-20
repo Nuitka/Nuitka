@@ -44,6 +44,7 @@ def getDependsExePath():
         url=depends_url,
         is_arch_specific=getArchitecture(),
         binary="depends.exe",
+        unzip=True,
         flatten=True,
         specificity="",  # Note: If there ever was an update, put version here.
         message="""\
@@ -213,7 +214,8 @@ SxS
 
     if not os.path.exists(output_filename):
         inclusion_logger.sysexit(
-            "Error, 'depends.exe' failed to produce expected output."
+            "Error, 'depends.exe' failed to produce expected output for binary '%s'."
+            % binary_filename
         )
 
     # Opening the result under lock, so it is not getting locked by new processes.

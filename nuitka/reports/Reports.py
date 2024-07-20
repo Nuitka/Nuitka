@@ -16,6 +16,7 @@ from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.build.SconsUtils import readSconsErrorReport
+from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -37,10 +38,15 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import (
     getResultRunFilename,
     getSourceDirectoryPath,
+    hasMainModule,
 )
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
+from nuitka.PythonVersions import (
+    getLaunchingSystemPrefixPath,
+    getSystemPrefixPath,
+    python_version_full_str,
+)
 from nuitka.Tracing import ReportingSystemExit, reports_logger
 from nuitka.utils.Distributions import (
     getDistributionInstallerName,
@@ -185,6 +191,11 @@ def _getReportInputData(aborted):
 
         module_exclusions[_using_module_name][_module_name] = _reason
 
+    included_metadata = dict(
+        (distribution_name, meta_data_value.reasons)
+        for distribution_name, meta_data_value in getDistributionMetadataValues()
+    )
+
     memory_infos = getMemoryInfos()
 
     python_exe = sys.executable
@@ -214,9 +225,16 @@ def _getReportInputData(aborted):
 
     data_composer = getDataComposerReportValues()
 
-    output_run_filename = os.path.abspath(getResultRunFilename(onefile=isOnefileMode()))
-
-    scons_error_report_data = readSconsErrorReport(source_dir=getSourceDirectoryPath())
+    if hasMainModule():
+        output_run_filename = os.path.abspath(
+            getResultRunFilename(onefile=isOnefileMode())
+        )
+        scons_error_report_data = readSconsErrorReport(
+            source_dir=getSourceDirectoryPath()
+        )
+    else:
+        scons_error_report_data = {}
+        output_run_filename = "failed too early"
 
     return dict(
         (var_name, var_value)
@@ -236,7 +254,7 @@ def _getReportPathPrefixes():
     if _report_prefixes is None:
         _report_prefixes = []
 
-        sys_prefix = os.getenv("NUITKA_SYS_PREFIX", sys.prefix)
+        sys_prefix = getLaunchingSystemPrefixPath() or sys.prefix
         real_sys_prefix = getSystemPrefixPath()
 
         if real_sys_prefix != sys_prefix:
@@ -332,6 +350,20 @@ def _addModulesToReport(root, report_input_data, diffable):
             timing_xml_node.attrib["time"] = (
                 "volatile" if diffable else "%.2f" % timing_info.time_used
             )
+
+            if timing_info.micro_passes:
+                timing_xml_node.attrib["micro_passes"] = str(timing_info.micro_passes)
+
+            if timing_info.merge_counts:
+                merged_total = 0
+
+                for branch_count, merge_count in timing_info.merge_counts.items():
+                    merged_total += branch_count * merge_count
+
+                max_merge_size = max(timing_info.merge_counts)
+
+                timing_xml_node.attrib["max_branch_merge"] = str(max_merge_size)
+                timing_xml_node.attrib["merged_total"] = str(merged_total)
 
             module_xml_node.append(timing_xml_node)
 
@@ -563,6 +595,22 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 size=str(included_datafile.getFileSize()),
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
+            )
+
+    if report_input_data["included_metadata"]:
+        metadata_node = TreeXML.appendTreeElement(
+            root,
+            "metadata",
+        )
+
+        for distribution_name, reasons in sorted(
+            report_input_data["included_metadata"].items()
+        ):
+            TreeXML.appendTreeElement(
+                metadata_node,
+                "included_metadata",
+                name=distribution_name,
+                reason=". ".join(reasons),
             )
 
     for standalone_entry_point in getStandaloneEntryPoints():

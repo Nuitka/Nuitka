@@ -232,13 +232,13 @@ rm -rf %{buildroot}
 %endif
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 %{python3_sitearch}/*
-%{_bindir}/nuitka3
-%{_bindir}/nuitka3-run
+%{_bindir}/nuitka
+%{_bindir}/nuitka-run
 %endif
 %if 0%{?rhel} == 8
 /usr/lib/python3.6/site-packages/
-%{_bindir}/nuitka3
-%{_bindir}/nuitka3-run
+%{_bindir}/nuitka
+%{_bindir}/nuitka-run
 %endif
 %changelog
 * Thu Nov 23 2023 Kay Hayen <kay.hayen@gmail.com> - 1.9

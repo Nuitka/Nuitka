@@ -59,6 +59,13 @@ def _isParsable(value):
         return True
 
 
+def _isNormalizedPosixPath(path):
+    if "\\" in path:
+        return False
+
+    return path == normpath(path)
+
+
 def _checkValues(logger, filename, module_name, section, value):
     # many checks of course, pylint: disable=too-many-branches
 
@@ -84,12 +91,53 @@ def _checkValues(logger, filename, module_name, section, value):
                     )
                     result = False
 
-            if k in ("dest_path", "relative_path") and v != normpath(v):
+            if k == "replacements":
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s cannot be empty."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+                    elif not _isParsable(d):
+                        logger.info(
+                            """\
+%s: %s config value of '%s' '%s' contains invalid syntax in value '%s'"""
+                            % (filename, module_name, section, k, v),
+                            keep_format=True,
+                        )
+                        result = False
+
+            if k == "replacements_plain":
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s cannot be empty."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+
+            if k in ("dest_path", "relative_path") and not _isNormalizedPosixPath(v):
                 logger.info(
-                    "%s: %s config value of %s %s should be normalized posix path, with '/' style slashes."
-                    % (filename, module_name, section, k)
+                    """\
+%s: module '%s' config value of '%s' '%s' should be normalized posix \
+path, with '/' style slashes not '%s'."""
+                    % (filename, module_name, section, k, v)
                 )
                 result = False
+
+            if k in ("dirs", "raw_dirs", "empty_dirs"):
+                for e in v:
+                    if not _isNormalizedPosixPath(e):
+                        logger.info(
+                            """\
+%s: module '%s' config values of '%s' '%s' should be normalized posix \
+path, with '/' style slashes not '%s'."""
+                            % (filename, module_name, section, k, e)
+                        )
+                        result = False
 
             if k == "no-auto-follow":
                 for m, d in v.items():

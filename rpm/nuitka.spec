@@ -187,7 +187,7 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
@@ -232,13 +232,13 @@ rm -rf %{buildroot}
 %endif
 %if 0%{?fedora} >= 24 || 0%{?suse_version} >= 1500
 %{python3_sitearch}/*
-%{_bindir}/nuitka3
-%{_bindir}/nuitka3-run
+%{_bindir}/nuitka
+%{_bindir}/nuitka-run
 %endif
 %if 0%{?rhel} == 8
 /usr/lib/python3.6/site-packages/
-%{_bindir}/nuitka3
-%{_bindir}/nuitka3-run
+%{_bindir}/nuitka
+%{_bindir}/nuitka-run
 %endif
 %changelog
 * Sat Dec 28 2019 Kay Hayen <kay.hayen@gmail.com> - 0.6.7

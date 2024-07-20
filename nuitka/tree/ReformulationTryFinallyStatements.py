@@ -17,6 +17,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.TryNodes import StatementTry
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import (
@@ -50,6 +51,20 @@ def _checkCloning(final, provider):
             assert a.attrib == b.attrib, (a.attrib, b.attrib)
 
         compare(f1, f2)
+
+
+def makeTryFinallyReleaseStatement(provider, tried, variables, source_ref):
+    variables = tuple(variables)
+
+    return makeTryFinallyStatement(
+        provider=provider,
+        tried=tried,
+        final=makeStatementsReleaseVariables(
+            variables=variables,
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
+    )
 
 
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc=False):

@@ -36,18 +36,6 @@ def raiseOrderCheck():
 
         return None
 
-    print("3 args", end="")
-    try:
-        raise exception_type(), exception_value(), exception_tb()
-    except Exception as e:
-        print("caught", repr(e))
-
-    print("2 args", end="")
-    try:
-        raise exception_type(), exception_value()
-    except Exception as e:
-        print("caught", repr(e))
-
     print("1 args", end="")
     try:
         raise exception_type()

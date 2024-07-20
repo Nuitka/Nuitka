@@ -1,6 +1,19 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import pprint
+
+
+def displayDir(l):
+    if "__firstlineno__" in l:
+        l.remove("__firstlineno__")
+
+    if "__static_attributes__" in l:
+        l.remove("__static_attributes__")
+
+    return pprint.pformat(l)
+
+
 class W1(object):
     def __init__(self):
         self.__hidden = 5
@@ -52,7 +65,7 @@ class W2_(object):
 for w in (W1, W2, _W1, _W2, a_W1, a_W2, W1_, W2_):
     try:
         print(w)
-        print(dir(w))
+        print(displayDir(dir(w)))
         a = w()
     except AttributeError:
         print("bug in %s" % w)

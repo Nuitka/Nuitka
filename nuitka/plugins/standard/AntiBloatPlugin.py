@@ -14,7 +14,8 @@ import re
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.ModuleRegistry import getModuleByName
-from nuitka.plugins.PluginBase import NuitkaYamlPluginBase
+from nuitka.Options import isExperimental
+from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
@@ -40,6 +41,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         noinclude_setuptools_mode,
         noinclude_pytest_mode,
         noinclude_unittest_mode,
+        noinclude_pydoc_mode,
         noinclude_ipython_mode,
         noinclude_dask_mode,
         noinclude_numba_mode,
@@ -47,7 +49,8 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
         custom_choices,
         show_changes,
     ):
-        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches,too-many-statements
+        # Many details, due to many repetitive arguments,
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         NuitkaYamlPluginBase.__init__(self)
 
@@ -60,6 +63,8 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
             noinclude_pytest_mode = noinclude_default_mode
         if noinclude_unittest_mode is None:
             noinclude_unittest_mode = noinclude_default_mode
+        if noinclude_pydoc_mode is None:
+            noinclude_pydoc_mode = noinclude_default_mode
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
         if noinclude_dask_mode is None:
@@ -99,6 +104,10 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 "setuptools",
             )
             self.handled_modules["torch.utils.cpp_extension"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["numpy.distutils"] = (
                 noinclude_setuptools_mode,
                 "setuptools",
             )
@@ -172,6 +181,11 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
             self.handled_modules["distributed"] = noinclude_dask_mode, "dask"
         else:
             self.control_tags["use_dask"] = True
+
+        if noinclude_pydoc_mode != "allow":
+            self.handled_modules["pydoc"] = noinclude_pydoc_mode, "pydoc"
+        else:
+            self.control_tags["use_pydoc"] = True
 
         if noinclude_numba_mode != "allow":
             self.handled_modules["numba"] = noinclude_numba_mode, "numba"
@@ -290,6 +304,17 @@ dependencies, and should definitely be avoided.""",
         )
 
         group.add_option(
+            "--noinclude-pydoc-mode",
+            action="store",
+            dest="noinclude_pydoc_mode",
+            choices=_mode_choices,
+            default=None,
+            help="""\
+What to do if a pydoc import is encountered. This package use is mark of useless
+code for deployments and should be avoided.""",
+        )
+
+        group.add_option(
             "--noinclude-IPython-mode",
             action="store",
             dest="noinclude_ipython_mode",
@@ -375,8 +400,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         # To allow detection if it did anything.
         change_count = 0
 
-        for replace_src, replace_code in anti_bloat_config.get(
-            "replacements", {}
+        for replace_src, replace_code in (
+            anti_bloat_config.get("replacements") or {}
         ).items():
             # Avoid the eval, if the replace doesn't hit.
             if replace_src not in source_code:
@@ -401,8 +426,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in anti_bloat_config.get(
-            "replacements_plain", {}
+        for replace_src, replace_dst in (
+            anti_bloat_config.get("replacements_plain") or {}
         ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
@@ -410,14 +435,16 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in anti_bloat_config.get(
-            "replacements_re", {}
+        for replace_src, replace_dst in (
+            anti_bloat_config.get("replacements_re") or {}
         ).items():
             old = source_code
-            source_code = re.sub(replace_src, replace_dst, source_code)
+            source_code = re.sub(replace_src, replace_dst, source_code, re.S)
 
             if old != source_code:
                 change_count += 1
+            elif isExperimental("display-anti-bloat-mismatches"):
+                self.info("No match in %s no match %r" % (module_name, replace_src))
 
         append_code = anti_bloat_config.get("append_result", "")
         if type(append_code) in (tuple, list):
@@ -604,30 +631,62 @@ class %(class_name)s:
         return result
 
     def _getModuleBloatModeOverrides(self, using_module_name, intended_module_name):
-        while 1:
-            config = self.config.get(using_module_name, section="anti-bloat")
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, bloat_mode_overrides in self.getYamlConfigItem(
+            module_name=using_module_name,
+            section="anti-bloat",
+            item_name="bloat-mode-overrides",
+            default={},
+            decide_relevant=(lambda config_item: intended_module_name in config_item),
+            recursive=True,
+        ):
+            return bloat_mode_overrides[intended_module_name]
 
-            if config:
-                for anti_bloat_config in config:
-                    bloat_mode_overrides = anti_bloat_config.get(
-                        "bloat-mode-overrides", ()
-                    )
+        return None
 
-                    if not bloat_mode_overrides:
-                        continue
+    def decideAnnotations(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, annotations_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="annotations",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return annotations_config_value == "yes"
 
-                    if self.evaluateCondition(
-                        full_name=intended_module_name,
-                        condition=anti_bloat_config.get("when", "True"),
-                    ):
-                        for module_name, mode in bloat_mode_overrides.items():
-                            if module_name == intended_module_name:
-                                return mode
+        return None
 
-            using_module_name = using_module_name.getPackageName()
+    def decideDocStrings(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, doc_strings_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="doc_strings",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return doc_strings_config_value == "yes"
 
-            if not using_module_name:
-                break
+        return None
+
+    def decideAsserts(self, module_name):
+        # Finding a matching configuration aborts the search, not finding one
+        # means default behavior should apply.
+        for _config_module_name, asserts_config_value in self.getYamlConfigItem(
+            module_name=module_name,
+            section="anti-bloat",
+            item_name="asserts",
+            default=None,
+            decide_relevant=(lambda config_item: config_item in ("yes", "no")),
+            recursive=True,
+        ):
+            return asserts_config_value == "yes"
 
         return None
 

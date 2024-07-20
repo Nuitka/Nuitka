@@ -1808,13 +1808,13 @@ run is most meaningful, and eliminates usage spikes.
 
    echo "Uncompiled Python2"
    for i in {1..100}; do BENCH=1 python2 tests/benchmarks/pystone.py ; done | sort -rn | head -n 1
-   python2 -m nuitka --lto=yes --pgo tests/benchmarks/pystone.py
+   python2 -m nuitka --lto=yes --pgo-c tests/benchmarks/pystone.py
    echo "Compiled Python2"
    for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n | head -rn 1
 
    echo "Uncompiled Python3"
    for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -rn | head -n 1
-   python3 -m nuitka --lto=yes --pgo tests/benchmarks/pystone3.py
+   python3 -m nuitka --lto=yes --pgo-c tests/benchmarks/pystone3.py
    echo "Compiled Python3"
    for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -rn | head -n 1
 

@@ -63,16 +63,12 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import (
-    makeStatementReleaseVariable,
-    makeStatementsReleaseVariables,
-)
-from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
 from .ReformulationImportStatements import getFutureSpec
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildAnnotationNode,
@@ -340,14 +336,10 @@ not enough values to unpack (expected at least %d, got %%d)"""
                 source=iter_creation_class(value=source, source_ref=source_ref),
                 source_ref=source_ref,
             ),
-            makeTryFinallyStatement(
+            makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=statements,
-                final=(
-                    makeStatementReleaseVariable(
-                        variable=source_iter_var, source_ref=source_ref
-                    ),
-                ),
+                variables=(source_iter_var,),
                 source_ref=source_ref,
             ),
         ]
@@ -380,19 +372,10 @@ not enough values to unpack (expected at least %d, got %%d)"""
                 )
             )
 
-        final_statements = []
-
-        for element_var in element_vars:
-            final_statements.append(
-                makeStatementReleaseVariable(
-                    variable=element_var, source_ref=source_ref
-                )
-            )
-
-        return makeTryFinallyStatement(
+        return makeTryFinallyReleaseStatement(
             provider=provider,
             tried=statements,
-            final=final_statements,
+            variables=element_vars,
             source_ref=source_ref,
         )
     elif kind == "Starred":
@@ -504,6 +487,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none=False):
         else:
             assert False, slice_kind
     elif kind in ("Tuple", "List"):
+        # That is the ast names, spell-checker: ignore elts
         return (
             "Tuple",
             tuple(
@@ -575,22 +559,23 @@ def buildAssignNode(provider, node, source_ref):
                 )
             )
 
-        return makeTryFinallyStatement(
+        return makeTryFinallyReleaseStatement(
             provider=provider,
             tried=statements,
-            final=makeStatementReleaseVariable(
-                variable=tmp_source, source_ref=source_ref
-            ),
+            variables=(tmp_source,),
             source_ref=source_ref,
         )
 
 
 def buildAnnAssignNode(provider, node, source_ref):
     """Python3.6 annotation assignment."""
-    # There are many cases to deal with here.
+    # There are many cases to deal with here, pylint: disable=too-many-branches
 
-    if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
-        provider.markAsNeedsAnnotationsDictionary()
+    use_annotations = getFutureSpec().shallUseAnnotations()
+
+    if use_annotations:
+        if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
+            provider.markAsNeedsAnnotationsDictionary()
 
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
@@ -627,7 +612,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
-        if not hasPythonFlagNoAnnotations() and (
+        if use_annotations and (
             provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
         ):
             annotation = buildAnnotationNode(provider, node.annotation, source_ref)
@@ -830,12 +815,10 @@ def _buildInplaceAssignAttributeNode(
     return (
         preserve_to_tmp,
         # making sure the above temporary variable is deleted in any case.
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=provider,
             tried=(inplace_to_tmp, copy_back_from_tmp),
-            final=makeStatementReleaseVariable(
-                variable=tmp_variable, source_ref=source_ref
-            ),
+            variables=(tmp_variable,),
             source_ref=source_ref,
         ),
     )
@@ -902,13 +885,10 @@ def _buildInplaceAssignSubscriptNode(
 
     return (
         preserve_to_tmp1,
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=provider,
             tried=statements,
-            final=makeStatementsReleaseVariables(
-                variables=(tmp_variable1, tmp_variable2, tmp_variable3),
-                source_ref=source_ref,
-            ),
+            variables=(tmp_variable1, tmp_variable2, tmp_variable3),
             source_ref=source_ref,
         ),
     )
@@ -936,9 +916,7 @@ def _buildInplaceAssignSliceNode(
         variable=tmp_variable1, source=lookup_source, source_ref=source_ref
     )
 
-    final_statements = [
-        makeStatementReleaseVariable(variable=tmp_variable1, source_ref=source_ref)
-    ]
+    release_variables = [tmp_variable1]
     statements = []
 
     if lower is not None:
@@ -947,9 +925,7 @@ def _buildInplaceAssignSliceNode(
                 variable=tmp_variable2, source=lower, source_ref=source_ref
             )
         )
-        final_statements.append(
-            makeStatementReleaseVariable(variable=tmp_variable2, source_ref=source_ref)
-        )
+        release_variables.append(tmp_variable2)
 
         lower_ref1 = ExpressionTempVariableRef(
             variable=tmp_variable2, source_ref=source_ref
@@ -968,9 +944,7 @@ def _buildInplaceAssignSliceNode(
                 variable=tmp_variable3, source=upper, source_ref=source_ref
             )
         )
-        final_statements.append(
-            makeStatementReleaseVariable(variable=tmp_variable3, source_ref=source_ref)
-        )
+        release_variables.append(tmp_variable3)
 
         upper_ref1 = ExpressionTempVariableRef(
             variable=tmp_variable3, source_ref=source_ref
@@ -1068,16 +1042,14 @@ def _buildInplaceAssignSliceNode(
             ),
         )
 
-    final_statements.append(
-        makeStatementReleaseVariable(variable=tmp_variable4, source_ref=source_ref)
-    )
+    release_variables.append(tmp_variable4)
 
     return (
         copy_to_tmp,
-        makeTryFinallyStatement(
+        makeTryFinallyReleaseStatement(
             provider=provider,
             tried=statements,
-            final=final_statements,
+            variables=release_variables,
             source_ref=source_ref,
         ),
     )
@@ -1122,7 +1094,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
     elif kind == "Subscript":
         subscribed, subscript = detail
 
-        temp_scope = provider.allocateTempScope("inplace_assign_subscr")
+        temp_scope = provider.allocateTempScope("inplace_assign_subscript")
 
         tmp_variable1 = provider.allocateTempVariable(
             temp_scope=temp_scope, name="target", temp_type="object"
@@ -1237,12 +1209,10 @@ def buildNamedExprNode(provider, node, source_ref):
 
     outline_body.setChildBody(
         makeStatementsSequenceFromStatement(
-            statement=makeTryFinallyStatement(
+            statement=makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=statements,
-                final=makeStatementReleaseVariable(
-                    variable=tmp_value, source_ref=source_ref
-                ),
+                variables=(tmp_value,),
                 source_ref=source_ref,
             )
         )

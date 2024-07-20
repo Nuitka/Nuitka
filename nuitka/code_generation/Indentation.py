@@ -8,14 +8,13 @@ to be the same as in templates.
 """
 
 
-def _indentedCode(codes, count):
+def _indentedCode(codes, prefix):
     return "\n".join(
-        " " * count + line if (line and not line.startswith("#")) else line
-        for line in codes
+        prefix + line if (line and line[0] != "#") else line for line in codes
     )
 
 
-def indented(codes, level=1, vert_block=False):
+def indented(codes, level=4, vert_block=False):
     if type(codes) is str:
         codes = codes.split("\n")
 
@@ -23,7 +22,7 @@ def indented(codes, level=1, vert_block=False):
         codes.insert(0, "")
         codes.append("")
 
-    return _indentedCode(codes, level * 4)
+    return _indentedCode(codes, " " * level)
 
 
 def getCommentCode(comment, emit):

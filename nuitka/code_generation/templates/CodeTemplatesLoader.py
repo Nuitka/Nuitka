@@ -82,7 +82,7 @@ void setupMetaPathBasedLoader(PyThreadState *tstate) {
     static bool init_done = false;
     if (init_done == false) {
         _loadBytesCodesBlob(tstate);
-        registerMetaPathBasedUnfreezer(meta_path_loader_entries, bytecode_data);
+        registerMetaPathBasedLoader(meta_path_loader_entries, bytecode_data);
 
         init_done = true;
     }

@@ -35,7 +35,7 @@ extern PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObjec
 
 // Find an attribute in a class, Python2 only.
 #if PYTHON_VERSION < 0x300
-extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name);
+extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *attr_name);
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
@@ -69,6 +69,12 @@ static inline bool hasTypeGenericSetAttr(PyTypeObject *type) {
     return type->tp_setattro == PyObject_GenericSetAttr_resolved;
 #endif
 }
+
+#if PYTHON_VERSION >= 0x3a0
+static inline bool Nuitka_Descr_IsData(PyObject *object) { return Py_TYPE(object)->tp_descr_set != NULL; }
+#else
+#define Nuitka_Descr_IsData(object) PyDescr_IsData(object)
+#endif
 
 #endif
 

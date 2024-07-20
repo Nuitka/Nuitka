@@ -75,8 +75,6 @@ NUITKA_MAY_BE_UNUSED static int CHECK_EXCEPTION_STAR_VALID(PyThreadState *tstate
     return 0;
 }
 
-extern PyObject *const_str_plain_split;
-
 NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyObject *exc_value, PyObject *match_type,
                                                       PyObject **match, PyObject **rest) {
     // TODO: Avoid this from happening, we should not call it then.

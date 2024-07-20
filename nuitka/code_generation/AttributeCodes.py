@@ -127,16 +127,18 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "attribute_value", expression, emit, context
     ) as value_name:
-        getAttributeLookupCode(
-            to_name=value_name,
-            source_name=source_name,
-            attribute_name=attribute_name,
-            needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookup(
-                exception_type=BaseException, attribute_name=attribute_name
-            ),
-            emit=emit,
-            context=context,
-        )
+        with context.withCurrentSourceCodeReference(expression.getSourceReference()):
+
+            getAttributeLookupCode(
+                to_name=value_name,
+                source_name=source_name,
+                attribute_name=attribute_name,
+                needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookup(
+                    exception_type=BaseException, attribute_name=attribute_name
+                ),
+                emit=emit,
+                context=context,
+            )
 
 
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, context):

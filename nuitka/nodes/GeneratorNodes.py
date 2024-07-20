@@ -70,7 +70,7 @@ class ExpressionGeneratorObjectBody(
         "qualname_provider",
     )
 
-    if python_version >= 0x340:
+    if python_version >= 0x300:
         __slots__ += ("qualname_setup",)
 
     def __init__(self, provider, name, code_object, flags, auto_release, source_ref):
@@ -91,7 +91,7 @@ class ExpressionGeneratorObjectBody(
 
         self.trace_collection = None
 
-        if python_version >= 0x340:
+        if python_version >= 0x300:
             self.qualname_setup = None
 
     def getFunctionName(self):

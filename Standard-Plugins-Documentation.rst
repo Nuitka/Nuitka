@@ -41,7 +41,7 @@ available.
 Nuitka also differentiates between "mandatory" and "optional" |sps|.
 
 **Mandatory** |sps| are always enabled and "invisible" to the user.
-Their behaviour cannot be influenced other than by modifying them.
+Their behavior cannot be influenced other than by modifying them.
 
 **Optional** |sps| must be enabled via the command line parameter
 ``--enable-plugin=name``, with an identifying string ``name``. Even when

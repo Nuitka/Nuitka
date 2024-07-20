@@ -49,7 +49,11 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     hasUniversalOrMatchingMacOSArchitecture,
 )
-from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
+from nuitka.utils.Utils import (
+    getLaunchingNuitkaProcessEnvironmentValue,
+    isMacOS,
+    isWin32OrPosixWindows,
+)
 
 from .IgnoreListing import isIgnoreListedNotExistingModule
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -185,7 +189,7 @@ def hasMainScriptDirectory():
 def isPackageDir(dirname):
     """Decide if a directory is a package.
 
-    Before Python3.3 it's required to have a "__init__.py" file, but then
+    Before Python3 it's required to have a "__init__.py" file, but then
     it became impossible to decide, and for extra fun, there is also the
     extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
@@ -340,7 +344,7 @@ def findModule(module_name, parent_package, level):
         # TODO: Should give a warning and return not found if the levels
         # exceed the package name.
         if parent_package is not None:
-            parent_package = parent_package.getRelativePackageName(level)
+            parent_package = parent_package.getRelativePackageName(level - 1)
         else:
             return None, None, None, "not-found"
 
@@ -642,7 +646,12 @@ def _unpackPathElement(path_entry):
                         zip_ref.extractall(target_dir)
                         zip_ref.close()
                     except BaseException:
-                        removeDirectory(target_dir, ignore_errors=True)
+                        removeDirectory(
+                            target_dir,
+                            logger=recursion_logger,
+                            ignore_errors=True,
+                            extra_recommendation=None,
+                        )
                         raise
 
                 _egg_files[path_entry] = target_dir
@@ -719,7 +728,7 @@ def _findModuleInPath(module_name):
     # executed, while we normally search in PYTHONPATH after it was executed,
     # and on some systems, that fails.
     if package_name is None and module_name == "site":
-        candidate = os.getenv("NUITKA_SITE_FILENAME")
+        candidate = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME")
 
         if candidate:
             return candidate, "py"
