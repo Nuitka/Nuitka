@@ -29,7 +29,10 @@ def _checkNuitkaInVirtualenv(python):
         tools_logger.info("Compiling basic test with runner:", style="blue")
         tools_logger.info("*" * 40, style="blue")
         venv.runCommand(
-            "nuitka%s ../tests/basics/AssertsTest.py" % python.getPythonVersion()[0],
+            (
+                "nuitka%s ../tests/basics/AssertsTest.py"
+                % ("2" if python.getPythonVersion()[0] == "2" else "")
+            ),
             style="blue",
         )
         tools_logger.info("*" * 40, style="blue")
