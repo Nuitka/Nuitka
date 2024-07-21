@@ -28,7 +28,7 @@ if [ -f "$NUITKA" ]
 then
     $(head -n1 $NUITKA | cut -d'!' -f2) ./tests/basics/run_all.py search
 fi
-export NUITKA=/usr/bin/nuitka3
+export NUITKA=/usr/bin/nuitka2
 $(head -n1 $NUITKA | cut -d'!' -f2) ./tests/basics/run_all.py search
 
 echo "Thanks passed the tests with installed package it seems."
