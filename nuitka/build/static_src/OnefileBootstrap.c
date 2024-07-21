@@ -823,11 +823,8 @@ static wchar_t *getCommandLineForChildProcess(void) {
     appendWStringSafeW(result, getBinaryPath(), sizeof(result) / sizeof(wchar_t));
 
     for (int i = 1; i < argc; i++) {
+        appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
         appendWStringSafeW(result, argv[i], sizeof(result) / sizeof(wchar_t));
-
-        if (i != argc - 1) {
-            appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
-        }
     }
 
 #if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
