@@ -1876,7 +1876,7 @@ def isStandaloneMode():
     if shallCreatePythonPgoInput():
         return False
 
-    return options.is_standalone or options.list_package_dlls
+    return bool(options.is_standalone or options.list_package_dlls)
 
 
 def isOnefileMode():
@@ -1884,7 +1884,7 @@ def isOnefileMode():
     if shallCreatePythonPgoInput():
         return False
 
-    return options.is_onefile
+    return bool(options.is_onefile)
 
 
 def isAcceleratedMode():
