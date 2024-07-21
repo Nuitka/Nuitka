@@ -8,13 +8,10 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
-from nuitka.tools.quality.auto_format.AutoFormat import (
-    withFileOpenedAndAutoFormatted,
-)
 from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
 from nuitka.Tracing import my_print
-from nuitka.utils.FileOperations import getFileContents, openTextFile
+from nuitka.utils.FileOperations import openTextFile
 
 
 def getBumpedVersion(mode, old_version):
@@ -121,12 +118,6 @@ the changelog date only.""",
     else:
         # Debian is currently in not freeze, change to "experimental" once that changes.
         updateDebianChangelog(old_version, old_version, "unstable")
-
-    if mode == "release":
-        with withFileOpenedAndAutoFormatted("Changelog.rst") as changelog_file:
-            changelog_file.write(
-                getFileContents("Changelog.rst").replace(" (Draft)", "")
-            )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
