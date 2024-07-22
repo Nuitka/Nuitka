@@ -62,15 +62,16 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
 
 static long Nuitka_Coroutine_tp_hash(struct Nuitka_CoroutineObject *coroutine) { return coroutine->m_counter; }
 
-static PyObject *Nuitka_Coroutine_get_name(struct Nuitka_CoroutineObject *coroutine) {
-    CHECK_OBJECT(coroutine);
+static PyObject *Nuitka_Coroutine_get_name(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
 
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     Py_INCREF(coroutine->m_name);
     return coroutine->m_name;
 }
 
-static int Nuitka_Coroutine_set_name(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
-    CHECK_OBJECT(coroutine);
+static int Nuitka_Coroutine_set_name(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
     CHECK_OBJECT_X(value);
 
     // Cannot be deleted, not be non-unicode value.
@@ -81,6 +82,7 @@ static int Nuitka_Coroutine_set_name(struct Nuitka_CoroutineObject *coroutine, P
         return -1;
     }
 
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     PyObject *tmp = coroutine->m_name;
     Py_INCREF(value);
     coroutine->m_name = value;
@@ -89,15 +91,16 @@ static int Nuitka_Coroutine_set_name(struct Nuitka_CoroutineObject *coroutine, P
     return 0;
 }
 
-static PyObject *Nuitka_Coroutine_get_qualname(struct Nuitka_CoroutineObject *coroutine) {
-    CHECK_OBJECT(coroutine);
+static PyObject *Nuitka_Coroutine_get_qualname(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
 
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     Py_INCREF(coroutine->m_qualname);
     return coroutine->m_qualname;
 }
 
-static int Nuitka_Coroutine_set_qualname(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
-    CHECK_OBJECT(coroutine);
+static int Nuitka_Coroutine_set_qualname(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
     CHECK_OBJECT_X(value);
 
     // Cannot be deleted, not be non-unicode value.
@@ -108,6 +111,7 @@ static int Nuitka_Coroutine_set_qualname(struct Nuitka_CoroutineObject *coroutin
         return -1;
     }
 
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     PyObject *tmp = coroutine->m_qualname;
     Py_INCREF(value);
     coroutine->m_qualname = value;
@@ -116,7 +120,8 @@ static int Nuitka_Coroutine_set_qualname(struct Nuitka_CoroutineObject *coroutin
     return 0;
 }
 
-static PyObject *Nuitka_Coroutine_get_cr_await(struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *Nuitka_Coroutine_get_cr_await(PyObject *self, void *data) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT_X(coroutine->m_yield_from);
 
@@ -129,7 +134,8 @@ static PyObject *Nuitka_Coroutine_get_cr_await(struct Nuitka_CoroutineObject *co
     }
 }
 
-static PyObject *Nuitka_Coroutine_get_code(struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *Nuitka_Coroutine_get_code(PyObject *self, void *data) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT(coroutine->m_code_object);
 
@@ -137,8 +143,8 @@ static PyObject *Nuitka_Coroutine_get_code(struct Nuitka_CoroutineObject *corout
     return (PyObject *)coroutine->m_code_object;
 }
 
-static int Nuitka_Coroutine_set_code(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
-    CHECK_OBJECT(coroutine);
+static int Nuitka_Coroutine_set_code(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -146,7 +152,8 @@ static int Nuitka_Coroutine_set_code(struct Nuitka_CoroutineObject *coroutine, P
     return -1;
 }
 
-static PyObject *Nuitka_Coroutine_get_frame(struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *Nuitka_Coroutine_get_frame(PyObject *self, void *data) {
+    struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)self;
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT_X(coroutine->m_frame);
 
@@ -159,8 +166,8 @@ static PyObject *Nuitka_Coroutine_get_frame(struct Nuitka_CoroutineObject *corou
     }
 }
 
-static int Nuitka_Coroutine_set_frame(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
-    CHECK_OBJECT(coroutine);
+static int Nuitka_Coroutine_set_frame(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
     CHECK_OBJECT_X(value);
 
     PyThreadState *tstate = PyThreadState_GET();
@@ -1154,11 +1161,11 @@ static PyMethodDef Nuitka_Coroutine_methods[] = {{"send", (PyCFunction)Nuitka_Co
 // TODO: Set "__doc__" automatically for method clones of compiled types from
 // the documentation of built-in original type.
 static PyGetSetDef Nuitka_Coroutine_tp_getset[] = {
-    {(char *)"__name__", (getter)Nuitka_Coroutine_get_name, (setter)Nuitka_Coroutine_set_name, NULL},
-    {(char *)"__qualname__", (getter)Nuitka_Coroutine_get_qualname, (setter)Nuitka_Coroutine_set_qualname, NULL},
-    {(char *)"cr_await", (getter)Nuitka_Coroutine_get_cr_await, (setter)NULL, NULL},
-    {(char *)"cr_code", (getter)Nuitka_Coroutine_get_code, (setter)Nuitka_Coroutine_set_code, NULL},
-    {(char *)"cr_frame", (getter)Nuitka_Coroutine_get_frame, (setter)Nuitka_Coroutine_set_frame, NULL},
+    {(char *)"__name__", Nuitka_Coroutine_get_name, Nuitka_Coroutine_set_name, NULL},
+    {(char *)"__qualname__", Nuitka_Coroutine_get_qualname, Nuitka_Coroutine_set_qualname, NULL},
+    {(char *)"cr_await", Nuitka_Coroutine_get_cr_await, NULL, NULL},
+    {(char *)"cr_code", Nuitka_Coroutine_get_code, Nuitka_Coroutine_set_code, NULL},
+    {(char *)"cr_frame", Nuitka_Coroutine_get_frame, Nuitka_Coroutine_set_frame, NULL},
 
     {NULL}};
 
