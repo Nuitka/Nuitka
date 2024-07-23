@@ -925,12 +925,12 @@ void _PRINT_EXCEPTION(PyObject *exception_value) {
                                           : NULL;
 #endif
     PRINT_REPR(exception_type);
-    if (exception_type) {
+    if (exception_type != NULL) {
         PRINT_REFCOUNT(exception_type);
     }
     PRINT_STRING("|");
     PRINT_REPR(exception_value);
-    if (exception_value) {
+    if (exception_value != NULL) {
         PRINT_REFCOUNT(exception_value);
     }
 #if PYTHON_VERSION >= 0x300
@@ -943,6 +943,9 @@ void _PRINT_EXCEPTION(PyObject *exception_value) {
 #endif
     PRINT_STRING("|");
     PRINT_REPR((PyObject *)exception_tb);
+    if (exception_tb != NULL) {
+        PRINT_REFCOUNT((PyObject *)exception_tb);
+    }
 
     PRINT_NEW_LINE();
 }
