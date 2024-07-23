@@ -152,7 +152,7 @@ def getModuleCode(
         "module_codes": indented(module_codes.codes),
         "module_exit": module_exit,
         "module_code_objects_decl": indented(module_code_objects_decl, 0),
-        "module_code_objects_init": indented(module_code_objects_init, 1),
+        "module_code_objects_init": indented(module_code_objects_init),
         "constants_count": context.getConstantsCount(),
         "module_const_blob_name": module_const_blob_name,
         "module_dll_entry_point": module_dll_entry_point,
