@@ -811,9 +811,28 @@ extern bool checkSplashScreen(void);
 #endif
 
 #ifdef _WIN32
+
+static bool containsWStringAny(wchar_t const *source, wchar_t const *characters) {
+    while (*characters) {
+        if (wcschr(source, *characters) != NULL) {
+            return true;
+        }
+
+        characters++;
+    }
+
+    return false;
+}
+
 static wchar_t *getCommandLineForChildProcess(void) {
+
+    wchar_t *orig_command_line = GetCommandLineW();
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
+    wprintf(L"Command line was '%ls'\n", orig_command_line);
+#endif
+
     int argc;
-    LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    LPWSTR *argv = CommandLineToArgvW(orig_command_line, &argc);
     assert(argv != NULL);
     assert(argc > 0);
 
@@ -824,7 +843,52 @@ static wchar_t *getCommandLineForChildProcess(void) {
 
     for (int i = 1; i < argc; i++) {
         appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
-        appendWStringSafeW(result, argv[i], sizeof(result) / sizeof(wchar_t));
+
+        bool needs_quote = containsWStringAny(argv[i], L" \t\n\v\"");
+
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
+        wprintf(L"Command line arg %d was '%ls' needs quoting %ls\n", i, argv[i], needs_quote ? L"yes" : L"no");
+#endif
+
+        if (needs_quote) {
+            appendWCharSafeW(result, L'"', sizeof(result) / sizeof(wchar_t));
+
+            wchar_t const *current = argv[i];
+
+            for (;;) {
+                int backslash_count = 0;
+
+                while (*current == L'\\') {
+                    current++;
+                    backslash_count += 1;
+                }
+
+                if (*current == 0) {
+                    for (int j = 0; j < backslash_count * 2; j++) {
+                        appendWCharSafeW(result, L'\\', sizeof(result) / sizeof(wchar_t));
+                    }
+
+                    break;
+                } else if (*current == L'"') {
+                    for (int j = 0; j < backslash_count * 2 + 1; j++) {
+                        appendWCharSafeW(result, L'\\', sizeof(result) / sizeof(wchar_t));
+                    }
+                } else {
+                    for (int j = 0; j < backslash_count; j++) {
+                        appendWCharSafeW(result, L'\\', sizeof(result) / sizeof(wchar_t));
+                    }
+                }
+
+                appendWCharSafeW(result, *current, sizeof(result) / sizeof(wchar_t));
+
+                current++;
+            }
+
+            appendWCharSafeW(result, L'"', sizeof(result) / sizeof(wchar_t));
+
+        } else {
+            appendWStringSafeW(result, argv[i], sizeof(result) / sizeof(wchar_t));
+        }
     }
 
 #if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
