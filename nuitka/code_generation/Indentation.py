@@ -14,7 +14,7 @@ def _indentedCode(codes, prefix):
     )
 
 
-def indented(codes, level=1, vert_block=False):
+def indented(codes, level=4, vert_block=False):
     if type(codes) is str:
         codes = codes.split("\n")
 

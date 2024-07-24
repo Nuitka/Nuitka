@@ -850,7 +850,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
 #endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -867,7 +867,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding, false);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", false, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -888,19 +888,19 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         if (shallSetOutputHandleToNull("stdin")) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding, false);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding);
 
             setStdinHandle(tstate, stdin_file);
         }
 
         if (shallSetOutputHandleToNull("stdout")) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding, false);
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
             setStdoutHandle(tstate, stdout_file);
         }
 
         if (shallSetOutputHandleToNull("stderr")) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding, false);
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
             setStderrHandle(tstate, stderr_file);
         }
@@ -1470,7 +1470,7 @@ orig_argv = argv;
         // platform ones in the future.
         PyObject *encoding = NULL;
 
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -1487,7 +1487,7 @@ orig_argv = argv;
         // platform ones in the future.
         PyObject *encoding = NULL;
 
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding, false);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -1506,7 +1506,7 @@ orig_argv = argv;
 
         // CPython core requires stdin to be buffered due to methods usage, and it won't matter
         // here much.
-        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding, false);
+        PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, filename, "r", true, encoding);
 
         Py_DECREF(filename);
 
