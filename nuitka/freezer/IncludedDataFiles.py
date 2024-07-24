@@ -356,6 +356,8 @@ def _addIncludedDataFilesFromFileOptions():
             else:
                 rel_path = os.path.join(dest_path, relpath(filename, source_path))
 
+            rel_path = os.path.normpath(rel_path)
+
             if containsPathElements(rel_path, default_ignored_dirs):
                 continue
 
