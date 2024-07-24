@@ -83,7 +83,8 @@ class NuitkaProgressBar(object):
 
     @contextmanager
     def withExternalWritingPause(self):
-        with self.tqdm.external_write_mode():
+        # spell-checker: ignore nolock
+        with self.tqdm.external_write_mode(nolock=True):
             yield
 
 
