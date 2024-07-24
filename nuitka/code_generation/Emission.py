@@ -50,7 +50,7 @@ def withSubCollector(emit, context):
             for local_declaration in local_declarations:
                 emit(indented(local_declaration))
 
-            sub_emit.emitTo(emit, level=1)
+            sub_emit.emitTo(emit, level=4)
 
             emit("}")
         else:
