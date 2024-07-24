@@ -808,6 +808,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 // better, and force it to utf-8, it often becomes platform IO for no good
 // reason.
 #if NUITKA_STANDARD_HANDLES_EARLY == 1 && PYTHON_VERSION >= 0x370
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Early handles.");
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
     PyObject *args = MAKE_DICT_EMPTY(tstate);
 
@@ -815,6 +816,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
 
 #if defined(NUITKA_FORCED_STDOUT_PATH)
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stdout update.");
     {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
@@ -827,6 +829,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 #endif
 
 #if defined(NUITKA_FORCED_STDERR_PATH)
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
 
@@ -840,9 +843,12 @@ static void setInputOutputHandles(PyThreadState *tstate) {
 
     Py_DECREF(args);
 #endif
+
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Done with early handles.");
 #endif
 
 #if NUITKA_STANDARD_HANDLES_EARLY == 0
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Late handles.");
 #if defined(NUITKA_FORCED_STDOUT_PATH)
     {
 #if defined(_WIN32)
@@ -885,21 +891,35 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         PyObject *devnull_filename = Nuitka_String_FromString("/dev/null");
 #endif
 
+        NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdin.");
+
         if (shallSetOutputHandleToNull("stdin")) {
+            NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdin to NULL file.");
+
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
             PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "r", true, encoding);
+            CHECK_OBJECT(stdin_file);
 
             setStdinHandle(tstate, stdin_file);
         }
 
+        NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stdout.");
+
         if (shallSetOutputHandleToNull("stdout")) {
+            NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stdout to NULL file.");
+
             PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
+            CHECK_OBJECT(stdout_file);
 
             setStdoutHandle(tstate, stdout_file);
         }
 
+        NUITKA_PRINT_TRACE("setInputOutputHandles(): Considering stderr.");
+
         if (shallSetOutputHandleToNull("stderr")) {
+            NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stderr to NULL file.");
+
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
 
             setStderrHandle(tstate, stderr_file);
@@ -909,10 +929,12 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     }
 
 #if NUITKA_FORCED_STDOUT_NONE_BOOL
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Forcing stdout to None.");
     setStdoutHandle(tstate, Py_None);
 #endif
 
 #if NUITKA_FORCED_STDERR_NONE_BOOL
+    NUITKA_PRINT_TRACE("setInputOutputHandles(): Forcing stderr to None.");
     setStderrHandle(tstate, Py_None);
 #endif
 
