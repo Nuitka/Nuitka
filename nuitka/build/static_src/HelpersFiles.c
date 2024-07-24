@@ -10,7 +10,7 @@
 
 // Small helper to open files with few arguments.
 PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char const *mode, bool buffering,
-                              PyObject *encoding, bool close_fd) {
+                              PyObject *encoding) {
     PyObject *mode_obj = Nuitka_String_FromString(mode);
     PyObject *buffering_obj = buffering ? const_int_pos_1 : const_int_0;
 
@@ -38,7 +38,7 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyThreadState *tstate, PyObject *filename, char co
         PyObject *mode_obj2 = PyUnicode_FromString("wb");
 
         PyObject *binary_stream =
-            BUILTIN_OPEN(tstate, filename, mode_obj2, buffering_obj, NULL, NULL, NULL, BOOL_FROM(close_fd), NULL);
+            BUILTIN_OPEN(tstate, filename, mode_obj2, buffering_obj, NULL, NULL, NULL, NULL, NULL);
 
         Py_DECREF(mode_obj2);
 
