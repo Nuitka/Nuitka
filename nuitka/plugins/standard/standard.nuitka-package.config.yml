@@ -160,10 +160,14 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: 3f9f0b7d
+- module-name: 'arcade' # checksum: 12848707
   data-files:
     dirs:
-      - 'resources'
+      - 'resources/system'
+  anti-bloat:
+    - no-auto-follow:
+        'examples': 'Arcade examples are not be available unless you do "--include-module=acade.examples"'
+        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=acade.experimental"'
 
 - module-name: 'aspose' # checksum: 9babf530
   data-files:
@@ -2598,6 +2602,12 @@
         'from IPython.paths import get_ipython_cache_dir': 'raise ImportError'
         'from IPython.utils.path import get_ipython_cache_dir': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'numba.core.entrypoints' # checksum: 84d4c71e
+  anti-bloat:
+    - description: 'avoid importlib backport usage'
+      replacements:
+        'if PYVERSION': '"if " + repr(sys.version_info[:2])'
 
 - module-name: 'numba.cuda' # checksum: 3173fc81
   anti-bloat:
