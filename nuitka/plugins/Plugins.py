@@ -425,7 +425,7 @@ class Plugins(object):
             except Exception:
                 plugin.warning(
                     "Problem locating '%s' for implicit imports of '%s'."
-                    % (module.getFullName(), full_name)
+                    % (full_name, module.getFullName())
                 )
                 raise
 
