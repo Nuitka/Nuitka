@@ -374,7 +374,7 @@ def parsePyIFile(module_name, pyi_filename):
                     if dot_count > 0:
                         if origin_name:
                             origin_name = module_name.getRelativePackageName(
-                                level=dot_count
+                                level=dot_count - 1
                             ).getChildNamed(origin_name)
                         else:
                             origin_name = module_name.getRelativePackageName(
