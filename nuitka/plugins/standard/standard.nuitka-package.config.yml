@@ -2603,6 +2603,12 @@
         'from IPython.utils.path import get_ipython_cache_dir': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'numba.core.entrypoints' # checksum: 84d4c71e
+  anti-bloat:
+    - description: 'avoid importlib backport usage'
+      replacements:
+        'if PYVERSION': '"if " + repr(sys.version_info[:2])'
+
 - module-name: 'numba.cuda' # checksum: 3173fc81
   anti-bloat:
     - description: 'remove numba testing reference'
