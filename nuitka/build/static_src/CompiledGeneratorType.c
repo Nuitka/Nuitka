@@ -500,7 +500,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
     assert(Nuitka_Generator_Check((PyObject *)generator));
     CHECK_EXCEPTION_STATE_X(exception_state);
     CHECK_OBJECT_X(value);
-    assert(PyThreadState_GET() == tstate);
 
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
@@ -581,7 +580,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 #else
         yielded = ((generator_code)generator->m_code)(tstate, generator, value);
 #endif
-        assert(PyThreadState_GET() == tstate);
 
 #if PYTHON_VERSION >= 0x300
         // If the generator returns with m_yield_from set, it wants us to yield
@@ -590,8 +588,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             yielded = Nuitka_YieldFromGeneratorNext(tstate, generator);
         }
 #endif
-        assert(PyThreadState_GET() == tstate);
-
         Nuitka_MarkGeneratorAsNotRunning(generator);
 
         // Remove the generator from the frame stack.
