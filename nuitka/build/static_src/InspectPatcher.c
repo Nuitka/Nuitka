@@ -258,8 +258,20 @@ class GeneratorWrapperEnhanced(_old_GeneratorWrapper):\n\
             if gen.gi_code.co_flags & 0x0020:\n\
                 self._GeneratorWrapper__isgen = True\n\
 \n\
-types._GeneratorWrapper = GeneratorWrapperEnhanced\
-";
+types._GeneratorWrapper = GeneratorWrapperEnhanced\n"
+#if PYTHON_VERSION >= 0x3b0
+                                                  "\
+import inspect\n\
+_old_get_code_position = inspect._get_code_position\n\
+def _get_code_position(code, instruction_index):\n\
+    try:\n\
+        return _old_get_code_position(code, instruction_index)\n\
+    except StopIteration:\n\
+        return None, None, None, None\n\
+inspect._get_code_position=_get_code_position\n\
+"
+#endif
+        ;
 
     PyObject *wrapper_enhancement_code_object = Py_CompileString(wrapper_enhancement_code, "<exec>", Py_file_input);
     CHECK_OBJECT(wrapper_enhancement_code_object);
