@@ -97,6 +97,7 @@ static int Nuitka_ResourceReaderFiles_tp_traverse(struct Nuitka_ResourceReaderFi
 //        Yield Traversable objects from self
 //        """
 //
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -145,6 +146,7 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
 //            return strm.read()
 //
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_read_bytes(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                        PyObject *kwds) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -167,6 +169,7 @@ static PyObject *Nuitka_ResourceReaderFiles_read_bytes(struct Nuitka_ResourceRea
 
 static char const *_kw_list_encoding[] = {"encoding", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                       PyObject *kwds) {
 
@@ -206,6 +209,7 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
     return result;
 }
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_exists(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                    PyObject *kwds) {
 
@@ -223,6 +227,7 @@ static PyObject *Nuitka_ResourceReaderFiles_exists(struct Nuitka_ResourceReaderF
 //        """
 //
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_is_dir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                    PyObject *kwds) {
 
@@ -238,6 +243,7 @@ static PyObject *Nuitka_ResourceReaderFiles_is_dir(struct Nuitka_ResourceReaderF
 //        """
 //        Return True if self is a file
 //        """
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_is_file(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
 
@@ -260,6 +266,7 @@ static char const *_kw_list_joinpath[] = {"child", NULL};
 
 // Functions out there, some accept "child", and accept varargs, lets be compatible with both.
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                      PyObject *kwds) {
 
@@ -316,7 +323,7 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReade
 //        Return Traversable child in self
 //        """
 //
-
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_as_posix(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                      PyObject *kwds) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -378,6 +385,7 @@ PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFile
 
 static char const *_kw_list_open[] = {"mode", "buffering", "encoding", "errors", "newline", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReaderFiles_open(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                  PyObject *kwds) {
 
@@ -408,27 +416,27 @@ static PyObject *Nuitka_ResourceReaderFiles_as_file(struct Nuitka_ResourceReader
     return (PyObject *)files;
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_enter(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_enter(struct Nuitka_ResourceReaderFilesObject *files, PyObject *data) {
     CHECK_OBJECT(files);
 
     Py_INCREF(files);
     return (PyObject *)files;
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_exit(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_exit(struct Nuitka_ResourceReaderFilesObject *files, PyObject *data) {
     CHECK_OBJECT(files);
 
     Py_INCREF_IMMORTAL(Py_None);
     return Py_None;
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_fspath(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_fspath(struct Nuitka_ResourceReaderFilesObject *files, PyObject *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     return _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReaderFilesObject *files, PyObject *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);

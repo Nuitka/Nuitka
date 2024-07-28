@@ -22,6 +22,7 @@ static char *kw_list_object[] = {(char *)"object", NULL};
 
 static PyObject *old_getgeneratorstate = NULL;
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *object;
 
@@ -51,6 +52,7 @@ static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject
 #if PYTHON_VERSION >= 0x350
 static PyObject *old_getcoroutinestate = NULL;
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *object;
 
