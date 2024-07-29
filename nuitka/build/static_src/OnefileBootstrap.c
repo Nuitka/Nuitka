@@ -839,10 +839,12 @@ static wchar_t *getCommandLineForChildProcess(void) {
     static wchar_t result[32768];
     result[0] = 0;
 
-    appendWStringSafeW(result, getBinaryPath(), sizeof(result) / sizeof(wchar_t));
+    argv[0] = getBinaryPath();
 
-    for (int i = 1; i < argc; i++) {
-        appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
+    for (int i = 0; i < argc; i++) {
+        if (i >= 1) {
+            appendWCharSafeW(result, L' ', sizeof(result) / sizeof(wchar_t));
+        }
 
         bool needs_quote = containsWStringAny(argv[i], L" \t\n\v\"");
 

@@ -251,6 +251,11 @@ static PyMethodDef _method_def_create_compiled_function = {
 
 #endif
 
+// Actual name might be different when loaded as a package.
+#if defined(_NUITKA_MODULE) && %(is_top)d
+static char const *module_full_name = %(module_name_cstr)s;
+#endif
+
 // Internal entry point for module code.
 PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
     // Report entry to PGO.
@@ -258,6 +263,8 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
     // Store the module for future use.
     module_%(module_identifier)s = module;
+
+    moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
     // Modules can be loaded again in case of errors, avoid the init being done again.
     static bool init_done = false;
@@ -272,8 +279,18 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 #endif
         // Initialize the constant values used.
         _initBuiltinModule();
-        createGlobalConstants(tstate);
 
+#if PYTHON_VERSION >= 0x3c0
+        PyObject *real_module_name = PyObject_GetAttrString(module, "__name__");
+        CHECK_OBJECT(real_module_name);
+        module_full_name = strdup(Nuitka_String_AsString(real_module_name));
+#endif
+
+#if PYTHON_VERSION >= 0x3c0
+        createGlobalConstants(tstate, real_module_name);
+#else
+        createGlobalConstants(tstate);
+#endif
         /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
         _initCompiledGeneratorType();
@@ -293,6 +310,10 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
         setupMetaPathBasedLoader(tstate);
+#if PYTHON_VERSION >= 0x3c0
+        updateMetaPathBasedLoaderModuleRoot(module_full_name);
+#endif
+
 
 #if PYTHON_VERSION >= 0x300
         patchInspectModule(tstate);
@@ -317,8 +338,6 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 #endif
 
     // PRINT_STRING("in init%(module_identifier)s\n");
-
-    moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     {
@@ -540,9 +559,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
 };
 #endif
 
-// Actual name might be different when loaded as a package.
-static char const *module_full_name = %(module_name_cstr)s;
-
 #if PYTHON_VERSION < 0x300
 static void onModuleFileValueRelease(void *v) {
     if (orig_dunder_file_value != NULL) {
@@ -609,11 +625,13 @@ static int %(module_dll_entry_point)s_slot(PyObject *module) {
 #endif
 
 NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
+#if PYTHON_VERSION < 0x3c0
     if (_Py_PackageContext != NULL) {
         if (strcmp(module_full_name, _Py_PackageContext) != 0) {
             module_full_name = strdup(_Py_PackageContext);
         }
     }
+#endif
 
 #if PYTHON_VERSION < 0x300
     PyObject *module = Py_InitModule4(
