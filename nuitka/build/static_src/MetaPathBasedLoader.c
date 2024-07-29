@@ -1962,6 +1962,42 @@ PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry)
     return (PyObject *)result;
 }
 
+#ifdef _NUITKA_MODULE
+void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name) {
+    assert(module_root_name != NULL);
+    char const *last_dot = strrchr(module_root_name, '.');
+
+    if (last_dot != NULL) {
+        struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+        assert(current);
+
+        while (current->name != NULL) {
+            if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+                current->name = UN_TRANSLATE(current->name);
+                current->flags -= NUITKA_TRANSLATED_FLAG;
+            }
+
+            char name[2048];
+
+            if (strcmp(last_dot + 1, current->name) == 0) {
+                copyStringSafeN(name, module_root_name, last_dot - module_root_name + 1, sizeof(name));
+                appendStringSafe(name, current->name, sizeof(name));
+
+                current->name = strdup(name);
+            } else if (strncmp(last_dot + 1, current->name, strlen(last_dot + 1)) == 0 &&
+                       current->name[strlen(last_dot + 1)] == '.') {
+                copyStringSafeN(name, module_root_name, last_dot - module_root_name + 1, sizeof(name));
+                appendStringSafe(name, current->name, sizeof(name));
+
+                current->name = strdup(name);
+            }
+
+            current++;
+        }
+    }
+}
+#endif
+
 void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries,
                                  unsigned char **bytecode_data) {
     // Do it only once.
@@ -1977,42 +2013,13 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader
         PySys_WriteStderr("Setup nuitka compiled module/bytecode/extension importer.\n");
     }
 
-#ifdef _NUITKA_MODULE
+    loader_entries = _loader_entries;
+
+#if defined(_NUITKA_MODULE) && PYTHON_VERSION < 0x3c0
     if (_Py_PackageContext != NULL) {
-        char const *last_dot = strrchr(_Py_PackageContext, '.');
-
-        if (last_dot != NULL) {
-            struct Nuitka_MetaPathBasedLoaderEntry *current = _loader_entries;
-            assert(current);
-
-            while (current->name != NULL) {
-                if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
-                    current->name = UN_TRANSLATE(current->name);
-                    current->flags -= NUITKA_TRANSLATED_FLAG;
-                }
-
-                char name[2048];
-
-                if (strcmp(last_dot + 1, current->name) == 0) {
-                    copyStringSafeN(name, _Py_PackageContext, last_dot - _Py_PackageContext + 1, sizeof(name));
-                    appendStringSafe(name, current->name, sizeof(name));
-
-                    current->name = strdup(name);
-                } else if (strncmp(last_dot + 1, current->name, strlen(last_dot + 1)) == 0 &&
-                           current->name[strlen(last_dot + 1)] == '.') {
-                    copyStringSafeN(name, _Py_PackageContext, last_dot - _Py_PackageContext + 1, sizeof(name));
-                    appendStringSafe(name, current->name, sizeof(name));
-
-                    current->name = strdup(name);
-                }
-
-                current++;
-            }
-        }
+        updateMetaPathBasedLoaderModuleRoot(_Py_PackageContext);
     }
 #endif
-
-    loader_entries = _loader_entries;
 
     Nuitka_PyType_Ready(&Nuitka_Loader_Type, NULL, true, false, false, false, false);
 
