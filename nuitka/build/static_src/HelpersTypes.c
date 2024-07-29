@@ -33,8 +33,15 @@ bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
 
         return false;
     } else {
-        // Fallback for uninitialized classes to API usage
-        return PyType_IsSubtype(a, b) != 0;
+        // Fallback for uninitialized classes to base class scan
+        do {
+            if (a == b) {
+                return true;
+            }
+            a = a->tp_base;
+        } while (a != NULL);
+
+        return (b == &PyBaseObject_Type);
     }
 }
 

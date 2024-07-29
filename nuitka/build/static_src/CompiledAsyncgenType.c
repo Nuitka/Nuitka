@@ -470,7 +470,7 @@ static PyObject *_Nuitka_Asyncgen_send(PyThreadState *tstate, struct Nuitka_Asyn
 
     switch (res) {
     case PYGEN_RETURN:
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopAsyncIteration);
+        SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
         return NULL;
     case PYGEN_NEXT:
         return result;
@@ -633,7 +633,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(PyThreadState *tstate, struct Nuitka_As
         if (unlikely(ret == NULL)) {
             PyObject *val;
 
-            if (_PyGen_FetchStopIterationValue(&val) == 0) {
+            if (Nuitka_PyGen_FetchStopIterationValue(tstate, &val)) {
                 CHECK_OBJECT(val);
 
                 asyncgen->m_yield_from = NULL;
@@ -777,7 +777,7 @@ static PyObject *Nuitka_Asyncgen_throw(PyThreadState *tstate, struct Nuitka_Asyn
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopAsyncIteration);
+            SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
         }
     }
 
@@ -1374,7 +1374,7 @@ static PyObject *_Nuitka_Asyncgen_unwrap_value(PyThreadState *tstate, struct Nui
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
         if (error == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopAsyncIteration);
+            SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
             asyncgen->m_closed = true;
         } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_StopAsyncIteration) ||
                    EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_GeneratorExit)) {
@@ -1456,7 +1456,7 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
 
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
 #if PYTHON_VERSION < 0x390
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
 #else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot reuse already awaited __anext__()/asend()");
 #endif
@@ -1564,7 +1564,7 @@ static PyObject *Nuitka_AsyncgenAsend_throw(struct Nuitka_AsyncgenAsendObject *a
     PyThreadState *tstate = PyThreadState_GET();
 
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         return NULL;
     }
 
@@ -1608,7 +1608,7 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
 #endif
 
     if (asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED) {
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         return NULL;
     }
 
@@ -1617,8 +1617,8 @@ static PyObject *_Nuitka_AsyncgenAsend_throw2(PyThreadState *tstate, struct Nuit
     // TODO: This might not be all that necessary as this is not directly outside facing,
     // but there were tests failing when this was not the specific value.
     if (result == NULL) {
-        if (GET_ERROR_OCCURRED(tstate) == NULL) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopAsyncIteration);
+        if (HAS_ERROR_OCCURRED(tstate) == false) {
+            SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
         }
     }
 
@@ -1829,7 +1829,7 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
     // Closing twice is not allowed with 3.9 or higher.
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
 #if PYTHON_VERSION < 0x390
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
 #else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot reuse already awaited aclose()/athrow()");
 #endif
@@ -1839,7 +1839,7 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
 
     // If finished, just report StopIteration.
     if (asyncgen->m_status == status_Finished) {
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         return NULL;
     }
 
@@ -1863,9 +1863,9 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
         if (asyncgen->m_closed) {
 #if PYTHON_VERSION >= 0x380
             asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopAsyncIteration);
+            SET_CURRENT_EXCEPTION_STOP_ASYNC_ITERATION(tstate);
 #else
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
 #endif
             return NULL;
         }
@@ -1975,7 +1975,7 @@ check_error:
 
         if (asyncgen_athrow->m_args == NULL) {
             CLEAR_ERROR_OCCURRED(tstate);
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     } else if (PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
         asyncgen_athrow->m_state = AWAITABLE_STATE_CLOSED;
@@ -1983,8 +1983,7 @@ check_error:
 #if PYTHON_VERSION >= 0x380
         if (asyncgen_athrow->m_args == NULL) {
 #endif
-            CLEAR_ERROR_OCCURRED(tstate);
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
 #if PYTHON_VERSION >= 0x380
         }
 #endif
@@ -2015,7 +2014,7 @@ static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject 
 
     if (asyncgen_athrow->m_state == AWAITABLE_STATE_CLOSED) {
 #if PYTHON_VERSION < 0x390
-        SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+        SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
 #else
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot reuse already awaited aclose()/athrow()");
 #endif
@@ -2043,7 +2042,7 @@ static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject 
 
 #if PYTHON_VERSION >= 0x390
         if (PyErr_ExceptionMatches(PyExc_StopAsyncIteration) || PyErr_ExceptionMatches(PyExc_GeneratorExit)) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
 #endif
 
