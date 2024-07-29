@@ -632,7 +632,7 @@ static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine,
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 
@@ -819,7 +819,7 @@ static PyObject *_Nuitka_Coroutine_throw2(PyThreadState *tstate, struct Nuitka_C
             }
 
             PyObject *val;
-            if (_PyGen_FetchStopIterationValue(&val) == 0) {
+            if (Nuitka_PyGen_FetchStopIterationValue(tstate, &val)) {
                 CHECK_OBJECT(val);
 
 #if _DEBUG_COROUTINE
@@ -969,7 +969,7 @@ static PyObject *Nuitka_Coroutine_throw(struct Nuitka_CoroutineObject *coroutine
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 
@@ -1658,21 +1658,24 @@ static PyObject *Nuitka_AIterWrapper_iternext(struct Nuitka_AIterWrapper *aw) {
 
 #if PYTHON_VERSION < 0x360
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
-#else
+#elif PYTHON_VERSION < 0x3c0
     if (!PyTuple_Check(aw->aw_aiter) && !PyExceptionInstance_Check(aw->aw_aiter)) {
-        Py_INCREF(PyExc_StopIteration);
-        Py_INCREF(aw->aw_aiter);
-
-        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, aw->aw_aiter, NULL);
+        SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_StopIteration, aw->aw_aiter);
     } else {
         PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyExc_StopIteration, aw->aw_aiter);
+
         if (unlikely(result == NULL)) {
             return NULL;
         }
 
-        Py_INCREF(PyExc_StopIteration);
-        RESTORE_ERROR_OCCURRED(tstate, PyExc_StopIteration, result, NULL);
+        struct Nuitka_ExceptionPreservationItem exception_state = {_Py_NewRef(PyExc_StopIteration), result, NULL};
+
+        RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
     }
+#else
+    struct Nuitka_ExceptionPreservationItem exception_state = {Nuitka_CreateStopIteration(tstate, aw->aw_aiter)};
+
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
 #endif
 
     return NULL;

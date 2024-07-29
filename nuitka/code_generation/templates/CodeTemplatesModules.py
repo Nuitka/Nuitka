@@ -690,7 +690,7 @@ template_module_exception_exit = """\
 #endif
     PGO_onModuleExit("%(module_identifier)s", false);
 
-    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
     return NULL;
 }"""
 
