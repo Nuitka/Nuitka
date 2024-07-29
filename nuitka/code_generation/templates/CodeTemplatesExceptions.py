@@ -6,27 +6,26 @@
 """
 
 template_publish_exception_to_handler = """\
-if (%(keeper_tb)s == NULL) {
-    %(keeper_tb)s = %(tb_making)s;
-} else if (%(keeper_lineno)s != 0) {
-    %(keeper_tb)s = ADD_TRACEBACK(%(keeper_tb)s, %(frame_identifier)s, %(keeper_lineno)s);
+{
+    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&%(keeper_exception_state_name)s);
+    if (exception_tb == NULL) {
+        exception_tb = %(tb_making)s;
+        SET_EXCEPTION_STATE_TRACEBACK(&%(keeper_exception_state_name)s, exception_tb);
+    } else if (%(keeper_lineno)s != 0) {
+        exception_tb = ADD_TRACEBACK(exception_tb, %(frame_identifier)s, %(keeper_lineno)s);
+        SET_EXCEPTION_STATE_TRACEBACK(&%(keeper_exception_state_name)s, exception_tb);
+    }
 }
 """
 
-template_error_catch_quick_exception = """\
+template_error_catch_fetched_exception = """\
 if (%(condition)s) {
-    if (!HAS_ERROR_OCCURRED(tstate)) {
-        %(exception_type)s = %(quick_exception)s;
-        Py_INCREF(%(exception_type)s);
-        %(exception_value)s = NULL;
-        %(exception_tb)s = NULL;
-    } else {
-        FETCH_ERROR_OCCURRED(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
-    }
+    assert(HAS_EXCEPTION_STATE(&%(exception_state_name)s));
+
 %(release_temps)s
 
-%(var_description_code)s
 %(line_number_code)s
+%(var_description_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -34,7 +33,7 @@ template_error_catch_exception = """\
 if (%(condition)s) {
     assert(HAS_ERROR_OCCURRED(tstate));
 
-    FETCH_ERROR_OCCURRED(tstate, &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s);
+    FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
 %(release_temps)s
 
 %(line_number_code)s
@@ -56,7 +55,7 @@ if (%(condition)s) {
 template_error_format_name_error_exception = """\
 if (unlikely(%(condition)s)) {
 %(release_temps)s
-%(raise_name_error_helper)s(tstate, %(variable_name)s, &%(exception_type)s, &%(exception_value)s);
+%(raise_name_error_helper)s(tstate, %(variable_name)s, &%(exception_state_name)s);
 
 %(line_number_code)s
 %(var_description_code)s

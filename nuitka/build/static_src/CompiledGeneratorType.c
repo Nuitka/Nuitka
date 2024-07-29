@@ -471,20 +471,18 @@ static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, cha
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
 #if PYTHON_VERSION < 0x3c0
-    NORMALIZE_EXCEPTION(tstate, &saved_exception_state.exception_type, &saved_exception_state.exception_value,
-                        &saved_exception_state.exception_tb);
+    NORMALIZE_EXCEPTION_STATE(tstate, &saved_exception_state);
 #endif
 
     struct Nuitka_ExceptionPreservationItem new_exception_state;
     SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, &new_exception_state, PyExc_RuntimeError, message);
 
 #if PYTHON_VERSION < 0x3c0
-    NORMALIZE_EXCEPTION(tstate, &new_exception_state.exception_type, &new_exception_state.exception_value,
-                        &new_exception_state.exception_tb);
+    NORMALIZE_EXCEPTION_STATE(tstate, &new_exception_state);
 #endif
 
     Py_INCREF(saved_exception_state.exception_value);
-    RAISE_EXCEPTION_WITH_CAUSE_STATE(tstate, &new_exception_state, saved_exception_state.exception_value);
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &new_exception_state, saved_exception_state.exception_value);
 
     Py_INCREF(saved_exception_state.exception_value);
     PyException_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
@@ -757,7 +755,7 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 
@@ -950,8 +948,7 @@ static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
 
     if (PyExceptionClass_Check(exception_state->exception_type)) {
         // TODO: Must not / need not normalize here?
-        NORMALIZE_EXCEPTION(tstate, &exception_state->exception_type, &exception_state->exception_value,
-                            &exception_state->exception_tb);
+        NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
     } else if (PyExceptionInstance_Check(exception_state->exception_type)) {
         if (exception_state->exception_value != NULL && exception_state->exception_value != Py_None) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
@@ -1218,7 +1215,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
             }
 
             PyObject *val;
-            if (_PyGen_FetchStopIterationValue(&val) == 0) {
+            if (Nuitka_PyGen_FetchStopIterationValue(tstate, &val)) {
                 CHECK_OBJECT(val);
 
 #if _DEBUG_GENERATOR
@@ -1277,8 +1274,8 @@ throw_here:
         PyObject *result = _Nuitka_Generator_send(tstate, generator, NULL, exception_state);
 
         if (result == NULL) {
-            if (GET_ERROR_OCCURRED(tstate) == NULL) {
-                SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            if (HAS_ERROR_OCCURRED(tstate) == false) {
+                SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
             }
         }
 
@@ -1334,7 +1331,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 

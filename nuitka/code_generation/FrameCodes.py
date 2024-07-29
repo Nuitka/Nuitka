@@ -326,9 +326,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
 
     if frame_exception_exit is not None:
         (
-            _exception_type,
-            _exception_value,
-            exception_tb,
+            exception_state_name,
             exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
@@ -345,7 +343,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
                 frame_exception_exit=frame_exception_exit,
                 frame_exit_code=frame_exit_code,
                 needs_preserve=needs_preserve,
-                exception_tb=exception_tb,
+                exception_state_name=exception_state_name,
                 exception_lineno=exception_lineno,
             )
         )
@@ -367,9 +365,7 @@ def getFrameGuardGeneratorCode(
     # We really need this many parameters here and it gets very
     # detail rich, pylint: disable=too-many-locals
     (
-        exception_type,
-        _exception_value,
-        exception_tb,
+        exception_state_name,
         exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
@@ -432,8 +428,7 @@ def getFrameGuardGeneratorCode(
                 "context_identifier": context_identifier,
                 "frame_identifier": frame_identifier,
                 "frame_cache_identifier": frame_cache_identifier,
-                "exception_type": exception_type,
-                "exception_tb": exception_tb,
+                "exception_state_name": exception_state_name,
                 "exception_lineno": exception_lineno,
                 "tb_making": getTracebackMakingIdentifier(
                     context=context, lineno_name=exception_lineno
