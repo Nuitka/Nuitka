@@ -62,7 +62,11 @@ extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_i
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
+#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+static void _createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name) {
+#else
 static void _createGlobalConstants(PyThreadState *tstate) {
+#endif
     // We provide the sys.version info shortcut as a global value here for ease of use.
     Py_SysVersionInfo = Nuitka_SysGetObject("version_info");
 
@@ -216,11 +220,15 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #ifdef _NUITKA_MODULE
     PyObject *main_name;
 
+#if PYTHON_VERSION < 0x3c0
     if (_Py_PackageContext != NULL) {
         main_name = Nuitka_String_FromString(_Py_PackageContext);
     } else {
         main_name = Nuitka_String_FromString(%(module_name_cstr)s);
     }
+#else
+    main_name = real_module_name;
+#endif
 #else
     PyObject *main_name = Nuitka_String_FromString("__main__");
 #endif
@@ -244,7 +252,11 @@ void checkGlobalConstants(void) {
 }
 #endif
 
+#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+void createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name) {
+#else
 void createGlobalConstants(PyThreadState *tstate) {
+#endif
     if (Nuitka_sentinel_value == NULL) {
 #if PYTHON_VERSION < 0x300
         Nuitka_sentinel_value = PyCObject_FromVoidPtr(NULL, NULL);
@@ -256,7 +268,11 @@ void createGlobalConstants(PyThreadState *tstate) {
 
         Py_SET_REFCNT_IMMORTAL(Nuitka_sentinel_value);
 
+#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+        _createGlobalConstants(tstate, real_module_name);
+#else
         _createGlobalConstants(tstate);
+#endif
     }
 }
 """
