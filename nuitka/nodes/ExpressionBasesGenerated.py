@@ -274,7 +274,9 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
 ExpressionBuiltinMakeExceptionBase = ChildHavingArgsTupleFinalNoRaiseMixin
 
 
-class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(ExpressionBase):
+class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin(
+    ExpressionBase
+):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -282,7 +284,7 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
     #   ExpressionBuiltinMakeExceptionImportError
     #   ExpressionBuiltinMakeExceptionModuleNotFoundError
 
-    def __init__(self, args, name, path, source_ref):
+    def __init__(self, args, name, path, for_raise, source_ref):
         assert type(args) is tuple
 
         for val in args:
@@ -300,7 +302,14 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
         self.subnode_path = path
 
+        self.for_raise = for_raise
+
         ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "for_raise": self.for_raise,
+        }
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -463,10 +472,10 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
-    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin
+    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
 )
 ExpressionBuiltinMakeExceptionModuleNotFoundErrorBase = (
-    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin
+    ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseForRaiseMixin
 )
 
 

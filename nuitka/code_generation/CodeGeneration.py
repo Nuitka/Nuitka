@@ -1034,7 +1034,6 @@ setStatementDispatchDict(
         "STATEMENT_LOOP_BREAK": generateLoopBreakCode,
         "STATEMENT_LOOP_CONTINUE": generateLoopContinueCode,
         "STATEMENT_RAISE_EXCEPTION": generateRaiseCode,
-        "STATEMENT_RAISE_EXCEPTION_IMPLICIT": generateRaiseCode,
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
