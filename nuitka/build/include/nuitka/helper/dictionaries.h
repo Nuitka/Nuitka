@@ -370,13 +370,13 @@ extern PyObject *DICT_ITEMS(PyObject *dict);
 #endif
 
 // Python3 dictionary keys, Python2 iterkeys returns dictionary keys iterator
-extern PyObject *DICT_ITERKEYS(PyObject *dict);
+extern PyObject *DICT_ITERKEYS(PyThreadState *tstate, PyObject *dict);
 
 // Python3 dictionary values, Python2 itervalues returns dictionary values iterator
-extern PyObject *DICT_ITERVALUES(PyObject *dict);
+extern PyObject *DICT_ITERVALUES(PyThreadState *tstate, PyObject *dict);
 
 // Python3 dictionary items, Python2 iteritems returns dictionary items iterator
-extern PyObject *DICT_ITERITEMS(PyObject *dict);
+extern PyObject *DICT_ITERITEMS(PyThreadState *tstate, PyObject *dict);
 
 // Python dictionary keys view
 extern PyObject *DICT_VIEWKEYS(PyObject *dict);

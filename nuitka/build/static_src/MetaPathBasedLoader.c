@@ -404,7 +404,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
 
                 if (strncmp(filename_str, module_relative_name_str, strlen(module_relative_name_str)) == 0 &&
                     filename_str[strlen(module_relative_name_str)] == '.') {
-                    LIST_APPEND1(candidates, PyTuple_Pack(2, path_element, filename));
+                    LIST_APPEND1(candidates, MAKE_TUPLE2(tstate, path_element, filename));
                 }
             }
         }
@@ -687,7 +687,7 @@ extern _Thread_local const char *pkgcontext;
 static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 // TODO: The locking APIs for 3.13 give errors here that are not explained
 // yet.
-#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3d0
+#if PYTHON_VERSION >= 0x3c0
     // spell-checker: ignore pkgcontext
     const char *old_context = _PyRuntime.imports.pkgcontext;
     _PyRuntime.imports.pkgcontext = new_context;
