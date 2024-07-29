@@ -58,6 +58,12 @@ struct Nuitka_MetaPathBasedLoaderEntry {
 extern void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries,
                                         unsigned char **bytecode_data);
 
+// For module mode, embedded modules may have to be shifted to below the
+// namespace they are loaded into.
+#ifdef _NUITKA_MODULE
+extern void updateMetaPathBasedLoaderModuleRoot(char const *module_root_name);
+#endif
+
 /* Create a loader object responsible for a package. */
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 

@@ -294,7 +294,11 @@ extern PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject 
 // For the constant loading:
 
 // Call this to initialize all common constants pre-main.
+#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+extern void createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name);
+#else
 extern void createGlobalConstants(PyThreadState *tstate);
+#endif
 
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
