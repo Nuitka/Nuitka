@@ -5,9 +5,9 @@
 
 """
 
-from .ChildrenHavingMixins import (
-    ChildrenHavingExceptionTypeExceptionValueMixin,
-)
+from nuitka.PythonVersions import python_version
+
+from .ChildrenHavingMixins import ChildHavingExceptionTypeMixin
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionBase,
@@ -67,14 +67,6 @@ class StatementRaiseException(
         return "exception raise statement"
 
 
-class StatementRaiseExceptionImplicit(StatementRaiseException):
-    kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
-
-    @staticmethod
-    def getStatementNiceName():
-        return "implicit exception raise statement"
-
-
 class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
     kind = "STATEMENT_RERAISE_EXCEPTION"
 
@@ -97,9 +89,7 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
         return "exception re-raise statement"
 
 
-class ExpressionRaiseException(
-    ChildrenHavingExceptionTypeExceptionValueMixin, ExpressionBase
-):
+class ExpressionRaiseException(ChildHavingExceptionTypeMixin, ExpressionBase):
     """This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
@@ -109,13 +99,12 @@ class ExpressionRaiseException(
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    named_children = ("exception_type", "exception_value")
+    named_children = ("exception_type",)
 
-    def __init__(self, exception_type, exception_value, source_ref):
-        ChildrenHavingExceptionTypeExceptionValueMixin.__init__(
+    def __init__(self, exception_type, source_ref):
+        ChildHavingExceptionTypeMixin.__init__(
             self,
             exception_type=exception_type,
-            exception_value=exception_value,
         )
 
         ExpressionBase.__init__(self, source_ref)
@@ -142,9 +131,9 @@ Propagated implicit raise expression to raise statement.""",
         )
 
     def asStatement(self):
-        return StatementRaiseExceptionImplicit(
+        return StatementRaiseException(
             exception_type=self.subnode_exception_type,
-            exception_value=self.subnode_exception_value,
+            exception_value=None,
             exception_trace=None,
             exception_cause=None,
             source_ref=self.source_ref,
@@ -156,15 +145,16 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 
     named_children = ("args|tuple",)
 
-    __slots__ = ("exception_name",)
+    __slots__ = ("exception_name", "for_raise")
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
 
-    def __init__(self, exception_name, args, source_ref):
+    def __init__(self, exception_name, args, for_raise, source_ref):
         ExpressionBuiltinMakeExceptionBase.__init__(self, args, source_ref=source_ref)
 
         self.exception_name = exception_name
+        self.for_raise = for_raise
 
     def getDetails(self):
         return {"exception_name": self.exception_name}
@@ -196,7 +186,9 @@ class ExpressionBuiltinMakeExceptionImportError(
 
     named_children = ("args|tuple", "name|optional", "path|optional")
 
-    __slots__ = ("exception_name",)
+    node_attributes = ("for_raise",)
+
+    __slots__ = ()
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
@@ -269,6 +261,40 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
+
+
+def makeBuiltinMakeExceptionNode(
+    exception_name, args, for_raise, name=None, path=None, source_ref=None
+):
+    assert type(exception_name) is str, exception_name
+
+    if exception_name == "ImportError" and python_version >= 0x300:
+        return ExpressionBuiltinMakeExceptionImportError(
+            args=args,
+            name=name,
+            path=path,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
+    elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
+        return ExpressionBuiltinMakeExceptionModuleNotFoundError(
+            args=args,
+            name=name,
+            path=path,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
+    else:
+        # We expect to only get the star arguments for these.
+        assert name is None
+        assert path is None
+
+        return ExpressionBuiltinMakeException(
+            exception_name=exception_name,
+            args=args,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

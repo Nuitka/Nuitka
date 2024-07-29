@@ -26,10 +26,7 @@ from .ErrorCodes import (
 from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
-from .templates.CodeTemplatesIterators import (
-    template_iterator_check,
-    template_loop_break_next,
-)
+from .templates.CodeTemplatesIterators import template_loop_break_next
 
 
 def generateBuiltinNext1Code(to_name, expression, emit, context):
@@ -37,15 +34,38 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
+    (
+        exception_state_name,
+        _exception_lineno,
+    ) = context.variable_storage.getExceptionVariableDescriptions()
+
     with withObjectCodeTemporaryAssignment(
         to_name, "next_value", expression, emit, context
     ) as result_name:
-        emit("%s = %s;" % (result_name, "ITERATOR_NEXT(%s)" % value_name))
+        # TODO: Make use of "ITERATOR_NEXT_ITERATOR" in case of known type shape
+        # iterator.
+        emit(
+            """\
+%(to_name)s = ITERATOR_NEXT(%(iterator_name)s);
+if (%(to_name)s == NULL) {
+    FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
+
+    if (!HAS_EXCEPTION_STATE(&%(exception_state_name)s)) {
+        SET_EXCEPTION_PRESERVATION_STATE_STOP_ITERATION_EMPTY(tstate, &%(exception_state_name)s);
+    }
+}
+"""
+            % {
+                "to_name": result_name,
+                "iterator_name": value_name,
+                "exception_state_name": exception_state_name,
+            }
+        )
 
         getErrorExitCode(
             check_name=result_name,
             release_name=value_name,
-            quick_exception="StopIteration",
+            fetched_exception=True,
             emit=emit,
             context=context,
         )
@@ -54,7 +74,7 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
 
 
 def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
-    emit("%s = %s;" % (to_name, "ITERATOR_NEXT(%s)" % value))
+    emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
 
     getReleaseCode(release_name=value, emit=emit, context=context)
 
@@ -66,9 +86,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
         break_indicator_code = ""
 
     (
-        exception_type,
-        exception_value,
-        exception_tb,
+        exception_state_name,
         _exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
@@ -84,9 +102,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
             ),
             "line_number_code": indented(getErrorLineNumberUpdateCode(context), 2),
             "exception_target": context.getExceptionEscape(),
-            "exception_type": exception_type,
-            "exception_value": exception_value,
-            "exception_tb": exception_tb,
+            "exception_state_name": exception_state_name,
         }
     )
 
@@ -111,19 +127,35 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
         if not needs_check:
             emit("%s = UNPACK_NEXT_INFALLIBLE(%s);" % (result_name, value_name))
         elif python_version < 0x350:
+            (
+                exception_state_name,
+                _exception_lineno,
+            ) = context.variable_storage.getExceptionVariableDescriptions()
+
             emit(
-                "%s = UNPACK_NEXT(tstate, %s, %s);"
-                % (result_name, value_name, expression.getCount() - 1)
+                "%s = UNPACK_NEXT(tstate, &%s, %s, %s);"
+                % (
+                    result_name,
+                    exception_state_name,
+                    value_name,
+                    expression.getCount() - 1,
+                )
             )
         else:
             starred = expression.getStarred()
             expected = expression.getExpected()
 
+            (
+                exception_state_name,
+                _exception_lineno,
+            ) = context.variable_storage.getExceptionVariableDescriptions()
+
             emit(
-                "%s = UNPACK_NEXT%s(tstate, %s, %s, %s);"
+                "%s = UNPACK_NEXT%s(tstate, &%s, %s, %s, %s);"
                 % (
                     result_name,
                     "_STARRED" if starred else "",
+                    exception_state_name,
                     value_name,
                     expression.getCount() - 1,
                     expected,
@@ -133,8 +165,8 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=result_name,
             release_name=value_name,
-            quick_exception="StopIteration",
             needs_check=needs_check,
+            fetched_exception=True,
             emit=emit,
             context=context,
         )
@@ -152,47 +184,25 @@ def generateUnpackCheckCode(statement, emit, context):
         context=context,
     )
 
-    # These variable cannot collide, as it's used very locally.
-    attempt_name = context.allocateTempName("iterator_attempt", unique=True)
-
-    release_code = getErrorExitReleaseCode(context)
-    var_description_code = getFrameVariableTypeDescriptionCode(context)
-
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
         (
-            exception_type,
-            exception_value,
-            exception_tb,
+            exception_state_name,
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
+        res_name = context.getBoolResName()
+
         emit(
-            template_iterator_check
-            % {
-                "iterator_name": iterator_name,
-                "attempt_name": attempt_name,
-                "exception_exit": context.getExceptionEscape(),
-                "release_temps_1": indented(release_code, 3),
-                "line_number_code_1": indented(
-                    getErrorLineNumberUpdateCode(context), 3
-                ),
-                "var_description_code_1": indented(var_description_code, 3),
-                "release_temps_2": indented(release_code),
-                "var_description_code_2": indented(var_description_code),
-                "line_number_code_2": indented(getErrorLineNumberUpdateCode(context)),
-                "exception_type": exception_type,
-                "exception_value": exception_value,
-                "exception_tb": exception_tb,
-                "too_many_values_error": context.getConstantCode(
-                    "too many values to unpack"
-                    if python_version < 0x300
-                    else "too many values to unpack (expected %d)"
-                    % statement.getCount()
-                ),
-            }
+            "%s = UNPACK_ITERATOR_CHECK(tstate, &%s, %s, %d);"
+            % (res_name, exception_state_name, iterator_name, statement.getCount())
         )
 
-        getReleaseCode(release_name=iterator_name, emit=emit, context=context)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            fetched_exception=True,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateUnpackCheckFromIteratedCode(statement, emit, context):

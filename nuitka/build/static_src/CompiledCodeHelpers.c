@@ -915,15 +915,7 @@ bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
 bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
-#if PYTHON_VERSION < 0x3b0
-void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
-#else
-void _PRINT_EXCEPTION(PyObject *exception_value) {
-    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
-    PyTracebackObject *exception_tb = (exception_value && PyExceptionInstance_Check(exception_value))
-                                          ? GET_EXCEPTION_TRACEBACK(exception_value)
-                                          : NULL;
-#endif
+void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
     PRINT_REPR(exception_type);
     if (exception_type != NULL) {
         PRINT_REFCOUNT(exception_type);
@@ -950,6 +942,17 @@ void _PRINT_EXCEPTION(PyObject *exception_value) {
     PRINT_NEW_LINE();
 }
 
+#if PYTHON_VERSION >= 0x3b0
+void _PRINT_EXCEPTION1(PyObject *exception_value) {
+    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
+    PyTracebackObject *exception_tb = (exception_value && PyExceptionInstance_Check(exception_value))
+                                          ? GET_EXCEPTION_TRACEBACK(exception_value)
+                                          : NULL;
+
+    _PRINT_EXCEPTION3(exception_type, exception_value, exception_tb);
+}
+#endif
+
 void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -957,7 +960,7 @@ void PRINT_CURRENT_EXCEPTION(void) {
 #if PYTHON_VERSION < 0x3c0
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
 #else
-    _PRINT_EXCEPTION(tstate->exc_info->exc_value);
+    _PRINT_EXCEPTION1(tstate->exc_info->exc_value);
 #endif
 }
 
@@ -965,7 +968,11 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("thread_exc=");
+#if PYTHON_VERSION < 0x3b0
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
+#else
+    PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), GET_EXCEPTION_TRACEBACK(EXC_VALUE(tstate)));
+#endif
 }
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
@@ -1280,7 +1287,7 @@ static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickI
 
     switch (qiter->iterator_mode) {
     case ITERATOR_GENERIC:
-        result = ITERATOR_NEXT(qiter->iterator_data.iter);
+        result = ITERATOR_NEXT_ITERATOR(qiter->iterator_data.iter);
 
         if (result == NULL) {
             Py_DECREF(qiter->iterator_data.iter);
