@@ -459,11 +459,6 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
 
-// For newer Python, this API was moved to global state
-#if PYTHON_VERSION >= 0x3c0
-#define _Py_PackageContext (_PyRuntime.imports.pkgcontext)
-#endif
-
 // Our replacement for "PyType_IsSubtype"
 extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 
