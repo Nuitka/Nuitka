@@ -586,7 +586,7 @@ def generateDictOperationIteritemsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERITEMS",
-        tstate=False,
+        tstate=True,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -628,7 +628,7 @@ def generateDictOperationIterkeysCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERKEYS",
-        tstate=False,
+        tstate=True,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
@@ -715,7 +715,7 @@ def generateDictOperationItervaluesCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="DICT_ITERVALUES",
-        tstate=False,
+        tstate=True,
         arg_desc=(("dict_arg", expression.subnode_dict_arg),),
         may_raise=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),

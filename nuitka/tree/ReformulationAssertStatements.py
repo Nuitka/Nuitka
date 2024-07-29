@@ -11,7 +11,10 @@ source code comments with Developer Manual sections.
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExceptionNodes import (
+    StatementRaiseException,
+    makeBuiltinMakeExceptionNode,
+)
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
@@ -39,20 +42,34 @@ def buildAssertNode(provider, node, source_ref):
     if hasPythonFlagNoAsserts():
         return None
 
-    if exception_value is not None and python_version >= 0x272:
-        exception_value = makeExpressionMakeTuple(
-            elements=(exception_value,), source_ref=source_ref
-        )
+    if python_version < 0x3C0:
+        if exception_value is not None and python_version >= 0x272:
+            exception_value = makeExpressionMakeTuple(
+                elements=(exception_value,), source_ref=source_ref
+            )
 
-    raise_statement = StatementRaiseException(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name="AssertionError", source_ref=source_ref
-        ),
-        exception_value=exception_value,
-        exception_trace=None,
-        exception_cause=None,
-        source_ref=source_ref,
-    )
+        raise_statement = StatementRaiseException(
+            exception_type=ExpressionBuiltinExceptionRef(
+                exception_name="AssertionError", source_ref=source_ref
+            ),
+            exception_value=exception_value,
+            exception_trace=None,
+            exception_cause=None,
+            source_ref=source_ref,
+        )
+    else:
+        raise_statement = StatementRaiseException(
+            exception_type=makeBuiltinMakeExceptionNode(
+                exception_name="AssertionError",
+                args=(exception_value,) if exception_value else (),
+                for_raise=False,
+                source_ref=source_ref,
+            ),
+            exception_value=None,
+            exception_cause=None,
+            exception_trace=None,
+            source_ref=source_ref,
+        )
 
     return makeStatementConditional(
         condition=ExpressionOperationNot(

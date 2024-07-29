@@ -33,16 +33,18 @@ extern void PRINT_TRACEBACK(PyTracebackObject *traceback);
 #endif
 
 // Print the exception state, including NULL values.
-#if PYTHON_VERSION < 0x3b0
+extern void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb);
+extern void _PRINT_EXCEPTION1(PyObject *exception_value);
+
+#if PYTHON_VERSION < 0x3c0
 #define PRINT_EXCEPTION(exception_type, exception_value, exception_tb)                                                 \
-    _PRINT_EXCEPTION(exception_type, exception_value, exception_tb)
+    _PRINT_EXCEPTION3(exception_type, exception_value, exception_tb)
 #define PRINT_EXCEPTION_STATE(exception_state)                                                                         \
-    _PRINT_EXCEPTION(exception_state->exception_type, exception_state->exception_value, exception_state->exception_tb)
-extern void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb);
+    _PRINT_EXCEPTION3((exception_state)->exception_type, (exception_state)->exception_value,                           \
+                      (exception_state)->exception_tb)
 #else
-#define PRINT_EXCEPTION(exception_type, exception_value, exception_tb) _PRINT_EXCEPTION(exception_value)
-#define PRINT_EXCEPTION_STATE(exception_state) _PRINT_EXCEPTION((exception_state)->exception_value)
-extern void _PRINT_EXCEPTION(PyObject *exception_value);
+#define PRINT_EXCEPTION(exception_type, exception_value, exception_tb) _PRINT_EXCEPTION1(exception_value)
+#define PRINT_EXCEPTION_STATE(exception_state) _PRINT_EXCEPTION1((exception_state)->exception_value)
 #endif
 
 // Print the current exception state, including NULL values.

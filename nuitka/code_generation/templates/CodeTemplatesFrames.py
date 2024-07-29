@@ -117,10 +117,15 @@ template_frame_guard_normal_exception_handler = """\
 RESTORE_FRAME_EXCEPTION(tstate, {{frame_identifier}});
 {% endif %}
 
-if ({{exception_tb}} == NULL) {
-    {{exception_tb}} = {{tb_making_code}};
-} else if ({{exception_tb}}->tb_frame != &{{frame_identifier}}->m_frame) {
-    {{exception_tb}} = ADD_TRACEBACK({{exception_tb}}, {{frame_identifier}}, {{exception_lineno}});
+{
+    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}});
+    if (exception_tb == NULL) {
+        exception_tb = {{tb_making_code}};
+        SET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}}, exception_tb);
+    } else if (exception_tb->tb_frame != &{{frame_identifier}}->m_frame) {
+        exception_tb = ADD_TRACEBACK(exception_tb, {{frame_identifier}}, {{exception_lineno}});
+        SET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}}, exception_tb);
+    }
 }
 
 {% if attach_locals_code %}
@@ -174,11 +179,14 @@ template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if (!EXCEPTION_MATCH_GENERATOR(tstate, %(exception_type)s)) {
-    if (%(exception_tb)s == NULL) {
-        %(exception_tb)s = %(tb_making)s;
-    } else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
-        %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
+if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &%(exception_state_name)s)) {
+    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s);
+    if (exception_tb == NULL) {
+        exception_tb = %(tb_making)s;
+        SET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s, exception_tb);
+    } else if ((%(exception_lineno)s != 0) && (exception_tb->tb_frame != &%(frame_identifier)s->m_frame)) {
+        exception_tb = ADD_TRACEBACK(exception_tb, %(frame_identifier)s, %(exception_lineno)s);
+        SET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s, exception_tb);
     }
 
 %(attach_locals)s

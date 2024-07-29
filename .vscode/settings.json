@@ -80,7 +80,9 @@
         "xloctime": "c",
         "xmemory": "c",
         "xiosbase": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "span": "c",
+        "format": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [

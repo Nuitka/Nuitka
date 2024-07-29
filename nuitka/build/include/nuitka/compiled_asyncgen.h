@@ -104,6 +104,10 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuitka_
      * Python3.7: The exception is preserved in the asyncgen object itself
      * which has a new "m_exc_state" structure just for that.
      */
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Enter\n");
+    PRINT_PUBLISHED_EXCEPTION();
+#endif
 
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
@@ -111,11 +115,6 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuitka_
     PyObject *saved_exception_value = EXC_VALUE(tstate);
 #if PYTHON_VERSION < 0x3b0
     PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(tstate);
-#endif
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Enter\n");
-    PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -134,7 +133,7 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuitka_
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
+    PRINT_PUBLISHED_EXCEPTION();
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -166,7 +165,11 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuit
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("RESTORE_ASYNCGEN_EXCEPTION: Enter\n");
+#if PYTHON_VERSION < 0x3b0
     PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
+#else
+    _PRINT_EXCEPTION1(saved_exception_value);
+#endif
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -197,7 +200,7 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(PyThreadState *tstate, struct Nuit
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("RESTORE_ASYNCGEN_EXCEPTION: Leave\n");
-    PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
+    PRINT_PUBLISHED_EXCEPTION();
 #endif
 
 #if PYTHON_VERSION < 0x3b0

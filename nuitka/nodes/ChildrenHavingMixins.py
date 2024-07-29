@@ -6079,7 +6079,7 @@ ChildrenExpressionMakeSetLiteralMixin = ChildHavingElementsTupleMixin
 ChildrenExpressionMakeTupleMixin = ChildHavingElementsTupleMixin
 
 
-class ChildrenHavingExceptionTypeExceptionValueMixin(object):
+class ChildHavingExceptionTypeMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -6089,23 +6089,15 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
     def __init__(
         self,
         exception_type,
-        exception_value,
     ):
         exception_type.parent = self
 
         self.subnode_exception_type = exception_type
 
-        exception_value.parent = self
-
-        self.subnode_exception_value = exception_value
-
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
-        return (
-            self.subnode_exception_type,
-            self.subnode_exception_value,
-        )
+        return (self.subnode_exception_type,)
 
     def getVisitableNodesNamed(self):
         """Named children dictionary.
@@ -6113,10 +6105,7 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
         For use in cloning nodes, debugging and XML output.
         """
 
-        return (
-            ("exception_type", self.subnode_exception_type),
-            ("exception_value", self.subnode_exception_value),
-        )
+        return (("exception_type", self.subnode_exception_type),)
 
     def replaceChild(self, old_node, new_node):
         value = self.subnode_exception_type
@@ -6124,14 +6113,6 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
             new_node.parent = self
 
             self.subnode_exception_type = new_node
-
-            return
-
-        value = self.subnode_exception_value
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_exception_value = new_node
 
             return
 
@@ -6145,7 +6126,6 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
 
         values = {
             "exception_type": self.subnode_exception_type.makeClone(),
-            "exception_value": self.subnode_exception_value.makeClone(),
         }
 
         values.update(self.getDetails())
@@ -6157,8 +6137,6 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
 
         self.subnode_exception_type.finalize()
         del self.subnode_exception_type
-        self.subnode_exception_value.finalize()
-        del self.subnode_exception_value
 
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -6168,26 +6146,16 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
         be overloaded, e.g. conditional expressions.
         """
 
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_exception_type)
 
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
 
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
@@ -6196,11 +6164,10 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
         """Collect variable reads and writes of child nodes."""
 
         self.subnode_exception_type.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_exception_value.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionRaiseExceptionMixin = ChildrenHavingExceptionTypeExceptionValueMixin
+ChildrenExpressionRaiseExceptionMixin = ChildHavingExceptionTypeMixin
 
 
 class ChildHavingExitCodeOptionalMixin(object):

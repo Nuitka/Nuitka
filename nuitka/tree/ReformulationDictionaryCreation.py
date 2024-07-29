@@ -173,6 +173,7 @@ def getDictUnpackingHelper():
                             source_ref=internal_source_ref,
                         ),
                     ),
+                    for_raise=False,
                     source_ref=internal_source_ref,
                 ),
                 exception_value=None,

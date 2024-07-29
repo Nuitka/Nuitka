@@ -198,7 +198,7 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
      * welcome. The check is inexact, as the unwrapping one is too.
      */
     if (PyTuple_Check(key) || key == Py_None) {
-        PyObject *tuple = PyTuple_Pack(1, key);
+        PyObject *tuple = MAKE_TUPLE1(tstate, key);
 
         SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_KeyError, tuple);
     } else {
@@ -751,7 +751,8 @@ typedef struct {
 #endif
 
 // Generic helper for various dictionary iterations, to be inlined.
-static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *type, bool is_iteritems) {
+static inline PyObject *_MAKE_DICT_ITERATOR(PyThreadState *tstate, PyDictObject *dict, PyTypeObject *type,
+                                            bool is_iteritems) {
     CHECK_OBJECT((PyObject *)dict);
     assert(PyDict_CheckExact((PyObject *)dict));
 
@@ -765,7 +766,7 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
     di->len = dict->ma_used;
     if (is_iteritems) {
         // TODO: Have this as faster variants, we do these sometimes.
-        di->di_result = PyTuple_Pack(2, Py_None, Py_None);
+        di->di_result = MAKE_TUPLE2(tstate, Py_None, Py_None);
         CHECK_OBJECT(di->di_result);
     } else {
         di->di_result = NULL;
@@ -785,58 +786,54 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
 #endif
 }
 
-PyObject *DICT_ITERITEMS(PyObject *dict) {
+PyObject *DICT_ITERITEMS(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiteritems_type = NULL;
 
     if (unlikely(dictiteritems_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
         dictiteritems_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iteritems")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiteritems_type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictiteritems_type, true);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterItem_Type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterItem_Type, true);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictItems_Type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictItems_Type, true);
 #endif
 }
 
-PyObject *DICT_ITERKEYS(PyObject *dict) {
+PyObject *DICT_ITERKEYS(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiterkeys_type = NULL;
 
     if (unlikely(dictiterkeys_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
         dictiterkeys_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iterkeys")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiterkeys_type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictiterkeys_type, false);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterKey_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterKey_Type, false);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictKeys_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictKeys_Type, false);
 #endif
 }
 
-PyObject *DICT_ITERVALUES(PyObject *dict) {
+PyObject *DICT_ITERVALUES(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictitervalues_type = NULL;
 
     if (unlikely(dictitervalues_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
-
         dictitervalues_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "itervalues")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictitervalues_type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictitervalues_type, false);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterValue_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterValue_Type, false);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictValues_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictValues_Type, false);
 #endif
 }
 
