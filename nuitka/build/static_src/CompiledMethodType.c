@@ -15,7 +15,8 @@
 #include <structmember.h>
 #endif
 
-static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {
+static PyObject *Nuitka_Method_get__doc__(PyObject *self, void *data) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
     PyObject *result = method->m_function->m_doc;
 
     if (result == NULL) {
@@ -26,8 +27,7 @@ static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, vo
     return result;
 }
 
-static PyGetSetDef Nuitka_Method_tp_getset[] = {{(char *)"__doc__", (getter)Nuitka_Method_get__doc__, NULL, NULL},
-                                                {NULL}};
+static PyGetSetDef Nuitka_Method_tp_getset[] = {{(char *)"__doc__", Nuitka_Method_get__doc__, NULL, NULL}, {NULL}};
 
 #define OFF(x) offsetof(struct Nuitka_MethodObject, x)
 
