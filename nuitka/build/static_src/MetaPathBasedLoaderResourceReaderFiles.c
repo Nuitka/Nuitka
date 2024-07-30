@@ -442,9 +442,10 @@ static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReade
     return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, abspath);
 }
 
-static PyObject *Nuitka_ResourceReaderFiles_get_parent(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_get_parent(PyObject *self, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
     PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
 
     PyObject *abspath = OS_PATH_ABSPATH(tstate, path);
@@ -462,7 +463,7 @@ static PyObject *Nuitka_ResourceReaderFiles_get_parent(struct Nuitka_ResourceRea
     return Nuitka_ResourceReaderFiles_New(tstate, files->m_loader_entry, dirname);
 }
 
-static int Nuitka_ResourceReaderFiles_set_parent(struct Nuitka_ResourceReaderFilesObject *files, PyObject *value) {
+static int Nuitka_ResourceReaderFiles_set_parent(PyObject *self, PyObject *value, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_AttributeError, "readonly attribute");
@@ -495,9 +496,10 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
 //        The base name of this object without any parent references.
 //        """
 
-static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReaderFilesObject *files) {
+static PyObject *Nuitka_ResourceReaderFiles_get_name(PyObject *self, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
+    struct Nuitka_ResourceReaderFilesObject *files = (struct Nuitka_ResourceReaderFilesObject *)self;
     PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(tstate, files);
     PyObject *result = OS_PATH_BASENAME(tstate, file_name);
     Py_DECREF(file_name);
@@ -505,7 +507,7 @@ static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReade
     return result;
 }
 
-static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_ResourceReaderFilesObject *files, PyObject *value) {
+static int Nuitka_ResourceReaderFiles_set_name(PyObject *self, PyObject *value, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_AttributeError, "readonly attribute");
@@ -531,9 +533,8 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_Resourc
 }
 
 static PyGetSetDef Nuitka_ResourceReaderFiles_getset[] = {
-    {(char *)"name", (getter)Nuitka_ResourceReaderFiles_get_name, (setter)Nuitka_ResourceReaderFiles_set_name, NULL},
-    {(char *)"parent", (getter)Nuitka_ResourceReaderFiles_get_parent, (setter)Nuitka_ResourceReaderFiles_set_parent,
-     NULL},
+    {(char *)"name", Nuitka_ResourceReaderFiles_get_name, Nuitka_ResourceReaderFiles_set_name, NULL},
+    {(char *)"parent", Nuitka_ResourceReaderFiles_get_parent, Nuitka_ResourceReaderFiles_set_parent, NULL},
     {NULL}};
 
 // Initialized during readying the type for nb_truediv
