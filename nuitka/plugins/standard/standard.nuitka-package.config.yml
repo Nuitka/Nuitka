@@ -2140,6 +2140,11 @@
         prefixes:
           - 'libusb'
 
+- module-name: 'license-expression' # checksum: 810a705a
+  data-files:
+    dirs:
+      - 'data'
+
 - module-name: 'lightgbm' # checksum: 38422ad6
   data-files:
     dirs:
