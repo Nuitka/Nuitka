@@ -76,11 +76,12 @@ static long Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
     return function->m_counter;
 }
 
-static PyObject *Nuitka_Function_get_name(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_name(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = function->m_name;
     CHECK_OBJECT(result);
 
@@ -88,10 +89,10 @@ static PyObject *Nuitka_Function_get_name(struct Nuitka_FunctionObject *function
     return result;
 }
 
-static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_name(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
 #if PYTHON_VERSION < 0x300
@@ -106,6 +107,7 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *function, PyOb
         return -1;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_name;
     CHECK_OBJECT(old);
 
@@ -117,11 +119,12 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *function, PyOb
 }
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_qualname(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = function->m_qualname;
     CHECK_OBJECT(result);
 
@@ -129,10 +132,10 @@ static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *func
     return result;
 }
 
-static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_qualname(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0)) {
@@ -142,6 +145,7 @@ static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *function, 
         return -1;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_qualname;
     Py_INCREF(value);
     function->m_qualname = value;
@@ -151,11 +155,12 @@ static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *function, 
 }
 #endif
 
-static PyObject *Nuitka_Function_get_doc(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_doc(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = function->m_doc;
 
     if (result == NULL) {
@@ -168,12 +173,13 @@ static PyObject *Nuitka_Function_get_doc(struct Nuitka_FunctionObject *function)
     return result;
 }
 
-static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_doc(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_doc;
 
     function->m_doc = value;
@@ -184,11 +190,12 @@ static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *function, PyObj
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_dict(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_dict == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
@@ -201,10 +208,10 @@ static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *function
     return function->m_dict;
 }
 
-static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_dict(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
     if (unlikely(value == NULL)) {
@@ -215,6 +222,7 @@ static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *function, PyOb
     }
 
     if (likely(PyDict_Check(value))) {
+        struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
         PyObject *old = function->m_dict;
         CHECK_OBJECT_X(old);
 
@@ -231,30 +239,31 @@ static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *function, PyOb
     }
 }
 
-static PyObject *Nuitka_Function_get_code(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_code(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = (PyObject *)function->m_code_object;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_code(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "__code__ is not writable in Nuitka");
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_compiled(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_compiled(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyObject *result = Nuitka_dunder_compiled_value;
     CHECK_OBJECT(result);
@@ -263,21 +272,22 @@ static PyObject *Nuitka_Function_get_compiled(struct Nuitka_FunctionObject *func
     return result;
 }
 
-static int Nuitka_Function_set_compiled(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_compiled(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "__compiled__ is not writable");
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_compiled_constant(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = function->m_constant_return_value;
 
     if (result == NULL) {
@@ -292,10 +302,10 @@ static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObj
     return result;
 }
 
-static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_compiled_constant(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -303,11 +313,12 @@ static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *f
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_closure(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_closure_given > 0) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
         return MAKE_TUPLE(tstate, (PyObject *const *)function->m_closure, function->m_closure_given);
@@ -317,10 +328,10 @@ static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *funct
     }
 }
 
-static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_closure(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -335,11 +346,12 @@ static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *function, P
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_defaults(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_defaults(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = (PyObject *)function->m_defaults;
     CHECK_OBJECT(result);
 
@@ -358,10 +370,10 @@ static void _onUpdatedCompiledFunctionDefaultsValue(struct Nuitka_FunctionObject
     }
 }
 
-static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_defaults(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
     if (value == NULL) {
@@ -375,6 +387,7 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *function, 
         return -1;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_defaults;
     CHECK_OBJECT(old);
 
@@ -388,11 +401,12 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *function, 
 }
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_kwdefaults(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = function->m_kwdefaults;
     CHECK_OBJECT_X(result);
 
@@ -404,10 +418,10 @@ static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *fu
     return result;
 }
 
-static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_kwdefaults(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
     if (value == NULL) {
@@ -425,6 +439,7 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *function
         value = NULL;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_kwdefaults;
     CHECK_OBJECT_X(old);
 
@@ -435,11 +450,12 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *function
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_annotations == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
@@ -451,10 +467,10 @@ static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *f
     return function->m_annotations;
 }
 
-static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_annotations(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     if (unlikely(value != NULL && PyDict_Check(value) == false)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -463,6 +479,7 @@ static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *functio
         return -1;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *old = function->m_annotations;
     CHECK_OBJECT_X(old);
 
@@ -475,10 +492,10 @@ static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *functio
 
 #endif
 
-static int Nuitka_Function_set_globals(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_globals(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -486,11 +503,12 @@ static int Nuitka_Function_set_globals(struct Nuitka_FunctionObject *function, P
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_globals(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     PyObject *result = PyModule_GetDict(function->m_module);
     CHECK_OBJECT(result);
 
@@ -499,10 +517,10 @@ static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *funct
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static int Nuitka_Function_set_builtins(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_builtins(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -510,22 +528,23 @@ static int Nuitka_Function_set_builtins(struct Nuitka_FunctionObject *function, 
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_builtins(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyThreadState *tstate = PyThreadState_GET();
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     return LOOKUP_SUBSCRIPT(tstate, PyModule_GetDict(function->m_module), const_str_plain___builtins__);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x3c0
-static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    CHECK_OBJECT_X(value);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_type_params(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    CHECK_OBJECT_X(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     if (unlikely(value == NULL || !PyTuple_Check(value))) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -534,14 +553,15 @@ static int Nuitka_Function_set_type_params(struct Nuitka_FunctionObject *functio
         return -1;
     }
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     Py_SETREF(function->m_type_params, Py_NewRef(value));
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_type_params(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_type_params(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     // TODO: Probably not needed anymore?
     Py_INCREF(const_tuple_empty);
@@ -549,12 +569,13 @@ static PyObject *Nuitka_Function_get_type_params(struct Nuitka_FunctionObject *f
 }
 #endif
 
-static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *function, PyObject *value) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static int Nuitka_Function_set_module(PyObject *self, PyObject *value, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
     CHECK_OBJECT_X(value);
 
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_dict == NULL) {
         NUITKA_MAY_BE_UNUSED PyThreadState *tstate = PyThreadState_GET();
 
@@ -568,16 +589,17 @@ static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *function, Py
     return DICT_SET_ITEM(function->m_dict, const_str_plain___module__, value) ? 0 : -1;
 }
 
-static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *function) {
-    CHECK_OBJECT((PyObject *)function);
-    assert(Nuitka_Function_Check((PyObject *)function));
-    assert(_PyObject_GC_IS_TRACKED(function));
+static PyObject *Nuitka_Function_get_module(PyObject *self, void *data) {
+    CHECK_OBJECT(self);
+    assert(Nuitka_Function_Check(self));
+    assert(_PyObject_GC_IS_TRACKED(self));
 
     PyObject *result;
 
     PyThreadState *tstate = PyThreadState_GET();
 
     // The __dict__ might overrule this.
+    struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)self;
     if (function->m_dict) {
         result = DICT_GET_ITEM1(tstate, function->m_dict, const_str_plain___module__);
 
@@ -592,50 +614,50 @@ static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *functi
 
 static PyGetSetDef Nuitka_Function_getset[] = {
 #if PYTHON_VERSION >= 0x300
-    {(char *)"__qualname__", (getter)Nuitka_Function_get_qualname, (setter)Nuitka_Function_set_qualname, NULL},
+    {(char *)"__qualname__", Nuitka_Function_get_qualname, Nuitka_Function_set_qualname, NULL},
 #endif
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_name", (getter)Nuitka_Function_get_name, (setter)Nuitka_Function_set_name, NULL},
+    {(char *)"func_name", Nuitka_Function_get_name, Nuitka_Function_set_name, NULL},
 #endif
-    {(char *)"__name__", (getter)Nuitka_Function_get_name, (setter)Nuitka_Function_set_name, NULL},
+    {(char *)"__name__", Nuitka_Function_get_name, Nuitka_Function_set_name, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_doc", (getter)Nuitka_Function_get_doc, (setter)Nuitka_Function_set_doc, NULL},
+    {(char *)"func_doc", Nuitka_Function_get_doc, Nuitka_Function_set_doc, NULL},
 #endif
-    {(char *)"__doc__", (getter)Nuitka_Function_get_doc, (setter)Nuitka_Function_set_doc, NULL},
+    {(char *)"__doc__", Nuitka_Function_get_doc, Nuitka_Function_set_doc, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_dict", (getter)Nuitka_Function_get_dict, (setter)Nuitka_Function_set_dict, NULL},
+    {(char *)"func_dict", Nuitka_Function_get_dict, Nuitka_Function_set_dict, NULL},
 #endif
-    {(char *)"__dict__", (getter)Nuitka_Function_get_dict, (setter)Nuitka_Function_set_dict, NULL},
+    {(char *)"__dict__", Nuitka_Function_get_dict, Nuitka_Function_set_dict, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_code", (getter)Nuitka_Function_get_code, (setter)Nuitka_Function_set_code, NULL},
+    {(char *)"func_code", Nuitka_Function_get_code, Nuitka_Function_set_code, NULL},
 #endif
-    {(char *)"__code__", (getter)Nuitka_Function_get_code, (setter)Nuitka_Function_set_code, NULL},
+    {(char *)"__code__", Nuitka_Function_get_code, Nuitka_Function_set_code, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_defaults", (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL},
+    {(char *)"func_defaults", Nuitka_Function_get_defaults, Nuitka_Function_set_defaults, NULL},
 #endif
-    {(char *)"__defaults__", (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL},
+    {(char *)"__defaults__", Nuitka_Function_get_defaults, Nuitka_Function_set_defaults, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_globals", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL},
+    {(char *)"func_globals", Nuitka_Function_get_globals, Nuitka_Function_set_globals, NULL},
 #endif
-    {(char *)"__closure__", (getter)Nuitka_Function_get_closure, (setter)Nuitka_Function_set_closure, NULL},
+    {(char *)"__closure__", Nuitka_Function_get_closure, Nuitka_Function_set_closure, NULL},
 #if PYTHON_VERSION < 0x300
-    {(char *)"func_closure", (getter)Nuitka_Function_get_closure, (setter)Nuitka_Function_set_closure, NULL},
+    {(char *)"func_closure", Nuitka_Function_get_closure, Nuitka_Function_set_closure, NULL},
 #endif
-    {(char *)"__globals__", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL},
-    {(char *)"__module__", (getter)Nuitka_Function_get_module, (setter)Nuitka_Function_set_module, NULL},
+    {(char *)"__globals__", Nuitka_Function_get_globals, Nuitka_Function_set_globals, NULL},
+    {(char *)"__module__", Nuitka_Function_get_module, Nuitka_Function_set_module, NULL},
 #if PYTHON_VERSION >= 0x300
-    {(char *)"__kwdefaults__", (getter)Nuitka_Function_get_kwdefaults, (setter)Nuitka_Function_set_kwdefaults, NULL},
-    {(char *)"__annotations__", (getter)Nuitka_Function_get_annotations, (setter)Nuitka_Function_set_annotations, NULL},
+    {(char *)"__kwdefaults__", Nuitka_Function_get_kwdefaults, Nuitka_Function_set_kwdefaults, NULL},
+    {(char *)"__annotations__", Nuitka_Function_get_annotations, Nuitka_Function_set_annotations, NULL},
 #endif
 #if PYTHON_VERSION >= 0x3a0
-    {(char *)"__builtins__", (getter)Nuitka_Function_get_builtins, (setter)Nuitka_Function_set_builtins, NULL},
+    {(char *)"__builtins__", Nuitka_Function_get_builtins, Nuitka_Function_set_builtins, NULL},
 #endif
 #if PYTHON_VERSION >= 0x3c0
-    {(char *)"__type_params__", (getter)Nuitka_Function_get_type_params, (setter)Nuitka_Function_set_type_params, NULL},
+    {(char *)"__type_params__", Nuitka_Function_get_type_params, Nuitka_Function_set_type_params, NULL},
 #endif
-    {(char *)"__compiled__", (getter)Nuitka_Function_get_compiled, (setter)Nuitka_Function_set_compiled, NULL},
-    {(char *)"__compiled_constant__", (getter)Nuitka_Function_get_compiled_constant,
-     (setter)Nuitka_Function_set_compiled_constant, NULL},
+    {(char *)"__compiled__", Nuitka_Function_get_compiled, Nuitka_Function_set_compiled, NULL},
+    {(char *)"__compiled_constant__", Nuitka_Function_get_compiled_constant, Nuitka_Function_set_compiled_constant,
+     NULL},
     {NULL}};
 
 static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) {
