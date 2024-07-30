@@ -6,8 +6,7 @@ import typing
 if sys.version_info < (3, 9):
     from astunparse import unparse
 
-    setattr(ast, "unparse", unparse)
-
+    ast.unparse = unparse
 
 def generate_stub(
     source_file_path: str,
