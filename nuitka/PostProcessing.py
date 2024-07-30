@@ -427,6 +427,12 @@ set NUITKA_PYTHONPATH=%(python_path)s
 
         putTextFileContents(pyi_filename, contents, encoding="utf-8")
 
+    if isWin32Windows() and getFileSize(result_filename) > 2**30 * 1.8:
+        postprocessing_logger.warning(
+            """\
+The created compiled binary is larger than 1.8GB and therefore may not be
+executable by Windows due to its limitations."""
+        )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
