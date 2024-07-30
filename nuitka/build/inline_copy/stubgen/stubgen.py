@@ -8,38 +8,34 @@ if sys.version_info < (3, 9):
 
     ast.unparse = unparse
 
-def generate_stub(
-    source_file_path: str,
-    output_file_path: str,
-    text_only: bool = False,
-    # ) -> str | None:
-) -> typing.Union[str, None]:
+
+def generate_stub(source_file_path, output_file_path, text_only=False):
 
     with open(source_file_path, "r", encoding="utf-8") as source_file:
         source_code = source_file.read()
     tree = ast.parse(source_code)
 
     class StubGenerator(ast.NodeVisitor):
-        def __init__(self) -> None:
-            self.stubs: list[str] = []
-            self.imports_helper_dict: dict[str, set[str]] = {}
-            self.imports_output: set[str] = set()
+        def __init__(self):
+            self.stubs = []
+            self.imports_helper_dict = {}
+            self.imports_output = set()
             self.typing_imports = typing.__all__
 
-        def visit_Import(self, node: ast.Import) -> None:
+        def visit_Import(self, node: ast.Import):
             for alias in node.names:
                 self.imports_output.add(f"import {alias.name}")
 
-        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        def visit_ImportFrom(self, node):
             module = node.module
             for alias in node.names:
                 name = alias.name
-                if module:
-                    if module not in self.imports_helper_dict:
-                        self.imports_helper_dict[module] = set()
-                    self.imports_helper_dict[module].add(name)
 
-        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+                if module not in self.imports_helper_dict:
+                    self.imports_helper_dict[module] = set()
+                self.imports_helper_dict[module].add(name)
+
+        def visit_FunctionDef(self, node):
             if any(isinstance(n, ast.ClassDef) for n in ast.walk(tree)):
                 if self.is_method(node):
                     self.visit_MethodDef(node)
@@ -48,7 +44,7 @@ def generate_stub(
             else:
                 self.visit_RegularFunctionDef(node)
 
-        def visit_Assign(self, node: ast.Assign) -> None:
+        def visit_Assign(self, node):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     target_name = target.id
@@ -75,7 +71,9 @@ def generate_stub(
                             target_type = ast.unparse(node.value).strip()
                             if "typing_extensions" not in self.imports_helper_dict:
                                 self.imports_helper_dict["typing_extensions"] = set()
-                            self.imports_helper_dict["typing_extensions"].add("TypeAlias")
+                            self.imports_helper_dict["typing_extensions"].add(
+                                "TypeAlias"
+                            )
                             stub = f"{target_name}: TypeAlias = {target_type}\n"
                             self.stubs.append(stub)
 
@@ -86,7 +84,7 @@ def generate_stub(
                     stub = f"{target_name}: {target_type}\n"
                     self.stubs.append(stub)
 
-        def is_method(self, node: ast.FunctionDef) -> bool:
+        def is_method(self, node):
             for parent_node in ast.walk(tree):
                 if isinstance(parent_node, ast.ClassDef):
                     for child_node in parent_node.body:
@@ -97,7 +95,7 @@ def generate_stub(
                             return True
             return False
 
-        def visit_MethodDef(self, node: ast.FunctionDef) -> None:
+        def visit_MethodDef(self, node):
             args_list = []
             for arg in node.args.args:
                 arg_type = self.get_arg_type(arg)
@@ -135,7 +133,7 @@ def generate_stub(
             )
             self.stubs.append(stub)
 
-        def visit_RegularFunctionDef(self, node: ast.FunctionDef) -> None:
+        def visit_RegularFunctionDef(self, node):
             args_list = []
             for arg in node.args.args:
                 arg_type = self.get_arg_type(arg)
@@ -149,7 +147,7 @@ def generate_stub(
             )
             self.stubs.append(stub)
 
-        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        def visit_ClassDef(self, node):
             class_name = node.name
             stub = ""
             case = self.special_cases(node)
@@ -204,8 +202,7 @@ def generate_stub(
                 for method in methods:
                     self.visit_FunctionDef(method)
 
-        # def special_cases(self, node: ast.ClassDef) -> str | bool:
-        def special_cases(self, node: ast.ClassDef) -> typing.Union[str, bool]:
+        def special_cases(self, node):
             for obj in node.bases:
                 ob_instance = isinstance(obj, ast.Name)
                 if ob_instance:
@@ -219,7 +216,7 @@ def generate_stub(
                         return False
             return False
 
-        def get_arg_type(self, arg_node: ast.arg) -> str:
+        def get_arg_type(self, arg_node):
             selfs = ["self", "cls"]
             if arg_node.arg in selfs:
                 if "typing_extensions" not in self.imports_helper_dict:
@@ -232,14 +229,14 @@ def generate_stub(
             else:
                 return "typing.Any"
 
-        def get_return_type(self, return_node: ast.AST) -> str:
+        def get_return_type(self, return_node):
             if return_node:
                 unparsed = ast.unparse(return_node).strip()
                 return unparsed
             else:
                 return "typing.Any"
 
-        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        def visit_AnnAssign(self, node):
             target = node.target
             if isinstance(node.annotation, ast.Name):
                 target_type = node.annotation.id
@@ -265,7 +262,7 @@ def generate_stub(
 
             self.stubs.append(stub)
 
-        def generate_imports(self) -> str:
+        def generate_imports(self):
             imports_helper = set()
             sorted_items = sorted(self.imports_helper_dict.items())
             for module, names in sorted_items:
@@ -298,7 +295,7 @@ def generate_stub(
         return None
 
 
-def generate_text_stub(source_file_path: str) -> str:
+def generate_text_stub(source_file_path):
     stubs = generate_stub(source_file_path, "", text_only=True)
     if stubs:
         return stubs
