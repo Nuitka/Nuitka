@@ -380,7 +380,7 @@ def _addIncludedDataFilesFromFileOptions():
 
         for included_datafile in makeIncludedDataDirectory(
             source_path=source_path,
-            dest_path=dest_path,
+            dest_path=os.path.normpath(dest_path),
             reason="specified data dir '%s' on command line" % source_path,
             tracer=options_logger,
             tags="user",
