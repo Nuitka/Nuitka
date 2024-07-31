@@ -725,6 +725,10 @@ static bool shallSetOutputHandleToNull(char const *name) {
     if (strcmp(name, "stderr") == 0) {
         return true;
     }
+#elif defined(NUITKA_FORCED_STDERR_PATH) || defined(NUITKA_FORCED_STDERR_NONE_BOOL)
+    if (strcmp(name, "stderr") == 0) {
+        return false;
+    }
 #endif
 
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
@@ -832,12 +836,13 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
+        if (sys_stderr != Py_None) {
+            PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+            CHECK_OBJECT(method);
 
-        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
-        CHECK_OBJECT(method);
-
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
-        CHECK_OBJECT(result);
+            PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
+            CHECK_OBJECT(result);
+        }
     }
 #endif
 
@@ -921,6 +926,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
             NUITKA_PRINT_TRACE("setInputOutputHandles(): Set stderr to NULL file.");
 
             PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(tstate, devnull_filename, "w", false, encoding);
+            CHECK_OBJECT(stderr_file);
 
             setStderrHandle(tstate, stderr_file);
         }
@@ -1091,12 +1097,11 @@ static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, file
             abort();
         }
 
-        int int_res = dup2(os_handle, fileno(std_handle));
+        int _int_res = dup2(os_handle, fileno(std_handle));
 
-        // Without a console, this is normal.
-        if (int_res == -1) {
-            perror("_open_osfhandle");
-            abort();
+        if (_int_res == -1) {
+            // Note: Without a console, this is normal to get no file number to
+            // work with.
         }
 
         close(os_handle);
