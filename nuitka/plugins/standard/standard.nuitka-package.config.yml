@@ -2140,6 +2140,11 @@
         prefixes:
           - 'libusb'
 
+- module-name: 'license-expression' # checksum: 810a705a
+  data-files:
+    dirs:
+      - 'data'
+
 - module-name: 'lightgbm' # checksum: 38422ad6
   data-files:
     dirs:
@@ -3390,6 +3395,13 @@
       replacements_plain:
         'if name == "testing":': 'if False:'
 
+- module-name: 'pandera' # checksum: 6ac5aa4f
+  anti-bloat:
+    - description: 'remove dask reference'
+      no-auto-follow:
+        'dask': 'ignore'
+      when: 'not use_dask'
+
 - module-name: 'panel' # checksum: 87b79d62
   data-files:
     dirs:
@@ -3963,7 +3975,7 @@
         - 'pycrfsuite._dumpparser'
         - 'pycrfsuite._logparser'
 
-- module-name: 'pydantic' # checksum: fb2935eb
+- module-name: 'pydantic' # checksum: 190f6343
   implicit-imports:
     - depends:
         - 'pydantic.typing'
@@ -3985,6 +3997,8 @@
         - 'pydantic.class_validators'
         - 'pydantic.networks'
         - 'pydantic.errors'
+        # Not part of their general lazy loader, the aboves should become that.
+        - 'pydantic.deprecated.decorator'
 
 - module-name: 'pydantic.errors' # checksum: edc1c868
   implicit-imports:
