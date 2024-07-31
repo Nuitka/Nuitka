@@ -3395,6 +3395,13 @@
       replacements_plain:
         'if name == "testing":': 'if False:'
 
+- module-name: 'pandera' # checksum: 6ac5aa4f
+  anti-bloat:
+    - description: 'remove dask reference'
+      no-auto-follow:
+        'dask': 'ignore'
+      when: 'not use_dask'
+
 - module-name: 'panel' # checksum: 87b79d62
   data-files:
     dirs:
