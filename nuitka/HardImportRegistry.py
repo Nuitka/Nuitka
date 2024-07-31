@@ -120,6 +120,7 @@ hard_modules_trust_with_side_effects = set(
     [
         "site",
         "tensorflow",
+        "importlib_metadata",
         # TODO: Disabled for now, keyword only arguments and star list argument are
         # having ordering issues for call matching and code generation.
         # "networkx.utils.decorators"
