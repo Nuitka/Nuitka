@@ -62,6 +62,9 @@ you have provided at least the information below, and discard up to here:
 
 - Avoid unnecessary options
 
+  Do not use `--deployment` as it disables all potential bug catching, we are not here to replace
+  what it does, remove that option the moment you face an issue and report only then.
+
   Do not use `--onefile` if the issue also happens with `--standalone`. Minimize the use of options
   as far as you can, please. Do not disable outputs with `--quiet` and do not disable warnings.
 
