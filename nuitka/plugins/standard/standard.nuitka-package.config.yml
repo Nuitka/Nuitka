@@ -3968,7 +3968,7 @@
         - 'pycrfsuite._dumpparser'
         - 'pycrfsuite._logparser'
 
-- module-name: 'pydantic' # checksum: fb2935eb
+- module-name: 'pydantic' # checksum: 190f6343
   implicit-imports:
     - depends:
         - 'pydantic.typing'
@@ -3990,6 +3990,8 @@
         - 'pydantic.class_validators'
         - 'pydantic.networks'
         - 'pydantic.errors'
+        # Not part of their general lazy loader, the aboves should become that.
+        - 'pydantic.deprecated.decorator'
 
 - module-name: 'pydantic.errors' # checksum: edc1c868
   implicit-imports:
