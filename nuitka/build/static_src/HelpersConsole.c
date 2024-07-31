@@ -12,14 +12,23 @@
 
 // Attach to the parent console respecting redirection only, otherwise we cannot
 // even output traces.
-static bool needs_stdin_attaching, needs_stdout_attaching, needs_stderr_attaching;
+static bool needs_stdin_attaching = false;
+static bool needs_stdout_attaching = false;
+static bool needs_stderr_attaching = false;
+
+static bool is_attachable = false;
 
 void inheritAttachedConsole(void) {
-    bool is_attachable = AttachConsole(ATTACH_PARENT_PROCESS);
+    is_attachable = AttachConsole(ATTACH_PARENT_PROCESS);
 
-    needs_stdin_attaching = is_attachable && fileno(stdin) < 0;
-    needs_stdout_attaching = is_attachable && fileno(stdout) < 0;
-    needs_stderr_attaching = is_attachable && fileno(stderr) < 0;
+    if (is_attachable) {
+        needs_stdin_attaching = fileno(stdin) < 0;
+        needs_stdout_attaching = fileno(stdout) < 0;
+#if !defined(NUITKA_FORCED_STDERR_PATH) && !defined(NUITKA_FORCED_STDERR_NONE_BOOL) &&                                 \
+    !defined(NUITKA_FORCED_STDERR_NULL_BOOL)
+        needs_stderr_attaching = fileno(stderr) < 0;
+#endif
+    }
 
     if (needs_stdin_attaching) {
         SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
@@ -72,9 +81,12 @@ void inheritAttachedConsole(void) {
         *stderr = *new_handle;
         SetStdHandle(STD_ERROR_HANDLE, win_handle);
     } else {
+#if !defined(NUITKA_FORCED_STDERR_PATH) && !defined(NUITKA_FORCED_STDERR_NONE_BOOL) &&                                 \
+    !defined(NUITKA_FORCED_STDERR_NULL_BOOL)
         setvbuf(stderr, NULL, _IONBF, 0);
         BOOL r = SetStdHandle(STD_ERROR_HANDLE, (HANDLE)_get_osfhandle(fileno(stderr)));
         assert(r);
+#endif
     }
 }
 
