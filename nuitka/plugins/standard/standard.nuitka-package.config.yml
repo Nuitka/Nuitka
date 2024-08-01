@@ -2140,7 +2140,7 @@
         prefixes:
           - 'libusb'
 
-- module-name: 'license-expression' # checksum: 810a705a
+- module-name: 'license_expression' # checksum: 6aaa99cc
   data-files:
     dirs:
       - 'data'
