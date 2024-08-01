@@ -40,10 +40,10 @@
     - depends:
         - 'yaml'
 
-- module-name: 'accessible_output2' # checksum: 89128972
+- module-name: 'accessible_output2' # checksum: 27cd20b7
   data-files:
-    dirs:
-      - 'lib'
+    - dirs:
+        - 'lib'
 
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
@@ -80,15 +80,15 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'altair.vegalite.v5.schema' # checksum: 22795308
+- module-name: 'altair.vegalite.v5.schema' # checksum: 245e25bc
   data-files:
-    patterns:
-      - '*.json'
+    - patterns:
+        - '*.json'
 
-- module-name: 'androguard.core.resources' # checksum: 1d442429
+- module-name: 'androguard.core.resources' # checksum: ec8efe56
   data-files:
-    patterns:
-      - 'public.xml'
+    - patterns:
+        - 'public.xml'
 
 - module-name: 'antlr4.FileStream' # checksum: b7fe4fce
   anti-bloat:
@@ -127,10 +127,10 @@
     - depends:
         - 'anyio._backends._asyncio'
 
-- module-name: 'apkutils.axml' # checksum: 1d442429
+- module-name: 'apkutils.axml' # checksum: ec8efe56
   data-files:
-    patterns:
-      - 'public.xml'
+    - patterns:
+        - 'public.xml'
 
 - module-name: 'appdirs' # checksum: 9d4faeee
   anti-bloat:
@@ -160,34 +160,34 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: 12848707
+- module-name: 'arcade' # checksum: 7cb50c0c
   data-files:
-    dirs:
-      - 'resources/system'
+    - dirs:
+        - 'resources/system'
   anti-bloat:
     - no-auto-follow:
         'examples': 'Arcade examples are not be available unless you do "--include-module=acade.examples"'
         'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=acade.experimental"'
 
-- module-name: 'aspose' # checksum: 9babf530
+- module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
-    patterns:
-      - '"**/*"+extension_std_suffix'
-      - '**/*.dll'
-    when: 'not nuitka_python'
+    - patterns:
+        - '"**/*"+extension_std_suffix'
+        - '**/*.dll'
+      when: 'not nuitka_python'
   anti-bloat:
     - no-follow:
         'aspose.*': 'workaround for aspose needing to load its submodules'
 
-- module-name: 'astor' # checksum: 85584475
+- module-name: 'astor' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
-- module-name: 'astropy' # checksum: a8187224
+- module-name: 'astropy' # checksum: 4d10fd3b
   data-files:
-    patterns:
-      - 'CITATION'
+    - patterns:
+        - 'CITATION'
 
   anti-bloat:
     - description: 'remove pytest reference'
@@ -361,12 +361,12 @@
         prefixes:
           - 'Microsoft.CognitiveServices.Speech'
 
-- module-name: 'babel' # checksum: 37b8fa6d
+- module-name: 'babel' # checksum: 29ed1c5b
   data-files:
-    dirs:
-      - 'locale-data'
-    patterns:
-      - 'global.dat'
+    - dirs:
+        - 'locale-data'
+    - patterns:
+        - 'global.dat'
 
   implicit-imports:
     - depends:
@@ -383,10 +383,10 @@
     - depends:
         - '._common'
 
-- module-name: 'betterproto' # checksum: c9dc915d
+- module-name: 'betterproto' # checksum: 81316c3f
   data-files:
-    patterns:
-      - 'templates/*.j2'
+    - patterns:
+        - 'templates/*.j2'
 
 - module-name: 'bindings' # checksum: 463796d4
   dlls:
@@ -469,17 +469,17 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'bokeh' # checksum: cd9c2e63
+- module-name: 'bokeh' # checksum: 20c33794
   data-files:
-    dirs:
-      - '_sri'
-    patterns:
-      - '_sri.json'
+    - dirs:
+        - '_sri'
+    - patterns:
+        - '_sri.json'
 
-- module-name: 'bokeh.core' # checksum: 3dbea61d
+- module-name: 'bokeh.core' # checksum: 3b99d0a9
   data-files:
-    dirs:
-      - '_templates'
+    - dirs:
+        - '_templates'
 
 - module-name: 'bokeh.io.notebook' # checksum: 7d07a2d1
   anti-bloat:
@@ -488,15 +488,15 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'boto' # checksum: 22795308
+- module-name: 'boto' # checksum: 245e25bc
   data-files:
-    patterns:
-      - '*.json'
+    - patterns:
+        - '*.json'
 
-- module-name: 'boto3' # checksum: b316019a
+- module-name: 'boto3' # checksum: 11d57af9
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
   implicit-imports:
     - depends:
@@ -508,32 +508,32 @@
         - 'boto3.s3.inject'
         - 'boto3.s3.transfer'
 
-- module-name: 'botocore' # checksum: c24c2a5b
+- module-name: 'botocore' # checksum: 506f8064
   data-files:
-    dirs:
-      - 'data'
-    patterns:
-      - 'cacert.pem'
+    - dirs:
+        - 'data'
+    - patterns:
+        - 'cacert.pem'
 
-- module-name: 'bpy' # checksum: 210495b
+- module-name: 'bpy' # checksum: e3ed6145
   data-files:
-    dirs:
-      - '.'
-      - 'materialx'
-      - 'usd'
-    raw_dirs:
-      - '4.1'
+    - dirs:
+        - '.'
+        - 'materialx'
+        - 'usd'
+    - raw_dirs:
+        - '4.1'
   dlls:
     - from_filenames:
         prefixes:
           - ''
 
-- module-name: 'branca' # checksum: 7c7e6a4e
+- module-name: 'branca' # checksum: c4e34d71
   data-files:
-    dirs:
-      - 'templates'
-    patterns:
-      - '*.json'
+    - dirs:
+        - 'templates'
+    - patterns:
+        - '*.json'
 
 - module-name: 'brotli._brotli' # checksum: ff2e6560
   implicit-imports:
@@ -550,15 +550,15 @@
     - depends:
         - 'gi._gobject'
 
-- module-name: 'cairocffi' # checksum: 85584475
+- module-name: 'cairocffi' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
-- module-name: 'cairosvg' # checksum: 85584475
+- module-name: 'cairosvg' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'cassandra.cluster' # checksum: 5e0046a4
   implicit-imports:
@@ -609,14 +609,14 @@
     - depends:
         - 'cassandra.compat'
 
-- module-name: 'cefpython3' # checksum: cd02718a
+- module-name: 'cefpython3' # checksum: 1be5e071
   data-files:
-    dirs:
-      - 'locales'
-    patterns:
-      - '*.bin'
-      - '*.pak'
-      - '*.dat'
+    - dirs:
+        - 'locales'
+    - patterns:
+        - '*.bin'
+        - '*.pak'
+        - '*.dat'
 
   dlls:
     - from_filenames:
@@ -638,10 +638,10 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'certifi' # checksum: 73df1a1e
+- module-name: 'certifi' # checksum: 8215c061
   data-files:
-    patterns:
-      - 'cacert.pem'
+    - patterns:
+        - 'cacert.pem'
 
 - module-name: 'certifi.core' # checksum: 40d902d3
   anti-bloat:
@@ -711,20 +711,20 @@
         - 'chromadb.migrations.metadb'
         - 'chromadb.ingest.impl.simple_policy'
 
-- module-name: 'chromadb.migrations.embeddings_queue' # checksum: cce76a39
+- module-name: 'chromadb.migrations.embeddings_queue' # checksum: 5d24c17c
   data-files:
-    patterns:
-      - '*.sql'
+    - patterns:
+        - '*.sql'
 
-- module-name: 'chromadb.migrations.metadb' # checksum: cce76a39
+- module-name: 'chromadb.migrations.metadb' # checksum: 5d24c17c
   data-files:
-    patterns:
-      - '*.sql'
+    - patterns:
+        - '*.sql'
 
-- module-name: 'chromadb.migrations.sysdb' # checksum: cce76a39
+- module-name: 'chromadb.migrations.sysdb' # checksum: 5d24c17c
   data-files:
-    patterns:
-      - '*.sql'
+    - patterns:
+        - '*.sql'
 
 - module-name: 'clr' # checksum: ba8734b8
   dlls:
@@ -757,10 +757,10 @@
         prefixes:
           - 'native'
 
-- module-name: 'connexion' # checksum: 3f9f0b7d
+- module-name: 'connexion' # checksum: ae5ca038
   data-files:
-    dirs:
-      - 'resources'
+    - dirs:
+        - 'resources'
 
 - module-name: 'cpuinfo.cpuinfo' # checksum: fc219e6
   anti-bloat:
@@ -771,25 +771,25 @@
         'CAN_CALL_CPUID_IN_SUBPROCESS = True': 'CAN_CALL_CPUID_IN_SUBPROCESS = False'
       when: 'win32'
 
-- module-name: 'Crypto.Util._raw_api' # checksum: 6e46e262
+- module-name: 'Crypto.Util._raw_api' # checksum: ceb2cd86
   data-files:
-    empty_dirs:
-      - '.'
+    - empty_dirs:
+        - '.'
 
-- module-name: 'cryptoauthlib' # checksum: e97d909e
+- module-name: 'cryptoauthlib' # checksum: 63eb0512
   data-files:
-    patterns:
-      - '*.json'
+    - patterns:
+        - '*.json'
 
   dlls:
     - from_filenames:
         prefixes:
           - 'cryptoauth'
 
-- module-name: 'Cryptodome.Util._raw_api' # checksum: 6e46e262
+- module-name: 'Cryptodome.Util._raw_api' # checksum: ceb2cd86
   data-files:
-    empty_dirs:
-      - '.'
+    - empty_dirs:
+        - '.'
 
 - module-name: 'ctypes' # checksum: d5efbb6f
   anti-bloat:
@@ -797,10 +797,10 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
-- module-name: 'curl_cffi' # checksum: b6c1ff52
+- module-name: 'curl_cffi' # checksum: 30c8f50c
   data-files:
-    patterns:
-      - 'cacert.pem'
+    - patterns:
+        - 'cacert.pem'
 
   implicit-imports:
     - depends:
@@ -811,10 +811,10 @@
     - depends:
         - '_curses'
 
-- module-name: 'customtkinter' # checksum: 3e40e57
+- module-name: 'customtkinter' # checksum: fd2992b7
   data-files:
-    dirs:
-      - 'assets'
+    - dirs:
+        - 'assets'
 
 - module-name: 'customtkinter.windows.widgets.theme.theme_manager' # checksum: 9a59423e
   anti-bloat:
@@ -824,10 +824,10 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 4170eee
+- module-name: 'cv2' # checksum: 9f6fdcf0
   data-files:
-    dirs:
-      - 'qt/fonts'
+    - dirs:
+        - 'qt/fonts'
   dlls:
     - from_filenames:
         relative_path: 'qt/plugins/platforms'
@@ -892,10 +892,10 @@
     - depends:
         - 'cytoolz.utils'
 
-- module-name: 'dash' # checksum: 3ebe1284
+- module-name: 'dash' # checksum: 26b9c88c
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
 
 - module-name: 'dash._jupyter' # checksum: 681007fe
   anti-bloat:
@@ -911,10 +911,10 @@
         '"_pytest" in sys.modules': 'False'
       when: 'not use_pytest'
 
-- module-name: 'dask' # checksum: c72c99e9
+- module-name: 'dask' # checksum: d914a438
   data-files:
-    patterns:
-      - 'dask.yaml'
+    - patterns:
+        - 'dask.yaml'
 
 - module-name: 'dask.dataframe' # checksum: 54d2aebf
   anti-bloat:
@@ -1060,10 +1060,10 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'distributed.config' # checksum: b9f1bba2
+- module-name: 'distributed.config' # checksum: 2d3674cb
   data-files:
-    patterns:
-      - 'distributed.yaml'
+    - patterns:
+        - 'distributed.yaml'
 
 - module-name: 'distributed.deploy.cluster' # checksum: 95c04b64
   anti-bloat:
@@ -1100,10 +1100,10 @@
       bloat-mode-overrides:
         'unittest': 'allow'
 
-- module-name: 'django.conf' # checksum: 2d31f140
+- module-name: 'django.conf' # checksum: bcf25a05
   data-files:
-    dirs:
-      - 'locale/en'
+    - dirs:
+        - 'locale/en'
 
 - module-name: 'django.core.management' # checksum: 261e0447
   parameters:
@@ -1189,20 +1189,20 @@
         'while frame.f_code.co_filename == current_file': 'if False'
         'frame_filename = frame.f_code.co_filename': 'frame_filename = os.path.dirname(__file__)'
 
-- module-name: 'easyocr' # checksum: fb59d361
+- module-name: 'easyocr' # checksum: 58ad3ee8
   data-files:
-    patterns:
-      - 'character/*.txt'
+    - patterns:
+        - 'character/*.txt'
 
-- module-name: 'echopype.echodata.convention' # checksum: 2707b2b2
+- module-name: 'echopype.echodata.convention' # checksum: b6c419f7
   data-files:
-    patterns:
-      - '*.yml'
+    - patterns:
+        - '*.yml'
 
-- module-name: 'eel' # checksum: ac2af84a
+- module-name: 'eel' # checksum: aa0d8efe
   data-files:
-    patterns:
-      - 'eel.js'
+    - patterns:
+        - 'eel.js'
 
 - module-name: 'eliot._traceback' # checksum: 9793c465
   anti-bloat:
@@ -1210,10 +1210,10 @@
       replacements_plain:
         'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
-- module-name: 'enchant' # checksum: 810a705a
+- module-name: 'enchant' # checksum: 6aaa99cc
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
 - module-name: 'engineio' # checksum: 136f2310
   implicit-imports:
@@ -1232,10 +1232,10 @@
         - 'engineio.async_drivers.threading'
         - 'engineio.async_drivers.tornado'
 
-- module-name: 'ens._normalization' # checksum: 82e073cb
+- module-name: 'ens._normalization' # checksum: 4c41dcf2
   data-files:
-    patterns:
-      - 'specs/*.json'
+    - patterns:
+        - 'specs/*.json'
 
 - module-name: 'Equation' # checksum: aa47a17f
   anti-bloat:
@@ -1247,10 +1247,10 @@
     - depends:
         - 'Equation.equation_*'
 
-- module-name: 'eth_utils' # checksum: c62fca1b
+- module-name: 'eth_utils' # checksum: 38e256fb
   data-files:
-    dirs:
-      - '__json'
+    - dirs:
+        - '__json'
 
 - module-name: 'evaluate.config' # checksum: becc1d28
   anti-bloat:
@@ -1271,10 +1271,10 @@
     - depends:
         - 'tzdata'
 
-- module-name: 'facenet_pytorch.models.mtcnn' # checksum: f1b3250
+- module-name: 'facenet_pytorch.models.mtcnn' # checksum: afef1db4
   data-files:
-    dirs:
-      - '../data'
+    - dirs:
+        - '../data'
 
 - module-name: 'faker.config' # checksum: c4a114e
   implicit-imports:
@@ -1326,10 +1326,10 @@
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
 
-- module-name: 'fiona' # checksum: ca43c510
+- module-name: 'fiona' # checksum: 5b806e55
   data-files:
-    dirs:
-      - 'proj_data'
+    - dirs:
+        - 'proj_data'
 
 - module-name: 'fiona.crs' # checksum: 46b3b3db
   implicit-imports:
@@ -1361,23 +1361,23 @@
         - 'jinja2.ext.autoescape'
         - 'jinja2.ext.with_'
 
-- module-name: 'flask_restx' # checksum: 324bf0e5
+- module-name: 'flask_restx' # checksum: 2c73cd34
   data-files:
-    dirs:
-      - 'static'
-      - 'schemas'
+    - dirs:
+        - 'static'
+        - 'schemas'
 
-- module-name: 'flask_restx.swagger' # checksum: fd15d8
+- module-name: 'flask_restx.swagger' # checksum: aff96af8
   # Templates are put on application level for flask to find it.
   data-files:
-    dest_path: '.'
-    dirs:
-      - 'templates'
+    - dest_path: '.'
+      dirs:
+        - 'templates'
 
-- module-name: 'folium' # checksum: bfd19d5d
+- module-name: 'folium' # checksum: 2e123618
   data-files:
-    dirs:
-      - 'templates'
+    - dirs:
+        - 'templates'
 
 - module-name: 'fontTools.cu2qu.cu2qu' # checksum: 5673e8a6
   implicit-imports:
@@ -1414,10 +1414,10 @@
         prefixes:
           - 'libfreetype'
 
-- module-name: 'frozendict' # checksum: 85584475
+- module-name: 'frozendict' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'fsspec.transaction' # checksum: f49a0729
   anti-bloat:
@@ -1433,13 +1433,13 @@
         'from future.moves.test import support': 'raise ImportError'
       when: 'not use_unittest'
 
-- module-name: 'geopandas.datasets' # checksum: d6c28237
+- module-name: 'geopandas.datasets' # checksum: 3983d794
   data-files:
-    dirs:
-      - 'naturalearth_cities'
-      - 'naturalearth_lowres'
-    patterns:
-      - '*.zip'
+    - dirs:
+        - 'naturalearth_cities'
+        - 'naturalearth_lowres'
+    - patterns:
+        - '*.zip'
 
 - module-name: 'gevent' # checksum: ce776b5f
   implicit-imports:
@@ -1633,20 +1633,20 @@
         filename_code: 'gmsh.libpath'
       dest_path: 'lib'
 
-- module-name: 'gooey' # checksum: 3e8811a7
+- module-name: 'gooey' # checksum: fec3b7d0
   data-files:
-    dirs:
-      - 'languages'
-      - 'images'
+    - dirs:
+        - 'languages'
+        - 'images'
 
-- module-name: 'gradio' # checksum: 1c49bcc7
+- module-name: 'gradio' # checksum: e8bad59f
   data-files:
-    dirs:
-      - 'templates'
-      - 'node'
-      - '_frontend_code'
-    patterns:
-      - '*.json'
+    - dirs:
+        - 'templates'
+        - 'node'
+        - '_frontend_code'
+    - patterns:
+        - '*.json'
 
 - module-name: 'gradio.blocks' # checksum: 7d07a2d1
   anti-bloat:
@@ -1675,40 +1675,40 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
-- module-name: 'gradio_client' # checksum: 22795308
+- module-name: 'gradio_client' # checksum: 245e25bc
   data-files:
-    patterns:
-      - '*.json'
+    - patterns:
+        - '*.json'
 
-- module-name: 'grpc' # checksum: 52c0eb37
+- module-name: 'grpc' # checksum: 72e499e
   data-files:
-    patterns:
-      - '_cython/_credentials/roots.pem'
+    - patterns:
+        - '_cython/_credentials/roots.pem'
 
-- module-name: 'gruut' # checksum: 19583930
+- module-name: 'gruut' # checksum: fddc60ae
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
   implicit-imports:
     - depends:
         - 'gruut_ipa'
         - 'gruut_lang_en'
 
-- module-name: 'gruut_ipa' # checksum: 810a705a
+- module-name: 'gruut_ipa' # checksum: 6aaa99cc
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
-- module-name: 'gruut_lang_en' # checksum: 206e4c65
+- module-name: 'gruut_lang_en' # checksum: ea583d10
   data-files:
-    dirs:
-      - 'espeak'
-      - 'g2p'
-      - 'pos'
-    patterns:
-      - 'VERSION'
-      - 'lexicon.db'
+    - dirs:
+        - 'espeak'
+        - 'g2p'
+        - 'pos'
+    - patterns:
+        - 'VERSION'
+        - 'lexicon.db'
 
 - module-name: 'gsplat.cuda._backend' # checksum: d537c97a
   anti-bloat:
@@ -1742,10 +1742,10 @@
         - 'cairo'
         - 'gtk'
 
-- module-name: 'gym_tetris' # checksum: b8aa0fea
+- module-name: 'gym_tetris' # checksum: a12d9972
   data-files:
-    dirs:
-      - '_roms'
+    - dirs:
+        - '_roms'
 
 - module-name: 'gymnasium.envs.registration' # checksum: 4f0b7bbb
   anti-bloat:
@@ -1760,15 +1760,15 @@
                 sys.exit("Nuitka: For this environment to load, need to use this as an option to compile with '--include-module=%s'." % mod_name)
       when: 'not deployment'
 
-- module-name: 'h2o' # checksum: 416e6006
+- module-name: 'h2o' # checksum: a3ac93f2
   data-files:
-    dirs:
-      - 'h2o_data'
-      - 'backend/bin'
-    patterns:
-      - '*.txt'
-      - '*.csv'
-      - '*.jar'
+    - dirs:
+        - 'h2o_data'
+        - 'backend/bin'
+    - patterns:
+        - '*.txt'
+        - '*.csv'
+        - '*.jar'
 
 - module-name: 'h5py' # checksum: 5a8caf97
   anti-bloat:
@@ -1827,10 +1827,10 @@
     - description: 'workaround hard module import attribute bug'
       append_plain: 'from .utils.tqdm import tqdm'
 
-- module-name: 'hydra' # checksum: 380a0a91
+- module-name: 'hydra' # checksum: d3aae307
   data-files:
-    dirs:
-      - 'conf'
+    - dirs:
+        - 'conf'
 
 - module-name: 'hydra.core.plugins' # checksum: f4d9feae
   implicit-imports:
@@ -1904,20 +1904,20 @@
     - depends:
         - 'pygments.lexers.python'
 
-- module-name: 'jaraco.text' # checksum: c4665ab4
+- module-name: 'jaraco.text' # checksum: 6792b73d
   data-files:
-    patterns:
-      - 'Lorem ipsum.txt'
+    - patterns:
+        - 'Lorem ipsum.txt'
 
 - module-name: 'jarowinkler' # checksum: ac739d1f
   implicit-imports:
     - depends:
         - 'jarowinkler._initialize_cpp'
 
-- module-name: 'jaxtyping' # checksum: ee1c8e43
+- module-name: 'jaxtyping' # checksum: 809b3e69
   data-files:
-    include-metadata:
-      - 'jaxtyping'
+    - include-metadata:
+        - 'jaxtyping'
 
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2002,27 +2002,27 @@
         'import pydoc': ''
         'if inspect.isfunction(func):': 'if False:'
 
-- module-name: 'jpype' # checksum: f75160d3
+- module-name: 'jpype' # checksum: 7b04152a
   data-files:
-    dest_path: 'jpype'
-    patterns:
-      - '../org.jpype.jar'
-    when: 'is_conda_package("jpype")'
+    - dest_path: 'jpype'
+      patterns:
+        - '../org.jpype.jar'
+      when: 'is_conda_package("jpype")'
 
-- module-name: 'jsonrpcserver.main' # checksum: 22795308
+- module-name: 'jsonrpcserver.main' # checksum: 245e25bc
   data-files:
-    patterns:
-      - '*.json'
+    - patterns:
+        - '*.json'
 
-- module-name: 'jsonschema' # checksum: 61a62e91
+- module-name: 'jsonschema' # checksum: c1520175
   data-files:
-    dirs:
-      - 'schemas'
+    - dirs:
+        - 'schemas'
 
-- module-name: 'jsonschema_specifications' # checksum: 61a62e91
+- module-name: 'jsonschema_specifications' # checksum: c1520175
   data-files:
-    dirs:
-      - 'schemas'
+    - dirs:
+        - 'schemas'
 
 - module-name: 'keras.api._v2.keras.__internal__.utils' # checksum: 63342938
   anti-bloat:
@@ -2051,10 +2051,10 @@
         'from IPython import display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'keyring' # checksum: 9e501f24
+- module-name: 'keyring' # checksum: 582ae7a2
   data-files:
-    include-metadata:
-      - 'keyring'
+    - include-metadata:
+        - 'keyring'
   implicit-imports:
     - depends:
         - 'keyring.backends.*'
@@ -2064,10 +2064,10 @@
     - depends:
         - 'win32timezone'
 
-- module-name: 'kivy' # checksum: f6e12f66
+- module-name: 'kivy' # checksum: 648dc799
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
   implicit-imports:
     - depends:
         - 'kivy.uix.*'
@@ -2099,13 +2099,13 @@
     - depends:
         - 'kivy.graphics.compiler'
 
-- module-name: 'kivymd' # checksum: 5737ee84
+- module-name: 'kivymd' # checksum: 1fda13e6
   data-files:
-    dirs:
-      - 'fonts'
-      - 'images'
-      - 'data'
-      - 'uix'
+    - dirs:
+        - 'fonts'
+        - 'images'
+        - 'data'
+        - 'uix'
 
 - module-name: 'kiwisolver' # checksum: a0fc11a6
   dlls:
@@ -2113,15 +2113,15 @@
         prefixes:
           - '_cext'
 
-- module-name: 'langchain.chains.llm_summarization_checker' # checksum: b065fa3
+- module-name: 'langchain.chains.llm_summarization_checker' # checksum: 9ac5f4e6
   data-files:
-    patterns:
-      - '*.txt'
+    - patterns:
+        - '*.txt'
 
-- module-name: 'lark' # checksum: ab5b4914
+- module-name: 'lark' # checksum: c9c9b5a
   data-files:
-    dirs:
-      - 'grammars'
+    - dirs:
+        - 'grammars'
 
 - module-name: 'librosa' # checksum: 20378624
   anti-bloat:
@@ -2129,10 +2129,10 @@
       bloat-mode-overrides:
         'numba': 'allow'
 
-- module-name: 'librosa.core.intervals' # checksum: fc442d1
+- module-name: 'librosa.core.intervals' # checksum: 3b3e5ce2
   data-files:
-    patterns:
-      - 'intervals.msgpack'
+    - patterns:
+        - 'intervals.msgpack'
 
 - module-name: 'libusb_package' # checksum: 5cbb45ba
   dlls:
@@ -2142,16 +2142,16 @@
 
 - module-name: 'license_expression' # checksum: 6aaa99cc
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
-- module-name: 'lightgbm' # checksum: 38422ad6
+- module-name: 'lightgbm' # checksum: 5f44354a
   data-files:
-    dirs:
-      - 'locales'
-    patterns:
-      - '*.bin'
-      - 'VERSION.txt'
+    - dirs:
+        - 'locales'
+    - patterns:
+        - '*.bin'
+        - 'VERSION.txt'
   dlls:
     - from_filenames:
         relative_path: 'bin'
@@ -2174,10 +2174,10 @@
         prefixes:
           - 'lib_lightgbm'
 
-- module-name: 'lightning' # checksum: 3167b040
+- module-name: 'lightning' # checksum: ffc61f79
   data-files:
-    patterns:
-      - 'version.info'
+    - patterns:
+        - 'version.info'
 
 - module-name: 'lightning.app.runners.cloud' # checksum: 19428428
   anti-bloat:
@@ -2185,10 +2185,10 @@
       no-auto-follow:
         'lightning.app.testing.helpers': 'ignore'
 
-- module-name: 'lightning_fabric' # checksum: 3167b040
+- module-name: 'lightning_fabric' # checksum: ffc61f79
   data-files:
-    patterns:
-      - 'version.info'
+    - patterns:
+        - 'version.info'
 
 - module-name: 'llvmlite.binding.analysis' # checksum: 3083141d
   anti-bloat:
@@ -2244,12 +2244,12 @@
     - depends:
         - 'xml.sax'
 
-- module-name: 'magic' # checksum: 803cd877
+- module-name: 'magic' # checksum: 38c304cc
   data-files:
-    dirs:
-      - 'libmagic'
-    patterns:
-      - 'magic.mgc'
+    - dirs:
+        - 'libmagic'
+    - patterns:
+        - 'magic.mgc'
 
   dlls:
     - from_filenames:
@@ -2454,10 +2454,10 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
-- module-name: 'mnemonic' # checksum: 686b054a
+- module-name: 'mnemonic' # checksum: cfacd704
   data-files:
-    dirs:
-      - 'wordlist'
+    - dirs:
+        - 'wordlist'
 
 - module-name: 'mock.mock' # checksum: 76ad686f
   anti-bloat:
@@ -2476,11 +2476,11 @@
           return result[:_MAX_LENGTH] + ' [truncated]...'
       when: 'not use_unittest'
 
-- module-name: 'moto' # checksum: 8565eb96
+- module-name: 'moto' # checksum: bfee0657
   data-files:
-    patterns:
-      - 'ec2/resources/instance_types.json'
-      - 'ec2/resources/amis.json'
+    - patterns:
+        - 'ec2/resources/instance_types.json'
+        - 'ec2/resources/amis.json'
   anti-bloat:
     - description: 'remove pytest testing framework'
       replacements_plain:
@@ -2504,10 +2504,10 @@
         'from IPython.display import HTML': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'mozilla-ca' # checksum: 970833a3
+- module-name: 'mozilla-ca' # checksum: 6cb98e6
   data-files:
-    patterns:
-      - '*.pem'
+    - patterns:
+        - '*.pem'
 
 - module-name: 'mpmath' # checksum: 843223c1
   anti-bloat:
@@ -2536,10 +2536,10 @@
     - depends:
         - '_cffi_backend'
 
-- module-name: 'names' # checksum: 4d754910
+- module-name: 'names' # checksum: 4b523fa4
   data-files:
-    patterns:
-      - 'dist.*'
+    - patterns:
+        - 'dist.*'
 
 - module-name: 'nes_py' # checksum: 1f3cc2b5
   dlls:
@@ -2571,10 +2571,10 @@
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
-- module-name: 'nose.core' # checksum: 8247f58b
+- module-name: 'nose.core' # checksum: 9c7fc85a
   data-files:
-    patterns:
-      - 'usage.txt'
+    - patterns:
+        - 'usage.txt'
 
 - module-name: 'numba' # checksum: 9bea0dec
   parameters:
@@ -2965,25 +2965,25 @@
           - 'lib'
           - '*swrast_dri'
 
-- module-name: 'open_clip' # checksum: 1fe63667
+- module-name: 'open_clip' # checksum: 8110bd0e
   data-files:
-    dirs:
-      - 'model_configs'
-    patterns:
-      - '*.tar.gz'
+    - dirs:
+        - 'model_configs'
+    - patterns:
+        - '*.tar.gz'
 
-- module-name: 'openapi_spec_validator' # checksum: bcd85a05
+- module-name: 'openapi_spec_validator' # checksum: e31373a2
   data-files:
-    dirs:
-      - 'resources/schemas'
+    - dirs:
+        - 'resources/schemas'
 
-- module-name: 'opencc' # checksum: 37b61183
+- module-name: 'opencc' # checksum: ac51c19
   data-files:
-    dirs:
-      - 'clib/share/opencc'
-    patterns:
-      - '*.json'
-      - '*.ocd2'
+    - dirs:
+        - 'clib/share/opencc'
+    - patterns:
+        - '*.json'
+        - '*.ocd2'
 
   dlls:
     - from_filenames:
@@ -3017,29 +3017,29 @@
       replacements_plain:
         'sys.path.append': ''
 
-- module-name: 'opentelemetry.propagate' # checksum: 7c38a584
+- module-name: 'opentelemetry.propagate' # checksum: d832b4a7
   data-files:
-    include-metadata:
-      - 'opentelemetry-api'
+    - include-metadata:
+        - 'opentelemetry-api'
 
   implicit-imports:
     - depends:
         - 'opentelemetry.trace.propagation.tracecontext'
         - 'opentelemetry.baggage.propagation'
 
-- module-name: 'opentelemetry.sdk.resources' # checksum: f173f283
+- module-name: 'opentelemetry.sdk.resources' # checksum: 6a5cb437
   data-files:
-    include-metadata:
-      - 'opentelemetry-sdk'
+    - include-metadata:
+        - 'opentelemetry-sdk'
   anti-bloat:
     - description: 'workaround for metadata functions'
       replacements_plain:
         'opentelemetry.util._importlib_metadata': 'importlib_metadata'
 
-- module-name: 'openvino' # checksum: a58ccd92
+- module-name: 'openvino' # checksum: 4e2c2404
   data-files:
-    dirs:
-      - 'libs'
+    - dirs:
+        - 'libs'
 
 - module-name: 'openvino.inference_engine' # checksum: 9100f948
   dlls:
@@ -3079,10 +3079,10 @@
         - 'json'
         - 'uuid'
 
-- module-name: 'osgeo' # checksum: 94304fdd
+- module-name: 'osgeo' # checksum: b3e12844
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
   implicit-imports:
     - depends:
         - 'osgeo._gdal'
@@ -3188,11 +3188,11 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
-- module-name: 'panda3d' # checksum: ed772c0a
+- module-name: 'panda3d' # checksum: 14f69755
   data-files:
-    dest_path: '.'
-    dirs:
-      - 'etc'
+    - dest_path: '.'
+      dirs:
+        - 'etc'
 
   dlls:
     - from_filenames:
@@ -3351,10 +3351,10 @@
         'LooseVersion(xlrd.__version__)': 'xlrd.__version__'
         'from distutils.version import LooseVersion': ''
 
-- module-name: 'pandas.io.formats' # checksum: bfd19d5d
+- module-name: 'pandas.io.formats' # checksum: 2e123618
   data-files:
-    dirs:
-      - 'templates'
+    - dirs:
+        - 'templates'
 
 - module-name: 'pandas.io.formats.printing' # checksum: 9548db34
   anti-bloat:
@@ -3402,15 +3402,15 @@
         'dask': 'ignore'
       when: 'not use_dask'
 
-- module-name: 'panel' # checksum: 87b79d62
+- module-name: 'panel' # checksum: 94e231ad
   data-files:
-    dirs:
-      - '_templates'
-      - 'template'
-      - 'layout'
-      - 'theme'
-    patterns:
-      - 'package.json'
+    - dirs:
+        - '_templates'
+        - 'template'
+        - 'layout'
+        - 'theme'
+    - patterns:
+        - 'package.json'
 
 - module-name: 'pango' # checksum: 7d2edca1
   implicit-imports:
@@ -3561,11 +3561,11 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
-- module-name: 'pendulum' # checksum: 465878b9
+- module-name: 'pendulum' # checksum: 71704ba2
   data-files:
-    empty_dir_structures:
-      - 'locales'
-    when: 'version("pendulum") >= (2,)'
+    - empty_dir_structures:
+        - 'locales'
+      when: 'version("pendulum") >= (2,)'
 
 - module-name: 'pendulum.locales' # checksum: 9bd33105
   implicit-imports:
@@ -3676,10 +3676,10 @@
         'from dask import array as dask_array': 'raise ImportError'
       when: 'not use_dask'
 
-- module-name: 'pint.registry' # checksum: b065fa3
+- module-name: 'pint.registry' # checksum: 9ac5f4e6
   data-files:
-    patterns:
-      - '*.txt'
+    - patterns:
+        - '*.txt'
 
 - module-name: 'pint.util' # checksum: a21874f7
   anti-bloat:
@@ -3753,17 +3753,17 @@
       change_function:
         'embedded_data_path': "'(lambda: app_path())'"
 
-- module-name: 'playwright_stealth' # checksum: 3ebe1284
+- module-name: 'playwright_stealth' # checksum: 26b9c88c
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
 
-- module-name: 'plotly' # checksum: 35176d4
+- module-name: 'plotly' # checksum: ecc071a2
   data-files:
-    dirs:
-      - 'package_data'
-      - 'package_data/templates'
-      - 'package_data/datasets'
+    - dirs:
+        - 'package_data'
+        - 'package_data/templates'
+        - 'package_data/datasets'
   implicit-imports:
     - depends:
         - 'plotly.version'
@@ -3948,15 +3948,15 @@
       bloat-mode-overrides:
         'pydoc': 'allow'
 
-- module-name: 'pyaxmlparser.resources' # checksum: 1d442429
+- module-name: 'pyaxmlparser.resources' # checksum: ec8efe56
   data-files:
-    patterns:
-      - 'public.xml'
+    - patterns:
+        - 'public.xml'
 
-- module-name: 'pycountry' # checksum: 17e87111
+- module-name: 'pycountry' # checksum: 862bda54
   data-files:
-    dirs:
-      - 'databases'
+    - dirs:
+        - 'databases'
 
 - module-name: 'pycparser.c_parser' # checksum: 908ed561
   implicit-imports:
@@ -4029,25 +4029,25 @@
     - depends:
         - '.fonts'
 
-- module-name: 'pyfiglet.fonts' # checksum: 3ebe1284
+- module-name: 'pyfiglet.fonts' # checksum: 26b9c88c
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
 
-- module-name: 'pygame' # checksum: 5fbb83cf
+- module-name: 'pygame' # checksum: 8c9db0be
   data-files:
-    patterns:
-      - 'freesansbold.ttf'
+    - patterns:
+        - 'freesansbold.ttf'
 
   options:
     checks:
       - description: 'PyGame is a GUI framework'
         macos_bundle: 'recommend'
 
-- module-name: 'pygame_menu' # checksum: 3f9f0b7d
+- module-name: 'pygame_menu' # checksum: ae5ca038
   data-files:
-    dirs:
-      - 'resources'
+    - dirs:
+        - 'resources'
 
 - module-name: 'pygeos._geometry' # checksum: 6a3a4737
   implicit-imports:
@@ -4081,10 +4081,10 @@
     - depends:
         - '.*'
 
-- module-name: 'pygsheets' # checksum: 810a705a
+- module-name: 'pygsheets' # checksum: 6aaa99cc
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
 - module-name: 'pymoo.cython' # checksum: 158685c1
   implicit-imports:
@@ -4101,13 +4101,13 @@
     - depends:
         - 'pymssql._mssql'
 
-- module-name: 'pyocd' # checksum: f450220c
+- module-name: 'pyocd' # checksum: db396ebb
   data-files:
-    patterns:
-      - 'debug/sequences/*.lark'
-      - 'debug/svd/*.zip'
-    include-metadata:
-      - 'pyocd'
+    - patterns:
+        - 'debug/sequences/*.lark'
+        - 'debug/svd/*.zip'
+    - include-metadata:
+        - 'pyocd'
   implicit-imports:
     - depends:
         - 'pyocd.probe.*'
@@ -4133,38 +4133,38 @@
       change_function:
         'set_break': 'un-callable'
 
-- module-name: 'pypdfium2' # checksum: 91e9a452
+- module-name: 'pypdfium2' # checksum: 5f480b6b
   data-files:
-    patterns:
-      - 'version.json'
+    - patterns:
+        - 'version.json'
 
-- module-name: 'pypdfium2_raw' # checksum: 3c8f2a8f
+- module-name: 'pypdfium2_raw' # checksum: 2bdc1095
   data-files:
-    patterns:
-      - 'version.json'
+    - patterns:
+        - 'version.json'
 
   dlls:
     - from_filenames:
         prefixes:
           - 'pdfium'
 
-- module-name: 'pyphen' # checksum: 708b31da
+- module-name: 'pyphen' # checksum: aa53bb0a
   data-files:
-    dirs:
-      - 'dictionaries'
+    - dirs:
+        - 'dictionaries'
   anti-bloat:
     - description: 'remove doctest usage'
 
-- module-name: 'pyproj' # checksum: d7d7c58b
+- module-name: 'pyproj' # checksum: 701017c5
   data-files:
-    dirs:
-      - 'proj_dir'
+    - dirs:
+        - 'proj_dir'
 
-- module-name: 'PyQt5' # checksum: 8ca4bbdf
+- module-name: 'PyQt5' # checksum: ce59d72b
   data-files:
-    empty_dirs:
-      - 'Qt5'
-      - 'Qt'
+    - empty_dirs:
+        - 'Qt5'
+        - 'Qt'
 
   options:
     checks:
@@ -4202,11 +4202,11 @@
         support_info: 'error'
         when: 'macos and use_pyqt6'
 
-- module-name: 'pyqtgraph' # checksum: 1d763dc
+- module-name: 'pyqtgraph' # checksum: cddd333f
   data-files:
-    dirs:
-      - 'colors'
-      - 'icons'
+    - dirs:
+        - 'colors'
+        - 'icons'
 
 - module-name: 'pyqtgraph.util.numba_helper' # checksum: 731dde6
   anti-bloat:
@@ -4215,10 +4215,10 @@
         'getConfigOption("useNumba")': 'False'
       when: 'not use_numba'
 
-- module-name: 'pyqtlet2' # checksum: 35d48aef
+- module-name: 'pyqtlet2' # checksum: 9b0b232a
   data-files:
-    dirs:
-      - 'web'
+    - dirs:
+        - 'web'
 
 - module-name: 'pyreadstat._readstat_parser' # checksum: be58ab4d
   implicit-imports:
@@ -4307,10 +4307,10 @@
         prefixes:
           - 'libcgto'
 
-- module-name: 'pyscf.gto.basis' # checksum: e00afdfb
+- module-name: 'pyscf.gto.basis' # checksum: d9c54469
   data-files:
-    patterns:
-      - '**/*.dat'
+    - patterns:
+        - '**/*.dat'
 
 - module-name: 'pyscf.lib.numpy_helper' # checksum: 6a0e9d08
   dlls:
@@ -4439,10 +4439,10 @@
         - 'PySide6.QtConcurrent'
         - 'PySide6.QtWebSockets'
 
-- module-name: 'pysnmp.smi' # checksum: d8623e4b
+- module-name: 'pysnmp.smi' # checksum: 6af35c04
   data-files:
-    patterns:
-      - 'mibs/**/*.py'
+    - patterns:
+        - 'mibs/**/*.py'
   implicit-imports:
     - depends:
         - 'pysnmp.smi.exval'
@@ -4457,17 +4457,17 @@
         'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'pythonnet' # checksum: 2f2ee1ca
+- module-name: 'pythonnet' # checksum: e461ee8
   # These is a dotnet assembly, not a platform DLL, esp. not on Linux, macOS,
   # etc.
   data-files:
-    patterns:
-      - 'runtime/Python.Runtime.dll'
+    - patterns:
+        - 'runtime/Python.Runtime.dll'
 
-- module-name: 'pytorch_lightning' # checksum: 3167b040
+- module-name: 'pytorch_lightning' # checksum: ffc61f79
   data-files:
-    patterns:
-      - 'version.info'
+    - patterns:
+        - 'version.info'
 
 - module-name: 'pytorch_lightning.utilities.imports' # checksum: a95c6e78
   anti-bloat:
@@ -4490,19 +4490,19 @@
         'from unittest.mock import Mock': ''
         'isinstance(instance_attr, Mock)': 'False'
 
-- module-name: 'pytz' # checksum: 4df2d158
+- module-name: 'pytz' # checksum: 5e067c2f
   data-files:
-    dirs:
-      - 'zoneinfo'
+    - dirs:
+        - 'zoneinfo'
   anti-bloat:
     - description: 'remove docutils usage'
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'pytzdata' # checksum: 355b3284
+- module-name: 'pytzdata' # checksum: 929ce0ca
   data-files:
-    dirs:
-      - 'zoneinfo'
+    - dirs:
+        - 'zoneinfo'
 
 - module-name: 'pyvista' # checksum: e4ffea88
   anti-bloat:
@@ -4544,17 +4544,17 @@
         'from pyvista.jupyter import _validate_jupyter_backend': '_validate_jupyter_backend = str'
       when: 'not use_ipython'
 
-- module-name: 'pyviz_comms' # checksum: 14fe3365
+- module-name: 'pyviz_comms' # checksum: 734e12f1
   data-files:
-    dirs:
-      - 'labextension'
-    patterns:
-      - 'notebook.js'
+    - dirs:
+        - 'labextension'
+    - patterns:
+        - 'notebook.js'
 
-- module-name: 'pywt' # checksum: 889e5afa
+- module-name: 'pywt' # checksum: 43ac1e30
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
   implicit-imports:
     - depends:
         - 'pywt._extensions'
@@ -4589,28 +4589,28 @@
           - 'libiconv'
           - 'libzbar'
 
-- module-name: 'qt_material' # checksum: 136a33c2
+- module-name: 'qt_material' # checksum: 39ea93cb
   data-files:
-    dirs:
-      - 'fonts'
-      - 'resources'
-      - 'themes'
-    patterns:
-      - '*.ui'
-      - '*.xml'
-      - '*.svg'
-      - '*.template'
-      - '*.ttf'
+    - dirs:
+        - 'fonts'
+        - 'resources'
+        - 'themes'
+    - patterns:
+        - '*.ui'
+        - '*.xml'
+        - '*.svg'
+        - '*.template'
+        - '*.ttf'
 
-- module-name: 'qtawesome' # checksum: 2c2a9970
+- module-name: 'qtawesome' # checksum: 35ad0fe8
   data-files:
-    dirs:
-      - 'fonts'
+    - dirs:
+        - 'fonts'
 
-- module-name: 'randomname' # checksum: 8d6f0c80
+- module-name: 'randomname' # checksum: 1caca7c5
   data-files:
-    dirs:
-      - 'wordlists'
+    - dirs:
+        - 'wordlists'
 
 - module-name: 'rapidfuzz' # checksum: 2248cb4c
   implicit-imports:
@@ -4768,10 +4768,10 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: f143defd
+- module-name: 'scipy' # checksum: 5023b38
   data-files:
-    patterns:
-      - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
+    - patterns:
+        - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
 
   dlls:
     - from_filenames:
@@ -4976,10 +4976,10 @@
         '@setastest(False)': ''
         'from numpy.testing.decorators import setastest': ''
 
-- module-name: 'scrapy' # checksum: 85584475
+- module-name: 'scrapy' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'scyjava' # checksum: 51174dbf
   anti-bloat:
@@ -5000,15 +5000,15 @@
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
-- module-name: 'seedir.printing' # checksum: b8a76fb6
+- module-name: 'seedir.printing' # checksum: a69f5267
   data-files:
-    patterns:
-      - 'words.txt'
+    - patterns:
+        - 'words.txt'
 
-- module-name: 'selenium' # checksum: 19747624
+- module-name: 'selenium' # checksum: f5c2bbb3
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
   dlls:
     - from_filenames:
         relative_path: 'webdriver/common/windows'
@@ -5017,10 +5017,10 @@
         executable: 'yes'
       when: 'win32'
 
-- module-name: 'selenium_stealth' # checksum: 3ebe1284
+- module-name: 'selenium_stealth' # checksum: 26b9c88c
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
 
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
@@ -5190,10 +5190,10 @@
     - depends:
         - 'queue'
 
-- module-name: 'skimage' # checksum: 2265010b
+- module-name: 'skimage' # checksum: af3da5ed
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
   anti-bloat:
     - description: 'remove pytest reference (via nose)'
       no-auto-follow:
@@ -5257,10 +5257,10 @@
         - 'skimage.feature._hoghistogram'
         - 'skimage.feature._texture'
 
-- module-name: 'skimage.feature._orb_descriptor_positions' # checksum: 1d5a142a
+- module-name: 'skimage.feature._orb_descriptor_positions' # checksum: 97ea9cef
   data-files:
-    patterns:
-      - 'orb_descriptor_positions.txt'
+    - patterns:
+        - 'orb_descriptor_positions.txt'
 
 - module-name: 'skimage.feature.orb_cy' # checksum: c8ba0e7d
   implicit-imports:
@@ -5288,10 +5288,10 @@
         - 'skimage.graph._mcp'
         - 'skimage.graph._spath'
 
-- module-name: 'skimage.io' # checksum: a2fdda9a
+- module-name: 'skimage.io' # checksum: 6b3d25bb
   data-files:
-    patterns:
-      - '_plugins/*.ini'
+    - patterns:
+        - '_plugins/*.ini'
 
   implicit-imports:
     - depends:
@@ -5325,10 +5325,10 @@
         - 'skimage.measure._moments_cy'
         - 'skimage.measure._pnpoly'
 
-- module-name: 'skimage.morphology' # checksum: ce2f76e5
+- module-name: 'skimage.morphology' # checksum: 188a6703
   data-files:
-    patterns:
-      - '*.npy'
+    - patterns:
+        - '*.npy'
 
   implicit-imports:
     - depends:
@@ -5408,11 +5408,11 @@
         - 'sklearn.cluster._k_means'
         - 'sklearn.cluster._k_means_elkan'
 
-- module-name: 'sklearn.datasets' # checksum: feb92785
+- module-name: 'sklearn.datasets' # checksum: 1868eae6
   data-files:
-    dirs:
-      - 'data'
-      - 'descr'
+    - dirs:
+        - 'data'
+        - 'descr'
   implicit-imports:
     - depends:
         - 'sklearn.datasets._svmlight_format'
@@ -5560,10 +5560,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: d3a557f9
+- module-name: 'sklearn.utils' # checksum: 4aeaf812
   data-files:
-    patterns:
-      - '*.css'
+    - patterns:
+        - '*.css'
   anti-bloat:
     - description: 'pandas and matplotlib checks should not cause usage'
       no-auto-follow:
@@ -5692,10 +5692,10 @@
           - 'libsndfile'
       when: 'macos'
 
-- module-name: 'spacy' # checksum: 99c1e2c8
+- module-name: 'spacy' # checksum: 4943d3fa
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
   anti-bloat:
     - description: 'do not follow tests'
       no-auto-follow:
@@ -5810,10 +5810,10 @@
     - depends:
         - 'sqlfluff.dialects.*'
 
-- module-name: 'sqlfluff.core' # checksum: e03d34a3
+- module-name: 'sqlfluff.core' # checksum: b4550b8e
   data-files:
-    patterns:
-      - '*.cfg'
+    - patterns:
+        - '*.cfg'
   implicit-imports:
     - depends:
         - 'sqlfluff.core.plugin.*'
@@ -6133,10 +6133,10 @@
         'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
       when: 'not use_pytest'
 
-- module-name: 'strawberry' # checksum: faf55bfc
+- module-name: 'strawberry' # checksum: 438c71c
   data-files:
-    dirs:
-      - 'static'
+    - dirs:
+        - 'static'
 
 - module-name: 'streamlit.runtime.caching.cache_utils' # checksum: e430da94
   anti-bloat:
@@ -6144,17 +6144,17 @@
       replacements_plain:
         '_LOGGER.debug(': '('
 
-- module-name: 'sv_ttk' # checksum: da9eb9ef
+- module-name: 'sv_ttk' # checksum: 8b045092
   data-files:
-    dirs:
-      - 'theme'
-    patterns:
-      - 'sv.tcl'
+    - dirs:
+        - 'theme'
+    - patterns:
+        - 'sv.tcl'
 
-- module-name: 'swagger_ui_bundle' # checksum: 8f17402f
+- module-name: 'swagger_ui_bundle' # checksum: 71dadccf
   data-files:
-    dirs:
-      - 'vendor'
+    - dirs:
+        - 'vendor'
 
 - module-name: 'sympy' # checksum: 246a1729
   anti-bloat:
@@ -6770,10 +6770,10 @@
           - 'libnv'
       dest_path: '.'
 
-- module-name: 'text_unidecode' # checksum: e24d920b
+- module-name: 'text_unidecode' # checksum: db822b99
   data-files:
-    patterns:
-      - 'data.bin'
+    - patterns:
+        - 'data.bin'
 
 - module-name: 'textual' # checksum: c965c84e
   implicit-imports:
@@ -6806,10 +6806,10 @@
       no-auto-follow:
         'thinc.tests': 'ignore'
 
-- module-name: 'thinc.backends' # checksum: a9d80ab6
+- module-name: 'thinc.backends' # checksum: e1fd8f8
   data-files:
-    patterns:
-      - '*.cu'
+    - patterns:
+        - '*.cu'
 
 - module-name: 'thinc.backends.cblas' # checksum: 53774cbb
   implicit-imports:
@@ -6855,10 +6855,10 @@
         '_NO_JIT = False': '_NO_JIT = True'
         '_NO_ACTIVATION_JIT = False': '_NO_ACTIVATION_JIT = True'
 
-- module-name: 'tinycss2' # checksum: 85584475
+- module-name: 'tinycss2' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'tinycudann.modules' # checksum: 2467d1b5
   implicit-imports:
@@ -6872,10 +6872,10 @@
           - 'libextrafont'
       when: 'win32'
 
-- module-name: 'tkinterweb' # checksum: e9dd14cc
+- module-name: 'tkinterweb' # checksum: 5de6ded8
   data-files:
-    dirs:
-      - 'tkhtml'
+    - dirs:
+        - 'tkhtml'
 
   dlls:
     - from_filenames:
@@ -6906,10 +6906,10 @@
         filename_code: 'tls_client.cffi.library._name'
       dest_path: 'tls_client/dependencies'
 
-- module-name: 'toga' # checksum: 575aecbd
+- module-name: 'toga' # checksum: e93c8871
   data-files:
-    include-metadata:
-      - 'toga-core'
+    - include-metadata:
+        - 'toga-core'
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
@@ -6926,26 +6926,26 @@
     - change_function:
         'get_platform_factory': "'importlib.import_module(%r)' % get_variable('toga_backend_module_name')"
 
-- module-name: 'toga_cocoa' # checksum: 34886ad0
+- module-name: 'toga_cocoa' # checksum: f4de9bcb
   data-files:
-    dirs:
-      - 'resources'
-    include-metadata:
-      - 'toga-cocoa'
+    - dirs:
+        - 'resources'
+    - include-metadata:
+        - 'toga-cocoa'
 
-- module-name: 'toga_gtk' # checksum: 1577803b
+- module-name: 'toga_gtk' # checksum: eb33d9fa
   data-files:
-    dirs:
-      - 'resources'
-    include-metadata:
-      - 'toga-gtk'
+    - dirs:
+        - 'resources'
+    - include-metadata:
+        - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 5dda2bcf
+- module-name: 'toga_winforms' # checksum: 378cf0f6
   data-files:
-    dirs:
-      - 'resources'
-    include-metadata:
-      - 'toga-winforms'
+    - dirs:
+        - 'resources'
+    - include-metadata:
+        - 'toga-winforms'
   dlls:
     - from_filenames:
         relative_path: 'libs/WebView2/arm64'
@@ -6980,16 +6980,16 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 5dee33ed
+- module-name: 'torch' # checksum: 9fbf3613
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
   data-files:
-    dirs:
-      - 'bin'
-      - 'include'
-    patterns:
-      - 'bin/*.h'
+    - dirs:
+        - 'bin'
+        - 'include'
+    - patterns:
+        - 'bin/*.h'
   dlls:
     - from_filenames:
         relative_path: 'lib'
@@ -7331,32 +7331,32 @@
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
-- module-name: 'tracerite' # checksum: 6fffa63e
+- module-name: 'tracerite' # checksum: fe3c0d7b
   data-files:
-    patterns:
-      - '*.css'
+    - patterns:
+        - '*.css'
 
-- module-name: 'transformers' # checksum: a442ab87
+- module-name: 'transformers' # checksum: 745d44d5
   data-files:
-    include-metadata:
-      - 'accelerate'
-      - 'bitsandbytes'
-      - 'datasets'
-      - 'flax'
-      - 'ftfy'
-      - 'jinja2'
-      - 'pandas'
-      - 'peft'
-      - 'psutil'
-      - 'tensorflow'
-      - 'torch'
-      - 'tokenizers'
-      - 'torchvision'
-      - 'scipy'
-      - 'safetensors'
-      - 'sentencepiece'
-      - 'timm'
-      - 'openai'
+    - include-metadata:
+        - 'accelerate'
+        - 'bitsandbytes'
+        - 'datasets'
+        - 'flax'
+        - 'ftfy'
+        - 'jinja2'
+        - 'pandas'
+        - 'peft'
+        - 'psutil'
+        - 'tensorflow'
+        - 'torch'
+        - 'tokenizers'
+        - 'torchvision'
+        - 'scipy'
+        - 'safetensors'
+        - 'sentencepiece'
+        - 'timm'
+        - 'openai'
 
   anti-bloat:
     - description: 'remove IPython reference'
@@ -7589,24 +7589,24 @@
     - depends:
         - '_twofish'
 
-- module-name: 'tzdata' # checksum: dae3c0e3
+- module-name: 'tzdata' # checksum: c364567b
   data-files:
-    dirs:
-      - 'zones'
+    - dirs:
+        - 'zones'
 
-- module-name: 'tzdata.zoneinfo' # checksum: 2cc2c86f
+- module-name: 'tzdata.zoneinfo' # checksum: 1786da2c
   data-files:
-    dirs:
-      - '.'
+    - dirs:
+        - '.'
 
   implicit-imports:
     - depends:
         - '.*'
 
-- module-name: 'unstructured' # checksum: daba5bfa
+- module-name: 'unstructured' # checksum: e17b7f4d
   data-files:
-    patterns:
-      - 'nlp/english-words.txt'
+    - patterns:
+        - 'nlp/english-words.txt'
 
 - module-name: 'urllib3' # checksum: aed85e8e
   implicit-imports:
@@ -7710,10 +7710,10 @@
     - depends:
         - 'uvloop._noop'
 
-- module-name: 'vedo' # checksum: 2c2a9970
+- module-name: 'vedo' # checksum: 35ad0fe8
   data-files:
-    dirs:
-      - 'fonts'
+    - dirs:
+        - 'fonts'
 
 - module-name: 'vibora' # checksum: 3e4e581a
   anti-bloat:
@@ -7787,17 +7787,17 @@
         - 'vtkmodules.wx.wxVTKRenderWindow'
         - 'vtkmodules.wx.wxVTKRenderWindowInteractor'
 
-- module-name: 'weasyprint' # checksum: 976492f8
+- module-name: 'weasyprint' # checksum: 19961a08
   data-files:
-    dirs:
-      - 'css'
-    patterns:
-      - 'VERSION'
+    - dirs:
+        - 'css'
+    - patterns:
+        - 'VERSION'
 
-- module-name: 'webview' # checksum: b3be88e0
+- module-name: 'webview' # checksum: 596b35ba
   data-files:
-    dirs:
-      - 'lib'
+    - dirs:
+        - 'lib'
   dlls:
     - from_filenames:
         relative_path: 'lib/runtimes/win-x86/native'
@@ -7917,10 +7917,10 @@
           - 'WebView2Loader'
       when: 'win32'
 
-- module-name: 'xarray' # checksum: faf55bfc
+- module-name: 'xarray' # checksum: 438c71c
   data-files:
-    dirs:
-      - 'static'
+    - dirs:
+        - 'static'
 
 - module-name: 'xarray.backends.locks' # checksum: 3d3302db
   anti-bloat:
@@ -7997,10 +7997,10 @@
         'import dask.array as dask_array': 'raise ImportError'
       when: 'not use_dask'
 
-- module-name: 'xarray.core.nputils' # checksum: 46ca5d07
+- module-name: 'xarray.core.nputils' # checksum: 190174a0
   data-files:
-    include-metadata:
-      - 'numpy'
+    - include-metadata:
+        - 'numpy'
 
 - module-name: 'xarray.core.parallel' # checksum: 37f8ca49
   anti-bloat:
@@ -8034,10 +8034,10 @@
         'chunk': 'un-callable'
       when: 'not use_dask'
 
-- module-name: 'xgboost' # checksum: 85584475
+- module-name: 'xgboost' # checksum: 49521496
   data-files:
-    patterns:
-      - 'VERSION'
+    - patterns:
+        - 'VERSION'
 
 - module-name: 'xgboost.core' # checksum: a8cb2e6d
   dlls:
@@ -8068,21 +8068,21 @@
     - depends:
         - 'Xlib.keysymdef.*'
 
-- module-name: 'xmlschema' # checksum: 61a62e91
+- module-name: 'xmlschema' # checksum: c1520175
   data-files:
-    dirs:
-      - 'schemas'
+    - dirs:
+        - 'schemas'
 
-- module-name: 'xyzservices' # checksum: 810a705a
+- module-name: 'xyzservices' # checksum: 6aaa99cc
   data-files:
-    dirs:
-      - 'data'
+    - dirs:
+        - 'data'
 
-- module-name: 'yapf_third_party._ylib2to3' # checksum: 4ec82d9d
+- module-name: 'yapf_third_party._ylib2to3' # checksum: a54cab2a
   data-files:
-    patterns:
-      - 'Grammar.txt'
-      - 'PatternGrammar.txt'
+    - patterns:
+        - 'Grammar.txt'
+        - 'PatternGrammar.txt'
 
 - module-name: 'yt_dlp' # checksum: 7c4ae87e
   implicit-imports:
