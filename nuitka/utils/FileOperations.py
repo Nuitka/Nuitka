@@ -1475,6 +1475,16 @@ def isFilesystemEncodable(filename):
         return True
 
 
+def makeFilesystemEncodable(filename):
+    if not os.path.isabs(filename):
+        filename = os.path.abspath(filename)
+
+    if not isFilesystemEncodable(filename):
+        filename = getExternalUsePath(filename)
+
+    return filename
+
+
 def openPickleFile(filename, mode, protocol=-1):
     file_handle = openTextFile(filename, mode)
 
