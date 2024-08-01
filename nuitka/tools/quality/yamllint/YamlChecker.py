@@ -11,6 +11,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
+from nuitka.utils.ModuleNames import checkModuleName
 from nuitka.utils.Yaml import (
     PackageConfigYaml,
     getYamlDataHash,
@@ -186,6 +187,30 @@ if you want no message."""
     return result
 
 
+module_allow_list = ("mozilla-ca",)
+
+
+def checkYamlModuleName(logger, module_name):
+    if module_name in module_allow_list:
+        return True
+
+    result = True
+
+    if module_name == "" or not checkModuleName(module_name):
+        logger.info(
+            "Config for module '%s' is for an invalid module name." % module_name
+        )
+        result = False
+    elif "-" in module_name:
+        logger.info(
+            "Config for module '%s' is using a package name rather than a module name."
+            % module_name
+        )
+        result = False
+
+    return result
+
+
 def checkValues(logger, filename):
     yaml = PackageConfigYaml(
         name=filename,
@@ -194,6 +219,9 @@ def checkValues(logger, filename):
 
     result = True
     for module_name, config in yaml.items():
+        if not checkYamlModuleName(logger, module_name):
+            result = False
+
         for section, section_config in config.items():
             if not _checkValues(logger, filename, module_name, section, section_config):
                 result = False
