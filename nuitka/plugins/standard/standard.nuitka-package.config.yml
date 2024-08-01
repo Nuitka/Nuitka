@@ -5063,62 +5063,77 @@
       change_function:
         'test': "'(lambda: None)'"
 
-- module-name: 'shap.explainers._exact' # checksum: 74320da4
+- module-name: 'shap.explainers._exact' # checksum: cfb65066
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
         '@jit': ''
+        '@njit': ''
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.explainers._partition' # checksum: 74320da4
+- module-name: 'shap.explainers._partition' # checksum: cfb65066
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
         '@jit': ''
+        '@njit': ''
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.links' # checksum: 7e198b88
+- module-name: 'shap.links' # checksum: b91dd6ab
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'import numba': ''
         '@numba.jit': ''
+        '@numba.njit': ''
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.maskers._image' # checksum: e81228ef
+- module-name: 'shap.maskers._image' # checksum: 5e001756
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
+        'import numba.typed': ''
         '@jit': ''
+        '@njit': ''
         "warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)": ''
         'from numba.core.errors import NumbaPendingDeprecationWarning': ''
+        'q = numba.typed.List([(0, xmin, xmax, ymin, ymax, zmin, zmax, -1, False)])': 'q = [(0, xmin, xmax, ymin, ymax, zmin, zmax, -1, False)]'
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.maskers._tabular' # checksum: 74320da4
+- module-name: 'shap.maskers._tabular' # checksum: cfb65066
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
         '@jit': ''
+        '@njit': ''
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.utils._clustering' # checksum: 74320da4
+- module-name: 'shap.utils._clustering' # checksum: cfb65066
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
         '@jit': ''
+        '@njit': ''
       when: 'not use_numba and standalone'
 
-- module-name: 'shap.utils._masked_model' # checksum: 74320da4
+- module-name: 'shap.utils._masked_model' # checksum: cfb65066
   anti-bloat:
     - description: 'remove numba reference'
       replacements_plain:
         'from numba import jit': ''
+        'from numba import njit': ''
         '@jit': ''
+        '@njit': ''
       when: 'not use_numba and standalone'
 
 - module-name: 'shapely._geometry_helpers' # checksum: 669d5ef2
