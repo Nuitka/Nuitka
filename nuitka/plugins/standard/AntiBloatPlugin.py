@@ -267,7 +267,7 @@ form 'module_name:[%s]'."""
             dest="show_changes",
             default=False,
             help="""\
-Annotate what changes are by the plugin done.""",
+Annotate what changes are done by the plugin.""",
         )
 
         group.add_option(
