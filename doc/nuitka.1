@@ -487,15 +487,6 @@ for all cached. Currently allowed values are:
 "all","ccache","bytecode","compression". can be given
 multiple times or with comma separated values. Default
 none.
-.TP
-\fB\-\-disable\-bytecode\-cache\fR
-Do not reuse dependency analysis results for modules,
-esp. from standard library, that are included as
-bytecode. Same as \fB\-\-disable\-cache\fR=\fI\,bytecode\/\fR.
-.TP
-\fB\-\-disable\-ccache\fR
-Do not attempt to use ccache (gcc, clang, etc.) or
-clcache (MSVC, clangcl). Same as \fB\-\-disablecache\fR=\fI\,ccache\/\fR.
 .IP
 PGO compilation choices:
 .TP
@@ -794,7 +785,7 @@ on '\-\-target=wasi' and nothing else yet.
 Plugin options of 'anti\-bloat':
 .TP
 \fB\-\-show\-anti\-bloat\-changes\fR
-Annotate what changes are by the plugin done.
+Annotate what changes are done by the plugin.
 .TP
 \fB\-\-noinclude\-setuptools\-mode\fR=\fI\,NOINCLUDE_SETUPTOOLS_MODE\/\fR
 What to do if a 'setuptools' or import is encountered.

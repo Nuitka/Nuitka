@@ -176,7 +176,7 @@ parser.add_option(
     dest="github_workflow_options",
     default=False,
     github_action=False,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # For use in GitHub Action only.
 )
 
 include_group = parser.add_option_group(
@@ -1058,9 +1058,7 @@ caching_group.add_option(
     action="store_true",
     dest="disable_bytecode_cache",
     default=False,
-    help="""\
-Do not reuse dependency analysis results for modules, esp. from standard library,
-that are included as bytecode. Same as --disable-cache=bytecode.""",
+    help=SUPPRESS_HELP,
 )
 
 caching_group.add_option(
@@ -1068,23 +1066,18 @@ caching_group.add_option(
     action="store_true",
     dest="disable_ccache",
     default=False,
-    help="""\
-Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).
-Same as --disable-cache=ccache.""",
+    help=SUPPRESS_HELP,
+)
+
+caching_group.add_option(
+    "--disable-dll-dependency-cache",
+    action="store_true",
+    dest="disable_dll_dependency_cache",
+    default=False,
+    help=SUPPRESS_HELP,
 )
 
 if isWin32Windows():
-    caching_group.add_option(
-        "--disable-dll-dependency-cache",
-        action="store_true",
-        dest="disable_dll_dependency_cache",
-        default=False,
-        help="""\
-Disable the dependency walker cache. Will result in much longer times to create
-the distribution folder, but might be used in case the cache is suspect to cause
-errors. Same as --disable-cache=dll-dependencies.""",
-    )
-
     caching_group.add_option(
         "--force-dll-dependency-cache-update",
         action="store_true",
@@ -1119,7 +1112,7 @@ pgo_group.add_option(
     action="store_true",
     dest="is_python_pgo",
     default=False,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
@@ -1127,7 +1120,7 @@ pgo_group.add_option(
     action="store",
     dest="python_pgo_input",
     default=None,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
@@ -1136,7 +1129,7 @@ pgo_group.add_option(
     dest="python_pgo_policy_unused_module",
     choices=("include", "exclude", "bytecode"),
     default="include",
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
