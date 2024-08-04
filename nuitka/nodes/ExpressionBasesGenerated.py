@@ -80,6 +80,80 @@ ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
 ExpressionImportlibMetadataEntryPointValueRefBase = NoChildHavingFinalNoRaiseMixin
 
 
+class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionTypeVariable
+
+    def __init__(self, name, source_ref):
+        self.name = name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "name": self.name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return ()
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return ()
+
+    def replaceChild(self, old_node, new_node):
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {}
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
+
+
 class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
