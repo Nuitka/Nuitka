@@ -24,10 +24,14 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinSuper1Mixin,
     ChildrenExpressionBuiltinSuper2Mixin,
     ChildrenExpressionTypeAliasMixin,
+    ChildrenExpressionTypeMakeGenericMixin,
     ChildrenHavingInstanceClassesMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .ExpressionBasesGenerated import ExpressionSubtypeCheckBase
+from .ExpressionBasesGenerated import (
+    ExpressionSubtypeCheckBase,
+    ExpressionTypeVariableBase,
+)
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
@@ -345,6 +349,29 @@ class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
+
+
+class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
+    kind = "EXPRESSION_TYPE_VARIABLE"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("name",)
+
+
+class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, ExpressionBase):
+    kind = "EXPRESSION_TYPE_MAKE_GENERIC"
+
+    named_children = ("type_params",)
+
+    def __init__(self, type_params, source_ref):
+        ChildrenExpressionTypeMakeGenericMixin.__init__(self, type_params=type_params)
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
