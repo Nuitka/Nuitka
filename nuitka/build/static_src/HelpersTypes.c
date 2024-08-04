@@ -202,6 +202,8 @@ static PyTypeObject *getTypeAliasType(void) {
 }
 
 PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value) {
+    // TODO: For Python 3.13 we can use the intrinsic.
+
     typealiasobject *ta = Nuitka_GC_New(getTypeAliasType());
 
     // TODO: Lets follow Python new inline function in the future, this is 3.12
@@ -216,6 +218,93 @@ PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compu
 
     return (PyObject *)ta;
 }
+
+typedef struct {
+    PyObject_HEAD PyObject *name;
+    PyObject *bound;
+    PyObject *evaluate_bound;
+    PyObject *constraints;
+    PyObject *evaluate_constraints;
+    bool covariant;
+    bool contravariant;
+    bool infer_variance;
+} typevarobject;
+
+static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
+                                            PyObject *evaluate_bound, PyObject *constraints,
+                                            PyObject *evaluate_constraints, bool covariant, bool contravariant,
+                                            bool infer_variance, PyObject *module) {
+    PyTypeObject *tp = tstate->interp->cached_objects.typevar_type;
+    typevarobject *result = Nuitka_GC_New(tp);
+
+    result->name = Py_NewRef(name);
+
+    result->bound = Py_XNewRef(bound);
+    result->evaluate_bound = Py_XNewRef(evaluate_bound);
+    result->constraints = Py_XNewRef(constraints);
+    result->evaluate_constraints = Py_XNewRef(evaluate_constraints);
+
+    result->covariant = covariant;
+    result->contravariant = contravariant;
+    result->infer_variance = infer_variance;
+
+    Nuitka_GC_Track(result);
+
+    // TODO: Not seen yet.
+    if (unlikely(module != NULL)) {
+        if (PyObject_SetAttrString((PyObject *)result, "__module__", module) < 0) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name) {
+    // TODO: For Python 3.13 this would work.
+    // return _PyIntrinsics_UnaryFunctions[INTRINSIC_TYPEVAR].func(tstate, name);
+
+    return (PyObject *)_Nuitka_typevar_alloc(tstate, name, NULL, NULL, NULL, NULL, false, false, true, NULL);
+}
+
+static PyTypeObject *_getTypeGenericAliasType(void) {
+    static PyTypeObject *type_generic_alias_type = NULL;
+
+    if (type_generic_alias_type == NULL) {
+
+        PyObject *typing_module = PyImport_ImportModule("_typing");
+        CHECK_OBJECT(typing_module);
+
+        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(typing_module, "_GenericAlias");
+        CHECK_OBJECT(type_generic_alias_type);
+    }
+
+    return type_generic_alias_type;
+}
+
+static PyObject *_Nuitka_unpack_typevartuples(PyObject *params) {
+    assert(PyTuple_Check(params));
+
+    // TODO: Not implemented yet.
+
+    return Py_NewRef(params);
+}
+
+PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
+    CHECK_OBJECT(params);
+    PyObject *unpacked_params = _Nuitka_unpack_typevartuples(params);
+    CHECK_OBJECT(unpacked_params);
+
+    PyObject *args[2] = {(PyObject *)tstate->interp->cached_objects.generic_type, unpacked_params};
+
+    PyObject *called = (PyObject *)_getTypeGenericAliasType();
+
+    PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called, args);
+    Py_DECREF(unpacked_params);
+    return result;
+}
+
 #endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

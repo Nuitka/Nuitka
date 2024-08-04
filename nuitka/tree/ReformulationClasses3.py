@@ -63,6 +63,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
     mergeStatements,
 )
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
@@ -70,9 +71,13 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinType1,
     ExpressionSubtypeCheck,
     ExpressionTypeCheck,
+    ExpressionTypeMakeGeneric,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -177,10 +182,35 @@ def buildClassNode3(provider, node, source_ref):
 
     # Only local variable, for provision to methods.
     class_variable = class_locals_scope.getLocalVariable(
-        owner=class_creation_function, variable_name="__class__"
+        owner=class_creation_function,
+        variable_name="__class__",
     )
 
     class_locals_scope.registerProvidedVariable(class_variable)
+
+    if python_version >= 0x3C0:
+        type_param_nodes = node.type_params
+    else:
+        type_param_nodes = None
+
+    if type_param_nodes is not None:
+        type_params_expressions = buildNodeTuple(
+            provider=provider, nodes=type_param_nodes, source_ref=source_ref
+        )
+    else:
+        type_params_expressions = ()
+
+    type_variables = []
+
+    for type_params_expression in type_params_expressions:
+        type_variable = class_locals_scope.getLocalVariable(
+            owner=class_creation_function,
+            variable_name=type_params_expression.name,
+        )
+
+        class_locals_scope.registerProvidedVariable(type_variable)
+
+        type_variables.append(type_variable)
 
     class_variable_ref = ExpressionVariableRef(
         variable=class_variable, source_ref=source_ref
@@ -238,6 +268,35 @@ def buildClassNode3(provider, node, source_ref):
         ),
     ]
 
+    for type_variable, type_params_expression in zip(
+        type_variables, type_params_expressions
+    ):
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=type_variable,
+                source=type_params_expression,
+                source_ref=source_ref,
+            )
+        )
+
+    if type_params_expressions:
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__type_params__",
+                source=makeExpressionMakeTuple(
+                    elements=tuple(
+                        ExpressionVariableRef(
+                            variable=type_variable, source_ref=source_ref
+                        )
+                        for type_variable in type_variables
+                    ),
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
@@ -290,7 +349,9 @@ def buildClassNode3(provider, node, source_ref):
 
     needs_orig_bases = _needsOrigBases(static_qualname)
 
-    if node.bases:
+    has_bases = node.bases or type_params_expressions
+
+    if has_bases:
         tmp_bases = provider.allocateTempVariable(
             temp_scope=temp_scope, name="bases", temp_type="object"
         )
@@ -310,7 +371,7 @@ def buildClassNode3(provider, node, source_ref):
 
         needs_orig_bases = False
 
-    if node.bases and needs_orig_bases:
+    if has_bases and needs_orig_bases:
         statements.append(
             makeStatementConditional(
                 condition=makeComparisonExpression(
@@ -403,13 +464,33 @@ def buildClassNode3(provider, node, source_ref):
 
     statements = []
 
-    if node.bases:
+    if has_bases:
+        if node.bases:
+            bases_value = _buildBasesTupleCreationNode(
+                provider=provider, elements=node.bases, source_ref=source_ref
+            )
+
+            if type_params_expressions:
+                bases_value = makeBinaryOperationNode(
+                    operator="Add",
+                    left=bases_value,
+                    right=ExpressionTypeMakeGeneric(
+                        type_params=ExpressionVariableNameRef(
+                            provider=class_creation_function,
+                            variable_name="__type_params__",
+                            source_ref=source_ref,
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                )
+        else:
+            assert False
+
         statements.append(
             makeStatementAssignmentVariable(
                 variable=tmp_bases_orig if needs_orig_bases else tmp_bases,
-                source=_buildBasesTupleCreationNode(
-                    provider=provider, elements=node.bases, source_ref=source_ref
-                ),
+                source=bases_value,
                 source_ref=source_ref,
             )
         )
