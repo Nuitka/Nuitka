@@ -146,6 +146,7 @@ from .ReformulationAssignmentStatements import (
     buildInplaceAssignNode,
     buildNamedExprNode,
     buildTypeAliasNode,
+    buildTypeVarNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -778,6 +779,7 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
+        "TypeVar": buildTypeVarNode,
     },
     path_args1={"Ellipsis": buildEllipsisNode},
 )

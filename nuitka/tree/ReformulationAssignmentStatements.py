@@ -53,7 +53,7 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionTypeAlias
+from nuitka.nodes.TypeNodes import ExpressionTypeAlias, ExpressionTypeVariable
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
@@ -1219,6 +1219,10 @@ def buildNamedExprNode(provider, node, source_ref):
     )
 
     return outline_body
+
+
+def buildTypeVarNode(node, source_ref):
+    return ExpressionTypeVariable(node.name, source_ref=source_ref)
 
 
 def buildTypeAliasNode(provider, node, source_ref):
