@@ -11,6 +11,7 @@ def calledRepeatedly():
     global module_var
     c = module_var
 
+    # TODO: Should also cover tuples, lists, and objects
     iterator = iter(range(range_arg))
 
     # construct_begin
