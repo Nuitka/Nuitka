@@ -292,7 +292,7 @@ def _getCcacheStatistics(ccache_logfile):
                 result = result.strip()
 
                 try:
-                    command = data[commands[pid]]
+                    command = commands[pid]
                 except KeyError:
                     # It seems writing to the file can be lossy, so we can have results for
                     # unknown commands, but we don't use the command yet anyway, so just
