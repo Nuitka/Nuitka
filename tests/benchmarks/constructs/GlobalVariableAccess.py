@@ -7,17 +7,17 @@ module_value1 = 1000
 module_value2 = 2000
 
 
-def calledRepeatedly():
-    module_value1
-    # construct_begin
-    return module_value2
-    # construct_alternative
-    return None
-    # construct_end
+def calledRepeatedly(cond):
+    if cond:
+        return module_value2
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 
