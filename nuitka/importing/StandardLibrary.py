@@ -141,52 +141,53 @@ def isStandardLibraryPath(filename):
     return _is_standard_library_path_cache[filename]
 
 
-# Some modules we want to exclude entirely.
-_excluded_stdlib_modules = ["__main__.py", "__init__.py", "antigravity.py"]
-
-if not isWin32Windows():
-    # On posix systems, and posix Python variants on Windows, this won't
-    # work.
-    _excluded_stdlib_modules.append("wintypes.py")
-    _excluded_stdlib_modules.append("cp65001.py")
-
-
 def scanStandardLibraryPath(stdlib_dir):
     # There is a lot of filtering here, done in branches, so there is many of
-    # them, but that's acceptable, pylint: disable=too-many-branches,too-many-statements
+    # them, but that's acceptable, pylint: disable=too-many-branches
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir) :].strip("/\\")
         import_path = import_path.replace("\\", ".").replace("/", ".")
 
+        def _removeFilenamesIfPresent(*remove_filenames):
+            # pylint: intended for loop usage, pylint: disable=cell-var-from-loop
+            for remove_filename in remove_filenames:
+                if remove_filename in filenames:
+                    filenames.remove(remove_filename)
+
+        def _removeDirsIfPresent(*remove_dirs):
+            # pylint: intended for loop usage, pylint: disable=cell-var-from-loop
+            for remove_dir in remove_dirs:
+                if remove_dir in dirs:
+                    dirs.remove(remove_dir)
+
+        _removeDirsIfPresent("__pycache__")
+
+        # Ignore ".idea", ".git" and similar folders, they are not modules
+        dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
+
         if import_path == "":
-            if "site-packages" in dirs:
-                dirs.remove("site-packages")
-            if "dist-packages" in dirs:
-                dirs.remove("dist-packages")
-            if "vendor-packages" in dirs:
-                dirs.remove("vendor-packages")
-            if "test" in dirs:
-                dirs.remove("test")
-            if "turtledemo" in dirs:
-                dirs.remove("turtledemo")
-
-            if "ensurepip" in filenames:
-                filenames.remove("ensurepip")
-            if "ensurepip" in dirs:
-                dirs.remove("ensurepip")
-
-            if "_ios_support.py" in filenames and not isMacOS():
-                filenames.remove("_ios_support.py")
-
             # Ignore "lib-dynload" and "lib-tk" and alike.
             dirs[:] = [
                 dirname
                 for dirname in dirs
                 if not dirname.startswith("lib-")
-                if dirname != "Tools"
                 if not dirname.startswith("plat-")
             ]
+
+            _removeDirsIfPresent(
+                "site-packages",
+                "dist-packages",
+                "vendor-packages",
+                "test",
+                "ensurepip",
+                "turtledemo",
+                "Tools",
+            )
+            _removeFilenamesIfPresent("ensurepip")
+
+            if not isMacOS():
+                _removeFilenamesIfPresent("_ios_support.py")
 
         if import_path in (
             "tkinter",
@@ -199,51 +200,46 @@ def scanStandardLibraryPath(stdlib_dir):
             "email",
             "bsddb",
         ):
-            if "test" in dirs:
-                dirs.remove("test")
+            _removeDirsIfPresent("test")
+
+        if import_path in ("lib2to3", "json", "distutils"):
+            _removeDirsIfPresent("tests")
 
         if import_path == "distutils.command":
             # Misbehaving and crashing while importing the world.
-            if "bdist_conda.py" in filenames:
-                filenames.remove("bdist_conda.py")
-
-        if import_path in ("lib2to3", "json", "distutils"):
-            if "tests" in dirs:
-                dirs.remove("tests")
+            _removeFilenamesIfPresent("bdist_conda.py")
 
         if import_path == "asyncio":
-            if "test_utils.py" in filenames:
-                filenames.remove("test_utils.py")
-
-        if python_version >= 0x340 and isWin32Windows():
-            if import_path == "multiprocessing":
-                filenames.remove("popen_fork.py")
-                filenames.remove("popen_forkserver.py")
-                filenames.remove("popen_spawn_posix.py")
+            _removeFilenamesIfPresent("test_utils.py")
 
         if python_version >= 0x300 and isPosixWindows():
+            if import_path == "multiprocessing":
+                _removeFilenamesIfPresent(
+                    "popen_fork.py", "popen_forkserver.py", "popen_spawn_posix.py"
+                )
+
             if import_path == "curses":
-                filenames.remove("has_key.py")
+                _removeFilenamesIfPresent("has_key.py")
 
         if isNetBSD():
             if import_path == "xml.sax":
-                filenames.remove("expatreader.py")
+                _removeFilenamesIfPresent("expatreader.py")
+
+        _removeFilenamesIfPresent("__main__.py", "__init__.py", "antigravity.py")
+
+        if not isWin32Windows():
+            # On POSIX systems, and on POSIX Python variants on Windows, this
+            # won't work.
+            _removeFilenamesIfPresent("wintypes.py", "cp65001.py")
 
         for filename in filenames:
-            if filename.endswith(".py") and filename not in _excluded_stdlib_modules:
+            if filename.endswith(".py"):
                 module_name = filename[:-3]
 
                 if import_path == "":
                     yield ModuleName(module_name)
                 else:
                     yield ModuleName(import_path + "." + module_name)
-
-        if python_version >= 0x300:
-            if "__pycache__" in dirs:
-                dirs.remove("__pycache__")
-
-        # Ignore ".idea", ".git" and similar folders, they are not modules
-        dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
 
         for dirname in dirs:
             if import_path == "":
