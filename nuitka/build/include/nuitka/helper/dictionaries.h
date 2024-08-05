@@ -31,7 +31,7 @@ static PyDictEntry *GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObjec
 
     // Only improvement would be to identify how to ensure that the hash is
     // computed already. Calling hash early on could do that potentially.
-    if (hash == -1) {
+    if (unlikely(hash == -1)) {
         hash = PyString_Type.tp_hash((PyObject *)key);
         key->ob_shash = hash;
     }
