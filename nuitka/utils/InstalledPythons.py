@@ -195,10 +195,15 @@ def findPythons(python_version, module_name=None, module_version=None):
         _installed_pythons[python_version] = result
 
     return tuple(
-        candidate
-        for candidate in _installed_pythons[python_version]
-        if candidate.checkUsability(
-            module_name=module_name, module_version=module_version
+        sorted(
+            (
+                candidate
+                for candidate in _installed_pythons[python_version]
+                if candidate.checkUsability(
+                    module_name=module_name, module_version=module_version
+                )
+            ),
+            key=lambda c: c.getPythonExe(),
         )
     )
 

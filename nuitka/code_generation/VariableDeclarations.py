@@ -135,7 +135,7 @@ class VariableStorage(object):
         "variable_declarations_main",
         "variable_declarations_closure",
         "variable_declarations_locals",
-        "exception_variable_declarations",
+        "exception_variable_name",
     )
 
     def __init__(self, heap_name):
@@ -147,7 +147,7 @@ class VariableStorage(object):
 
         self.variable_declarations_locals = []
 
-        self.exception_variable_declarations = None
+        self.exception_variable_name = None
 
     @contextmanager
     def withLocalStorage(self):
@@ -197,19 +197,19 @@ class VariableStorage(object):
         ]
 
     def getExceptionVariableDescriptions(self):
-        if self.exception_variable_declarations is None:
-            self.exception_variable_declarations = (
-                self.addVariableDeclarationTop("PyObject *", "exception_type", "NULL"),
-                self.addVariableDeclarationTop("PyObject *", "exception_value", "NULL"),
+        if self.exception_variable_name is None:
+            self.exception_variable_name = (
                 self.addVariableDeclarationTop(
-                    "PyTracebackObject *", "exception_tb", "NULL"
+                    "struct Nuitka_ExceptionPreservationItem",
+                    "exception_state",
+                    "Empty_Nuitka_ExceptionPreservationItem",
                 ),
                 self.addVariableDeclarationTop(
                     "NUITKA_MAY_BE_UNUSED int", "exception_lineno", "0"
                 ),
             )
 
-        return self.exception_variable_declarations
+        return self.exception_variable_name
 
     def addVariableDeclarationLocal(self, c_type, code_name):
         result = VariableDeclaration(c_type, code_name, None, None)

@@ -42,36 +42,36 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mis
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
 }
 
-void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_UnboundLocalError;
-    Py_INCREF(*exception_type);
-
+void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                PyObject *variable_name) {
 #if PYTHON_VERSION < 0x300
     char const *message = "local variable '%s' referenced before assignment";
-    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
+    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
 #elif PYTHON_VERSION < 0x3b0
     char const *message = "local variable '%U' referenced before assignment";
-    *exception_value = Nuitka_String_FromFormat(message, variable_name);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #else
     char const *message = "cannot access local variable '%U' where it is not associated with a value";
-    *exception_value = Nuitka_String_FromFormat(message, variable_name);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #endif
 
-    CHECK_OBJECT(*exception_value);
+    CHECK_OBJECT(exception_value);
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_UnboundLocalError,
+                                                       exception_value);
 }
 
-void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_NameError;
-    Py_INCREF(*exception_type);
-
+void FORMAT_UNBOUND_CLOSURE_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                  PyObject *variable_name) {
 #if PYTHON_VERSION < 0x3b0
     char const *message = "free variable '%s' referenced before assignment in enclosing scope";
 #else
     char const *message = "cannot access free variable '%s' where it is not associated with a value in enclosing scope";
 #endif
 
-    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
-    CHECK_OBJECT(*exception_value);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(exception_value);
+
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_NameError, exception_value);
 }
 
 static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
@@ -96,6 +96,10 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
     }
 
     return exc;
+}
+
+PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
+    return _Nuitka_Err_CreateException(tstate, exception_type, value);
 }
 
 // Our replacement for PyErr_NormalizeException, that however does not attempt

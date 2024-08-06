@@ -49,7 +49,7 @@ class TempMixin(object):
         self.false_target = None
 
         self.keeper_variable_count = 0
-        self.exception_keepers = (None, None, None, None)
+        self.exception_keepers = (None, None)
 
         self.preserver_variable_declaration = {}
 
@@ -169,24 +169,14 @@ class TempMixin(object):
         debug = Options.is_debug and python_version >= 0x300
 
         if debug:
-            keeper_obj_init = "NULL"
+            keeper_obj_init = "Empty_Nuitka_ExceptionPreservationItem"
         else:
             keeper_obj_init = None
 
         return (
             self.variable_storage.addVariableDeclarationTop(
-                "PyObject *",
-                "exception_keeper_type_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-            ),
-            self.variable_storage.addVariableDeclarationTop(
-                "PyObject *",
-                "exception_keeper_value_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-            ),
-            self.variable_storage.addVariableDeclarationTop(
-                "PyTracebackObject *",
-                "exception_keeper_tb_%d" % self.keeper_variable_count,
+                "struct Nuitka_ExceptionPreservationItem",
+                "exception_keeper_name_%d" % self.keeper_variable_count,
                 keeper_obj_init,
             ),
             self.variable_storage.addVariableDeclarationTop(
@@ -202,6 +192,7 @@ class TempMixin(object):
     def setExceptionKeeperVariables(self, keeper_vars):
         result = self.exception_keepers
         self.exception_keepers = tuple(keeper_vars)
+        assert len(self.exception_keepers) == 2
         return result
 
     def addExceptionPreserverVariables(self, preserver_id):

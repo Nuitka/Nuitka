@@ -16,11 +16,10 @@ from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
-    getExternalUsePath,
     getFileContents,
     getFileSize,
     hasFilenameExtension,
-    isFilesystemEncodable,
+    makeFilesystemEncodable,
     makePath,
     putTextFileContents,
     removeFileExecutablePermission,
@@ -372,8 +371,6 @@ Error, expected 'libpython dependency not found. Please report the bug."""
 
     # Might have to create a CMD file, potentially with debugger run.
     if Options.shallCreateCmdFileForExecution():
-        dll_directory = getExternalUsePath(os.path.dirname(getTargetPythonDLLPath()))
-
         cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
 
         cmd_contents = """
@@ -389,14 +386,12 @@ set NUITKA_PYTHONPATH=%(python_path)s
                 if Options.shallRunInDebugger()
                 else ""
             ),
-            "dll_directory": dll_directory,
-            "python_home": sys.prefix,
-            "python_path": ";".join(sys.path),
-            "exe_filename": os.path.basename(
-                result_filename
-                if isFilesystemEncodable(result_filename)
-                else getExternalUsePath(result_filename)
+            "dll_directory": makeFilesystemEncodable(
+                os.path.dirname(getTargetPythonDLLPath())
             ),
+            "python_home": makeFilesystemEncodable(sys.prefix),
+            "python_path": ";".join(makeFilesystemEncodable(e) for e in sys.path),
+            "exe_filename": os.path.basename(makeFilesystemEncodable(result_filename)),
         }
 
         putTextFileContents(cmd_filename, cmd_contents)

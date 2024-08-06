@@ -5,9 +5,11 @@
 
 import os
 
-from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from .ConstantRefNodes import makeConstantRefNode
-from .ExceptionNodes import ExpressionRaiseException
+from .ExceptionNodes import (
+    ExpressionRaiseException,
+    makeBuiltinMakeExceptionNode,
+)
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
     ExpressionOsListdirCallBase,
@@ -156,14 +158,19 @@ class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
 
 
 def makeExpressionSysExitCall(exit_code, source_ref):
+
     if exit_code is None:
-        exit_code = makeConstantRefNode(constant=None, source_ref=source_ref)
+        args = ()
+    else:
+        args = (exit_code,)
 
     return ExpressionRaiseException(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name="SystemExit", source_ref=source_ref
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name="SystemExit",
+            args=args,
+            for_raise=True,
+            source_ref=source_ref,
         ),
-        exception_value=exit_code,
         source_ref=source_ref,
     )
 

@@ -345,7 +345,11 @@ from .SubscriptCodes import (
 from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
-from .TypeAliasCodes import generateTypeAliasCode
+from .TypeAliasCodes import (
+    generateTypeAliasCode,
+    generateTypeGenericCode,
+    generateTypeVarCode,
+)
 from .VariableCodes import (
     generateAssignmentVariableCode,
     generateDelVariableCode,
@@ -946,6 +950,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
+        "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
+        "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
@@ -1028,7 +1034,6 @@ setStatementDispatchDict(
         "STATEMENT_LOOP_BREAK": generateLoopBreakCode,
         "STATEMENT_LOOP_CONTINUE": generateLoopContinueCode,
         "STATEMENT_RAISE_EXCEPTION": generateRaiseCode,
-        "STATEMENT_RAISE_EXCEPTION_IMPLICIT": generateRaiseCode,
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,

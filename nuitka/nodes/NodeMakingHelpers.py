@@ -31,8 +31,10 @@ def makeConstantReplacementNode(constant, node, user_provided):
 def makeRaiseExceptionReplacementExpression(
     expression, exception_type, exception_value, no_warning=False
 ):
-    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-    from .ExceptionNodes import ExpressionRaiseException
+    from .ExceptionNodes import (
+        ExpressionRaiseException,
+        makeBuiltinMakeExceptionNode,
+    )
 
     source_ref = expression.source_ref
 
@@ -48,12 +50,22 @@ def makeRaiseExceptionReplacementExpression(
             )
         )
 
+    if type(exception_value) is not tuple:
+        exception_value = (exception_value,)
+
+    args = tuple(
+        makeConstantReplacementNode(
+            constant=element, node=expression, user_provided=False
+        )
+        for element in exception_value
+    )
+
     result = ExpressionRaiseException(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name=exception_type, source_ref=source_ref
-        ),
-        exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=expression, user_provided=False
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name=exception_type,
+            args=args,
+            for_raise=False,
+            source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
@@ -61,15 +73,19 @@ def makeRaiseExceptionReplacementExpression(
     return result
 
 
-def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_value):
-    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-    from .ExceptionNodes import StatementRaiseExceptionImplicit
+def makeRaiseExceptionReplacementStatement(
+    statement, exception_type, exception_value, no_warning=False
+):
+    from .ExceptionNodes import (
+        StatementRaiseException,
+        makeBuiltinMakeExceptionNode,
+    )
 
     source_ref = statement.getSourceReference()
 
     assert type(exception_type) is str
 
-    if Options.shallWarnImplicitRaises():
+    if not no_warning and Options.shallWarnImplicitRaises():
         unusual_logger.warning(
             '%s: Will always raise exception: "%s(%s)"'
             % (
@@ -79,13 +95,18 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
             )
         )
 
-    result = StatementRaiseExceptionImplicit(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name=exception_type, source_ref=source_ref
+    result = StatementRaiseException(
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name=exception_type,
+            args=(
+                makeConstantReplacementNode(
+                    constant=exception_value, node=statement, user_provided=False
+                ),
+            ),
+            for_raise=False,
+            source_ref=source_ref,
         ),
-        exception_value=makeConstantReplacementNode(
-            constant=exception_value, node=statement, user_provided=False
-        ),
+        exception_value=None,
         exception_cause=None,
         exception_trace=None,
         source_ref=source_ref,
@@ -97,41 +118,35 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type, exception_
 def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     assert isinstance(exception, Exception)
 
-    args = exception.args
-    if type(args) is tuple and len(args) == 1:
-        value = args[0]
-    else:
-        assert type(args) is tuple
-        value = args
-
     return makeRaiseExceptionReplacementExpression(
         expression=expression,
         exception_type=exception.__class__.__name__,
-        exception_value=value,
+        exception_value=exception.args,
     )
 
 
 def makeRaiseExceptionStatementFromInstance(exception, source_ref):
     assert isinstance(exception, Exception)
 
-    args = exception.args
-    if type(args) is tuple and len(args) == 1:
-        value = args[0]
-    else:
-        assert type(args) is tuple
-        value = args
-
-    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
     from .ConstantRefNodes import makeConstantRefNode
-    from .ExceptionNodes import StatementRaiseExceptionImplicit
+    from .ExceptionNodes import (
+        StatementRaiseException,
+        makeBuiltinMakeExceptionNode,
+    )
 
-    return StatementRaiseExceptionImplicit(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name=exception.__class__.__name__, source_ref=source_ref
+    args_value = tuple(
+        makeConstantRefNode(constant=arg, source_ref=source_ref, user_provided=False)
+        for arg in exception.args
+    )
+
+    return StatementRaiseException(
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name=exception.__class__.__name__,
+            args=args_value,
+            for_raise=False,
+            source_ref=source_ref,
         ),
-        exception_value=makeConstantRefNode(
-            constant=value, source_ref=source_ref, user_provided=False
-        ),
+        exception_value=None,
         exception_cause=None,
         exception_trace=None,
         source_ref=source_ref,
@@ -141,10 +156,12 @@ def makeRaiseExceptionStatementFromInstance(exception, source_ref):
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
-    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
     from .ConstantRefNodes import makeConstantRefNode
     from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-    from .ExceptionNodes import ExpressionRaiseException
+    from .ExceptionNodes import (
+        ExpressionRaiseException,
+        makeBuiltinMakeExceptionNode,
+    )
     from .OperatorNodes import makeBinaryOperationNode
 
     if type(template_args) is tuple:
@@ -153,15 +170,19 @@ def makeRaiseExceptionExpressionFromTemplate(
         )
 
     return ExpressionRaiseException(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name=exception_type, source_ref=source_ref
-        ),
-        exception_value=makeBinaryOperationNode(
-            operator="Mod",
-            left=makeConstantRefNode(
-                constant=template, source_ref=source_ref, user_provided=True
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name=exception_type,
+            args=(
+                makeBinaryOperationNode(
+                    operator="Mod",
+                    left=makeConstantRefNode(
+                        constant=template, source_ref=source_ref, user_provided=True
+                    ),
+                    right=template_args,
+                    source_ref=source_ref,
+                ),
             ),
-            right=template_args,
+            for_raise=False,
             source_ref=source_ref,
         ),
         source_ref=source_ref,

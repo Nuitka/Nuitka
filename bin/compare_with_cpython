@@ -13,6 +13,8 @@ import sys
 # package ought to be there.
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
+os.environ.setdefault("PYTHON", sys.executable)
+
 # isort:start
 
 from nuitka.tools.testing.compare_with_cpython.__main__ import main

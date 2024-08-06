@@ -210,11 +210,11 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'lib2to3.pgen2' # checksum: d93c2df9
+- module-name: 'lib2to3.pgen2' # checksum: 34ec8d8f
   data-files:
-    patterns:
-      - '../*.pickle'
-    when: 'not debian_python'
+    - patterns:
+        - '../*.pickle'
+      when: 'not debian_python'
 
 - module-name: 'lib2to3.pgen2.literals' # checksum: 820d21fd
   anti-bloat:
@@ -320,10 +320,10 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'site' # checksum: af03d0bd
+- module-name: 'site' # checksum: cf73d34
   data-files:
-    patterns:
-      - 'orig-prefix.txt'
+    - patterns:
+        - 'orig-prefix.txt'
 
 - module-name: 'sndhdr' # checksum: 820d21fd
   anti-bloat:

@@ -1,0 +1,18 @@
+jobs:
+- job:
+  displayName: 'Ubuntu develop'
+  timeoutInMinutes: 0
+  pool: DevOps-Ubuntu
+
+  steps:
+
+  - task: Cache@2
+    inputs:
+      key: '"ubuntu-pipenv" | "$(Build.BuildNumber)"'
+      path: '../pipenv_cache'
+      restoreKeys: |
+       "ubuntu-pipenv"
+
+  - task: CmdLine@2
+    inputs:
+      script: 'python3.11 tests/run-tests'

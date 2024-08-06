@@ -76,7 +76,7 @@ from inspect import getsource
                 ),
             )
         except NuitkaCalledProcessError as e:
-            self.debug("Exception during detection: %r" % e)
+            self.debug("Exception during detection: %s" % str(e))
 
             if "MPLBACKEND" not in os.environ:
                 self.sysexit(
@@ -183,6 +183,7 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
             if hasActivePlugin("tk-inter"):
                 return True, "Needed for tkinter matplotlib backend"
 
+        # For Qt binding, include matplotlib backend, spell-checker: ignore qtagg
         if module_name == "matplotlib.backends.backend_qtagg":
             if getActiveQtPluginBindingName() is not None:
                 return True, "Needed for qt matplotlib backend"

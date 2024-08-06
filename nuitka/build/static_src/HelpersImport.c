@@ -155,7 +155,7 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
     }
 
     for (;;) {
-        PyObject *item = ITERATOR_NEXT(iter);
+        PyObject *item = ITERATOR_NEXT_ITERATOR(iter);
         if (item == NULL) {
             break;
         }

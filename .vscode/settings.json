@@ -79,7 +79,10 @@
         "xlocnum": "c",
         "xloctime": "c",
         "xmemory": "c",
-        "xiosbase": "c"
+        "xiosbase": "c",
+        "cstdlib": "c",
+        "span": "c",
+        "format": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
@@ -197,6 +200,7 @@
         "genericalias",
         "genexpr",
         "getattrofunc",
+        "getiterfunc",
         "getpreferredencoding",
         "gettotalrefcount",
         "girepository",
@@ -229,6 +233,7 @@
         "iterdir",
         "iteritems",
         "iterkeys",
+        "iternext",
         "iternextfunc",
         "itervalues",
         "joinpath",

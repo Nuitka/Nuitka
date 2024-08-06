@@ -8,6 +8,8 @@
 #define NDEBUG
 #endif
 
+#include "nuitka/debug_settings.h"
+
 #if defined(_WIN32)
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>

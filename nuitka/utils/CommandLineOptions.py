@@ -12,21 +12,44 @@ from optparse import (
     OptionParser,
 )
 
+from nuitka.Tracing import formatTerminalLink
+
 # For re-export only:
 from optparse import SUPPRESS_HELP  # isort:skip pylint: disable=unused-import
 
 
 class OurOptionGroup(OptionGroup):
+    def __init__(self, *args, **kwargs):
+        link = kwargs.pop("link", None)
+
+        OptionGroup.__init__(self, *args, **kwargs)
+
+        self.link = link
+
+    def format_help(self, formatter):
+        old_title = self.title
+
+        try:
+            if self.link is not None:
+                link = "https://nuitka.net/help/%s.html" % self.link
+
+                self.title = formatTerminalLink(self.title, link)
+            return OptionGroup.format_help(self, formatter)
+        finally:
+            self.title = old_title
+
     def add_option(self, *args, **kwargs):
         require_compiling = kwargs.pop("require_compiling", True)
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
+        link = kwargs.pop("github_action_default", None)
 
         result = OptionGroup.add_option(self, *args, **kwargs)
 
         result.require_compiling = require_compiling
         result.github_action = github_action
         result.github_action_default = github_action_default
+        result.link = link
 
         return result
 
@@ -99,11 +122,11 @@ class OurOptionParser(OptionParser):
 
         return result
 
-    def add_option_group(self, group):
+    def add_option_group(self, group, link=None):
         # We restrain ourselves here, pylint: disable=arguments-differ
 
         if isinstance(group, str):
-            group = OurOptionGroup(self, group)
+            group = OurOptionGroup(self, group, link=link)
         self.option_groups.append(group)
 
         return group

@@ -87,17 +87,13 @@ def getCoroutineObjectCode(
 
     if needs_exception_exit:
         (
-            exception_type,
-            exception_value,
-            exception_tb,
+            exception_state_name,
             _exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
         generator_exit = template_coroutine_exception_exit % {
             "function_cleanup": indented(function_cleanup),
-            "exception_type": exception_type,
-            "exception_value": exception_value,
-            "exception_tb": exception_tb,
+            "exception_state_name": exception_state_name,
         }
     else:
         generator_exit = template_coroutine_noexception_exit % {

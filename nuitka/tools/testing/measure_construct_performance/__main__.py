@@ -143,6 +143,7 @@ def main():
             "--no-progressbar",
             "--nofollow-imports",
             "--python-flag=no_site",
+            "--static-libpython=yes",
         ]
 
         nuitka_call.extend(os.getenv("NUITKA_EXTRA_OPTIONS", "").split())

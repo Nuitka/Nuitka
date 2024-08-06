@@ -279,7 +279,7 @@ def _getCcacheStatistics(ccache_logfile):
         # can be matched against it.
         commands = {}
 
-        for line in getFileContentByLine(ccache_logfile, encoding="utf8"):
+        for line in getFileContentByLine(ccache_logfile):
             match = re_command.match(line)
 
             if match:

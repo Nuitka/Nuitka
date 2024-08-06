@@ -18,15 +18,10 @@ from nuitka.Builtins import (
     builtin_type_names,
 )
 from nuitka.Options import hasPythonFlagNoAsserts
-from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExceptionNodes import (
-    ExpressionBuiltinMakeException,
-    ExpressionBuiltinMakeExceptionImportError,
-    ExpressionBuiltinMakeExceptionModuleNotFoundError,
-)
+from .ExceptionNodes import makeBuiltinMakeExceptionNode
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
@@ -267,33 +262,19 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         exception_name = self.getExceptionName()
 
-        def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
-            if exception_name == "ImportError" and python_version >= 0x300:
-                return ExpressionBuiltinMakeExceptionImportError(
-                    args=args,
-                    name=name,
-                    path=path,
-                    source_ref=source_ref,
-                )
-            elif exception_name == "ModuleNotFoundError" and python_version >= 0x360:
-                return ExpressionBuiltinMakeExceptionModuleNotFoundError(
-                    args=args,
-                    name=name,
-                    path=path,
-                    source_ref=source_ref,
-                )
-            else:
-                # We expect to only get the star arguments for these.
-                assert name is None
-                assert path is None
-
-                return ExpressionBuiltinMakeException(
-                    exception_name=exception_name, args=args, source_ref=source_ref
-                )
+        def createBuiltinMakeExceptionNode(args, name=None, path=None, source_ref=None):
+            return makeBuiltinMakeExceptionNode(
+                exception_name=exception_name,
+                args=args,
+                name=name,
+                path=path,
+                for_raise=False,
+                source_ref=source_ref,
+            )
 
         new_node = BuiltinParameterSpecs.extractBuiltinArgs(
             node=call_node,
-            builtin_class=createBuiltinMakeException,
+            builtin_class=createBuiltinMakeExceptionNode,
             builtin_spec=BuiltinParameterSpecs.makeBuiltinExceptionParameterSpec(
                 exception_name=exception_name
             ),

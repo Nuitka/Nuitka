@@ -162,12 +162,12 @@ def simpleFunction9():
     return b
 
 
-async def rmtree(path):
-    return await asyncio.get_event_loop().run_in_executor(None, sync_rmtree, path)
-
-
 def sync_rmtree(path):
     raise FileNotFoundError
+
+
+async def rmtree(path):
+    return await asyncio.get_event_loop().run_in_executor(None, sync_rmtree, path)
 
 
 async def execute():

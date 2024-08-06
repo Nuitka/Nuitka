@@ -125,46 +125,30 @@ def generateTryCode(statement, emit, context):
 
         # Need to preserve exception state.
         (
-            keeper_type,
-            keeper_value,
-            keeper_tb,
+            keeper_exception_state_name,
             keeper_lineno,
         ) = context.allocateExceptionKeeperVariables()
 
         old_keepers = context.setExceptionKeeperVariables(
-            (keeper_type, keeper_value, keeper_tb, keeper_lineno)
+            (keeper_exception_state_name, keeper_lineno)
         )
 
-        assert keeper_type is not None
-
         (
-            exception_type,
-            exception_value,
-            exception_tb,
+            exception_state_name,
             exception_lineno,
         ) = context.variable_storage.getExceptionVariableDescriptions()
 
-        # TODO: That normalization and chaining is only necessary if the
-        # exception is published.
         emit(
             """\
-%(keeper_type)s = %(exception_type)s;
-%(keeper_value)s = %(exception_value)s;
-%(keeper_tb)s = %(exception_tb)s;
 %(keeper_lineno)s = %(exception_lineno)s;
-%(exception_type)s = NULL;
-%(exception_value)s = NULL;
-%(exception_tb)s = NULL;
 %(exception_lineno)s = 0;
+%(keeper_exception_state_name)s = %(exception_state_name)s;
+INIT_ERROR_OCCURRED_STATE(&%(exception_state_name)s);
 """
             % {
-                "keeper_type": keeper_type,
-                "keeper_value": keeper_value,
-                "keeper_tb": keeper_tb,
+                "keeper_exception_state_name": keeper_exception_state_name,
                 "keeper_lineno": keeper_lineno,
-                "exception_type": exception_type,
-                "exception_value": exception_value,
-                "exception_tb": exception_tb,
+                "exception_state_name": exception_state_name,
                 "exception_lineno": exception_lineno,
             }
         )

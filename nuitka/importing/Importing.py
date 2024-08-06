@@ -826,7 +826,7 @@ def locateModule(module_name, parent_package, level):
 
     assert module_package is None or (
         type(module_package) is ModuleName and module_package != ""
-    ), repr(module_package)
+    ), ("Must not attempt to locate %r" % module_name)
 
     if module_filename is not None:
         module_filename = os.path.normpath(module_filename)

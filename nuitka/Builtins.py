@@ -212,6 +212,37 @@ builtin_anon_values = OrderedDict((b, a) for a, b in builtin_anon_names.items())
 # a hash.
 builtin_anon_value_list = tuple(builtin_anon_values)
 
+_exception_size_cache = {}
+
+
+def _getExceptionObjectSize(exception_type):
+    if exception_type not in _exception_size_cache:
+        # spell-checker: ignore getsizeof
+        _exception_size_cache[exception_type] = sys.getsizeof(exception_type())
+
+    return _exception_size_cache[exception_type]
+
+
+_base_exception_size = _getExceptionObjectSize(BaseException)
+
+
+def isBaseExceptionSimpleExtension(exception_type):
+    def checkBases(exc_type):
+        for base_exception_type in exc_type.__bases__:
+            if base_exception_type is BaseException:
+                return True
+
+            if checkBases(base_exception_type):
+                return True
+
+        return False
+
+    return (
+        checkBases(exception_type)
+        and _getExceptionObjectSize(exception_type) == _base_exception_size
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

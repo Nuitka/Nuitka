@@ -690,7 +690,6 @@ class StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOp
 
     # This is generated for use in
     #   StatementRaiseException
-    #   StatementRaiseExceptionImplicit
 
     def __init__(
         self,
@@ -878,7 +877,6 @@ class StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOp
 
 # Assign the names that are easier to import with a stable name.
 StatementRaiseExceptionBase = StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOptionalExceptionCauseOptionalOperationPostInitMixin
-StatementRaiseExceptionImplicitBase = StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOptionalExceptionCauseOptionalOperationPostInitMixin
 
 
 class StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):

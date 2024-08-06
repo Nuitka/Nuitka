@@ -155,7 +155,7 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
         # Rewrite exceptions to correct message.
         if (
             result_node.isExpressionRaiseException()
-            and result_node.subnode_exception_type.isExpressionBuiltinExceptionRef()
+            and result_node.subnode_exception_type.isExpressionBuiltinMakeException()
             and result_node.subnode_exception_type.getExceptionName() == "TypeError"
         ):
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
