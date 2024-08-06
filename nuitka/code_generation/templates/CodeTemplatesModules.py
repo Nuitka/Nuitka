@@ -152,7 +152,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
 
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
-    PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
+    PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
 #if PYTHON_VERSION >= 0x300
