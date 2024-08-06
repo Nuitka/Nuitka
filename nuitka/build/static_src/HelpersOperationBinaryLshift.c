@@ -935,8 +935,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
     if (a == 0 || b == 0) {
         goto exit_result_ok_left;
     } else if (b >= LONG_BIT) {
-        PyObject *operand1_long = PyLong_FromLong(a);
-        PyObject *operand2_long = PyLong_FromLong(b);
+        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
         // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -950,8 +950,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
         long c = a << b;
 
         if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -968,7 +968,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_INT(PyObject *operand1, PyO
     }
 
 exit_result_ok_clong:
-    result = PyInt_FromLong(clong_result);
+    result = Nuitka_LongFromCLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok_left:
@@ -1173,8 +1173,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1188,8 +1188,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1206,7 +1206,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_INT(PyObject *operand1, 
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1427,8 +1427,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1442,8 +1442,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1460,7 +1460,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_INT_OBJECT(PyObject *operand1, 
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1531,8 +1531,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
     if (a == 0 || b == 0) {
         goto exit_result_ok_left;
     } else if (b >= LONG_BIT) {
-        PyObject *operand1_long = PyLong_FromLong(a);
-        PyObject *operand2_long = PyLong_FromLong(b);
+        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
         // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1546,8 +1546,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_INT(PyObject *operand1, Py
         long c = a << b;
 
         if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1777,8 +1777,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1792,8 +1792,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_INT(PyObject *operand1,
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2039,8 +2039,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2054,8 +2054,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1,
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2366,8 +2366,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2381,8 +2381,8 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2399,7 +2399,7 @@ static PyObject *_BINARY_OPERATION_LSHIFT_OBJECT_OBJECT_OBJECT(PyObject *operand
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -2614,8 +2614,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -2629,8 +2629,8 @@ static nuitka_bool _BINARY_OPERATION_LSHIFT_NBOOL_OBJECT_OBJECT(PyObject *operan
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
