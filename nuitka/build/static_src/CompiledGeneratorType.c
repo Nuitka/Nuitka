@@ -561,7 +561,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         }
 
 #if _DEBUG_GENERATOR
-        PRINT_GENERATOR_STATUS("Switching to coroutine", generator);
+        PRINT_GENERATOR_STATUS("Switching to generator", generator);
         PRINT_COROUTINE_VALUE("value", value);
         PRINT_CURRENT_EXCEPTION();
         PRINT_NEW_LINE();
