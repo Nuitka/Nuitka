@@ -5089,15 +5089,20 @@
 
 - module-name: 'playwright'
   data-files:
-    dirs:
-      - 'driver'
+    patterns:
+      - '**/*.json'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.html'
+      - '**/*.css'
+      - '**/*.svg'
+
   dlls:
     - from_filenames:
         relative_path: 'driver'
         prefixes:
           - 'node'
         executable: 'yes'
-      when: 'win32'
 
 - module-name: 'selenium_stealth' # checksum: 3ebe1284
   data-files:
