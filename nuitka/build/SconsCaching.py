@@ -268,8 +268,6 @@ def _writeClcacheStatistics():
 
 
 def _getCcacheStatistics(ccache_logfile):
-    # parsing ccache is a bit complicated as we need to work around bugs
-    # and version differences, pylint: disable=too-many-branches
     data = {}
 
     if os.path.exists(ccache_logfile):
@@ -281,16 +279,7 @@ def _getCcacheStatistics(ccache_logfile):
         # can be matched against it.
         commands = {}
 
-        # Remove Hostname, these can be strangely encoded.
-        ccache_contents = getFileContents(ccache_logfile, mode="rb")
-        ccache_contents = b"\n".join(
-            line for line in ccache_contents.splitlines() if b"Hostname:" not in line
-        )
-
-        if str is not bytes:
-            ccache_contents = ccache_contents.decode("utf8")
-
-        for line in ccache_contents.splitlines():
+        for line in getFileContentByLine(ccache_logfile):
             match = re_command.match(line)
 
             if match:
