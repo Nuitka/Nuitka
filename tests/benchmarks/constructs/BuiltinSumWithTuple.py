@@ -23,7 +23,7 @@ def calledRepeatedly(iterable, empty):
     return x, y
 
 
-for x in itertools.repeat(None, 50000):
+for x in itertools.repeat(None, 10000):
     calledRepeatedly(value, empty)
 
 print("OK.")
