@@ -149,9 +149,9 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Nuitka_dunder_compiled_value = PyStructSequence_New(&Nuitka_VersionInfoType);
     assert(Nuitka_dunder_compiled_value != NULL);
 
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 0, PyInt_FromLong(%(nuitka_version_major)s));
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 0, Nuitka_PyInt_FromLong(%(nuitka_version_major)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, Nuitka_PyInt_FromLong(%(nuitka_version_minor)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, Nuitka_PyInt_FromLong(%(nuitka_version_micro)s));
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 

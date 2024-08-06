@@ -1244,26 +1244,26 @@ PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate, st
 
     PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
     PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
-    PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
+    PyTuple_SET_ITEM(code_object_desc, 2, Nuitka_PyLong_FromLong(function->m_code_object->co_firstlineno));
 #if PYTHON_VERSION < 0x3b0
     PyTuple_SET_ITEM0(code_object_desc, 3, function->m_code_object->co_varnames);
 #else
     // spell-checker: ignore PyCode_GetVarnames
     PyTuple_SET_ITEM(code_object_desc, 3, PyCode_GetVarnames(function->m_code_object));
 #endif
-    PyTuple_SET_ITEM(code_object_desc, 4, PyLong_FromLong(function->m_code_object->co_argcount));
-    PyTuple_SET_ITEM(code_object_desc, 5, PyLong_FromLong(function->m_code_object->co_flags));
+    PyTuple_SET_ITEM(code_object_desc, 4, Nuitka_PyLong_FromLong(function->m_code_object->co_argcount));
+    PyTuple_SET_ITEM(code_object_desc, 5, Nuitka_PyLong_FromLong(function->m_code_object->co_flags));
 
 #if PYTHON_VERSION < 0x380
     PyTuple_SET_ITEM(code_object_desc, 6, const_int_0);
 #else
-    PyTuple_SET_ITEM(code_object_desc, 6, PyLong_FromLong(function->m_code_object->co_posonlyargcount));
+    PyTuple_SET_ITEM(code_object_desc, 6, Nuitka_PyLong_FromLong(function->m_code_object->co_posonlyargcount));
 #endif
 
 #if PYTHON_VERSION < 0x3b0
     PyTuple_SET_ITEM(code_object_desc, 7, const_int_0);
 #else
-    PyTuple_SET_ITEM(code_object_desc, 7, PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
+    PyTuple_SET_ITEM(code_object_desc, 7, Nuitka_PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
 #endif
 
     CHECK_OBJECT_DEEP(code_object_desc);
