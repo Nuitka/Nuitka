@@ -8,6 +8,7 @@ spell-checker: ignore Playwright
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 import os
+from nuitka.utils.Execution import NuitkaCalledProcessError
 
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
@@ -17,7 +18,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
     plugin_desc = "Required by 'playwright' package."
 
     def __init__(self, include_browsers):
-        self.include_browsers = include_browsers
+        self.include_browsers = list(include_browsers)
         self.installed_browsers = self.get_Installed_Playwright_Browsers()
 
         if "all" in self.include_browsers:
@@ -59,12 +60,32 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             """,
         )
 
+    def _getPlaywrightInfo(self):
+        "Determine the path of the playwright module."
+        try:
+            info = self.queryRuntimeInformationMultiple(
+                info_name="playwright_info",
+                setup_codes="""
+from playwright import __file__ as playwright_file
+from os.path import dirname
+""",
+                values=(("playwright_file", "dirname(playwright_file)"),),
+            )
+        except NuitkaCalledProcessError as e:
+            self.debug("Exception during detection: %r" % e)
+            raise
+
+        if info is None:
+            self.sysexit("Error, it seems 'playwright' is not installed or broken.")
+
+        return info
+
     def getRegistryDirectory(self):
-        import playwright
 
         env_defined = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
         path_home = os.path.expanduser("~")
-        playwright_module_path = os.path.dirname(playwright.__file__)
+        playwright_module_path = self._getPlaywrightInfo().playwright_file
+
         result = os.path.join(
             playwright_module_path, "driver", "package", ".local-browsers"
         )
