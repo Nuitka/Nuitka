@@ -83,7 +83,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -345,7 +345,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_INT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -612,7 +612,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_INT_OBJECT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -2137,7 +2137,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_INT_CLONG(PyObject **operand1, long
     }
     {
         PyObject *operand1_object = *operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_divide(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);
@@ -2155,7 +2155,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -2318,7 +2318,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_OBJECT(PyObject **operand1, 
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:

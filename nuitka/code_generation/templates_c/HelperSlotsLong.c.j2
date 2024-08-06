@@ -202,7 +202,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    {{ operand1 }} = PyLong_FromLong(clong_result);
+    {{ operand1 }} = Nuitka_PyLong_FromLong(clong_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}
