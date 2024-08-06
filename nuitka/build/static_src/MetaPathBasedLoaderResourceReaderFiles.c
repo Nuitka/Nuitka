@@ -515,7 +515,7 @@ static int Nuitka_ResourceReaderFiles_set_name(PyObject *self, PyObject *value, 
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_ResourceReaderFilesObject *files_a,
-                                                           PyObject *other, int op) {
+                                                           PyObject *other, int op_id) {
     PyObject *a = PyObject_Str((PyObject *)files_a);
     CHECK_OBJECT(a);
 
@@ -525,7 +525,7 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_richcompare(struct Nuitka_Resourc
         return NULL;
     }
 
-    PyObject *result = PyObject_RichCompare(a, b, op);
+    PyObject *result = PyObject_RichCompare(a, b, op_id);
 
     Py_DECREF(b);
 
