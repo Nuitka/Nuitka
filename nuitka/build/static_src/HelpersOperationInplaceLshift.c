@@ -530,8 +530,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_INT(PyObject **operand1, PyObje
     if (a == 0 || b == 0) {
         goto exit_result_ok_left;
     } else if (b >= LONG_BIT) {
-        PyObject *operand1_long = PyLong_FromLong(a);
-        PyObject *operand2_long = PyLong_FromLong(b);
+        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
         // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -545,8 +545,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_INT(PyObject **operand1, PyObje
         long c = a << b;
 
         if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -569,7 +569,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok_left:
@@ -801,8 +801,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_INT(PyObject **operand1, PyO
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -816,8 +816,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_INT(PyObject **operand1, PyO
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -840,7 +840,7 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_INT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1077,8 +1077,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_OBJECT(PyObject **operand1, PyO
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1092,8 +1092,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_OBJECT(PyObject **operand1, PyO
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1116,7 +1116,7 @@ static inline bool _INPLACE_OPERATION_LSHIFT_INT_OBJECT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1326,8 +1326,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_OBJECT(PyObject **operand1, 
         if (a == 0 || b == 0) {
             goto exit_result_ok_left;
         } else if (b >= LONG_BIT) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1341,8 +1341,8 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_OBJECT(PyObject **operand1, 
             long c = a << b;
 
             if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 // TODO: Change this to using CLONG once we specialize that too.
                 PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -1365,7 +1365,7 @@ static inline bool _INPLACE_OPERATION_LSHIFT_OBJECT_OBJECT(PyObject **operand1, 
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:

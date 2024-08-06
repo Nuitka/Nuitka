@@ -2172,7 +2172,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, lon
     }
     {
         PyObject *operand1_object = *operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);

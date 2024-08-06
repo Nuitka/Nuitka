@@ -325,6 +325,8 @@ static void initCaches(void) {
     Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
 #elif PYTHON_VERSION >= 0x300
     for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i < NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
+        // Have to use the original API here since out "Nuitka_PyLong_FromLong"
+        // would insist on using "Nuitka_Long_SmallValues" to produce it.
         PyObject *value = PyLong_FromLong(i);
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
     }
@@ -648,11 +650,11 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'G':
     case 'g': {
-        PyObject *result = PyLong_FromLong(0);
+        PyObject *result = Nuitka_PyLong_FromLong(0);
 
         int size = (int)_unpackVariableLength(&data);
 
-        PyObject *shift = PyLong_FromLong(31);
+        PyObject *shift = Nuitka_PyLong_FromLong(31);
 
         for (int i = 0; i < size; i++) {
             result = PyNumber_InPlaceLshift(result, shift);
