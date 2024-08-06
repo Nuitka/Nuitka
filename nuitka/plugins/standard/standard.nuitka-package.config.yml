@@ -5087,15 +5087,19 @@
         executable: 'yes'
       when: 'win32'
 
-- module-name: 'selenium_driverless' # checksum: bdcb049
+- module-name: 'playwright'
   data-files:
-    - dirs:
-        - '.'
-  implicit-imports:
-    - depends:
-        - 'websockets.legacy.*'
+    dirs:
+      - 'driver'
+  dlls:
+    - from_filenames:
+        relative_path: 'driver'
+        prefixes:
+          - 'node'
+        executable: 'yes'
+      when: 'win32'
 
-- module-name: 'selenium_stealth' # checksum: 26b9c88c
+- module-name: 'selenium_stealth' # checksum: 3ebe1284
   data-files:
     - dirs:
         - '.'
