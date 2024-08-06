@@ -7,7 +7,6 @@ spell-checker: ignore Playwright
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from pathlib import Path
 import os
 
 
@@ -18,21 +17,18 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
     plugin_desc = "Required by 'playwright' package."
 
     def __init__(self, include_browsers):
-        self.installed_browsers = self.get_Installed_Playwright_Browsers()
         self.include_browsers = include_browsers
-
-        if not self.include_browsers or not self.installed_browsers:
-            return
+        self.installed_browsers = self.get_Installed_Playwright_Browsers()
 
         if "all" in self.include_browsers:
-            self.include_browsers = list(self.installed_browsers.keys())
+            self.include_browsers = self.installed_browsers
         elif "ffmpeg" not in self.include_browsers and any(
             browser.startswith("chrom") for browser in self.include_browsers
         ):
             for browser in self.installed_browsers:
                 if "ffmpeg" in self.installed_browsers[browser].name:
                     self.include_browsers.append(browser)
-                    self.warning(
+                    self.info(
                         "Including 'ffmpeg' for chromium-based browser. It is required by playwright."
                     )
                     break
@@ -63,47 +59,55 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             """,
         )
 
-    def get_registry_directory(self):
+    def getRegistryDirectory(self):
         import playwright
 
         env_defined = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
-        path_home = Path.home()
-        if env_defined == "0":
-            playwright_module_path = Path(playwright.__file__).parent
-            result = playwright_module_path / "driver" / "package" / ".local-browsers"
-
+        path_home = os.path.expanduser("~")
+        playwright_module_path = os.path.dirname(playwright.__file__)
+        result = os.path.join(
+            playwright_module_path, "driver", "package", ".local-browsers"
+        )
+        if os.path.exists(result) and os.path.getsize(result) > 0:
+            return result
+        elif env_defined == "0":
+            return result
         elif env_defined:
-            result = Path(env_defined)
+            result = os.path(env_defined)
         else:
             cache_directory = ""
             if os.name == "posix":
-                cache_directory = os.environ.get("XDG_CACHE_HOME", path_home / ".cache")
+                cache_directory = os.environ.get(
+                    "XDG_CACHE_HOME", os.path.join(path_home, ".cache")
+                )
             elif os.name == "darwin":
-                cache_directory = path_home / "Library" / "Caches"
+                cache_directory = os.path.join(path_home, "Library", "Caches")
             elif os.name == "nt":
                 cache_directory = os.environ.get(
-                    "LOCALAPPDATA", path_home / "AppData" / "Local"
+                    "LOCALAPPDATA", os.path.join(path_home, "AppData", "Local")
                 )
 
-            result = Path(cache_directory, "ms-playwright")
+            result = os.path.join(cache_directory, "ms-playwright")
 
-        if not result.is_absolute():
+        if not os.path.isabs(result):
             init_cwd = os.environ.get("INIT_CWD") or os.getcwd()
-            result = Path(init_cwd).resolve().joinpath(result)
+            result = os.path.join(os.path.abspath(init_cwd), result)
 
         return result
 
-    def get_Installed_Playwright_Browsers(self) -> dict[str, Path]:
+    def get_Installed_Playwright_Browsers(self):
 
-        registry_directory = self.get_registry_directory()
-        if not registry_directory.exists():
+        registry_directory = self.getRegistryDirectory()
+
+        if not os.path.exists(registry_directory):
             return {}
 
-        browsers_installed = list(registry_directory.iterdir())
+        browsers_installed = list(os.scandir(registry_directory))
         for browser in browsers_installed:
             if browser.name == ".links":
                 browsers_installed.remove(browser)
                 break
+
         return {browser.name: browser for browser in browsers_installed}
 
     def considerDataFiles(self, module):
@@ -112,9 +116,8 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             return
 
         for browser in self.include_browsers:
-
             self.info(
-                f"Including '{browser}' from '{self.installed_browsers[browser]}'."
+                f"Including '{browser}' from '{self.installed_browsers[browser].path}'."
             )
 
             yield self.makeIncludedDataDirectory(
