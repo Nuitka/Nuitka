@@ -47,7 +47,7 @@ void startProfiling(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, PyObject_GetAttrString(vmprof_module, "enable"),
-                                                     PyInt_FromLong(fileno(tempfile_profile)));
+                                                     Nuitka_PyInt_FromLong(fileno(tempfile_profile)));
 
     if (result == NULL) {
         PyErr_Print();

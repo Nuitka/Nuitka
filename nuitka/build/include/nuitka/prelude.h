@@ -258,7 +258,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
 #if PYTHON_VERSION >= 0x300
-#define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t
 

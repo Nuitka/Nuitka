@@ -3,6 +3,16 @@
 #ifndef __NUITKA_HELPER_INTS_H__
 #define __NUITKA_HELPER_INTS_H__
 
+// Our "PyLong_FromLong" replacement.
+extern PyObject *Nuitka_PyLong_FromLong(long ival);
+
+// Our "PyInt_FromLong" replacement, not done (yet?).
+#if PYTHON_VERSION >= 0x300
+#define Nuitka_PyInt_FromLong(ival) Nuitka_PyLong_FromLong(ival)
+#else
+#define Nuitka_PyInt_FromLong(ival) PyInt_FromLong(ival)
+#endif
+
 typedef enum {
     NUITKA_INT_UNASSIGNED = 0,
     NUITKA_INT_OBJECT_VALID = 1,
@@ -50,7 +60,7 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value)
     assert(value->validity != NUITKA_ILONG_UNASSIGNED);
 
     if ((value->validity & NUITKA_ILONG_OBJECT_VALID) == 0) {
-        value->ilong_object = PyLong_FromLong(value->ilong_value);
+        value->ilong_object = Nuitka_PyLong_FromLong(value->ilong_value);
 
         value->validity = NUITKA_ILONG_BOTH_VALID;
     }

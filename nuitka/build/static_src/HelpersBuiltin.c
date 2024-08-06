@@ -450,8 +450,9 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
         }
 
 #if PYTHON_VERSION < 0x300
-        return PyInt_FromLong(hash);
+        return Nuitka_PyInt_FromLong(hash);
 #else
+        // TODO: Have a dedicated helper of ours for this as well.
         return PyLong_FromSsize_t(hash);
 #endif
     }
@@ -459,7 +460,7 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION < 0x300
     if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         Py_hash_t hash = Nuitka_HashFromPointer(value);
-        return PyInt_FromLong(hash);
+        return Nuitka_PyInt_FromLong(hash);
     }
 #endif
 

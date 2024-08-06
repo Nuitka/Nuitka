@@ -250,7 +250,7 @@ static PyObject *_Nuitka_Frame_get_lineno(PyObject *self, void *data) {
     assert(_PyObject_GC_IS_TRACKED(self));
 
     struct Nuitka_FrameObject *frame = (struct Nuitka_FrameObject *)self;
-    return PyInt_FromLong(frame->m_frame.f_lineno);
+    return Nuitka_PyInt_FromLong(frame->m_frame.f_lineno);
 }
 
 static PyObject *_Nuitka_Frame_get_trace(PyObject *self, void *data) {

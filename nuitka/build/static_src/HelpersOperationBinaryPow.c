@@ -1291,8 +1291,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObje
                     break;
                 }
                 if (ix / temp != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1311,8 +1311,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObje
             temp = (unsigned long)temp * temp;
 
             if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1329,7 +1329,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObje
     }
 
 exit_result_ok_clong:
-    result = PyInt_FromLong(clong_result);
+    result = Nuitka_LongFromCLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -1543,8 +1543,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1563,8 +1563,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1581,7 +1581,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -1811,8 +1811,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1831,8 +1831,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1849,7 +1849,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -2245,8 +2245,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2265,8 +2265,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2283,7 +2283,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -2509,8 +2509,8 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2529,8 +2529,8 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 

@@ -200,6 +200,9 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
     return (PyObject *)result;
 }
 
+// Our "PyLong_FromLong" replacement.
+PyObject *Nuitka_PyLong_FromLong(long ival) { return Nuitka_LongFromCLong(ival); }
+
 static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
     assert(Py_REFCNT(*value) == 1);
 
