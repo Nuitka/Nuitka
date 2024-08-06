@@ -67,57 +67,60 @@
                 }
             },
             "data-files": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "dest_path": {
-                        "type": "string"
-                    },
-                    "dirs": {
-                        "type": "array",
-                        "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "dest_path": {
+                            "type": "string"
+                        },
+                        "dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "raw_dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "patterns": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "empty_dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "empty_dir_structures": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "include-pyi-file": {
+                            "type": "string",
+                            "enum": [
+                                "yes",
+                                "no"
+                            ]
+                        },
+                        "include-metadata": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "when": {
                             "type": "string"
                         }
-                    },
-                    "raw_dirs": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "patterns": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "empty_dirs": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "empty_dir_structures": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "include-pyi-file": {
-                        "type": "string",
-                        "enum": [
-                            "yes",
-                            "no"
-                        ]
-                    },
-                    "include-metadata": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "when": {
-                        "type": "string"
                     }
                 }
             },
