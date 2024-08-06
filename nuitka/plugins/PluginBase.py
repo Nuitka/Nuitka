@@ -1256,16 +1256,20 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
+import sys
 
 try:
 %(setup_codes)s
 except ImportError:
-    import sys
     sys.exit(38)
+try:
 %(query_codes)s
+except Exception as e:
+    sys.stderr.write("\n%%s" %% repr(e))
+    sys.exit(39)
 """ % {
             "setup_codes": "\n".join("   %s" % line for line in setup_codes),
-            "query_codes": "\n".join(query_codes),
+            "query_codes": "\n".join("   %s" % line for line in query_codes),
         }
 
         if shallShowExecutedCommands():
@@ -1279,6 +1283,14 @@ except ImportError:
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
                 return None
+
+            if e.returncode == 39:
+                # TODO: Recognize the ModuleNotFoundError or ImportError exceptions
+                # and output the missing module.
+                self.warning(
+                    "Exception during compile time command execution: %s"
+                    % e.stderr.splitlines()[-1]
+                )
 
             if Options.is_debug:
                 self.info(cmd, keep_format=True)
