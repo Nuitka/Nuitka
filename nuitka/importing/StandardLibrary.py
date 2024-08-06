@@ -167,7 +167,7 @@ def scanStandardLibraryPath(stdlib_dir):
         dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
 
         if import_path == "":
-            # Ignore "lib-dynload" and "lib-tk" and alike.
+            # Ignore "lib-dynload" and "lib-tk" and alike, spell-checker: ignore dynload
             dirs[:] = [
                 dirname
                 for dirname in dirs
@@ -189,6 +189,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if not isMacOS():
                 _removeFilenamesIfPresent("_ios_support.py")
 
+        # Ignore tests from selected packages, spell-checker: ignore bsddb
         if import_path in (
             "tkinter",
             "Tkinter",
@@ -251,6 +252,7 @@ def scanStandardLibraryPath(stdlib_dir):
 _stdlib_no_auto_inclusion_list = (
     # Avoid this to be included, implicit usages will be rare, but it triggers
     # the Nuitka plugin "multiprocessing" that is always enabled.
+    # spell-checker: ignore _pydecimal,_posixsubprocess,pyexpat,sitecustomize
     "multiprocessing",
     "_multiprocessing",
     # Implicit usages of these will be rare, but it can have that costly extension module
@@ -365,13 +367,13 @@ _stdlib_no_auto_inclusion_list = (
     "py_compile",
     "msilib",
     "_opcode",
-    # tzdata is not always needed
+    # time zone data is not always needed
     "zoneinfo",
     # tkinter under all its names
     "Tkinter",
     "tkinter",
     "_tkinter",
-    # lib-tk from Python2
+    # lib-tk from Python2, spell-checker: ignore Tkdnd,Tkconstants
     "Tix",
     "FixTk",
     "ScrolledText",

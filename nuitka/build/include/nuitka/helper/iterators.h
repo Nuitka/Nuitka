@@ -32,7 +32,7 @@ NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT(PyObject *value) {
 }
 
 // Taken from CPython implementation, so we can access and create it, needs to match
-// their definition exactly.
+// their definition exactly. spell-checker: ignore seqiterobject
 typedef struct {
     PyObject_HEAD
 #if PYTHON_VERSION < 0x340
