@@ -19,7 +19,7 @@ def calledRepeatedly(list_value1):
     return l, list_value1
 
 
-for x in itertools.repeat(None, 50000):
+for x in itertools.repeat(None, 10000):
     calledRepeatedly(module_value1)
 
 print("OK.")
