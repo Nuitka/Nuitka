@@ -504,6 +504,7 @@ static char const *getEntryModeString(struct Nuitka_MetaPathBasedLoaderEntry con
 
 static char *_kw_list_find_module[] = {(char *)"fullname", (char *)"unused", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused;
@@ -572,6 +573,7 @@ static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyOb
 
 static char const *_kw_list_get_data[] = {"filename", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_get_data(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *filename;
 
@@ -1224,6 +1226,7 @@ PyObject *EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *module) {
     return _EXECUTE_EMBEDDED_MODULE(tstate, module, module_name, name);
 }
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused;
@@ -1262,6 +1265,7 @@ static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyOb
 
 static char const *_kw_list_is_package[] = {"fullname", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
@@ -1293,6 +1297,7 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
 
 static char const *_kw_list_iter_modules[] = {"package", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
     PyObject *prefix;
 
@@ -1471,6 +1476,7 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
 
 #if PYTHON_VERSION >= 0x340
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
     PyObject *unused;
@@ -1546,6 +1552,7 @@ static PyObject *createModuleSpecViaPathFinder(PyThreadState *tstate, PyObject *
 
 static char const *_kw_list_find_spec[] = {"fullname", "is_package", "path", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused1; // We ignore "is_package"
@@ -1617,6 +1624,7 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
 #if PYTHON_VERSION >= 0x350
 static char const *_kw_list_create_module[] = {"spec", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *spec;
 
@@ -1645,6 +1653,7 @@ static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, Py
 
 static char const *_kw_list_exec_module[] = {"module", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
 
@@ -1691,6 +1700,7 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
 // The resource reader class is implemented in a separate file.
 #include "MetaPathBasedLoaderResourceReader.c"
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
@@ -1725,6 +1735,7 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
 
 static char const *_kw_list_find_distributions[] = {"context", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *context;
 
@@ -1785,6 +1796,7 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
 
 static char const *_kw_list_sys_path_hook[] = {"path", NULL};
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *_nuitka_loader_sys_path_hook(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *path;
 

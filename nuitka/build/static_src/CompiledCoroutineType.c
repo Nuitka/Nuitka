@@ -665,7 +665,7 @@ static bool _Nuitka_Coroutine_close(PyThreadState *tstate, struct Nuitka_Corouti
     return true;
 }
 
-static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine) {
+static PyObject *Nuitka_Coroutine_close(struct Nuitka_CoroutineObject *coroutine, PyObject *value) {
     PyThreadState *tstate = PyThreadState_GET();
 
     bool r = _Nuitka_Coroutine_close(tstate, coroutine);

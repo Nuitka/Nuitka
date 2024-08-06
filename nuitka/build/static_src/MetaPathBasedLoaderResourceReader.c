@@ -51,6 +51,7 @@ static PyObject *_Nuitka_ResourceReader_resource_path(PyThreadState *tstate, str
     return result;
 }
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
                                                      PyObject *kwds) {
     PyObject *resource;
@@ -66,6 +67,7 @@ static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReade
     return _Nuitka_ResourceReader_resource_path(tstate, reader, resource);
 }
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
                                                      PyObject *kwds) {
     PyObject *resource;
@@ -85,6 +87,7 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
 
 #include "MetaPathBasedLoaderResourceReaderFiles.c"
 
+//TODO: -> PyObject *(*)(PyObject *, PyObject *)
 static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
                                              PyObject *kwds) {
 
