@@ -102,6 +102,48 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
         }                                                                                                              \
     } while (0)
 
+#elif PYTHON_VERSION >= 0x3c0 && defined(_WIN32) && !defined(Py_DEBUG) && !defined(Py_TRACE_REFS) &&                   \
+    !defined(Py_GIL_DISABLED) && !defined(_NUITKA_EXPERIMENTAL_DISABLE_PY_DECREF_OVERRIDE)
+
+#undef Py_DECREF
+#define Py_DECREF(arg)                                                                                                 \
+    do {                                                                                                               \
+        PyObject *op = _PyObject_CAST(arg);                                                                            \
+        if (_Py_IsImmortal(op)) {                                                                                      \
+            break;                                                                                                     \
+        }                                                                                                              \
+        _Py_DECREF_STAT_INC();                                                                                         \
+        if (--op->ob_refcnt == 0) {                                                                                    \
+            destructor dealloc = Py_TYPE(op)->tp_dealloc;                                                              \
+            (*dealloc)(op);                                                                                            \
+        }                                                                                                              \
+    } while (0)
+
+#undef Py_XDECREF
+#define Py_XDECREF(arg)                                                                                                \
+    do {                                                                                                               \
+        PyObject *xop = _PyObject_CAST(arg);                                                                           \
+        if (xop != NULL) {                                                                                             \
+            Py_DECREF(xop);                                                                                            \
+        }                                                                                                              \
+    } while (0)
+
+#undef Py_IS_TYPE
+#define Py_IS_TYPE(ob, type) (_PyObject_CAST(ob)->ob_type == (type))
+
+#undef _Py_DECREF_SPECIALIZED
+#define _Py_DECREF_SPECIALIZED(arg, dealloc)                                                                           \
+    do {                                                                                                               \
+        PyObject *op = _PyObject_CAST(arg);                                                                            \
+        if (_Py_IsImmortal(op)) {                                                                                      \
+            break;                                                                                                     \
+        }                                                                                                              \
+        _Py_DECREF_STAT_INC();                                                                                         \
+        if (--op->ob_refcnt == 0) {                                                                                    \
+            destructor d = (destructor)(dealloc);                                                                      \
+            d(op);                                                                                                     \
+        }                                                                                                              \
+    } while (0)
 #endif
 
 // For Python3.12, avoid reference management if value is known to be immortal.
