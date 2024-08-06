@@ -82,7 +82,9 @@
         "xiosbase": "c",
         "cstdlib": "c",
         "span": "c",
-        "format": "c"
+        "format": "c",
+        "variant": "c",
+        "charconv": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
