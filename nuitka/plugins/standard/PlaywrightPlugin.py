@@ -89,7 +89,7 @@ from os.path import dirname
         result = os.path.join(
             playwright_module_path, "driver", "package", ".local-browsers"
         )
-        if os.path.exists(result) and os.path.getsize(result) > 0:
+        if os.path.exists(result) and next(os.scandir(result), False):
             return result
         elif env_defined == "0":
             return result
