@@ -63,7 +63,7 @@ def _initNuitkaPackageSchema():
         schema["items"]["properties"]["variables"]["properties"].keys()
     )
     DATA_FILES_KEYS = tuple(
-        schema["items"]["properties"]["data-files"]["properties"].keys()
+        schema["items"]["properties"]["data-files"]["items"]["properties"].keys()
     )
     DLLS_KEYS = tuple(
         schema["items"]["properties"]["dlls"]["items"]["properties"].keys()
@@ -310,7 +310,7 @@ def formatYaml(path, ignore_diff=False):
         sorted_entry = _reorderDictionary(entry, MASTER_KEYS)
 
         if "data-files" in sorted_entry:
-            sorted_entry["data-files"] = _reorderDictionary(
+            sorted_entry["data-files"] = _reorderDictionaryList(
                 entry["data-files"], DATA_FILES_KEYS
             )
 

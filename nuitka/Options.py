@@ -1704,7 +1704,7 @@ def getJobLimit():
         result = int(jobs)
 
         if result <= 0:
-            result = max(1, getCPUCoreCount() + jobs)
+            result = max(1, getCPUCoreCount() + result)
 
     return result
 

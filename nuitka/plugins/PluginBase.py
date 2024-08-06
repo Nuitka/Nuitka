@@ -1087,7 +1087,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def decideAsserts(self, module_name):
+    def decideAssertions(self, module_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 

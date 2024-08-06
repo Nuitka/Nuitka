@@ -4,7 +4,7 @@
 # yamllint disable rule:comments
 # too many spelling things, spell-checker: disable
 ---
-- module-name: 'data_files_package' # checksum: 672cf793
+- module-name: 'data_files_package' # checksum: 5ee34e01
   data-files:
-    patterns:
-      - '**/*.txt'
+    - patterns:
+        - '**/*.txt'
