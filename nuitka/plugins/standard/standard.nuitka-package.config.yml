@@ -5017,6 +5017,18 @@
         executable: 'yes'
       when: 'win32'
 
+- module-name: 'playwright'
+  data-files:
+    dirs:
+      - 'driver'
+  dlls:
+    - from_filenames:
+        relative_path: 'driver'
+        prefixes:
+          - 'node'
+        executable: 'yes'
+      when: 'win32'
+
 - module-name: 'selenium_stealth' # checksum: 3ebe1284
   data-files:
     dirs:
