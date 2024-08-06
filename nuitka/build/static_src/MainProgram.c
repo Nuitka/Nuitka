@@ -1654,8 +1654,8 @@ orig_argv = argv;
         } else {
             char const *kw_keys[] = {"pipe_handle", "parent_pid"};
             PyObject *kw_values[] = {
-                PyLong_FromLong(loky_joblib_pipe_handle_arg),
-                PyLong_FromLong(loky_joblib_parent_pid_arg),
+                Nuitka_PyLong_FromLong(loky_joblib_pipe_handle_arg),
+                Nuitka_PyLong_FromLong(loky_joblib_parent_pid_arg),
             };
 
             PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
@@ -1694,7 +1694,8 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function,
+                                      Nuitka_PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
@@ -1709,7 +1710,7 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, Nuitka_PyInt_FromLong(loky_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 

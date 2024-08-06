@@ -1539,7 +1539,7 @@ static PyObject *Nuitka_Generator_get_running(PyObject *self, void *data) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
 /* The type of "gi_running" changed in Python3. */
 #if PYTHON_VERSION < 0x300
-    result = PyInt_FromLong(generator->m_running);
+    result = Nuitka_PyInt_FromLong(generator->m_running);
 #else
     result = BOOL_FROM(generator->m_running != 0);
     Py_INCREF_IMMORTAL(result);
