@@ -687,7 +687,7 @@ extern _Thread_local const char *pkgcontext;
 static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 // TODO: The locking APIs for 3.13 give errors here that are not explained
 // yet.
-#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3d0
+#if PYTHON_VERSION >= 0x3c0
     // spell-checker: ignore pkgcontext
     const char *old_context = _PyRuntime.imports.pkgcontext;
     _PyRuntime.imports.pkgcontext = new_context;
