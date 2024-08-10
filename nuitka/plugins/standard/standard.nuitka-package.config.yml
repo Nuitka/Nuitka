@@ -4208,6 +4208,14 @@
         - 'colors'
         - 'icons'
 
+- module-name: 'pyqtgraph.parametertree.interactive' # checksum: acb233c9
+  anti-bloat:
+    - description: 'allow pydoc not really used bloatful'
+      bloat-mode-overrides:
+        # TODO: However it would be nice to be able to force-inline a subset of
+        # functions for pydoc, like "pydoc.splitdoc" in an easy fashion.
+        'pydoc': 'allow'
+
 - module-name: 'pyqtgraph.util.numba_helper' # checksum: 731dde6
   anti-bloat:
     - description: 'remove numba reference'
