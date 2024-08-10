@@ -5746,11 +5746,12 @@
     - depends:
         - 'spacy.lang.*'
 
-- module-name: 'spacy.vocab' # checksum: bfa3250b
+- module-name: 'spacy.vocab'
   implicit-imports:
     - depends:
         - 'spacy.lang.lex_attrs'
         - 'spacy.lang.norm_exceptions'
+        - 'spacy.lexeme'
 
 - module-name: 'sparse' # checksum: 7a56f74f
   options:
