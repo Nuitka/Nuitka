@@ -102,8 +102,8 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
         }                                                                                                              \
     } while (0)
 
-#elif PYTHON_VERSION >= 0x3c0 && !defined(Py_DEBUG) && !defined(Py_TRACE_REFS) && !defined(Py_GIL_DISABLED) &&         \
-    !defined(_NUITKA_EXPERIMENTAL_DISABLE_PY_DECREF_OVERRIDE)
+#elif PYTHON_VERSION >= 0x3c0 && defined(_WIN32) && !defined(Py_DEBUG) && !defined(Py_TRACE_REFS) &&                   \
+    !defined(Py_GIL_DISABLED) && !defined(_NUITKA_EXPERIMENTAL_DISABLE_PY_DECREF_OVERRIDE)
 
 #undef Py_DECREF
 #define Py_DECREF(arg)                                                                                                 \
