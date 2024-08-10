@@ -173,7 +173,11 @@ error:
 
     initial_tb = *tb;
 
-    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+    ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exc, val, tb);
+    RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
     assert(*exc != NULL);
     if (initial_tb != NULL) {
