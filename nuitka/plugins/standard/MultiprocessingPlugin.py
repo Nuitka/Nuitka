@@ -56,7 +56,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
         # with other things potentially. We should do it, once the anti-bloat engine is
         # reusable or supports conditional replacements based on plugin activity and is
         # always on.
-        if full_name == "multiprocessing":
+        if full_name in ("multiprocessing", "anyio"):
             code = """\
 import sys, os
 sys.frozen = 1
@@ -72,7 +72,8 @@ sys._base_executable = sys.executable
             return (
                 code,
                 """\
-Monkey patching "multiprocessing" load environment.""",
+Monkey patching "%s" load environment."""
+                % full_name,
             )
 
     @staticmethod
