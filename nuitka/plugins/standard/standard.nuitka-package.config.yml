@@ -6180,33 +6180,27 @@
     - dirs:
         - 'vendor'
 
-- module-name: 'sympy' # checksum: 246a1729
+- module-name: 'sympy' # checksum: 4f06976c
   anti-bloat:
     - description: 'remove sympy.testing reference'
       replacements_plain:
         "'test', 'doctest',": ''
         'from .testing import test, doctest': ''
       when: 'not use_pytest'
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+    - description: 'remove pydoc reference'
+      no-auto-follow:
+        'pydoc': 'ignore'
+      when: 'not use_pydoc'
 
-- module-name: 'sympy.interactive.printing' # checksum: 712c2518
+- module-name: 'sympy.interactive.printing' # checksum: 8dbbac5
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         "'IPython' not in modules": 'True'
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
-        'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.lib.latextools import latex_to_png': 'raise ImportError'
-        'from IPython.core.interactiveshell import InteractiveShell': 'raise ImportError'
-      when: 'not use_ipython'
-
-- module-name: 'sympy.interactive.session' # checksum: 1c9a5216
-  anti-bloat:
-    - description: 'remove IPython reference'
-      replacements_plain:
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
 - module-name: 'sympy.utilities.decorator' # checksum: f8ef59fe
