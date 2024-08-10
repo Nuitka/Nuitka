@@ -5746,7 +5746,7 @@
     - depends:
         - 'spacy.lang.*'
 
-- module-name: 'spacy.vocab'
+- module-name: 'spacy.vocab' # checksum: d166d251
   implicit-imports:
     - depends:
         - 'spacy.lang.lex_attrs'
