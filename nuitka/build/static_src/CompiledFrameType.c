@@ -783,7 +783,7 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
     CHECK_OBJECT_X(f_locals);
     locals_owner->f_locals = f_locals;
 
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     frame->f_tstate = PyThreadState_GET();
 #endif
 

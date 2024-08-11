@@ -809,7 +809,7 @@ def _executeMain(binary_filename):
 def _executeModule(tree):
     """Execute the extension module just created."""
 
-    if python_version < 0x340:
+    if python_version < 0x300:
         python_command_template = """\
 import os, imp;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\

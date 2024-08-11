@@ -454,9 +454,9 @@ class ExpressionImportModuleHard(
 
     @staticmethod
     def _getImportNameErrorString(module, module_name, name):
-        if python_version < 0x340:
+        if python_version < 0x300:
             return "cannot import name %s" % name
-        if python_version < 0x370:
+        elif python_version < 0x370:
             return "cannot import name %r" % name
         elif isStandaloneMode():
             return "cannot import name %r from %r" % (name, module_name)
