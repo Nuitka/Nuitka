@@ -288,6 +288,10 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
         Py_INCREF(value);
         SET_DICT_ENTRY_VALUE(entry, value);
 
+#if PYTHON_VERSION >= 0x300
+        dict->ma_version_tag += 1;
+#endif
+
         CHECK_OBJECT(old);
 
         Py_DECREF(old);
@@ -319,6 +323,10 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
     // speculatively try the quickest access method.
     if (likely(old != NULL)) {
         SET_DICT_ENTRY_VALUE(entry, value);
+
+#if PYTHON_VERSION >= 0x300
+        dict->ma_version_tag += 1;
+#endif
     } else {
         DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
         Py_DECREF(value);
@@ -350,6 +358,10 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
     // speculatively try the quickest access method.
     if (likely(old != NULL)) {
         SET_DICT_ENTRY_VALUE(entry, value);
+
+#if PYTHON_VERSION >= 0x300
+        dict->ma_version_tag += 1;
+#endif
 
         Py_DECREF(old);
     } else {
