@@ -1044,7 +1044,7 @@ static void loadTriggeredModule(PyThreadState *tstate, char const *name, char co
     }
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static void _fixupSpecAttribute(PyThreadState *tstate, PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___spec__);
 
@@ -1469,7 +1469,7 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
     return result;
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
@@ -1846,7 +1846,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"find_module", (PyCFunction)_nuitka_loader_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"load_module", (PyCFunction)_nuitka_loader_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"is_package", (PyCFunction)_nuitka_loader_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     {"module_repr", (PyCFunction)_nuitka_loader_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_spec", (PyCFunction)_nuitka_loader_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif
