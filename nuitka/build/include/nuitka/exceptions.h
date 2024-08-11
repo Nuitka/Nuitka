@@ -674,7 +674,7 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(PyThre
 // Format a NameError exception for a variable name, chains with existing exception.
 extern void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name);
 
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
 // Same as SET_CURRENT_EXCEPTION_NAME_ERROR with different wording, sometimes for Python2.
 extern void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name);
 #endif

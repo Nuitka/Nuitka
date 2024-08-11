@@ -425,7 +425,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, Nuitka_Loader_New(loader_entry));
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
 
 #if %(is_dunder_main)s
@@ -535,7 +535,7 @@ static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, P
     }
 
     // Prevent "__spec__" update as well.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
         return 0;
     }
