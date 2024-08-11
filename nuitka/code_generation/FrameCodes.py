@@ -307,7 +307,6 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
             frame_init_code=frame_init_code,
             frame_exit_code=frame_exit_code,
             context_identifier=context_identifier,
-            is_python34_or_later=python_version >= 0x340,
             is_python3=python_version >= 0x300,
         )
     )
@@ -406,7 +405,6 @@ def getFrameGuardGeneratorCode(
             frame_init_code=frame_init_code,
             frame_exit_code=frame_exit_code,
             is_generator=is_generator,
-            is_python34_or_later=python_version >= 0x340,
             is_python3=python_version >= 0x300,
         )
     )

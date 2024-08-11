@@ -42,7 +42,7 @@ Py_INCREF({{context_identifier}}->m_frame);
 assert(Py_REFCNT({{context_identifier}}->m_frame) == 2); // Frame stack
 {% endif %}
 
-{% if is_python34_or_later %}
+{% if is_python3 %}
 Nuitka_SetFrameGenerator({{context_identifier}}->m_frame, (PyObject *){{context_identifier}});
 {% endif %}
 
