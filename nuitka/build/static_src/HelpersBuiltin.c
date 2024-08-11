@@ -751,7 +751,7 @@ PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value
 }
 
 PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     long base_int = PyInt_AsLong(base);
 #else
     Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);

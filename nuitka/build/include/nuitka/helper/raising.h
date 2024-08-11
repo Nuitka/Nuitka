@@ -69,7 +69,7 @@ extern bool RERAISE_EXCEPTION(PyThreadState *tstate, struct Nuitka_ExceptionPres
 extern void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
                                                struct Nuitka_ExceptionPreservationItem *exception_state);
 
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
 extern void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
                                                       struct Nuitka_ExceptionPreservationItem *exception_state);
 #endif
