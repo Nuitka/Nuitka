@@ -45,6 +45,19 @@
     - dirs:
         - 'lib'
 
+- module-name: 'aenum' # checksum: 1241f0d1
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+
+- module-name: 'aenum._common' # checksum: 6d559f39
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+        'if PY3:': '"if %s:" % python3_or_higher'
+
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
