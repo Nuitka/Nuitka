@@ -316,6 +316,7 @@
         "Py_TPFLAGS_HEAPTYPE",
         "Py_XDECREF",
         "Py_XINCREF",
+        "Py_XSETREF",
         "PYCORE",
         "PyCoro_Type",
         "pyenv",

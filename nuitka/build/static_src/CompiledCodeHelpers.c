@@ -928,9 +928,8 @@ void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTr
 #if PYTHON_VERSION >= 0x300
     if (exception_value != NULL && PyExceptionInstance_Check(exception_value)) {
         PRINT_STRING(" <- context ");
-        PyObject *context = PyException_GetContext(exception_value);
+        PyObject *context = Nuitka_Exception_GetContext(exception_value);
         PRINT_REPR(context);
-        Py_XDECREF(context);
     }
 #endif
     PRINT_STRING("|");

@@ -350,6 +350,60 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 #define Py_SET_REFCNT_IMMORTAL(object)
 #endif
 
+// Have these defines from newer Python for all Python versions available
+#ifndef _Py_CAST
+#define _Py_CAST(type, expr) ((type)(expr))
+#endif
+
+#ifndef _PyObject_CAST
+#define _PyObject_CAST(op) _Py_CAST(PyObject *, (op))
+#endif
+
+#ifndef Py_SETREF
+#ifdef _Py_TYPEOF
+#define Py_SETREF(dst, src)                                                                                            \
+    do {                                                                                                               \
+        _Py_TYPEOF(dst) *_tmp_dst_ptr = &(dst);                                                                        \
+        _Py_TYPEOF(dst) _tmp_old_dst = (*_tmp_dst_ptr);                                                                \
+        *_tmp_dst_ptr = (src);                                                                                         \
+        Py_DECREF(_tmp_old_dst);                                                                                       \
+    } while (0)
+#else
+#define Py_SETREF(dst, src)                                                                                            \
+    do {                                                                                                               \
+        PyObject **_tmp_dst_ptr = _Py_CAST(PyObject **, &(dst));                                                       \
+        PyObject *_tmp_old_dst = (*_tmp_dst_ptr);                                                                      \
+        PyObject *_tmp_src = _PyObject_CAST(src);                                                                      \
+        memcpy(_tmp_dst_ptr, &_tmp_src, sizeof(PyObject *));                                                           \
+        Py_DECREF(_tmp_old_dst);                                                                                       \
+    } while (0)
+#endif
+#endif
+
+#ifndef Py_XSETREF
+/* Py_XSETREF() is a variant of Py_SETREF() that uses Py_XDECREF() instead of
+ * Py_DECREF().
+ */
+#ifdef _Py_TYPEOF
+#define Py_XSETREF(dst, src)                                                                                           \
+    do {                                                                                                               \
+        _Py_TYPEOF(dst) *_tmp_dst_ptr = &(dst);                                                                        \
+        _Py_TYPEOF(dst) _tmp_old_dst = (*_tmp_dst_ptr);                                                                \
+        *_tmp_dst_ptr = (src);                                                                                         \
+        Py_XDECREF(_tmp_old_dst);                                                                                      \
+    } while (0)
+#else
+#define Py_XSETREF(dst, src)                                                                                           \
+    do {                                                                                                               \
+        PyObject **_tmp_dst_ptr = _Py_CAST(PyObject **, &(dst));                                                       \
+        PyObject *_tmp_old_dst = (*_tmp_dst_ptr);                                                                      \
+        PyObject *_tmp_src = _PyObject_CAST(src);                                                                      \
+        memcpy(_tmp_dst_ptr, &_tmp_src, sizeof(PyObject *));                                                           \
+        Py_XDECREF(_tmp_old_dst);                                                                                      \
+    } while (0)
+#endif
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
