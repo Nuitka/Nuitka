@@ -215,16 +215,14 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, struct Nuitka_ExceptionPr
             return;
         }
 
-        // TODO: Avoid C API usage
-        PyException_SetCause(exception_state->exception_value, exception_cause);
-
+        Nuitka_Exception_SetCause(exception_state->exception_value, exception_cause);
         CHAIN_EXCEPTION(tstate, exception_state->exception_value);
     } else if (PyExceptionInstance_Check(exception_state->exception_type)) {
         exception_state->exception_value = exception_state->exception_type;
         exception_state->exception_type = PyExceptionInstance_Class(exception_state->exception_type);
         Py_INCREF(exception_state->exception_type);
 
-        PyException_SetCause(exception_state->exception_value, exception_cause);
+        Nuitka_Exception_SetCause(exception_state->exception_value, exception_cause);
         CHAIN_EXCEPTION(tstate, exception_state->exception_value);
     } else {
         Py_XDECREF(exception_cause);
@@ -238,8 +236,7 @@ void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, struct Nuitka_ExceptionPr
 #else
     ASSERT_NORMALIZED_EXCEPTION_VALUE(exception_state->exception_value);
 
-    // TODO: Avoid C API usage
-    PyException_SetCause(exception_state->exception_value, exception_cause);
+    Nuitka_Exception_SetCause(exception_state->exception_value, exception_cause);
     CHAIN_EXCEPTION(tstate, exception_state->exception_value);
 #endif
 }
