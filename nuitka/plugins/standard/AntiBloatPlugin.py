@@ -18,7 +18,7 @@ from nuitka.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
+# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -411,7 +411,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 replace_dst = self.evaluateExpression(
                     full_name=module_name,
                     expression=replace_code,
-                    config_name="module '%s' config 'replacements' " % module_name,
+                    config_name="module '%s' config 'replacements'" % module_name,
                     extra_context=self._getContextCode(
                         module_name=module_name, anti_bloat_config=anti_bloat_config
                     ),
