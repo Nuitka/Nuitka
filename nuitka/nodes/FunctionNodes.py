@@ -344,7 +344,7 @@ class ExpressionFunctionBodyBase(
 
         function_name = self.getFunctionName()
 
-        if python_version < 0x340:
+        if python_version < 0x300:
             qualname_provider = self.getParentVariableProvider()
         else:
             qualname_provider = self.qualname_provider
@@ -1028,7 +1028,7 @@ class ExpressionFunctionCreationOld(
 ):
     kind = "EXPRESSION_FUNCTION_CREATION_OLD"
 
-    python_version_spec = "< 0x340"
+    python_version_spec = "< 0x300"
     # Note: The order of evaluation for these is a bit unexpected, but
     # true. Keyword defaults go first, then normal defaults, and annotations of
     # all kinds go last.
@@ -1096,7 +1096,7 @@ class ExpressionFunctionCreation(
         self.variable_closure_traces = None
 
 
-if python_version < 0x340:
+if python_version < 0x300:
     ExpressionFunctionCreation = ExpressionFunctionCreationOld
 
 

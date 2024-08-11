@@ -1232,7 +1232,7 @@ PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyThreadState *tstate, PyObject *va
     return result;
 }
 
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
 PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyThreadState *tstate, PyObject *variable_name) {
     PyObject *result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)variable_name);
 

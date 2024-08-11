@@ -35,7 +35,7 @@ NUITKA_MAY_BE_UNUSED static inline bool HAS_ITERNEXT(PyObject *value) {
 // their definition exactly. spell-checker: ignore seqiterobject
 typedef struct {
     PyObject_HEAD
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
         long it_index;
 #else
         Py_ssize_t it_index;

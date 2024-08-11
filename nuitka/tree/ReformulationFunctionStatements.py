@@ -618,7 +618,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     for arg in node.args.kwonlyargs:
         extractArgAnnotation(arg)
 
-    if python_version < 0x340:
+    if python_version < 0x300:
         if node.args.varargannotation is not None:
             addAnnotation(
                 key=node.args.vararg,
