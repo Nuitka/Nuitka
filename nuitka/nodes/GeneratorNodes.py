@@ -97,14 +97,11 @@ class ExpressionGeneratorObjectBody(
     def getFunctionName(self):
         return self.name
 
-    def markAsNeedsGeneratorReturnHandling(self, value):
-        self.needs_generator_return_exit = max(self.needs_generator_return_exit, value)
-
-    def needsGeneratorReturnHandling(self):
-        return self.needs_generator_return_exit == 2
+    def markAsNeedsGeneratorReturnHandling(self):
+        self.needs_generator_return_exit = True
 
     def needsGeneratorReturnExit(self):
-        return bool(self.needs_generator_return_exit)
+        return self.needs_generator_return_exit
 
     @staticmethod
     def needsCreation():

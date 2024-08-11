@@ -23,6 +23,9 @@ from nuitka.tree.Operations import VisitorNoopMixin
 
 
 class FinalizeMarkups(VisitorNoopMixin):
+    def __init__(self, module):
+        self.module = module
+
     def onEnterNode(self, node):
         try:
             self._onEnterNode(node)
@@ -37,26 +40,17 @@ class FinalizeMarkups(VisitorNoopMixin):
         # This has many different things it deals with, so there need to be a
         # lot of branches and statements, pylint: disable=too-many-branches
 
-        # Also all self specific things have been done on the outside,
-        # pylint: disable=no-self-use
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
-            search = node
-
-            in_tried_block = False
-
             # Search up to the containing function, and check for a try/finally
             # containing the "return" statement.
-            search = search.getParentReturnConsumer()
+            search = node.getParentReturnConsumer()
 
             if (
                 search.isExpressionGeneratorObjectBody()
                 or search.isExpressionCoroutineObjectBody()
                 or search.isExpressionAsyncgenObjectBody()
             ):
-                if in_tried_block:
-                    search.markAsNeedsGeneratorReturnHandling(2)
-                else:
-                    search.markAsNeedsGeneratorReturnHandling(1)
+                search.markAsNeedsGeneratorReturnHandling()
 
         if node.isExpressionFunctionCreation():
             if (
@@ -72,11 +66,10 @@ class FinalizeMarkups(VisitorNoopMixin):
             function_body = node.getFunctionBody()
             parent_module = function_body.getParentModule()
 
-            node_module = node.getParentModule()
-            if node_module is not parent_module:
+            if self.module is not parent_module:
                 function_body.markAsCrossModuleUsed()
 
-                node_module.addCrossUsedFunction(function_body)
+                self.module.addCrossUsedFunction(function_body)
 
         if node.isStatementAssignmentVariable():
             target_var = node.getVariable()
@@ -92,6 +85,9 @@ class FinalizeMarkups(VisitorNoopMixin):
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
                     # TODO: This might be bad.
                     assign_source.removeMarkAsInplaceSuspect()
+
+            if target_var.isModuleVariable():
+                pass
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
