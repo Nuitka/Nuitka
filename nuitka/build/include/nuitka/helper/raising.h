@@ -22,17 +22,15 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject
     if (old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value) {
         PyObject *current = old_exc_value;
         while (true) {
-            PyObject *context = PyException_GetContext(current);
+            PyObject *context = Nuitka_Exception_GetContext(current);
             if (context == NULL) {
                 break;
             }
 
             CHECK_OBJECT(context);
-            Py_DECREF(context);
-            CHECK_OBJECT(context);
 
             if (context == exception_value) {
-                PyException_SetContext(current, NULL);
+                Nuitka_Exception_DeleteContext(current);
                 break;
             }
 
@@ -40,8 +38,7 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyThreadState *tstate, PyObject
         }
 
         CHECK_OBJECT(old_exc_value);
-        Py_INCREF(old_exc_value);
-        PyException_SetContext(exception_value, old_exc_value);
+        Nuitka_Exception_SetContext(exception_value, old_exc_value);
 
 #if PYTHON_VERSION < 0x3b0
         CHECK_OBJECT(EXC_TRACEBACK(tstate));
