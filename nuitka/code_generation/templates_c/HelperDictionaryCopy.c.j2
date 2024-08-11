@@ -72,7 +72,7 @@ else
 #if PYTHON_VERSION >= 0x3b0
         // Need to preserve values prefix.
         size_t prefix_size = ((uint8_t *)new_values)[-1];
-        memcpy(((char *)new_values)-prefix_size, ((char *)dict_mp->ma_values)-prefix_size, prefix_size-1);
+        memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size-1);
 #endif
 
         result_mp->ma_values = new_values;
