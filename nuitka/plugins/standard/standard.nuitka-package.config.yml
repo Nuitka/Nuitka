@@ -45,6 +45,19 @@
     - dirs:
         - 'lib'
 
+- module-name: 'aenum' # checksum: 1241f0d1
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+
+- module-name: 'aenum._common' # checksum: 6d559f39
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+        'if PY3:': '"if %s:" % python3_or_higher'
+
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
@@ -4208,6 +4221,14 @@
         - 'colors'
         - 'icons'
 
+- module-name: 'pyqtgraph.parametertree.interactive' # checksum: acb233c9
+  anti-bloat:
+    - description: 'allow pydoc not really used bloatful'
+      bloat-mode-overrides:
+        # TODO: However it would be nice to be able to force-inline a subset of
+        # functions for pydoc, like "pydoc.splitdoc" in an easy fashion.
+        'pydoc': 'allow'
+
 - module-name: 'pyqtgraph.util.numba_helper' # checksum: 731dde6
   anti-bloat:
     - description: 'remove numba reference'
@@ -6172,33 +6193,27 @@
     - dirs:
         - 'vendor'
 
-- module-name: 'sympy' # checksum: 246a1729
+- module-name: 'sympy' # checksum: 4f06976c
   anti-bloat:
     - description: 'remove sympy.testing reference'
       replacements_plain:
         "'test', 'doctest',": ''
         'from .testing import test, doctest': ''
       when: 'not use_pytest'
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+    - description: 'remove pydoc reference'
+      no-auto-follow:
+        'pydoc': 'ignore'
+      when: 'not use_pydoc'
 
-- module-name: 'sympy.interactive.printing' # checksum: 712c2518
+- module-name: 'sympy.interactive.printing' # checksum: 8dbbac5
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         "'IPython' not in modules": 'True'
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
-        'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.lib.latextools import latex_to_png': 'raise ImportError'
-        'from IPython.core.interactiveshell import InteractiveShell': 'raise ImportError'
-      when: 'not use_ipython'
-
-- module-name: 'sympy.interactive.session' # checksum: 1c9a5216
-  anti-bloat:
-    - description: 'remove IPython reference'
-      replacements_plain:
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
 - module-name: 'sympy.utilities.decorator' # checksum: f8ef59fe
