@@ -112,7 +112,7 @@ if (unlikely(%(value_name)s == NULL)) {
                 % {
                     "helper_code": (
                         "GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION"
-                        if python_version < 0x340
+                        if python_version < 0x300
                         and not owner.isCompiledPythonModule()
                         and not owner.isExpressionClassBodyBase()
                         else "GET_MODULE_VARIABLE_VALUE_FALLBACK"

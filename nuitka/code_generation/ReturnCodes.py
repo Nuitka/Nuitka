@@ -100,6 +100,8 @@ def generateGeneratorReturnValueCode(statement, emit, context):
 
 
 def generateGeneratorReturnNoneCode(statement, emit, context):
+    # We don't need the statement, pylint: disable=unused-argument
+
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
     elif python_version >= 0x300:

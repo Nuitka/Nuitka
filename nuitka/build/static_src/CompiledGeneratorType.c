@@ -1617,7 +1617,7 @@ PyTypeObject Nuitka_Generator_Type = {
     0,                                  // tp_getattro (PyObject_GenericGetAttr)
     0,                                  // tp_setattro
     0,                                  // tp_as_buffer
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 #else
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,
