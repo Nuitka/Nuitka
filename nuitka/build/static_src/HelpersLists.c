@@ -726,7 +726,7 @@ void LIST_REVERSE(PyObject *list) {
     }
 }
 
-#if PYTHON_VERSION >= 0x340 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT)
+#if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT)
 static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
     PyObject **items = PyMem_New(PyObject *, size);
 
@@ -759,7 +759,7 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
 #else
     Py_INCREF(iterable);
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     if (Nuitka_PyObject_HasLen(iterable)) {
         Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
 

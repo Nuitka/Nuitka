@@ -309,17 +309,10 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    # The "__qualname__" attribute is new in Python3.
-    qualname = class_creation_function.getFunctionQualname()
-
-    if python_version < 0x340:
-        qualname_ref = makeConstantRefNode(
-            constant=qualname, source_ref=source_ref, user_provided=True
-        )
-    else:
-        qualname_ref = ExpressionFunctionQualnameRef(
-            function_body=class_creation_function, source_ref=source_ref
-        )
+    # The "__qualname__" attribute has a dedicated node.
+    qualname_ref = ExpressionFunctionQualnameRef(
+        function_body=class_creation_function, source_ref=source_ref
+    )
 
     statements.append(
         StatementLocalsDictOperationSet(

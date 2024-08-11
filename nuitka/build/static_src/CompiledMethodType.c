@@ -50,9 +50,6 @@ static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
     // spell-checker: ignore instancemethod
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle instancemethod objects");
     return NULL;
-#elif PYTHON_VERSION < 0x340
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle method objects");
-    return NULL;
 #else
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 2);
     PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
@@ -74,12 +71,9 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
 
     // Python API, spell-checker: ignore copyreg,newobj
 
-#if PYTHON_VERSION < 0x340
 #if PYTHON_VERSION < 0x300
     PyObject *copy_reg = PyImport_ImportModule("copy_reg");
-#else
-    PyObject *copy_reg = PyImport_ImportModule("copyreg");
-#endif
+
     CHECK_OBJECT(copy_reg);
     PyThreadState *tstate = PyThreadState_GET();
 

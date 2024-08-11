@@ -67,7 +67,7 @@ static int orig_argc;
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
 // The original frozen modules list.
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
 static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
@@ -1379,7 +1379,7 @@ orig_argv = argv;
 #endif
 
 // Workaround older Python not handling stream setup on redirected files properly.
-#if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x380
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x380
     {
         char const *encoding = NULL;
 
