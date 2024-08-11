@@ -14,9 +14,9 @@ from nuitka.tree import Operations
 from .FinalizeMarkups import FinalizeMarkups
 
 
-def prepareCodeGeneration(tree):
-    visitor = FinalizeMarkups()
-    Operations.visitTree(tree, visitor)
+def prepareCodeGeneration(module):
+    visitor = FinalizeMarkups(module)
+    Operations.visitTree(module, visitor)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
