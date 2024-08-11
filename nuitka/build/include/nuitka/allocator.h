@@ -173,6 +173,7 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
 #if PYTHON_VERSION < 0x3c0
     _Py_RefTotal++;
 #else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
     _PyInterpreterState_GET()->object_state.reftotal++;
 #endif
 #endif
