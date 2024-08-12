@@ -89,46 +89,73 @@ def generateDelVariableCode(statement, emit, context):
         )
 
 
-def getVariableReferenceCode(
-    to_name, variable, variable_trace, needs_check, conversion_check, emit, context
-):
-    if variable.isModuleVariable():
-        owner = context.getOwner()
+def getModuleVariableAccessorCodeName(module_identifier, variable_name):
+    # For non-ascii names use encoding.
+    if str is not bytes:
+        variable_name = variable_name.encode("ascii", "c_identifier").decode()
 
-        with withObjectCodeTemporaryAssignment2(
-            to_name, "mvar_value", conversion_check, emit, context
-        ) as value_name:
-            # TODO: Rather have this passed from a distinct node type, so inlining
-            # doesn't change things.
+    return "module_var_accessor_%s_$$_%s" % (module_identifier, variable_name)
+
+
+def getModuleVariableReferenceCode(
+    to_name, variable_name, use_caching, needs_check, conversion_check, emit, context
+):
+    owner = context.getOwner()
+
+    context.setModuleVariableAccessorCaching(variable_name, use_caching)
+
+    with withObjectCodeTemporaryAssignment2(
+        to_name, "mvar_value", conversion_check, emit, context
+    ) as value_name:
+        emit(
+            "%(value_name)s = %(module_variable_accessor)s(tstate);"
+            % {
+                "value_name": value_name,
+                "module_variable_accessor": getModuleVariableAccessorCodeName(
+                    context.getModuleCodeName(), variable_name
+                ),
+            }
+        )
+
+        # TODO: This Python2 difference is probably not worth not doing these inside
+        # the accessors, but on the other hand "needs_check" being false also needs
+        # different accessors.
+        if needs_check:
+            if (
+                python_version < 0x300
+                and not owner.isCompiledPythonModule()
+                and not owner.isExpressionClassBodyBase()
+            ):
+                error_helper_name = "SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
+            else:
+                error_helper_name = "SET_CURRENT_EXCEPTION_NAME_ERROR"
 
             emit(
                 """\
-%(value_name)s = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
-
 if (unlikely(%(value_name)s == NULL)) {
-    %(value_name)s = %(helper_code)s(tstate, %(var_name)s);
+    %(error_helper_name)s(tstate, %(var_name)s);
 }
 """
                 % {
-                    "helper_code": (
-                        "GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION"
-                        if python_version < 0x300
-                        and not owner.isCompiledPythonModule()
-                        and not owner.isExpressionClassBodyBase()
-                        else "GET_MODULE_VARIABLE_VALUE_FALLBACK"
-                    ),
-                    "module_identifier": context.getModuleCodeName(),
                     "value_name": value_name,
-                    "var_name": context.getConstantCode(constant=variable.getName()),
+                    "error_helper_name": error_helper_name,
+                    "var_name": context.getConstantCode(constant=variable_name),
                 }
             )
 
-            getErrorExitCode(
-                check_name=value_name,
-                emit=emit,
-                context=context,
-                needs_check=needs_check,
-            )
+        getErrorExitCode(
+            check_name=value_name,
+            emit=emit,
+            context=context,
+            needs_check=needs_check,
+        )
+
+
+def getNonModuleVariableReferenceCode(
+    to_name, variable, variable_trace, needs_check, conversion_check, emit, context
+):
+    if variable.isModuleVariable():
+        assert False
     else:
         variable_declaration = getLocalVariableDeclaration(
             context, variable, variable_trace
@@ -166,15 +193,44 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
 
     needs_check = expression.mayRaiseException(BaseException)
 
-    getVariableReferenceCode(
-        to_name=to_name,
-        variable=variable,
-        variable_trace=variable_trace,
-        needs_check=needs_check,
-        conversion_check=decideConversionCheckNeeded(to_name, expression),
-        emit=emit,
-        context=context,
-    )
+    if variable.isModuleVariable():
+        user = context.getOwner()
+        variable_name = variable.getName()
+
+        if python_version < 0x360:
+            # Python2 doesn't have the means to do it, we got some acceleration
+            # for it still, but no real caching.
+            use_caching = False
+        elif user.isCompiledPythonModule():
+            # For module level code, cache module variable access only if inside
+            # a loop.
+            use_caching = False
+
+            if not context.isModuleVariableAccessorCaching(variable_name):
+                if expression.getContainingLoopNode() is not None:
+                    use_caching = True
+        else:
+            use_caching = True
+
+        getModuleVariableReferenceCode(
+            to_name=to_name,
+            variable_name=variable_name,
+            use_caching=use_caching,
+            needs_check=needs_check,
+            conversion_check=decideConversionCheckNeeded(to_name, expression),
+            emit=emit,
+            context=context,
+        )
+    else:
+        getNonModuleVariableReferenceCode(
+            to_name=to_name,
+            variable=variable,
+            variable_trace=variable_trace,
+            needs_check=needs_check,
+            conversion_check=decideConversionCheckNeeded(to_name, expression),
+            emit=emit,
+            context=context,
+        )
 
 
 def _getVariableCodeName(in_context, variable):
