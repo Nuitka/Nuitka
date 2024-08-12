@@ -90,6 +90,36 @@ void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
 }
 #endif
 
+// Helper to preserving module variables for Python3.11+
+#if %(module_variable_accessors_count)d
+#if PYTHON_VERSION >= 0x3c0
+NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentState(PyInterpreterState *interp, PyDictKeysObject *dk)
+{
+    if (dk->dk_version != 0) {
+        return dk->dk_version;
+    }
+    uint32_t result = interp->dict_state.next_keys_version++;
+    dk->dk_version = result;
+    return result;
+}
+#elif PYTHON_VERSION >= 0x3b0
+static uint32_t _Nuitka_next_dict_keys_version = 2;
+
+NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentState(PyDictKeysObject *dk)
+{
+    if (dk->dk_version != 0) {
+        return dk->dk_version;
+    }
+    uint32_t result = _Nuitka_next_dict_keys_version++;
+    dk->dk_version = result;
+    return result;
+}
+#endif
+#endif
+
+// Accessors to module variables.
+%(module_variable_accessors)s
+
 // The module code objects.
 %(module_code_objects_decl)s
 

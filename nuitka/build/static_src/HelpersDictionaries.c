@@ -1386,7 +1386,7 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     result_mp->ma_used = 0;
 #if PYTHON_VERSION >= 0x3c0
     result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
-#elif PYTHON_VERSION >= 0x300
+#elif PYTHON_VERSION >= 0x360
     result_mp->ma_version_tag = 1;
 #endif
 
