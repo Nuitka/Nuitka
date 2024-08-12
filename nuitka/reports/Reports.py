@@ -205,6 +205,9 @@ def _getReportInputData(aborted):
     os_name = getOS()
     arch_name = getArchitecture()
 
+    # Record system encoding, spell-checker: ignore getfilesystemencoding
+    filesystem_encoding = sys.getfilesystemencoding()
+
     if isWin32OrPosixWindows():
         os_release = str(getWindowsRelease())
     elif isLinux():
@@ -712,6 +715,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         os_name=report_input_data["os_name"],
         os_release=report_input_data["os_release"],
         arch_name=report_input_data["arch_name"],
+        filesystem_encoding=report_input_data["filesystem_encoding"],
     )
 
     search_path = getPackageSearchPath(None)
