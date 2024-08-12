@@ -1,8 +1,6 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-import itertools
-
 module_value1 = 1000
 module_value2 = 2000
 
@@ -13,7 +11,10 @@ def calledRepeatedly(cond):
 
 
 def main():
-    for x in itertools.repeat(None, 50000):
+    # This makes the value of module_value2 harder to cache, we are changing the
+    # globals each time.
+    global x
+    for x in range(50000):
         # construct_begin
         calledRepeatedly(True)
         # construct_alternative
