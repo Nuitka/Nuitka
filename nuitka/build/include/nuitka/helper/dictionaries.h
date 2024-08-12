@@ -57,7 +57,7 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
 
 #else
 
-// Python 3.3 or higher.
+// Python3
 
 // Quick dictionary lookup for a string value.
 
