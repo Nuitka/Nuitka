@@ -144,6 +144,8 @@ struct _dictkeysobject {
 typedef PyObject **Nuitka_DictEntryHandle;
 
 #if PYTHON_VERSION >= 0x3b0
+extern Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash);
+
 extern Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 extern Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 #endif
