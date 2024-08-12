@@ -1,4 +1,5 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2024, Kevin Rodriguez, mailto:turcioskevinr@gmail.com find license text at end of file
 
 """ Plugin for Playwright.
 
@@ -19,26 +20,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
 
     def __init__(self, include_browsers):
         self.include_browsers = list(include_browsers)
-        self.installed_browsers = self.get_Installed_Playwright_Browsers()
-
-        if "all" in self.include_browsers:
-            self.include_browsers = self.installed_browsers
-        elif "ffmpeg" not in self.include_browsers and any(
-            browser.startswith("chrom") for browser in self.include_browsers
-        ):
-            for browser in self.installed_browsers:
-                if "ffmpeg" in self.installed_browsers[browser].name:
-                    self.include_browsers.append(browser)
-                    self.info(
-                        "Including 'ffmpeg' for chromium-based browser. It is required by playwright."
-                    )
-                    break
-
-        for browser in self.include_browsers:
-            if browser not in self.installed_browsers:
-                self.sysexit(
-                    f"Error, requested to include browser '{browser}' that was not found, the list of installed ones is '{', '.join(self.installed_browsers.keys())}'."
-                )
+        self.installed_browsers = None
 
     @staticmethod
     def isAlwaysEnabled():
@@ -63,14 +45,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
     def _getPlaywrightInfo(self):
         "Determine the path of the playwright module."
         try:
-            info = self.queryRuntimeInformationMultiple(
-                info_name="playwright_info",
-                setup_codes="""
-from playwright import __file__ as playwright_file
-from os.path import dirname
-""",
-                values=(("playwright_file", "dirname(playwright_file)"),),
-            )
+            info = self.locateModule("playwright")
         except NuitkaCalledProcessError as e:
             self.debug("Exception during detection: %r" % e)
             raise
@@ -80,11 +55,12 @@ from os.path import dirname
 
         return info
 
-    def getRegistryDirectory(self):
+    def _getRegistryDirectory(self):
+        # this is a port of playwright's JS script which determines where the browsers are installed
 
         env_defined = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
         path_home = os.path.expanduser("~")
-        playwright_module_path = self._getPlaywrightInfo().playwright_file
+        playwright_module_path = self._getPlaywrightInfo()
 
         result = os.path.join(
             playwright_module_path, "driver", "package", ".local-browsers"
@@ -117,29 +93,67 @@ from os.path import dirname
         return result
 
     def get_Installed_Playwright_Browsers(self):
-
-        registry_directory = self.getRegistryDirectory()
-
+        registry_directory = self._getRegistryDirectory()
         if not os.path.exists(registry_directory):
-            return {}
+            return
 
-        browsers_installed = list(os.scandir(registry_directory))
+        browsers_installed = [
+            browser
+            for browser in os.scandir(registry_directory)
+            if browser.name != ".links"
+        ]
+        self.installed_browsers = {}
         for browser in browsers_installed:
-            if browser.name == ".links":
-                browsers_installed.remove(browser)
-                break
-
-        return {browser.name: browser for browser in browsers_installed}
+            self.installed_browsers[browser.name] = browser
 
     def considerDataFiles(self, module):
 
-        if module.getFullName() != "playwright" or not self.include_browsers:
+        if module.getFullName() != "playwright":
             return
 
-        for browser in self.include_browsers:
-            self.info(
-                f"Including '{browser}' from '{self.installed_browsers[browser].path}'."
+        if not self.include_browsers:
+            self.warning(
+                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."
             )
+
+        self.get_Installed_Playwright_Browsers()
+
+        if not self.installed_browsers:
+            self.warning(
+                "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
+            )
+
+        for browser in self.include_browsers:
+            if browser not in self.installed_browsers:
+
+                msg = (
+                    "Error, requested to include browser '%s' that was not found, the list of installed ones is '%s'."
+                    % (
+                        browser,
+                        ", ".join(self.installed_browsers),
+                    )
+                )
+                self.sysexit(msg)
+
+        if "all" in self.include_browsers:
+            self.include_browsers = self.installed_browsers
+        elif "ffmpeg" not in self.include_browsers and any(
+            browser.startswith("chrom") for browser in self.include_browsers
+        ):
+            for browser in self.installed_browsers:
+                if "ffmpeg" in self.installed_browsers[browser].name:
+                    self.include_browsers.append(browser)
+                    self.info(
+                        "Including 'ffmpeg' for chromium-based browser. It is required by playwright."
+                    )
+                    break
+
+        for browser in self.include_browsers:
+            msg = "Including '%s' from '%s'." % (
+                browser,
+                self.installed_browsers[browser].path,
+            )
+            self.info(msg)
 
             yield self.makeIncludedDataDirectory(
                 source_path=self.installed_browsers[browser],
