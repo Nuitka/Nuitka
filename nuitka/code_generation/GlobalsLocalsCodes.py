@@ -22,7 +22,7 @@ from .templates.CodeTemplatesVariables import (
 )
 from .VariableCodes import (
     getLocalVariableDeclaration,
-    getVariableReferenceCode,
+    getNonModuleVariableReferenceCode,
 )
 from .VariableDeclarations import VariableDeclaration
 
@@ -118,7 +118,7 @@ def _getVariableDictUpdateCode(
 
     access_code = SourceCodeCollector()
 
-    getVariableReferenceCode(
+    getNonModuleVariableReferenceCode(
         to_name=VariableDeclaration("PyObject *", "value", None, None),
         variable=variable,
         variable_trace=variable_trace,
