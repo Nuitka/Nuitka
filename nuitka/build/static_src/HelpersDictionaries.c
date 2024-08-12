@@ -1354,6 +1354,10 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
     return result;
 }
 
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+uint64_t nuitka_dict_version_tag_counter = 1 << 32;
+#endif
+
 #if NUITKA_DICT_HAS_FREELIST
 PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
