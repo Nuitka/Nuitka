@@ -758,7 +758,9 @@ return %(return_value)s;""" % {
         if cls.type_name == "object":
             # Need to not use that, but pick one.
             assert False
-        elif cls.type_name in ("int", "long"):
+        elif cls.type_name == "int":
+            return "%s = Nuitka_PyInt_FromLong(%s);" % (result, operand)
+        elif cls.type_name == "long":
             return "%s = Nuitka_LongFromCLong(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
