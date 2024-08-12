@@ -25,7 +25,13 @@ from .templates.CodeTemplatesModules import (
     template_module_external_entry_point,
     template_module_no_exception_exit,
 )
-from .VariableCodes import getVariableReferenceCode
+from .templates.CodeTemplatesVariables import (
+    template_module_variable_accessor_function,
+)
+from .VariableCodes import (
+    getModuleVariableAccessorCodeName,
+    getModuleVariableReferenceCode,
+)
 
 
 def getModuleAccessCode(context):
@@ -133,6 +139,22 @@ def getModuleCode(
             module_dll_entry_point_prefix + module_dll_entry_point.decode("ascii")
         )
 
+    module_variable_accessor_codes = []
+    for module_variable_name, caching in sorted(
+        context.getModuleVariableAccessors().items()
+    ):
+        module_variable_accessor_codes.append(
+            template_module_variable_accessor_function
+            % {
+                "accessor_function_name": getModuleVariableAccessorCodeName(
+                    module_identifier, module_variable_name
+                ),
+                "var_name": context.getConstantCode(constant=module_variable_name),
+                "module_identifier": module_identifier,
+                "caching": "1" if caching else "0",
+            }
+        )
+
     return template % {
         "module_name_cstr": encodePythonStringToC(
             module_name.asString().encode("utf8")
@@ -148,6 +170,8 @@ def getModuleCode(
         "module_functions_code": function_body_codes,
         "module_function_table_entries": indented(function_table_entries_decl),
         "temps_decl": indented(local_var_inits),
+        "module_variable_accessors": indented(module_variable_accessor_codes, 0),
+        "module_variable_accessors_count": len(module_variable_accessor_codes),
         "module_init_codes": indented(context.getModuleInitCodes()),
         "module_codes": indented(module_codes.codes),
         "module_exit": module_exit,
@@ -169,10 +193,10 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
-    getVariableReferenceCode(
+    getModuleVariableReferenceCode(
         to_name=to_name,
-        variable=expression.getVariable(),
-        variable_trace=None,
+        variable_name=expression.getVariable().getName(),
+        use_caching=False,
         needs_check=False,
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         emit=emit,
