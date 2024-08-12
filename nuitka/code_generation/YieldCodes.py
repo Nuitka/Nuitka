@@ -3,7 +3,7 @@
 
 """ Yield related codes.
 
-The normal "yield", and the Python 3.3 or higher "yield from" variant.
+The normal "yield", and the Python 3 "yield from" variant.
 """
 
 from .CodeHelpers import (
