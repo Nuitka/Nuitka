@@ -999,9 +999,9 @@ static Py_ssize_t Nuitka_Py_unicodekeys_lookup_generic(PyDictObject *mp, PyDictK
     NUITKA_CANNOT_GET_HERE("Nuitka_Py_unicodekeys_lookup_generic failed");
 }
 
-// TODO: Make use of this one in Nuitka_PyDictLookupStr
-static Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash) {
+Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash) {
     assert(PyUnicode_CheckExact(key));
+    assert(dk->dk_kind != DICT_KEYS_GENERAL);
 
     PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(dk);
 
@@ -1092,7 +1092,6 @@ static Py_ssize_t Nuitka_Py_dictkeys_generic_lookup(PyDictObject *mp, PyDictKeys
         perturb >>= PERTURB_SHIFT;
         i = mask & (i * 5 + perturb + 1);
     }
-    Py_UNREACHABLE();
 }
 
 Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
@@ -1143,11 +1142,25 @@ restart:
     return ix;
 }
 
-// TODO: Take advantage of string key knowledge directly.
 Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
     assert(PyUnicode_CheckExact(key));
 
-    return Nuitka_PyDictLookup(mp, key, hash, value_addr);
+    PyDictKeysObject *dk = mp->ma_keys;
+    assert(dk->dk_kind != DICT_KEYS_GENERAL);
+
+    Py_ssize_t ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+
+    if (ix >= 0) {
+        if (dk->dk_kind == DICT_KEYS_SPLIT) {
+            *value_addr = &mp->ma_values->values[ix];
+        } else {
+            *value_addr = &DK_UNICODE_ENTRIES(dk)[ix].me_value;
+        }
+    } else {
+        *value_addr = NULL;
+    }
+
+    return ix;
 }
 
 #endif
@@ -1355,7 +1368,7 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
 }
 
 #if _NUITKA_MAINTAIN_DICT_VERSION_TAG
-uint64_t nuitka_dict_version_tag_counter = 1 << 32;
+uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
 #endif
 
 #if NUITKA_DICT_HAS_FREELIST
@@ -1454,7 +1467,6 @@ PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size
 
     return result;
 }
-
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
