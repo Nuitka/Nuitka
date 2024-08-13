@@ -9,28 +9,22 @@ module_value2 = "2000"
 
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
-def calledRepeatedly(cond, value, str1):
+
+def calledRepeatedly(cond, value):
     if cond:
-        if str1 == "1000":
+        if value % 2 == 0:
             value = not value
     else:
         value = not value
 
     return value
 
-def makeSame(value):
-    new_value = "".join(list(value))
-    assert new_value is not value
 
-module_value1_copy = makeSame(module_value1)
-
-for x in range(10000):
+for x in range(50000):
     # construct_begin
-    calledRepeatedly(True, x, module_value1)
-    calledRepeatedly(True, x, module_value1_copy)
+    calledRepeatedly(True, x)
     # construct_alternative
-    calledRepeatedly(False, x, module_value1)
-    calledRepeatedly(False, x, module_value1_copy)
+    calledRepeatedly(False, x)
     # construct_end
 
 
