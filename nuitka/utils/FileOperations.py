@@ -14,6 +14,7 @@ import errno
 import fnmatch
 import glob
 import os
+import pathlib
 import pickle
 import shutil
 import stat
@@ -807,8 +808,12 @@ def getFileContents(filename, mode="r", encoding=None):
     """
 
     with withFileLock("reading file %s" % filename):
-        with openTextFile(filename, mode, encoding=encoding) as f:
-            return f.read()
+        if mode == "r":
+            return pathlib.Path(filename).read_text(encoding=encoding)
+        elif mode == "rb":
+            return pathlib.Path(filename).read_bytes()
+        else:
+            raise RuntimeError(f"Unsupported mode {mode}")
 
 
 def getFileFirstLine(filename, mode="r", encoding=None):

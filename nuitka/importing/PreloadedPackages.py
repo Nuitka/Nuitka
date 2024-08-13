@@ -116,7 +116,7 @@ def detectPthImportedPackages():
         for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
-                    for line in getFileContentByLine(path, "rU"):
+                    for line in getFileContentByLine(path, "r"):
                         if line.startswith("import "):
                             if ";" in line:
                                 line = line[: line.find(";")]
