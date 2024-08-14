@@ -7,7 +7,6 @@ import ast
 import atexit
 import gc
 import os
-import re
 import shutil
 import signal
 import sys
@@ -367,10 +366,6 @@ def decideFilenameVersionSkip(filename):
     return True
 
 
-def decideNeeds2to3(filename):
-    return _python_version >= (3,) and not re.match(r".*3\d+\.py", filename)
-
-
 def _removeCPythonTestSuiteDir():
     # Cleanup, some tests apparently forget that.
     try:
@@ -395,9 +390,7 @@ def _removeCPythonTestSuiteDir():
             raise
 
 
-def compareWithCPython(
-    dirname, filename, extra_flags, search_mode, needs_2to3, on_error=None
-):
+def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=None):
     """Call the comparison tool. For a given directory filename.
 
     The search mode decides if the test case aborts on error or gets extra
@@ -405,18 +398,10 @@ def compareWithCPython(
 
     """
 
-    # Many cases to consider here, pylint: disable=too-many-branches
-
     if dirname is None:
         path = filename
     else:
         path = os.path.join(dirname, filename)
-
-    # Apply 2to3 conversion if necessary.
-    if needs_2to3:
-        path, converted = convertUsing2to3(path)
-    else:
-        converted = False
 
     if os.getenv("NUITKA_TEST_INSTALLED", "") == "1":
         command = [
@@ -454,9 +439,6 @@ def compareWithCPython(
             on_error(dirname, filename)
 
         search_mode.onErrorDetected("Error exit! %s" % result)
-
-    if converted:
-        os.unlink(path)
 
     if result == 2:
         test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
