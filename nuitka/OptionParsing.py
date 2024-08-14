@@ -180,7 +180,8 @@ parser.add_option(
 )
 
 include_group = parser.add_option_group(
-    "Control the inclusion of modules and packages in result"
+    "Control the inclusion of modules and packages in result",
+    link="include-section",
 )
 
 include_group.add_option(
