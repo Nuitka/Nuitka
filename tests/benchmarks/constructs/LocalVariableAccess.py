@@ -4,28 +4,28 @@
 import itertools
 
 module_value1 = 1000
-module_value2 = None
-module_value3 = None
+module_value2 = 2000
 
 
-def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
-
-    local_value = module_value1
-
+def calledRepeatedly(cond):
     # Use writing to global variable as access method.
-    global module_value2, module_value3
+    global module_value1, module_value2
 
-    # construct_begin
-    module_value2 = local_value
-    # construct_end
+    local_value1 = module_value1
+    local_value2 = module_value2
 
-    module_value3 = local_value
+    if cond:
+        local_value1 = local_value2
+
+    return local_value1 + local_value2
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 
