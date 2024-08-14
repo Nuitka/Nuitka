@@ -4,31 +4,35 @@
 import itertools
 
 module_value1 = 1000
-module_value2 = None
-module_value3 = None
+module_value2 = 1000
 
 
-def calledRepeatedly():
+def calledRepeatedly(cond):
     closure_value = module_value1
 
     def f():
         # Force frame and eliminate forward propagation (currently).
         module_value1
 
-        # Use writing to global variable as access method.
-        global module_value2, module_value3
+        local_value1 = module_value1
+        local_value2 = module_value2
 
-        # construct_begin
-        module_value2 = closure_value
-        # construct_end
+        if cond:
+            local_value1 = closure_value
 
-        module_value3 = closure_value
+        return local_value1 + local_value2
 
-    f()
+    # Make it clear that the closure cannot be trusted and there
+    # is no inlining possible.
+    return f, f()
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 
