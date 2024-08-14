@@ -109,7 +109,6 @@ Error, no package in test directory '%s' found, incomplete test case."""
                 filename=filename_main,
                 extra_flags=extra_flags,
                 search_mode=search_mode,
-                needs_2to3=False,
             )
 
     search_mode.finish()
