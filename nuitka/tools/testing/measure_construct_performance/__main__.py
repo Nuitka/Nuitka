@@ -17,8 +17,6 @@ from optparse import OptionParser
 from nuitka.__past__ import md5
 from nuitka.tools.testing.Common import (
     check_output,
-    convertUsing2to3,
-    decideNeeds2to3,
     getPythonSysPath,
     getPythonVersionString,
     getTempDir,
@@ -98,8 +96,6 @@ def main():
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
     my_print("TEST_CASE_HASH='%s'" % md5(getFileContents(test_case, "rb")).hexdigest())
 
-    needs_2to3 = decideNeeds2to3(test_case)
-
     if options.target_dir:
         copyFile(
             test_case, os.path.join(options.target_dir, os.path.basename(test_case))
@@ -115,10 +111,6 @@ def main():
 
     putTextFileContents(test_case_1, case_1_source)
     putTextFileContents(test_case_2, case_2_source)
-
-    if needs_2to3:
-        test_case_1, _needs_delete = convertUsing2to3(test_case_1)
-        test_case_2, _needs_delete = convertUsing2to3(test_case_2)
 
     os.environ["PYTHONHASHSEED"] = "0"
 
