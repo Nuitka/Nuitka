@@ -356,6 +356,7 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
+env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
 env.console_mode = console_mode
 env.source_dir = source_dir
@@ -466,7 +467,7 @@ if env.debug_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
 
-        if "allow-c-warnings" not in env.experimental_flags and not debugger_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
             env.Append(
                 CCFLAGS=[
                     "-Wall",
