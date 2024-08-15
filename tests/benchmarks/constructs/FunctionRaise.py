@@ -8,26 +8,27 @@ import itertools
 module_var = None
 
 
-def raisy():
+def raising_function():
     raise TypeError
 
 
-def calledRepeatedly(raisy):
+def calledRepeatedly(raising_function, cond):
     # Force a frame for now
     module_var
 
-    # construct_begin
     try:
-        raisy()
+        if cond:
+            raising_function()
     except TypeError:
         pass
-    # construct_alternative
-    pass
-    # construct_end
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly(raisy)
+    # construct_begin
+    calledRepeatedly(raising_function, True)
+    # construct_alternative
+    calledRepeatedly(raising_function, False)
+    # construct_end
 
 print("OK.")
 
