@@ -15,4 +15,4 @@ jobs:
 
   - task: CmdLine@2
     inputs:
-      script: 'python3.11 tests/run-tests'
+      script: 'python3 ./tests/run-tests --jobs=-1'
