@@ -416,6 +416,17 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
 Enforce the use of MinGW64 on Windows. Defaults to off.""",
     )
 
+    parser.add_option(
+        "--jobs",
+        action="store",
+        dest="jobs",
+        default=None,
+        help="""\
+The value of --jobs to use when calling Nuitka. Use negative values to
+keep cores unused. Nuitka uses available cores by default. Defaults to
+not being passed.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -616,6 +627,8 @@ def main():
             return True
         if command == "python3.11" and sys.version_info[0:2] == (3, 11):
             return True
+        if command == "python3.12" and sys.version_info[0:2] == (3, 12):
+            return True
 
         path = os.environ["PATH"]
 
@@ -653,6 +666,9 @@ def main():
 
         if os.name == "nt" and options.mingw64:
             yield "--mingw64"
+
+        if options.jobs is not None:
+            yield "--jobs=%s" % options.jobs
 
         if where is not None:
             tmp_dir = getTempDir()
