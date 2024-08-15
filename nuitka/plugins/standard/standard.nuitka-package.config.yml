@@ -4047,10 +4047,22 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 8c9db0be
+- module-name: 'pygame' # checksum: 67ff3d63
   data-files:
     - patterns:
         - 'freesansbold.ttf'
+    - patterns:
+        - 'pygame_icon_mac.bmp'
+      when: 'macos'
+    - patterns:
+        - 'pygame_icon.bmp'
+      when: 'not macos'
+
+  dlls:
+    - from_filenames:
+        relative_path: '.'
+        prefixes:
+          - ''
 
   options:
     checks:
