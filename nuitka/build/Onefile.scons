@@ -110,6 +110,10 @@ module_mode = getArgumentBool("module_mode", False)
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
 
+# Debugger mode: Debug information in the resulting binary and intention to run
+# in debugger.
+debugger_mode = getArgumentBool("debugger_mode", False)
+
 # Deployment mode
 deployment_mode = getArgumentBool("deployment", False)
 
@@ -268,6 +272,7 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
+env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
 env.console_mode = console_mode
 env.source_dir = source_dir
