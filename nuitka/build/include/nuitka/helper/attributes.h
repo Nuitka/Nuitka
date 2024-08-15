@@ -39,10 +39,6 @@ extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *class_object, PyObject *
 #endif
 
 extern PyObject *LOOKUP_MODULE_VALUE(PyDictObject *module_dict, PyObject *var_name);
-extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyThreadState *tstate, PyObject *variable_name);
-#if PYTHON_VERSION < 0x300
-extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyThreadState *tstate, PyObject *variable_name);
-#endif
 
 // In case of DLL usage, this avoids looking up the symbol from it.
 extern getattrofunc PyObject_GenericGetAttr_resolved;
