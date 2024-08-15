@@ -170,8 +170,12 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "known to be not supported (CondaCC)"
     elif isMacOS() and env.gcc_mode and env.clang_mode:
-        lto_mode = True
-        reason = "known to be supported (macOS clang)"
+        if env.debugger_mode:
+            lto_mode = False
+            reason = "must be disabled to see line numbers (macOS clang)"
+        else:
+            lto_mode = True
+            reason = "known to be supported (macOS clang)"
     elif env.mingw_mode and env.clang_mode:
         lto_mode = False
         reason = "known to not be supported (new MinGW64 Clang)"
