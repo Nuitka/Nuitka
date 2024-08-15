@@ -751,6 +751,14 @@ Execute only tests matching the pattern. Defaults to all tests.""",
         help="""\
 Execute all tests, continue execution even after failure of one.""",
     )
+    select_group.add_option(
+        "--jobs",
+        action="store",
+        dest="jobs",
+        default=None,
+        help="""\
+Pass this as the --jobs value to Nuitka.""",
+    )
 
     del select_group
 
@@ -781,6 +789,9 @@ Defaults to off.""",
 
     if options.debug:
         addExtendedExtraOptions("--debug")
+
+    if options.jobs is not None:
+        addExtendedExtraOptions("--jobs=%s" % options.jobs)
 
     if options.show_commands:
         os.environ["NUITKA_TRACE_COMMANDS"] = "1"
