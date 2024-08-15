@@ -5782,6 +5782,14 @@
           - 'libsndfile'
       when: 'macos'
 
+- module-name: 'selenium_driverless'
+  data-files:
+    dirs:
+      - '.'
+  implicit-imports:
+    - depends:
+        - 'websockets.legacy.*'
+
 - module-name: 'spacy' # checksum: 4943d3fa
   data-files:
     - dirs:
