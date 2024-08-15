@@ -1735,6 +1735,9 @@ orig_argv = argv;
         CALL_FUNCTION_NO_ARGS(tstate, main_function);
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+        NUITKA_PRINT_TRACE("main(): Calling 'anyio.to_process' Py_Exit.");
+        Py_Exit(exit_code);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
