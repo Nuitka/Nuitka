@@ -117,29 +117,32 @@ def getModuleVariableReferenceCode(
             }
         )
 
-        # TODO: This Python2 difference is probably not worth not doing these inside
-        # the accessors, but on the other hand "needs_check" being false also needs
-        # different accessors.
         if needs_check:
             if (
                 python_version < 0x300
                 and not owner.isCompiledPythonModule()
                 and not owner.isExpressionClassBodyBase()
             ):
-                error_helper_name = "SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
+                error_helper_name = "RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR"
             else:
-                error_helper_name = "SET_CURRENT_EXCEPTION_NAME_ERROR"
+                error_helper_name = "RAISE_CURRENT_EXCEPTION_NAME_ERROR"
+
+            (
+                exception_state_name,
+                _exception_lineno,
+            ) = context.variable_storage.getExceptionVariableDescriptions()
 
             emit(
                 """\
 if (unlikely(%(value_name)s == NULL)) {
-    %(error_helper_name)s(tstate, %(var_name)s);
+    %(error_helper_name)s(tstate, &%(exception_state_name)s, %(var_name)s);
 }
 """
                 % {
                     "value_name": value_name,
                     "error_helper_name": error_helper_name,
                     "var_name": context.getConstantCode(constant=variable_name),
+                    "exception_state_name": exception_state_name,
                 }
             )
 
@@ -147,6 +150,7 @@ if (unlikely(%(value_name)s == NULL)) {
             check_name=value_name,
             emit=emit,
             context=context,
+            fetched_exception=True,
             needs_check=needs_check,
         )
 

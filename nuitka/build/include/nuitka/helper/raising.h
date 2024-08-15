@@ -66,12 +66,14 @@ extern void RAISE_EXCEPTION_WITH_CAUSE(PyThreadState *tstate, struct Nuitka_Exce
 
 extern bool RERAISE_EXCEPTION(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state);
 
-extern void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
-                                               struct Nuitka_ExceptionPreservationItem *exception_state);
+extern void RAISE_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate,
+                                               struct Nuitka_ExceptionPreservationItem *exception_state,
+                                               PyObject *variable_name);
 
 #if PYTHON_VERSION < 0x300
-extern void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name,
-                                                      struct Nuitka_ExceptionPreservationItem *exception_state);
+extern void RAISE_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate,
+                                                      struct Nuitka_ExceptionPreservationItem *exception_state,
+                                                      PyObject *variable_name);
 #endif
 
 extern PyObject *NORMALIZE_EXCEPTION_VALUE_FOR_RAISE(PyThreadState *tstate, PyObject *exception_type);
