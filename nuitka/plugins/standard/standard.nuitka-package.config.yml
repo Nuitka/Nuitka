@@ -5084,6 +5084,14 @@
         executable: 'yes'
       when: 'win32'
 
+- module-name: 'selenium_driverless' # checksum: bdcb049
+  data-files:
+    - dirs:
+        - '.'
+  implicit-imports:
+    - depends:
+        - 'websockets.legacy.*'
+
 - module-name: 'selenium_stealth' # checksum: 26b9c88c
   data-files:
     - dirs:
@@ -5781,14 +5789,6 @@
         prefixes:
           - 'libsndfile'
       when: 'macos'
-
-- module-name: 'selenium_driverless'
-  data-files:
-    dirs:
-      - '.'
-  implicit-imports:
-    - depends:
-        - 'websockets.legacy.*'
 
 - module-name: 'spacy' # checksum: 4943d3fa
   data-files:
