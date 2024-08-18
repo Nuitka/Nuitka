@@ -50,7 +50,7 @@ def selectCodeHelper(
     if helper_function not in specialized_helpers_set:
         if (
             report_missing
-            and Options.is_report_missing
+            and Options.report_missing_code_helpers
             and (
                 not non_specialized_helpers_set
                 or helper_function not in non_specialized_helpers_set

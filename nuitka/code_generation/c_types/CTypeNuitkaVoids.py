@@ -32,7 +32,7 @@ class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
         emit("assert(%s == NUITKA_VOID_OK);" % value_name)
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NUITKA_VOID_OK;" % value_name)
 
     @classmethod

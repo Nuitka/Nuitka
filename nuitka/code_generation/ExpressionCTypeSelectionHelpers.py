@@ -25,10 +25,12 @@ from nuitka.PythonVersions import (
 
 from .c_types.CTypeCFloats import CTypeCFloat
 from .c_types.CTypeCLongs import CTypeCLong, CTypeCLongDigit
+from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
+from .VariableCodes import getLocalVariableDeclaration
 
 
-def _pickIntFamilyType(expression):
+def _pickIntFamilyType(expression, context):
     if expression.isCompileTimeConstant():
         # On Python2, "INT_CLONG" is very fast as "CLONG" is the internal representation
         # of it, for Python3, it should be avoided, it usually is around 2**30.
@@ -38,6 +40,22 @@ def _pickIntFamilyType(expression):
             c_type = CTypeCLongDigit
         elif isPythonValidCLongValue(expression.getCompileTimeConstant()):
             c_type = CTypeCLong
+        else:
+            c_type = CTypePyObjectPtr
+    elif expression.isExpressionVariableRefOrTempVariableRef():
+        # TODO: Module variables are not doing it (yet?)
+        variable = expression.getVariable()
+
+        # TODO: Closure variables should be possible to have non
+        # CTypePyObjectPtr eventually.
+        if variable.isLocalVariable() and not variable.isSharedTechnically():
+            variable_declaration = getLocalVariableDeclaration(
+                context=context,
+                variable=expression.getVariable(),
+                variable_trace=expression.getVariableTrace(),
+            )
+
+            c_type = variable_declaration.getCType()
         else:
             c_type = CTypePyObjectPtr
     else:
@@ -84,6 +102,8 @@ _long_argument_normalization = {
     (CTypeCLong, CTypePyObjectPtr): True,
     (CTypePyObjectPtr, CTypeCLongDigit): False,
     (CTypeCLongDigit, CTypePyObjectPtr): True,
+    (CTypeNuitkaIntOrLongStruct, CTypeCLongDigit): False,
+    (CTypeCLongDigit, CTypeNuitkaIntOrLongStruct): True,
 }
 
 _str_argument_normalization = {
@@ -95,7 +115,7 @@ _bytes_argument_normalization = {
 }
 
 
-def decideExpressionCTypes(left, right, may_swap_arguments):
+def decideExpressionCTypes(left, right, may_swap_arguments, context):
     # Complex stuff with many cases, pylint: disable=too-many-branches
 
     left_shape = left.getTypeShape()
@@ -104,8 +124,8 @@ def decideExpressionCTypes(left, right, may_swap_arguments):
     if left_shape in _int_types_family and right_shape in _int_types_family:
         may_swap_arguments = may_swap_arguments in ("number", "always")
 
-        left_c_type = _pickIntFamilyType(left)
-        right_c_type = _pickIntFamilyType(right)
+        left_c_type = _pickIntFamilyType(left, context)
+        right_c_type = _pickIntFamilyType(right, context)
 
         needs_argument_swap = (
             may_swap_arguments
