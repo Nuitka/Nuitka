@@ -6,12 +6,12 @@ jobs:
 
   steps:
 
-  - task: Cache@2
-    inputs:
-      key: '"ubuntu-pipenv" | "$(Build.BuildNumber)"'
-      path: '../pipenv_cache'
-      restoreKeys: |
-       "ubuntu-pipenv"
+  # - task: Cache@2
+  #   inputs:
+  #     key: '"ubuntu-pipenv" | "$(Build.BuildNumber)"'
+  #     path: '../pipenv_cache'
+  #     restoreKeys: |
+  #      "ubuntu-pipenv"
 
   - task: CmdLine@2
     inputs:
