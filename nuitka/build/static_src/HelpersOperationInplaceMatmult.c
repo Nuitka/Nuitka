@@ -442,6 +442,7 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
         const long b = PyInt_AS_LONG(operand2);
 
 #error Operator @ not implemented
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;

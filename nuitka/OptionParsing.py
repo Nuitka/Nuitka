@@ -807,17 +807,6 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 )
 
 debug_group.add_option(
-    "--internal-graph",
-    action="store_true",
-    dest="internal_graph",
-    default=False,
-    github_action=False,
-    help="""\
-Create graph of optimization process internals, do not use for whole programs, but only
-for small test cases. Defaults to off.""",
-)
-
-debug_group.add_option(
     "--trace-execution",
     action="store_true",
     dest="trace_execution",
@@ -825,20 +814,6 @@ debug_group.add_option(
     help="""\
 Traced execution output, output the line of code before executing it.
 Defaults to off.""",
-)
-
-debug_group.add_option(
-    "--recompile-c-only",
-    action="store_true",
-    dest="recompile_c_only",
-    default=False,
-    github_action=False,
-    help="""\
-This is not incremental compilation, but for Nuitka development only. Takes
-existing files and simply compile them as C again. Allows compiling edited
-C files for quick debugging changes to the generated source, e.g. to see if
-code is passed by, values output, etc, Defaults to off. Depends on compiling
-Python source to determine which files it should look at.""",
 )
 
 debug_group.add_option(
@@ -906,6 +881,61 @@ off. Do not think you can use this directly.""",
 
 
 del debug_group
+
+
+development_group = parser.add_option_group("Nuitka Development features")
+
+
+development_group.add_option(
+    "--devel-missing-code-helpers",
+    action="store_true",
+    dest="report_missing_code_helpers",
+    default=False,
+    help="""\
+Report warnings for code helpers for types that were attempted, but don't
+exist. This helps to identify opportunities for improving optimization of
+generated code from type knowledge not used. Default False.""",
+)
+
+development_group.add_option(
+    "--devel-missing-trust",
+    action="store_true",
+    dest="report_missing_trust",
+    default=False,
+    help="""\
+Report warnings for imports that could be trusted, but currently are not. This
+is to identify opportunities for improving handling of hard modules, where this
+sometimes could allow more static optimization. Default False.""",
+)
+
+development_group.add_option(
+    "--devel-recompile-c-only",
+    action="store_true",
+    dest="recompile_c_only",
+    default=False,
+    github_action=False,
+    help="""\
+This is not incremental compilation, but for Nuitka development only. Takes
+existing files and simply compiles them as C again after doing the Python
+steps. Allows compiling edited C files for manual debugging changes to the
+generated source. Allows us to add printing, check and print values, but it
+is now what users would want. Depends on compiling Python source to
+determine which files it should look at.""",
+)
+
+development_group.add_option(
+    "--devel-internal-graph",
+    action="store_true",
+    dest="internal_graph",
+    default=False,
+    github_action=False,
+    help="""\
+Create graph of optimization process internals, do not use for whole programs, but only
+for small test cases. Defaults to off.""",
+)
+
+
+del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.

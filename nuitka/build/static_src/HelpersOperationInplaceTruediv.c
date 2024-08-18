@@ -68,6 +68,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_INT(PyObject **operand1, PyObj
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = operand2;
@@ -346,6 +347,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -628,6 +630,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -2170,6 +2173,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, lon
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
@@ -2347,6 +2351,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;

@@ -73,7 +73,12 @@ def getRichComparisonCode(
         right_shape,
         left_c_type,
         right_c_type,
-    ) = decideExpressionCTypes(left=left, right=right, may_swap_arguments="always")
+    ) = decideExpressionCTypes(
+        left=left,
+        right=right,
+        may_swap_arguments="always",
+        context=context,
+    )
 
     if unknown_types:
         assert not needs_argument_swap
