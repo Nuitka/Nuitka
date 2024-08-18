@@ -5,6 +5,7 @@
 
 """
 
+from nuitka.code_generation.ErrorCodes import getReleaseCode
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,
     template_release_object_unclear,
@@ -17,6 +18,10 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     c_type = "nuitka_ilong"
 
     helper_code = "NILONG"
+
+    @classmethod
+    def isDualType(cls):
+        return True
 
     @classmethod
     def emitVariableAssignCode(
@@ -33,7 +38,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
         else:
             if tmp_name.c_type == "PyObject *":
                 emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % value_name)
-                emit("%s.ilong_object = %s;" % (value_name, tmp_name))
+                emit("%s.python_value = %s;" % (value_name, tmp_name))
 
                 if ref_count:
                     emit("/* REFCOUNT ? */")
@@ -41,19 +46,21 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
                 assert False, repr(tmp_name)
 
     @classmethod
-    def emitVariantAssignmentCode(cls, int_name, value_name, int_value, emit, context):
+    def emitVariantAssignmentCode(
+        cls, to_name, ilong_value_name, int_value, emit, context
+    ):
         # needs no context, pylint: disable=unused-argument
-        if value_name is None:
+        if ilong_value_name is None:
             assert int_value is not None
             assert False  # TODO
         else:
             if int_value is None:
-                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % int_name)
-                emit("%s.ilong_object = %s;" % (int_name, value_name))
+                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % to_name)
+                emit("%s.python_value = %s;" % (to_name, ilong_value_name))
             else:
-                emit("%s.validity = NUITKA_ILONG_BOTH_VALID;" % int_name)
-                emit("%s.ilong_object = %s;" % (int_name, value_name))
-                emit("%s.ilong_value = %s;" % (int_name, int_value))
+                emit("%s.validity = NUITKA_ILONG_BOTH_VALID;" % to_name)
+                emit("%s.python_value = %s;" % (to_name, ilong_value_name))
+                emit("%s.c_value = %s;" % (to_name, int_value))
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
@@ -80,6 +87,11 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
                 emit=emit,
                 context=context,
             )
+
+            # TODO: having to release the input value is an ugly trait of this
+            # interface. Instead, it should be asking value_name.c_type to do it
+            # if the target type wants it.
+            getReleaseCode(value_name, emit, context)
 
     @classmethod
     def getInitValue(cls, init_from):
@@ -111,7 +123,7 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
         else:
             template = template_release_object_clear
 
-        emit(template % {"identifier": "%s.ilong_object" % value_name})
+        emit(template % {"identifier": "%s.python_value" % value_name})
 
         emit("}")
 
@@ -137,6 +149,36 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
         )
+
+    @classmethod
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
+        # No escaping matters with integer values, as they are immutable
+        # the do not have to make copies of the prepared values.
+        # pylint: disable=unused-argument
+
+        assert type(constant) is int, repr(constant)
+
+        cls.emitVariantAssignmentCode(
+            to_name=to_name,
+            ilong_value_name=context.getConstantCode(constant=constant),
+            int_value=constant,
+            emit=emit,
+            context=context,
+        )
+
+    @classmethod
+    def emitReInitCode(cls, value_name, emit):
+        emit("%s.validity = NUITKA_ILONG_UNASSIGNED;" % value_name)
+
+    @classmethod
+    def hasErrorIndicator(cls):
+        return True
+
+    @classmethod
+    def getExceptionCheckCondition(cls, value_name):
+        return "%s == NUITKA_ILONG_EXCEPTION" % value_name
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
