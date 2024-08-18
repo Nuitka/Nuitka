@@ -223,6 +223,8 @@ def makeTypingModuleTrust():
 module_os_trust = {
     "name": trust_constant,
     "listdir": trust_node,
+    "stat": trust_node,
+    "lstat": trust_node,
     "curdir": trust_constant,
     "pardir": trust_constant,
     "sep": trust_constant,

@@ -65,6 +65,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, P
         clong_result = a_div_b;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
@@ -292,6 +293,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -536,6 +538,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -1894,6 +1897,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_CLONG(PyObject *operand1,
         clong_result = a_div_b;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
@@ -1983,6 +1987,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_CLONG_INT(long operand1, PyOb
         clong_result = a_div_b;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = Nuitka_PyLong_FromLong(operand1);
         PyObject *operand2_object = operand2;
@@ -2217,6 +2222,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;

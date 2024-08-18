@@ -47,6 +47,7 @@ static inline bool _INPLACE_OPERATION_ADD_INT_INT(PyObject **operand1, PyObject 
         clong_result = x;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = operand2;
@@ -305,6 +306,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_INT(PyObject **operand1, PyObje
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -557,6 +559,7 @@ static inline bool _INPLACE_OPERATION_ADD_INT_OBJECT(PyObject **operand1, PyObje
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -2326,6 +2329,7 @@ static inline bool _INPLACE_OPERATION_ADD_INT_CLONG(PyObject **operand1, long op
         clong_result = x;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
@@ -4678,6 +4682,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_OBJECT(PyObject **operand1, PyO
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;

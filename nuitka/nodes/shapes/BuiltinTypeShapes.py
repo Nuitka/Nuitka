@@ -492,6 +492,12 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def getTypeName():
         return "int"
 
+    if isExperimental("optimize-dual-int"):
+
+        @staticmethod
+        def getCType():
+            return CTypeNuitkaIntOrLongStruct
+
     helper_code = "INT" if python_version < 0x300 else "LONG"
 
     add_shapes = add_shapes_int
@@ -605,7 +611,7 @@ if python_version < 0x300:
     class ShapeTypeIntOrLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
         __slots__ = ()
 
-        if isExperimental("nuitka_ilong"):
+        if isExperimental("optimize-dual-int"):
 
             @staticmethod
             def getCType():
