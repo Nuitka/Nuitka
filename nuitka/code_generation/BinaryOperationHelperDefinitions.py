@@ -54,33 +54,35 @@ def deriveInplaceFromBinaryOperations(operations_set):
     )
 
 
-def _makeTypeSemiOps(op_code, type_name, in_place=False):
-    if in_place:
-        yield "INPLACE_OPERATION_%s_%s_OBJECT" % (op_code, type_name)
-    else:
-        yield "BINARY_OPERATION_%s_OBJECT_OBJECT_%s" % (op_code, type_name)
-        yield "BINARY_OPERATION_%s_OBJECT_%s_OBJECT" % (op_code, type_name)
+def _makeTypeSemiOps(op_code, type_name, result_types):
+    for result_type in result_types or (None,):
+        if result_type is None:
+            yield "INPLACE_OPERATION_%s_%s_OBJECT" % (op_code, type_name)
+        else:
+            yield "BINARY_OPERATION_%s_%s_OBJECT_%s" % (op_code, result_type, type_name)
+            yield "BINARY_OPERATION_%s_%s_%s_OBJECT" % (op_code, result_type, type_name)
 
 
-def _makeTypeOps(op_code, type_name, include_nbool, in_place=False):
-    if in_place:
+def _makeTypeOps(op_code, type_name, result_types):
+    if result_types is None:
+        # Inplace has no result type.
         yield "INPLACE_OPERATION_%s_%s_%s" % (op_code, type_name, type_name)
         yield "INPLACE_OPERATION_%s_OBJECT_%s" % (op_code, type_name)
         yield "INPLACE_OPERATION_%s_%s_OBJECT" % (op_code, type_name)
     else:
-        yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name, type_name)
-        yield "BINARY_OPERATION_%s_OBJECT_OBJECT_%s" % (op_code, type_name)
-        yield "BINARY_OPERATION_%s_OBJECT_%s_OBJECT" % (op_code, type_name)
-
-    if include_nbool and not in_place:
-        for helper in _makeTypeOpsNbool(op_code, type_name):
-            yield helper
+        for result_type in result_types:
+            yield "BINARY_OPERATION_%s_%s_%s_%s" % (
+                op_code,
+                result_type,
+                type_name,
+                type_name,
+            )
+            yield "BINARY_OPERATION_%s_%s_OBJECT_%s" % (op_code, result_type, type_name)
+            yield "BINARY_OPERATION_%s_%s_%s_OBJECT" % (op_code, result_type, type_name)
 
 
 def _makeTypeOpsNbool(op_code, type_name):
-    yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (op_code, type_name, type_name)
-    yield "BINARY_OPERATION_%s_NBOOL_OBJECT_%s" % (op_code, type_name)
-    yield "BINARY_OPERATION_%s_NBOOL_%s_OBJECT" % (op_code, type_name)
+    return _makeTypeOps(op_code=op_code, type_name=type_name, result_types=("NBOOL",))
 
 
 def _isCommutativeOperation(op_code):
@@ -88,13 +90,14 @@ def _isCommutativeOperation(op_code):
 
 
 def _isCommutativeType(type_name):
-    return type_name in ("INT", "LONG", "FLOAT", "CLONG", "DIGIT", "CFLOAT")
+    return type_name in ("INT", "LONG", "FLOAT", "CLONG", "DIGIT", "CFLOAT", "NILONG")
 
 
 _type_order = (
     "CLONG",
     "INT",
     "DIGIT",
+    "NILONG",
     "CFLOAT",
     "LONG",
     "FLOAT",
@@ -108,76 +111,63 @@ _type_order = (
 _no_inplace_target_types = ("CLONG", "DIGIT", "CFLOAT")
 
 
-def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
-    assert len(type_names) == len(set(type_names)), type_names
+def _makeFriendOps(op_code, friend_type_names, result_types):
+    assert len(friend_type_names) == len(set(friend_type_names)), friend_type_names
 
-    type_names = tuple(
-        sorted(type_names, key=lambda type_name: -_type_order.index(type_name))
+    friend_type_names = tuple(
+        sorted(friend_type_names, key=lambda type_name: -_type_order.index(type_name))
     )
 
-    for type_name1 in type_names:
-        for type_name2 in type_names[type_names.index(type_name1) + 1 :]:
-            # These should be used with reversed arguments, and only have the
-            # dominant type as the first argument.
-            arg_swap = (
-                _isCommutativeOperation(op_code)
-                and not in_place
-                and _isCommutativeType(type_name1)
-                and _isCommutativeType(type_name2)
-            )
+    for type_name1 in friend_type_names:
+        for type_name2 in friend_type_names[friend_type_names.index(type_name1) + 1 :]:
+            for result_type in result_types or (None,):
+                # These should be used with reversed arguments, and only have the
+                # dominant type as the first argument.
+                arg_swap = (
+                    _isCommutativeOperation(op_code)
+                    and result_type is not None
+                    and _isCommutativeType(type_name1)
+                    and _isCommutativeType(type_name2)
+                )
 
-            if in_place:
-                if type_name1 not in _no_inplace_target_types:
-                    yield "INPLACE_OPERATION_%s_%s_%s" % (
+                if result_type is None:
+                    if type_name1 not in _no_inplace_target_types:
+                        yield "INPLACE_OPERATION_%s_%s_%s" % (
+                            op_code,
+                            type_name1,
+                            type_name2,
+                        )
+                else:
+                    yield "BINARY_OPERATION_%s_%s_%s_%s" % (
                         op_code,
+                        result_type,
                         type_name1,
                         type_name2,
                     )
-            else:
-                yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (
-                    op_code,
-                    type_name1,
-                    type_name2,
-                )
 
-            if not arg_swap:
-                if in_place:
-                    if type_name2 not in _no_inplace_target_types:
-                        yield "INPLACE_OPERATION_%s_%s_%s" % (
+                if not arg_swap:
+                    if result_type is None:
+                        if type_name2 not in _no_inplace_target_types:
+                            yield "INPLACE_OPERATION_%s_%s_%s" % (
+                                op_code,
+                                type_name2,
+                                type_name1,
+                            )
+                    else:
+                        yield "BINARY_OPERATION_%s_%s_%s_%s" % (
                             op_code,
+                            result_type,
                             type_name2,
                             type_name1,
                         )
-                else:
-                    yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (
-                        op_code,
-                        type_name2,
-                        type_name1,
-                    )
-
-            if include_nbool and not in_place:
-                yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
-                    op_code,
-                    type_name1,
-                    type_name2,
-                )
-
-                if not arg_swap:
-                    yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (
-                        op_code,
-                        type_name2,
-                        type_name1,
-                    )
 
 
-def _makeDefaultOps(op_code, include_nbool, in_place=False):
-    if in_place:
-        yield "INPLACE_OPERATION_%s_OBJECT_OBJECT" % op_code
-    else:
-        yield "BINARY_OPERATION_%s_OBJECT_OBJECT_OBJECT" % op_code
-
-    if include_nbool and not in_place:
-        yield "BINARY_OPERATION_%s_NBOOL_OBJECT_OBJECT" % op_code
+def _makeDefaultOps(op_code, result_types):
+    for result_type in result_types or (None,):
+        if result_type is None:
+            yield "INPLACE_OPERATION_%s_OBJECT_OBJECT" % op_code
+        else:
+            yield "BINARY_OPERATION_%s_%s_OBJECT_OBJECT" % (op_code, result_type)
 
 
 def _makeNonContainerMathOps(op_code):
@@ -187,42 +177,74 @@ def _makeNonContainerMathOps(op_code):
         if "SUB" in op_code and type_name == "SET":
             continue
 
-        for value in _makeTypeOps(op_code, type_name, include_nbool=True):
+        for value in _makeTypeOps(
+            op_code, type_name, result_types=standard_result_types
+        ):
             yield value
 
 
-def _makeNumberOps(op_code, include_nbool, in_place):
+def _makeNumberOps(op_code, result_types):
     return buildOrderedSet(
-        _makeTypeOps(op_code, "INT", include_nbool=include_nbool, in_place=in_place),
-        _makeTypeOps(op_code, "LONG", include_nbool=include_nbool, in_place=in_place),
-        _makeTypeOps(op_code, "FLOAT", include_nbool=include_nbool, in_place=in_place),
+        _makeTypeOps(op_code=op_code, type_name="INT", result_types=result_types),
+        _makeTypeOps(op_code=op_code, type_name="LONG", result_types=result_types),
+        _makeTypeOps(op_code=op_code, type_name="FLOAT", result_types=result_types),
         # These are friends naturally, they all add with another.
-        _makeFriendOps(op_code, include_nbool, in_place, "INT", "LONG", "FLOAT"),
+        _makeFriendOps(
+            op_code=op_code,
+            friend_type_names=("INT", "LONG", "FLOAT"),
+            result_types=result_types,
+        ),
         # Special operations, currently used with constant values mostly.
-        _makeFriendOps(op_code, include_nbool, in_place, "INT", "CLONG"),
+        _makeFriendOps(
+            op_code, friend_type_names=("INT", "CLONG"), result_types=result_types
+        ),
         (
-            _makeFriendOps(op_code, include_nbool, in_place, "LONG", "DIGIT")
+            _makeFriendOps(
+                op_code, friend_type_names=("LONG", "DIGIT"), result_types=result_types
+            )
             if op_code in ("ADD", "SUB")  # TODO: Add more
             else ()
         ),
-        _makeFriendOps(op_code, include_nbool, in_place, "FLOAT", "CFLOAT"),
+        _makeFriendOps(
+            op_code, friend_type_names=("FLOAT", "CFLOAT"), result_types=result_types
+        ),
+        # TODO: These are not yet properly implemented in the generation side.
+        (
+            _makeFriendOps(
+                op_code,
+                friend_type_names=("NILONG", "DIGIT"),
+                result_types=("NILONG",),
+            )
+            if op_code in ("ADD", "SUB") and result_types is not None
+            else ()
+        ),
     )
 
 
 def _makeAddOps(in_place):
     return buildOrderedSet(
-        _makeNumberOps("ADD", include_nbool=True, in_place=in_place),
-        _makeTypeOps("ADD", "STR", include_nbool=False, in_place=in_place),
-        _makeTypeOps("ADD", "UNICODE", include_nbool=False, in_place=in_place),
-        _makeTypeOps("ADD", "BYTES", include_nbool=False, in_place=in_place),
-        _makeTypeOps("ADD", "TUPLE", include_nbool=False, in_place=in_place),
-        _makeTypeOps("ADD", "LIST", include_nbool=True, in_place=in_place),
+        _makeNumberOps("ADD", result_types=None if in_place else standard_result_types),
+        _makeTypeOps("ADD", "STR", result_types=None if in_place else ("OBJECT",)),
+        _makeTypeOps("ADD", "UNICODE", result_types=None if in_place else ("OBJECT",)),
+        _makeTypeOps("ADD", "BYTES", result_types=None if in_place else ("OBJECT",)),
+        _makeTypeOps("ADD", "TUPLE", result_types=None if in_place else ("OBJECT",)),
+        _makeTypeOps(
+            "ADD", "LIST", result_types=None if in_place else standard_result_types
+        ),
         # These are friends too.
-        _makeFriendOps("ADD", True, in_place, "STR", "UNICODE"),
+        _makeFriendOps(
+            "ADD",
+            friend_type_names=("STR", "UNICODE"),
+            result_types=None if in_place else standard_result_types,
+        ),
         # Default implementation.
-        _makeDefaultOps("ADD", include_nbool=True, in_place=in_place),
+        _makeDefaultOps(
+            "ADD", result_types=None if in_place else standard_result_types
+        ),
     )
 
+
+standard_result_types = ("OBJECT", "NBOOL")
 
 specialized_add_helpers_set = _makeAddOps(in_place=False)
 
@@ -234,42 +256,86 @@ nonspecialized_add_helpers_set = buildOrderedSet(
 )
 
 
-def makeSubOps(in_place):
+def makeSubOps(result_types):
     return buildOrderedSet(
-        _makeNumberOps("SUB", include_nbool=False, in_place=in_place),
-        _makeDefaultOps("SUB", include_nbool=False, in_place=in_place),
+        _makeNumberOps("SUB", result_types=result_types),
+        _makeDefaultOps("SUB", result_types=result_types),
     )
 
 
-specialized_sub_helpers_set = makeSubOps(in_place=False)
+specialized_sub_helpers_set = makeSubOps(result_types=("OBJECT",))
 
 # These made no sense to specialize for, nothing to gain.
 nonspecialized_sub_helpers_set = buildOrderedSet(
-    _makeTypeOps("SUB", "STR", include_nbool=True),
-    _makeTypeOps("SUB", "UNICODE", include_nbool=True),
-    _makeTypeOps("SUB", "BYTES", include_nbool=True),
+    _makeTypeOps("SUB", "STR", result_types=standard_result_types),
+    _makeTypeOps("SUB", "UNICODE", result_types=standard_result_types),
+    _makeTypeOps("SUB", "BYTES", result_types=standard_result_types),
     _makeNonContainerMathOps("SUB"),
 )
 
 
 def _makeMultOps(in_place):
     return buildOrderedSet(
-        _makeNumberOps("MULT", include_nbool=True, in_place=in_place),
-        _makeFriendOps("MULT", False, in_place, "INT", "STR"),
-        _makeFriendOps("MULT", False, in_place, "INT", "UNICODE"),
-        _makeFriendOps("MULT", False, in_place, "INT", "TUPLE"),
-        _makeFriendOps("MULT", False, in_place, "INT", "LIST"),
-        _makeFriendOps("MULT", False, in_place, "LONG", "UNICODE"),
-        _makeFriendOps("MULT", False, in_place, "LONG", "BYTES"),
-        _makeFriendOps("MULT", False, in_place, "LONG", "TUPLE"),
-        _makeFriendOps("MULT", False, in_place, "LONG", "LIST"),
-        _makeTypeSemiOps("MULT", "STR", in_place=in_place),
-        _makeTypeSemiOps("MULT", "UNICODE", in_place=in_place),
-        _makeTypeSemiOps("MULT", "BYTES", in_place=in_place),
-        _makeTypeSemiOps("MULT", "TUPLE", in_place=in_place),
-        _makeTypeSemiOps("MULT", "LIST", in_place=in_place),
+        _makeNumberOps(
+            "MULT", result_types=None if in_place else standard_result_types
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("INT", "STR"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("INT", "UNICODE"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("INT", "TUPLE"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("INT", "LIST"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("LONG", "UNICODE"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("LONG", "BYTES"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("LONG", "TUPLE"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeFriendOps(
+            "MULT",
+            friend_type_names=("LONG", "LIST"),
+            result_types=None if in_place else ("OBJECT",),
+        ),
+        _makeTypeSemiOps("MULT", "STR", result_types=None if in_place else ("OBJECT",)),
+        _makeTypeSemiOps(
+            "MULT", "UNICODE", result_types=None if in_place else ("OBJECT",)
+        ),
+        _makeTypeSemiOps(
+            "MULT", "BYTES", result_types=None if in_place else ("OBJECT",)
+        ),
+        _makeTypeSemiOps(
+            "MULT", "TUPLE", result_types=None if in_place else ("OBJECT",)
+        ),
+        _makeTypeSemiOps(
+            "MULT", "LIST", result_types=None if in_place else ("OBJECT",)
+        ),
         # These are friends naturally, they all mul with another
-        _makeDefaultOps("MULT", include_nbool=True, in_place=in_place),
+        _makeDefaultOps(
+            "MULT", result_types=None if in_place else standard_result_types
+        ),
     )
 
 
@@ -279,29 +345,29 @@ specialized_mult_helpers_set = _makeMultOps(in_place=False)
 nonspecialized_mult_helpers_set = None
 
 
-def _makeDivOps(op_code, in_place):
+def _makeDivOps(op_code, result_types):
     return buildOrderedSet(
-        _makeNumberOps(op_code, include_nbool=False, in_place=in_place),
-        _makeDefaultOps(op_code, include_nbool=False, in_place=in_place),
+        _makeNumberOps(op_code, result_types=result_types),
+        _makeDefaultOps(op_code, result_types=result_types),
     )
 
 
-specialized_truediv_helpers_set = _makeDivOps("TRUEDIV", in_place=False)
+specialized_truediv_helpers_set = _makeDivOps("TRUEDIV", result_types=("OBJECT",))
 
 nonspecialized_truediv_helpers_set = buildOrderedSet(
-    _makeTypeOps("TRUEDIV", "UNICODE", include_nbool=True),
-    _makeTypeOps("TRUEDIV", "STR", include_nbool=True),
-    _makeTypeOps("TRUEDIV", "BYTES", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "UNICODE", result_types=standard_result_types),
+    _makeTypeOps("TRUEDIV", "STR", result_types=standard_result_types),
+    _makeTypeOps("TRUEDIV", "BYTES", result_types=standard_result_types),
     _makeNonContainerMathOps("TRUEDIV"),
 )
 
-specialized_olddiv_helpers_set = _makeDivOps("OLDDIV", in_place=False)
+specialized_olddiv_helpers_set = _makeDivOps("OLDDIV", result_types=("OBJECT",))
 
 nonspecialized_olddiv_helpers_set = OrderedSet(
     helper.replace("TRUEDIV", "OLDDIV") for helper in nonspecialized_truediv_helpers_set
 )
 
-specialized_floordiv_helpers_set = _makeDivOps("FLOORDIV", in_place=False)
+specialized_floordiv_helpers_set = _makeDivOps("FLOORDIV", result_types=("OBJECT",))
 
 nonspecialized_floordiv_helpers_set = OrderedSet(
     helper.replace("TRUEDIV", "FLOORDIV")
@@ -340,14 +406,20 @@ def _makeModOps(in_place):
                 )
 
     return buildOrderedSet(
-        _makeNumberOps("MOD", include_nbool=True, in_place=in_place),
+        _makeNumberOps("MOD", result_types=None if in_place else standard_result_types),
         # These are friends naturally, they mod with another
-        _makeFriendOps("MOD", True, in_place, "INT", "LONG", "FLOAT"),
+        _makeFriendOps(
+            "MOD",
+            friend_type_names=("INT", "LONG", "FLOAT"),
+            result_types=None if in_place else standard_result_types,
+        ),
         # String interpolation:
         _makeFormatOps(str_type_name="STR"),
         _makeFormatOps(str_type_name="UNICODE"),
         _makeFormatOps(str_type_name="BYTES"),
-        _makeDefaultOps("MOD", include_nbool=True, in_place=in_place),
+        _makeDefaultOps(
+            "MOD", result_types=None if in_place else standard_result_types
+        ),
     )
 
 
@@ -390,23 +462,37 @@ nonspecialized_imod_helpers_set = deriveInplaceFromBinaryOperations(
 
 def _makeBitOps(op_name, in_place):
     return buildOrderedSet(
-        _makeTypeOps(op_name, "LONG", include_nbool=True, in_place=in_place),
-        _makeTypeOps(op_name, "INT", include_nbool=True, in_place=in_place),
-        _makeFriendOps(op_name, True, in_place, "INT", "CLONG"),
-        _makeFriendOps(op_name, True, in_place, "INT", "LONG"),
-        _makeTypeOps(op_name, "SET", include_nbool=False, in_place=in_place),
-        _makeDefaultOps(op_name, include_nbool=True, in_place=in_place),
+        _makeTypeOps(
+            op_name, "LONG", result_types=None if in_place else standard_result_types
+        ),
+        _makeTypeOps(
+            op_name, "INT", result_types=None if in_place else standard_result_types
+        ),
+        _makeFriendOps(
+            op_name,
+            friend_type_names=("INT", "CLONG"),
+            result_types=None if in_place else standard_result_types,
+        ),
+        _makeFriendOps(
+            op_name,
+            friend_type_names=("INT", "LONG"),
+            result_types=None if in_place else standard_result_types,
+        ),
+        _makeTypeOps(op_name, "SET", result_types=None if in_place else ("OBJECT",)),
+        _makeDefaultOps(
+            op_name, result_types=None if in_place else standard_result_types
+        ),
     )
 
 
 specialized_bitor_helpers_set = _makeBitOps("BITOR", in_place=False)
 
 nonspecialized_bitor_helpers_set = buildOrderedSet(
-    _makeTypeOps("BITOR", "FLOAT", include_nbool=True),
+    _makeTypeOps("BITOR", "FLOAT", result_types=standard_result_types),
     _makeNonContainerMathOps("BITOR"),
-    _makeTypeOps("BITOR", "UNICODE", include_nbool=True),
-    _makeTypeOps("BITOR", "STR", include_nbool=True),
-    _makeTypeOps("BITOR", "BYTES", include_nbool=True),
+    _makeTypeOps("BITOR", "UNICODE", result_types=standard_result_types),
+    _makeTypeOps("BITOR", "STR", result_types=standard_result_types),
+    _makeTypeOps("BITOR", "BYTES", result_types=standard_result_types),
 )
 
 specialized_bitand_helpers_set = _makeBitOps("BITAND", in_place=False)
@@ -422,17 +508,27 @@ nonspecialized_bitxor_helpers_set = OrderedSet(
 
 def _makeShiftOps(op_name, in_place):
     return buildOrderedSet(
-        _makeTypeOps(op_name, "LONG", include_nbool=True, in_place=in_place),
-        _makeTypeOps(op_name, "INT", include_nbool=True, in_place=in_place),
-        _makeFriendOps(op_name, True, in_place, "INT", "LONG"),
-        _makeDefaultOps(op_name, include_nbool=True, in_place=in_place),
+        _makeTypeOps(
+            op_name, "LONG", result_types=None if in_place else standard_result_types
+        ),
+        _makeTypeOps(
+            op_name, "INT", result_types=None if in_place else standard_result_types
+        ),
+        _makeFriendOps(
+            op_name,
+            friend_type_names=("INT", "LONG"),
+            result_types=None if in_place else standard_result_types,
+        ),
+        _makeDefaultOps(
+            op_name, result_types=None if in_place else standard_result_types
+        ),
     )
 
 
 specialized_lshift_helpers_set = _makeShiftOps("LSHIFT", in_place=False)
 
 nonspecialized_lshift_helpers_set = buildOrderedSet(
-    _makeTypeOps("LSHIFT", "FLOAT", include_nbool=True),
+    _makeTypeOps("LSHIFT", "FLOAT", result_types=standard_result_types),
     _makeNonContainerMathOps("LSHIFT"),
 )
 specialized_rshift_helpers_set = _makeShiftOps("RSHIFT", in_place=False)
@@ -444,11 +540,13 @@ nonspecialized_rshift_helpers_set = OrderedSet(
 
 
 specialized_pow_helpers_set = buildOrderedSet(
-    _makeTypeOps("POW", "FLOAT", include_nbool=False),
-    _makeTypeOps("POW", "LONG", include_nbool=False),
-    _makeTypeOps("POW", "INT", include_nbool=False),
-    _makeFriendOps("POW", False, False, "INT", "LONG", "FLOAT"),
-    _makeDefaultOps("POW", include_nbool=True),
+    _makeTypeOps("POW", "FLOAT", result_types=("OBJECT",)),
+    _makeTypeOps("POW", "LONG", result_types=("OBJECT",)),
+    _makeTypeOps("POW", "INT", result_types=("OBJECT",)),
+    _makeFriendOps(
+        "POW", friend_type_names=("INT", "LONG", "FLOAT"), result_types=("OBJECT",)
+    ),
+    _makeDefaultOps("POW", result_types=standard_result_types),
     (
         # Float is used by other types for ** operations.
         # TODO: Enable these later.
@@ -457,39 +555,39 @@ specialized_pow_helpers_set = buildOrderedSet(
     ),
 )
 nonspecialized_pow_helpers_set = buildOrderedSet(
-    _makeTypeOps("POW", "STR", include_nbool=True),
-    _makeTypeOps("POW", "UNICODE", include_nbool=True),
-    _makeTypeOps("POW", "BYTES", include_nbool=True),
+    _makeTypeOps("POW", "STR", result_types=standard_result_types),
+    _makeTypeOps("POW", "UNICODE", result_types=standard_result_types),
+    _makeTypeOps("POW", "BYTES", result_types=standard_result_types),
     _makeNonContainerMathOps("POW"),
 )
 
 
-specialized_divmod_helpers_set = _makeDivOps("DIVMOD", in_place=False)
+specialized_divmod_helpers_set = _makeDivOps("DIVMOD", result_types=("OBJECT",))
 
 nonspecialized_divmod_helpers_set = buildOrderedSet(
     _makeTypeOpsNbool("DIVMOD", "INT"),
     _makeTypeOpsNbool("DIVMOD", "LONG"),
     _makeTypeOpsNbool("DIVMOD", "FLOAT"),
-    _makeTypeOps("DIVMOD", "UNICODE", include_nbool=True),
-    _makeTypeOps("DIVMOD", "STR", include_nbool=True),
-    _makeTypeOps("DIVMOD", "BYTES", include_nbool=True),
+    _makeTypeOps("DIVMOD", "UNICODE", result_types=standard_result_types),
+    _makeTypeOps("DIVMOD", "STR", result_types=standard_result_types),
+    _makeTypeOps("DIVMOD", "BYTES", result_types=standard_result_types),
     _makeNonContainerMathOps("DIVMOD"),
 )
 
 specialized_matmult_helpers_set = buildOrderedSet(
-    _makeTypeOps("MATMULT", "LONG", include_nbool=False),
-    _makeTypeOps("MATMULT", "FLOAT", include_nbool=False),
-    _makeDefaultOps("MATMULT", include_nbool=False),
+    _makeTypeOps("MATMULT", "LONG", result_types=("OBJECT",)),
+    _makeTypeOps("MATMULT", "FLOAT", result_types=("OBJECT",)),
+    _makeDefaultOps("MATMULT", result_types=("OBJECT",)),
 )
 
 nonspecialized_matmult_helpers_set = buildOrderedSet(
     _makeTypeOpsNbool("MATMULT", "LONG"),
     _makeTypeOpsNbool("MATMULT", "FLOAT"),
-    _makeTypeOps("MATMULT", "TUPLE", include_nbool=True),
-    _makeTypeOps("MATMULT", "LIST", include_nbool=True),
-    _makeTypeOps("MATMULT", "DICT", include_nbool=True),
-    _makeTypeOps("MATMULT", "BYTES", include_nbool=True),
-    _makeTypeOps("MATMULT", "UNICODE", include_nbool=True),
+    _makeTypeOps("MATMULT", "TUPLE", result_types=standard_result_types),
+    _makeTypeOps("MATMULT", "LIST", result_types=standard_result_types),
+    _makeTypeOps("MATMULT", "DICT", result_types=standard_result_types),
+    _makeTypeOps("MATMULT", "BYTES", result_types=standard_result_types),
+    _makeTypeOps("MATMULT", "UNICODE", result_types=standard_result_types),
 )
 
 specialized_iadd_helpers_set = buildOrderedSet(
@@ -509,7 +607,7 @@ nonspecialized_iadd_helpers_set = buildOrderedSet(
     ),
 )
 
-specialized_isub_helpers_set = makeSubOps(in_place=True)
+specialized_isub_helpers_set = makeSubOps(result_types=None)
 
 nonspecialized_isub_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_sub_helpers_set
@@ -555,19 +653,19 @@ nonspecialized_irshift_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_rshift_helpers_set
 )
 
-specialized_ifloordiv_helpers_set = _makeDivOps("FLOORDIV", in_place=True)
+specialized_ifloordiv_helpers_set = _makeDivOps("FLOORDIV", result_types=None)
 
 nonspecialized_ifloordiv_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_floordiv_helpers_set
 )
 
-specialized_itruediv_helpers_set = _makeDivOps("TRUEDIV", in_place=True)
+specialized_itruediv_helpers_set = _makeDivOps("TRUEDIV", result_types=None)
 
 nonspecialized_itruediv_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_truediv_helpers_set
 )
 
-specialized_iolddiv_helpers_set = _makeDivOps("OLDDIV", in_place=True)
+specialized_iolddiv_helpers_set = _makeDivOps("OLDDIV", result_types=None)
 
 nonspecialized_iolddiv_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_olddiv_helpers_set

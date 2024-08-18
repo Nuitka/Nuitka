@@ -57,6 +57,7 @@ static inline bool _INPLACE_OPERATION_MOD_INT_INT(PyObject **operand1, PyObject 
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = operand2;
@@ -312,6 +313,7 @@ static inline bool _INPLACE_OPERATION_MOD_OBJECT_INT(PyObject **operand1, PyObje
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -571,6 +573,7 @@ static inline bool _INPLACE_OPERATION_MOD_INT_OBJECT(PyObject **operand1, PyObje
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -2111,6 +2114,7 @@ static inline bool _INPLACE_OPERATION_MOD_INT_CLONG(PyObject **operand1, long op
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
@@ -4509,6 +4513,7 @@ static inline bool _INPLACE_OPERATION_MOD_OBJECT_OBJECT(PyObject **operand1, PyO
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
