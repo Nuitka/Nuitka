@@ -7,6 +7,7 @@ Initially this is about missing optimization only, but it should expand into
 real stuff.
 """
 
+from nuitka import Options
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Tracing import code_generation_logger, optimization_logger
@@ -26,8 +27,8 @@ _error_for_missing = False
 def doMissingOptimizationReport():
     for helper, source_refs in _missing_helpers.items():
         message = "Missing C helper code variant, used fallback: %s at %s" % (
-            ",".join(source_ref.getAsString() for source_ref in source_refs),
             helper,
+            ",".join(source_ref.getAsString() for source_ref in source_refs),
         )
 
         if _error_for_missing:
@@ -76,12 +77,13 @@ def onMissingOperation(operation, left, right):
 
 
 def onMissingTrust(operation, source_ref, *args):
-    key = (operation,) + args
+    if Options.report_missing_trust:
+        key = (operation,) + args
 
-    if key not in _missing_trust:
-        _missing_trust[key] = OrderedSet()
+        if key not in _missing_trust:
+            _missing_trust[key] = OrderedSet()
 
-    _missing_trust[key].add(source_ref)
+        _missing_trust[key].add(source_ref)
 
 
 def onMissingOverload(method_name, node):

@@ -3,7 +3,7 @@
 {% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_int_exit_target, constant_float_exit_target %}
 
 {% macro int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, exit_result_ok_cbool, exit_result_ok_clong, exit_result_ok_cfloat, exit_result_object, exit_result_ok_left, exit_result_ok_const_int_0, exit_result_ok_const_int_neg_1, exit_result_ok_const_float_0_0, exit_result_ok_const_float_minus_0_0) %}
-    {% set fall_through_needed = 1 %}
+    {% do props.update(fall_through_needed = 1) %}
 
     {{ left.getCheckValueCode(operand1) }}
     {{ right.getCheckValueCode(operand2) }}
@@ -19,7 +19,7 @@
     bool t = !no_overflow || x != 0;
 
     {{ goto_exit(props, exit_result_ok_cbool, "t") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% else %}
     if (likely(no_overflow)) {
         {{ goto_exit(props, exit_result_ok_clong, "x") }}
@@ -76,7 +76,7 @@
 
 {% if bool_mode %}
     {{ goto_exit(props, exit_result_ok_cbool, "a == 0") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% else %}
     if (a == 0) {
         if (b < 0) {
@@ -120,7 +120,7 @@
     const long r = a {{operator}} b;
 
     {{ goto_exit(props, exit_result_ok_clong, "r") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "<<" %}
     if (unlikely(b < 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -160,7 +160,7 @@
             {{ goto_exit(props, exit_result_ok_clong, "c") }}
         }
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == ">>" %}
     if (unlikely(b < 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -183,7 +183,7 @@
 
         {{ goto_exit(props, exit_result_ok_clong, "r") }}
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "**" %}
     if (b < 0) {
         // TODO: Use CFLOAT once available.
@@ -242,7 +242,7 @@
 
         {{ goto_exit(props, exit_result_ok_clong, "ix") }}
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "divmod" %}
     if (unlikely(b == 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -266,20 +266,6 @@
 {% else %}
 #error Operator {{operator}} not implemented
 {% endif %}
-{% if fall_through_needed %}
-    {
-        PyObject *operand1_object = {{ left.getAsObjectValueExpression(operand1) }};
-        PyObject *operand2_object = {{ right.getAsObjectValueExpression(operand2) }};
-
-        PyObject *r = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object") }};
-        assert(r != Py_NotImplemented);
-
-        {{ left.releaseAsObjectValueStatement("operand1_object") }}
-        {{ right.releaseAsObjectValueStatement("operand2_object") }}
-
-        {{ goto_exit(props, exit_result_object, "r") }}
-    }
-{% endif %}
 {% endmacro %}
 
 {% macro int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
@@ -299,6 +285,20 @@
 #endif
 
     {{ int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, "exit_result_ok_cbool", "exit_result_ok_clong", "exit_result_ok_cfloat", "exit_result_object", "exit_result_ok_left", "exit_result_ok_const_int_0", "exit_result_ok_const_int_neg_1", "exit_result_ok_const_float_0_0", "exit_result_ok_const_float_minus_0_0") }}
+{% if props["fall_through_needed"] %}
+    {
+        PyObject *operand1_object = {{ left.getAsObjectValueExpression(operand1) }};
+        PyObject *operand2_object = {{ right.getAsObjectValueExpression(operand2) }};
+
+        PyObject *r = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object") }};
+        assert(r != Py_NotImplemented);
+
+        {{ left.releaseAsObjectValueStatement("operand1_object") }}
+        {{ right.releaseAsObjectValueStatement("operand2_object") }}
+
+        {{ goto_exit(props, "exit_result_object", "r") }}
+    }
+{% endif %}
 
 {# // {{ props }} #}
 

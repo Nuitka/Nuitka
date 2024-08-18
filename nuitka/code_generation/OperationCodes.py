@@ -113,6 +113,7 @@ def _getBinaryOperationCode(
                 else "never"
             )
         ),
+        context=context,
     )
 
     prefix = "%s_OPERATION_%s" % (
@@ -146,13 +147,13 @@ def _getBinaryOperationCode(
             # can really raise. Once we have expression for types depending on the
             # value to raise or not, this will get us into trouble, due to using a
             # fallback
+            # helper_type = CTypeBool
 
             # TODO: For now to achieve old behavior, we are going to change to
             # CBOOL for those that cannot raise later.
             if helper_type is CTypeVoid:
                 helper_type = CTypeNuitkaBoolEnum
-            # helper_type = CTypeBool
-            report_missing = False
+                report_missing = False
 
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
     helper_type, helper_function = selectCodeHelper(
@@ -267,31 +268,55 @@ def _getBinaryOperationCode(
         else:
             value_name = to_name
 
-        emit(
-            "%s = %s(%s, %s);"
-            % (
-                value_name,
-                helper_function,
-                arg1_name,
-                arg2_name,
-            )
-        )
+        if helper_type.isDualType():
+            res_name = context.getBoolResName()
 
-        if value_name.getCType().hasErrorIndicator():
-            getErrorExitCode(
-                check_name=value_name,
+            # TODO: If possible, pass variable storage directly to avoid useless
+            # copy.
+            emit(
+                "%s = %s(&%s, %s, %s);"
+                % (
+                    res_name,
+                    helper_function,
+                    value_name,
+                    arg1_name,
+                    arg2_name,
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition="%s == false" % res_name,
                 release_names=(left_name, right_name),
                 needs_check=needs_check,
                 emit=emit,
                 context=context,
             )
         else:
-            # Otherwise we picked the wrong kind of helper.
-            assert not needs_check, value_name.getCType()
-
-            getReleaseCodes(
-                release_names=(left_name, right_name), emit=emit, context=context
+            emit(
+                "%s = %s(%s, %s);"
+                % (
+                    value_name,
+                    helper_function,
+                    arg1_name,
+                    arg2_name,
+                )
             )
+
+            if value_name.getCType().hasErrorIndicator():
+                getErrorExitCode(
+                    check_name=value_name,
+                    release_names=(left_name, right_name),
+                    needs_check=needs_check,
+                    emit=emit,
+                    context=context,
+                )
+            else:
+                # Otherwise we picked the wrong kind of helper.
+                assert not needs_check, value_name.getCType()
+
+                getReleaseCodes(
+                    release_names=(left_name, right_name), emit=emit, context=context
+                )
 
         # TODO: Depending on operation, we could not produce a reference, if result *must*
         # be boolean, but then we would have some helpers that do it, and some that do not

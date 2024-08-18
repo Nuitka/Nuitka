@@ -88,7 +88,8 @@ is_nuitka_run = None
 is_debug = None
 is_non_debug = None
 is_full_compat = None
-is_report_missing = None
+report_missing_code_helpers = None
+report_missing_trust = None
 is_verbose = None
 
 
@@ -380,7 +381,7 @@ def parseArgs():
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_non_debug
-    global is_full_compat, is_report_missing, is_verbose
+    global is_full_compat, report_missing_code_helpers, report_missing_trust, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -413,8 +414,8 @@ Error, the Python from Windows app store is not supported.""",
     if getattr(options, "disable_dll_dependency_cache", False):
         options.disabled_caches.append("dll-dependencies")
 
-    # TODO: Have dedicated option for it.
-    is_report_missing = is_debug
+    report_missing_code_helpers = options.report_missing_code_helpers
+    report_missing_trust = options.report_missing_trust
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         Tracing.setQuiet()

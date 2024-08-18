@@ -38,6 +38,7 @@ from nuitka.code_generation.ComparisonHelperDefinitions import (
     getSpecializedComparisonOperations,
 )
 from nuitka.code_generation.ImportCodes import getImportModuleHardCodeName
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.HardImportRegistry import (
     hard_modules,
     hard_modules_non_stdlib,
@@ -81,6 +82,7 @@ from .CTypeDescriptions import (
     list_desc,
     long_desc,
     n_bool_desc,
+    n_ilong_desc,
     object_desc,
     set_desc,
     str_desc,
@@ -124,6 +126,7 @@ types = (
     c_float_desc,
     c_bool_desc,
     n_bool_desc,
+    n_ilong_desc,
     object_desc,
 )
 
@@ -277,6 +280,8 @@ def _parseTypesFromHelper(helper_name):
 
     if target_code is not None:
         target = findTypeFromCodeName(target_code)
+        assert target is not None, target_code
+
     else:
         target = None
 
@@ -311,23 +316,21 @@ def _parseRequirements(op_code, target, left, right, emit):
 
 
 def makeHelperOperations(
-    template, inplace, helpers_set, operator, op_code, emit_h, emit_c, emit
+    template, in_place, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
     # Complexity comes natural, pylint: disable=too-many-locals
 
     emit(
         '/* C helpers for type %s "%s" (%s) operations */'
-        % ("in-place" if inplace else "specialized", operator, op_code)
+        % ("in-place" if in_place else "specialized", operator, op_code)
     )
     emit()
 
     for helper_name in helpers_set:
         target_code, target, left, right = _parseTypesFromHelper(helper_name)
+        assert left is not None, helper_name
 
-        assert target is None or not inplace, helper_name
-
-        if target is None and not inplace:
-            assert False, target_code
+        assert target is None or not in_place, (target_code, in_place)
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
@@ -348,7 +351,7 @@ def makeHelperOperations(
         else:
             sq_slot = None
 
-        if inplace and sq_slot is not None:
+        if in_place and sq_slot is not None:
             sq_inplace_slot = sq_slot.replace("sq_", "sq_inplace_")
         else:
             sq_inplace_slot = None
@@ -361,7 +364,7 @@ def makeHelperOperations(
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
             nb_inplace_slot=(
-                _getNbInplaceSlotFromOperand(operator, op_code) if inplace else None
+                _getNbInplaceSlotFromOperand(operator, op_code) if in_place else None
             ),
             sq_slot=sq_slot,
             sq_inplace_slot=sq_inplace_slot,
@@ -377,6 +380,8 @@ def makeHelperOperations(
             bytes_desc=bytes_desc,
             c_long_desc=c_long_desc,
             c_digit_desc=c_digit_desc,
+            n_bool_desc=n_bool_desc,
+            n_ilong_desc=n_ilong_desc,
         )
 
         emit_c(code)
@@ -547,8 +552,19 @@ def makeHelpersComparisonOperation(operand, op_code):
             )
 
 
-def makeHelpersBinaryOperation(operand, op_code):
-    specialized_op_helpers_set = getSpecializedBinaryOperations(op_code)
+def _getSpecializedBinaryOperations(op_code, dual):
+    return OrderedSet(
+        helper
+        for helper in getSpecializedBinaryOperations(op_code)
+        if dual == any(part in helper for part in ("NILONG", "NFLOAT"))
+    )
+
+
+def makeHelpersBinaryOperation(operator, op_code):
+    specialized_op_helpers_set = _getSpecializedBinaryOperations(
+        op_code=op_code,
+        dual=False,
+    )
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
@@ -582,18 +598,18 @@ def makeHelpersBinaryOperation(operand, op_code):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
             makeHelperOperations(
-                template,
-                False,
-                specialized_op_helpers_set,
-                operand,
-                op_code,
-                emit_h,
-                emit_c,
-                emit,
+                template=template,
+                in_place=False,
+                helpers_set=specialized_op_helpers_set,
+                operator=operator,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
             )
 
 
-def makeHelpersInplaceOperation(operand, op_code):
+def makeHelpersInplaceOperation(operator, op_code):
     specialized_op_helpers_set = getSpecializedBinaryOperations("I" + op_code)
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
@@ -628,14 +644,64 @@ def makeHelpersInplaceOperation(operand, op_code):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
             makeHelperOperations(
-                template,
-                True,
-                specialized_op_helpers_set,
-                operand,
-                op_code,
-                emit_h,
-                emit_c,
-                emit,
+                template=template,
+                in_place=True,
+                helpers_set=specialized_op_helpers_set,
+                operator=operator,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
+            )
+
+
+def makeHelpersBinaryDualOperation(operand, op_code):
+    specialized_op_helpers_set = _getSpecializedBinaryOperations(
+        op_code=op_code,
+        dual=True,
+    )
+
+    template = getDoExtensionUsingTemplateC("HelperOperationBinaryDual.c.j2")
+
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationBinaryDual%s.c" % op_code.capitalize()
+    )
+    filename_h = (
+        "nuitka/build/include/nuitka/helper/operations_binary_dual_%s.h"
+        % op_code.lower()
+    )
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeLine(output_h, *args)
+
+            def emit_c(*args):
+                writeLine(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit)
+
+            filename_utils = filename_c[:-2] + "Utils.c"
+
+            if os.path.exists(filename_utils):
+                emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            makeHelperOperations(
+                template=template,
+                in_place=False,
+                helpers_set=specialized_op_helpers_set,
+                operator=operand,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
             )
 
 
@@ -1255,6 +1321,8 @@ def makeHelperBuiltinTypeMethods():
 
 
 def main():
+    makeHelpersBinaryDualOperation("+", "ADD")
+
     makeDictCopyHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.

@@ -65,6 +65,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_INT_INT(PyObject **operand1, PyOb
         clong_result = a_div_b;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = operand2;
@@ -328,6 +329,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_OBJECT_INT(PyObject **operand1, P
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -595,6 +597,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_INT_OBJECT(PyObject **operand1, P
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -2173,6 +2176,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_INT_CLONG(PyObject **operand1, lo
         clong_result = a_div_b;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
@@ -2352,6 +2356,7 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_OBJECT_OBJECT(PyObject **operand1
             clong_result = a_div_b;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;

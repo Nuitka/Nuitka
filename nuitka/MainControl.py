@@ -901,8 +901,7 @@ def compileTree():
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
-    if Options.is_debug:
-        Reports.doMissingOptimizationReport()
+    Reports.doMissingOptimizationReport()
 
     if Options.shallNotDoExecCCompilerCall():
         return True, {}

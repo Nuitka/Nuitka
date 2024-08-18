@@ -76,8 +76,8 @@ class CPythonPyObjectPtrBase(CTypeBase):
         to_type = to_name.getCType()
 
         to_type.emitVariantAssignmentCode(
-            int_name=to_name,
-            value_name=value_name,
+            to_name=to_name,
+            ilong_value_name=value_name,
             int_value=None,
             emit=emit,
             context=context,
@@ -318,7 +318,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return "%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NULL;" % value_name)
 
     @classmethod
@@ -376,9 +376,9 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                 emit=emit,
             )
         elif value_name.c_type == "nuitka_ilong":
-            emit("ENFORCE_ILONG_OBJECT_VALUE(&%s);" % value_name)
+            emit("ENFORCE_NILONG_OBJECT_VALUE(&%s);" % value_name)
 
-            emit("%s = %s.ilong_object;" % (to_name, value_name))
+            emit("%s = %s.python_value;" % (to_name, value_name))
 
             context.transferCleanupTempName(value_name, to_name)
         else:
@@ -534,7 +534,7 @@ class CTypeCellObject(CTypeBase):
         emit(template % {"identifier": value_name})
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NULL;" % value_name)
 
     @classmethod

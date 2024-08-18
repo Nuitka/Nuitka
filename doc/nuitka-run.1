@@ -385,24 +385,9 @@ better debugger interaction. Defaults to off.
 Enable vmprof based profiling of time spent. Not
 working currently. Defaults to off.
 .TP
-\fB\-\-internal\-graph\fR
-Create graph of optimization process internals, do not
-use for whole programs, but only for small test cases.
-Defaults to off.
-.TP
 \fB\-\-trace\-execution\fR
 Traced execution output, output the line of code
 before executing it. Defaults to off.
-.TP
-\fB\-\-recompile\-c\-only\fR
-This is not incremental compilation, but for Nuitka
-development only. Takes existing files and simply
-compile them as C again. Allows compiling edited C
-files for quick debugging changes to the generated
-source, e.g. to see if code is passed by, values
-output, etc, Defaults to off. Depends on compiling
-Python source to determine which files it should look
-at.
 .TP
 \fB\-\-xml\fR=\fI\,XML_FILENAME\/\fR
 Write the internal program structure, result of
@@ -429,6 +414,36 @@ Generate only C source code, and do not compile it to
 binary or module. This is for debugging and code
 coverage analysis that doesn't waste CPU. Defaults to
 off. Do not think you can use this directly.
+.IP
+Nuitka Development features:
+.TP
+\fB\-\-devel\-missing\-code\-helpers\fR
+Report warnings for code helpers for types that were
+attempted, but don't exist. This helps to identify
+opportunities for improving optimization of generated
+code from type knowledge not used. Default False.
+.TP
+\fB\-\-devel\-missing\-trust\fR
+Report warnings for imports that could be trusted, but
+currently are not. This is to identify opportunities
+for improving handling of hard modules, where this
+sometimes could allow more static optimization.
+Default False.
+.TP
+\fB\-\-devel\-recompile\-c\-only\fR
+This is not incremental compilation, but for Nuitka
+development only. Takes existing files and simply
+compiles them as C again after doing the Python steps.
+Allows compiling edited C files for manual debugging
+changes to the generated source. Allows us to add
+printing, check and print values, but it is now what
+users would want. Depends on compiling Python source
+to determine which files it should look at.
+.TP
+\fB\-\-devel\-internal\-graph\fR
+Create graph of optimization process internals, do not
+use for whole programs, but only for small test cases.
+Defaults to off.
 .IP
 Backend C compiler choice:
 .TP
