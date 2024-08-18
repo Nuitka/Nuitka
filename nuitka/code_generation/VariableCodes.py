@@ -502,7 +502,7 @@ def generateVariableReleaseCode(statement, emit, context):
 
     c_type.getReleaseCode(value_name=value_name, needs_check=needs_check, emit=emit)
 
-    c_type.emitReinitCode(value_name=value_name, emit=emit)
+    c_type.emitReInitCode(value_name=value_name, emit=emit)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
