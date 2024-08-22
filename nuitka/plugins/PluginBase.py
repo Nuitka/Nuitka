@@ -1284,6 +1284,9 @@ except Exception as e:
             if e.returncode == 38:
                 return None
 
+            if Options.is_debug:
+                self.info(cmd, keep_format=True)
+
             if e.returncode == 39:
                 # TODO: Recognize the ModuleNotFoundError or ImportError exceptions
                 # and output the missing module.
@@ -1292,8 +1295,7 @@ except Exception as e:
                     % e.stderr.splitlines()[-1]
                 )
 
-            if Options.is_debug:
-                self.info(cmd, keep_format=True)
+                return None
 
             raise
 
@@ -1481,7 +1483,7 @@ except Exception as e:
 
                     if info is None:
                         self.sysexit(
-                            "Error, failed to evaluate variables for %s." % full_name
+                            "Error, failed to evaluate variables for '%s'." % full_name
                         )
 
                     variables.update(info.asDict())
@@ -1553,7 +1555,7 @@ except Exception as e:
                     raise
 
                 self.sysexit(
-                    "Error, failed to evaluate expression %r in this context, exception was '%s'."
+                    "Error, failed to evaluate expression %r in this context, exception was '%r'."
                     % (expression, e)
                 )
 
