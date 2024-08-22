@@ -2,15 +2,21 @@
 
 // Creates a stream object initialized with the data from an executable resource.
 
-#ifdef __MINGW32__
-#error "No support for splash screens with MinGW64 yet, only works with MSVC. Somebody please make it portable."
-#endif
-
 #include <shlwapi.h>
 #include <wincodec.h>
 #include <windows.h>
 
 #include <assert.h>
+
+// Some handy macro definitions, e.g. unlikely and NUITKA_MAY_BE_UNUSED
+#include "nuitka/hedley.h"
+#define likely(x) HEDLEY_LIKELY(x)
+#define unlikely(x) HEDLEY_UNLIKELY(x)
+#ifdef __GNUC__
+#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
+#else
+#define NUITKA_MAY_BE_UNUSED
+#endif
 
 #ifndef _NUITKA_NON_C11_MODE
 extern "C" {
@@ -138,6 +144,7 @@ HWND createSplashWindow(HBITMAP splash_bitmap) {
 
     HWND splash_window = CreateWindowExA(WS_EX_LAYERED, wc.lpszClassName, NULL,
                                          WS_POPUP | WS_VISIBLE | WS_EX_TOOLWINDOW, 0, 0, 0, 0, 0, NULL, 0, NULL);
+    assert(splash_window != NULL);
 
     // get the size of the bitmap
 
@@ -145,6 +152,8 @@ HWND createSplashWindow(HBITMAP splash_bitmap) {
     GetObject(splash_bitmap, sizeof(bitmap), &bitmap);
     SIZE sizeSplash = {bitmap.bmWidth, bitmap.bmHeight};
 
+    // Monitor selection and dimensions.
+    // spell-checker: ignore HMONITOR,MONITORINFO,MONITOR_DEFAULTTOPRIMARY
     POINT zero = {0};
     HMONITOR handle_monitor = MonitorFromPoint(zero, MONITOR_DEFAULTTOPRIMARY);
     MONITORINFO monitorinfo = {0};
@@ -156,12 +165,17 @@ HWND createSplashWindow(HBITMAP splash_bitmap) {
     ptOrigin.x = monitorinfo.rcWork.left + (monitorinfo.rcWork.right - monitorinfo.rcWork.left - sizeSplash.cx) / 2;
     ptOrigin.y = monitorinfo.rcWork.top + (monitorinfo.rcWork.bottom - monitorinfo.rcWork.top - sizeSplash.cy) / 2;
 
+#if _NUITKA_TRACE
+    printf("Onefile: Splash screen origin %d %d for sizes %d %d\n", ptOrigin.x, ptOrigin.y, sizeSplash.cx,
+           sizeSplash.cy);
+#endif
     // Create a DC with splash bitmap
     HDC handle_screen = GetDC(NULL);
     HDC handle_memory = CreateCompatibleDC(handle_screen);
     HBITMAP handle_old_bitmap = (HBITMAP)SelectObject(handle_memory, splash_bitmap);
 
     // Set image alpha channel for blending.
+    // spell-checker: ignore BLENDFUNCTION
     BLENDFUNCTION blend = {0};
     blend.BlendOp = AC_SRC_OVER;
     blend.SourceConstantAlpha = 255;
@@ -183,28 +197,35 @@ static wchar_t splash_indicator_path[4096] = {0};
 bool splash_active = false;
 
 extern "C" void initSplashScreen(void) {
+    NUITKA_PRINT_TIMING("ONEFILE: Initialize splash screen.");
+
     CoInitialize(NULL);
     IStream *image_stream = createImageStream();
-    if (image_stream == NULL) {
+    if (unlikely(image_stream == NULL)) {
+        NUITKA_PRINT_TIMING("ONEFILE: Failed to create image stream.");
         return;
     }
     IWICBitmapSource *image_source = getBitmapFromImageStream(image_stream);
     image_stream->Release();
-    if (image_source == NULL) {
+    if (unlikely(image_source == NULL)) {
+        NUITKA_PRINT_TIMING("ONEFILE: Failed to get image source from stream.");
         return;
     }
     HBITMAP splash_bitmap = CreateHBITMAP(image_source);
     image_source->Release();
-    if (splash_bitmap == NULL) {
+    if (unlikely(splash_bitmap == NULL)) {
+        NUITKA_PRINT_TIMING("ONEFILE: Failed to get bitmap.");
         return;
     }
 
     splash_window = createSplashWindow(splash_bitmap);
 
+    // TODO: This probably should be user provided.
     wchar_t const *pattern = L"{TEMP}\\onefile_{PID}_splash_feedback.tmp";
     BOOL bool_res =
         expandTemplatePathW(splash_indicator_path, pattern, sizeof(splash_indicator_path) / sizeof(wchar_t));
-    if (bool_res == false) {
+    if (unlikely(bool_res == false)) {
+        NUITKA_PRINT_TIMING("Failed expand indicator path.");
         return;
     }
 
@@ -218,6 +239,8 @@ extern "C" void initSplashScreen(void) {
 }
 
 static void closeSplashScreen(void) {
+    NUITKA_PRINT_TIMING("ONEFILE: Check splash screen indicator file.");
+
     if (splash_window) {
         DestroyWindow(splash_window);
         splash_window = 0;
@@ -226,6 +249,8 @@ static void closeSplashScreen(void) {
 
 extern "C" bool checkSplashScreen(void) {
     if (splash_active) {
+        NUITKA_PRINT_TIMING("ONEFILE: Check splash screen indicator file.");
+
         if (!PathFileExistsW(splash_indicator_path)) {
             closeSplashScreen();
             splash_active = false;
