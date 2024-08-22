@@ -7602,11 +7602,15 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
-- module-name: 'trio._core._run' # checksum: 44a998aa
+- module-name: 'trio._core._run' # checksum: 8aed5b01
   anti-bloat:
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
+    - description: 'workaround for trio compatibility'
+      replacements_plain:
+        'assert coro.cr_frame is not None, "Coroutine frame should exist"': ''
+      when: 'version("trio") >= (0,26,1)'
 
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:
