@@ -111,9 +111,9 @@ def _enableC11Settings(env):
 
     if c11_mode:
         if env.gcc_mode:
-            env.Append(CCFLAGS=["-std=c11"])
+            env.Append(CFLAGS=["-std=c11"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/std:c11"])
+            env.Append(CFLAGS=["/std:c11"])
 
     if env.msvc_mode and c11_mode:
         # Windows SDK shows this even in non-debug mode in C11 mode.
