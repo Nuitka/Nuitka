@@ -165,6 +165,10 @@ def resolveModuleName(module_name):
         return module_name.relocateModuleNamespace(
             "importlib_resources", "importlib.resources"
         )
+    elif module_name.hasNamespace("tensorflow.keras"):
+        return module_name.relocateModuleNamespace(
+            "tensorflow.keras", "keras._tf_keras.keras"
+        )
     else:
         return module_name
 

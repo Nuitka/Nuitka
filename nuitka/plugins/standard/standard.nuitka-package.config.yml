@@ -4047,10 +4047,20 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 8c9db0be
+- module-name: 'pygame' # checksum: face0a9
   data-files:
     - patterns:
         - 'freesansbold.ttf'
+    - patterns:
+        - 'pygame_icon_mac.bmp'
+      when: 'macos'
+    - patterns:
+        - 'pygame_icon.bmp'
+      when: 'not macos'
+
+  implicit-imports:
+    - depends:
+        - 'pygame.*'
 
   options:
     checks:
@@ -6296,7 +6306,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 13d6e6a5
+- module-name: 'tensorflow' # checksum: 7bd997cd
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -6317,6 +6327,8 @@
         'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
         'from tensorflow._api.v2 import test': 'test = None'
+      replacements:
+        '_os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -6336,13 +6348,21 @@
     - depends:
         - 'tensorboard'
         - 'tensorflow_estimator'
+    - depends:
         - 'keras.api._v2.keras'
+      when: 'version("keras") < (3,)'
+    - depends:
+        - 'keras._tf_keras.keras'
+      when: 'version("keras") >= (3,)'
 
   options:
     checks:
       - description: "'tensorflow' is not fully supported before version 2.16"
         support_info: 'warning'
         when: 'version("tensorflow") < (2,16)'
+      - description: "'tensorflow' is not fully supported with legacy keras"
+        support_info: 'warning'
+        when: 'os.getenv("TF_USE_LEGACY_KERAS", None) is not None'
 
 - module-name: 'tensorflow._api.v1.compat.v1' # checksum: 3e84bd8b
   anti-bloat:
@@ -6737,13 +6757,13 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: f4d18284
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: b554bf0
   anti-bloat:
     - description: 'reduce keras usage'
       replacements_re:
         '(package_name = "(.*?)")': '\1; import \2'
       replacements:
-        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
+        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
 
 - module-name: 'tensorflow.python.util.tf_inspect' # checksum: 8e3a3cbf
@@ -7582,11 +7602,15 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
-- module-name: 'trio._core._run' # checksum: 44a998aa
+- module-name: 'trio._core._run' # checksum: 8aed5b01
   anti-bloat:
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
+    - description: 'workaround for trio compatibility'
+      replacements_plain:
+        'assert coro.cr_frame is not None, "Coroutine frame should exist"': ''
+      when: 'version("trio") >= (0,26,1)'
 
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:
