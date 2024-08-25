@@ -143,6 +143,13 @@ os_path_isabs_spec = BuiltinParameterSpec(
 
 os_listdir_spec = BuiltinParameterSpec("os.listdir", ("path",), default_count=1)
 
+os_stat_spec = BuiltinParameterSpec(
+    "os.stat", ("path",), kw_only_args=("dir_fd", "follow_symlinks"), default_count=2
+)
+os_lstat_spec = BuiltinParameterSpec(
+    "os.lstat", ("path",), kw_only_args=("dir_fd",), default_count=1
+)
+
 ctypes_cdll_since_38_spec = BuiltinParameterSpec(
     "ctypes.CDLL",
     (
