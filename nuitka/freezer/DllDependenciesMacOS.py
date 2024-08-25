@@ -16,6 +16,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    changeFilenameExtension,
     getReportPath,
     isFilenameBelowPath,
 )
@@ -144,6 +145,9 @@ def _getNonVersionedDllFilenames2(filename):
         if getArchitecture() == "arm64":
             yield match.group(1) + "_arm64.dylib"
 
+    if filename.endswith(".so"):
+        yield changeFilenameExtension(filename, ".dylib")
+
 
 def _getNonVersionedDllFilenames(dll_filename, package_name):
     for filename in _getNonVersionedDllFilenames2(dll_filename):
@@ -257,30 +261,39 @@ def _resolveBinaryPathDLLsMacOS(
                     break
 
         # Sometimes self-dependencies are on a numbered version, but deployed is
-        # one version without it. The macOS just ignores that, and so we do.
+        # one version without it. Also be tolerant about changing suffixes
+        # internally. The macOS just ignores that, and so we do.
         if not os.path.exists(resolved_path):
             if os.path.basename(resolved_path) == os.path.basename(binary_filename):
                 resolved_path = binary_filename
             else:
-                match = re.match(r"^(.*?)(\.\d+)+\.dylib$", resolved_path)
+                for suffix1, suffix2 in (
+                    (".dylib", ".dylib"),
+                    (".so", ".so"),
+                    (".dylib", ".so"),
+                    (".so", ".dylib"),
+                ):
+                    pattern = r"^(.*?)(\.\d+)*%s$" % re.escape(suffix1)
 
-                if match:
-                    candidate = match.group(1) + ".dylib"
+                    match = re.match(pattern, resolved_path)
 
-                    if os.path.exists(candidate):
-                        resolved_path = candidate
-                    else:
-                        candidate = os.path.join(
-                            original_dir, os.path.basename(candidate)
-                        )
+                    if match:
+                        candidate = match.group(1) + suffix2
 
                         if os.path.exists(candidate):
                             resolved_path = candidate
-                        elif os.path.basename(candidate) == os.path.basename(
-                            binary_filename
-                        ):
-                            # Versioned dependency on itself in non-existent path.
-                            resolved_path = binary_filename
+                        else:
+                            candidate = os.path.join(
+                                original_dir, os.path.basename(candidate)
+                            )
+
+                            if os.path.exists(candidate):
+                                resolved_path = candidate
+                            elif os.path.basename(candidate) == os.path.basename(
+                                binary_filename
+                            ):
+                                # Versioned dependency on itself in non-existent path.
+                                resolved_path = binary_filename
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
