@@ -13,12 +13,14 @@ from .ExceptionNodes import (
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
     ExpressionOsListdirCallBase,
+    ExpressionOsLstatCallBase,
     ExpressionOsPathAbspathCallBase,
     ExpressionOsPathBasenameCallBase,
     ExpressionOsPathExistsCallBase,
     ExpressionOsPathIsabsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
+    ExpressionOsStatCallBase,
     ExpressionOsUnameCallBase,
 )
 
@@ -148,6 +150,28 @@ class ExpressionOsPathIsabsCall(ExpressionOsPathIsabsCallBase):
 
 class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
     kind = "EXPRESSION_OS_LISTDIR_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsStatCall(ExpressionOsStatCallBase):
+    kind = "EXPRESSION_OS_STAT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsLstatCall(ExpressionOsLstatCallBase):
+    kind = "EXPRESSION_OS_LSTAT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         # Nothing we can do really
