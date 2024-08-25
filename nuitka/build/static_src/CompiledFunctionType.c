@@ -1183,7 +1183,7 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
 
     PyCodeObject *code_object =
         MAKE_CODE_OBJECT(filename, line_int, flags_int, function_name, function_qualname, arg_names,
-                         NULL, // freevars
+                         NULL, // free_vars
                          arg_count_int, kw_only_count_int, pos_only_count_int);
     if (unlikely(code_object == NULL)) {
         return NULL;
