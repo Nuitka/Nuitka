@@ -111,13 +111,13 @@ def _enableC11Settings(env):
 
     if c11_mode:
         if env.gcc_mode:
-            env.Append(CCFLAGS=["-std=c11"])
+            env.Append(CFLAGS=["-std=c11"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/std:c11"])
+            env.Append(CFLAGS=["/std:c11"])
 
     if env.msvc_mode and c11_mode:
         # Windows SDK shows this even in non-debug mode in C11 mode.
-        env.Append(CCFLAGS=["/wd5105"])
+        env.Append(CCFLAGS=["/wd5105", "/wd4391"])
 
     if not c11_mode:
         env.Append(CPPDEFINES=["_NUITKA_NON_C11_MODE"])
