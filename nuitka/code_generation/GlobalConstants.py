@@ -105,6 +105,7 @@ def getConstantDefaultPopulation():
         "isdir",
         "isfile",
         "listdir",
+        "stat",
     ]
 
     # Pickling of instance methods.
