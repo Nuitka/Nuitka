@@ -995,8 +995,6 @@ int main(int argc, char **argv) {
     static filename_char_t first_filename[1024] = {0};
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
-    NUITKA_PRINT_TIMING("ONEFILE: Splash screen.");
-
     initSplashScreen();
 #endif
 
