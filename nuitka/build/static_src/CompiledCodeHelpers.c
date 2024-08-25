@@ -1718,8 +1718,8 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#ifdef _NUITKA_STANDALONE
-static PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
+#ifdef _NUITKA_EXE
+PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
 

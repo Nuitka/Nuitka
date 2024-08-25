@@ -517,6 +517,8 @@ extern PyObject *Nuitka_dunder_compiled_value;
 
 #define TRACE_FILE_LISTDIR(tstate, x, y) (false)
 
+#define TRACE_FILE_STAT(tstate, x, y, z, r) (false)
+
 #endif
 
 #if _NUITKA_EXPERIMENTAL_INIT_PROGRAM
