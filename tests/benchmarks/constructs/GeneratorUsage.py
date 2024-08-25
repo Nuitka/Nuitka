@@ -4,7 +4,7 @@
 import itertools
 
 
-def calledRepeatedly():
+def calledRepeatedly(cond):
     # We measure making a generator iterator step or not.
     def generator():
         yield 1
@@ -14,15 +14,18 @@ def calledRepeatedly():
     gen = generator()
 
     x = next(gen)
-    # construct_begin
-    next(gen)
-    # construct_end
+    if cond:
+        next(gen)
 
     return x
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 
