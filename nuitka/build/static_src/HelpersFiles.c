@@ -185,6 +185,30 @@ PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path) {
     return result;
 }
 
+extern PyObject *OS_STAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd, PyObject *follow_symlinks) {
+    PyObject *result;
+
+    if (TRACE_FILE_STAT(tstate, path, dir_fd, follow_symlinks, &result)) {
+        return result;
+    }
+
+    PyObject *stat_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_stat);
+
+    PyObject *args[] = {path, dir_fd, follow_symlinks};
+
+    char const *arg_names[] = {"path", "dir_fd", "follow_symlinks"};
+    result = CALL_BUILTIN_KW_ARGS(tstate, stat_func, args, arg_names, 3);
+
+    Py_DECREF(stat_func);
+    return result;
+}
+
+extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd) {
+    PyObject *follow_symlinks = Py_False;
+
+    return OS_STAT(tstate, path, dir_fd, follow_symlinks);
+}
+
 PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename) {
     CHECK_OBJECT(filename);
 
