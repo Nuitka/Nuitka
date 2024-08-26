@@ -1,0 +1,29 @@
+{
+    "name": "Nuitka Dev Container",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.12",
+    "features": {
+        "ghcr.io/devcontainers-community/features/llvm:latest": {}
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "ms-python.python",
+                "lextudio.restructuredtext",
+                "foxundermoon.shell-format",
+                "troelsdamgaard.reflow-paragraph",
+                "ms-vscode.cpptools",
+                "mervin.markdown-formatter",
+                "stkb.rewrap",
+                "trond-snekvik.simple-rst",
+                "redhat.vscode-yaml",
+                "dawidd6.debian-vscode",
+                "streetsidesoftware.code-spell-checker",
+                "samuelcolvin.jinjahtml",
+                "tamasfe.even-better-toml",
+                "swyddfa.esbonio"
+            ]
+        }
+    },
+    "postCreateCommand": "python3 -m pip install -r requirements.txt && python3 -m pip install -r requirements-devel.txt"
+}
