@@ -25,5 +25,5 @@
             ]
         }
     },
-    "postCreateCommand": "python3 -m pip install -r requirements.txt && python3 -m pip install -r requirements-devel.txt"
+    "postCreateCommand": "python3 -m pip install -r requirements-devel.txt && python3 misc/install-git-hooks.py"
 }
