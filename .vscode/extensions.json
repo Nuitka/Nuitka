@@ -16,7 +16,9 @@
         "dawidd6.debian-vscode",
         "streetsidesoftware.code-spell-checker",
         "samuelcolvin.jinjahtml",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "swyddfa.esbonio"
+
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
     "unwantedRecommendations": [
