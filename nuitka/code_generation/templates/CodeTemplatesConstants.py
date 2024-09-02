@@ -134,6 +134,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
         {(char *)"module", (char *)"boolean indicating --module usage"},
         {(char *)"main", (char *)"name of main module at runtime"},
+        {(char *)"onefile_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
         {0}
     };
 
@@ -233,6 +234,9 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *main_name = Nuitka_String_FromString("__main__");
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
+
+    PyObject *onefile_argv0 = getOnefileArgv0Object();
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, onefile_argv0);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
