@@ -83,8 +83,9 @@ class NuitkaProgressBar(object):
 
     @contextmanager
     def withExternalWritingPause(self):
-        # spell-checker: ignore nolock
-        with self.tqdm.external_write_mode(nolock=True):
+        # spell-checker: ignore nolock TODO: Recognize threading usage, Scons
+        # needs locks, Nuitka currently does not.
+        with self.tqdm.external_write_mode(nolock=False):
             yield
 
 
