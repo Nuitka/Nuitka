@@ -180,7 +180,10 @@ def generateStatementCode(statement, emit, context):
         )
 
         # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempNames(), context.getCleanupTempNames()
+        assert not context.getCleanupTempNames(), (
+            statement.asXmlText(),
+            context.getCleanupTempNames(),
+        )
     except Exception:
         printError(
             "Problem with %r at %s"

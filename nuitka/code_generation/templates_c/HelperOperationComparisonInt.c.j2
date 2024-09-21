@@ -8,7 +8,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     const long a = {{left.getAsLongValueExpression("operand1")}};
     const long b = {{right.getAsLongValueExpression("operand2")}};
 
-    bool r = a {{operand}} b;
+    bool r = a {{operator}} b;
 
     // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};

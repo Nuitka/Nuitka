@@ -363,7 +363,8 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
         while (*w != 0) {
             switch (*w) {
             case NUITKA_TYPE_DESCRIPTION_OBJECT:
-            case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
+            case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR:
+            case NUITKA_TYPE_DESCRIPTION_NILONG: {
                 PyObject *value = *(PyObject **)t;
                 CHECK_OBJECT_X(value);
 
@@ -445,11 +446,13 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
     Nuitka_Frame_tp_clear(nuitka_frame);
 
-    Py_SET_REFCNT(nuitka_frame, Py_REFCNT(nuitka_frame) - 1);
-    if (Py_REFCNT(nuitka_frame) >= 1) {
-        // TODO: Allow this in debug mode, for now we would like to reproduce it.
-        assert(false);
-        return;
+    if (Py_REFCNT(nuitka_frame) > 0) {
+        Py_SET_REFCNT(nuitka_frame, Py_REFCNT(nuitka_frame) - 1);
+        if (Py_REFCNT(nuitka_frame) >= 1) {
+            // TODO: Allow this in debug mode, for now we would like to reproduce it.
+            assert(false);
+            return;
+        }
     }
 
 #if PYTHON_VERSION >= 0x3b0
@@ -528,6 +531,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
             break;
         }
         default:
+            NUITKA_CANNOT_GET_HERE("invalid type description");
             assert(false);
         }
 
@@ -1109,7 +1113,19 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
 
             break;
         }
+        case NUITKA_TYPE_DESCRIPTION_NILONG: {
+            nuitka_ilong value = va_arg(ap, nuitka_ilong);
+            ENFORCE_NILONG_OBJECT_VALUE(&value);
+
+            CHECK_OBJECT(value.python_value);
+            memcpy(t, &value.python_value, sizeof(PyObject *));
+            Py_XINCREF(value.python_value);
+            t += sizeof(PyObject *);
+
+            break;
+        }
         default:
+            NUITKA_CANNOT_GET_HERE("invalid type description");
             assert(false);
         }
 

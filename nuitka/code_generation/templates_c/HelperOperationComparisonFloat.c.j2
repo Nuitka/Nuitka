@@ -7,7 +7,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     const double a = {{ left.getAsDoubleValueExpression("operand1") }};
     const double b = {{ right.getAsDoubleValueExpression("operand2") }};
 
-    bool r = a {{operand}} b;
+    bool r = a {{operator}} b;
 
     // Convert to target type.
     {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};

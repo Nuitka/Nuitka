@@ -170,7 +170,6 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
         }
 #else
         /* Python 3 */
-#ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
@@ -211,7 +210,6 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 
             Nuitka_GC_Track(result_mp);
         } else
-#endif
 #if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
@@ -386,7 +384,6 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         }
 #else
         /* Python 3 */
-#ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
@@ -427,7 +424,6 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 
             Nuitka_GC_Track(result_mp);
         } else
-#endif
 #if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
@@ -613,7 +609,6 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
         }
 #else
         /* Python 3 */
-#ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
             assert(result_mp != NULL);
@@ -678,7 +673,6 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
 
             Nuitka_GC_Track(result_mp);
         } else
-#endif
 #if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
