@@ -483,6 +483,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGeneratorCompiledFrame(PyT
 #define NUITKA_TYPE_DESCRIPTION_OBJECT 'o'
 #define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR 'O'
 #define NUITKA_TYPE_DESCRIPTION_BOOL 'b'
+#define NUITKA_TYPE_DESCRIPTION_NILONG 'L'
 
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Frame_Type;

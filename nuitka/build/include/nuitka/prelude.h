@@ -175,7 +175,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <cpython/code.h>
 #endif
 
-#if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
+#if PYTHON_VERSION < 0x3c0
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))

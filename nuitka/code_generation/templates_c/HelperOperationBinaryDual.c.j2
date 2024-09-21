@@ -62,30 +62,34 @@ exit_result_ok_clong:
             return false;
         }
 
-        {{target.getSetDualValueCode("Python", "result", "python_result")}}
+        {{ target.getSetDualValueCode("Python", "result", "python_result") }}
         return true;
 {% endif %}
 {% if right.isDualType() %}
     } else if (left_c_usable && right_c_usable == false) {
-        PyObject *python_result = BINARY_OPERATION_{{op_code}}_{{left.getDualType("C").getHelperCodeName()}}_{{right.getDualType("Python").getHelperCodeName()}}({{left.getDualTypeAccessCode("C", "operand1")}}, {{right.getDualTypeAccessCode("Python", "operand2")}});
+{% if left.isCommutativeType() and right.isCommutativeType() and isCommutativeOperation(op_code) %}
+        PyObject *python_result = BINARY_OPERATION_{{op_code}}_OBJECT_{{right.getDualType("Python").getHelperCodeName()}}_{{left.getDualType("C").getHelperCodeName()}}({{right.getDualTypeAccessCode("Python", "operand2")}}, {{left.getDualTypeAccessCode("C", "operand1")}});
+{% else %}
+        PyObject *python_result = BINARY_OPERATION_{{op_code}}_OBJECT_{{left.getDualType("C").getHelperCodeName()}}_{{right.getDualType("Python").getHelperCodeName()}}({{left.getDualTypeAccessCode("C", "operand1")}}, {{right.getDualTypeAccessCode("Python", "operand2")}});
+{% endif %}
 
         if (unlikely(python_result == NULL)) {
             return false;
         }
 
-        {{target.getSetDualValueCode("Python", "result", "python_result")}}
+        {{ target.getSetDualValueCode("Python", "result", "python_result") }}
 
         return true;
 {% endif %}
     } else {
 {% if left.isDualType() and right.isDualType() %}
-        PyObject *python_result = BINARY_OPERATION_{{op_code}}_{{left.getDualType("Python").getHelperCodeName()}}_{{right.getDualType("Python").getHelperCodeName()}}({{left.getDualTypeAccessCode("Python", "operand1")}}, {{right.getDualTypeAccessCode("Python", "operand1")}});
+        PyObject *python_result = BINARY_OPERATION_{{op_code}}_OBJECT_{{left.getDualType("Python").getHelperCodeName()}}_{{right.getDualType("Python").getHelperCodeName()}}({{left.getDualTypeAccessCode("Python", "operand1")}}, {{right.getDualTypeAccessCode("Python", "operand1")}});
 
         if (unlikely(python_result == NULL)) {
             return false;
         }
 
-        {{target.getSetDualValueCode("Python", "python_result")}}
+        {{ target.getSetDualValueCode("Python", "result", "python_result") }}
 
         return true;
 {% else %}
