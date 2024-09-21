@@ -61,7 +61,7 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
-from .shapes.StandardShapes import tshape_iterator
+from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementDictOperationRemoveBase,
     StatementDictOperationSetBase,

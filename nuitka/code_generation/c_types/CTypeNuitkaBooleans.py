@@ -33,9 +33,8 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
                 to_name=value_name, condition=test_code, emit=emit
             )
 
-            # TODO: Refcount and context needs release are redundant.
-            if ref_count:
-                getReleaseCode(tmp_name, emit, context)
+        if ref_count:
+            getReleaseCode(tmp_name, emit, context)
 
     @classmethod
     def emitAssignmentCodeToNuitkaIntOrLong(

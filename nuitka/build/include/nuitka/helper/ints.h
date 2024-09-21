@@ -44,6 +44,29 @@ NUITKA_MAY_BE_UNUSED static void SET_NILONG_C_VALUE(nuitka_ilong *dual_value, lo
     dual_value->c_value = c_value;
 }
 
+NUITKA_MAY_BE_UNUSED static void SET_NILONG_OBJECT_AND_C_VALUE(nuitka_ilong *dual_value, PyObject *python_value,
+                                                               long c_value) {
+    dual_value->validity = NUITKA_ILONG_BOTH_VALID;
+    dual_value->python_value = python_value;
+    dual_value->c_value = c_value;
+}
+
+NUITKA_MAY_BE_UNUSED static void RELEASE_NILONG_VALUE(nuitka_ilong *dual_value) {
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        CHECK_OBJECT(dual_value);
+        Py_DECREF(dual_value->python_value);
+    }
+
+    dual_value->validity = NUITKA_ILONG_UNASSIGNED;
+}
+
+NUITKA_MAY_BE_UNUSED static void INCREF_NILONG_VALUE(nuitka_ilong *dual_value) {
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        CHECK_OBJECT(dual_value);
+        Py_INCREF(dual_value->python_value);
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static long GET_NILONG_C_VALUE(nuitka_ilong const *dual_value) {
     assert(IS_NILONG_C_VALUE_VALID(dual_value));
     return dual_value->c_value;
@@ -57,7 +80,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_NILONG_OBJECT_VALUE(nuitka_ilong const
 NUITKA_MAY_BE_UNUSED static void ENFORCE_NILONG_OBJECT_VALUE(nuitka_ilong *dual_value) {
     assert(dual_value->validity != NUITKA_ILONG_UNASSIGNED);
 
-    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+    if (!IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
         dual_value->python_value = Nuitka_PyLong_FromLong(dual_value->c_value);
 
         dual_value->validity = NUITKA_ILONG_BOTH_VALID;
@@ -69,6 +92,17 @@ NUITKA_MAY_BE_UNUSED static void CHECK_NILONG_OBJECT(nuitka_ilong const *dual_va
 
     if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
         CHECK_OBJECT(dual_value);
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static void PRINT_NILONG(nuitka_ilong const *dual_value) {
+    PRINT_FORMAT("NILONG: %d", dual_value->validity);
+    if (IS_NILONG_C_VALUE_VALID(dual_value)) {
+        PRINT_FORMAT("C=%d", dual_value->c_value);
+    }
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        PRINT_STRING("Python=");
+        PRINT_ITEM(dual_value->python_value);
     }
 }
 
