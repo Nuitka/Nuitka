@@ -1042,6 +1042,7 @@ _stdlib_module_raises = {
     "_interpreters": False,
     "_interpqueues": False,
     "_sysconfig": False,
+    "_suggestions": False,
 }
 
 

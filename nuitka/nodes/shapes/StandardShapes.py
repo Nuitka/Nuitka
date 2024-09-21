@@ -8,7 +8,10 @@ from abc import abstractmethod
 from nuitka.code_generation.c_types.CTypePyObjectPointers import (
     CTypePyObjectPtr,
 )
-from nuitka.code_generation.Reports import onMissingOperation
+from nuitka.code_generation.Reports import (
+    onMissingOperation,
+    onMissingUnaryOperation,
+)
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
@@ -446,6 +449,16 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
 
             return operation_result_unknown
 
+    def getOperationUnaryAddShape(self):
+        onMissingUnaryOperation("+", self)
+
+        return operation_result_unknown
+
+    def getOperationUnarySubShape(self):
+        onMissingUnaryOperation("-", self)
+
+        return operation_result_unknown
+
     def getComparisonLtShape(self, right_shape):
         onMissingOperation("Lt", self, right_shape)
 
@@ -541,6 +554,12 @@ class ShapeTypeUnknown(ShapeBase):
 
     @staticmethod
     def getOperationBinaryMatMultShape(right_shape):
+        return operation_result_unknown
+
+    def getOperationUnaryAddShape(self):
+        return operation_result_unknown
+
+    def getOperationUnarySubShape(self):
         return operation_result_unknown
 
     @staticmethod
@@ -649,6 +668,13 @@ class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     @staticmethod
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionFullEscape
+
+    def getOperationUnaryAddShape(self):
+        # TODO: Move prepared values to separate module
+        return tshape_unknown, ControlFlowDescriptionFullEscape
+
+    def getOperationUnarySubShape(self):
+        return tshape_unknown, ControlFlowDescriptionFullEscape
 
 
 tshape_iterator = ShapeIterator()
@@ -897,6 +923,22 @@ class ShapeLoopInitialAlternative(ShapeBase):
                 ),
                 ControlFlowDescriptionFullEscape,
             )
+
+    def getOperationUnaryAddShape(self):
+        return (
+            self._collectInitialShape(
+                operation=lambda left_shape: left_shape.getOperationUnaryAddShape()
+            ),
+            ControlFlowDescriptionFullEscape,
+        )
+
+    def getOperationUnarySubShape(self):
+        return (
+            self._collectInitialShape(
+                operation=lambda left_shape: left_shape.getOperationUnarySubShape()
+            ),
+            ControlFlowDescriptionFullEscape,
+        )
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
@@ -1160,6 +1202,16 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation=lambda left_shape: left_shape.getOperationBinaryMatMultShape(
                 right_shape
             )
+        )
+
+    def getOperationUnaryAddShape(self):
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationUnaryAddShape()
+        )
+
+    def getOperationUnarySubShape(self):
+        return self._collectShapeOperation(
+            operation=lambda left_shape: left_shape.getOperationUnarySubShape()
         )
 
     # Special method to be called by other shapes encountering this type on

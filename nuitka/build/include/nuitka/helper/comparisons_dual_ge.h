@@ -1,22 +1,27 @@
 //     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-/* WARNING, this code is GENERATED. Modify the template HelperOperationBinaryDual.c.j2 instead! */
+/* WARNING, this code is GENERATED. Modify the template HelperOperationComparisonDual.c.j2 instead! */
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
 
-/* C helpers for type specialized "+" (ADD) operations */
+/* C helpers for type specialized ">=" (GE) comparisons */
 
-/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "NILONG" to Nuitka int/long/C long value.
- */
-extern bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilong *operand1,
-                                                      nuitka_ilong *operand2);
+/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
+extern PyObject *RICH_COMPARE_GE_OBJECT_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
+
+/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "CLONG" to C platform long value. */
+extern bool RICH_COMPARE_GE_CBOOL_NILONG_CLONG(nuitka_ilong *operand1, long operand2);
 
 /* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
  * Python objects. */
-extern bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong *operand1, long operand2);
+extern PyObject *RICH_COMPARE_GE_OBJECT_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
+
+/* Code referring to "NILONG" corresponds to Nuitka int/long/C long value and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern bool RICH_COMPARE_GE_CBOOL_NILONG_DIGIT(nuitka_ilong *operand1, long operand2);
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
