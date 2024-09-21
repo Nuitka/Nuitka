@@ -25,7 +25,8 @@ from .NodeMakingHelpers import (
     wrapStatementWithSideEffects,
 )
 from .OperatorNodesUnary import ExpressionOperationNot
-from .shapes.BuiltinTypeShapes import tshape_bool, tshape_unknown
+from .shapes.BuiltinTypeShapes import tshape_bool
+from .shapes.StandardShapes import tshape_unknown
 from .StatementBasesGenerated import StatementConditionalBase
 from .StatementNodes import StatementsSequence
 

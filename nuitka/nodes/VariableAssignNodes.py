@@ -31,7 +31,8 @@ from .shapes.ControlFlowDescriptions import (
     ControlFlowDescriptionFullEscape,
     ControlFlowDescriptionNoEscape,
 )
-from .shapes.StandardShapes import tshape_iterator, tshape_unknown
+from .shapes.IteratorShapes import tshape_iterator
+from .shapes.StandardShapes import tshape_unknown
 from .StatementBasesGenerated import (
     StatementAssignmentVariableConstantImmutableBase,
     StatementAssignmentVariableConstantMutableBase,

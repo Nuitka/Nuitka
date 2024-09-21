@@ -6,9 +6,12 @@
 """
 
 from .ControlFlowDescriptions import (
+    ControlFlowDescriptionAddUnsupported,
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionNoEscape,
+    ControlFlowDescriptionSubUnsupported,
 )
+from .StandardShapes import tshape_unknown
 
 
 class ShapeContainerMixin(object):
@@ -131,9 +134,18 @@ class ShapeNotNumberMixin(object):
     def hasShapeSlotComplex():
         return False
 
+    # TODO: Seems misplaced
     @staticmethod
     def hasShapeModule():
         return False
+
+    @staticmethod
+    def getOperationUnaryAddShape():
+        return tshape_unknown, ControlFlowDescriptionAddUnsupported
+
+    @staticmethod
+    def getOperationUnarySubShape():
+        return tshape_unknown, ControlFlowDescriptionSubUnsupported
 
 
 class ShapeNumberMixin(object):
@@ -181,6 +193,12 @@ class ShapeNumberMixin(object):
     @staticmethod
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionNoEscape
+
+    def getOperationUnaryAddShape(self):
+        return self, ControlFlowDescriptionNoEscape
+
+    def getOperationUnarySubShape(self):
+        return self, ControlFlowDescriptionNoEscape
 
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):

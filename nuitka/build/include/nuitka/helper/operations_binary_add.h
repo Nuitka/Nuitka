@@ -119,6 +119,12 @@ extern PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, long
  * Python objects. */
 extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2);
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_CLONG(PyObject *operand1, long operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
+extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_CLONG(PyObject *operand1, long operand2);
+
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
 

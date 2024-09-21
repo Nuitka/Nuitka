@@ -117,15 +117,11 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
     code_object->co_filename = module_path;
     Py_INCREF(module_path);
 
-#ifndef PY_NOGIL
     Py_ssize_t consts_count = PyTuple_GET_SIZE(code_object->co_consts);
 
     for (Py_ssize_t i = 0; i < consts_count; i++) {
         PyObject *constant = PyTuple_GET_ITEM(code_object->co_consts, i);
-#else
-    for (Py_ssize_t i = 0; i < code_object->co_nconsts; i++) {
-        PyObject *constant = code_object->co_constants[i];
-#endif
+
         if (PyCode_Check(constant)) {
             patchCodeObjectPaths((PyCodeObject *)constant, module_path);
         }
@@ -906,10 +902,11 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         Py_DECREF(path_list);
 
+        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
+
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
-        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
         res = PyModule_ExecDef(module, def);
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_False);
 

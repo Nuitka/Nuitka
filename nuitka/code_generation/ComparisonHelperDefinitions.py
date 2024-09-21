@@ -44,6 +44,10 @@ def _makeTypeOps(type_name, may_raise_same_type, shortcut=False):
             if result_part == "CBOOL":
                 continue
 
+            # TODO: We want those as well, but we don't need them immediately.
+            if type_name in ("NILONG",):
+                continue
+
             yield "RICH_COMPARE_%s_%s_OBJECT_%s" % (comparator, result_part, type_name)
             yield "RICH_COMPARE_%s_%s_%s_OBJECT" % (comparator, result_part, type_name)
 
@@ -65,7 +69,7 @@ def _makeTypeOps(type_name, may_raise_same_type, shortcut=False):
             )
 
 
-def _makeFriendOps(type_name1, type_name2, may_raise):
+def _makeFriendOps(type_name1, type_name2, may_raise, shortcut):
     assert type_name1 != type_name2
 
     for result_part in "OBJECT", "CBOOL", "NBOOL":
@@ -73,7 +77,11 @@ def _makeFriendOps(type_name1, type_name2, may_raise):
             if result_part == "NBOOL":
                 continue
 
-        for comparator in rich_comparison_codes.values():
+        for comparator in (
+            rich_comparison_codes.values()
+            if not shortcut
+            else rich_comparison_subset_codes.values()
+        ):
             yield "RICH_COMPARE_%s_%s_%s_%s" % (
                 comparator,
                 result_part,
@@ -92,15 +100,22 @@ specialized_cmp_helpers_set = buildOrderedSet(
     _makeTypeOps("INT", may_raise_same_type=False, shortcut=True),
     _makeTypeOps("LONG", may_raise_same_type=False, shortcut=True),
     _makeTypeOps("FLOAT", may_raise_same_type=False, shortcut=True),
+    # Dual types
+    _makeTypeOps("NILONG", may_raise_same_type=False, shortcut=True),
     # TODO: What would shortcut mean, how do tuples compare their elements then?
-    _makeTypeOps("TUPLE", may_raise_same_type=True),
-    _makeTypeOps("LIST", may_raise_same_type=True),
+    _makeTypeOps("TUPLE", may_raise_same_type=True, shortcut=False),
+    _makeTypeOps("LIST", may_raise_same_type=True, shortcut=False),
     # Mixed Python types:
-    _makeFriendOps("LONG", "INT", may_raise=False),
+    # TODO: Absolutely possible to shortcut, why aren't we doing it?
+    _makeFriendOps("LONG", "INT", may_raise=False, shortcut=False),
     # Partial Python with C types
-    _makeFriendOps("INT", "CLONG", may_raise=False),
-    _makeFriendOps("LONG", "DIGIT", may_raise=False),
-    _makeFriendOps("FLOAT", "CFLOAT", may_raise=False),
+    # TODO: Absolutely possible to shortcut, why aren't we doing it?
+    _makeFriendOps("INT", "CLONG", may_raise=False, shortcut=False),
+    _makeFriendOps("LONG", "DIGIT", may_raise=False, shortcut=False),
+    _makeFriendOps("FLOAT", "CFLOAT", may_raise=False, shortcut=False),
+    # Partial dual types with C types, cannot shortcut as reverse argument versions are used.
+    _makeFriendOps("NILONG", "CLONG", may_raise=False, shortcut=False),
+    _makeFriendOps("NILONG", "DIGIT", may_raise=False, shortcut=False),
     # TODO: Add "CLONG_CLONG" type ops once we use that for local variables too.
 )
 
