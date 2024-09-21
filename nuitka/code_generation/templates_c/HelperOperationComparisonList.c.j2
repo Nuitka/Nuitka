@@ -9,9 +9,9 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     PyListObject *b = (PyListObject *)operand2;
 
 {# Shortcut for equality, driven by length check. #}
-{% if operand in ("==", "!=") %}
+{% if operator in ("==", "!=") %}
     if (Py_SIZE(a) != Py_SIZE(b)) {
-{% if operand == "==" %}
+{% if operator == "==" %}
         bool r = false;
 {% else %}
         bool r = true;
@@ -25,7 +25,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 {% endif %}
 
 {# Find the first non-identical object. #}
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
     bool found = false;
 {% endif %}
     nuitka_bool res = NUITKA_BOOL_TRUE;
@@ -50,7 +50,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         }
 
         if (res == NUITKA_BOOL_FALSE) {
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
             found = true;
 {% endif %}
             break;
@@ -58,9 +58,9 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     }
 
 {# If size mismatches, but all is equal at the start, compare sizes to order lists. #}
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
     if (found == false) {
-        bool r = Py_SIZE(a) {{operand}} Py_SIZE(b);
+        bool r = Py_SIZE(a) {{operator}} Py_SIZE(b);
 
         // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
@@ -70,10 +70,10 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     return RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
 {% else %}
-{% if operand == "==" %}
+{% if operator == "==" %}
     bool r;
     if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
-        r = Py_SIZE(a) {{operand}} Py_SIZE(b);
+        r = Py_SIZE(a) {{operator}} Py_SIZE(b);
     } else {
         r = res == NUITKA_BOOL_TRUE;
     }
@@ -81,7 +81,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     bool r;
 
     if (i >= Py_SIZE(a) || i >= Py_SIZE(b)) {
-        r = Py_SIZE(a) {{operand}} Py_SIZE(b);
+        r = Py_SIZE(a) {{operator}} Py_SIZE(b);
     } else {
         r = res == NUITKA_BOOL_FALSE;
     }

@@ -36,7 +36,6 @@ else
     }
 #else
     /* Python 3 */
-#ifndef PY_NOGIL
     if (_PyDict_HasSplitTable(dict_mp)) {
         PyDictObject *result_mp = _Nuitka_AllocatePyDictObject(tstate);
         assert(result_mp != NULL);
@@ -102,7 +101,6 @@ else
 
         Nuitka_GC_Track(result_mp);
     } else
-#endif
     {# TODO: This should be working for before 3.6 as well, but posed riddles with
       crashes at release time. Need to check if the keys allocator is different
       in some API somehow, or non-split dictionaries which didn't exist then are

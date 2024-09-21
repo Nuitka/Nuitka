@@ -10,7 +10,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     bool r;
 
-{% if operand == "==" %}
+{% if operator == "==" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = true;
@@ -29,7 +29,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             }
         }
     }
-{% elif operand == "!=" %}
+{% elif operator == "!=" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = false;
@@ -47,7 +47,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             }
         }
     }
-{% elif operand == "<=" %}
+{% elif operator == "<=" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = true;
@@ -68,7 +68,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             }
         }
     }
-{% elif operand == ">=" %}
+{% elif operator == ">=" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = true;
@@ -89,7 +89,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             }
         }
     }
-{% elif operand == "<" %}
+{% elif operator == "<" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = false;
@@ -110,7 +110,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             }
         }
     }
-{% elif operand == ">" %}
+{% elif operator == ">" %}
 {% if left == right == long_desc %}
     if (operand1_long_object == operand2_long_object) {
         r = false;
@@ -132,7 +132,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         }
     }
 {% else %}
-# error unknown operand {{operand}}
+# error unknown operator {{operator}}
 {% endif %}
 
     // Convert to target type.

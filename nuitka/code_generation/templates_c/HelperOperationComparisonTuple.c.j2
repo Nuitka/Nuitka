@@ -11,9 +11,9 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     Py_ssize_t len_b = Py_SIZE(b);
 
 {# Shortcut for equality, driven by length check. #}
-{% if operand in ("==", "!=") %}
+{% if operator in ("==", "!=") %}
     if (len_a != len_b) {
-{% if operand == "==" %}
+{% if operator == "==" %}
         bool r = false;
 {% else %}
         bool r = true;
@@ -27,7 +27,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 {% endif %}
 
 {# Find the first non-identical object. #}
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
     bool found = false;
 {% endif %}
     nuitka_bool res = NUITKA_BOOL_TRUE;
@@ -48,7 +48,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         }
 
         if (res == NUITKA_BOOL_FALSE) {
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
             found = true;
 {% endif %}
             break;
@@ -56,9 +56,9 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     }
 
 {# If size mismatches, but all is equal at the start, compare sizes to order tuples. #}
-{% if operand not in ("==", "!=") %}
+{% if operator not in ("==", "!=") %}
     if (found == false) {
-        bool r = len_a {{operand}} len_b;
+        bool r = len_a {{operator}} len_b;
 
         // Convert to target type.
         {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r")}};
@@ -68,7 +68,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     return RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
 {% else %}
-{% if operand == "==" %}
+{% if operator == "==" %}
     bool r = res == NUITKA_BOOL_TRUE;
 {% else %}
     bool r = res == NUITKA_BOOL_FALSE;

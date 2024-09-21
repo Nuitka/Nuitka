@@ -32,11 +32,7 @@ from .VariableCodes import getLocalVariableDeclaration
 
 def _pickIntFamilyType(expression, context):
     if expression.isCompileTimeConstant():
-        # On Python2, "INT_CLONG" is very fast as "CLONG" is the internal representation
-        # of it, for Python3, it should be avoided, it usually is around 2**30.
-        if python_version < 0x300:
-            c_type = CTypeCLong
-        elif isPythonValidDigitValue(expression.getCompileTimeConstant()):
+        if isPythonValidDigitValue(expression.getCompileTimeConstant()):
             c_type = CTypeCLongDigit
         elif isPythonValidCLongValue(expression.getCompileTimeConstant()):
             c_type = CTypeCLong

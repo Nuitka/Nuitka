@@ -85,11 +85,11 @@ def _makeTypeOpsNbool(op_code, type_name):
     return _makeTypeOps(op_code=op_code, type_name=type_name, result_types=("NBOOL",))
 
 
-def _isCommutativeOperation(op_code):
+def isCommutativeOperation(op_code):
     return op_code in ("ADD", "MULT", "BITOR", "BITAND", "BITXOR")
 
 
-def _isCommutativeType(type_name):
+def isCommutativeType(type_name):
     return type_name in ("INT", "LONG", "FLOAT", "CLONG", "DIGIT", "CFLOAT", "NILONG")
 
 
@@ -112,8 +112,6 @@ _no_inplace_target_types = ("CLONG", "DIGIT", "CFLOAT")
 
 
 def _makeFriendOps(op_code, friend_type_names, result_types):
-    assert len(friend_type_names) == len(set(friend_type_names)), friend_type_names
-
     friend_type_names = tuple(
         sorted(friend_type_names, key=lambda type_name: -_type_order.index(type_name))
     )
@@ -124,10 +122,10 @@ def _makeFriendOps(op_code, friend_type_names, result_types):
                 # These should be used with reversed arguments, and only have the
                 # dominant type as the first argument.
                 arg_swap = (
-                    _isCommutativeOperation(op_code)
+                    isCommutativeOperation(op_code)
                     and result_type is not None
-                    and _isCommutativeType(type_name1)
-                    and _isCommutativeType(type_name2)
+                    and isCommutativeType(type_name1)
+                    and isCommutativeType(type_name2)
                 )
 
                 if result_type is None:
@@ -205,14 +203,20 @@ def _makeNumberOps(op_code, result_types):
             if op_code in ("ADD", "SUB")  # TODO: Add more
             else ()
         ),
+        (
+            _makeFriendOps(
+                op_code, friend_type_names=("LONG", "CLONG"), result_types=result_types
+            )
+            if op_code in ("ADD", "SUB")  # TODO: Add more
+            else ()
+        ),
         _makeFriendOps(
             op_code, friend_type_names=("FLOAT", "CFLOAT"), result_types=result_types
         ),
-        # TODO: These are not yet properly implemented in the generation side.
         (
             _makeFriendOps(
                 op_code,
-                friend_type_names=("NILONG", "DIGIT"),
+                friend_type_names=("NILONG", "NILONG", "DIGIT"),
                 result_types=("NILONG",),
             )
             if op_code in ("ADD", "SUB") and result_types is not None
