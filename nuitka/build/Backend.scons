@@ -135,8 +135,14 @@ profile_mode = getArgumentBool("profile_mode", False)
 python_version_str = getArgumentRequired("python_version")
 python_version = tuple(int(d) for d in python_version_str.split("."))
 
+gil_mode = getArgumentBool("gil_mode")
+
 # The ABI flags to target.
 abiflags = getArgumentDefaulted("abiflags", "")
+
+if not gil_mode and "t" not in abiflags:
+    abiflags = "t" + abiflags
+
 python_abi_version = python_version_str + abiflags
 
 # Python debug mode: reference count checking, assertions in CPython core.
@@ -643,6 +649,9 @@ if env.nuitka_python:
 
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
+
+if not gil_mode:
+    env.Append(CPPDEFINES="Py_GIL_DISABLED")
 
 # TODO: This ought to be decided outside of scons and per flavor maybe.
 if env.static_libpython and (
