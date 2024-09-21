@@ -41,6 +41,7 @@ from nuitka.Options import (
     hasPythonFlagIsolated,
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
+    hasPythonFlagNoBytecodeRuntimeCache,
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
@@ -597,6 +598,7 @@ def runSconsBackend():
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
+        "gil_mode": asBoolStr(Options.isPythonWithGil()),
     }
 
     if Options.isLowMemory():
@@ -698,6 +700,9 @@ def runSconsBackend():
 
     if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
+
+    if hasPythonFlagNoBytecodeRuntimeCache():
+        options["python_sysflag_unbuffered"] = asBoolStr(True)
 
     if hasPythonFlagUnbuffered():
         options["python_sysflag_unbuffered"] = asBoolStr(True)
