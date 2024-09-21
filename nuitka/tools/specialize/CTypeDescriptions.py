@@ -9,6 +9,9 @@ import math
 from abc import abstractmethod
 
 from nuitka.__past__ import long
+from nuitka.code_generation.BinaryOperationHelperDefinitions import (
+    isCommutativeType,
+)
 from nuitka.code_generation.Namify import namifyConstant
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
@@ -562,12 +565,11 @@ return %(return_value)s;""" % {
         else:
             return object_desc
 
-    def isSimilarOrSameTypesAsOneOf(self, *others):
-        for other in others:
-            assert other is not None
+    def isSimilarOrSameTypesAsOneOf(self, other):
+        assert other is not None
 
-            if self is other or other in related_types.get(self, ()):
-                return True
+        if self is other or other in related_types.get(self, ()):
+            return True
 
         return False
 
@@ -950,6 +952,14 @@ Py_INCREF(%(result)s);""" % {
                     assert False, left.type_name
             else:
                 assert False, cls.type_name
+
+    @classmethod
+    def isDualType(cls):
+        return False
+
+    @classmethod
+    def isCommutativeType(cls):
+        return isCommutativeType(cls.getHelperCodeName())
 
 
 class ConcreteTypeBase(TypeDescBase):
@@ -1453,6 +1463,12 @@ class ObjectDesc(TypeDescBase):
     def getNoSequenceSlotAccessTestCode(self, type_name):
         return "%s->tp_as_sequence == NULL" % type_name
 
+    @classmethod
+    def getDualValidityCheckCode(cls, value_choice, operand):
+        # Virtual method, pylint: disable=unused-argument
+        assert value_choice == "C", value_choice
+        return "false"
+
 
 object_desc = ObjectDesc()
 
@@ -1488,14 +1504,13 @@ class ConcreteCTypeBase(TypeDescBase):
         assert value_choice == "C", value_choice
         return "true"
 
-    @classmethod
-    def getDualType(cls, value_choice):
+    def getDualType(self, value_choice):
         assert value_choice == "C", value_choice
-        return cls
+        return self
 
     @classmethod
     def getDualTypeAccessCode(cls, value_choice, operand):
-        assert value_choice == "C", value_choice
+        assert value_choice == "C", (value_choice, cls)
         return operand
 
 
@@ -1883,12 +1898,18 @@ related_types = {}
 
 
 def _addRelatedTypes(type_desc_1, type_desc_2):
-    related_types[type_desc_1] = (type_desc_2,)
-    related_types[type_desc_2] = (type_desc_1,)
+    if type_desc_1 not in related_types:
+        related_types[type_desc_1] = set()
+    if type_desc_2 not in related_types:
+        related_types[type_desc_2] = set()
+
+    related_types[type_desc_1].add(type_desc_2)
+    related_types[type_desc_2].add(type_desc_1)
 
 
 _addRelatedTypes(int_desc, c_long_desc)
 _addRelatedTypes(long_desc, c_digit_desc)
+_addRelatedTypes(long_desc, c_long_desc)
 _addRelatedTypes(float_desc, c_float_desc)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

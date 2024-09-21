@@ -756,6 +756,8 @@ static PyObject *COMPARE_GE_OBJECT_STR_STR(PyObject *operand1, PyObject *operand
     Py_INCREF_IMMORTAL(result);
     return result;
 }
+#endif
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 
@@ -1390,6 +1392,8 @@ static bool COMPARE_GE_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2) {
 
     return result;
 }
+#endif
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 
@@ -3476,6 +3480,8 @@ static PyObject *COMPARE_GE_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject *ope
     Py_INCREF_IMMORTAL(result);
     return result;
 }
+#endif
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 PyObject *RICH_COMPARE_GE_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
 
@@ -4110,6 +4116,8 @@ static bool COMPARE_GE_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2)
 
     return result;
 }
+#endif
+#if PYTHON_VERSION >= 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 nuitka_bool RICH_COMPARE_GE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
 
@@ -11549,7 +11557,6 @@ nuitka_bool RICH_COMPARE_GE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operan
     return COMPARE_GE_NBOOL_LIST_LIST(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 0x300
 static PyObject *COMPARE_GE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -11581,7 +11588,8 @@ static PyObject *COMPARE_GE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
         }
     }
 
-    Py_ssize_t operand2_size = operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t operand2_size =
+        operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
 
     bool r;
 
@@ -11606,6 +11614,7 @@ static PyObject *COMPARE_GE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
     Py_INCREF_IMMORTAL(result);
     return result;
 }
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_GE_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -11613,7 +11622,6 @@ PyObject *RICH_COMPARE_GE_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2
 }
 #endif
 
-#if PYTHON_VERSION < 0x300
 static bool COMPARE_GE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -11645,7 +11653,8 @@ static bool COMPARE_GE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
         }
     }
 
-    Py_ssize_t operand2_size = operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t operand2_size =
+        operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
 
     bool r;
 
@@ -11670,6 +11679,7 @@ static bool COMPARE_GE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
 
     return result;
 }
+#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 bool RICH_COMPARE_GE_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -11692,6 +11702,8 @@ static PyObject *COMPARE_GE_OBJECT_INT_CLONG(PyObject *operand1, long operand2) 
     Py_INCREF_IMMORTAL(result);
     return result;
 }
+#endif
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 PyObject *RICH_COMPARE_GE_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
 
@@ -11714,6 +11726,8 @@ static bool COMPARE_GE_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
 
     return result;
 }
+#endif
+#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 bool RICH_COMPARE_GE_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
 

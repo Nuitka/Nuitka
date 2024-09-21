@@ -88,6 +88,7 @@ extern void stopProfiling(void);
 
 #include "nuitka/helper/raising.h"
 
+#include "nuitka/helper/ints.h"
 #include "nuitka/helper/richcomparisons.h"
 #include "nuitka/helper/sequences.h"
 
@@ -101,7 +102,6 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 #include "nuitka/helper/bytes.h"
 #include "nuitka/helper/complex.h"
 #include "nuitka/helper/floats.h"
-#include "nuitka/helper/ints.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);

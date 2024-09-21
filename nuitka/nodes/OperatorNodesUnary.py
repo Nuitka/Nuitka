@@ -7,6 +7,7 @@ Some of these come from built-ins, e.g. abs, some from syntax, and repr from bot
 """
 
 from nuitka import PythonOperators
+from nuitka.Errors import NuitkaAssumptionError
 
 from .ChildrenHavingMixins import ChildHavingOperandMixin
 from .ConstantRefNodes import makeConstantRefNode
@@ -15,6 +16,11 @@ from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionStrOrUnicodeDerivedShapeMixin,
 )
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    wrapExpressionWithSideEffects,
+)
+from .shapes.StandardShapes import tshape_unknown
 
 
 class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
@@ -31,10 +37,10 @@ class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
         return self.operator
 
     def computeExpression(self, trace_collection):
-        operator = self.getOperator()
         operand = self.subnode_operand
 
         if operand.isCompileTimeConstant():
+            operator = self.getOperator()
             operand_value = operand.getCompileTimeConstant()
 
             return trace_collection.getCompileTimeComputationResult(
@@ -59,6 +65,10 @@ class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
 
     @staticmethod
     def isExpressionOperationUnary():
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return True
 
 
@@ -104,7 +114,100 @@ class ExpressionOperationUnaryRepr(  # TODO: Not exact
         return self.escape_desc is None or self.escape_desc.isControlFlowEscape()
 
 
-class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
+# TODO: This should merge into base class.
+class ExpressionOperationUnaryMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def mayRaiseExceptionOperation(self):
+        return self.escape_desc.getExceptionExit() is not None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match getExceptionExit() more precisely against exception type given
+        return (
+            self.escape_desc is None
+            or self.escape_desc.getExceptionExit() is not None
+            or self.subnode_operand.mayRaiseException(exception_type)
+        )
+
+    def getTypeShape(self):
+        return self.type_shape
+
+    def createUnsupportedException(self, operand_shape):
+        typical_value = operand_shape.typical_value
+
+        try:
+            self.simulator(typical_value)
+        except TypeError as e:
+            return e
+        except Exception as e:
+            raise NuitkaAssumptionError(
+                "Unexpected exception type doing operation simulation",
+                self.operator,
+                self.simulator,
+                operand_shape,
+                e,
+            )
+        else:
+            raise NuitkaAssumptionError(
+                "Unexpected no-exception doing operation simulation",
+                self.operator,
+                self.simulator,
+                operand_shape,
+            )
+
+    def computeExpression(self, trace_collection):
+        operand = self.subnode_operand
+
+        if operand.isCompileTimeConstant():
+            operand_value = operand.getCompileTimeConstant()
+            operator = self.getOperator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: self.simulator(operand_value),
+                description="Operator '%s' with constant argument." % operator,
+            )
+        else:
+            operand_shape = operand.getTypeShape()
+
+            self.type_shape, self.escape_desc = self._getOperationShape(operand_shape)
+
+            if self.escape_desc.isUnsupported():
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                        expression=self,
+                        exception=self.createUnsupportedException(operand_shape),
+                    ),
+                    old_node=self,
+                    side_effects=(operand,),
+                )
+
+                return (
+                    result,
+                    "new_raise",
+                    "Replaced operator '%s' with %s arguments that cannot work."
+                    % (self.operator, operand_shape),
+                )
+
+            exception_raise_exit = self.escape_desc.getExceptionExit()
+            if exception_raise_exit is not None:
+                trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+            if self.escape_desc.isValueEscaping():
+                # The value of these nodes escaped and could change its contents.
+                trace_collection.removeKnowledge(operand)
+
+            if self.escape_desc.isControlFlowEscape():
+                # Any code could be run, note that.
+                trace_collection.onControlFlowEscape(self)
+
+            return self, None, None
+
+
+class ExpressionOperationUnarySub(
+    ExpressionOperationUnaryMixin, ExpressionOperationUnaryBase
+):
     """Python unary operator -"""
 
     kind = "EXPRESSION_OPERATION_UNARY_SUB"
@@ -112,13 +215,25 @@ class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
     operator = "USub"
     simulator = PythonOperators.unary_operator_functions[operator]
 
+    __slots__ = ("type_shape", "escape_desc")
+
     def __init__(self, operand, source_ref):
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )
 
+        self.type_shape = tshape_unknown
 
-class ExpressionOperationUnaryAdd(ExpressionOperationUnaryBase):
+        self.escape_desc = None
+
+    @staticmethod
+    def _getOperationShape(operand_shape):
+        return operand_shape.getOperationUnarySubShape()
+
+
+class ExpressionOperationUnaryAdd(
+    ExpressionOperationUnaryMixin, ExpressionOperationUnaryBase
+):
     """Python unary operator +"""
 
     kind = "EXPRESSION_OPERATION_UNARY_ADD"
@@ -126,10 +241,20 @@ class ExpressionOperationUnaryAdd(ExpressionOperationUnaryBase):
     operator = "UAdd"
     simulator = PythonOperators.unary_operator_functions[operator]
 
+    __slots__ = ("type_shape", "escape_desc")
+
     def __init__(self, operand, source_ref):
         ExpressionOperationUnaryBase.__init__(
             self, operand=operand, source_ref=source_ref
         )
+
+        self.type_shape = tshape_unknown
+
+        self.escape_desc = None
+
+    @staticmethod
+    def _getOperationShape(operand_shape):
+        return operand_shape.getOperationUnaryAddShape()
 
 
 class ExpressionOperationUnaryInvert(ExpressionOperationUnaryBase):

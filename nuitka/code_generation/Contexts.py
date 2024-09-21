@@ -65,6 +65,9 @@ class TempMixin(object):
         # We might be hard coding too many details for special temps
         # here, pylint: disable=too-many-branches
 
+        # TODO: This should be achieved.
+        # assert not base_name.startswith("tmp_"), base_name
+
         if unique:
             number = None
         else:

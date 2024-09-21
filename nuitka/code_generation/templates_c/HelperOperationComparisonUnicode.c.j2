@@ -9,7 +9,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     // Same object has fast path for all operations.
     if (operand1 == operand2) {
-{% if operand in ("==", ">=", "<=") %}
+{% if operator in ("==", ">=", "<=") %}
         bool r = true;
 {% else %}
         bool r = false;
@@ -21,7 +21,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         return result;
     }
 
-{% if operand in ("==", "!=") %}
+{% if operator in ("==", "!=") %}
 #if PYTHON_VERSION >= 0x300
     bool r;
 
@@ -60,7 +60,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         }
     }
 
-    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operator == "==" else "false"))}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 #else
@@ -77,7 +77,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         r = (cmp == 0);
     }
 
-    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{ target.getTypeDecl() }} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operator == "==" else "false"))}};
     {{ target.getTakeReferenceStatement("result", immortal=True) }}
     return result;
 #endif

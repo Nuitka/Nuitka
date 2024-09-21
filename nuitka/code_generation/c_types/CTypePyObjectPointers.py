@@ -67,6 +67,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 else:
                     template = template_write_local_unclear_ref1
 
+            if ref_count:
+                context.removeCleanupTempName(tmp_name)
+
         emit(template % {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
@@ -92,6 +95,10 @@ class CPythonPyObjectPtrBase(CTypeBase):
         assert to_name.c_type == "int", to_name
 
         emit("%s = CHECK_IF_TRUE(%s);" % (to_name, value_name))
+
+    @classmethod
+    def hasReleaseCode(cls):
+        return True
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
@@ -477,6 +484,9 @@ class CTypeCellObject(CTypeBase):
                     template = template_write_shared_clear_ref0
                 else:
                     template = template_write_shared_unclear_ref0
+
+                if ref_count:
+                    context.removeCleanupTempName(tmp_name)
             else:
                 if needs_release is False:
                     template = template_write_shared_clear_ref1

@@ -2112,11 +2112,20 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #endif
 
 #include "HelpersComparisonEq.c"
-#include "HelpersComparisonGe.c"
-#include "HelpersComparisonGt.c"
 #include "HelpersComparisonLe.c"
 #include "HelpersComparisonLt.c"
+
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
 #include "HelpersComparisonNe.c"
+
+#include "HelpersComparisonDualEq.c"
+#include "HelpersComparisonDualLe.c"
+#include "HelpersComparisonDualLt.c"
+
+#include "HelpersComparisonDualGe.c"
+#include "HelpersComparisonDualGt.c"
+#include "HelpersComparisonDualNe.c"
 
 #include "HelpersChecksumTools.c"
 #include "HelpersConstantsBlob.c"

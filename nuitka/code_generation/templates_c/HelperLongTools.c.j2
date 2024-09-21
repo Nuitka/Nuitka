@@ -29,7 +29,7 @@
         }
     }
 
-    Py_ssize_t {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
 {% elif type_desc == c_digit_desc %}
 {# Nothing to do really, banking on C compiler to optimize repeated operations. #}
 {% else %}

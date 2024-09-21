@@ -13,12 +13,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-#ifdef PY_NOGIL
-#define Py_BUILD_CORE
-#include "internal/pycore_generator.h"
-#undef Py_BUILD_CORE
-#endif
-
 #if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
                                                  struct Nuitka_ExceptionPreservationItem *exception_state);

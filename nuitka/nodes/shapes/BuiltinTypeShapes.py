@@ -479,6 +479,12 @@ class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     def isKnownToHaveAttribute(attribute_name):
         return hasattr(True, attribute_name)
 
+    def getOperationUnaryAddShape(self):
+        return tshape_int, ControlFlowDescriptionNoEscape
+
+    def getOperationUnarySubShape(self):
+        return tshape_int, ControlFlowDescriptionNoEscape
+
 
 tshape_bool = ShapeTypeBool()
 
@@ -541,6 +547,12 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
         return hasattr(7, attribute_name)
+
+    def getOperationUnaryAddShape(self):
+        return self, ControlFlowDescriptionNoEscape
+
+    def getOperationUnarySubShape(self):
+        return tshape_int_or_long, ControlFlowDescriptionNoEscape
 
 
 tshape_int = ShapeTypeInt()
@@ -909,11 +921,11 @@ class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
 
         # Need to consider value shape for this.
         if right_shape in (tshape_list, tshape_tuple):
-            return operation_result_bool_elementbased
+            return operation_result_bool_element_based
 
         if right_shape is tshape_xrange:
             if python_version < 0x300:
-                return operation_result_bool_elementbased
+                return operation_result_bool_element_based
             else:
                 # TODO: Actually unorderable, but this requires making a
                 # difference with "=="
@@ -1699,11 +1711,11 @@ class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBa
         if python_version < 0x300:
             # Need to consider value shape for this.
             if right_shape in (tshape_list, tshape_tuple):
-                return operation_result_bool_elementbased
+                return operation_result_bool_element_based
 
             if right_shape is tshape_xrange:
                 # TODO: This is value escaping, but that doesn't really apply
-                return operation_result_bool_elementbased
+                return operation_result_bool_element_based
         else:
             # TODO: Actually unorderable, but this requires making a
             # difference with "=="
@@ -1914,7 +1926,7 @@ operation_result_dict_noescape = tshape_dict, ControlFlowDescriptionNoEscape
 operation_result_dict_valueerror = tshape_dict, ControlFlowDescriptionValueErrorNoEscape
 
 
-operation_result_bool_elementbased = (
+operation_result_bool_element_based = (
     tshape_bool,
     ControlFlowDescriptionElementBasedEscape,
 )
@@ -1970,7 +1982,6 @@ operation_result_unsupported_matmult = (
     tshape_unknown,
     ControlFlowDescriptionMatmultUnsupported,
 )
-
 
 # ZeroDivisionError can occur for some module and division operations, otherwise they
 # are fixed type.

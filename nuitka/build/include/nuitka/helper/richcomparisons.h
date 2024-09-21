@@ -10,6 +10,13 @@
 #include "nuitka/helper/comparisons_lt.h"
 #include "nuitka/helper/comparisons_ne.h"
 
+#include "nuitka/helper/comparisons_dual_eq.h"
+#include "nuitka/helper/comparisons_dual_ge.h"
+#include "nuitka/helper/comparisons_dual_gt.h"
+#include "nuitka/helper/comparisons_dual_le.h"
+#include "nuitka/helper/comparisons_dual_lt.h"
+#include "nuitka/helper/comparisons_dual_ne.h"
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

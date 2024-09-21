@@ -187,9 +187,13 @@ def getRichComparisonCode(
     if needs_argument_swap:
         arg1_name = right_name
         arg2_name = left_name
+        arg1_c_type = right_c_type
+        arg2_c_type = left_c_type
     else:
         arg1_name = left_name
         arg2_name = right_name
+        arg1_c_type = left_c_type
+        arg2_c_type = right_c_type
 
     # May need to convert return value.
     if helper_type is not target_type:
@@ -202,11 +206,13 @@ def getRichComparisonCode(
         value_name = to_name
 
     emit(
-        "%s = %s(%s, %s);"
+        "%s = %s(%s%s, %s%s);"
         % (
             value_name,
             helper_function,
+            "&" if arg1_c_type.isDualType() else "",
             arg1_name,
+            "&" if arg2_c_type.isDualType() else "",
             arg2_name,
         )
     )
