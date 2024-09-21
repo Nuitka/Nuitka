@@ -381,7 +381,7 @@
 {% endif %}
 {% endmacro %}
 {% macro call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
-{% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
+{% if (left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc)) and left != long_desc and right != long_desc %}
     {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
     {{ long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}

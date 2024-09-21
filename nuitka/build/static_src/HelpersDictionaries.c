@@ -1200,7 +1200,6 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
     Py_ssize_t i = *pos;
     assert(i >= 0);
 
-#ifndef PY_NOGIL
     if (mp->ma_values) {
         if (i >= mp->ma_used) {
             return false;
@@ -1210,9 +1209,6 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
         value = DK_VALUE(mp, i);
 
         assert(value != NULL);
-#else
-    if (false) {
-#endif
     } else {
 #if PYTHON_VERSION < 0x360
         Py_ssize_t n = mp->ma_keys->dk_size;

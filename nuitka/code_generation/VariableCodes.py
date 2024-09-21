@@ -72,7 +72,7 @@ def generateAssignmentVariableCode(statement, emit, context):
     )
 
     # Ownership of that reference must have been transferred.
-    assert not context.needsCleanup(tmp_name)
+    assert not context.needsCleanup(tmp_name), (statement.source_ref, tmp_name)
 
 
 def generateDelVariableCode(statement, emit, context):
@@ -418,8 +418,7 @@ def getVariableAssignmentCode(
         context=context,
     )
 
-    if ref_count:
-        context.removeCleanupTempName(tmp_name)
+    # print(variable_declaration.getCType())
 
 
 def _getVariableDelCode(
