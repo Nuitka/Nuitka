@@ -2273,6 +2273,8 @@ def _getPythonFlags():
                     _python_flags.add("package_mode")
                 elif part in ("-I", "isolated"):
                     _python_flags.add("isolated")
+                elif part in ("-B", "dontwritebytecode"):
+                    _python_flags.add("dontwritebytecode")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -2329,8 +2331,14 @@ def hasPythonFlagNoRandomization():
     return "no_randomization" in _getPythonFlags()
 
 
+def hasPythonFlagNoBytecodeRuntimeCache():
+    """*bool* = "dontwritebytecode", "-u" in python flags given"""
+
+    return "dontwritebytecode" in _getPythonFlags()
+
+
 def hasPythonFlagUnbuffered():
-    """*bool* = "package_mode", "-m" in python flags given"""
+    """*bool* = "unbuffered", "-u" in python flags given"""
 
     return "unbuffered" in _getPythonFlags()
 

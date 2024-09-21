@@ -254,6 +254,10 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
+# python_sysflag_dontwritebytecode
+python_sysflag_dontwritebytecode = getArgumentBool(
+    "python_sysflag_dontwritebytecode", False
+)
 # python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
 # python_flag_no_docstrings
@@ -976,6 +980,10 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
     build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
+
+    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+        1 if python_sysflag_dontwritebytecode else 0
+    )
 
     build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
 
