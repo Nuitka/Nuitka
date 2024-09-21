@@ -32,6 +32,7 @@
 #define SYSFLAG_BYTES_WARNING 0
 #define SYSFLAG_UTF8 0
 #define SYSFLAG_UNBUFFERED 0
+#define SYSFLAG_DONTWRITEBYTECODE 0
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
@@ -1274,7 +1275,7 @@ int main(int argc, char **argv) {
     Py_InspectFlag = 0;
     Py_InteractiveFlag = 0;
     Py_OptimizeFlag = SYSFLAG_OPTIMIZE;
-    Py_DontWriteBytecodeFlag = 0;
+    Py_DontWriteBytecodeFlag = SYSFLAG_DONTWRITEBYTECODE;
     Py_NoUserSiteDirectory = SYSFLAG_NO_SITE;
     Py_IgnoreEnvironmentFlag = 0;
     Py_VerboseFlag = SYSFLAG_VERBOSE;
