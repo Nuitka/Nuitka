@@ -84,7 +84,14 @@
         "span": "c",
         "format": "c",
         "variant": "c",
-        "charconv": "c"
+        "charconv": "c",
+        "bit": "c",
+        "cmath": "c",
+        "concepts": "c",
+        "exception": "c",
+        "stop_token": "c",
+        "thread": "c",
+        "xstring": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
@@ -184,6 +191,7 @@
         "diffable",
         "distutils",
         "dllexport",
+        "dontwritebytecode",
         "Doxygen",
         "dpkg",
         "dtrace",
@@ -309,7 +317,6 @@
         "punycode",
         "Py_DECREF",
         "Py_INCREF",
-        "PY_NOGIL",
         "Py_REFCNT",
         "Py_SET_REFCNT_IMMORTAL",
         "Py_ssize_t",
