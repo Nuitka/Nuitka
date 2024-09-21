@@ -82,7 +82,7 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         expression=expression,
         operator=expression.getOperator(),
         arg_name=arg_name,
-        needs_check=expression.mayRaiseException(BaseException),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -254,9 +254,13 @@ def _getBinaryOperationCode(
         if needs_argument_swap:
             arg1_name = right_name
             arg2_name = left_name
+            arg1_c_type = right_c_type
+            arg2_c_type = left_c_type
         else:
             arg1_name = left_name
             arg2_name = right_name
+            arg1_c_type = left_c_type
+            arg2_c_type = right_c_type
 
         # May need to convert return value.
         if helper_type is not target_type:
@@ -274,12 +278,14 @@ def _getBinaryOperationCode(
             # TODO: If possible, pass variable storage directly to avoid useless
             # copy.
             emit(
-                "%s = %s(&%s, %s, %s);"
+                "%s = %s(&%s, %s%s, %s%s);"
                 % (
                     res_name,
                     helper_function,
                     value_name,
+                    "&" if arg1_c_type.isDualType() else "",
                     arg1_name,
+                    "&" if arg2_c_type.isDualType() else "",
                     arg2_name,
                 )
             )
@@ -321,7 +327,7 @@ def _getBinaryOperationCode(
         # TODO: Depending on operation, we could not produce a reference, if result *must*
         # be boolean, but then we would have some helpers that do it, and some that do not
         # do it.
-        if helper_type is CTypePyObjectPtr:
+        if helper_type.hasReleaseCode():
             context.addCleanupTempName(value_name)
 
         if value_name is not to_name:

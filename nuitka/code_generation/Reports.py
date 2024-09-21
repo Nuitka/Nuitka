@@ -76,6 +76,12 @@ def onMissingOperation(operation, left, right):
         _missing_operations.add((operation, left, right))
 
 
+def onMissingUnaryOperation(operation, shape):
+    # Avoid the circular dependency on tshape_uninitialized from StandardShapes.
+    if shape.__class__.__name__ != "ShapeTypeUninitialized":
+        _missing_operations.add((operation, shape))
+
+
 def onMissingTrust(operation, source_ref, *args):
     if Options.report_missing_trust:
         key = (operation,) + args

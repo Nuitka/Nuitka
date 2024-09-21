@@ -5,12 +5,12 @@
 
 """
 
-from nuitka.code_generation.ErrorCodes import getReleaseCode
 from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_release_object_clear,
     template_release_object_unclear,
 )
 
+from ..ErrorCodes import getTakeReferenceCode
 from .CTypeBases import CTypeBase
 
 
@@ -27,40 +27,37 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     def emitVariableAssignCode(
         cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-        assert not inplace
+        if not ref_count:
+            getTakeReferenceCode(tmp_name, emit)
 
         if tmp_name.c_type == "nuitka_ilong":
             emit("%s = %s;" % (value_name, tmp_name))
-
-            if ref_count:
-                emit("/* REFCOUNT ? */")
-
         else:
             if tmp_name.c_type == "PyObject *":
-                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % value_name)
-                emit("%s.python_value = %s;" % (value_name, tmp_name))
-
-                if ref_count:
-                    emit("/* REFCOUNT ? */")
+                emit("SET_NILONG_OBJECT_VALUE(&%s, %s);" % (value_name, tmp_name))
             else:
                 assert False, repr(tmp_name)
+
+        if ref_count:
+            context.removeCleanupTempName(tmp_name)
 
     @classmethod
     def emitVariantAssignmentCode(
         cls, to_name, ilong_value_name, int_value, emit, context
     ):
-        # needs no context, pylint: disable=unused-argument
         if ilong_value_name is None:
             assert int_value is not None
             assert False  # TODO
         else:
             if int_value is None:
-                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % to_name)
-                emit("%s.python_value = %s;" % (to_name, ilong_value_name))
+                emit("SET_NILONG_OBJECT_VALUE(&%s, %s);" % (to_name, ilong_value_name))
             else:
-                emit("%s.validity = NUITKA_ILONG_BOTH_VALID;" % to_name)
-                emit("%s.python_value = %s;" % (to_name, ilong_value_name))
-                emit("%s.c_value = %s;" % (to_name, int_value))
+                emit(
+                    "SET_NILONG_OBJECT_AND_C_VALUE(&%s, %s, %s );"
+                    % (to_name, ilong_value_name, int_value)
+                )
+
+            context.transferCleanupTempName(ilong_value_name, to_name)
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
@@ -88,11 +85,6 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
                 context=context,
             )
 
-            # TODO: having to release the input value is an ugly trait of this
-            # interface. Instead, it should be asking value_name.c_type to do it
-            # if the target type wants it.
-            getReleaseCode(value_name, emit, context)
-
     @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
@@ -108,6 +100,10 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             value_name,
             "==" if inverted else "!=",
         )
+
+    @classmethod
+    def hasReleaseCode(cls):
+        return True
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
@@ -131,15 +127,16 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        assert False, "TODO"
-
         if not needs_check:
-            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
+            emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
         elif tolerant:
-            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
+            emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
         else:
-            emit("%s = %s == NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
-            emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
+            # TODO: That doesn't seem right, maybe this function makes no sense
+            # after all, and should be one for checking, and one for releasing
+            # instead.
+            emit("%s = %s.validity == NUITKA_ILONG_UNASSIGNED" % (to_name, value_name))
+            emit("RELEASE_NILONG_VALUE(&%s);" % value_name)
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
@@ -167,6 +164,12 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
             emit=emit,
             context=context,
         )
+
+    @classmethod
+    def getTakeReferenceCode(cls, value_name, emit):
+        """Take reference code for given object."""
+
+        emit("INCREF_NILONG_VALUE(&%s);" % value_name)
 
     @classmethod
     def emitReInitCode(cls, value_name, emit):
