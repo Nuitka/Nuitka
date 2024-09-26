@@ -181,8 +181,8 @@
         - 'VERSION'
   anti-bloat:
     - no-auto-follow:
-        'examples': 'Arcade examples are not available unless you do "--include-module=acade.examples"'
-        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=acade.experimental"'
+        'examples': 'Arcade examples are not available unless you do "--include-module=arcade.examples"'
+        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=arcade.experimental"'
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
