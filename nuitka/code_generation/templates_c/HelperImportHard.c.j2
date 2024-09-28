@@ -11,8 +11,7 @@
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of '{{module_name}}'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of '{{module_name}}'");
 {% else %}
             return NULL;
 {% endif %}
