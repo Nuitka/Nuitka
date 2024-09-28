@@ -18,8 +18,7 @@ PyObject *IMPORT_HARD___FUTURE__(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of '__future__'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of '__future__'");
         }
     }
 
@@ -38,8 +37,7 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of '_frozen_importlib'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of '_frozen_importlib'");
         }
     }
 
@@ -59,8 +57,7 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of '_frozen_importlib_external'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of '_frozen_importlib_external'");
         }
     }
 
@@ -79,8 +76,7 @@ PyObject *IMPORT_HARD__IO(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of '_io'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of '_io'");
         }
     }
 
@@ -98,8 +94,7 @@ PyObject *IMPORT_HARD_BUILTINS(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'builtins'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'builtins'");
         }
     }
 
@@ -117,8 +112,7 @@ PyObject *IMPORT_HARD_CTYPES(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes'");
         }
     }
 
@@ -136,8 +130,7 @@ PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes.macholib'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes.macholib'");
         }
     }
 
@@ -156,8 +149,7 @@ PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes.wintypes'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ctypes.wintypes'");
         }
     }
 
@@ -176,8 +168,7 @@ PyObject *IMPORT_HARD_FUNCTOOLS(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'functools'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'functools'");
         }
     }
 
@@ -195,8 +186,7 @@ PyObject *IMPORT_HARD_IMPORTLIB(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'importlib'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'importlib'");
         }
     }
 
@@ -215,8 +205,7 @@ PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'importlib.metadata'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'importlib.metadata'");
         }
     }
 
@@ -236,8 +225,7 @@ PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'importlib.resources'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'importlib.resources'");
         }
     }
 
@@ -286,8 +274,7 @@ PyObject *IMPORT_HARD_IO(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'io'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'io'");
         }
     }
 
@@ -305,8 +292,7 @@ PyObject *IMPORT_HARD_NTPATH(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'ntpath'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'ntpath'");
         }
     }
 
@@ -324,8 +310,7 @@ PyObject *IMPORT_HARD_OS(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'os'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'os'");
         }
     }
 
@@ -358,8 +343,7 @@ PyObject *IMPORT_HARD_PKGUTIL(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'pkgutil'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'pkgutil'");
         }
     }
 
@@ -377,8 +361,7 @@ PyObject *IMPORT_HARD_POSIXPATH(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'posixpath'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'posixpath'");
         }
     }
 
@@ -411,8 +394,7 @@ PyObject *IMPORT_HARD_SYS(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'sys'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'sys'");
         }
     }
 
@@ -430,8 +412,7 @@ PyObject *IMPORT_HARD_SYSCONFIG(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'sysconfig'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'sysconfig'");
         }
     }
 
@@ -464,8 +445,7 @@ PyObject *IMPORT_HARD_TYPES(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'types'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'types'");
         }
     }
 
@@ -484,8 +464,7 @@ PyObject *IMPORT_HARD_TYPING(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'typing'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'typing'");
         }
     }
 
@@ -504,8 +483,7 @@ PyObject *IMPORT_HARD_UNITTEST(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'unittest'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'unittest'");
         }
     }
 
@@ -524,8 +502,7 @@ PyObject *IMPORT_HARD_UNITTEST__MOCK(void) {
 #ifndef __NUITKA_NO_ASSERT__
             PyErr_PrintEx(0);
 #endif
-            NUITKA_CANNOT_GET_HERE("failed hard import of 'unittest.mock'");
-            abort();
+            NUITKA_ERROR_EXIT("Unexpected failure of hard import of 'unittest.mock'");
         }
     }
 
