@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.11
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
@@ -60,10 +60,15 @@ checkAtHome()
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir("dist"):
     if os.path.isfile("dist/" + filename):
+        if filename.startswith("nuitka-"):
+            os.rename(filename, "N" + filename[1:])
+            filename = "N" + filename[1:]
+
         assert os.system("chmod 644 dist/" + filename) == 0
         assert (
             os.system("gpg --local-user 2912B99C --detach-sign dist/" + filename) == 0
         )
+
 
 # Cleanup the build directory, not needed.
 shutil.rmtree("build", ignore_errors=True)
