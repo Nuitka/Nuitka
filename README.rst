@@ -23,7 +23,7 @@ credits.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.12)
+**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.13)
 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
@@ -101,7 +101,7 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.12) are supported. If
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.13) are supported. If
 at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
