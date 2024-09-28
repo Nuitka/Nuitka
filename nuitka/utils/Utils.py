@@ -324,6 +324,7 @@ def encodeNonAscii(var_name):
     else:
         # Using a escaping here, because that makes it safe in terms of not
         # to occur in the encoding escape sequence for unicode use.
+        # spell-checker: ignore xmlcharrefreplace
         var_name = var_name.replace("$$", "$_$")
 
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
