@@ -8,7 +8,7 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyThreadState *tstate, PyObject *ca
 {% elif not has_tuple_arg %}
 PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args, PyObject *const *kw_values, PyObject *kw_names) {
 {% else %}
-PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args, PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args, PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
 {% endif %}

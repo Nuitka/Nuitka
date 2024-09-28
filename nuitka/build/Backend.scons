@@ -750,7 +750,7 @@ elif not module_mode:
         env.Append(LIBS=[env.File(env.static_libpython)])
 
         # The linker won't succeed in searching for those for system Python of Debian
-        # compiled Pythons. Help that. For self-compiled,
+        # compiled Pythons. Help that. spell-checker: ignore rdynamic,Xlinker,pthread
         if python_prefix_external == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
 
@@ -792,6 +792,7 @@ if isMacOS():
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     else:
         # For macOS we need to make sure install_name_tool can do its work
+        # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 # The static include files reside in Nuitka installation, which may be where
@@ -839,6 +840,7 @@ if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
     # The rpath is no longer used unless we do this on modern Linux. The
     # option name is not very revealing, but basically without this, the
     # rpath in the binary will be ignored by the loader.
+    # spell-checker: ignore dtags
     if "linux" in sys.platform:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
