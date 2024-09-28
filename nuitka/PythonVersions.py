@@ -32,12 +32,13 @@ def getSupportedPythonVersions():
         "3.10",
         "3.11",
         "3.12",
+        "3.13",
     )
 
 
 def getNotYetSupportedPythonVersions():
     """Versions known to not work at all (yet)."""
-    return ("3.13",)
+    return ("3.14",)
 
 
 def getPartiallySupportedPythonVersions():

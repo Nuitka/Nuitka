@@ -426,6 +426,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
