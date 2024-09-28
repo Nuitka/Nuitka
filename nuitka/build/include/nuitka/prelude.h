@@ -237,11 +237,14 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
     PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
-    assert(false);                                                                                                     \
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
+
+#define NUITKA_ERROR_EXIT(NAME)                                                                                        \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
 
 #ifdef _MSC_VER
 /* Using "_alloca" extension due to MSVC restrictions for array variables
