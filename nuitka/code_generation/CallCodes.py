@@ -762,7 +762,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
 
     emit(
         """\
-%s = CALL_FUNCTION_WITH_POSARGS%d(tstate, %s, %s);
+%s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
 """
         % (to_name, arg_size, called_name, arg_tuple_name)
     )
@@ -790,7 +790,7 @@ def _getInstanceCallCodePosArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_METHOD_WITH_POSARGS(%s, %s, %s);"
+        "%s = CALL_METHOD_WITH_POS_ARGS(%s, %s, %s);"
         % (to_name, called_name, called_attribute_name, args_name)
     )
 
@@ -809,7 +809,7 @@ def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, conte
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_POSARGS(tstate, %s, %s);"
+        "%s = CALL_FUNCTION_WITH_POS_ARGS(tstate, %s, %s);"
         % (to_name, called_name, args_name)
     )
 
@@ -875,7 +875,7 @@ def _getCallCodePosConstKeywordVariableArgs(
         """\
 {
     PyObject *kw_values[%(kw_size)d] = {%(kw_values)s};
-    %(to_name)s = CALL_FUNCTION_WITH_POSARGS%(args_count)d_KWSPLIT(\
+    %(to_name)s = CALL_FUNCTION_WITH_POS_ARGS%(args_count)d_KWSPLIT(\
 tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
 }
 """
