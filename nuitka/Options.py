@@ -1571,7 +1571,7 @@ _shall_use_static_lib_python = None
 
 
 def _shallUseStaticLibPython():
-    # return driven, pylint: disable=too-many-return-statements
+    # many cases and return driven, pylint: disable=too-many-branches,too-many-return-statements
 
     if shallMakeModule():
         return False, "not used in module mode"
@@ -1604,11 +1604,20 @@ def _shallUseStaticLibPython():
 
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
-        if isAnacondaPython() and not isWin32Windows():
-            return (
-                True,
-                "Nuitka on Anaconda needs package for static libpython installed. Execute 'conda install libpython-static'.",
-            )
+        if isAnacondaPython():
+            if isMacOS():
+                # TODO: Maybe some linker options can make it happen.
+                return (
+                    False,
+                    "Anaconda on macOS exports not all symbols when using it.",
+                )
+            elif not isWin32Windows():
+                return (
+                    True,
+                    """\
+Nuitka on Anaconda needs package for static libpython installed. \
+Execute 'conda install libpython-static'.""",
+                )
 
         if isPyenvPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
