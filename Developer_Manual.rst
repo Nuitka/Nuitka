@@ -23,7 +23,7 @@ well as private conversations or issue tracker.
    and behave absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not
-   target any older CPython release. For CPython 3 up to 3.12 it also
+   target any older CPython release. For CPython 3 up to 3.13 it also
    has been reached. We do not target the older and practically unused
    CPython 3.0 to 3.3 releases.
 
