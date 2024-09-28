@@ -81,14 +81,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyThreadState *tstate, PyObj
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
 
 // Function call variants with positional arguments tuple.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS(PyThreadState *tstate, PyObject *function_object,
-                                                                 PyObject *positional_args) {
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POS_ARGS(PyThreadState *tstate, PyObject *function_object,
+                                                                  PyObject *positional_args) {
     return CALL_FUNCTION(tstate, function_object, positional_args, NULL);
 }
 
 // Method call variants with positional arguments tuple.
-extern PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
-                                          PyObject *positional_args);
+extern PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
+                                           PyObject *positional_args);
 
 // TODO: Specialize in template too.
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyThreadState *tstate, PyObject *function_object,

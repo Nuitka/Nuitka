@@ -852,7 +852,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 1);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -1709,7 +1709,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 2);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -1996,7 +1996,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 2);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS2(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -2071,7 +2071,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 2);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS2(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -2547,7 +2547,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 3);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -2834,7 +2834,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 3);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS3(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -2909,7 +2909,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 3);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS3(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -3385,7 +3385,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 4);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -3672,7 +3672,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 4);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS4(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS4(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -3747,7 +3747,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 4);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS4(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS4(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -4223,7 +4223,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 5);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -4510,7 +4510,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 5);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS5(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS5(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -4585,7 +4585,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 5);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS5(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS5(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -5061,7 +5061,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 6);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -5348,7 +5348,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 6);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS6(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS6(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -5423,7 +5423,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 6);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS6(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS6(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -5899,7 +5899,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 7);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -6186,7 +6186,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 7);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS7(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS7(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -6261,7 +6261,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 7);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS7(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS7(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -6737,7 +6737,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 8);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -7024,7 +7024,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 8);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS8(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS8(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -7099,7 +7099,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 8);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS8(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS8(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -7575,7 +7575,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyOb
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 9);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -7862,7 +7862,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 9);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS9(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS9(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -7937,7 +7937,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, P
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 9);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS9(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS9(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -8413,7 +8413,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyO
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == 10);
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -8700,7 +8700,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
                             result = Nuitka_CallMethodFunctionPosArgs(
                                 tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, 10);
                         } else {
-                            result = CALL_FUNCTION_WITH_POSARGS10(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS10(tstate, init_method, pos_args);
                             if (init_method_needs_release) {
                                 Py_DECREF(init_method);
                             }
@@ -8775,7 +8775,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, 
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj,
                                                       args, 10);
         } else {
-            result = CALL_FUNCTION_WITH_POSARGS10(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS10(tstate, init_method, pos_args);
             Py_DECREF(init_method);
         }
         if (unlikely(result == NULL)) {
@@ -9074,8 +9074,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 1);
@@ -9333,8 +9333,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 2);
@@ -9592,8 +9592,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 3);
@@ -9851,8 +9851,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 4);
@@ -10110,8 +10110,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 5);
@@ -10369,8 +10369,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 6);
@@ -10628,8 +10628,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 7);
@@ -10887,8 +10887,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 8);
@@ -11146,8 +11146,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                              PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                               PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 9);
@@ -11405,8 +11405,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *cal
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 10);
