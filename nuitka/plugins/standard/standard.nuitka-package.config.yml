@@ -6897,6 +6897,16 @@
     - depends:
         - 'tiktoken_ext.*'
 
+- module-name: 'time_machine' # checksum: b038bd8
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+    - description: 'allow unittest'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
 - module-name: 'timm.models.hrnet' # checksum: fdbe0e63
   anti-bloat:
     - replacements_plain:
