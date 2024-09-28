@@ -1833,7 +1833,7 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
-static filename_char_t const *getDllDirectory(void) {
+filename_char_t const *getDllDirectory(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1];
     path[0] = 0;
