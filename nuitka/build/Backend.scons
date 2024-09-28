@@ -815,7 +815,7 @@ env.Append(
     ]
 )
 
-if env.debian_python and python_version >= (3, 12):
+if env.static_libpython and python_version >= (3, 12):
     env.Append(
         CPPPATH=[
             os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),

@@ -153,14 +153,16 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
 _deleted_modules = {}
 
 
-def importFromInlineCopy(module_name, must_exist, delete_module=False):
-    """Import a module from the inline copy stage."""
-
-    folder_name = os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
-        )
+def _getInlineCopyBaseFolder():
+    """Base folder for inline copies."""
+    return os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "build", "inline_copy")
     )
+
+
+def getInlineCopyFolder(module_name):
+    """Get the inline copy folder for a given name."""
+    folder_name = os.path.join(_getInlineCopyBaseFolder(), module_name)
 
     candidate_27 = folder_name + "_27"
     candidate_35 = folder_name + "_35"
@@ -170,6 +172,14 @@ def importFromInlineCopy(module_name, must_exist, delete_module=False):
         folder_name = candidate_27
     elif python_version < 0x360 and os.path.exists(candidate_35):
         folder_name = candidate_35
+
+    return folder_name
+
+
+def importFromInlineCopy(module_name, must_exist, delete_module=False):
+    """Import a module from the inline copy stage."""
+
+    folder_name = getInlineCopyFolder(module_name)
 
     module = _importFromFolder(
         module_name=module_name,

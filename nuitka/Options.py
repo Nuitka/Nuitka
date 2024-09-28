@@ -59,6 +59,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
+from nuitka.utils.Importing import getInlineCopyFolder
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -1595,6 +1596,14 @@ def _shallUseStaticLibPython():
             and isDebianSuitableForStaticLinking()
             and not shallUsePythonDebug()
         ):
+            if python_version >= 0x3C0 and not os.path.exists(
+                getInlineCopyFolder("python_hacl")
+            ):
+                return (
+                    False,
+                    "Nuitka on Debian-Python needs inline copy of hacl not included.",
+                )
+
             return True, "Nuitka on Debian-Python needs package '%s' installed." % (
                 "python2-dev" if str is bytes else "python3-dev"
             )
