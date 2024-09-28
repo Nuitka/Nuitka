@@ -194,7 +194,7 @@ PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
         PyObject *pos_args = MAKE_TUPLE2_0(tstate, low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -254,7 +254,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -300,6 +300,8 @@ PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
 
         return NULL;
     }
+
+    // spell-checker: ignore rangeobject
 
     struct _rangeobject2 *result = (struct _rangeobject2 *)PyObject_New(struct _rangeobject2, &PyRange_Type);
     assert(result != NULL);
@@ -674,7 +676,7 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 }
 
 // Helper functions for print. Need to play nice with Python softspace
-// behavior.
+// behavior. spell-checker: ignore softspace
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_DEFINE_BUILTIN(print);
@@ -836,7 +838,7 @@ void PRINT_REFCOUNT(PyObject *object) {
     if (object) {
 #if PYTHON_VERSION >= 0x3c0
         if (_Py_IsImmortal(object)) {
-            PRINT_STRING(" recnf IMMORTAL");
+            PRINT_STRING(" refcnt IMMORTAL");
             return;
         }
 #endif
@@ -1477,7 +1479,7 @@ PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *star
 
     PyObject *pos_args = MAKE_TUPLE2(tstate, sequence, start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
 

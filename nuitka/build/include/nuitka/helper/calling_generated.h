@@ -9,87 +9,87 @@
 
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
 extern PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS1(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS1(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS2(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS3(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS4(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS4(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS5(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS5(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS6(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS6(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS6(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS7(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS7(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS7(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS8(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS8(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS8(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS9(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS9(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS9(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10(PyThreadState *tstate, PyObject *called, PyObject *const *args);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS10(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called, PyObject *pos_args);
 extern PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *kw_values,
                                                     PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                      PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                   PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                     PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                      PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                       PyObject *kw_names);
 extern PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
                                                    PyObject *const *kw_values, PyObject *kw_names);
-extern PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                      PyObject *const *kw_values, PyObject *kw_names);
+extern PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                       PyObject *const *kw_values, PyObject *kw_names);
 extern PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called, PyObject *arg);
 extern PyObject *CALL_METHODDESCR_WITH_ARGS2(PyThreadState *tstate, PyObject *called, PyObject *const *args);
 extern PyObject *CALL_METHODDESCR_WITH_ARGS3(PyThreadState *tstate, PyObject *called, PyObject *const *args);

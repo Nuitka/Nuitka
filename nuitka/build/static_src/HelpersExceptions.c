@@ -80,7 +80,7 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
     if (value == NULL || value == Py_None) {
         exc = CALL_FUNCTION_NO_ARGS(tstate, exception_type);
     } else if (PyTuple_Check(value)) {
-        exc = CALL_FUNCTION_WITH_POSARGS(tstate, exception_type, value);
+        exc = CALL_FUNCTION_WITH_POS_ARGS(tstate, exception_type, value);
     } else {
         exc = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, exception_type, value);
     }

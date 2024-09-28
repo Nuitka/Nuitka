@@ -346,6 +346,7 @@
         "PYTHONIOENCODING",
         "PYTHONPATH",
         "pythonw",
+        "qiter",
         "Qualname",
         "redist",
         "reexecute",
