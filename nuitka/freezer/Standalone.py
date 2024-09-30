@@ -228,7 +228,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     )
 
 
-def _reduceToPythonPath(used_dlls):
+def _reduceToPythonPath(used_dll_paths):
+    """Remove DLLs outside of python path."""
     inside_paths = getPythonUnpackedSearchPath()
 
     if isAnacondaPython():
@@ -246,11 +247,23 @@ def _reduceToPythonPath(used_dlls):
             for inside_path in inside_paths
         )
 
-    used_dlls = set(
-        dll_filename for dll_filename in used_dlls if decideInside(dll_filename)
-    )
+    kept_used_dll_paths = OrderedSet()
+    removed_dll_paths = OrderedSet()
 
-    return used_dlls
+    for dll_filename in used_dll_paths:
+        if decideInside(dll_filename):
+            kept_used_dll_paths.add(dll_filename)
+        else:
+            removed_dll_paths.add(dll_filename)
+
+    return kept_used_dll_paths, removed_dll_paths
+
+
+_removed_dll_usages = {}
+
+
+def getRemovedUsedDllsInfo():
+    return _removed_dll_usages.items()
 
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
@@ -292,13 +305,24 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                 )
 
             if allow_outside_dependencies is False:
-                used_dll_paths = _reduceToPythonPath(used_dll_paths)
+                used_dll_paths, removed_dll_paths = _reduceToPythonPath(used_dll_paths)
 
-        # Allow plugins can prevent inclusion, this may discard things from used_dlls.
+                if removed_dll_paths:
+                    _removed_dll_usages[standalone_entry_point] = (
+                        "no outside dependencies allowed for '%s'"
+                        % standalone_entry_point.module_name,
+                        removed_dll_paths,
+                    )
+
+        # Lets be sure of this
+        assert type(used_dll_paths) is OrderedSet, type(used_dll_paths)
+
+        # Allow plugins can prevent inclusion, this may discard things from
+        # used_dlls through its return value.
         removed_dlls = Plugins.removeDllDependencies(
-            dll_filename=binary_filename, dll_filenames=used_dll_paths
+            dll_filename=binary_filename, dll_filenames=OrderedSet(used_dll_paths)
         )
-        used_dll_paths = tuple(OrderedSet(used_dll_paths) - OrderedSet(removed_dlls))
+        used_dll_paths = used_dll_paths - removed_dlls
 
         for used_dll_path in used_dll_paths:
             extension_standalone_entry_point = getIncludedExtensionModule(used_dll_path)
