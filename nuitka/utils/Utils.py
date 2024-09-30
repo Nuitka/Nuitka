@@ -128,6 +128,22 @@ def getWindowsRelease():
     if not isWin32OrPosixWindows():
         return None
 
+    if isPosixWindows():
+        from .FileOperations import getFileContents
+
+        build_number = int(
+            getFileContents("/proc/version").split(" ")[0].rsplit("-")[-1]
+        )
+
+        if build_number >= 21996:
+            return 11
+        elif build_number >= 10240:
+            return 10
+        elif build_number >= 9200:
+            return 8
+        else:
+            return 7
+
     class OsVersionInfoEx(ctypes.Structure):
         _fields_ = [
             ("dwOSVersionInfoSize", ctypes.c_ulong),
