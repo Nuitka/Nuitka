@@ -20,6 +20,7 @@ from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
+from nuitka.freezer.Standalone import getRemovedUsedDllsInfo
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.ModuleRegistry import (
@@ -639,6 +640,16 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             reason=standalone_entry_point.reason,
             # TODO: No reason yet.
         )
+
+    for standalone_entry_point, (reason, removed_dll_paths) in getRemovedUsedDllsInfo():
+        for removed_dll_path in removed_dll_paths:
+            TreeXML.appendTreeElement(
+                root,
+                "excluded_dll",
+                name=_getCompilationReportPath(removed_dll_path),
+                used_by=standalone_entry_point.dest_path,
+                reason=reason,
+            )
 
     if not diffable:
         data_composer_values = getDataComposerReportValues()
