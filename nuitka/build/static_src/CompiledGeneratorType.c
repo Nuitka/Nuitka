@@ -166,7 +166,7 @@ static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
 
     PyObject *value = NULL;
 
-    if (exception_value) {
+    if (exception_value != NULL) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_value, PyExc_StopIteration)) {
             value = ((PyStopIterationObject *)exception_value)->value;
             Py_XINCREF(value);
@@ -281,7 +281,7 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
 
     PyObject *throw_method = PyObject_GetAttr(value, const_str_plain_throw);
 
-    if (throw_method) {
+    if (throw_method != NULL) {
         PyObject *result = Nuitka_CallGeneratorThrowMethod(throw_method, exception_state);
         Py_DECREF(throw_method);
 
@@ -289,16 +289,16 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
         RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
         return result;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-        // Restoring the exception we own, to be released when handling it.
-        RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
-
-        return NULL;
     } else {
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        // Releasing exception we own.
-        RELEASE_ERROR_OCCURRED_STATE(exception_state);
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+            // Restoring the exception we own, to be released when handling it.
+            RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
+        } else {
+            // Releasing exception we own.
+            RELEASE_ERROR_OCCURRED_STATE(exception_state);
+        }
 
         return NULL;
     }

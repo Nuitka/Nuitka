@@ -143,15 +143,19 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
         }
 
         all_case = true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
-        CHECK_OBJECT(iter);
-
-        all_case = false;
     } else {
-        return false;
+        assert(HAS_ERROR_OCCURRED(tstate));
+
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+
+            iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
+            CHECK_OBJECT(iter);
+
+            all_case = false;
+        } else {
+            return false;
+        }
     }
 
     for (;;) {
