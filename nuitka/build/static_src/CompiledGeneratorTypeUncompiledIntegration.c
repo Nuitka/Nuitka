@@ -1611,6 +1611,8 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
+    assert(HAS_EXCEPTION_STATE(exception_state));
+
     if (yf != NULL) {
         if (close_on_genexit &&
             EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_state->exception_type, PyExc_GeneratorExit)) {
