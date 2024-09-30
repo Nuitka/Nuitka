@@ -410,10 +410,13 @@
     - depends:
         - 'xml.sax.expatreader'
 
-- module-name: 'xmlrpc.server' # checksum: 105ff40e
+- module-name: 'xmlrpc.server' # checksum: 57da2566
   anti-bloat:
-    - replacements_plain:
+    - description: 'avoid using pydoc'
+      replacements_plain:
         'import pydoc': ''
+      change_class:
+        'ServerHTMLDoc': 'un-usable'
       when: 'not use_pydoc'
 
 - module-name: 'zipapp' # checksum: 6a44b57d

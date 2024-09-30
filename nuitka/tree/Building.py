@@ -962,14 +962,15 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
 
     is_stdlib = module_filename is not None and isStandardLibraryPath(module_filename)
 
-    # Technically required modules must be bytecode
+    # Technically required modules must be bytecode, do not even ask plugins
+    # about it.
     if is_stdlib and module_name in detectEarlyImports():
         return "bytecode"
 
     result = Plugins.decideCompilation(module_name)
 
-    # Cannot change mode of __main__ to bytecode, that is not going
-    # to work currently.
+    # Cannot change mode of "__main__" to bytecode, that is not going to work
+    # currently, maybe in the future we could allow it.
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
@@ -982,7 +983,7 @@ required to compiled."""
 
     # Include all of standard library as bytecode, for now. We need to identify
     # which ones really need that.
-    if not is_top and is_stdlib:
+    if not is_top and is_stdlib and result is None:
         result = "bytecode"
 
     # Plugins need to win over PGO, as they might know it better

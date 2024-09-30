@@ -604,7 +604,7 @@ class %(class_name)s:
         replacement = ast.parse(replacement).body[0]
 
         node.body[:] = replacement.body
-        node.bases = replacement.bases
+        node.bases[:] = replacement.bases
 
         if self.show_changes:
             self.info(
@@ -868,6 +868,13 @@ slow down compilation."""
 
             if module_name.hasNamespace(handled_module_name):
                 return "bytecode"
+
+        # TODO: Detect effective "change_class" and "change_function"
+        # configuration for standard library modules, but often enough we are
+        # happy to let the bytecode not have the effect, but for these ones it's
+        # required. TODO: Make the compilation mode part of the config.
+        if module_name == "xmlrpc.server":
+            return "compiled"
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names
