@@ -143,6 +143,8 @@ static void SET_CURRENT_EXCEPTION_GENERATOR_EXIT(PyThreadState *tstate) {
 
 #if PYTHON_VERSION >= 0x300
 static bool Nuitka_PyGen_FetchStopIterationValue(PyThreadState *tstate, PyObject **pvalue) {
+    assert(HAS_ERROR_OCCURRED(tstate));
+
 #if PYTHON_VERSION < 0x3c0
     PyObject *value = NULL;
 
@@ -1599,6 +1601,8 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyThreadState *tstate, PyGenOb
 #endif
 
     PyObject *yf = Nuitka_PyGen_yf(gen);
+
+    assert(HAS_EXCEPTION_STATE(exception_state));
 
     if (yf != NULL) {
         if (close_on_genexit &&

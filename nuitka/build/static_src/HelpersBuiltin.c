@@ -721,6 +721,8 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     PyObject *result = PyObject_GetAttr(object, attribute);
 
     if (result == NULL) {
+        assert(HAS_ERROR_OCCURRED(tstate));
+
         if (default_value != NULL &&
             EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
             CLEAR_ERROR_OCCURRED(tstate);
@@ -760,7 +762,9 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     if (unlikely(base_int == -1)) {
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
-        if (likely(error)) {
+        if (likely(error != NULL)) {
+            assert(HAS_ERROR_OCCURRED(tstate));
+
 #if PYTHON_VERSION >= 0x300
             if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_OverflowError)) {
                 PyErr_Format(PyExc_ValueError,
