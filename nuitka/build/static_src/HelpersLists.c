@@ -316,6 +316,8 @@ bool LIST_EXTEND_FOR_UNPACK(PyThreadState *tstate, PyObject *list, PyObject *oth
 
     PyObject *error = GET_ERROR_OCCURRED(tstate);
 
+    assert(error != NULL);
+
     if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_TypeError) &&
         (Py_TYPE(other)->tp_iter == NULL && !PySequence_Check(other))) {
         CLEAR_ERROR_OCCURRED(tstate);
