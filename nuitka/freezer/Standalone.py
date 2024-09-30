@@ -32,6 +32,7 @@ from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     isAnacondaPython,
     isHomebrewPython,
+    isMSYS2MingwPython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
@@ -235,6 +236,9 @@ def _reduceToPythonPath(used_dlls):
 
     if isHomebrewPython():
         inside_paths.insert(0, getHomebrewInstallPath())
+
+    if isMSYS2MingwPython():
+        inside_paths.insert(0, os.path.join(getSystemPrefixPath(), "bin"))
 
     def decideInside(dll_filename):
         return any(
