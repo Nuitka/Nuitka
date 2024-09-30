@@ -556,10 +556,10 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
     def onFunctionBodyParsing(self, module_name, function_name, body):
         result = False
 
-        config = self.config.get(module_name, section="anti-bloat")
-
-        if config:
-            for anti_bloat_config in config:
+        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            ):
                 if self._onFunctionBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
@@ -616,10 +616,10 @@ class %(class_name)s:
     def onClassBodyParsing(self, module_name, class_name, node):
         result = False
 
-        config = self.config.get(module_name, section="anti-bloat")
-
-        if config:
-            for anti_bloat_config in config:
+        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            ):
                 if self._onClassBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
