@@ -1561,31 +1561,39 @@ except Exception as e:
 
         if type(result) not in (str, unicode):
             if single_value:
-                self.sysexit(
-                    """\
-Error, expression '%s' for module '%s' did not evaluate to 'str' result."""
-                    % (expression, full_name)
+                self._checkStrResult(
+                    value=result, expression=expression, full_name=full_name
                 )
             else:
-                if type(result) not in (tuple, list):
-                    self.sysexit(
-                        """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
-                        % (expression, full_name)
-                    )
+                self._checkSequenceResult(
+                    value=result, expression=expression, full_name=full_name
+                )
 
                 for v in result:
-                    if type(v) not in (str, unicode):
-                        self.sysexit(
-                            """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
-                            % (expression, full_name)
-                        )
+                    self._checkStrResult(
+                        value=v, expression=expression, full_name=full_name
+                    )
 
                 # Make it immutable in case it's a list.
                 result = tuple(result)
 
         return result
+
+    def _checkStrResult(self, value, expression, full_name):
+        if type(value) not in (str, unicode):
+            self.sysexit(
+                """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result but '%s'"""
+                % (expression, full_name, type(value))
+            )
+
+    def _checkSequenceResult(self, value, expression, full_name):
+        if type(value) not in (tuple, list):
+            self.sysexit(
+                """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+                % (expression, full_name)
+            )
 
     def evaluateCondition(self, full_name, condition):
         # Note: Caching makes no sense yet, this should all be very fast and
