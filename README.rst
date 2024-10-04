@@ -1404,6 +1404,31 @@ which you expect to be inside the onefile binary, access them like this.
    except NameError:
       open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
 
+Note that when the program is launched from the onefile executable, the
+original ``sys.argv[0]`` from the invocation command line will not be
+preserved. For advanced use cases where one needs access to the original
+``sys.argv[0]``, it may be found at ``__compiled__.onefile_argv0``. The
+field will read back as ``None`` if the program is not launched from the
+onefile executable, thus not having gone through the onefile bootstrap
+stage; the original ``sys.argv[0]`` would be preserved as well in this
+case.
+
+.. code:: python
+
+   # Suppose the onefile binary is placed at /opt/abc/bin/foo, and it was
+   # symlinked to /usr/local/bin/bar, and invoked as `bar ...`:
+   assert sys.argv[0] == "/usr/local/bin/bar"
+   assert __compiled__.onefile_argv0 == "bar"
+
+   # If the onefile tempdir is overridden and the program is invoked
+   # directly from the unpacked location, sys.argv[0] would not be touched.
+   #
+   # Suppose the onefile tempdir is /home/xx/.cache/abc/0.1.2, and the
+   # foo.bin executable inside is symlinked to /usr/local/bin/baz, and
+   # invoked as `baz ...`:
+   assert sys.argv[0] == "baz"
+   assert __compiled__.onefile_argv0 is None
+
 Windows Programs without console give no errors
 ===============================================
 
