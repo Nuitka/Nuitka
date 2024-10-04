@@ -3854,6 +3854,11 @@
         - 'plyer.platforms.android.*'
       when: 'android'
 
+- module-name: 'polars' # checksum: d072aa03
+  implicit-imports:
+    - depends:
+        - 'numpy.core.multiarray'
+
 - module-name: 'polars.lazyframe.frame' # checksum: e9afa6bc
   anti-bloat:
     - description: 'remove IPython reference'
