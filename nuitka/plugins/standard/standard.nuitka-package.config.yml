@@ -1121,18 +1121,18 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 261e0447
+- module-name: 'django.core.management' # checksum: 18979466
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
   variables:
     setup_code:
       - 'import os, importlib'
-      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE"))'
+      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE")) if os.getenv("PARAMETER_SETTINGS_MODULE") else None'
     declarations:
-      'django_installed_apps': 'settings.INSTALLED_APPS'
+      'django_installed_apps': 'settings.INSTALLED_APPS if settings else ()'
     environment:
-      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", None)'
+      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", "")'
   anti-bloat:
     # This makes exceptions to the "*" dependency in the
     # implicit-imports section below.
