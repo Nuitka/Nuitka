@@ -2075,10 +2075,11 @@
     - depends:
         - 'keyring.backends.*'
 
-- module-name: 'keyring.backends.Windows' # checksum: 2531fce0
+- module-name: 'keyring.backends.Windows' # checksum: a414afda
   implicit-imports:
     - depends:
         - 'win32timezone'
+        - 'win32ctypes.core.ctypes.*'
 
 - module-name: 'kivy' # checksum: 648dc799
   data-files:
