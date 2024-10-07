@@ -176,6 +176,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION < 0x3c0
+// Make sure we go the really fast variant, spell-checker: ignore gilstate
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
@@ -289,7 +290,8 @@ NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObje
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
-/* Note: This is from unicodeobject.c */
+// Note: This private stuff from file "Objects/unicodeobject.c"
+// spell-checker: ignore unicodeobject
 #define _PyUnicode_UTF8(op) (((PyCompactUnicodeObject *)(op))->utf8)
 #define PyUnicode_UTF8(op)                                                                                             \
     (assert(PyUnicode_IS_READY(op)),                                                                                   \
@@ -458,7 +460,7 @@ extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 #include <longintrepr.h>
 
 #if PYTHON_VERSION < 0x270
-// Not present in Python2.6 yet
+// Not present in Python2.6 yet, spell-checker: ignore sdigit
 typedef signed int sdigit;
 #endif
 #endif
