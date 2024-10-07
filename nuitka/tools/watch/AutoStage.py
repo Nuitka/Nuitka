@@ -83,6 +83,7 @@ def onCompilationReportChange(filename, git_stage):
 
             if old_node is not None:
                 old_node.getparent().replace(old_node, new_node)
+                changed = True
 
     if changed:
         new_git_contents = toString(old_report)
