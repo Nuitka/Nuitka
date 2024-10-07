@@ -6,7 +6,12 @@
             "${workspaceFolder}/nuitka/build/inline_copy/zstd",
             "${workspaceFolder}/nuitka/build/inline_copy/zlib",
             "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace",
-            "${workspaceFolder}/nuitka/plugins/*/*"
+            "${workspaceFolder}/nuitka/plugins/standard/DillPlugin",
+            "${workspaceFolder}/nuitka/plugins/commercial/AntiDebuggerPlugin",
+            "${workspaceFolder}/nuitka/plugins/commercial/AutomaticUpdatesPlugin",
+            "${workspaceFolder}/nuitka/plugins/commercial/DataFileInclusionNgPlugin",
+            "${workspaceFolder}/nuitka/plugins/commercial/TracebackEncryptionPlugin",
+            "${workspaceFolder}/nuitka/plugins/commercial/WindowsServicePlugin"
         ]
     },
     "configurations": [
