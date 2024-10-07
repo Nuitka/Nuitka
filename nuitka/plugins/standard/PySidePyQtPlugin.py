@@ -72,6 +72,14 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         if "sensible" in include_qt_plugins:
             include_qt_plugins.remove("sensible")
 
+        for include_qt_plugin in include_qt_plugins:
+            if include_qt_plugin != "all" and not self.hasPluginFamily(
+                include_qt_plugin
+            ):
+                self.sysexit(
+                    "Error, there is no plugin family '%s'." % include_qt_plugin
+                )
+
         self.qt_plugins = sensible_qt_plugins
         self.qt_plugins.update(include_qt_plugins)
 
