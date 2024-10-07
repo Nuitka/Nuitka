@@ -4414,7 +4414,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: a87b6b1
+- module-name: 'PySide6' # checksum: 219aba79
   implicit-imports:
     - post-import-code:
         - |
@@ -4467,6 +4467,9 @@
         - 'libquick3dspatialaudioplugin'
         - 'libqtvkbcomponentsplugin'
         - 'libqtvkbsettingsplugin'
+        - 'libqsqlodbc'
+        - 'libpq.5'
+        - 'libffmpegmediaplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
