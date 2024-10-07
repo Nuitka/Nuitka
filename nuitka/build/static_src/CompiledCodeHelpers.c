@@ -1819,7 +1819,7 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #else
 
 #if defined(_WIN32)
-/* Small helper function to get current DLL handle. */
+// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
 static HMODULE getDllModuleHandle(void) {
     static HMODULE hm = NULL;
 
