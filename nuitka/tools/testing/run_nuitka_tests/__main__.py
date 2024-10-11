@@ -702,7 +702,8 @@ def main():
         my_print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
 
         if hide_output:
-            result = subprocess.call(parts, stdout=getNullOutput())
+            with getNullOutput() as null_output:
+                result = subprocess.call(parts, stdout=null_output)
         else:
             result = subprocess.call(parts)
 
