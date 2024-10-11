@@ -23,7 +23,7 @@ def getCodeObjectsDeclCode(context):
 
     if context.getOwner().getFullName() == "__main__":
         statements.append('/* For use in "MainProgram.c". */')
-        statements.append("PyCodeObject *codeobj_main = NULL;")
+        statements.append("PyCodeObject *code_objects_main = NULL;")
 
     return statements
 
@@ -127,7 +127,7 @@ def getCodeObjectsInitCode(context):
 
         if context.getOwner().getFullName() == "__main__":
             if code_object_key[1] == "<module>":
-                statements.append("codeobj_main = %s;" % code_identifier)
+                statements.append("code_objects_main = %s;" % code_identifier)
 
     return statements
 
