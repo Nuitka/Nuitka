@@ -484,6 +484,48 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
     }
 }
 
+// TODO: We might have a need for this to be usable more globally.
+#if defined(_NUITKA_EXE)
+#define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (PYTHON_VERSION >= 0x3c7)
+#else
+#define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (Py_Version >= 0x30c0700)
+#endif
+
+static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
+                                                         bool is_ascii) {
+#if PYTHON_VERSION < 0x300
+    PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
+#else
+    PyObject *u;
+
+    if (size == 1) {
+        u = PyUnicode_FromStringAndSize(data, size);
+    } else {
+        u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x3d0
+    _PyUnicode_InternImmortal(tstate->interp, &u);
+#elif PYTHON_VERSION >= 0x3c0
+    if (is_ascii) {
+        PyUnicode_InternInPlace(&u);
+
+        if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
+            _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
+        }
+    }
+#elif PYTHON_VERSION >= 0x300
+    if (is_ascii) {
+        PyUnicode_InternInPlace(&u);
+    }
+#else
+    insertToDictCache(unicode_cache, &u);
+#endif
+
+    return u;
+}
+
 static unsigned char const *_unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsigned char const *data,
                                                  int count);
 
@@ -772,15 +814,8 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'w': {
         // Python2 unicode, Python3 str length 1, potentially attribute in Python3
-
-        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
+        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, 1, true);
         data += 1;
-
-#if PYTHON_VERSION >= 0x300
-        PyUnicode_InternInPlace(&u);
-#else
-        insertToDictCache(unicode_cache, &u);
-#endif
 
         *output = u;
         is_object = true;
@@ -823,20 +858,9 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 #endif
     case 'u': { // Python2 unicode, Python3 str, zero terminated.
         size_t size = strlen((const char *)data);
-#if PYTHON_VERSION < 0x300
-        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
-#else
-        PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
-#endif
-        data += size + 1;
 
-#if PYTHON_VERSION >= 0x300
-        if (c == 'a') {
-            PyUnicode_InternInPlace(&u);
-        }
-#else
-        insertToDictCache(unicode_cache, &u);
-#endif
+        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
+        data += size + 1;
 
         *output = u;
         is_object = true;
