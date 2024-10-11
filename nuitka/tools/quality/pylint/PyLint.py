@@ -28,9 +28,10 @@ def checkVersion():
         )
 
     if _pylint_version is None:
-        _pylint_version = check_output(
-            [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=getNullOutput()
-        )
+        with getNullOutput() as null_output:
+            _pylint_version = check_output(
+                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=null_output
+            )
 
         if str is not bytes:
             _pylint_version = _pylint_version.decode("utf8")
