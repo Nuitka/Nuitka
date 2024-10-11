@@ -33,7 +33,6 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import (
-    convertUsing2to3,
     createSearchMode,
     decideFilenameVersionSkip,
     getPythonSysPath,
@@ -166,8 +165,6 @@ def checkSequence(filename, statements):
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
-
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py") or filename.startswith("run_"):
             continue
@@ -178,12 +175,6 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            # Apply 2to3 conversion if necessary.
-            if python_version >= (3,):
-                filename, changed = convertUsing2to3(filename)
-            else:
-                changed = False
-
             my_print("Consider", filename, end=" ")
 
             xml_filename = filename.replace(".py", ".xml")
@@ -249,8 +240,6 @@ def main():
 
                     checkSequence(filename, function_statements)
 
-                if changed:
-                    os.unlink(filename)
             except SystemExit:
                 my_print("Optimization result:")
                 my_print(result, style="test-debug")

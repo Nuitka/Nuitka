@@ -69,7 +69,6 @@ def main():
                 filename=filename_main,
                 extra_flags=extra_flags,
                 search_mode=search_mode,
-                needs_2to3=False,
             )
 
             compilation_report = parseCompilationReport(report_filename)

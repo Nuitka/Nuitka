@@ -17,22 +17,19 @@ class C(object):
 
 
 def calledRepeatedly():
-    # force frame
-    C
+    # Avoid module variable access speed to play a role
+    local_C = C
 
     # This is supposed to make a call to a compiled method, which is
     # being optimized separately.
     # construct_begin
-    C("some", "random", "values", "to", "check", "call")
-    C("some", "other", "values", "to", "check", "call")
-    C("some", "new", "values", "to", "check", "call")
-
-    # construct_alternative
-    pass
+    x1 = local_C("some", "random", "values", "to", "check", "call")
+    x2 = local_C("some", "other", "values", "to", "check", "call")
+    x3 = local_C("some", "new", "values", "to", "check", "call")
     # construct_end
 
 
-for x in itertools.repeat(None, 50000):
+for x in itertools.repeat(None, 10000):
     calledRepeatedly()
 
 print("OK.")

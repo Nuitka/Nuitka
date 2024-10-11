@@ -1052,6 +1052,28 @@ def isNonRaisingBuiltinModule(module_name):
     return _stdlib_module_raises.get(module_name)
 
 
+def _getChildPackageNames(module_name):
+    module_name = ModuleName(module_name)
+
+    _module_name, module_filename, _module_kind, _finding = locateModule(
+        parent_package=None, module_name=module_name, level=0
+    )
+
+    package_dir = module_filename
+
+    for module_info in iter_modules([package_dir]):
+        child_name = module_name.getChildNamed(module_info.name)
+        yield child_name
+
+        if module_info.ispkg:
+            for sub_module_name in getChildPackageNames(child_name):
+                yield sub_module_name
+
+
+def getChildPackageNames(module_name):
+    return tuple(_getChildPackageNames(module_name))
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

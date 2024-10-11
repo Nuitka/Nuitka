@@ -237,7 +237,7 @@ def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
 def getNameReferenceErrorCode(variable_name, condition, emit, context):
     helper_code = "RAISE_CURRENT_EXCEPTION_NAME_ERROR"
 
-    if python_version < 0x340:
+    if python_version < 0x300:
         owner = context.getOwner()
 
         if not owner.isCompiledPythonModule() and not owner.isExpressionClassBodyBase():

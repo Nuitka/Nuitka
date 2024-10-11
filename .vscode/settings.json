@@ -82,7 +82,9 @@
         "xiosbase": "c",
         "cstdlib": "c",
         "span": "c",
-        "format": "c"
+        "format": "c",
+        "variant": "c",
+        "charconv": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
@@ -314,6 +316,7 @@
         "Py_TPFLAGS_HEAPTYPE",
         "Py_XDECREF",
         "Py_XINCREF",
+        "Py_XSETREF",
         "PYCORE",
         "PyCoro_Type",
         "pyenv",

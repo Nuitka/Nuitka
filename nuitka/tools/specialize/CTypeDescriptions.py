@@ -759,7 +759,7 @@ return %(return_value)s;""" % {
             # Need to not use that, but pick one.
             assert False
         elif cls.type_name == "int":
-            return "%s = PyInt_FromLong(%s);" % (result, operand)
+            return "%s = Nuitka_PyInt_FromLong(%s);" % (result, operand)
         elif cls.type_name == "long":
             return "%s = Nuitka_LongFromCLong(%s);" % (result, operand)
         elif cls.type_name == "nbool":
@@ -1496,7 +1496,7 @@ class CLongDesc(ConcreteCTypeBase):
 
     @staticmethod
     def getAsObjectValueExpression(operand):
-        return "PyLong_FromLong(%s)" % operand
+        return "Nuitka_PyLong_FromLong(%s)" % operand
 
     @staticmethod
     def releaseAsObjectValueStatement(operand):

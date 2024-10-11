@@ -157,7 +157,7 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
         self.for_raise = for_raise
 
     def getDetails(self):
-        return {"exception_name": self.exception_name}
+        return {"exception_name": self.exception_name, "for_raise": self.for_raise}
 
     def getExceptionName(self):
         return self.exception_name

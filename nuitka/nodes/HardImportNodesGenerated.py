@@ -55,6 +55,7 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
     os_listdir_spec,
+    os_lstat_spec,
     os_path_abspath_spec,
     os_path_basename_spec,
     os_path_dirname_spec,
@@ -63,6 +64,7 @@ from nuitka.specs.HardImportSpecs import (
     os_path_isdir_spec,
     os_path_isfile_spec,
     os_path_normpath_spec,
+    os_stat_spec,
     os_uname_spec,
     pkg_resources_get_distribution_spec,
     pkg_resources_iter_entry_points_spec,
@@ -92,6 +94,8 @@ from .ChildrenHavingMixins import (
     ChildrenHavingPackageOrRequirementResourceNameMixin,
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ChildrenHavingPackageResourceMixin,
+    ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin,
+    ChildrenHavingPathOptionalDirFdOptionalMixin,
 )
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
@@ -1791,6 +1795,94 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
         return True
 
 
+class ExpressionOsLstatRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.lstat"""
+
+    kind = "EXPRESSION_OS_LSTAT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="os",
+            import_name="lstat",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsLstatCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsLstatCall,
+            builtin_spec=os_lstat_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.lstat' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsLstatRef] = os_lstat_spec
+
+
+class ExpressionOsLstatCallBase(
+    ChildrenHavingPathOptionalDirFdOptionalMixin, ExpressionBase
+):
+    """Base class for OsLstatCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "path|optional",
+        "dir_fd|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = os_lstat_spec
+
+    def __init__(self, path, dir_fd, source_ref):
+
+        ChildrenHavingPathOptionalDirFdOptionalMixin.__init__(
+            self,
+            path=path,
+            dir_fd=dir_fd,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_lstat_spec.isCompileTimeComputable(
+            (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionOsPathAbspathRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.path.abspath"""
 
@@ -2429,6 +2521,96 @@ class ExpressionOsPathNormpathCallBase(ChildHavingPathMixin, ExpressionBase):
 
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_normpath_spec.isCompileTimeComputable(
+            (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsStatRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.stat"""
+
+    kind = "EXPRESSION_OS_STAT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="os",
+            import_name="stat",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsStatCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsStatCall,
+            builtin_spec=os_stat_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.stat' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsStatRef] = os_stat_spec
+
+
+class ExpressionOsStatCallBase(
+    ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin, ExpressionBase
+):
+    """Base class for OsStatCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = (
+        "path|optional",
+        "dir_fd|optional",
+        "follow_symlinks|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = os_stat_spec
+
+    def __init__(self, path, dir_fd, follow_symlinks, source_ref):
+
+        ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin.__init__(
+            self,
+            path=path,
+            dir_fd=dir_fd,
+            follow_symlinks=follow_symlinks,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_stat_spec.isCompileTimeComputable(
             (self.subnode_path,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

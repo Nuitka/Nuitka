@@ -45,6 +45,19 @@
     - dirs:
         - 'lib'
 
+- module-name: 'aenum' # checksum: 1241f0d1
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+
+- module-name: 'aenum._common' # checksum: 6d559f39
+  anti-bloat:
+    - description: 'avoid Python2/3 both referenced'
+      replacements:
+        'if PY2:': '"if %s:" % before_python3'
+        'if PY3:': '"if %s:" % python3_or_higher'
+
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2059,10 +2072,11 @@
     - depends:
         - 'keyring.backends.*'
 
-- module-name: 'keyring.backends.Windows' # checksum: 2531fce0
+- module-name: 'keyring.backends.Windows' # checksum: a414afda
   implicit-imports:
     - depends:
         - 'win32timezone'
+        - 'win32ctypes.core.ctypes.*'
 
 - module-name: 'kivy' # checksum: 648dc799
   data-files:
@@ -4034,10 +4048,20 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 8c9db0be
+- module-name: 'pygame' # checksum: face0a9
   data-files:
     - patterns:
         - 'freesansbold.ttf'
+    - patterns:
+        - 'pygame_icon_mac.bmp'
+      when: 'macos'
+    - patterns:
+        - 'pygame_icon.bmp'
+      when: 'not macos'
+
+  implicit-imports:
+    - depends:
+        - 'pygame.*'
 
   options:
     checks:
@@ -4207,6 +4231,14 @@
     - dirs:
         - 'colors'
         - 'icons'
+
+- module-name: 'pyqtgraph.parametertree.interactive' # checksum: acb233c9
+  anti-bloat:
+    - description: 'allow pydoc not really used bloatful'
+      bloat-mode-overrides:
+        # TODO: However it would be nice to be able to force-inline a subset of
+        # functions for pydoc, like "pydoc.splitdoc" in an easy fashion.
+        'pydoc': 'allow'
 
 - module-name: 'pyqtgraph.util.numba_helper' # checksum: 731dde6
   anti-bloat:
@@ -5775,11 +5807,12 @@
     - depends:
         - 'spacy.lang.*'
 
-- module-name: 'spacy.vocab' # checksum: bfa3250b
+- module-name: 'spacy.vocab' # checksum: d166d251
   implicit-imports:
     - depends:
         - 'spacy.lang.lex_attrs'
         - 'spacy.lang.norm_exceptions'
+        - 'spacy.lexeme'
 
 - module-name: 'sparse' # checksum: 7a56f74f
   options:
@@ -6200,33 +6233,27 @@
     - dirs:
         - 'vendor'
 
-- module-name: 'sympy' # checksum: 246a1729
+- module-name: 'sympy' # checksum: 4f06976c
   anti-bloat:
     - description: 'remove sympy.testing reference'
       replacements_plain:
         "'test', 'doctest',": ''
         'from .testing import test, doctest': ''
       when: 'not use_pytest'
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+    - description: 'remove pydoc reference'
+      no-auto-follow:
+        'pydoc': 'ignore'
+      when: 'not use_pydoc'
 
-- module-name: 'sympy.interactive.printing' # checksum: 712c2518
+- module-name: 'sympy.interactive.printing' # checksum: 8dbbac5
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         "'IPython' not in modules": 'True'
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
-        'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
-        'from IPython.lib.latextools import latex_to_png': 'raise ImportError'
-        'from IPython.core.interactiveshell import InteractiveShell': 'raise ImportError'
-      when: 'not use_ipython'
-
-- module-name: 'sympy.interactive.session' # checksum: 1c9a5216
-  anti-bloat:
-    - description: 'remove IPython reference'
-      replacements_plain:
-        'import IPython': 'raise ImportError'
-        'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
 - module-name: 'sympy.utilities.decorator' # checksum: f8ef59fe
@@ -6309,7 +6336,7 @@
         'notebook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'tensorflow' # checksum: 13d6e6a5
+- module-name: 'tensorflow' # checksum: 7bd997cd
   dlls:
     - from_filenames:
         relative_path: 'core/platform'
@@ -6330,6 +6357,8 @@
         'from tensorflow._api.v1 import test': 'test = None'
         'from ._api.v2 import test': 'test = None'
         'from tensorflow._api.v2 import test': 'test = None'
+      replacements:
+        '_os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
@@ -6349,13 +6378,21 @@
     - depends:
         - 'tensorboard'
         - 'tensorflow_estimator'
+    - depends:
         - 'keras.api._v2.keras'
+      when: 'version("keras") < (3,)'
+    - depends:
+        - 'keras._tf_keras.keras'
+      when: 'version("keras") >= (3,)'
 
   options:
     checks:
       - description: "'tensorflow' is not fully supported before version 2.16"
         support_info: 'warning'
         when: 'version("tensorflow") < (2,16)'
+      - description: "'tensorflow' is not fully supported with legacy keras"
+        support_info: 'warning'
+        when: 'os.getenv("TF_USE_LEGACY_KERAS", None) is not None'
 
 - module-name: 'tensorflow._api.v1.compat.v1' # checksum: 3e84bd8b
   anti-bloat:
@@ -6750,13 +6787,13 @@
       change_function:
         '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: 'tensorflow.python.util.lazy_loader' # checksum: f4d18284
+- module-name: 'tensorflow.python.util.lazy_loader' # checksum: b554bf0
   anti-bloat:
     - description: 'reduce keras usage'
       replacements_re:
         '(package_name = "(.*?)")': '\1; import \2'
       replacements:
-        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.environ.get("TF_USE_LEGACY_KERAS", None))'
+        'os.environ.get("TF_USE_LEGACY_KERAS", None)': 'repr(os.getenv("TF_USE_LEGACY_KERAS", None))'
         'keras.__version__': 'repr(version_str("keras"))'
 
 - module-name: 'tensorflow.python.util.tf_inspect' # checksum: 8e3a3cbf
@@ -7595,11 +7632,15 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
-- module-name: 'trio._core._run' # checksum: 44a998aa
+- module-name: 'trio._core._run' # checksum: 8aed5b01
   anti-bloat:
     - description: 'workaround for trio compatibility'
       replacements_plain:
         'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
+    - description: 'workaround for trio compatibility'
+      replacements_plain:
+        'assert coro.cr_frame is not None, "Coroutine frame should exist"': ''
+      when: 'version("trio") >= (0,26,1)'
 
 - module-name: 'tsdownsample._rust' # checksum: d072aa03
   implicit-imports:

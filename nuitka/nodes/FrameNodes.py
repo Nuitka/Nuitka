@@ -139,7 +139,7 @@ class StatementsFrameBase(StatementsSequence):
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 
         new_locals = not provider.isCompiledPythonModule() and (
-            python_version < 0x340
+            python_version < 0x300
             or (
                 not provider.isExpressionClassBodyBase()
                 and not provider.isUnoptimized()

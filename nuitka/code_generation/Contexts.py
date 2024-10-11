@@ -561,6 +561,9 @@ class PythonChildContextBase(PythonContextBase):
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
 
+    def setModuleVariableAccessorCaching(self, variable_name, caching):
+        self.parent.setModuleVariableAccessorCaching(variable_name, caching)
+
 
 class FrameDeclarationsMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -763,6 +766,7 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
+        "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_type_descriptions",
@@ -821,6 +825,8 @@ class PythonModuleContext(
 
         self.module_init_codes = []
 
+        self.module_variable_caching = {}
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name
 
@@ -829,6 +835,18 @@ class PythonModuleContext(
 
     def getEntryPoint(self):
         return self.module
+
+    def setModuleVariableAccessorCaching(self, variable_name, caching):
+        if caching:
+            self.module_variable_caching[variable_name] = True
+        elif variable_name not in self.module_variable_caching:
+            self.module_variable_caching[variable_name] = False
+
+    def isModuleVariableAccessorCaching(self, variable_name):
+        return self.module_variable_caching.get(variable_name, False)
+
+    def getModuleVariableAccessors(self):
+        return self.module_variable_caching
 
     def isCompiledPythonModule(self):
         return True

@@ -8,11 +8,8 @@ module_value2 = 3
 
 
 def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
-
     # Make sure we have a local variable x anyway
-    x = 2
+    x = module_value2
 
     local_value = module_value1
 
@@ -20,6 +17,8 @@ def calledRepeatedly():
     for x in range(local_value, local_value + 3):
         pass
     # construct_end
+
+    return x
 
 
 for x in itertools.repeat(None, 50000):

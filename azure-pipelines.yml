@@ -6,13 +6,13 @@ jobs:
 
   steps:
 
-  - task: Cache@2
-    inputs:
-      key: '"ubuntu-pipenv" | "$(Build.BuildNumber)"'
-      path: '../pipenv_cache'
-      restoreKeys: |
-       "ubuntu-pipenv"
+  # - task: Cache@2
+  #   inputs:
+  #     key: '"ubuntu-pipenv" | "$(Build.BuildNumber)"'
+  #     path: '../pipenv_cache'
+  #     restoreKeys: |
+  #      "ubuntu-pipenv"
 
   - task: CmdLine@2
     inputs:
-      script: 'python3.11 tests/run-tests'
+      script: 'python3 ./tests/run-tests --jobs=-1'

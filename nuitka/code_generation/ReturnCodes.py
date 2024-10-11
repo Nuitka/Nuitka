@@ -95,19 +95,13 @@ def generateGeneratorReturnValueCode(statement, emit, context):
             context.removeCleanupTempName(return_value_name)
         else:
             emit("Py_INCREF(%s);" % return_value_name)
-    elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
-        return_value_name = context.getGeneratorReturnValueName()
-
-        generator_return_name = context.allocateTempName(
-            "generator_return", "bool", unique=True
-        )
-
-        emit("%s = true;" % generator_return_name)
 
     getGotoCode(context.getReturnTarget(), emit)
 
 
 def generateGeneratorReturnNoneCode(statement, emit, context):
+    # We don't need the statement, pylint: disable=unused-argument
+
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
     elif python_version >= 0x300:
@@ -129,14 +123,6 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
             context.removeCleanupTempName(return_value_name)
         else:
             emit("Py_INCREF(%s);" % return_value_name)
-    elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
-        return_value_name = context.getGeneratorReturnValueName()
-
-        generator_return_name = context.allocateTempName(
-            "generator_return", "bool", unique=True
-        )
-
-        emit("%s = true;" % generator_return_name)
 
     getGotoCode(context.getReturnTarget(), emit)
 

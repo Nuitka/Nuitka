@@ -1812,11 +1812,16 @@ run is most meaningful, and eliminates usage spikes.
    echo "Compiled Python2"
    for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n | head -rn 1
 
-   echo "Uncompiled Python3"
-   for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -rn | head -n 1
-   python3 -m nuitka --lto=yes --pgo-c tests/benchmarks/pystone3.py
-   echo "Compiled Python3"
-   for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -rn | head -n 1
+   PYTHON3=python3.10
+
+   # Using a 100 gives semi-reliable values already, 1000 for best accuracy.
+   RUNS=1000
+
+   $PYTHON3 -m nuitka --lto=yes --pgo-c --static-libpython=yes tests/benchmarks/pystone3.py
+   echo "Uncompiled $PYTHON3"
+   for i in $(seq 1 $RUNS); do BENCH=1 $PYTHON3 tests/benchmarks/pystone3.py ; done | sort -rn | head -n 1
+   echo "Compiled $PYTHON3"
+   for i in $(seq 1 $RUNS); do BENCH=1 ./pystone3.bin ; done | sort -rn | head -n 1
 
 +-------------------+-------------------+----------------------+---------------------+
 | Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |

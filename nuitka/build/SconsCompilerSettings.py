@@ -111,13 +111,13 @@ def _enableC11Settings(env):
 
     if c11_mode:
         if env.gcc_mode:
-            env.Append(CCFLAGS=["-std=c11"])
+            env.Append(CFLAGS=["-std=c11"])
         elif env.msvc_mode:
-            env.Append(CCFLAGS=["/std:c11"])
+            env.Append(CFLAGS=["/std:c11"])
 
     if env.msvc_mode and c11_mode:
         # Windows SDK shows this even in non-debug mode in C11 mode.
-        env.Append(CCFLAGS=["/wd5105"])
+        env.Append(CCFLAGS=["/wd5105", "/wd4391"])
 
     if not c11_mode:
         env.Append(CPPDEFINES=["_NUITKA_NON_C11_MODE"])
@@ -170,8 +170,12 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "known to be not supported (CondaCC)"
     elif isMacOS() and env.gcc_mode and env.clang_mode:
-        lto_mode = True
-        reason = "known to be supported (macOS clang)"
+        if env.debugger_mode:
+            lto_mode = False
+            reason = "must be disabled to see line numbers (macOS clang)"
+        else:
+            lto_mode = True
+            reason = "known to be supported (macOS clang)"
     elif env.mingw_mode and env.clang_mode:
         lto_mode = False
         reason = "known to not be supported (new MinGW64 Clang)"

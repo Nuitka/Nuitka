@@ -550,7 +550,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok_left:
@@ -806,7 +806,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1067,7 +1067,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_OBJECT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1301,7 +1301,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_OBJECT(PyObject **operand1, 
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok_left:

@@ -8,7 +8,7 @@
  * For multiprocessing, joblib, loky there is things here that will
  * allow them to fork properly with their intended entry points.
  *
- * spell-checker: ignore joblib loky
+ * spell-checker: ignore joblib loky anyio
  *
  */
 
@@ -67,7 +67,7 @@ static int orig_argc;
 extern void copyFrozenModulesTo(struct _frozen *destination);
 
 // The original frozen modules list.
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
 static struct _frozen *old_frozen = NULL;
 #else
 static struct _frozen const *old_frozen = NULL;
@@ -369,8 +369,12 @@ static int loky_joblib_parent_pid_arg = 0;
 #else
 static bool is_joblib_popen_loky_posix = false;
 #endif
+
 // This is a joblib resource tracker if not -1
 static int loky_resource_tracker_arg = -1;
+
+// This is a "anyio.to_process" fork
+static bool is_anyio_to_process = false;
 
 // Parse the command line parameters to decide if it's a multiprocessing usage
 // or something else special.
@@ -454,15 +458,21 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
         }
 
-#if !defined(_WIN32)
         if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+#if !defined(_WIN32)
             // The joblib loky posix popen is launching like this.
             if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") == 0) {
                 is_joblib_popen_loky_posix = true;
                 break;
             }
-        }
 #endif
+
+            // The anyio.to_process module is launching like this.
+            if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "anyio.to_process") == 0) {
+                is_anyio_to_process = true;
+                break;
+            }
+        }
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
         if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
@@ -1369,7 +1379,7 @@ orig_argv = argv;
 #endif
 
 // Workaround older Python not handling stream setup on redirected files properly.
-#if PYTHON_VERSION >= 0x340 && PYTHON_VERSION < 0x380
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x380
     {
         char const *encoding = NULL;
 
@@ -1654,8 +1664,8 @@ orig_argv = argv;
         } else {
             char const *kw_keys[] = {"pipe_handle", "parent_pid"};
             PyObject *kw_values[] = {
-                PyLong_FromLong(loky_joblib_pipe_handle_arg),
-                PyLong_FromLong(loky_joblib_parent_pid_arg),
+                Nuitka_PyLong_FromLong(loky_joblib_pipe_handle_arg),
+                Nuitka_PyLong_FromLong(loky_joblib_parent_pid_arg),
             };
 
             PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
@@ -1694,7 +1704,8 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function,
+                                      Nuitka_PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
@@ -1709,11 +1720,23 @@ orig_argv = argv;
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
         CHECK_OBJECT(main_function);
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, PyInt_FromLong(loky_resource_tracker_arg));
+        CALL_FUNCTION_WITH_SINGLE_ARG(tstate, main_function, Nuitka_PyInt_FromLong(loky_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);
 
         NUITKA_PRINT_TRACE("main(): Calling 'joblib.externals.loky.backend.resource_tracker' Py_Exit.");
+        Py_Exit(exit_code);
+    } else if (unlikely(is_anyio_to_process)) {
+        PyObject *anyio_module = EXECUTE_MAIN_MODULE(tstate, "anyio.to_process", false);
+
+        PyObject *main_function = PyObject_GetAttrString(anyio_module, "process_worker");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_NO_ARGS(tstate, main_function);
+
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+        NUITKA_PRINT_TRACE("main(): Calling 'anyio.to_process' Py_Exit.");
         Py_Exit(exit_code);
     } else {
 #endif

@@ -175,7 +175,8 @@ class OurHelpFormatter(IndentedHelpFormatter):
         if option.takes_value():
             metavar = option.metavar or option.dest.upper()
             long_opts = [
-                self._long_opt_fmt % (lopt, metavar) for lopt in option._long_opts
+                self._long_opt_fmt % (long_opt, metavar)
+                for long_opt in option._long_opts
             ]
         else:
             long_opts = option._long_opts

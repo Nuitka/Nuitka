@@ -172,8 +172,12 @@ extern PyObject *OS_PATH_FILE_EXISTS(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISFILE(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISDIR(PyThreadState *tstate, PyObject *filename);
 
-// Small helper to list a directory.
+// Small helper to list a directory (like "os.listdir")
 extern PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path);
+
+// Small helper to get stat structure of a path (like "os.stat" and "os.lstat)
+extern PyObject *OS_STAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd, PyObject *follow_symlinks);
+extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd);
 
 // Platform standard slash for filenames
 #if defined(_WIN32)

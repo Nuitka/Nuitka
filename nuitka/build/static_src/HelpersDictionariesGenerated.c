@@ -184,7 +184,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION >= 0x3b0
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
-            memcpy(((char *)new_values) - prefix_size, ((char *)dict_mp->ma_values) - prefix_size, prefix_size - 1);
+            memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
 #endif
 
             result_mp->ma_values = new_values;
@@ -400,7 +400,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION >= 0x3b0
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
-            memcpy(((char *)new_values) - prefix_size, ((char *)dict_mp->ma_values) - prefix_size, prefix_size - 1);
+            memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
 #endif
 
             result_mp->ma_values = new_values;
@@ -651,7 +651,7 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
 #if PYTHON_VERSION >= 0x3b0
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
-            memcpy(((char *)new_values) - prefix_size, ((char *)dict_mp->ma_values) - prefix_size, prefix_size - 1);
+            memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
 #endif
 
             result_mp->ma_values = new_values;

@@ -939,6 +939,43 @@ def generateOsListdirCallCode(to_name, expression, emit, context):
     )
 
 
+def generateOsStatCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_STAT",
+        tstate=True,
+        arg_desc=(
+            ("path_arg", expression.subnode_path),
+            ("dir_fd_arg", expression.subnode_dir_fd),
+            ("follow_symlinks_arg", expression.subnode_follow_symlinks),
+        ),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        none_null=True,
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsLstatCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_LSTAT",
+        tstate=True,
+        arg_desc=(
+            ("path_arg", expression.subnode_path),
+            ("dir_fd_arg", expression.subnode_dir_fd),
+        ),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        none_null=True,
+        emit=emit,
+        context=context,
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

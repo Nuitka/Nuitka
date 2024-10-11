@@ -12,14 +12,19 @@ def calledRepeatedly(cond):
         return module_value2
 
 
-for x in itertools.repeat(None, 50000):
-    # construct_begin
-    calledRepeatedly(True)
-    # construct_alternative
-    calledRepeatedly(False)
-    # construct_end
+def main():
+    for x in itertools.repeat(None, 50000):
+        # construct_begin
+        calledRepeatedly(True)
+        # construct_alternative
+        calledRepeatedly(False)
+        # construct_end
 
-print("OK.")
+
+if __name__ == "__main__":
+    main()
+
+    print("OK.")
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

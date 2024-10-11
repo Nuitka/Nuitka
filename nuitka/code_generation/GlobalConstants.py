@@ -105,10 +105,11 @@ def getConstantDefaultPopulation():
         "isdir",
         "isfile",
         "listdir",
+        "stat",
     ]
 
     # Pickling of instance methods.
-    if python_version < 0x340:
+    if python_version < 0x300:
         result += ("__newobj__",)
     else:
         result += ("getattr",)

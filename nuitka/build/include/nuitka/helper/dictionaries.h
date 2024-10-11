@@ -57,7 +57,7 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
 
 #else
 
-// Python 3.3 or higher.
+// Python3
 
 // Quick dictionary lookup for a string value.
 
@@ -144,6 +144,8 @@ struct _dictkeysobject {
 typedef PyObject **Nuitka_DictEntryHandle;
 
 #if PYTHON_VERSION >= 0x3b0
+extern Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash);
+
 extern Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 extern Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 #endif
@@ -188,10 +190,8 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
 
     if (value == NULL) {
         return NULL;
-#ifndef PY_NOGIL
     } else if (_PyDict_HasSplitTable(dict)) {
         return &dict->ma_values[ix];
-#endif
     } else {
         return &DK_ENTRIES(dict->ma_keys)[ix].me_value;
     }
@@ -268,6 +268,17 @@ extern int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key);
 // Convert to dictionary, helper for built-in "dict" mainly.
 extern PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj);
 
+// For 3.6 to 3.10, the dictionary version tag is used for caching purposes, so
+// we need to maintain it. However it's private value so we have to play a game
+// of having our own number space inside of their 64 bit numbers.
+#if PYTHON_VERSION >= 0x360 && PYTHON_VERSION <= 0x3c0
+#define _NUITKA_MAINTAIN_DICT_VERSION_TAG 1
+#endif
+
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+extern uint64_t nuitka_dict_version_tag_counter;
+#endif
+
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);
 
@@ -281,18 +292,25 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
 #endif
 
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
+    CHECK_OBJECT_X(old);
 
-    // Values are more likely (more often) set than not set, in that case
-    // speculatively try the quickest access method.
-    if (likely(old != NULL)) {
-        Py_INCREF(value);
-        SET_DICT_ENTRY_VALUE(entry, value);
+    if (value != old) {
 
-        CHECK_OBJECT(old);
+        // Values are more likely (more often) set than not set, in that case
+        // speculatively try the quickest access method.
+        if (likely(old != NULL)) {
+            Py_INCREF(value);
+            SET_DICT_ENTRY_VALUE(entry, value);
 
-        Py_DECREF(old);
-    } else {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+#endif
+            CHECK_OBJECT(old);
+
+            Py_DECREF(old);
+        } else {
+            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        }
     }
 }
 
@@ -315,14 +333,23 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, 
 
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
 
-    // Values are more likely (more often) set than not set, in that case
-    // speculatively try the quickest access method.
-    if (likely(old != NULL)) {
-        SET_DICT_ENTRY_VALUE(entry, value);
-    } else {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-        Py_DECREF(value);
+    if (old != value) {
+        // Values are more likely (more often) set than not set, in that case
+        // speculatively try the quickest access method.
+        if (likely(old != NULL)) {
+            SET_DICT_ENTRY_VALUE(entry, value);
 
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+#endif
+        } else {
+            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+            Py_DECREF(value);
+
+            CHECK_OBJECT(value);
+        }
+    } else {
+        Py_DECREF(value);
         CHECK_OBJECT(value);
     }
 }
@@ -345,16 +372,25 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
 #endif
 
     PyObject *old = GET_DICT_ENTRY_VALUE(entry);
+    CHECK_OBJECT_X(old);
 
-    // Values are more likely (more often) set than not set, in that case
-    // speculatively try the quickest access method.
-    if (likely(old != NULL)) {
-        SET_DICT_ENTRY_VALUE(entry, value);
+    if (old != value) {
+        // Values are more likely (more often) set than not set, in that case
+        // speculatively try the quickest access method.
+        if (likely(old != NULL)) {
+            SET_DICT_ENTRY_VALUE(entry, value);
 
-        Py_DECREF(old);
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+            dict->ma_version_tag = nuitka_dict_version_tag_counter++;
+#endif
+            Py_DECREF(old);
+        } else {
+            DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+
+            Py_DECREF(value);
+            CHECK_OBJECT(value);
+        }
     } else {
-        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
-
         Py_DECREF(value);
         CHECK_OBJECT(value);
     }

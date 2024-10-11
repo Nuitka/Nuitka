@@ -166,7 +166,6 @@ def main():
                 filename=filename_main,
                 extra_flags=extra_flags,
                 search_mode=search_mode,
-                needs_2to3=False,
             )
 
             if extra_variant:
@@ -176,7 +175,6 @@ def main():
                     filename=filename_main,
                     extra_flags=extra_flags + extra_variant,
                     search_mode=search_mode,
-                    needs_2to3=False,
                 )
 
     search_mode.finish()

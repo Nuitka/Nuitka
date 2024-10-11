@@ -1,30 +1,29 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+import dis
 import itertools
 
 module_value1 = list()
-module_value2 = 3000
 
 
-def calledRepeatedly():
+def calledRepeatedly(cond):
     # Force frame and eliminate forward propagation (currently).
-    module_value1
-
     local_value = module_value1
 
-    s = module_value1
-    s.append
+    if cond:
+        local_value.append
+
+    return local_value
+
+
+for x in itertools.repeat(None, 50000):
     # construct_begin
-    s.append
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
     # construct_end
-    s.append
 
-    return s, local_value
-
-
-for x in itertools.repeat(None, 25000):
-    calledRepeatedly()
 
 print("OK.")
 

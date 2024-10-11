@@ -1407,8 +1407,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_INT(PyObject **operand1, PyObject 
                     break;
                 }
                 if (ix / temp != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1427,8 +1427,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_INT(PyObject **operand1, PyObject 
             temp = (unsigned long)temp * temp;
 
             if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1451,7 +1451,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -1695,8 +1695,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_INT(PyObject **operand1, PyObje
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1715,8 +1715,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_INT(PyObject **operand1, PyObje
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -1739,7 +1739,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_INT(PyObject **operand1, PyObje
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -1988,8 +1988,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_OBJECT(PyObject **operand1, PyObje
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2008,8 +2008,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_OBJECT(PyObject **operand1, PyObje
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2032,7 +2032,7 @@ static inline bool _INPLACE_OPERATION_POW_INT_OBJECT(PyObject **operand1, PyObje
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -2534,8 +2534,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
                         break;
                     }
                     if (ix / temp != prev) {
-                        PyObject *operand1_long = PyLong_FromLong(a);
-                        PyObject *operand2_long = PyLong_FromLong(b);
+                        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                         PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2554,8 +2554,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
                 temp = (unsigned long)temp * temp;
 
                 if (prev != 0 && temp / prev != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -2578,7 +2578,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:

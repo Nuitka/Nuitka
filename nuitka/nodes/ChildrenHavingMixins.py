@@ -13805,6 +13805,341 @@ class ChildHavingPathOptionalMixin(object):
 ChildrenExpressionOsListdirMixin = ChildHavingPathOptionalMixin
 
 
+class ChildrenHavingPathOptionalDirFdOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionOsLstat
+
+    def __init__(
+        self,
+        path,
+        dir_fd,
+    ):
+        if path is not None:
+            path.parent = self
+
+        self.subnode_path = path
+
+        if dir_fd is not None:
+            dir_fd.parent = self
+
+        self.subnode_dir_fd = dir_fd
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_path
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_dir_fd
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("path", self.subnode_path),
+            ("dir_fd", self.subnode_dir_fd),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_path
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_path = new_node
+
+            return
+
+        value = self.subnode_dir_fd
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_dir_fd = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
+            "dir_fd": (
+                self.subnode_dir_fd.makeClone()
+                if self.subnode_dir_fd is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_path is not None:
+            self.subnode_path.finalize()
+        del self.subnode_path
+        if self.subnode_dir_fd is not None:
+            self.subnode_dir_fd.finalize()
+        del self.subnode_dir_fd
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_path = self.subnode_path
+
+        if subnode_path is not None:
+            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+        subnode_dir_fd = self.subnode_dir_fd
+
+        if subnode_dir_fd is not None:
+            self.subnode_dir_fd.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionOsLstatMixin = ChildrenHavingPathOptionalDirFdOptionalMixin
+
+
+class ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionOsStat
+
+    def __init__(
+        self,
+        path,
+        dir_fd,
+        follow_symlinks,
+    ):
+        if path is not None:
+            path.parent = self
+
+        self.subnode_path = path
+
+        if dir_fd is not None:
+            dir_fd.parent = self
+
+        self.subnode_dir_fd = dir_fd
+
+        if follow_symlinks is not None:
+            follow_symlinks.parent = self
+
+        self.subnode_follow_symlinks = follow_symlinks
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_path
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_dir_fd
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_follow_symlinks
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("path", self.subnode_path),
+            ("dir_fd", self.subnode_dir_fd),
+            ("follow_symlinks", self.subnode_follow_symlinks),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_path
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_path = new_node
+
+            return
+
+        value = self.subnode_dir_fd
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_dir_fd = new_node
+
+            return
+
+        value = self.subnode_follow_symlinks
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_follow_symlinks = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "path": (
+                self.subnode_path.makeClone() if self.subnode_path is not None else None
+            ),
+            "dir_fd": (
+                self.subnode_dir_fd.makeClone()
+                if self.subnode_dir_fd is not None
+                else None
+            ),
+            "follow_symlinks": (
+                self.subnode_follow_symlinks.makeClone()
+                if self.subnode_follow_symlinks is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_path is not None:
+            self.subnode_path.finalize()
+        del self.subnode_path
+        if self.subnode_dir_fd is not None:
+            self.subnode_dir_fd.finalize()
+        del self.subnode_dir_fd
+        if self.subnode_follow_symlinks is not None:
+            self.subnode_follow_symlinks.finalize()
+        del self.subnode_follow_symlinks
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_path = self.subnode_path
+
+        if subnode_path is not None:
+            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+        subnode_dir_fd = self.subnode_dir_fd
+
+        if subnode_dir_fd is not None:
+            self.subnode_dir_fd.collectVariableAccesses(emit_read, emit_write)
+        subnode_follow_symlinks = self.subnode_follow_symlinks
+
+        if subnode_follow_symlinks is not None:
+            self.subnode_follow_symlinks.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionOsStatMixin = (
+    ChildrenHavingPathOptionalDirFdOptionalFollowSymlinksOptionalMixin
+)
+
+
 class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

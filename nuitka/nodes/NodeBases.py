@@ -185,6 +185,19 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
+    def getContainingLoopNode(self):
+        """Return the parent that is module."""
+        parent = self.parent
+
+        while parent is not None and not parent.isExpressionFunctionBodyBase():
+
+            if parent.isStatementLoop():
+                return parent
+
+            parent = parent.getParent()
+
+        return parent
+
     def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
         return isinstance(self, ClosureGiverNodeMixin)

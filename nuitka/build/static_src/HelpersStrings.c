@@ -121,7 +121,7 @@ PyObject *BUILTIN_ORD(PyObject *value) {
         return NULL;
     }
 
-    return PyInt_FromLong(result);
+    return Nuitka_PyInt_FromLong(result);
 }
 
 #if PYTHON_VERSION >= 0x300

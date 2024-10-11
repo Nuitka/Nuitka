@@ -7,7 +7,7 @@ module_value1 = module_value2 = module_value3 = module_value4 = 1000
 module_key1 = module_key2 = module_key3 = module_key4 = 1000
 
 
-def calledRepeatedly():
+def calledRepeatedly(cond):
     # Force frame and eliminate forward propagation (currently), and use local
     # variables to avoid impact of global variable access.
     dict_key1 = module_value1
@@ -20,16 +20,15 @@ def calledRepeatedly():
     dict_val3 = module_value3
     dict_val4 = module_value4
 
-    # construct_begin
-    l = {
-        dict_key1: dict_val1,
-        dict_key2: dict_val2,
-        dict_key3: dict_val3,
-        dict_key4: dict_val4,
-    }
-    # construct_alternative
     l = 1
-    # construct_end
+
+    if cond:
+        l = {
+            dict_key1: dict_val1,
+            dict_key2: dict_val2,
+            dict_key3: dict_val3,
+            dict_key4: dict_val4,
+        }
 
     return (
         l,
@@ -44,8 +43,12 @@ def calledRepeatedly():
     )
 
 
-for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+for x in itertools.repeat(None, 10000):
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 

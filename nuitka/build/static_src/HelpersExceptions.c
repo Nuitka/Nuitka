@@ -173,7 +173,11 @@ error:
 
     initial_tb = *tb;
 
-    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+    ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exc, val, tb);
+    RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
     assert(*exc != NULL);
     if (initial_tb != NULL) {
@@ -276,40 +280,6 @@ error:
 #endif
 }
 
-#endif
-
-// Raise NameError for a given variable name.
-void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
-#if PYTHON_VERSION >= 0x300
-    PyObject *exception_value_str = Nuitka_String_FromFormat("name '%U' is not defined", variable_name);
-#else
-    PyObject *exception_value_str =
-        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-#endif
-    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
-    Py_DECREF(exception_value_str);
-
-#if PYTHON_VERSION >= 0x300
-    CHAIN_EXCEPTION(tstate, exception_value);
-#endif
-
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
-}
-
-// Raise NameError with "global" for a given variable name.
-#if PYTHON_VERSION < 0x340
-void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
-#if PYTHON_VERSION >= 0x300
-    PyObject *exception_value_str = Nuitka_String_FromFormat("global name '%U' is not defined", variable_name);
-#else
-    PyObject *exception_value_str =
-        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-#endif
-    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
-    Py_DECREF(exception_value_str);
-
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
-}
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

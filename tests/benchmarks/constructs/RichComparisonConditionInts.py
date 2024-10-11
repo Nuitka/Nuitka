@@ -2,30 +2,31 @@
 
 
 import itertools
+import sys
 
-module_value1 = 1000
-module_value2 = 2000
+module_value1 = "1000"
+module_value2 = "2000"
+
+loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
 
-def calledRepeatedly(cond):
-    # Use writing to global variable as access method.
-    global module_value1, module_value2
-
-    local_value1 = module_value1
-    local_value2 = module_value2
-
+def calledRepeatedly(cond, value):
     if cond:
-        local_value1 = local_value2
+        if value % 2 == 0:
+            value = not value
+    else:
+        value = not value
 
-    return local_value1 + local_value2
+    return value
 
 
-for x in itertools.repeat(None, 50000):
+for x in range(50000):
     # construct_begin
-    calledRepeatedly(True)
+    calledRepeatedly(True, x)
     # construct_alternative
-    calledRepeatedly(False)
+    calledRepeatedly(False, x)
     # construct_end
+
 
 print("OK.")
 

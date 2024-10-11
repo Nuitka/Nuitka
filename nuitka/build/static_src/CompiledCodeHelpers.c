@@ -86,7 +86,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
     long current = low;
 
     for (int i = 0; i < size; i++) {
-        PyList_SET_ITEM(result, i, PyInt_FromLong(current));
+        PyList_SET_ITEM(result, i, Nuitka_PyInt_FromLong(current));
         current += step;
     }
 
@@ -99,7 +99,7 @@ static PyObject *_BUILTIN_RANGE_INT(long boundary) {
     PyObject *result = MAKE_LIST_EMPTY(tstate, boundary > 0 ? boundary : 0);
 
     for (int i = 0; i < boundary; i++) {
-        PyList_SET_ITEM(result, i, PyInt_FromLong(i));
+        PyList_SET_ITEM(result, i, Nuitka_PyInt_FromLong(i));
     }
 
     return result;
@@ -928,9 +928,8 @@ void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTr
 #if PYTHON_VERSION >= 0x300
     if (exception_value != NULL && PyExceptionInstance_Check(exception_value)) {
         PRINT_STRING(" <- context ");
-        PyObject *context = PyException_GetContext(exception_value);
+        PyObject *context = Nuitka_Exception_GetContext(exception_value);
         PRINT_REPR(context);
-        Py_XDECREF(context);
     }
 #endif
     PRINT_STRING("|");
@@ -1359,11 +1358,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
 
         if (finished) {
-#if PYTHON_VERSION < 0x300
-            return PyInt_FromLong(int_result);
-#else
-            return PyLong_FromLong(int_result);
-#endif
+            return Nuitka_PyInt_FromLong(int_result);
         } else if (item == NULL) {
             return NULL;
         }
@@ -1427,12 +1422,8 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         break;
     }
 
-/* Switch over to objects, and redo last step. */
-#if PYTHON_VERSION < 0x300
-    result = PyInt_FromLong(int_result);
-#else
-    result = PyLong_FromLong(int_result);
-#endif
+    /* Switch over to objects, and redo last step. */
+    result = Nuitka_PyInt_FromLong(int_result);
     CHECK_OBJECT(result);
 
     PyObject *temp = PyNumber_Add(result, item);
@@ -1727,8 +1718,8 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#ifdef _NUITKA_STANDALONE
-static PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
+#ifdef _NUITKA_EXE
+PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
 

@@ -290,6 +290,79 @@ if (%(test_code)s) {
 }
 """
 
+template_module_variable_accessor_function = """\
+static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
+#if %(caching)s
+    PyObject *result;
+
+#if PYTHON_VERSION < 0x3b0
+    static uint64_t dict_version = 0;
+    static PyObject *cache_value = NULL;
+
+    if (moduledict_%(module_identifier)s->ma_version_tag == dict_version) {
+        CHECK_OBJECT_X(cache_value);
+        result = cache_value;
+    } else {
+        dict_version = moduledict_%(module_identifier)s->ma_version_tag;
+
+        result = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
+        cache_value = result;
+    }
+#else
+    static uint32_t dict_keys_version = 0xFFFFFFFF;
+    static Py_ssize_t cache_dk_index = 0;
+
+    PyDictKeysObject *dk = moduledict_%(module_identifier)s->ma_keys;
+    assert(DK_IS_UNICODE(dk));
+
+#if PYTHON_VERSION >= 0x3c0
+    uint32_t current_dk_version = _Nuitka_PyDictKeys_GetVersionForCurrentState(tstate->interp, dk);
+#else
+    uint32_t current_dk_version = _Nuitka_PyDictKeys_GetVersionForCurrentState(dk);
+#endif
+
+    if (current_dk_version != dict_keys_version) {
+        dict_keys_version = current_dk_version;
+        Py_hash_t hash = ((Nuitka_StringObject *)%(var_name)s)->_base._base.hash;
+        assert(hash != -1);
+
+        cache_dk_index = Nuitka_Py_unicodekeys_lookup_unicode(dk, %(var_name)s, hash);
+    }
+
+    if (cache_dk_index >= 0) {
+        assert(dk->dk_kind != DICT_KEYS_SPLIT);
+
+        PyDictUnicodeEntry *entries = DK_UNICODE_ENTRIES(dk);
+
+        result = entries[cache_dk_index].me_value;
+
+        if (unlikely(result == NULL)) {
+            Py_hash_t hash = ((Nuitka_StringObject *)%(var_name)s)->_base._base.hash;
+            assert(hash != -1);
+
+            cache_dk_index = Nuitka_Py_unicodekeys_lookup_unicode(dk, %(var_name)s, hash);
+
+            if (cache_dk_index >= 0) {
+                result = entries[cache_dk_index].me_value;
+            }
+        }
+    } else {
+        result = NULL;
+    }
+#endif
+
+#else
+    PyObject *result = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s);
+#endif
+
+    if (unlikely(result == NULL)) {
+        result = GET_STRING_DICT_VALUE(dict_builtin, (Nuitka_StringObject *)%(var_name)s);
+    }
+
+    return result;
+}
+"""
+
 from . import TemplateDebugWrapper  # isort:skip
 
 TemplateDebugWrapper.checkDebug(globals())
