@@ -3797,6 +3797,35 @@
       change_function:
         'embedded_data_path': "'(lambda: app_path())'"
 
+- module-name: 'playwright' # checksum: 3c59447d
+  data-files:
+    - patterns:
+        - '**/*.json'
+        - '**/*.js'
+        - '**/*.ts'
+        - '**/*.html'
+        - '**/*.css'
+        - '**/*.svg'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'driver'
+        prefixes:
+          - 'node'
+        executable: 'yes'
+
+- module-name: 'playwright._impl._transport' # checksum: 708d0cf7
+  anti-bloat:
+    - description: 'fix globals.get() usage'
+      replacements_plain:
+        'globals().get("_compiled__")': 'globals().get("__compiled__")'
+      when: 'version("playwright") >= (1, 45, 0)'
+
+    - description: 'support for older versions of playwright'
+      replacements_plain:
+        'if getattr(sys, "frozen", False):': 'if getattr(sys, "frozen", False) or "__compiled__" in globals():'
+      when: 'version("playwright") < (1, 45, 0)'
+
 - module-name: 'playwright_stealth' # checksum: 26b9c88c
   data-files:
     - dirs:
@@ -5087,36 +5116,7 @@
         executable: 'yes'
       when: 'win32'
 
-- module-name: 'playwright'
-  data-files:
-    patterns:
-      - '**/*.json'
-      - '**/*.js'
-      - '**/*.ts'
-      - '**/*.html'
-      - '**/*.css'
-      - '**/*.svg'
-
-  dlls:
-    - from_filenames:
-        relative_path: 'driver'
-        prefixes:
-          - 'node'
-        executable: 'yes'
-
-- module-name: 'playwright._impl._transport'
-  anti-bloat:
-    - description: 'fix globals.get() usage'
-      replacements_plain:
-        'globals().get("_compiled__")' : 'globals().get("__compiled__")'
-      when: 'version("playwright") >= (1, 45, 0)'
-
-    - description: 'support for older versions of playwright'
-      replacements_plain:
-        'if getattr(sys, "frozen", False):': 'if getattr(sys, "frozen", False) or "__compiled__" in globals():'
-      when: 'version("playwright") < (1, 45, 0)'
-
-- module-name: 'selenium_stealth' # checksum: 3ebe1284
+- module-name: 'selenium_stealth' # checksum: 26b9c88c
   data-files:
     - dirs:
         - '.'

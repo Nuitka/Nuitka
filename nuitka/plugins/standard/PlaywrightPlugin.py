@@ -6,9 +6,10 @@
 spell-checker: ignore Playwright
 """
 
+import os
+
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-import os
 from nuitka.utils.Execution import NuitkaCalledProcessError
 
 
@@ -70,7 +71,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
         elif env_defined == "0":
             return result
         elif env_defined:
-            result = os.path(env_defined)
+            result = os.path.normpath(env_defined)
         else:
             cache_directory = ""
             if os.name == "posix":
@@ -112,29 +113,19 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             return
 
         if not self.include_browsers:
-            self.warning(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."
+
+            self.sysexit(
+                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
             )
 
         self.get_Installed_Playwright_Browsers()
 
         if not self.installed_browsers:
-            self.warning(
+            self.sysexit(
                 "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
             )
 
-        for browser in self.include_browsers:
-            if browser not in self.installed_browsers:
-
-                msg = (
-                    "Error, requested to include browser '%s' that was not found, the list of installed ones is '%s'."
-                    % (
-                        browser,
-                        ", ".join(self.installed_browsers),
-                    )
-                )
-                self.sysexit(msg)
-
+        self.info("Including browsers: %s" % ", ".join(self.include_browsers))
         if "all" in self.include_browsers:
             self.include_browsers = self.installed_browsers
         elif "ffmpeg" not in self.include_browsers and any(
@@ -149,6 +140,16 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
                     break
 
         for browser in self.include_browsers:
+            if browser not in self.installed_browsers:
+                msg = (
+                    "Error, requested to include browser '%s' that was not found, the list of installed ones is '%s'."
+                    % (
+                        browser,
+                        ", ".join(self.installed_browsers),
+                    )
+                )
+                self.sysexit(msg)
+
             msg = "Including '%s' from '%s'." % (
                 browser,
                 self.installed_browsers[browser].path,
