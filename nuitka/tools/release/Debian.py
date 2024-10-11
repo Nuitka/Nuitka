@@ -24,7 +24,8 @@ def _callDebchange(*args):
 
     os.environ["EDITOR"] = ""
 
-    check_call(args, stdin=getNullInput())
+    with getNullInput() as null_input:
+        check_call(args, stdin=null_input)
 
 
 _discarded_last_entry = False
