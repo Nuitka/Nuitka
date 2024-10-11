@@ -422,6 +422,10 @@ class FileLogger(OurLogger):
 
         self.file_handle = file_handle
 
+    def __del__(self):
+        if self.file_handle is not None:
+            self.file_handle.close()
+
     def my_print(self, message, **kwargs):
         if "file" not in kwargs:
             kwargs["file"] = self.file_handle or sys.stdout

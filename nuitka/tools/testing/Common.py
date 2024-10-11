@@ -227,8 +227,9 @@ def convertUsing2to3(path, force=False):
 
     if not force:
         if "xrange" not in getFileContents(path):
-            if check_result(command, stderr=getNullOutput()):
-                return path, False
+            with getNullOutput() as null_output:
+                if check_result(command, stderr=null_output):
+                    return path, False
 
     filename = os.path.basename(path)
 
@@ -257,16 +258,17 @@ def convertUsing2to3(path, force=False):
 
     command += ("-w", "-n", "--no-diffs", new_path)
 
-    try:
-        check_output(command, stderr=getNullOutput())
+    with getNullOutput() as null_output:
+        try:
+            check_output(command, stderr=null_output)
 
-    except subprocess.CalledProcessError:
-        if isWin32Windows():
-            raise
+        except subprocess.CalledProcessError:
+            if isWin32Windows():
+                raise
 
-        command[0:3] = ["2to3"]
+            command[0:3] = ["2to3"]
 
-        check_output(command, stderr=getNullOutput())
+            check_output(command, stderr=null_output)
 
     data = getFileContents(new_path)
 
@@ -527,11 +529,12 @@ def displayRuntimeTraces(logger, path):
 
 
 def hasModule(module_name):
-    result = subprocess.call(
-        (os.environ["PYTHON"], "-c", "import %s" % module_name),
-        stdout=getNullOutput(),
-        stderr=subprocess.STDOUT,
-    )
+    with getNullOutput() as null_output:
+        result = subprocess.call(
+            (os.environ["PYTHON"], "-c", "import %s" % module_name),
+            stdout=null_output,
+            stderr=subprocess.STDOUT,
+        )
 
     return result == 0
 
@@ -866,20 +869,19 @@ def executeReferenceChecked(
             continue
 
         # Avoid non-raisable output.
-        try:
-            if number in tests_stderr:
-                sys.stderr = getNullOutput()
-        except OSError:  # Windows
-            if not checkReferenceCount(names[name], explain=explain):
-                result = False
-        else:
-            if not checkReferenceCount(names[name], explain=explain):
-                result = False
-
-            if number in tests_stderr:
-                new_stderr = sys.stderr
-                sys.stderr = old_stderr
-                new_stderr.close()
+        with getNullOutput() as null_output:
+            try:
+                if number in tests_stderr:
+                    sys.stderr = null_output
+            except OSError:  # Windows
+                if not checkReferenceCount(names[name], explain=explain):
+                    result = False
+            else:
+                if not checkReferenceCount(names[name], explain=explain):
+                    result = False
+            finally:
+                if number in tests_stderr:
+                    sys.stderr = old_stderr
 
     gc.enable()
     return result
@@ -1265,12 +1267,13 @@ def setupCacheHashSalt(test_code_path):
     if os.path.exists(os.path.join(test_code_path, ".git")):
         git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
-        process = subprocess.Popen(
-            args=git_cmd,
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with getNullInput() as null_input:
+            process = subprocess.Popen(
+                args=git_cmd,
+                stdin=null_input,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
         stdout_git, stderr_git = process.communicate()
         assert process.returncode == 0, stderr_git
@@ -1339,15 +1342,17 @@ def checkTestRequirements(filename):
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]
-                result = subprocess.call(
-                    (
-                        os.environ["PYTHON"],
-                        "-c",
-                        "import sys, os; sys.exit(not bool(%s))" % expression,
-                    ),
-                    stdout=getNullOutput(),
-                    stderr=subprocess.STDOUT,
-                )
+
+                with getNullOutput() as null_output:
+                    result = subprocess.call(
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
+                        stdout=null_output,
+                        stderr=subprocess.STDOUT,
+                    )
                 if result != 0:
                     return (False, "Expression '%s' evaluated to false" % expression)
 

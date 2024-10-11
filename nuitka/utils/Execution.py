@@ -328,21 +328,24 @@ def wrapCommandForDebuggerForSubprocess(*args):
     return args
 
 
+@contextmanager
 def getNullOutput():
+    r = open(os.devnull, "wb")
+
     try:
-        return subprocess.NULLDEV
-    except AttributeError:
-        return open(os.devnull, "wb")
+        yield r
+    finally:
+        r.close()
 
 
+@contextmanager
 def getNullInput():
-    # spell-checker: ignore NULLDEV
+    r = open(os.devnull, "rb")
+
     try:
-        return subprocess.NULLDEV
-    except AttributeError:
-        # File is supposed to stay open, pylint: disable=consider-using-with
-        subprocess.NULLDEV = open(os.devnull, "rb")
-        return subprocess.NULLDEV
+        yield r
+    finally:
+        r.close()
 
 
 def executeToolChecked(
@@ -364,13 +367,14 @@ def executeToolChecked(
     command[0] = getExecutablePath(tool)
 
     with withEnvironmentVarOverridden("LC_ALL", "C"):
-        process = subprocess.Popen(
-            command,
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False,
-        )
+        with getNullInput() as null_input:
+            process = subprocess.Popen(
+                command,
+                stdin=null_input,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False,
+            )
 
     stdout, stderr = process.communicate()
     result = process.poll()
@@ -413,21 +417,22 @@ def createProcess(
         else:
             kw_args["preexec_fn"] = os.setsid
 
-    process = subprocess.Popen(
-        command,
-        # Note: Empty string should also be allowed for stdin, therefore check
-        # for default "False" and "None" precisely.
-        stdin=subprocess.PIPE if stdin not in (False, None) else getNullInput(),
-        stdout=subprocess.PIPE if stdout is None else stdout,
-        stderr=subprocess.PIPE if stderr is None else stderr,
-        shell=shell,
-        # On Windows, closing file descriptions is not working with capturing outputs.
-        close_fds=not isWin32Windows(),
-        env=env,
-        # For tools that want short paths to work.
-        cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
-        **kw_args
-    )
+    with getNullInput() as null_input:
+        process = subprocess.Popen(
+            command,
+            # Note: Empty string should also be allowed for stdin, therefore check
+            # for default "False" and "None" precisely.
+            stdin=subprocess.PIPE if stdin not in (False, None) else null_input,
+            stdout=subprocess.PIPE if stdout is None else stdout,
+            stderr=subprocess.PIPE if stderr is None else stderr,
+            shell=shell,
+            # On Windows, closing file descriptions is not working with capturing outputs.
+            close_fds=not isWin32Windows(),
+            env=env,
+            # For tools that want short paths to work.
+            cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
+            **kw_args
+        )
 
     return process
 
