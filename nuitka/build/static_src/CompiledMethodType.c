@@ -125,7 +125,10 @@ static PyObject *Nuitka_Method_deepcopy(struct Nuitka_MethodObject *method, PyOb
         return NULL;
     }
 
-    return Nuitka_Method_New(method->m_function, object, method->m_class);
+    PyObject *result = Nuitka_Method_New(method->m_function, object, method->m_class);
+    // Nuitka_Method_New took a reference to the object.
+    Py_DECREF(object);
+    return result;
 }
 
 static PyMethodDef Nuitka_Method_methods[] = {
