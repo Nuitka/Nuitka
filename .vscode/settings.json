@@ -158,6 +158,7 @@
         "co_kwonlyargcount",
         "co_nconsts",
         "CO_NEWLOCALS",
+        "co_nlocalsplus",
         "CO_NOFREE",
         "co_posonlyargcount",
         "CO_VARKEYWORDS",
