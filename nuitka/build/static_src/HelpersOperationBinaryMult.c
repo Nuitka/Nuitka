@@ -466,8 +466,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_INT_OBJECT(P
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1043,8 +1042,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_INT_OBJECT(
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -1546,8 +1544,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_LONG_OBJECT(
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2017,8 +2014,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_LONG_OBJECT
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2487,8 +2483,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
@@ -2954,8 +2949,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MULT_NBOOL_FLOAT_OBJEC
 
     {
         // No sequence repeat slot sq_repeat available for this type.
-    }
-    // Special case for "*", also work with sequence repeat from right argument.
+    } // Special case for "*", also work with sequence repeat from right argument.
     {
         ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
