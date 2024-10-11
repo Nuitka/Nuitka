@@ -1170,6 +1170,11 @@ extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
 extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 #endif
 
+// No longer in header files, but still usable.
+#if PYTHON_VERSION >= 0x3d0
+PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
