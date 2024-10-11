@@ -593,7 +593,7 @@ def snapObjRefCntMap(before):
             k = "str_overload_" + x.__class__.__name__ + str(x)
         elif type(x) is dict:
             if "__builtins__" in x:
-                k = "<module dict %s>" % x["__name__"]
+                k = "<module dict %s>" % x.get("__name__", "<maybe not a module>")
             elif "__spec__" in x and "__name__" in x:
                 k = "<module dict %s>" % x["__name__"]
             else:
