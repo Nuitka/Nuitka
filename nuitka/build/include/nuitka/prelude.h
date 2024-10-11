@@ -163,6 +163,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 // Uncompiled generator integration requires these.
 #if PYTHON_VERSION >= 0x3b0
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_opcode_utils.h>
 #include <opcode_ids.h>
 #else
 #include <internal/pycore_opcode.h>
