@@ -39,6 +39,7 @@ void _initSlotCompare(void) {
     PyDict_SetItem(kw_args, const_str_plain___init__, (PyObject *)Py_TYPE(Py_None));
 
     // Create the type.
+    CHECK_OBJECT(const_str_plain___cmp__);
     PyTypeObject *c = (PyTypeObject *)PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, const_str_plain___cmp__,
                                                                    pos_args, kw_args, NULL);
     Py_DECREF(pos_args);
