@@ -776,7 +776,9 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         PyObject *u = PyUnicode_FromStringAndSize((const char *)data, 1);
         data += 1;
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x3c7
+        _PyUnicode_InternImmortal(tstate->interp, &u);
+#elif PYTHON_VERSION >= 0x300
         PyUnicode_InternInPlace(&u);
 #else
         insertToDictCache(unicode_cache, &u);
@@ -830,7 +832,9 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 #endif
         data += size + 1;
 
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x3c7
+        _PyUnicode_InternImmortal(tstate->interp, &u);
+#elif PYTHON_VERSION >= 0x300
         if (c == 'a') {
             PyUnicode_InternInPlace(&u);
         }
