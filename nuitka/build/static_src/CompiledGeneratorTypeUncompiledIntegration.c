@@ -13,6 +13,11 @@
 #include "nuitka/prelude.h"
 #endif
 
+// spell-checker: ignore f_valuestack,f_stacktop,PYGEN,_Py_CODEUNIT,OPARG
+// spell-checker: ignore localsplus
+// spell-checker: ignore deopt,subscr,isinstance,getitem,noargs,aiter,anext
+// spell-checker: ignore classderef,getattribute,precall,nondescriptor,pyfunc
+
 #if PYTHON_VERSION >= 0x300
 static PyObject *Nuitka_CallGeneratorThrowMethod(PyObject *throw_method,
                                                  struct Nuitka_ExceptionPreservationItem *exception_state);
@@ -486,8 +491,6 @@ static int Nuitka_PyGen_gen_close_iter(PyThreadState *tstate, PyObject *yf);
 #if PYTHON_VERSION >= 0x3b0
 
 // Private opcode mapping, that we need too
-// spell-checker: ignore deopt,subscr,isinstance,getitem,noargs,aiter,anext
-// spell-checker: ignore classderef,getattribute,precall
 const uint8_t Nuitka_PyOpcode_Deopt[256] = {
 #if PYTHON_VERSION >= 0x3d0
     [BEFORE_ASYNC_WITH] = BEFORE_ASYNC_WITH,
