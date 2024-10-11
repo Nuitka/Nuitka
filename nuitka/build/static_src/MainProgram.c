@@ -54,7 +54,7 @@
 #include "HelpersConsole.c"
 #endif
 
-extern PyCodeObject *codeobj_main;
+extern PyCodeObject *code_objects_main;
 
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
 #if PYTHON_VERSION >= 0x300

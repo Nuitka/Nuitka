@@ -315,7 +315,7 @@ class CodeObjectsMixin(object):
         )
 
         if key not in self.code_objects:
-            self.code_objects[key] = "codeobj_%s" % self._calcHash(key)
+            self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
 
         return self.code_objects[key]
 
@@ -603,7 +603,7 @@ class FrameDeclarationsMixin(object):
             )
 
         else:
-            frame_handle = code_identifier.replace("codeobj_", "frame_")
+            frame_handle = code_identifier.replace("code_objects_", "frame_")
 
             if self.frames_used > 1:
                 frame_handle += "_%d" % self.frames_used
