@@ -3709,6 +3709,12 @@
     - description: 'workaround __new__ decorator issue'
       append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
 
+- module-name: 'pip._vendor' # checksum: 49920604
+  anti-bloat:
+    - description: 'allow pydoc inside pip vendored modules'
+      no-auto-follow:
+        'pydoc': 'ignore'
+
 - module-name: 'pip._vendor.rich.jupyter' # checksum: b346e77
   # See rich.jupyter
   anti-bloat:
@@ -7019,7 +7025,7 @@
     - include-metadata:
         - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 378cf0f6
+- module-name: 'toga_winforms' # checksum: 618ee1e0
   data-files:
     - dirs:
         - 'resources'
@@ -7027,16 +7033,31 @@
         - 'toga-winforms'
   dlls:
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-arm64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/arm64'
         prefixes:
           - 'WebView2Loader'
       when: 'win32 and arch_arm64'
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-x86/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/x86'
         prefixes:
           - 'WebView2Loader'
       when: 'win32 and arch_x86'
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-x64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/x64'
         prefixes:
           - 'WebView2Loader'
