@@ -1181,6 +1181,12 @@
     - depends:
         - 'django.template.loader_tags'
 
+- module-name: 'django.views.debug' # checksum: 466f47d3
+  anti-bloat:
+    - description: 'workaround columns not available from compiled frame execution'
+      replacements_plain:
+        'if PY311:': 'if False:'
+
 - module-name: 'dns.rdtypes' # checksum: 119feab4
   implicit-imports:
     - depends:
