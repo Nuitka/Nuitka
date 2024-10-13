@@ -331,6 +331,7 @@ NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObjec
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #define Nuitka_String_FromFormat PyUnicode_FromFormat
+#define Nuitka_UnicodeAsWideString PyUnicode_AsWideCharString
 #endif
 
 // Wrap the type lookup for debug mode, to identify errors, and potentially
