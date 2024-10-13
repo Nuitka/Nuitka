@@ -378,10 +378,11 @@ extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
 // Get the containing directory as an object with symlinks resolved or not.
 extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
-// Get the original argv[0] as recorded by the onefile bootstrap stage.
-// Returns None if not being invoked by the onefile bootstrapper, or if
-// onefile mode is not in use.
-extern PyObject *getOnefileArgv0Object(void);
+// Get the original argv[0] as recorded by the bootstrap stage. Returns
+// None, if not available, in module mode.
+#if defined(_NUITKA_EXE)
+extern PyObject *getOriginalArgv0Object(void);
+#endif
 
 #ifdef _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate);

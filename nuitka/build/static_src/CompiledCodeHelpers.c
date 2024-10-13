@@ -1906,20 +1906,6 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #endif
 }
 
-PyObject *getOnefileArgv0Object(void) {
-#if defined(_NUITKA_EXE) && defined(_NUITKA_ONEFILE_MODE)
-    environment_char_t const *onefile_argv0 = getEnvironmentVariable("NUITKA_ONEFILE_ARGV0");
-    if (onefile_argv0 != NULL) {
-        PyObject *result = Nuitka_String_FromFilename(onefile_argv0);
-        unsetEnvironmentVariable("NUITKA_ONEFILE_ARGV0");
-        return result;
-    }
-#endif
-
-    Py_INCREF_IMMORTAL(Py_None);
-    return Py_None;
-}
-
 static void _initDeepCopy(void);
 
 void _initBuiltinModule(void) {

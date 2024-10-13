@@ -1156,7 +1156,7 @@ int main(int argc, char **argv) {
 #endif
     setEnvironmentVariable("NUITKA_ONEFILE_BINARY", binary_filename);
 
-    setEnvironmentVariable("NUITKA_ONEFILE_ARGV0", argv[0]);
+    setEnvironmentVariable("NUITKA_ORIGINAL_ARGV0", argv[0]);
 
     NUITKA_PRINT_TIMING("ONEFILE: Preparing forking of slave process.");
 
