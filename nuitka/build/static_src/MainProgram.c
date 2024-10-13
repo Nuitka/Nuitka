@@ -1341,8 +1341,9 @@ int main(int argc, char **argv) {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
 
         if (parent_original_argv0 != NULL) {
+            original_argv0 = strdupFilename(parent_original_argv0);
+
             unsetEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
-            original_argv0 = parent_original_argv0;
         }
     }
 #endif
