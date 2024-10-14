@@ -173,9 +173,41 @@ def generateExceptionPublishCode(statement, emit, context):
     emit("PUBLISH_CURRENT_EXCEPTION(tstate, &%s);" % keeper_exception_state_name)
 
 
-def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, context):
-    # We try to make optimal code for various cases, pylint: disable=too-many-locals
+def _attachExceptionAttributeCode(
+    to_name,
+    attribute_expression,
+    c_type_name,
+    c_attribute_name,
+    base_name_str,
+    emit,
+    context,
+):
+    if attribute_expression is not None:
+        from .PythonAPICodes import getReferenceExportCode
 
+        exception_attribute_name = context.allocateTempName(
+            base_name_str + "_" + c_attribute_name
+        )
+
+        generateExpressionCode(
+            to_name=exception_attribute_name,
+            expression=attribute_expression,
+            emit=emit,
+            context=context,
+            allow_none=True,
+        )
+
+        getReferenceExportCode(exception_attribute_name, emit, context)
+        if context.needsCleanup(exception_attribute_name):
+            context.removeCleanupTempName(exception_attribute_name)
+
+        emit(
+            "((%s *)%s)->%s = %s;"
+            % (c_type_name, to_name, c_attribute_name, exception_attribute_name)
+        )
+
+
+def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, context):
     from .CallCodes import getCallCodeNoArgs, getCallCodePosArgsQuick
 
     exception_arg_names = []
@@ -233,63 +265,50 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
                 context=context,
             )
 
-        if exception_type == "ImportError" and python_version >= 0x300:
-            is_new_import_error = True
-        elif exception_type == "ModuleNotFoundError" and python_version >= 0x360:
-            is_new_import_error = True
-        else:
-            is_new_import_error = False
+        if (
+            expression.isExpressionBuiltinMakeExceptionImportError()
+            or expression.isExpressionBuiltinMakeExceptionModuleNotFoundError()
+        ):
+            _attachExceptionAttributeCode(
+                to_name=to_name,
+                attribute_expression=expression.subnode_name,
+                base_name_str="exception_import_error",
+                c_type_name="PyImportErrorObject",
+                c_attribute_name="name",
+                emit=emit,
+                context=context,
+            )
 
-        if is_new_import_error:
-            from .PythonAPICodes import getReferenceExportCode
+            _attachExceptionAttributeCode(
+                to_name=to_name,
+                attribute_expression=expression.subnode_path,
+                base_name_str="exception_import_error",
+                c_type_name="PyImportErrorObject",
+                c_attribute_name="path",
+                emit=emit,
+                context=context,
+            )
 
-            import_error_name_expression = expression.subnode_name
+        elif expression.isExpressionBuiltinMakeExceptionAttributeError():
+            _attachExceptionAttributeCode(
+                to_name=to_name,
+                attribute_expression=expression.subnode_name,
+                base_name_str="exception_import_error",
+                c_type_name="PyAttributeErrorObject",
+                c_attribute_name="name",
+                emit=emit,
+                context=context,
+            )
 
-            if import_error_name_expression is not None:
-                exception_importerror_name = context.allocateTempName(
-                    "make_exception_importerror_name"
-                )
-
-                generateExpressionCode(
-                    to_name=exception_importerror_name,
-                    expression=import_error_name_expression,
-                    emit=emit,
-                    context=context,
-                    allow_none=True,
-                )
-
-                getReferenceExportCode(exception_importerror_name, emit, context)
-                if context.needsCleanup(exception_importerror_name):
-                    context.removeCleanupTempName(exception_importerror_name)
-
-                emit(
-                    "((PyImportErrorObject *)%s)->name = %s;"
-                    % (to_name, exception_importerror_name)
-                )
-
-            import_error_path_expression = expression.subnode_path
-
-            if import_error_path_expression is not None:
-                exception_importerror_path = context.allocateTempName(
-                    "make_exception_importerror_path"
-                )
-
-                generateExpressionCode(
-                    to_name=exception_importerror_path,
-                    expression=import_error_path_expression,
-                    emit=emit,
-                    context=context,
-                    allow_none=True,
-                )
-
-                getReferenceExportCode(exception_importerror_path, emit, context)
-                if context.needsCleanup(exception_importerror_path):
-                    context.removeCleanupTempName(exception_importerror_path)
-
-                emit(
-                    "((PyImportErrorObject *)%s)->path = %s;"
-                    % (to_name, exception_importerror_path)
-                )
+            _attachExceptionAttributeCode(
+                to_name=to_name,
+                attribute_expression=expression.subnode_obj,
+                base_name_str="exception_import_error",
+                c_type_name="PyAttributeErrorObject",
+                c_attribute_name="obj",
+                emit=emit,
+                context=context,
+            )
 
 
 def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
