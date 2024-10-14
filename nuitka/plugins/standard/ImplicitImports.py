@@ -361,19 +361,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
-        # Too much code here, pylint: disable=too-many-branches
         # TODO: Move the ones that would be possible to yaml config,
-        # e.g. the numexpr hack.
-
-        if module_name == "numexpr.cpuinfo":
-            # We cannot intercept "is" tests, but need it to be "isinstance",
-            # so we patch it on the file. TODO: This is only temporary, in
-            # the future, we may use optimization that understands the right
-            # hand size of the "is" argument well enough to allow for our
-            # type too.
-            source_code = source_code.replace(
-                "type(attr) is types.MethodType", "isinstance(attr, types.MethodType)"
-            )
 
         if module_name == "site":
             if source_code.startswith("def ") or source_code.startswith("class "):
