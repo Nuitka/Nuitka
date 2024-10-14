@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     getFilenameExtension,
     getFileSize,
+    getNormalizedPath,
     isFilenameBelowPath,
     isLegalPath,
     isRelativePath,
@@ -98,9 +99,9 @@ class IncludedDataFile(object):
 
         self.kind = kind
         self.source_path = source_path
-        self.dest_path = os.path.normpath(dest_path)
+        self.dest_path = getNormalizedPath(dest_path)
 
-        is_legal, illegal_reason = isLegalPath(dest_path)
+        is_legal, illegal_reason = isLegalPath(self.dest_path)
         if not is_legal:
             general.sysexit(
                 "Error, cannot add data file with '%s' path, as '%s'"
@@ -538,7 +539,7 @@ def _reportDataFiles():
 
 
 def _checkPathConflict(dest_path, standalone_entry_points):
-    assert os.path.normpath(dest_path) == dest_path
+    assert getNormalizedPath(dest_path) == dest_path
 
     while dest_path:
         for standalone_entry_point in standalone_entry_points:
