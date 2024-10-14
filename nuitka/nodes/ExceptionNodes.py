@@ -10,10 +10,11 @@ from nuitka.PythonVersions import python_version
 from .ChildrenHavingMixins import ChildHavingExceptionTypeMixin
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
+    ExpressionBuiltinMakeExceptionAttributeErrorBase,
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
 )
-from .NodeBases import StatementBase
+from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
 from .StatementBasesGenerated import StatementRaiseExceptionBase
 
 
@@ -178,7 +179,7 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 
 
 class ExpressionBuiltinMakeExceptionImportError(
-    ExpressionBuiltinMakeExceptionImportErrorBase
+    SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionImportErrorBase
 ):
     """Python3 ImportError dedicated node with extra arguments."""
 
@@ -192,6 +193,8 @@ class ExpressionBuiltinMakeExceptionImportError(
 
     # There is nothing to compute for it as a value.
     auto_compute_handling = "final,no_raise"
+
+    python_version_spec = ">= 0x300"
 
     @staticmethod
     def getExceptionName():
@@ -217,9 +220,48 @@ class ExpressionBuiltinMakeExceptionModuleNotFoundError(
 ):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_MODULE_NOT_FOUND_ERROR"
 
+    python_version_spec = ">= 0x360"
+
     @staticmethod
     def getExceptionName():
         return "ModuleNotFoundError"
+
+
+class ExpressionBuiltinMakeExceptionAttributeError(
+    SideEffectsFromChildrenMixin, ExpressionBuiltinMakeExceptionAttributeErrorBase
+):
+    """Python3 ImportError dedicated node with extra arguments."""
+
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION_ATTRIBUTE_ERROR"
+
+    named_children = ("args|tuple", "name|optional", "obj|optional")
+
+    node_attributes = ("for_raise",)
+
+    __slots__ = ()
+
+    # There is nothing to compute for it as a value.
+    auto_compute_handling = "final,no_raise"
+
+    python_version_spec = ">= 0x3a0"
+
+    @staticmethod
+    def getExceptionName():
+        return "AttributeError"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        for arg in self.subnode_args:
+            if arg.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 class ExpressionCaughtMixin(ExpressionNoSideEffectsMixin):
@@ -264,7 +306,7 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
 
 
 def makeBuiltinMakeExceptionNode(
-    exception_name, args, for_raise, name=None, path=None, source_ref=None
+    exception_name, args, for_raise, name=None, path=None, obj=None, source_ref=None
 ):
     assert type(exception_name) is str, exception_name
 
@@ -281,6 +323,14 @@ def makeBuiltinMakeExceptionNode(
             args=args,
             name=name,
             path=path,
+            for_raise=for_raise,
+            source_ref=source_ref,
+        )
+    elif exception_name == "AttributeError" and python_version >= 0x3A0:
+        return ExpressionBuiltinMakeExceptionAttributeError(
+            args=args,
+            name=name,
+            obj=obj,
             for_raise=for_raise,
             source_ref=source_ref,
         )
