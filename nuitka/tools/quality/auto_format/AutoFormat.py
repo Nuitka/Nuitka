@@ -743,7 +743,7 @@ def autoFormatFile(
                     )
                     .lower()
                     .startswith("chinese")
-                ):
+                ) and os.path.basename(effective_filename) != "SocketUsing.py":
                     _cleanupImportSortOrder(tmp_filename, effective_filename)
 
                 _cleanupPyLintComments(tmp_filename, effective_filename)
