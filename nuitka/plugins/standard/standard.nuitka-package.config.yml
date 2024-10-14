@@ -7972,6 +7972,12 @@
       replacements_plain:
         'if use_reloader:': 'if False:'
 
+- module-name: 'wheel' # checksum: 737f453f
+  anti-bloat:
+    - description: 'need to use setuptools'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
 - module-name: 'win32com' # checksum: 8d4a0be8
   import-hacks:
     # This package adds another directory to the search path of itself,
