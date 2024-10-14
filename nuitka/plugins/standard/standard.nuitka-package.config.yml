@@ -173,14 +173,17 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: 7cb50c0c
+- module-name: 'arcade' # checksum: d7d0718b
   data-files:
     - dirs:
         - 'resources/system'
+    - patterns:
+        - 'VERSION'
   anti-bloat:
     - no-auto-follow:
-        'examples': 'Arcade examples are not be available unless you do "--include-module=acade.examples"'
-        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=acade.experimental"'
+        'examples': 'Arcade examples are not available unless you do "--include-module=arcade.examples"'
+        'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=arcade.experimental"'
+        'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
@@ -1118,18 +1121,18 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 261e0447
+- module-name: 'django.core.management' # checksum: 18979466
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
   variables:
     setup_code:
       - 'import os, importlib'
-      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE"))'
+      - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE")) if os.getenv("PARAMETER_SETTINGS_MODULE") else None'
     declarations:
-      'django_installed_apps': 'settings.INSTALLED_APPS'
+      'django_installed_apps': 'settings.INSTALLED_APPS if settings else ()'
     environment:
-      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", None)'
+      'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", "")'
   anti-bloat:
     # This makes exceptions to the "*" dependency in the
     # implicit-imports section below.
@@ -1177,6 +1180,12 @@
   implicit-imports:
     - depends:
         - 'django.template.loader_tags'
+
+- module-name: 'django.views.debug' # checksum: 466f47d3
+  anti-bloat:
+    - description: 'workaround columns not available from compiled frame execution'
+      replacements_plain:
+        'if PY311:': 'if False:'
 
 - module-name: 'dns.rdtypes' # checksum: 119feab4
   implicit-imports:
@@ -2072,10 +2081,11 @@
     - depends:
         - 'keyring.backends.*'
 
-- module-name: 'keyring.backends.Windows' # checksum: 2531fce0
+- module-name: 'keyring.backends.Windows' # checksum: a414afda
   implicit-imports:
     - depends:
         - 'win32timezone'
+        - 'win32ctypes.core.ctypes.*'
 
 - module-name: 'kivy' # checksum: 648dc799
   data-files:
@@ -3699,6 +3709,12 @@
     - description: 'workaround __new__ decorator issue'
       append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
 
+- module-name: 'pip._vendor' # checksum: 49920604
+  anti-bloat:
+    - description: 'allow pydoc inside pip vendored modules'
+      no-auto-follow:
+        'pydoc': 'ignore'
+
 - module-name: 'pip._vendor.rich.jupyter' # checksum: b346e77
   # See rich.jupyter
   anti-bloat:
@@ -3849,6 +3865,11 @@
     - depends:
         - 'plyer.platforms.android.*'
       when: 'android'
+
+- module-name: 'polars' # checksum: d072aa03
+  implicit-imports:
+    - depends:
+        - 'numpy.core.multiarray'
 
 - module-name: 'polars.lazyframe.frame' # checksum: e9afa6bc
   anti-bloat:
@@ -4405,7 +4426,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: a87b6b1
+- module-name: 'PySide6' # checksum: 219aba79
   implicit-imports:
     - post-import-code:
         - |
@@ -4458,6 +4479,9 @@
         - 'libquick3dspatialaudioplugin'
         - 'libqtvkbcomponentsplugin'
         - 'libqtvkbsettingsplugin'
+        - 'libqsqlodbc'
+        - 'libpq.5'
+        - 'libffmpegmediaplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -6894,6 +6918,16 @@
     - depends:
         - 'tiktoken_ext.*'
 
+- module-name: 'time_machine' # checksum: b038bd8
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+    - description: 'allow unittest'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
 - module-name: 'timm.models.hrnet' # checksum: fdbe0e63
   anti-bloat:
     - replacements_plain:
@@ -6991,7 +7025,7 @@
     - include-metadata:
         - 'toga-gtk'
 
-- module-name: 'toga_winforms' # checksum: 378cf0f6
+- module-name: 'toga_winforms' # checksum: 618ee1e0
   data-files:
     - dirs:
         - 'resources'
@@ -6999,16 +7033,31 @@
         - 'toga-winforms'
   dlls:
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-arm64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/arm64'
         prefixes:
           - 'WebView2Loader'
       when: 'win32 and arch_arm64'
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-x86/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/x86'
         prefixes:
           - 'WebView2Loader'
       when: 'win32 and arch_x86'
     - from_filenames:
+        relative_path: 'libs/WebView2/runtimes/win-x64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+    - from_filenames: # older toga_winforms only
         relative_path: 'libs/WebView2/x64'
         prefixes:
           - 'WebView2Loader'

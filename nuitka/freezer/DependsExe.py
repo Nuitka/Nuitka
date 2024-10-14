@@ -3,12 +3,14 @@
 
 """ Interface to depends.exe on Windows.
 
-We use depends.exe to investigate needed DLLs of Python DLLs.
+We use "depends.exe" to investigate needed DLLs of Python DLLs.
 
 """
 
 import os
 
+# pylint: disable=I0021,import-error,redefined-builtin
+from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
@@ -132,7 +134,13 @@ def _parseDependsExeOutput2(lines):
             continue
 
         dll_filename = os.path.abspath(dll_filename)
-        dll_filename = getWindowsLongPathName(dll_filename)
+
+        # Ignore errors trying to resolve the filename. Sometimes Chinese
+        # directory paths do not resolve to long filenames.
+        try:
+            dll_filename = getWindowsLongPathName(dll_filename)
+        except WindowsError:
+            pass
 
         dll_name = os.path.basename(dll_filename)
 
