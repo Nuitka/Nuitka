@@ -240,6 +240,10 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "path")
         )
+    elif exception_name == "AttributeError" and python_version >= 0x3A0:
+        return BuiltinParameterSpecExceptionsKwOnly(
+            exception_name=exception_name, kw_only_args=("name", "obj")
+        )
     else:
         return BuiltinParameterSpecExceptions(exception_name=exception_name)
 
@@ -461,7 +465,7 @@ builtin_issubclass_spec = BuiltinParameterSpecNoKeywords(
 
 class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
     def isCompileTimeComputable(self, values):
-        # For bytearrays, we need to avoid the case of large bytearray
+        # For bytearray objects, we need to avoid the case of large bytearray
         # construction from an integer at compile time.
 
         result = BuiltinParameterSpec.isCompileTimeComputable(self, values=values)
