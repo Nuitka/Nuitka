@@ -233,12 +233,21 @@ def makeBuiltinExceptionParameterSpec(exception_name):
     else:
         is_new_import_error = False
 
+    if exception_name == "AttributeError" and python_version >= 0x3A0:
+        is_new_attribute_error = True
+    else:
+        is_new_attribute_error = False
+
     if is_new_import_error:
         # This is currently the only known built-in exception that does it, but let's
         # be general, as surely that list is going to expand only.
 
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "path")
+        )
+    elif is_new_attribute_error:
+        return BuiltinParameterSpecExceptionsKwOnly(
+            exception_name=exception_name, kw_only_args=("name", "obj")
         )
     else:
         return BuiltinParameterSpecExceptions(exception_name=exception_name)
@@ -461,7 +470,7 @@ builtin_issubclass_spec = BuiltinParameterSpecNoKeywords(
 
 class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
     def isCompileTimeComputable(self, values):
-        # For bytearrays, we need to avoid the case of large bytearray
+        # For bytearray objects, we need to avoid the case of large bytearray
         # construction from an integer at compile time.
 
         result = BuiltinParameterSpec.isCompileTimeComputable(self, values=values)

@@ -291,6 +291,62 @@ def _generateBuiltinMakeExceptionCode(to_name, expression, for_raise, emit, cont
                     % (to_name, exception_importerror_path)
                 )
 
+        if exception_type == "AttributeError" and python_version >= 0x3A0:
+            is_new_attribute_error = True
+        else:
+            is_new_attribute_error = False
+
+        if is_new_attribute_error:
+            from .PythonAPICodes import getReferenceExportCode
+
+            attribute_error_name_expression = expression.subnode_name
+
+            if attribute_error_name_expression is not None:
+                exception_attribute_error_name = context.allocateTempName(
+                    "make_exception_attribute_name"
+                )
+
+                generateExpressionCode(
+                    to_name=exception_attribute_error_name,
+                    expression=attribute_error_name_expression,
+                    emit=emit,
+                    context=context,
+                    allow_none=True,
+                )
+
+                getReferenceExportCode(exception_attribute_error_name, emit, context)
+                if context.needsCleanup(exception_attribute_error_name):
+                    context.removeCleanupTempName(exception_attribute_error_name)
+
+                emit(
+                    "((PyAttributeErrorObject *)%s)->name = %s;"
+                    % (to_name, exception_attribute_error_name)
+                )
+
+            attribute_error_obj_expression = expression.subnode_obj
+
+            if attribute_error_obj_expression is not None:
+                exception_attribute_error_obj = context.allocateTempName(
+                    "make_exception_attribute_error_obj"
+                )
+
+                generateExpressionCode(
+                    to_name=attribute_error_obj_expression,
+                    expression=attribute_error_obj_expression,
+                    emit=emit,
+                    context=context,
+                    allow_none=True,
+                )
+
+                getReferenceExportCode(exception_attribute_error_obj, emit, context)
+                if context.needsCleanup(exception_attribute_error_obj):
+                    context.removeCleanupTempName(exception_attribute_error_obj)
+
+                emit(
+                    "((PyAttributeErrorObject *)%s)->obj = %s;"
+                    % (to_name, exception_attribute_error_obj)
+                )
+
 
 def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
     _generateBuiltinMakeExceptionCode(
