@@ -2668,6 +2668,12 @@
       replacements_plain:
         'import numexpr.tests': 'raise ImportError'
 
+- module-name: 'numexpr.cpuinfo' # checksum: 53d827f7
+  anti-bloat:
+    - description: 'workaround for "is type" test'
+      replacements_plain:
+        'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
+
 - module-name: 'numpy' # checksum: d50b5b5e
   dlls:
     - from_filenames:
