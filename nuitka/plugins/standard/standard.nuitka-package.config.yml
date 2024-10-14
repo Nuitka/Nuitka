@@ -556,6 +556,12 @@
     - depends:
         - '_cffi_backend'
 
+- module-name: 'bsdiff4' # checksum: b157a72f
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test': 'un-callable'
+
 - module-name: 'cairo' # checksum: 16042494
   implicit-imports:
     - depends:
