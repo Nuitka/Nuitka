@@ -262,12 +262,15 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         exception_name = self.getExceptionName()
 
-        def createBuiltinMakeExceptionNode(args, name=None, path=None, source_ref=None):
+        def createBuiltinMakeExceptionNode(
+            args, name=None, path=None, obj=None, source_ref=None
+        ):
             return makeBuiltinMakeExceptionNode(
                 exception_name=exception_name,
                 args=args,
                 name=name,
                 path=path,
+                obj=obj,
                 for_raise=False,
                 source_ref=source_ref,
             )
