@@ -7702,6 +7702,12 @@
         'from distributed import Client': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'tufup.repo' # checksum: 737f453f
+  anti-bloat:
+    - description: 'need to use setuptools'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
 - module-name: 'twofish' # checksum: c8ae9b1e
   implicit-imports:
     - depends:
