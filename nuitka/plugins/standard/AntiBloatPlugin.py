@@ -111,6 +111,10 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["wheel.util"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
