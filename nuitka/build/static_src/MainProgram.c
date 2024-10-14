@@ -1151,7 +1151,7 @@ static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *
 static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called by C exit()"); }
 #endif
 
-#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAILT)
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #include <signal.h>
 static void nuitka_segfault_handler(int sig) {
     puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
@@ -1183,7 +1183,7 @@ int main(int argc, char **argv) {
 #endif
 
     // Installer a segfault handler that outputs a helpful message.
-#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAILT)
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
     signal(SIGSEGV, nuitka_segfault_handler);
 #endif
 
