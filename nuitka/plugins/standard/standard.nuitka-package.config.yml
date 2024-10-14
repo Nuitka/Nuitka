@@ -1127,7 +1127,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 18979466
+- module-name: 'django.core.management' # checksum: cb686c29
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1156,7 +1156,7 @@
     checks:
       - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
         support_info: 'parameter'
-        when: 'standalone and get_parameter("settings-module", None) is None'
+        when: 'get_parameter("settings-module", None) is None'
 
 - module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
   anti-bloat:
