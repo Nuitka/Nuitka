@@ -130,7 +130,7 @@ PyObject *MATCH_CLASS_ARGS(PyThreadState *tstate, PyObject *matched, PyObject *m
         if (unlikely(arg_value == NULL)) {
             DROP_ERROR_OCCURRED(tstate);
 
-            Py_DECREF(match_args);
+            Py_XDECREF(match_args);
             Py_DECREF(result);
 
             Py_INCREF_IMMORTAL(Py_None);
