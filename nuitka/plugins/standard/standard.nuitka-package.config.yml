@@ -5088,6 +5088,14 @@
     - depends:
         - 'huggingface_hub.repository'
 
+- module-name: 'setuptools' # checksum: 43d55a9f
+  import-hacks:
+    - global-sys-path:
+        # This package forces vendored packages into "sys.path" and causes
+        # absolute imports from there to be available.
+        - '_vendor'
+      when: 'version("setuptools") >= (71,)'
+
 - module-name: 'setuptools.extern' # checksum: 2b2a3793
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
   # similar, and we might try and avoid duplication between the two of them on
