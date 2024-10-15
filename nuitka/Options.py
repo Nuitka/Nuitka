@@ -53,6 +53,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
+    getNormalizedPath,
     isLegalPath,
     isPathExecutable,
     openTextFile,
@@ -123,7 +124,7 @@ def checkPathSpec(value, arg_name, allow_disable):
         )
 
     # This changes the '/' to '\' on Windows at least.
-    value = os.path.normpath(value)
+    value = getNormalizedPath(value)
 
     if "\n" in value or "\r" in value:
         Tracing.options_logger.sysexit(
