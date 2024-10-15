@@ -673,11 +673,11 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     gc->_gc_next = 0;
     gc->_gc_prev = 0;
 
-    gcstate->young.count++;
-    gcstate->heap_size++;
+    gcstate->generations[0].count++;
 
-    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
-        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
+    if (gcstate->generations[0].count > gcstate->generations[0].threshold && gcstate->enabled &&
+        gcstate->generations[0].threshold && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
+        !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
 #endif
