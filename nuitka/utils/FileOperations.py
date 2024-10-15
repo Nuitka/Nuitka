@@ -10,6 +10,7 @@ stuff. It will also frequently add sorting for determinism.
 
 from __future__ import print_function
 
+import codecs
 import errno
 import fnmatch
 import glob
@@ -101,8 +102,8 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    path1 = os.path.abspath(os.path.normpath(path1))
-    path2 = os.path.abspath(os.path.normpath(path2))
+    path1 = os.path.abspath(getNormalizedPath(path1))
+    path2 = os.path.abspath(getNormalizedPath(path2))
 
     if os.path.exists(path1) and os.path.exists(path2):
         path1 = getExternalUsePath(path1)
@@ -787,19 +788,22 @@ def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
         yield temp_file
 
 
-def getFileContentByLine(filename, mode="r", encoding=None):
+def getFileContentByLine(filename, mode="r", encoding=None, errors=None):
     # We read the whole, to keep lock times minimal. We only deal with small
     # files like this normally.
-    return getFileContents(filename, mode, encoding=encoding).splitlines()
+    return getFileContents(
+        filename, mode, encoding=encoding, errors=errors
+    ).splitlines()
 
 
-def getFileContents(filename, mode="r", encoding=None):
+def getFileContents(filename, mode="r", encoding=None, errors=None):
     """Get the contents of a file.
 
     Args:
         filename: str with the file to be read
         mode: "r" for str, "rb" for bytes result
         encoding: optional encoding to used when reading the file, e.g. "utf8"
+        errors: optional error handler decoding the content, as defined in `codecs`
 
     Returns:
         str or bytes - depending on mode.
@@ -807,7 +811,7 @@ def getFileContents(filename, mode="r", encoding=None):
     """
 
     with withFileLock("reading file %s" % filename):
-        with openTextFile(filename, mode, encoding=encoding) as f:
+        with openTextFile(filename, mode, encoding=encoding, errors=errors) as f:
             return f.read()
 
 
@@ -829,18 +833,11 @@ def getFileFirstLine(filename, mode="r", encoding=None):
             return f.readline()
 
 
-def openTextFile(filename, mode, encoding=None):
-    if encoding is not None:
-        import codecs
+def openTextFile(filename, mode, encoding=None, errors=None):
+    if python_version >= 0x3B0:
+        mode = mode.replace("U", "")
 
-        return codecs.open(filename, mode, encoding=encoding)
-    else:
-        # Avoid deprecation warning, is now the default.
-        if python_version >= 0x370:
-            mode = mode.replace("U", "")
-
-        # Encoding was checked to be not needed.
-        return open(filename, mode)  # pylint: disable=unspecified-encoding
+    return codecs.open(filename, mode, encoding=encoding, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):
@@ -1531,6 +1528,18 @@ def getParentDirectories(path):
             return
 
         yield path
+
+
+def getNormalizedPath(path):
+    """Return normalized path that is also a native path, i.e. only legal characters.
+
+    Needed, because MSYS2 likes to keep "/" in normalized paths.
+    """
+    path = os.path.normpath(path)
+    if isWin32Windows():
+        path = path.replace("/", "\\")
+
+    return path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
