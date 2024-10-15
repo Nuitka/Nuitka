@@ -672,7 +672,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             PyObject *old_value = tstate->exc_value;
             PyTracebackObject *old_tb = (PyTracebackObject *)tstate->exc_traceback;
 
-            // Set sys attributes in the fastest possible way.
+            // Set sys attributes in the fastest possible way, spell-checker: ignore sysdict
             PyObject *sys_dict = tstate->interp->sysdict;
             CHECK_OBJECT(sys_dict);
 
@@ -1484,7 +1484,7 @@ static int Nuitka_Generator_set_qualname(PyObject *self, PyObject *value, void *
     return 0;
 }
 
-static PyObject *Nuitka_Generator_get_yieldfrom(PyObject *self, void *data) {
+static PyObject *Nuitka_Generator_get_yield_from(PyObject *self, void *data) {
     struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     if (generator->m_yield_from) {
         Py_INCREF(generator->m_yield_from);
@@ -1564,13 +1564,15 @@ static int Nuitka_Generator_set_running(PyObject *self, PyObject *value, void *d
     return -1;
 }
 
+// spell-checker: ignore gi_yieldfrom
+
 static PyGetSetDef Nuitka_Generator_tp_getset[] = {
 #if PYTHON_VERSION < 0x350
     {(char *)"__name__", Nuitka_Generator_get_name, NULL, NULL},
 #else
     {(char *)"__name__", Nuitka_Generator_get_name, Nuitka_Generator_set_name, NULL},
     {(char *)"__qualname__", Nuitka_Generator_get_qualname, Nuitka_Generator_set_qualname, NULL},
-    {(char *)"gi_yieldfrom", Nuitka_Generator_get_yieldfrom, NULL, NULL},
+    {(char *)"gi_yieldfrom", Nuitka_Generator_get_yield_from, NULL, NULL},
 #endif
     {(char *)"gi_code", Nuitka_Generator_get_code, Nuitka_Generator_set_code, NULL},
     {(char *)"gi_frame", Nuitka_Generator_get_frame, Nuitka_Generator_set_frame, NULL},
