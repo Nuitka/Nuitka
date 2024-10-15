@@ -233,11 +233,6 @@ def makeBuiltinExceptionParameterSpec(exception_name):
     else:
         is_new_import_error = False
 
-    if exception_name == "AttributeError" and python_version >= 0x3A0:
-        is_new_attribute_error = True
-    else:
-        is_new_attribute_error = False
-
     if is_new_import_error:
         # This is currently the only known built-in exception that does it, but let's
         # be general, as surely that list is going to expand only.
@@ -245,7 +240,7 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "path")
         )
-    elif is_new_attribute_error:
+    elif exception_name == "AttributeError" and python_version >= 0x3A0:
         return BuiltinParameterSpecExceptionsKwOnly(
             exception_name=exception_name, kw_only_args=("name", "obj")
         )
