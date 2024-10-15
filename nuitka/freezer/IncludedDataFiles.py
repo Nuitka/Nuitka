@@ -539,7 +539,7 @@ def _reportDataFiles():
 
 
 def _checkPathConflict(dest_path, standalone_entry_points):
-    assert os.path.normpath(dest_path) == dest_path
+    assert getNormalizedPath(dest_path) == dest_path
 
     while dest_path:
         for standalone_entry_point in standalone_entry_points:
