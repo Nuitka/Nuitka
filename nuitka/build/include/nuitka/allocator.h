@@ -290,6 +290,8 @@ static bool inline Nuitka_GC_IS_TRACKED_X(PyObject *object) {
 // To allow us marking some of our own values as immortal.
 #if PYTHON_VERSION >= 0x3c0
 static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
+    assert(object != NULL);
+
     // Normally done only with 3.13, but it makes sense to do this.
     if (_PyObject_IS_GC(object) && _PyObject_GC_IS_TRACKED(object)) {
         Nuitka_GC_UnTrack(object);
