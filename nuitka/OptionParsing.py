@@ -401,7 +401,7 @@ allowed forms. With '--include-data-files=/path/to/file/*.txt=folder_name/some.t
 will copy a single file and complain if it's multiple. With
 '--include-data-files=/path/to/files/*.txt=folder_name/' it will put
 all matching files into that folder. For recursive copy there is a
-form with 3 values that '--include-data-files=/path/to/scan=folder_name=**/*.txt'
+form with 3 values that '--include-data-files=/path/to/scan=folder_name/=**/*.txt'
 that will preserve directory structure. Default empty.""",
 )
 
