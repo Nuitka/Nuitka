@@ -361,7 +361,6 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
-        # Too much code here, pylint: disable=too-many-branches
         # TODO: Move the ones that would be possible to yaml config,
 
         if module_name == "site":
