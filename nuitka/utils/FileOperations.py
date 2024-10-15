@@ -101,8 +101,8 @@ def areSamePaths(path1, path2):
     if path1 == path2:
         return True
 
-    path1 = os.path.abspath(os.path.normpath(path1))
-    path2 = os.path.abspath(os.path.normpath(path2))
+    path1 = os.path.abspath(getNormalizedPath(path1))
+    path2 = os.path.abspath(getNormalizedPath(path2))
 
     if os.path.exists(path1) and os.path.exists(path2):
         path1 = getExternalUsePath(path1)
@@ -1531,6 +1531,18 @@ def getParentDirectories(path):
             return
 
         yield path
+
+
+def getNormalizedPath(path):
+    """Return normalized path that is also a native path, i.e. only legal characters.
+
+    Needed, because MSYS2 likes to keep "/" in normalized paths.
+    """
+    path = os.path.normpath(path)
+    if isWin32Windows():
+        path = path.replace("/", "\\")
+
+    return path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
