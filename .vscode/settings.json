@@ -125,8 +125,11 @@
         "abspath",
         "abstractmethod",
         "abstractproperty",
+        "Aiter",
+        "Anext",
         "appdirs",
         "argmap",
+        "Asend",
         "asyncgen",
         "backslashreplace",
         "basenames",
@@ -360,6 +363,7 @@
         "rpaths",
         "RT_RCDATA",
         "Scons",
+        "sendfunc",
         "setattrofunc",
         "Setuptools",
         "sourcery",
@@ -418,6 +422,7 @@
         "wargv",
         "wasi",
         "wcsicmp",
+        "weakrefs",
         "winlibs",
         "wmain",
         "xrange",
@@ -430,6 +435,7 @@
         ".git",
         ".vscode",
         "Mini*.py",
+        "devcontainer.json"
     ],
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
