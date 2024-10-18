@@ -145,7 +145,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         elif platform.system() == "Linux":
             return "linux64"
         elif platform.system() == "Windows":
-            return "win64"
+            return "win-x64"
         else:
             return None
 
