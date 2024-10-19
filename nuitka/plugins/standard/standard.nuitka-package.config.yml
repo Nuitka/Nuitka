@@ -2127,13 +2127,16 @@
     - depends:
         - 'kivy.graphics.compiler'
 
-- module-name: 'kivymd' # checksum: 1fda13e6
+- module-name: 'kivymd' # checksum: b3f15565
   data-files:
     - dirs:
         - 'fonts'
         - 'images'
         - 'data'
         - 'uix'
+  implicit-imports:
+    - depends:
+        - 'kivymd.icon_definitions'
 
 - module-name: 'kiwisolver' # checksum: a0fc11a6
   dlls:
