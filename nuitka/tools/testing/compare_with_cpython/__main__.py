@@ -322,7 +322,9 @@ def main():
 
     extra_options = os.getenv("NUITKA_EXTRA_OPTIONS", "").split()
 
-    if os.path.normcase(os.environ["PYTHON"]).endswith(("-dbg", "-debug", "_d.exe")):
+    if os.path.normcase(os.environ["PYTHON"]).endswith(
+        ("-dbg", "-debug", "d", "_d.exe")
+    ):
         python_debug = True
     elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
