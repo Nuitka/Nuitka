@@ -1748,6 +1748,11 @@
         'from torch.utils.cpp_extension import _get_build_directory, load': ''
       when: 'not use_setuptools'
 
+- module-name: 'gssapi.raw' # checksum: f8e7301e
+  implicit-imports:
+    - depends:
+        - 'gssapi.raw._enum_extensions.*'
+
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
     - depends:
