@@ -20,7 +20,6 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 from nuitka.PythonVersions import (
     isPythonValidCLongValue,
     isPythonValidDigitValue,
-    python_version,
 )
 
 from .c_types.CTypeCFloats import CTypeCFloat
