@@ -958,7 +958,7 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
         empty_code = PyObject_GetAttrString(empty_code_object, "co_code");
         CHECK_OBJECT(empty_code);
-#if PYTHON_VERSION >= 0x3d0
+#if PYTHON_VERSION >= 0x3c0
         lnotab = ((PyCodeObject *)empty_code_object)->co_linetable; // spell-checker: ignore linetable
 #else
         lnotab = PyObject_GetAttrString(empty_code_object, "co_lnotab");
