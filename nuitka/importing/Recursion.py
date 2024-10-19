@@ -345,6 +345,14 @@ def _addIncludedModule(module, package_only):
                         module_package=module.getFullName(),
                         package_only=False,
                     )
+                else:
+                    for suffix in getSharedLibrarySuffixes():
+                        if sub_path.endswith(suffix):
+                            checkPluginSinglePath(
+                                sub_path,
+                                module_package=module.getFullName(),
+                                package_only=False,
+                            )
 
     elif module.isCompiledPythonModule() or module.isUncompiledPythonModule():
         ModuleRegistry.addRootModule(module)
