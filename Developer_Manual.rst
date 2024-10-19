@@ -671,6 +671,10 @@ For fine grained control, it has the following options:
                          The standard CPython3.12 test suite. Execute this for
                          all corner cases to be covered. With Python 2.x these
                          are not run. Default is True.
+   --skip-cpython313-tests
+                         The standard CPython3.13 test suite. Execute this for
+                         all corner cases to be covered. With Python 2.x these
+                         are not run. Default is True.
    --no-python2.6        Do not use Python 2.6 even if available on the system.
                          Default is False.
    --no-python2.7        Do not use Python 2.7 even if available on the system.
@@ -692,6 +696,8 @@ For fine grained control, it has the following options:
    --no-python3.11       Do not use Python 3.11 even if available on the system.
                          Default is False.
    --no-python3.12       Do not use Python 3.12 even if available on the system.
+                         Default is False.
+   --no-python3.13       Do not use Python 3.13 even if available on the system.
                          Default is False.
    --coverage            Make a coverage analysis, that does not really check.
                          Default is False.
