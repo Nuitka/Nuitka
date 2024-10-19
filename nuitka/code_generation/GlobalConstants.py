@@ -106,6 +106,7 @@ def getConstantDefaultPopulation():
         "isfile",
         "listdir",
         "stat",
+        "close",
     ]
 
     # Pickling of instance methods.
@@ -144,7 +145,6 @@ def getConstantDefaultPopulation():
         result += (
             # YIELD_FROM uses this
             "throw",
-            "close",
         )
 
     if python_version < 0x300:
