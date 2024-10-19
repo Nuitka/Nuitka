@@ -896,6 +896,111 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
 #endif
 }
 
+#if PYTHON_VERSION >= 0x300
+static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
+    PyDictObject *result_mp;
+
+#if NUITKA_DICT_HAS_FREELIST
+    // This is the CPython name, spell-checker: ignore numfree
+
+#if PYTHON_VERSION < 0x3d0
+    PyDictObject **items = tstate->interp->dict_state.free_list;
+    int *numfree = &tstate->interp->dict_state.numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dict_freelist *state = &freelists->dicts;
+    PyDictObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        result_mp = items[*numfree];
+
+        Nuitka_Py_NewReference((PyObject *)result_mp);
+
+        assert(PyDict_CheckExact((PyObject *)result_mp));
+        assert(result_mp != NULL);
+    } else
+#endif
+    {
+        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+    }
+
+    return result_mp;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x360
+static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate, Py_ssize_t keys_size) {
+    // CPython names, spell-checker: ignore numfree,dictkeys
+    PyDictKeysObject *dk;
+
+// TODO: Cannot always use cached objects. Need to also consider
+// "log2_size == PyDict_LOG_MINSIZE && unicode" as a criterion,
+// seems it can only be used for the smallest keys type.
+#if NUITKA_DICT_HAS_FREELIST && 0
+#if PYTHON_VERSION < 0x3d0
+    PyDictKeysObject **items = tstate->interp->dict_state.keys_free_list;
+    int *numfree = &tstate->interp->dict_state.keys_numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dictkeys_freelist *state = &freelists->dictkeys;
+    PyDictKeysObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        dk = items[*numfree];
+    } else
+#endif
+    {
+#if PYTHON_VERSION < 0x3d0
+        dk = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+#else
+        dk = (PyDictKeysObject *)NuitkaMem_Malloc(keys_size);
+#endif
+    }
+
+    return dk;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x360 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
+
+// Usable fraction of keys.
+#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
+
+static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
+#if PYTHON_VERSION < 0x360
+    return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
+#elif PYTHON_VERSION < 0x370
+    return (sizeof(PyDictKeysObject) - Py_MEMBER_SIZE(PyDictKeysObject, dk_indices) + DK_IXSIZE(keys) * DK_SIZE(keys) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
+#elif PYTHON_VERSION < 0x3b0
+    return (sizeof(PyDictKeysObject) + DK_IXSIZE(keys) * DK_SIZE(keys) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
+#else
+    size_t entry_size = keys->dk_kind == DICT_KEYS_GENERAL ? sizeof(PyDictKeyEntry) : sizeof(PyDictUnicodeEntry);
+    return (sizeof(PyDictKeysObject) + ((size_t)1 << keys->dk_log2_index_bytes) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * entry_size);
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+typedef PyObject *PyDictValues;
+#endif
+
+#if PYTHON_VERSION < 0x360
+#define DK_ENTRIES_SIZE(keys) (keys->dk_size)
+#elif PYTHON_VERSION < 0x3b0
+#define DK_ENTRIES_SIZE(keys) DK_USABLE_FRACTION(DK_SIZE(keys))
+#else
+#define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
+#endif
+
 #include "HelpersDictionariesGenerated.c"
 
 void DICT_CLEAR(PyObject *dict) {
@@ -1463,6 +1568,7 @@ PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size
 
     return result;
 }
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
