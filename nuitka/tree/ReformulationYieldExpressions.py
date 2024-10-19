@@ -24,16 +24,22 @@ from .TreeHelpers import buildNode
 
 
 def _checkInsideGenerator(construct_name, provider, node, source_ref):
+
     if provider.isCompiledPythonModule():
+        # Bug compatibility
+        if python_version < 0x3D0 and construct_name == "yield from":
+            construct_error_name = "yield"
+        else:
+            construct_error_name = construct_name
+
         raiseSyntaxError(
-            "'%s' outside function"
-            % (construct_name if construct_name == "await" else "yield"),
+            "'%s' outside function" % construct_error_name,
             source_ref.atColumnNumber(node.col_offset),
         )
 
-    # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
+    # This yield is forbidden in 3.5, but allowed in 3.6, but "yield from"
     # is neither.
-    if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield_from":
+    if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield from":
         raiseSyntaxError(
             "'%s' inside async function"
             % ("yield" if node.__class__ is ast.Yield else "yield from",),
@@ -80,7 +86,7 @@ def buildYieldNode(provider, node, source_ref):
 def buildYieldFromNode(provider, node, source_ref):
     assert python_version >= 0x300
 
-    _checkInsideGenerator("yield_from", provider, node, source_ref)
+    _checkInsideGenerator("yield from", provider, node, source_ref)
 
     return ExpressionYieldFrom(
         expression=buildNode(provider, node.value, source_ref), source_ref=source_ref
