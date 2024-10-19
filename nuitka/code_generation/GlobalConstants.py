@@ -106,6 +106,7 @@ def getConstantDefaultPopulation():
         "isfile",
         "listdir",
         "stat",
+        "close",
     ]
 
     if python_version < 0x300:
@@ -147,7 +148,6 @@ def getConstantDefaultPopulation():
         result += (
             # YIELD_FROM uses this
             "throw",
-            "close",
         )
 
     if python_version < 0x300:
