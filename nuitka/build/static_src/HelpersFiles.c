@@ -83,10 +83,10 @@ PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filen
 }
 
 PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename) {
-    PyObject *result;
+    PyObject *read_result;
 
-    if (TRACE_FILE_READ(tstate, filename, &result)) {
-        return result;
+    if (TRACE_FILE_READ(tstate, filename, &read_result)) {
+        return read_result;
     }
 
     PyObject *data_file = BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
@@ -103,9 +103,32 @@ PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename) {
         return NULL;
     }
 
-    result = CALL_FUNCTION_NO_ARGS(tstate, read_method);
+    PyObject *close_method = LOOKUP_ATTRIBUTE(tstate, data_file, const_str_plain_close);
+
+    if (unlikely(close_method == NULL)) {
+        Py_DECREF(read_method);
+        return NULL;
+    }
+
+    read_result = CALL_FUNCTION_NO_ARGS(tstate, read_method);
     Py_DECREF(read_method);
-    return result;
+
+    if (unlikely(read_result == NULL)) {
+        Py_DECREF(close_method);
+        return NULL;
+    }
+
+    PyObject *close_result = CALL_FUNCTION_NO_ARGS(tstate, close_method);
+    Py_DECREF(close_method);
+
+    if (unlikely(close_result == NULL)) {
+        Py_DECREF(read_result);
+        return NULL;
+    }
+
+    Py_DECREF(close_result);
+
+    return read_result;
 }
 
 // TODO: Don't we have this generated.
