@@ -252,6 +252,16 @@ covered. With Python 2.x these are not run. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-cpython313-tests",
+        action="store_false",
+        dest="cpython313",
+        default=True,
+        help="""\
+The standard CPython3.13 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action="store_true",
         dest="cpython_no_other",
@@ -381,6 +391,15 @@ Do not use Python3.12 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.13",
+        action="store_true",
+        dest="no313",
+        default=False,
+        help="""\
+Do not use Python3.13 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -457,6 +476,8 @@ not being passed.""",
             options.no311 = True
         if sys.version_info[0:2] != (3, 12):
             options.no312 = True
+        if sys.version_info[0:2] != (3, 13):
+            options.no313 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -483,6 +504,8 @@ not being passed.""",
             options.cpython311 = False
         if sys.version_info[0:2] != (3, 12):
             options.cpython312 = False
+        if sys.version_info[0:2] != (3, 13):
+            options.cpython313 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -497,6 +520,7 @@ not being passed.""",
         options.cpython310 = False
         options.cpython311 = False
         options.cpython312 = False
+        options.cpython313 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -604,6 +628,8 @@ def main():
             return False
         if command == "python3.12" and options.no312:
             return False
+        if command == "python3.13" and options.no313:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -628,6 +654,8 @@ def main():
         if command == "python3.11" and sys.version_info[0:2] == (3, 11):
             return True
         if command == "python3.12" and sys.version_info[0:2] == (3, 12):
+            return True
+        if command == "python3.13" and sys.version_info[0:2] == (3, 13):
             return True
 
         path = os.environ["PATH"]
@@ -949,6 +977,17 @@ def main():
                             executeSubTest("./tests/CPython312/run_all.py search")
                     else:
                         my_print("The CPython3.12 tests are not present, not run.")
+
+            # Running the Python 3.12 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if options.cpython313:
+                    if os.path.exists("./tests/CPython313/run_all.py"):
+                        with withExtendedExtraOptions(
+                            *getExtraFlags(where, "313tests", flags)
+                        ):
+                            executeSubTest("./tests/CPython313/run_all.py search")
+                    else:
+                        my_print("The CPython3.13 tests are not present, not run.")
 
     if not any(
         checkExecutableCommand("python%s" % python_version)
