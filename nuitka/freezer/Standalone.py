@@ -267,13 +267,16 @@ def getRemovedUsedDllsInfo():
 
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
+    # TODO: We are handling a bunch of cases here, but also some special cases,
+    # that should live elsewhere, pylint: disable=too-many-locals
+
     binary_filename = standalone_entry_point.source_path
     try:
         used_dll_paths = _detectBinaryDLLs(
             is_main_executable=standalone_entry_point.kind == "executable",
             source_dir=source_dir,
             original_filename=standalone_entry_point.source_path,
-            binary_filename=standalone_entry_point.source_path,
+            binary_filename=binary_filename,
             package_name=standalone_entry_point.package_name,
             use_cache=not shallNotUseDependsExeCachedResults(),
             update_cache=not shallNotStoreDependsExeCachedResults(),
@@ -282,6 +285,14 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         inclusion_logger.info(
             "Not including due to forbidden DLL '%s'." % binary_filename
         )
+    except (RuntimeError, Exception) as e:
+        inclusion_logger.warning(
+            """\
+Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
+            % (binary_filename, standalone_entry_point.package_name, str(e))
+        )
+
+        raise
     else:
         # Plugins generally decide if they allow dependencies from the outside
         # based on the package name.
@@ -337,7 +348,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                     "openvino",
                     "av",
                 )
-                and areInSamePaths(standalone_entry_point.source_path, used_dll_path)
+                and areInSamePaths(binary_filename, used_dll_path)
             ):
                 # TODO: If used by a DLL from the same folder, put it there,
                 # otherwise top level, but for now this is limited to a few cases
