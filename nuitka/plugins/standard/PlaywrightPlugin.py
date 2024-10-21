@@ -42,29 +42,31 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             """,
         )
 
-    def _getPlaywrightInfo(self):
-        "Determine the path of the playwright module."
-        try:
-            info = self.locateModule("playwright")
-        except NuitkaCalledProcessError as e:
-            self.debug("Exception during detection: %r" % e)
-            raise
+    def _getPlaywrightPath(self):
+        """Determine the path of the playwright module.
+
+        """
+        info = self.locateModule("playwright")
 
         if info is None:
             self.sysexit("Error, it seems 'playwright' is not installed or broken.")
 
         return info
 
-    def _getRegistryDirectory(self):
+    def _getPlaywrightRegistryDirectory(self):
         # this is a port of playwright's JS script which determines where the browsers are installed
 
         env_defined = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
         path_home = os.path.expanduser("~")
-        playwright_module_path = self._getPlaywrightInfo()
+        playwright_module_path = self._getPlaywrightPath()
 
         result = os.path.join(
             playwright_module_path, "driver", "package", ".local-browsers"
         )
+
+        # TODO: This is seemingly a test for non-empty directory, which we should
+        # then add to FileOperations.
+
         if os.path.exists(result) and next(os.scandir(result), False):
             return result
         elif env_defined == "0":
@@ -93,7 +95,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
         return result
 
     def getInstalledPlaywrightBrowsers(self):
-        registry_directory = self._getRegistryDirectory()
+        registry_directory = self._getPlaywrightRegistryDirectory()
         if not os.path.exists(registry_directory):
             return
 
