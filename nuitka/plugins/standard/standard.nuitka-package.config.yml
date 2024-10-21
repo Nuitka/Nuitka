@@ -40,6 +40,12 @@
     - depends:
         - 'yaml'
 
+- module-name: 'absl.testing' # checksum: 2f66bb94
+  anti-bloat:
+    - description: 'Need to allow unittest usage'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
 - module-name: 'accessible_output2' # checksum: 27cd20b7
   data-files:
     - dirs:
