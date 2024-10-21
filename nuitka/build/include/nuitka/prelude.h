@@ -276,6 +276,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
  * which makes it easier to write portable code.
  */
 #if PYTHON_VERSION < 0x300
+#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #define Nuitka_String_AsString PyString_AsString
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
@@ -288,6 +289,23 @@ NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObje
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
 #define Nuitka_String_FromFormat PyString_FromFormat
 #define PyUnicode_CHECK_INTERNED (0)
+NUITKA_MAY_BE_UNUSED static Py_UNICODE *Nuitka_UnicodeAsWideString(PyObject *str, Py_ssize_t *size) {
+    PyObject *unicode;
+
+    if (!PyUnicode_Check(str)) {
+        // Leaking memory, but for usages its acceptable to
+        // achieve that the pointer remains valid.
+        unicode = PyObject_Unicode(str);
+    } else {
+        unicode = str;
+    }
+
+    if (size != NULL) {
+        *size = (Py_ssize_t)PyUnicode_GET_LENGTH(unicode);
+    }
+
+    return PyUnicode_AsUnicode(unicode);
+}
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
@@ -313,10 +331,7 @@ NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObjec
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #define Nuitka_String_FromFormat PyUnicode_FromFormat
-#endif
-
-#if PYTHON_VERSION < 0x300
-#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
+#define Nuitka_UnicodeAsWideString PyUnicode_AsWideCharString
 #endif
 
 // Wrap the type lookup for debug mode, to identify errors, and potentially

@@ -1175,6 +1175,14 @@ extern char const *getBinaryFilenameHostEncoded(bool resolve_symlinks);
 PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
 
+// Preserve and provide the original argv[0] as recorded by the bootstrap stage.
+static environment_char_t const *original_argv0 = NULL;
+
+PyObject *getOriginalArgv0Object(void) {
+    assert(original_argv0 != NULL);
+    return Nuitka_String_FromFilename(original_argv0);
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -1324,7 +1332,20 @@ int main(int argc, char **argv) {
 
 // Make sure, we use the absolute program path for argv[0]
 #if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 0
+    original_argv0 = argv[0];
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
+#endif
+
+#if defined(_NUITKA_ONEFILE_MODE)
+    {
+        environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
+
+        if (parent_original_argv0 != NULL) {
+            original_argv0 = strdupFilename(parent_original_argv0);
+
+            unsetEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
+        }
+    }
 #endif
 
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
@@ -1338,8 +1359,11 @@ orig_argv = argv;
 #endif
 
 // Make sure, we use the absolute program path for argv[0]
-#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1 && PYTHON_VERSION >= 0x300
+#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1
+    original_argv0 = argv[0];
+#if PYTHON_VERSION >= 0x300
     orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
+#endif
 #endif
 
     // Make sure the compiled path of Python is replaced.

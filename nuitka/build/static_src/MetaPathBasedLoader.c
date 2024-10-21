@@ -95,10 +95,12 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
 #if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 
 static void appendModuleNameAsPathW(wchar_t *buffer, PyObject *module_name, size_t buffer_size) {
-    wchar_t const *module_name_wstr = PyUnicode_AsWideCharString(module_name, NULL);
+    Py_ssize_t size;
+    wchar_t const *module_name_wstr = Nuitka_UnicodeAsWideString(module_name, &size);
 
-    while (*module_name_wstr != 0) {
+    while (size > 0) {
         wchar_t c = *module_name_wstr++;
+        size -= 1;
 
         if (c == L'.') {
             c = SEP_L;
@@ -470,11 +472,7 @@ static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObjec
     // create the string needed.
     assert(PyUnicode_CheckExact(extension_module_filename));
 
-#if PYTHON_VERSION < 0x300
-    wchar_t const *extension_module_filename_str = PyUnicode_AS_UNICODE(extension_module_filename);
-#else
-    wchar_t const *extension_module_filename_str = PyUnicode_AsWideCharString(extension_module_filename, NULL);
-#endif
+    wchar_t const *extension_module_filename_str = Nuitka_UnicodeAsWideString(extension_module_filename, NULL);
 #else
     char const *extension_module_filename_str = Nuitka_String_AsString(extension_module_filename);
 #endif
