@@ -15,7 +15,7 @@ from nuitka.utils.Execution import NuitkaCalledProcessError
 class NuitkaPluginPlaywright(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
-    plugin_name = "Playwright"
+    plugin_name = "playwright"
     plugin_desc = "Required by 'playwright' package."
 
     def __init__(self, include_browsers):
