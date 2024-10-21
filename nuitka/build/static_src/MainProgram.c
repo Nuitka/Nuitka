@@ -8,7 +8,7 @@
  * For multiprocessing, joblib, loky there is things here that will
  * allow them to fork properly with their intended entry points.
  *
- * spell-checker: ignore joblib loky anyio
+ * spell-checker: ignore joblib loky anyio platlibdir
  *
  */
 
@@ -386,7 +386,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
 #endif
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-    printf("Commandline: ");
+    printf("Command line: ");
     for (int i = 0; i < argc; i++) {
         if (i != 0) {
             printf(" ");
@@ -395,7 +395,7 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
     printf("\n");
 #else
-    wprintf(L"Commandline: '%lS' %d\n", GetCommandLineW(), argc);
+    wprintf(L"Command line: '%lS' %d\n", GetCommandLineW(), argc);
 #endif
 #endif
 
@@ -1630,7 +1630,7 @@ orig_argv = argv;
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
 
-// TODO: Python3.13 NOGIL: This is causing errors during bytecode import
+// TODO: Python3.13 NoGIL: This is causing errors during bytecode import
 // that are unexplained.
 #if !defined(Py_GIL_DISABLED)
     patchInspectModule(tstate);
