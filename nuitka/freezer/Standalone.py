@@ -285,7 +285,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         inclusion_logger.info(
             "Not including due to forbidden DLL '%s'." % binary_filename
         )
-    except Exception as e:
+    except (RuntimeError, Exception) as e:
         inclusion_logger.warning(
             """\
 Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
