@@ -11,7 +11,6 @@ from nuitka.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
-from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 # spell-checker: ignore tkinterdnd,tkdnd,tcltk
@@ -145,23 +144,9 @@ The Tcl library dir. See comments for Tk library dir.""",
         elif platform.system() == "Linux":
             return "linux64"
         elif platform.system() == "Windows":
-            return "win64"
+            return "win-x64"
         else:
             return None
-
-    def _considerDataFilesTkinterDnD(self, module):
-        platform_rep = self._getTkinterDnDPlatformDirectory()
-
-        if platform_rep is None:
-            return
-
-        yield self.makeIncludedPackageDataFiles(
-            package_name="tkinterdnd2",
-            package_directory=module.getCompileTimeDirectory(),
-            pattern=os.path.join("tkdnd", platform_rep, "**"),
-            reason="Tcl needed for 'tkinterdnd2' usage",
-            tags="tcl",
-        )
 
     def _getTclCandidatePaths(self):
         # Check typical locations of the dirs
@@ -234,12 +219,6 @@ The Tcl library dir. See comments for Tk library dir.""",
             IncludedDataFile objects.
         """
 
-        # Extra TCL providing module go here:
-        if module.getFullName() == "tkinterdnd2.TkinterDnD":
-            yield self._considerDataFilesTkinterDnD(module)
-
-            return
-
         if not _isTkInterModule(module) or self.files_copied:
             return
 
@@ -300,27 +279,6 @@ that works, report a bug."""
             )
 
         self.files_copied = True
-
-    def getExtraDlls(self, module):
-        if module.getFullName() == "tkinterdnd2.TkinterDnD":
-            platform_rep = self._getTkinterDnDPlatformDirectory()
-
-            if platform_rep is None:
-                return
-
-            module_directory = module.getCompileTimeDirectory()
-
-            for filename, _dll_filename in listDllFilesFromDirectory(
-                os.path.join(module_directory, "tkdnd", platform_rep)
-            ):
-                dest_path = relpath(filename, module_directory)
-                yield self.makeDllEntryPoint(
-                    source_path=filename,
-                    dest_path=os.path.join("tkinterdnd2", dest_path),
-                    module_name="tkinterdnd2",
-                    package_name="tkinterdnd2",
-                    reason="tkinterdnd2 package DLL",
-                )
 
     def onModuleCompleteSet(self, module_set):
         if str is bytes:
