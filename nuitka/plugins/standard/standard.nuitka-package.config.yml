@@ -6988,6 +6988,27 @@
     - dirs:
         - 'tkdnd/osx64'
       when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/win-arm64'
+      when: 'use_tkinter and win32 and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/win-x64'
+      when: 'use_tkinter and win32 and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/win-x86'
+      when: 'use_tkinter and win32 and arch_x86 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/linux-arm64'
+      when: 'use_tkinter and linux and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/linux-x64'
+      when: 'use_tkinter and linux and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/osx-arm64'
+      when: 'use_tkinter and macos and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/osx-x64'
+      when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
   dlls:
     - from_filenames:
         relative_path: 'tkdnd/win64'
@@ -7004,6 +7025,42 @@
         prefixes:
           - ''
       when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+
+    - from_filenames:
+        relative_path: 'tkdnd/win-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/win-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/win-x86'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_x86 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
 - module-name: 'tkinterweb' # checksum: 5de6ded8
   data-files:
