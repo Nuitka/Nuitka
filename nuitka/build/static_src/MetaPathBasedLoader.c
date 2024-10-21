@@ -472,7 +472,7 @@ static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObjec
     // create the string needed.
     assert(PyUnicode_CheckExact(extension_module_filename));
 
-    wchar_t const *extension_module_filename_str = Nuitka_UnicodeAsWideString(extension_module_filename);
+    wchar_t const *extension_module_filename_str = Nuitka_UnicodeAsWideString(extension_module_filename, NULL);
 #else
     char const *extension_module_filename_str = Nuitka_String_AsString(extension_module_filename);
 #endif
