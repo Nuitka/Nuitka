@@ -6977,6 +6977,34 @@
           - 'libextrafont'
       when: 'win32'
 
+- module-name: 'tkinterdnd2.TkinterDnD' # checksum: ac56a06b
+  data-files:
+    - dirs:
+        - 'tkdnd/win64'
+      when: 'use_tkinter and win32 and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/linux64'
+      when: 'use_tkinter and linux and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/osx64'
+      when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+  dlls:
+    - from_filenames:
+        relative_path: 'tkdnd/win64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and version("tkinterdnd2") < (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and version("tkinterdnd2") < (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+
 - module-name: 'tkinterweb' # checksum: 5de6ded8
   data-files:
     - dirs:
