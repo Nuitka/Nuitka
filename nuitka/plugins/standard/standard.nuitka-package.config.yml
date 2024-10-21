@@ -2491,6 +2491,15 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'mne.utils._testing' # checksum: 76efa1b7
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'from unittest import SkipTest': 'SkipTest = None'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'mnemonic' # checksum: cfacd704
   data-files:
     - dirs:
