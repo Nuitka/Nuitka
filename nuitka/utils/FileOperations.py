@@ -787,19 +787,22 @@ def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
         yield temp_file
 
 
-def getFileContentByLine(filename, mode="r", encoding=None):
+def getFileContentByLine(filename, mode="r", encoding=None, errors=None):
     # We read the whole, to keep lock times minimal. We only deal with small
     # files like this normally.
-    return getFileContents(filename, mode, encoding=encoding).splitlines()
+    return getFileContents(
+        filename, mode, encoding=encoding, errors=errors
+    ).splitlines()
 
 
-def getFileContents(filename, mode="r", encoding=None):
+def getFileContents(filename, mode="r", encoding=None, errors=None):
     """Get the contents of a file.
 
     Args:
         filename: str with the file to be read
         mode: "r" for str, "rb" for bytes result
         encoding: optional encoding to used when reading the file, e.g. "utf8"
+        errors: optional error handler decoding the content, as defined in `codecs`
 
     Returns:
         str or bytes - depending on mode.
@@ -807,7 +810,7 @@ def getFileContents(filename, mode="r", encoding=None):
     """
 
     with withFileLock("reading file %s" % filename):
-        with openTextFile(filename, mode, encoding=encoding) as f:
+        with openTextFile(filename, mode, encoding=encoding, errors=errors) as f:
             return f.read()
 
 
@@ -829,18 +832,19 @@ def getFileFirstLine(filename, mode="r", encoding=None):
             return f.readline()
 
 
-def openTextFile(filename, mode, encoding=None):
+def openTextFile(filename, mode, encoding=None, errors=None):
     if encoding is not None:
         import codecs
 
-        return codecs.open(filename, mode, encoding=encoding)
+        return codecs.open(filename, mode, encoding=encoding, errors=errors)
     else:
         # Avoid deprecation warning, is now the default.
         if python_version >= 0x370:
             mode = mode.replace("U", "")
 
         # Encoding was checked to be not needed.
-        return open(filename, mode)  # pylint: disable=unspecified-encoding
+        # pylint: disable=unspecified-encoding
+        return open(filename, mode, errors=errors)
 
 
 def putTextFileContents(filename, contents, encoding=None):
