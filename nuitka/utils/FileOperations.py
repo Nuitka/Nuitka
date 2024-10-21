@@ -836,10 +836,6 @@ def openTextFile(filename, mode, encoding=None, errors=None):
     if encoding is not None:
         import codecs
 
-        # `errors` defaults to "strict" in `codecs.open`
-        if errors is None:
-            errors = "strict"
-
         return codecs.open(filename, mode, encoding=encoding, errors=errors)
     else:
         # Avoid deprecation warning, is now the default.
