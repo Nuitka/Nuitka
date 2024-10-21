@@ -14,7 +14,7 @@
 #endif
 
 // spell-checker: ignore f_valuestack,f_stacktop,PYGEN,_Py_CODEUNIT,OPARG
-// spell-checker: ignore localsplus
+// spell-checker: ignore localsplus,stacktop,f_funcobj,genexit
 // spell-checker: ignore deopt,subscr,isinstance,getitem,noargs,aiter,anext
 // spell-checker: ignore classderef,getattribute,precall,nondescriptor,pyfunc
 
@@ -1274,11 +1274,11 @@ static void _Nuitka_PyFrame_Clear(PyThreadState *tstate, _PyInterpreterFrame *fr
 // Needs to be similar to "gen_send_ex2" implementation in CPython. This is the low
 // end of an uncompiled generator receiving a value.
 static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject *gen, PyObject *arg,
-                                              PyObject **presult, int exc, int closing) {
+                                              PyObject **result_ptr, int exc, int closing) {
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)gen->gi_iframe;
     PyObject *result;
 
-    *presult = NULL;
+    *result_ptr = NULL;
 
     if (gen->gi_frame_state == FRAME_CREATED && arg != NULL && arg != Py_None) {
         const char *msg = "can't send non-None value to a just-started generator";
@@ -1309,8 +1309,8 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
         if (PyCoro_CheckExact(gen) && !closing) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "cannot reuse already awaited coroutine");
         } else if (arg && !exc) {
-            *presult = Py_None;
-            Py_INCREF_IMMORTAL(*presult);
+            *result_ptr = Py_None;
+            Py_INCREF_IMMORTAL(*result_ptr);
             return PYGEN_RETURN;
         }
         return PYGEN_ERROR;
@@ -1339,10 +1339,10 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
             _PyErr_StackItem *exc_info = tstate->exc_info;
 
             if (exc_info->exc_value != NULL && exc_info->exc_value != Py_None) {
-                PyObject *exc = tstate->current_exception;
+                PyObject *current_exception = tstate->current_exception;
 
-                PyErr_SetObject((PyObject *)Py_TYPE(exc), exc);
-                Py_DECREF(exc);
+                PyErr_SetObject((PyObject *)Py_TYPE(current_exception), current_exception);
+                Py_DECREF(current_exception);
             }
         }
 #else
@@ -1369,7 +1369,7 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
 #endif
     if (result != NULL) {
         if (gen->gi_frame_state == FRAME_SUSPENDED) {
-            *presult = result;
+            *result_ptr = result;
             return PYGEN_NEXT;
         }
 
@@ -1409,7 +1409,7 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     _Nuitka_PyFrame_Clear(tstate, frame);
 #endif
 
-    *presult = result;
+    *result_ptr = result;
     return result ? PYGEN_RETURN : PYGEN_ERROR;
 }
 
