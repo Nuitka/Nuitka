@@ -1,4 +1,3 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 #     Copyright 2024, Kevin Rodriguez, mailto:turcioskevinr@gmail.com find license text at end of file
 
 """ Plugin for Playwright.
