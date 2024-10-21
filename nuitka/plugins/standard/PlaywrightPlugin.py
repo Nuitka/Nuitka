@@ -92,11 +92,13 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
 
         return result
 
-    def get_Installed_Playwright_Browsers(self):
+    def getInstalledPlaywrightBrowsers(self):
         registry_directory = self._getRegistryDirectory()
         if not os.path.exists(registry_directory):
             return
 
+        # TODO: Seems useless use of os.scandir, our helper for listing a directory
+        # would be better to use.
         browsers_installed = [
             browser
             for browser in os.scandir(registry_directory)
@@ -117,7 +119,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
                 "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
             )
 
-        self.get_Installed_Playwright_Browsers()
+        self.getInstalledPlaywrightBrowsers()
 
         if not self.installed_browsers:
             self.sysexit(
