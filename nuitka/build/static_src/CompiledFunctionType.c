@@ -660,7 +660,7 @@ static PyGetSetDef Nuitka_Function_getset[] = {
      NULL},
     {NULL}};
 
-static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) {
+static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function, PyObject *unused) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -677,7 +677,7 @@ static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) 
     return result;
 }
 
-static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
+static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, PyObject *unused) {
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
