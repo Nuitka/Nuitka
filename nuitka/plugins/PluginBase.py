@@ -173,6 +173,8 @@ def _getEvaluationContext():
             "iterate_modules": _iterate_module_names,
             # Locating package directories
             "get_module_directory": _getModuleDirectory,
+            # Getting data files contents
+            "get_data": _getPackageData,
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
@@ -324,6 +326,12 @@ def _getModuleDirectory(module_name):
     )
 
     return module_filename
+
+
+def _getPackageData(package_name, resource):
+    from nuitka.utils.PackageResources import getPackageData
+
+    return getPackageData(package_name=ModuleName(package_name), resource=resource)
 
 
 def _iterate_module_names(package_name):

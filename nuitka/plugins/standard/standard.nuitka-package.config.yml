@@ -852,7 +852,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 9f6fdcf0
+- module-name: 'cv2' # checksum: 3b767c0d
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -875,7 +875,7 @@
         ? "load_first_config([\n"
         : 'if False: (['
       replacements:
-        "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        "load_first_config(['config.py'], True)": "textwrap.indent(get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
     - description: 'workaround for colliding native module import'
       replacements:
         # Before OpenCV 4.6
