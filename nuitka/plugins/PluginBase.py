@@ -172,7 +172,7 @@ def _getEvaluationContext():
             # Iterating packages
             "iterate_modules": _iterate_module_names,
             # Locating package directories
-            "_get_module_directory": _getModuleDirectory,
+            "get_module_directory": _getModuleDirectory,
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
