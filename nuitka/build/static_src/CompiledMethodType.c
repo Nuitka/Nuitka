@@ -43,7 +43,7 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
+static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method, PyObject *unused) {
     PyThreadState *tstate = PyThreadState_GET();
 
 #if PYTHON_VERSION < 0x300
@@ -95,7 +95,7 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
 
     return result;
 #else
-    return Nuitka_Method_reduce(method);
+    return Nuitka_Method_reduce(method, NULL);
 #endif
 }
 
