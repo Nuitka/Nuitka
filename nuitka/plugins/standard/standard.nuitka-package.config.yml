@@ -1271,11 +1271,11 @@
     - patterns:
         - 'specs/*.json'
 
-- module-name: 'Equation' # checksum: aa47a17f
+- module-name: 'Equation' # checksum: b92f083c
   anti-bloat:
     - description: 'workaround for standalone mode'
       replacements:
-        'os.listdir(dirname)': 'repr(os.listdir(_get_module_directory("Equation")))'
+        'os.listdir(dirname)': 'repr(os.listdir(get_module_directory("Equation")))'
       when: 'standalone'
   implicit-imports:
     - depends:
