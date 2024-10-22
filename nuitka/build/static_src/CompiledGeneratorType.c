@@ -842,7 +842,7 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
     return true;
 }
 
-static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator, PyObject *unused) {
     PyThreadState *tstate = PyThreadState_GET();
 
     bool r = _Nuitka_Generator_close(tstate, generator);
