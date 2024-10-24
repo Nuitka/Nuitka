@@ -279,7 +279,11 @@ def _getCcacheStatistics(ccache_logfile):
         # can be matched against it.
         commands = {}
 
-        for line in getFileContentByLine(ccache_logfile):
+        # Due to upstream issues, lines in the log might have different encodings.
+        # All command and result lines use the platform's default encoding,
+        # so we follow this to ensure these lines are correct.
+        # Unrecognized characters are replaced by byte values, e.g. "\xde\xad"
+        for line in getFileContentByLine(ccache_logfile, errors="backslashreplace"):
             match = re_command.match(line)
 
             if match:
@@ -313,7 +317,9 @@ def _getCcacheStatistics(ccache_logfile):
 
                     all_text = []
 
-                    for line2 in getFileContentByLine(ccache_logfile):
+                    for line2 in getFileContentByLine(
+                        ccache_logfile, errors="backslashreplace"
+                    ):
                         match = re_anything.match(line2)
 
                         if match:
