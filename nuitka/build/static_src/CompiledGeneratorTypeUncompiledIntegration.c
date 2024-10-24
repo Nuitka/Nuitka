@@ -108,7 +108,7 @@ static void SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(PyThreadState *tstate) {
 #endif
 }
 
-#if PYTHON_VERSION >= 0x350
+#if PYTHON_VERSION >= 0x360
 
 #if PYTHON_VERSION >= 0x3c0
 static PyObject *Nuitka_CreateStopAsyncIteration(PyThreadState *tstate) {
