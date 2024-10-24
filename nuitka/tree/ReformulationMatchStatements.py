@@ -393,7 +393,7 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
             source_ref=source_ref,
         )
 
-        item_conditions = item_conditions or []
+        item_conditions = list(item_conditions or ())
 
         item_conditions.insert(
             0,
@@ -403,6 +403,8 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
                 source_ref=source_ref,
             ),
         )
+
+        item_conditions = tuple(item_conditions)
 
         class_conditions_list.append(item_conditions)
         class_assignments_list.append(item_assignments)
