@@ -207,8 +207,9 @@ simply use 'package_name'. Default empty.
 Include the specified data file patterns outside of
 the onefile binary, rather than on the inside. Makes
 only sense in case of '\-\-onefile' compilation. First
-files have to be specified as included somehow, then
-this refers to target paths. Default empty.
+files have to be specified as included with other
+`\-\-include\-*data*` options, and then this refers to
+target paths inside the distribution. Default empty.
 .TP
 \fB\-\-list\-package\-data\fR=\fI\,LIST_PACKAGE_DATA\/\fR
 Output the data files found for a given package name.
