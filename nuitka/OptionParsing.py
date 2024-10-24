@@ -442,8 +442,9 @@ data_group.add_option(
     help="""\
 Include the specified data file patterns outside of the onefile binary,
 rather than on the inside. Makes only sense in case of '--onefile'
-compilation. First files have to be specified as included somehow,
-then this refers to target paths. Default empty.""",
+compilation. First files have to be specified as included with other
+`--include-*data*` options, and then this refers to target paths
+inside the distribution. Default empty.""",
 )
 
 data_group.add_option(
