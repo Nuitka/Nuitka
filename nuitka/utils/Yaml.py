@@ -18,8 +18,8 @@ import os
 import pkgutil
 
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.Options import getUserProvidedYamlFiles
-from nuitka.Tracing import general
+from nuitka.Options import getUserProvidedYamlFiles, getYAMLMergeStrategy
+from nuitka.Tracing import general, inclusion_logger
 
 from .FileOperations import getFileContents
 from .Hashing import HashCRC32
@@ -102,12 +102,36 @@ Error, empty (or malformed?) user package configuration '%s' used."""
         return self.data.items()
 
     def update(self, other):
-        # TODO: Full blown merging, including respecting an overload flag, where a config
-        # replaces another one entirely, for now we expect to not overlap.
         for key, value in other.items():
-            assert key not in self.data, key
+            if key in self.data:
+                merge_strategy = getYAMLMergeStrategy()
+                if merge_strategy == "merge":
+                    inclusion_logger.warning(
+                        """User provided yaml file contains duplicate keys. Merging the values.
 
-            self.data[key] = value
+                        this is the default behavior. If you want a different behavior, please provide a valid merge strategy via --user_config_merge_strategy
+                        """
+                    )
+                    original_depends = self.data[key]["implicit-imports"][0]["depends"]
+                    new_depends = value["implicit-imports"][0]["depends"]
+
+                    for dep in new_depends:
+                        if dep not in original_depends:
+                            original_depends.append(dep)
+                        elif dep in original_depends:
+                            inclusion_logger.warning(
+                                f"Duplicate Value {dep} for key {key} found in user provided yaml file and nuitka's default yaml file. Skipping the duplicate value."
+                            )
+                elif merge_strategy == "overwrite":
+                    self.data[key] = value
+                elif merge_strategy == "skip":
+                    continue
+                else:
+                    general.sysexit(
+                        "Invalid merge strategy provided. Please provide a valid merge strategy via --user_config_merge_strategy"
+                    )
+            else:
+                self.data[key] = value
 
 
 def getYamlPackage():

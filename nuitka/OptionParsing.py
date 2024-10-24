@@ -610,6 +610,24 @@ multiple times. Defaults to empty.""",
 )
 
 compilation_group.add_option(
+    "--user_config_merge_strategy",
+    action="store",
+    dest="user_config_merge_strategy",
+    default="merge",
+    help="""\
+Choose the merge strategy for user provided yaml files. Allowed values are
+"overwrite", "merge", and "skip". Defaults to "merge"
+overwrite:
+    Overwrites the existing nuitka configuration with the user provided yaml file.
+merge:
+    Merges the existing nuitka configuration with the user provided yaml file.
+    it will append extra values to the existing configuration and will leave any existing values untouched.
+skip:
+    Skips the user provided yaml file and keeps the existing nuitka configuration.
+""",
+)
+
+compilation_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
