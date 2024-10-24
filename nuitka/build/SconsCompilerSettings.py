@@ -379,9 +379,9 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                         % (compiler_path,)
                     )
 
-                # This also will trigger using it to use our own gcc in branch below.
-                compiler_path = None
-                env["CC"] = None
+                    # This also will trigger using it to use our own gcc in branch below.
+                    compiler_path = None
+                    env["CC"] = None
 
         if compiler_path is None and msvc_version is None:
             scons_details_logger.info(
