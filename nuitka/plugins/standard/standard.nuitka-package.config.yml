@@ -3226,7 +3226,11 @@
         'cpp_extension,': ''
       when: 'not use_setuptools'
 
-- module-name: 'paddleocr' # checksum: 90264499
+- module-name: 'paddleocr' # checksum: 7cd62957
+  data-files:
+    - patterns:
+        - '**/*.txt'
+
   import-hacks:
     - global-sys-path:
         # This package forces itself into "sys.path" and expects absolute
