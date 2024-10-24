@@ -1273,8 +1273,8 @@ Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t has
 bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
-    assert(key_ptr);
-    assert(value_ptr);
+    assert(key_ptr != NULL);
+    assert(value_ptr != NULL);
 
 #if PYTHON_VERSION < 0x300
     Py_ssize_t i = *pos;
@@ -1297,6 +1297,39 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 
     return true;
 
+#elif PYTHON_VERSION < 0x360
+    PyDictObject *mp = (PyDictObject *)dict;
+    PyObject **dict_value_ptr;
+    Py_ssize_t offset;
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+
+    if (mp->ma_values) {
+        dict_value_ptr = &mp->ma_values[i];
+        offset = sizeof(PyObject *);
+    } else {
+        dict_value_ptr = &mp->ma_keys->dk_entries[i].me_value;
+        offset = sizeof(PyDictKeyEntry);
+    }
+
+    Py_ssize_t mask = DK_MASK(mp->ma_keys);
+
+    while ((i <= mask) && (*dict_value_ptr == NULL)) {
+        dict_value_ptr = (PyObject **)(((char *)dict_value_ptr) + offset);
+        i++;
+    }
+
+    if (i > mask) {
+        return false;
+    }
+
+    *key_ptr = mp->ma_keys->dk_entries[i].me_key;
+    *value_ptr = *dict_value_ptr;
+    *pos = i + 1;
+
+    return true;
+
 #elif PYTHON_VERSION < 0x3b0
     PyDictObject *mp = (PyDictObject *)dict;
     PyDictKeyEntry *entry;
@@ -1315,11 +1348,8 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 
         assert(value != NULL);
     } else {
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t n = mp->ma_keys->dk_size;
-#else
         Py_ssize_t n = mp->ma_keys->dk_nentries;
-#endif
+
         if (i >= n) {
             return false;
         }
