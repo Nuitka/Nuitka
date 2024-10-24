@@ -8,6 +8,7 @@ import os
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import (
+    getActiveQtPlugin,
     getActiveQtPluginBindingName,
     hasActivePlugin,
 )
@@ -91,6 +92,15 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
 
         if info is None:
             self.sysexit("Error, it seems 'matplotlib' is not installed or broken.")
+
+        # Auto correct for using tk-inter the system setting.
+        if "tk" not in info.backend.lower() and hasActivePlugin("tk-inter"):
+            info = info.replace(backend="TkAgg")
+
+        if info.backend == "QtAgg" and getActiveQtPlugin() is None:
+            self.sysexit(
+                "Error, cannot use 'QtAgg' with not plugin for Qt binding active."
+            )
 
         return info
 
