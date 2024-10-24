@@ -173,6 +173,8 @@ def _getEvaluationContext():
             "iterate_modules": _iterate_module_names,
             # Locating package directories
             "get_module_directory": _getModuleDirectory,
+            # Checking module presence
+            "has_module": _hasModule,
             # Getting data files contents
             "get_data": _getPackageData,
             # Querying package properties
@@ -326,6 +328,16 @@ def _getModuleDirectory(module_name):
     )
 
     return module_filename
+
+
+def _hasModule(module_name):
+    from nuitka.importing.Importing import locateModule
+
+    _module_name, _module_filename, _module_kind, finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    return finding != "not-found"
 
 
 def _getPackageData(package_name, resource):

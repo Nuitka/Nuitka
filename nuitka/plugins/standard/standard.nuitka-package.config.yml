@@ -2122,6 +2122,25 @@
     - depends:
         - 'kivy.weakmethod'
 
+- module-name: 'kivy.core.clipboard' # checksum: d1e34cc4
+  implicit-imports:
+    - depends:
+        - 'kivy.core.clipboard.clipboard_winctypes'
+      when: 'win32'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_nspaste'
+      when: 'macos and has_module("pyobjus")'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_sdl2'
+      when: 'macos and not has_module("pyobjus")'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_xclip'
+        - 'kivy.core.clipboard.clipboard_xsel'
+        - 'kivy.core.clipboard.clipboard_dbusklipper'
+        - 'kivy.core.clipboard.clipboard_gtk3'
+        - 'kivy.core.clipboard.clipboard_sdl2'
+      when: 'linux'
+
 - module-name: 'kivy.graphics.compiler' # checksum: c064234c
   implicit-imports:
     - depends:
@@ -2139,7 +2158,7 @@
     - depends:
         - 'kivy.graphics.compiler'
 
-- module-name: 'kivymd' # checksum: b3f15565
+- module-name: 'kivymd' # checksum: 6d57c0fa
   data-files:
     - dirs:
         - 'fonts'
@@ -2149,6 +2168,7 @@
   implicit-imports:
     - depends:
         - 'kivymd.icon_definitions'
+        - 'kivymd.uix.*'
 
 - module-name: 'kiwisolver' # checksum: a0fc11a6
   dlls:

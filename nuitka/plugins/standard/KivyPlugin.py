@@ -6,7 +6,6 @@
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
 class NuitkaPluginKivy(NuitkaPluginBase):
@@ -64,7 +63,9 @@ except ImportError:
         return info
 
     def getImplicitImports(self, module):
-        # Using branches to dispatch, pylint: disable=too-many-branches
+        # TODO: Move this all to yaml configuration, we now can
+        # query Kivy installation and use variables to solve some
+        # of the more difficult ones.
 
         full_name = module.getFullName()
 
@@ -92,16 +93,6 @@ except ImportError:
             yield "kivy.graphics.cgl_backend.cgl_sdl2"
         elif full_name == "kivy.graphics.cgl_backend.cgl_glew":
             yield "kivy.graphics.cgl_backend.cgl_gl"
-        elif full_name == "kivymd.app":
-            yield self.locateModules("kivymd.uix")
-        elif full_name == "kivy.core.clipboard":
-            if isWin32Windows():
-                yield "kivy.core.clipboard.clipboard_winctypes"
-            if isMacOS():
-                if self.locateModule("pyobjus"):
-                    yield "kivy.core.clipboard.clipboard_nspaste"
-                else:
-                    yield "kivy.core.clipboard.clipboard_sdl2"
 
     def getExtraDlls(self, module):
         """Copy extra shared libraries or data for this installation.
