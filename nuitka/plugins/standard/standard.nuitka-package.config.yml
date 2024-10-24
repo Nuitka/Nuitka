@@ -1748,6 +1748,11 @@
         'from torch.utils.cpp_extension import _get_build_directory, load': ''
       when: 'not use_setuptools'
 
+- module-name: 'gssapi.raw' # checksum: f8e7301e
+  implicit-imports:
+    - depends:
+        - 'gssapi.raw._enum_extensions.*'
+
 - module-name: 'gtk._gtk' # checksum: 4fb4a03b
   implicit-imports:
     - depends:
@@ -2122,13 +2127,16 @@
     - depends:
         - 'kivy.graphics.compiler'
 
-- module-name: 'kivymd' # checksum: 1fda13e6
+- module-name: 'kivymd' # checksum: b3f15565
   data-files:
     - dirs:
         - 'fonts'
         - 'images'
         - 'data'
         - 'uix'
+  implicit-imports:
+    - depends:
+        - 'kivymd.icon_definitions'
 
 - module-name: 'kiwisolver' # checksum: a0fc11a6
   dlls:
@@ -4426,7 +4434,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: 219aba79
+- module-name: 'PySide6' # checksum: 27df3ea2
   implicit-imports:
     - post-import-code:
         - |
@@ -4482,6 +4490,9 @@
         - 'libqsqlodbc'
         - 'libpq.5'
         - 'libffmpegmediaplugin'
+        - 'libqtquickcontrols2fluentwinui3styleimplplugin'
+        - 'libqtquickcontrols2fluentwinui3styleplugin'
+        - 'libqtwebviewquickplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -5071,6 +5082,14 @@
           - 'selenium-manager'
         executable: 'yes'
       when: 'win32'
+
+- module-name: 'selenium_driverless' # checksum: bdcb049
+  data-files:
+    - dirs:
+        - '.'
+  implicit-imports:
+    - depends:
+        - 'websockets.legacy.*'
 
 - module-name: 'selenium_stealth' # checksum: 26b9c88c
   data-files:
@@ -6956,6 +6975,91 @@
         prefixes:
           - 'libextrafont'
       when: 'win32'
+
+- module-name: 'tkinterdnd2.TkinterDnD' # checksum: 401c1500
+  data-files:
+    - dirs:
+        - 'tkdnd/win64'
+      when: 'use_tkinter and win32 and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/linux64'
+      when: 'use_tkinter and linux and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/osx64'
+      when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+    - dirs:
+        - 'tkdnd/win-arm64'
+      when: 'use_tkinter and win32 and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/win-x64'
+      when: 'use_tkinter and win32 and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/win-x86'
+      when: 'use_tkinter and win32 and arch_x86 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/linux-arm64'
+      when: 'use_tkinter and linux and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/linux-x64'
+      when: 'use_tkinter and linux and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/osx-arm64'
+      when: 'use_tkinter and macos and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - dirs:
+        - 'tkdnd/osx-x64'
+      when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+  dlls:
+    - from_filenames:
+        relative_path: 'tkdnd/win64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and version("tkinterdnd2") < (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and version("tkinterdnd2") < (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and version("tkinterdnd2") < (0,4)'
+
+    - from_filenames:
+        relative_path: 'tkdnd/win-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/win-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/win-x86'
+        prefixes:
+          - ''
+      when: 'use_tkinter and win32 and arch_x86 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/linux-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and linux and arch_amd64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx-arm64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and arch_arm64 and version("tkinterdnd2") >= (0,4)'
+    - from_filenames:
+        relative_path: 'tkdnd/osx-x64'
+        prefixes:
+          - ''
+      when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
 - module-name: 'tkinterweb' # checksum: 5de6ded8
   data-files:
