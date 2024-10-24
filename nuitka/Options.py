@@ -2614,6 +2614,10 @@ def getForcedRuntimeEnvironmentVariableValues():
 
         yield (name, value)
 
+def getYAMLMergeStrategy():
+    """:returns: string derived from ``--user_config_merge_strategy``"""
+
+    return options.user_config_merge_strategy
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
