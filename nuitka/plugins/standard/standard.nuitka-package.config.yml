@@ -8201,6 +8201,11 @@
     - depends:
         - 'win32timezone'
 
+- module-name: 'win32file' # checksum: 2531fce0
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
+
 - module-name: 'win32ui' # checksum: 2f1beca2
   implicit-imports:
     - pre-import-code:
