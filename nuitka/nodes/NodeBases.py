@@ -418,6 +418,11 @@ class NodeBase(NodeMetaClassBase):
     def getVisitableNodes():
         return ()
 
+    def checkChildren(self):
+        for c in self.getVisitableNodes():
+            assert c.parent is self, (c, "parent", self, "!=", c.parent)
+            c.checkChildren()
+
     @staticmethod
     def getVisitableNodesNamed():
         """Named children dictionary.
@@ -720,6 +725,11 @@ class StatementBase(NodeBase):
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseAnyException():
+                # They probably have changed.
+                expressions = self.getVisitableNodes()
+
+                child_name = expression.getChildNameNice()
+
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
                     expressions[: count + 1]
                 )
@@ -730,7 +740,7 @@ class StatementBase(NodeBase):
                     wrapped_expression,
                     "new_raise",
                     lambda: "For %s the child expression '%s' will raise."
-                    % (self.getStatementNiceName(), expression.getChildNameNice()),
+                    % (self.getStatementNiceName(), child_name),
                 )
 
         return self, None, None
