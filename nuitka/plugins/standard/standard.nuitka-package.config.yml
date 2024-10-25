@@ -2275,6 +2275,11 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'lttbc' # checksum: d072aa03
+  implicit-imports:
+    - depends:
+        - 'numpy.core.multiarray'
+
 - module-name: 'lxml' # checksum: f89961a7
   implicit-imports:
     - depends:
