@@ -18,7 +18,8 @@ from nuitka.PythonVersions import python_version
 
 from .CodeObjectSpecs import CodeObjectSpec
 from .FutureSpecs import fromFlags
-from .StatementNodes import StatementsSequence
+from .StatementBasesGenerated import StatementsSequenceBase
+from .StatementNodes import StatementsSequenceMixin
 
 
 def checkFrameStatements(value):
@@ -33,30 +34,39 @@ def checkFrameStatements(value):
     return tuple(value)
 
 
-class StatementsFrameBase(StatementsSequence):
+class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     checkers = {"statements": checkFrameStatements}
 
     __slots__ = ("code_object", "needs_frame_exception_preserve")
 
+    named_children = ("statements|tuple+setter",)
+
     def __init__(self, statements, code_object, source_ref):
-        StatementsSequence.__init__(self, statements=statements, source_ref=source_ref)
+        StatementsSequenceBase.__init__(
+            self, statements=statements, source_ref=source_ref
+        )
 
         self.code_object = code_object
 
         self.needs_frame_exception_preserve = False
 
-    def isStatementsFrame(self):
+    @staticmethod
+    def isStatementsFrame():
+        return True
+
+    @staticmethod
+    def isStatementsSequence():
         return True
 
     def getDetails(self):
         result = {"code_object": self.code_object}
 
-        result.update(StatementsSequence.getDetails(self))
+        result.update(StatementsSequenceBase.getDetails(self))
 
         return result
 
     def getDetailsForDisplay(self):
-        result = StatementsSequence.getDetails(self)
+        result = StatementsSequenceBase.getDetails(self)
         result.update()
 
         result.update(self.code_object.getDetails())
@@ -174,10 +184,7 @@ class StatementsFrameBase(StatementsSequence):
                 new_statement = trace_collection.onStatement(statement=statement)
 
             if new_statement is not None:
-                if (
-                    new_statement.isStatementsSequence()
-                    and not new_statement.isStatementsFrame()
-                ):
+                if new_statement.isStatementsSequenceButNotFrame():
                     new_statements.extend(new_statement.subnode_statements)
                 else:
                     new_statements.append(new_statement)
@@ -264,6 +271,10 @@ class StatementsFrameBase(StatementsSequence):
         assert not self.hasStructureMember()
 
         return None
+
+    @staticmethod
+    def getStatementNiceName():
+        return "frame statements sequence"
 
 
 class StatementsFrameModule(StatementsFrameBase):

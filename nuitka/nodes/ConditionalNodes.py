@@ -755,7 +755,7 @@ Removed conditional statement without effect.""",
                 new_statement,
                 "new_statements",
                 """\
-Condition for branch statement was predicted to be always %s."""
+Condition for branch statement was predicted to be always '%s'."""
                 % choice,
             )
 
