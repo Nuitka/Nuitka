@@ -328,6 +328,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isStatementsSequenceButNotFrame():
+        return False
+
+    @staticmethod
     def isCompiledPythonModule():
         # For overload by module nodes
         return False
