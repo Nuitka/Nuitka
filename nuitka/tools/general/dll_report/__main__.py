@@ -20,7 +20,15 @@ from nuitka.utils.Timing import TimerReport
 def main():
     parser = OptionParser()
 
-    _options, positional_args = parser.parse_args()
+    parser.add_option(
+        "--no-use-path",
+        action="store_false",
+        dest="use_path",
+        default=True,
+        help="""Do NOT use PATH to locate DLL dependencies.""",
+    )
+
+    options, positional_args = parser.parse_args()
 
     if not positional_args:
         sys.exit("No DLLs given.")
@@ -45,6 +53,7 @@ def main():
                 original_dir=os.path.dirname(filename),
                 binary_filename=filename,
                 package_name=None,
+                use_path=options.use_path,
                 use_cache=False,
                 update_cache=False,
             )
