@@ -116,6 +116,7 @@ def _detectBinaryDLLs(
     original_filename,
     binary_filename,
     package_name,
+    use_path,
     use_cache,
     update_cache,
 ):
@@ -142,6 +143,7 @@ def _detectBinaryDLLs(
                 original_dir=os.path.dirname(original_filename),
                 binary_filename=binary_filename,
                 package_name=package_name,
+                use_path=use_path,
                 use_cache=use_cache,
                 update_cache=update_cache,
             )
@@ -275,7 +277,23 @@ def getRemovedUsedDllsInfo():
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
     # TODO: We are handling a bunch of cases here, but also some special cases,
-    # that should live elsewhere, pylint: disable=too-many-locals
+    # that should live elsewhere.
+    # pylint: disable=too-many-branches,too-many-locals
+
+    if standalone_entry_point.module_name is not None:
+        module_name, module_filename, _kind, finding = locateModule(
+            standalone_entry_point.module_name, parent_package=None, level=0
+        )
+
+        # TODO: How can this be None at all.
+        if module_filename is not None and isStandardLibraryPath(module_filename):
+            allow_outside_dependencies = True
+        else:
+            allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+                standalone_entry_point.module_name
+            )
+    else:
+        allow_outside_dependencies = False
 
     binary_filename = standalone_entry_point.source_path
     try:
@@ -285,6 +303,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             original_filename=standalone_entry_point.source_path,
             binary_filename=binary_filename,
             package_name=standalone_entry_point.package_name,
+            use_path=allow_outside_dependencies,
             use_cache=not shallNotUseDependsExeCachedResults(),
             update_cache=not shallNotStoreDependsExeCachedResults(),
         )
@@ -315,14 +334,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
             ), standalone_entry_point.module_name
             assert finding == "absolute", standalone_entry_point.module_name
 
-            if isStandardLibraryPath(module_filename):
-                allow_outside_dependencies = True
-            else:
-                allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
-                    standalone_entry_point.module_name
-                )
-
-            if allow_outside_dependencies is False:
+            if not allow_outside_dependencies:
                 used_dll_paths, removed_dll_paths = _reduceToPythonPath(used_dll_paths)
 
                 if removed_dll_paths:
