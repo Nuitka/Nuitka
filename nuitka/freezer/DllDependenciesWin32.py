@@ -43,6 +43,7 @@ def detectBinaryPathDLLsWin32(
     original_dir,
     binary_filename,
     package_name,
+    use_path,
     use_cache,
     update_cache,
 ):
@@ -55,6 +56,7 @@ def detectBinaryPathDLLsWin32(
             original_dir=original_dir,
             binary_filename=binary_filename,
             package_name=package_name,
+            use_path=use_path,
         )
 
         if use_cache:
@@ -79,7 +81,9 @@ def detectBinaryPathDLLsWin32(
     if isShowProgress():
         inclusion_logger.info("Analyzing dependencies of '%s'." % binary_filename)
 
-    scan_dirs = _getScanDirectories(package_name, original_dir)
+    scan_dirs = _getScanDirectories(
+        package_name=package_name, original_dir=original_dir, use_path=use_path
+    )
 
     result = detectDLLsWithDependencyWalker(
         binary_filename=binary_filename, source_dir=source_dir, scan_dirs=scan_dirs
@@ -91,7 +95,7 @@ def detectBinaryPathDLLsWin32(
     return result
 
 
-def _getScanDirectories(package_name, original_dir):
+def _getScanDirectories(package_name, original_dir, use_path):
     # TODO: Move PyWin32 specific stuff to yaml dll section
     # pylint: disable=too-many-branches
 
@@ -120,18 +124,23 @@ def _getScanDirectories(package_name, original_dir):
         if py_win32_dir is not None:
             scan_dirs.append(py_win32_dir)
 
-    for path_dir in os.environ["PATH"].split(";"):
-        if not os.path.isdir(path_dir):
-            continue
+    if use_path:
+        for path_dir in os.environ["PATH"].split(";"):
+            if not os.path.isdir(path_dir):
+                continue
 
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
-            continue
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")):
-            continue
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")):
-            continue
+            if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
+                continue
+            if areSamePaths(
+                path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")
+            ):
+                continue
+            if areSamePaths(
+                path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
+            ):
+                continue
 
-        scan_dirs.append(path_dir)
+            scan_dirs.append(path_dir)
 
     result = []
 
@@ -161,6 +170,7 @@ def _getCacheFilename(
     original_dir,
     binary_filename,
     package_name,
+    use_path,
 ):
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
     original_filename = os.path.normcase(original_filename)
@@ -191,6 +201,10 @@ def _getCacheFilename(
 
     # Take Nuitka version into account as well, ought to catch code changes.
     hash_value.updateFromValues(version_string)
+
+    # Using PATH or not, should also be considered different.
+    if use_path:
+        hash_value.updateFromValues(os.getenv("PATH"))
 
     cache_dir = os.path.join(getCacheDir("library_dependencies"), dependency_tool)
     makePath(cache_dir)
