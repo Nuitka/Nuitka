@@ -814,6 +814,8 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #endif
 #if PYTHON_VERSION < 0x3d0
     result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
+#else
+    result->m_interpreter_frame.instr_ptr = _PyCode_CODE(code);
 #endif
     result->m_frame.f_frame = &result->m_interpreter_frame;
 
