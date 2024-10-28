@@ -852,7 +852,12 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 3b767c0d
+- module-name: 'cv2' # checksum: 19a06fc1
+  variables:
+    setup_code:
+      - 'import cv2'
+    declarations:
+      'cv2_extra_sub_modules': 'tuple(cv2.__collect_extra_submodules(False))'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -887,11 +892,21 @@
       replacements:
         'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
       when: 'standalone and python312_or_higher and not nuitka_python'
+    - description: 'remove error hiding code'
+      replacements_plain:
+        "print('OpenCV bindings requires \"numpy\" package.')": 'raise'
+    - description: 'submodules'
+      replacements:
+        '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
+      change_function:
+        '__collect_extra_submodules': 'un-callable'
+      when: 'standalone'
   implicit-imports:
     - depends:
         - 'cv2.cv2'
         - 'numpy'
         - 'numpy.core'
+        - '["cv2.%s" % m for m in get_variable("cv2_extra_sub_modules")]'
     - pre-import-code:
         - |
           import os
@@ -900,8 +915,8 @@
       when: 'linux and standalone'
   options:
     checks:
-      - description: 'OpenCV2 is best supported with 4.6 or later'
-        support_info: 'warning'
+      - description: 'OpenCV2 is only supported with 4.6 or later'
+        support_info: 'error'
         when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
@@ -3251,11 +3266,7 @@
         'cpp_extension,': ''
       when: 'not use_setuptools'
 
-- module-name: 'paddleocr' # checksum: 7cd62957
-  data-files:
-    - patterns:
-        - '**/*.txt'
-
+- module-name: 'paddleocr' # checksum: 90264499
   import-hacks:
     - global-sys-path:
         # This package forces itself into "sys.path" and expects absolute
