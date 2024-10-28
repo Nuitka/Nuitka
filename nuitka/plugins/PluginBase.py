@@ -1611,7 +1611,7 @@ Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' o
         if type(value) not in (tuple, list):
             self.sysexit(
                 """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
+Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list[str]' result."""
                 % (expression, full_name)
             )
 
