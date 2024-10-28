@@ -717,7 +717,11 @@ if os.name == "nt":
             addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix_external, "lib")
+    if env.self_compiled_python_uninstalled:
+        python_lib_path = python_prefix_external
+    else:
+        python_lib_path = os.path.join(python_prefix_external, "lib")
+
     env.Append(LIBPATH=[python_lib_path])
 
     # Any module libs that are for self-compiled Python to be static.
