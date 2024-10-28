@@ -935,7 +935,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
 
-        // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
+        // Fixup "__package__" after load. It seems some modules ignore _Py_PackageContext value.
         // so we patch it up here if it's None, but a package was specified.
         if (package != NULL) {
             PyObject *package_name = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___package__);
@@ -956,6 +956,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     if (likely(def != NULL)) {
         def->m_base.m_init = entrypoint;
     }
+
+#if PYTHON_VERSION >= 0x3d0
+    Nuitka_SetModuleString(full_name, module);
+#endif
 #else
     PyModuleDef *def = PyModule_GetDef(module);
 
