@@ -2537,6 +2537,36 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'mne.fixes' # checksum: dd3b5473
+  anti-bloat:
+    - no-auto-follow:
+        'numba': 'ignore'
+      when: 'not use_numba'
+
+- module-name: 'mne.io.curry.curry' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.edf.edf' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.egi.egi' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.fiff.raw' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
 - module-name: 'mne.utils._testing' # checksum: 76efa1b7
   anti-bloat:
     - description: 'remove pytest reference'
