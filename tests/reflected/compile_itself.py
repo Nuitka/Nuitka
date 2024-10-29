@@ -40,6 +40,7 @@ from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     copyTree,
     deleteFile,
+    getFileContents,
     listDir,
     removeDirectory,
 )
@@ -83,9 +84,9 @@ exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
 def readSource(filename):
     if str is bytes:
-        return open(filename, "rb").read()
+        return getFileContents(filename, mode="rb")
     else:
-        return open(filename, "rb").read().decode("latin1")
+        return getFileContents(filename, encoding="latin1")
 
 
 def diffRecursive(dir1, dir2):
