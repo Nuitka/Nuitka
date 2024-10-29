@@ -1271,7 +1271,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             setup_codes = setup_codes.splitlines()
 
         if not setup_codes:
-            setup_codes = ["pass"]
+            setup_codes = ("pass",)
 
         cmd = r"""\
 from __future__ import print_function
