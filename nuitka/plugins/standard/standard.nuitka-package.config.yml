@@ -2561,6 +2561,18 @@
       replacements_plain:
         'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
 
+- module-name: 'mne.io.egi.egimff' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.eyelink.eyelink' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
 - module-name: 'mne.io.fiff.raw' # checksum: 6051d6a
   anti-bloat:
     - description: 'workaround frame dictionary not being populated'
