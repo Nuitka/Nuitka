@@ -8309,11 +8309,12 @@
         - 'win32comext'
       when: 'win32'
 
-- module-name: 'win32com.server.register' # checksum: cb126a6d
+- module-name: 'win32com.server.register' # checksum: ee461289
   anti-bloat:
     - replacements_plain:
         'pythoncom.frozen': '1'
         'sys.frozen': 'True'
+        'GetShortPathName(sys.executable)': 'GetShortPathName(sys.argv[0])'
       change_function:
         'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
   implicit-imports:
