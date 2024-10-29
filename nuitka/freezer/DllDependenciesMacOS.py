@@ -57,7 +57,12 @@ def _detectPythonRpaths():
 
 
 def detectBinaryPathDLLsMacOS(
-    original_dir, binary_filename, package_name, keep_unresolved, recursive
+    original_dir,
+    binary_filename,
+    package_name,
+    keep_unresolved,
+    recursive,
+    recursive_dlls=None,
 ):
     assert os.path.exists(binary_filename), binary_filename
 
@@ -91,13 +96,25 @@ def detectBinaryPathDLLsMacOS(
     if recursive:
         merged_result = OrderedDict(resolved_result)
 
+        # For recursive DLL detection, cycle may exist, so we keep track of what
+        # was seen so far.
+        if recursive_dlls is None:
+            recursive_dlls = set([binary_filename])
+        else:
+            recursive_dlls = set(recursive_dlls)
+            recursive_dlls.add(binary_filename)
+
         for sub_dll_filename in resolved_result:
+            if sub_dll_filename in recursive_dlls:
+                continue
+
             _, sub_result = detectBinaryPathDLLsMacOS(
                 original_dir=os.path.dirname(sub_dll_filename),
                 binary_filename=sub_dll_filename,
                 package_name=package_name,
                 keep_unresolved=True,
                 recursive=True,
+                recursive_dlls=recursive_dlls,
             )
 
             merged_result.update(sub_result)
