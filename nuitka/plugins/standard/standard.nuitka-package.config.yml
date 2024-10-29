@@ -3348,7 +3348,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 5c2e9d81
+- module-name: 'pandas' # checksum: 158bd2af
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3356,6 +3356,10 @@
         'import pandas.testing': ''
         'from pandas import testing': 'testing = None'
         'from pandas import api, arrays, errors, io, plotting, testing': 'from pandas import api, arrays, errors, io, plotting'
+    - description: 'avoid numba in pandas'
+      no-auto-follow:
+        'pandas.core._numba.extensions': 'no numba acceleration'
+      when: 'not use_numba'
 
 - module-name: 'pandas._libs' # checksum: 582d52b9
   implicit-imports:
