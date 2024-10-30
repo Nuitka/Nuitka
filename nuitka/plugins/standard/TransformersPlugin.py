@@ -17,287 +17,54 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
-    # Found via grep -re "_import_structure = {"
-    _import_structure_modules = (
-        "transformers",
-        "transformers.generation",
-        "transformers.integrations",
-        "transformers.models.albert",
-        "transformers.models.align",
-        "transformers.models.altclip",
-        "transformers.models.audio_spectrogram_transformer",
-        "transformers.models.auto",
-        "transformers.models.autoformer",
-        "transformers.models.bark",
-        "transformers.models.bart",
-        "transformers.models.barthez",
-        "transformers.models.bartpho",
-        "transformers.models.beit",
-        "transformers.models.bert",
-        "transformers.models.bert_generation",
-        "transformers.models.bert_japanese",
-        "transformers.models.bertweet",
-        "transformers.models.big_bird",
-        "transformers.models.bigbird_pegasus",
-        "transformers.models.biogpt",
-        "transformers.models.bit",
-        "transformers.models.blenderbot",
-        "transformers.models.blenderbot_small",
-        "transformers.models.blip",
-        "transformers.models.blip_2",
-        "transformers.models.bloom",
-        "transformers.models.bridgetower",
-        "transformers.models.bros",
-        "transformers.models.byt5",
-        "transformers.models.camembert",
-        "transformers.models.canine",
-        "transformers.models.chinese_clip",
-        "transformers.models.clap",
-        "transformers.models.clip",
-        "transformers.models.clipseg",
-        "transformers.models.clvp",
-        "transformers.models.code_llama",
-        "transformers.models.codegen",
-        "transformers.models.cohere",
-        "transformers.models.conditional_detr",
-        "transformers.models.convbert",
-        "transformers.models.convnext",
-        "transformers.models.convnextv2",
-        "transformers.models.cpm",
-        "transformers.models.cpmant",
-        "transformers.models.ctrl",
-        "transformers.models.cvt",
-        "transformers.models.data2vec",
-        "transformers.models.deberta",
-        "transformers.models.deberta_v2",
-        "transformers.models.decision_transformer",
-        "transformers.models.deformable_detr",
-        "transformers.models.deit",
-        "transformers.models.depth_anything",
-        "transformers.models.deta",
-        "transformers.models.detr",
-        "transformers.models.dinat",
-        "transformers.models.dinov2",
-        "transformers.models.distilbert",
-        "transformers.models.donut",
-        "transformers.models.dpr",
-        "transformers.models.dpt",
-        "transformers.models.efficientformer",
-        "transformers.models.efficientnet",
-        "transformers.models.electra",
-        "transformers.models.encodec",
-        "transformers.models.encoder_decoder",
-        "transformers.models.ernie",
-        "transformers.models.ernie_m",
-        "transformers.models.esm",
-        "transformers.models.falcon",
-        "transformers.models.fastspeech2_conformer",
-        "transformers.models.flaubert",
-        "transformers.models.flava",
-        "transformers.models.fnet",
-        "transformers.models.focalnet",
-        "transformers.models.fsmt",
-        "transformers.models.funnel",
-        "transformers.models.fuyu",
-        "transformers.models.gemma",
-        "transformers.models.git",
-        "transformers.models.glpn",
-        "transformers.models.gpt2",
-        "transformers.models.gpt_bigcode",
-        "transformers.models.gpt_neo",
-        "transformers.models.gpt_neox",
-        "transformers.models.gpt_neox_japanese",
-        "transformers.models.gpt_sw3",
-        "transformers.models.gptj",
-        "transformers.models.gptsan_japanese",
-        "transformers.models.graphormer",
-        "transformers.models.groupvit",
-        "transformers.models.herbert",
-        "transformers.models.hubert",
-        "transformers.models.ibert",
-        "transformers.models.idefics",
-        "transformers.models.imagegpt",
-        "transformers.models.informer",
-        "transformers.models.instructblip",
-        "transformers.models.jukebox",
-        "transformers.models.kosmos2",
-        "transformers.models.layoutlm",
-        "transformers.models.layoutlmv2",
-        "transformers.models.layoutlmv3",
-        "transformers.models.layoutxlm",
-        "transformers.models.led",
-        "transformers.models.levit",
-        "transformers.models.lilt",
-        "transformers.models.llama",
-        "transformers.models.llava",
-        "transformers.models.llava_next",
-        "transformers.models.longformer",
-        "transformers.models.longt5",
-        "transformers.models.luke",
-        "transformers.models.lxmert",
-        "transformers.models.m2m_100",
-        "transformers.models.mamba",
-        "transformers.models.marian",
-        "transformers.models.markuplm",
-        "transformers.models.mask2former",
-        "transformers.models.maskformer",
-        "transformers.models.mbart",
-        "transformers.models.mbart50",
-        "transformers.models.mctct",
-        "transformers.models.mega",
-        "transformers.models.megatron_bert",
-        "transformers.models.mgp_str",
-        "transformers.models.mistral",
-        "transformers.models.mixtral",
-        "transformers.models.mluke",
-        "transformers.models.mmbt",
-        "transformers.models.mobilebert",
-        "transformers.models.mobilenet_v1",
-        "transformers.models.mobilenet_v2",
-        "transformers.models.mobilevit",
-        "transformers.models.mobilevitv2",
-        "transformers.models.mpnet",
-        "transformers.models.mpt",
-        "transformers.models.mra",
-        "transformers.models.mt5",
-        "transformers.models.musicgen",
-        "transformers.models.musicgen_melody",
-        "transformers.models.mvp",
-        "transformers.models.nat",
-        "transformers.models.nezha",
-        "transformers.models.nllb",
-        "transformers.models.nllb_moe",
-        "transformers.models.nougat",
-        "transformers.models.nystromformer",
-        "transformers.models.oneformer",
-        "transformers.models.open_llama",
-        "transformers.models.openai",
-        "transformers.models.opt",
-        "transformers.models.owlv2",
-        "transformers.models.owlvit",
-        "transformers.models.patchtsmixer",
-        "transformers.models.patchtst",
-        "transformers.models.pegasus",
-        "transformers.models.pegasus_x",
-        "transformers.models.perceiver",
-        "transformers.models.persimmon",
-        "transformers.models.phi",
-        "transformers.models.phobert",
-        "transformers.models.pix2struct",
-        "transformers.models.plbart",
-        "transformers.models.poolformer",
-        "transformers.models.pop2piano",
-        "transformers.models.prophetnet",
-        "transformers.models.pvt",
-        "transformers.models.pvt_v2",
-        "transformers.models.qdqbert",
-        "transformers.models.qwen2",
-        "transformers.models.rag",
-        "transformers.models.realm",
-        "transformers.models.reformer",
-        "transformers.models.regnet",
-        "transformers.models.rembert",
-        "transformers.models.resnet",
-        "transformers.models.retribert",
-        "transformers.models.roberta",
-        "transformers.models.roberta_prelayernorm",
-        "transformers.models.roc_bert",
-        "transformers.models.roformer",
-        "transformers.models.rwkv",
-        "transformers.models.sam",
-        "transformers.models.seamless_m4t",
-        "transformers.models.seamless_m4t_v2",
-        "transformers.models.segformer",
-        "transformers.models.seggpt",
-        "transformers.models.sew",
-        "transformers.models.sew_d",
-        "transformers.models.siglip",
-        "transformers.models.speech_encoder_decoder",
-        "transformers.models.speech_to_text",
-        "transformers.models.speech_to_text_2",
-        "transformers.models.speecht5",
-        "transformers.models.splinter",
-        "transformers.models.squeezebert",
-        "transformers.models.stablelm",
-        "transformers.models.starcoder2",
-        "transformers.models.superpoint",
-        "transformers.models.swiftformer",
-        "transformers.models.swin",
-        "transformers.models.swin2sr",
-        "transformers.models.swinv2",
-        "transformers.models.switch_transformers",
-        "transformers.models.t5",
-        "transformers.models.table_transformer",
-        "transformers.models.tapas",
-        "transformers.models.tapex",
-        "transformers.models.time_series_transformer",
-        "transformers.models.timesformer",
-        "transformers.models.timm_backbone",
-        "transformers.models.trajectory_transformer",
-        "transformers.models.deprecated.mctct",
-        "transformers.models.deprecated.mmbt",
-        "transformers.models.deprecated.open_llama",
-        "transformers.models.deprecated.retribert",
-        "transformers.models.deprecated.tapex",
-        "transformers.models.deprecated.trajectory_transformer",
-        "transformers.models.deprecated.transfo_xl",
-        "transformers.models.deprecated.van",
-        "transformers.models.trocr",
-        "transformers.models.tvlt",
-        "transformers.models.tvp",
-        "transformers.models.udop",
-        "transformers.models.umt5",
-        "transformers.models.unispeech",
-        "transformers.models.unispeech_sat",
-        "transformers.models.univnet",
-        "transformers.models.upernet",
-        "transformers.models.van",
-        "transformers.models.videomae",
-        "transformers.models.vilt",
-        "transformers.models.vipllava",
-        "transformers.models.vision_encoder_decoder",
-        "transformers.models.vision_text_dual_encoder",
-        "transformers.models.visual_bert",
-        "transformers.models.vit",
-        "transformers.models.vit_hybrid",
-        "transformers.models.vit_mae",
-        "transformers.models.vit_msn",
-        "transformers.models.vitdet",
-        "transformers.models.vitmatte",
-        "transformers.models.vits",
-        "transformers.models.vivit",
-        "transformers.models.wav2vec2",
-        "transformers.models.wav2vec2_bert",
-        "transformers.models.wav2vec2_conformer",
-        "transformers.models.wav2vec2_phoneme",
-        "transformers.models.wav2vec2_with_lm",
-        "transformers.models.wavlm",
-        "transformers.models.whisper",
-        "transformers.models.x_clip",
-        "transformers.models.xglm",
-        "transformers.models.xlm",
-        "transformers.models.xlm_prophetnet",
-        "transformers.models.xlm_roberta",
-        "transformers.models.xlm_roberta_xl",
-        "transformers.models.xlnet",
-        "transformers.models.xmod",
-        "transformers.models.yolos",
-        "transformers.models.yoso",
-        "transformers.onnx",
-        "transformers.tools",
-    )
+    # Modules that have "_import_structure = {" definitions.
+    _import_structure_modules = set()
+
+    # Modules that have "define_import_structure(_file)" calls.
+    _define_structure_modules = {}
+
+    def onModuleUsageLookAhead(
+        self, module_name, module_filename, module_kind, get_module_source
+    ):
+        if (
+            not module_name.hasNamespace("transformers")
+            or module_name == "transformers.utils.import_utils"
+        ):
+            return
+
+        # Getting the source code will also trigger our modification
+        # and potentially tell us if any lazy loading applies.
+        source_code = get_module_source()
+
+        if source_code is None:
+            return
+
+        if "_import_structure = {" in source_code:
+            self._import_structure_modules.add(module_name)
+
+    def _getImportStructureDefinition(self, module_name, source_filename):
+        # TODO: Is caching is not needed, because it does that on
+        # its own?
+        import_structure_value = self.queryRuntimeInformationSingle(
+            setup_codes="from transformers.utils.import_utils import define_import_structure",
+            value="{tuple(key): value for (key, value) in define_import_structure(%r).items()}"
+            % source_filename,
+            info_name="transformers_%s_import_structure" % module_name.asString(),
+        )
+
+        return import_structure_value
 
     def getImplicitImports(self, module):
-        full_name = module.getFullName()
+        module_name = module.getFullName()
 
-        if full_name in self._import_structure_modules:
+        if module_name in self._import_structure_modules:
             for sub_module_name in self.queryRuntimeInformationSingle(
-                setup_codes="import %s" % full_name.asString(),
+                setup_codes="import %s" % module_name.asString(),
                 value="list(getattr(%(module_name)s, '_import_structure', {}).keys())"
-                % {"module_name": full_name.asString()},
-                info_name="import_structure_for_%s" % full_name.asString(),
+                % {"module_name": module_name.asString()},
+                info_name="import_structure_for_%s" % module_name.asString(),
             ):
-                sub_module_name = full_name.getChildNamed(sub_module_name)
+                sub_module_name = module_name.getChildNamed(sub_module_name)
 
                 if (
                     sub_module_name == "transformers.testing_utils"
@@ -308,6 +75,34 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                     continue
 
                 yield sub_module_name
+
+        if module_name in self._define_structure_modules:
+            for sub_module_name in self._define_structure_modules[module_name][
+                frozenset()
+            ].keys():
+                yield module_name.getChildNamed(sub_module_name)
+
+    def onModuleSourceCode(self, module_name, source_filename, source_code):
+        if module_name.hasNamespace("transformers"):
+            if "define_import_structure(_file)" in source_code:
+                import_structure_value = self._getImportStructureDefinition(
+                    module_name=module_name, source_filename=source_filename
+                )
+
+                # Frozenset does not transport as such, so we converted
+                # them to tuples and now back for compatibility.
+                import_structure_value = dict(
+                    (frozenset(key), value)
+                    for key, value in import_structure_value.items()
+                )
+
+                source_code = source_code.replace(
+                    "define_import_structure(_file)", repr(import_structure_value)
+                )
+
+                self._define_structure_modules[module_name] = import_structure_value
+
+        return source_code
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
