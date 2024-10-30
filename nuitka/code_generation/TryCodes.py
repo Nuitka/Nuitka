@@ -287,7 +287,11 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         else statement.getSourceReference()
     ):
         getBuiltinLoopBreakNextCode(
-            to_name=tmp_name2, value=tmp_name, emit=emit, context=context
+            expression=assign_source.subnode_value,
+            to_name=tmp_name2,
+            value=tmp_name,
+            emit=emit,
+            context=context,
         )
 
         getVariableAssignmentCode(
