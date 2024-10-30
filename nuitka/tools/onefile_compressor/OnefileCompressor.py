@@ -201,7 +201,7 @@ def _getCacheFilename(binary_filename, low_memory):
     hash_value.updateFromValues(version_string)
 
     # Take zstandard version and compression level into account.
-    from zstandard import __version__
+    from zstandard import __version__  # pylint: disable=I0021,import-error
 
     hash_value.updateFromValues(__version__, getCompressorLevel(low_memory))
 

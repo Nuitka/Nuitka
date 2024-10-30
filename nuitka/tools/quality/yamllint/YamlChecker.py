@@ -22,9 +22,10 @@ from nuitka.utils.Yaml import (
 
 
 def checkSchema(logger, document):
-    import json  # pylint: disable=I0021,import-error
+    import json
 
-    from jsonschema import validators  # pylint: disable=I0021,import-error
+    # pylint: disable=I0021,import-error
+    from jsonschema import validators
     from jsonschema.exceptions import ValidationError
 
     yaml = getYamlPackage()

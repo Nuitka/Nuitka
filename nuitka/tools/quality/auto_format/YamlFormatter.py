@@ -149,6 +149,7 @@ def _decideStrFormat(string_value):
 
 
 def _reorderDictionary(entry, key_order):
+    # pylint: disable=I0021,import-error
     import ruamel
 
     # Yes, friends with ruamel here, to make a sorted copy
@@ -178,6 +179,7 @@ def _reorderDictionary(entry, key_order):
 
 
 def _reorderDictionaryList(entry_list, key_order):
+    # pylint: disable=I0021,import-error
     import ruamel
 
     result = ruamel.yaml.comments.CommentedSeq()
@@ -193,7 +195,7 @@ def deepCompareYamlFiles(path1, path2):
     yaml1 = PackageConfigYaml(path1, parseYaml(getFileContents(path1)))
     yaml2 = PackageConfigYaml(path2, parseYaml(getFileContents(path2)))
 
-    import deepdiff
+    import deepdiff  # pylint: disable=I0021,import-error
 
     diff = deepdiff.diff.DeepDiff(yaml1.items(), yaml2.items(), ignore_order=True)
 
@@ -211,6 +213,7 @@ def formatYaml(path, ignore_diff=False):
 
     _initNuitkaPackageSchema()
 
+    # pylint: disable=I0021,import-error
     import ruamel
     from ruamel.yaml import YAML
     from ruamel.yaml.compat import _F
