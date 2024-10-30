@@ -18,6 +18,13 @@ reports, then exit. Defaults to off.
 Create an importable binary extension module
 executable instead of a program. Defaults to off.
 .TP
+\fB\-\-mode\fR=\fI\,COMPILATION_MODE\/\fR
+Mode in which to compile. Accelerated runs in your
+Python installation and depends on it. Standalone
+creates a folder with an executable contained to run
+it. Onefile creates a single executable to deploy.
+Default is 'accelerated'.
+.TP
 \fB\-\-standalone\fR
 Enable standalone mode for output. This allows you to
 transfer the created binary to other machines without
