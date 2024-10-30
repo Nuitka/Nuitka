@@ -141,6 +141,14 @@
       change_class:
         'Test': 'un-usable'
 
+- module-name: 'anyio' # checksum: f47c3c24
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+        '_pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'anyio._core._eventloop' # checksum: c0b82a1e
   implicit-imports:
     - depends:
