@@ -70,6 +70,20 @@ Create an importable binary extension module executable instead of a program. De
 )
 
 parser.add_option(
+    "--mode",
+    action="store",
+    dest="compilation_mode",
+    metavar="COMPILATION_MODE",
+    choices=("onefile", "standalone", "accelerated", "module"),
+    default=None,
+    help="""\
+Mode in which to compile. Accelerated runs in your Python
+installation and depends on it. Standalone creates a folder
+with an executable contained to run it. Onefile creates a
+single executable to deploy. Default is 'accelerated'.""",
+)
+
+parser.add_option(
     "--standalone",
     action="store_true",
     dest="is_standalone",
