@@ -350,9 +350,9 @@ def matchCall(
             assigned_tuple_params.append(arg)
             value = iter(value.getIterationValues())
 
-            for i, subarg in enumerate(arg):
+            for i, sub_arg in enumerate(arg):
                 try:
-                    subvalue = next(value)
+                    sub_value = next(value)
                 except StopIteration:
                     raise TooManyArguments(
                         ValueError(
@@ -362,7 +362,7 @@ def matchCall(
                     )
 
                 # Recurse into tuple argument values, could be more tuples.
-                assign(subarg, subvalue)
+                assign(sub_arg, sub_value)
 
             # Check that not too many values we provided.
             try:
@@ -379,7 +379,7 @@ def matchCall(
         return arg in assigned_tuple_params
 
     num_pos = len(positional)
-    num_total = num_pos + len(pairs)
+    num_total = num_pos + len([p for p in pairs if p[0] not in kw_only_args])
     num_args = len(args)
 
     for arg, value in zip(args, positional):
