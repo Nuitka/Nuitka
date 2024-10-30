@@ -490,6 +490,19 @@ Error, the Python from Windows app store is not supported.""",
 
     Tracing.progress_logger.is_quiet = not options.show_progress
 
+    if options.compilation_mode is not None:
+        if options.is_onefile or options.is_standalone or options.module_mode:
+            Tracing.options_logger.sysexit(
+                "Cannot use both '--mode=' and deprecated options that specify mode."
+            )
+
+        if options.compilation_mode == "onefile":
+            options.is_onefile = True
+        elif options.compilation_mode == "standalone":
+            options.is_standalone = True
+        elif options.compilation_mode == "module":
+            options.module_mode = True
+
     # Onefile implies standalone build.
     if options.is_onefile:
         options.is_standalone = True
