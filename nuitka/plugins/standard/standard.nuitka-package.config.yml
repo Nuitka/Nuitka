@@ -7761,7 +7761,7 @@
     - patterns:
         - '*.css'
 
-- module-name: 'transformers' # checksum: 745d44d5
+- module-name: 'transformers' # checksum: c402fbfe
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -7782,6 +7782,8 @@
         - 'sentencepiece'
         - 'timm'
         - 'openai'
+        - 'pygments'
+        - 'soundfile'
 
   anti-bloat:
     - description: 'remove IPython reference'
@@ -7817,7 +7819,21 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'transformers.models.deprecated.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'transformers.models.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.grounding_dino.modeling_grounding_dino' # checksum: baab8e6b
   anti-bloat:
     - description: 'remove setuptools usage'
       change_function:
@@ -7829,6 +7845,20 @@
     - description: 'remove setuptools usage'
       replacements_plain:
         'from torch.utils.cpp_extension import load': ''
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.omdet_turbo.modeling_omdet_turbo' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.rt_detr.modeling_rt_detr' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
       change_function:
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
@@ -7859,6 +7889,12 @@
     - description: 'workaround manual import issue'
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
+
+- module-name: 'transformers.tokenization_utils_base' # checksum: 836ef550
+  anti-bloat:
+    - description: 'disable transformers warnings'
+      replacements_plain:
+        'warnings.warn(': 'if False: warnings.warn('
 
 - module-name: 'transformers.trainer' # checksum: f71d17eb
   anti-bloat:
