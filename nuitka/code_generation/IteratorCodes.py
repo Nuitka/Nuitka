@@ -73,8 +73,11 @@ if (%(to_name)s == NULL) {
         context.addCleanupTempName(result_name)
 
 
-def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
-    emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
+def getBuiltinLoopBreakNextCode(expression, to_name, value, emit, context):
+    if expression.getTypeShape().isShapeIterator():
+        emit("%s = %s;" % (to_name, "ITERATOR_NEXT_ITERATOR(%s)" % value))
+    else:
+        emit("%s = %s;" % (to_name, "ITERATOR_NEXT(%s)" % value))
 
     getReleaseCode(release_name=value, emit=emit, context=context)
 
@@ -96,11 +99,11 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
             "to_name": to_name,
             "break_indicator_code": break_indicator_code,
             "break_target": break_target,
-            "release_temps": indented(getErrorExitReleaseCode(context), 2),
+            "release_temps": indented(getErrorExitReleaseCode(context), 8),
             "var_description_code": indented(
-                getFrameVariableTypeDescriptionCode(context), 2
+                getFrameVariableTypeDescriptionCode(context), 8
             ),
-            "line_number_code": indented(getErrorLineNumberUpdateCode(context), 2),
+            "line_number_code": indented(getErrorLineNumberUpdateCode(context), 8),
             "exception_target": context.getExceptionEscape(),
             "exception_state_name": exception_state_name,
         }
