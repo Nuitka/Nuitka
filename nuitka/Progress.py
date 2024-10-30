@@ -208,6 +208,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             # spell-checker: ignore bsize, tsize
             def onProgress(self, b=1, bsize=1, tsize=None):
                 if tsize is not None:
+                    # False alarm when tqdm is not installed, pylint: disable=I0021,attribute-defined-outside-init
                     self.total = tsize
                 self.update(b * bsize - self.n)
 
