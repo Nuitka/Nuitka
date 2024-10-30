@@ -20,7 +20,10 @@ import sys
 
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.containers.OrderedSets import (
+    OrderedSet,
+    recommended_orderedset_package_name,
+)
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.OptionParsing import (
     parseOptions,
@@ -1185,7 +1188,7 @@ but errors may happen."""
             """\
 Using very slow fallback for ordered sets, please install '%s' \
 PyPI package for best Python compile time performance."""
-            % ("ordered-set" if python_version >= 0x370 else "orderedset")
+            % recommended_orderedset_package_name
         )
 
     if shallUsePythonDebug() and not isDebugPython():
