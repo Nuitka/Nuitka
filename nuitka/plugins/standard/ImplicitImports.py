@@ -102,7 +102,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                     for resolved in self._resolveModulePattern(v):
                         yield resolved
                 else:
-                    yield v
+                    yield ModuleName(v)
         elif "*" in dependency or "?" in dependency:
             for resolved in self._resolveModulePattern(dependency):
                 yield resolved
