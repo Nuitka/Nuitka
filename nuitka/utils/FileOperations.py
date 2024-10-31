@@ -827,7 +827,7 @@ def getFileFirstLine(filename, mode="r", encoding=None):
 
 
 def openTextFile(filename, mode, encoding=None, errors=None):
-    if python_version >= 0x3B0:
+    if python_version > 0x370:
         mode = mode.replace("U", "")
 
     return codecs.open(filename, mode, encoding=encoding, errors=errors)
