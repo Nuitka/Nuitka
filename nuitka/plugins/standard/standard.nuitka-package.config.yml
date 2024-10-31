@@ -852,12 +852,12 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 19a06fc1
+- module-name: 'cv2' # checksum: 6069a546
   variables:
     setup_code:
       - 'import cv2'
     declarations:
-      'cv2_extra_sub_modules': 'tuple(cv2.__collect_extra_submodules(False))'
+      'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
   data-files:
     - dirs:
         - 'qt/fonts'
