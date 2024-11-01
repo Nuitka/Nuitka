@@ -11,6 +11,7 @@ to the user while it's being displayed.
 from contextlib import contextmanager
 
 from nuitka import Tracing
+from nuitka.PythonVersions import isPythonWithGil
 from nuitka.Tracing import general
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
@@ -22,6 +23,17 @@ from nuitka.utils.Utils import isWin32Windows
 use_progress_bar = False
 tqdm = None
 colorama = None
+
+_uses_threading = False
+
+
+def enableThreading():
+    """Inform about threading being used."""
+
+    # Singleton, pylint: disable=global-statement
+    global _uses_threading
+
+    _uses_threading = True
 
 
 class NuitkaProgressBar(object):
@@ -83,9 +95,10 @@ class NuitkaProgressBar(object):
 
     @contextmanager
     def withExternalWritingPause(self):
-        # spell-checker: ignore nolock TODO: Recognize threading usage, Scons
-        # needs locks, Nuitka currently does not.
-        with self.tqdm.external_write_mode(nolock=False):
+        # spell-checker: ignore nolock
+        with self.tqdm.external_write_mode(
+            nolock=not _uses_threading or isPythonWithGil()
+        ):
             yield
 
 
