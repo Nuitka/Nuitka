@@ -2086,6 +2086,13 @@
     - dirs:
         - 'schemas'
 
+- module-name: 'keras' # checksum: 292d6ceb
+  import-hacks:
+    # This package adds another directory to the search path of itself,
+    # which we will not find packages in unless added.
+    - package-paths:
+        - 'keras.api'
+
 - module-name: 'keras.api._v2.keras.__internal__.utils' # checksum: 63342938
   anti-bloat:
     - description: 'remove keras testing tools reference'
