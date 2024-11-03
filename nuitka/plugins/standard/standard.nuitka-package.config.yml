@@ -4118,6 +4118,22 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'py_mini_racer' # checksum: d45d7bdb
+  data-files:
+    - patterns:
+        - 'icudtl.dat'
+        - 'snapshot_blob.bin'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'mini_racer'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'libmini_racer'
+      when: 'not win32'
+
 - module-name: 'pyarrow' # checksum: 9da51f71
   anti-bloat:
     - description: 'remove setuptools usage'
