@@ -345,10 +345,11 @@
     - depends:
         - 'av.filter.pad'
 
-- module-name: 'av.frame' # checksum: e8ab2d30
+- module-name: 'av.frame' # checksum: 121c2594
   implicit-imports:
     - depends:
         - 'av.buffer'
+        - 'av.opaque'
 
 - module-name: 'av.logging' # checksum: 7da91901
   implicit-imports:
@@ -361,11 +362,12 @@
         - 'av.enum'
         - 'av.utils'
 
-- module-name: 'av.packet' # checksum: 13e9006a
+- module-name: 'av.packet' # checksum: 3bd21471
   implicit-imports:
     - depends:
         - 'av.dictionary'
         - 'av.sidedata.sidedata'
+        - 'av.opaque'
 
 - module-name: 'av.sidedata.sidedata' # checksum: 6adb0fe2
   implicit-imports:
