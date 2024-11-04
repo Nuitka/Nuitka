@@ -46,7 +46,7 @@ def getMainModule():
 def getSourceDirectoryPath(onefile=False):
     """Return path inside the build directory."""
 
-    # Distinct build folders for oneline mode.
+    # Distinct build folders for onefile mode.
     if onefile:
         suffix = ".onefile-build"
     else:

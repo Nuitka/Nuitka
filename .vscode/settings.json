@@ -281,6 +281,7 @@
         "metapath",
         "METH_NOARGS",
         "METH_VARARGS",
+        "MSCRT",
         "MSVC",
         "msys",
         "Mult",
