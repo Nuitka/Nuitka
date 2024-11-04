@@ -27,6 +27,7 @@ sys.path.insert(
 
 import subprocess
 
+from nuitka.Options import getCommercialVersion
 from nuitka.tools.environments.Virtualenv import (
     NuitkaCalledProcessError,
     withVirtualenv,
@@ -74,7 +75,15 @@ def _handleCase(python_version, nuitka_dir, filename):
 
     if filename == "example_2_pyproject":
         reportSkip(
-            "Skipped, 'poetry' based pyproject is not working for now",
+            "'poetry' based pyproject is not working for now",
+            ".",
+            filename,
+        )
+        return
+
+    if filename == "example_3_setuptools" and getCommercialVersion() is None:
+        reportSkip(
+            "embedding is available in Nuitka-commercial only",
             ".",
             filename,
         )

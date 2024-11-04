@@ -21,6 +21,10 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.reports.CompilationReportReader import (
+    getEmbeddedDataFilenames,
+    parseCompilationReport,
+)
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
@@ -231,7 +235,8 @@ class build(distutils.command.build.build):
             yield "%s=%s" % (option, value)
 
     def _build(self, build_lib):
-        # High complexity, pylint: disable=too-many-branches,too-many-locals
+        # High complexity,
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         old_dir = os.getcwd()
 
@@ -248,6 +253,8 @@ class build(distutils.command.build.build):
 
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
+
+        embedded_data_files = set()
 
         for is_package, module_name in self._findBuildTasks():
             # Nuitka wants the main package by filename, probably we should stop
@@ -320,12 +327,25 @@ class build(distutils.command.build.build):
                 ):
                     command.extend(self._parseOptionsEntry(option, value))
 
+            report_filename = None
+
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
                 for option, value in self.distribution.command_options[
                     "nuitka"
                 ].items():
-                    command.extend(self._parseOptionsEntry(option, value))
+                    for option in self._parseOptionsEntry(option, value):
+                        command.append(option)
+
+                        if option.startswith("--report="):
+                            report_filename = option.split("=", 1)[1]
+
+            if report_filename is None:
+                command.append("--report=compilation-report.xml")
+                report_filename = "compilation-report.xml"
+                delete_report = True
+            else:
+                delete_report = False
 
             command.append(main_filename)
 
@@ -338,17 +358,26 @@ class build(distutils.command.build.build):
                 "Finished compilation of '%s'." % module_name.asString(), style="green"
             )
 
+            report = parseCompilationReport(report_filename)
+
+            embedded_data_files.update(getEmbeddedDataFilenames(report))
+
+            if delete_report:
+                os.unlink(report_filename)
+
         self.build_lib = build_lib
 
-        os.chdir(old_dir)
-
         # Remove Python code from build folder, that's our job now.
-        for root, _, filenames in os.walk(build_lib):
-            for filename in filenames:
-                fullpath = os.path.join(root, filename)
+        for filename in getFileList(
+            build_lib, only_suffixes=(".py", ".pyw", ".pyc", ".pyo")
+        ):
+            os.unlink(filename)
 
-                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
-                    os.unlink(fullpath)
+        # Remove data files from build folder, that's our job now too
+        for filename in embedded_data_files:
+            os.unlink(filename)
+
+        os.chdir(old_dir)
 
 
 # Required by distutils, used as command name, pylint: disable=invalid-name
