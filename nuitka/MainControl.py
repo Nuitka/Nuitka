@@ -1127,7 +1127,8 @@ def _main():
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
 not use compiled code while it exists."""
-                % base_path
+                % base_path,
+                mnemonic="compiled-package-hidden-by-package",
             )
 
     general.info("Successfully created '%s'." % final_filename)
