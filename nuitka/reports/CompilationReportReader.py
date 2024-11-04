@@ -51,6 +51,18 @@ def getCompilationOutputBinary(compilation_report, prefixes):
     )
 
 
+def getEmbeddedDataFilenames(compilation_report):
+    result = []
+
+    for datafile_node in compilation_report.findall("data_file"):
+        if "embed-run-time" in datafile_node.attrib["tags"].split(
+            ","
+        ) or "embed-compile-time" in datafile_node.attrib["tags"].split(","):
+            result.append(datafile_node.attrib["name"])
+
+    return result
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
