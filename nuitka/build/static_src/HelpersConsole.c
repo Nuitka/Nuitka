@@ -7,7 +7,8 @@
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #endif
 
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32)
+#if defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
 #include <io.h>
 
 // Attach to the parent console respecting redirection only, otherwise we cannot
@@ -89,7 +90,20 @@ void inheritAttachedConsole(void) {
 #endif
     }
 }
-
+#endif
+#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+void hideConsoleIfSpawned(void) {
+    HWND hWnd = GetConsoleWindow();
+    DWORD consoleProcesses[2];
+    // detect if we were spawned from an existing cmdline window
+    DWORD numProcesses = GetConsoleProcessList(consoleProcesses, 2);
+    // if we have just one process that's us alone
+    if (hWnd && numProcesses <= 1) {
+        // then let's hide the console
+        ShowWindow(hWnd, SW_HIDE);
+    }
+}
+#endif
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
