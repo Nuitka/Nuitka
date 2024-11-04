@@ -378,6 +378,7 @@
         "strcmp",
         "strdup",
         "strrchr",
+        "stubgen",
         "subclasscheck",
         "sysexit",
         "sysflag",

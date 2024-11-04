@@ -39,6 +39,10 @@ def hasMainModule():
     return _main_module is not None
 
 
+def getMainModule():
+    return _main_module
+
+
 def getSourceDirectoryPath(onefile=False):
     """Return path inside the build directory."""
 
