@@ -108,6 +108,8 @@ addInlineCopy("glob2")
 addInlineCopy("markupsafe")
 addInlineCopy("tqdm")
 
+addInlineCopy("stubgen")
+
 sdist_mode = "sdist" in sys.argv
 install_mode = "install" in sys.argv
 
