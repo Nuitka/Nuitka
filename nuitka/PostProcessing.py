@@ -280,7 +280,8 @@ def executePostProcessing():
     These are in part required steps, not usable after failure.
     """
 
-    # Lots of cases to deal with, pylint: disable=too-many-branches
+    # Lots of cases to deal with,
+    # pylint: disable=too-many-branches,too-many-statements
 
     result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
@@ -417,7 +418,7 @@ set NUITKA_PYTHONPATH=%(python_path)s
 # now. This was decided by PEP 484 designers.
         """
         stubs = stubgen.generate_text_stub(
-            source_file_path=OutputDirectories._main_module.getCompileTimeFilename()
+            source_file_path=OutputDirectories.getMainModule().getCompileTimeFilename()
         )
 
         contents += "\n" + stubs + "\n"
