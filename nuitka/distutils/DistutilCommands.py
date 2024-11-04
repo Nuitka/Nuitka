@@ -35,6 +35,7 @@ def setupNuitkaDistutilsCommands(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
     # build operations (build, bdist_wheel, install etc) will run via Nuitka.
     # pylint: disable=unused-argument
+    # spell-checker: ignore cmdclass
 
     if not value:
         return
@@ -385,7 +386,8 @@ class install(distutils.command.install.install):
     # pylint: disable=attribute-defined-outside-init
     def finalize_options(self):
         distutils.command.install.install.finalize_options(self)
-        # Ensure the purelib folder is not used
+        # Ensure the "purelib" folder is not used
+        # spell-checker: ignore purelib,platlib
         self.install_lib = self.install_platlib
 
 
@@ -406,6 +408,7 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         # Force module to use correct platform in name
         self.root_is_pure = False
 
+    # virtual method name, spell-checker: ignore wheelfile
     def write_wheelfile(self, wheelfile_base, generator=None):
         if generator is None:
             from nuitka.Version import getNuitkaVersion
