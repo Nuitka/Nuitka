@@ -276,6 +276,7 @@ class build(distutils.command.build.build):
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
+                "--nowarn-mnemonic=compiled-package-hidden-by-package",
                 "--remove-output",
             ]
 
