@@ -442,7 +442,8 @@
         ".git",
         ".vscode",
         "Mini*.py",
-        "devcontainer.json"
+        "devcontainer.json",
+        "nuitka/build/inline_copy"
     ],
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
