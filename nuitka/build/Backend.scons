@@ -562,9 +562,6 @@ if "linux" in sys.platform:
 if not env.msvc_mode:
     env.Append(LIBS=["m"])
 
-if console_mode == "hide":
-    env.Append(LIBS=["User32"])
-
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
 

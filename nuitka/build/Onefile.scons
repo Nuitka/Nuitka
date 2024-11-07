@@ -433,9 +433,6 @@ if isMacOS():
         target_arch=target_arch,
     )
 
-if console_mode == "hide":
-    env.Append(LIBS=["User32"])
-
 
 def discoverSourceFiles():
     result = []

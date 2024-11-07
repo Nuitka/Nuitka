@@ -787,7 +787,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
-    if env.console_mode not in ["force", "hide"]:
+    if env.console_mode in ("attach", "disable"):
         if env.mingw_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
@@ -800,6 +800,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     if env.console_mode == "hide" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
 
     # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
     if env.mingw_mode and not env.clang_mode:
