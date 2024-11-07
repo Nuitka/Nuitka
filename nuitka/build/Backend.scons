@@ -390,6 +390,18 @@ env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
+# For Python3.13, we need to enforce it for now to use MSVC
+if os.name == "nt" and not env.msvc_mode and python_version >= (3, 13):
+    scons_logger.sysexit(
+        """\
+Sorry, non-MSVC is not currently supported with Python 3.13,
+due to differences in layout internal structures of Python.
+
+Newer Nuitka will work to solve this. Use Python 3.12 or
+option "--msvc=latest" as a workaround for now and wait
+for updates of Nuitka to add MinGW64 support back."""
+    )
+
 # gcc compiler cf_protection option
 env.cf_protection = cf_protection
 
