@@ -373,6 +373,7 @@ to install it."""
                     "preprocessed_cache_miss",
                     "primary_storage_miss",
                     "called_for_link",
+                    "no_input_file",
                     "local_storage_read_hit",
                     "local_storage_read_miss",
                     "local_storage_write",
