@@ -721,15 +721,18 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     PyObject *result = PyObject_GetAttr(object, attribute);
 
     if (result == NULL) {
-        assert(HAS_ERROR_OCCURRED(tstate));
-
-        if (default_value != NULL &&
-            EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
+        if (default_value != NULL) {
+            if (HAS_ERROR_OCCURRED(tstate)) {
+                if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+                    CLEAR_ERROR_OCCURRED(tstate);
+                }
+            }
 
             Py_INCREF(default_value);
             return default_value;
         } else {
+            assert(HAS_ERROR_OCCURRED(tstate));
+
             return NULL;
         }
     } else {
