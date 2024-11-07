@@ -228,6 +228,8 @@
         "HEDLEY",
         "HINSTANCE",
         "hotfixes",
+        "HRSRC",
+        "HWND",
         "ibitand",
         "ibitor",
         "ibitxor",
