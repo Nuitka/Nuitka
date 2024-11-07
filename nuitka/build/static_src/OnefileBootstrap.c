@@ -106,7 +106,7 @@
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_HIDE_CONSOLE_WINDOW))
 #include "HelpersConsole.c"
 #endif
 
@@ -907,6 +907,9 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lp
 #else
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
+#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+    hideConsoleIfSpawned();
+#endif
 #else
 int main(int argc, char **argv) {
 #endif

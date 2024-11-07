@@ -1390,14 +1390,16 @@ windows_group.add_option(
     "--windows-console-mode",
     action="store",
     dest="console_mode",
-    choices=("force", "disable", "attach"),
+    choices=("force", "disable", "attach", "hide"),
     metavar="CONSOLE_MODE",
     default=None,
     help="""\
 Select console mode to use. Default mode is 'force' and creates a
 console window unless the program was started from one. With 'disable'
 it doesn't create or use a console at all. With 'attach' an existing
-console will be used for outputs. Default is 'force'.
+console will be used for outputs. With 'hide' a newly spawned console
+will be hidden and an already existing console will behave like
+'force'. Default is 'force'.
 """,
 )
 
