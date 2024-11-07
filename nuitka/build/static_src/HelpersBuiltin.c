@@ -422,6 +422,7 @@ PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
 
 static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyThreadState *tstate, PyObject *value) {
     // TODO: Use our own formatting code.
+    // spell-checker: ignore unhashable
 
     PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
 }
@@ -554,7 +555,7 @@ PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *
  * This comes in two flavors, with one or two arguments. The second one
  * creates a "calliterobject" that is private to CPython. We define it here
  * for ourselves. The one argument version is in headers for in-lining of
- * the code.
+ * the code. spell-checker: ignore calliterobject
  *
  **/
 
