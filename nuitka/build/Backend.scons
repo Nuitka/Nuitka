@@ -93,7 +93,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
