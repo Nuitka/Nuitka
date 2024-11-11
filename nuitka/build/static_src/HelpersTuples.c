@@ -26,7 +26,7 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
     struct _Py_tuple_freelist *state = &freelists->tuples;
     PyTupleObject **items = state->items;
-    int(*numfree) = state->numfree;
+    int *numfree = state->numfree;
 #endif
 
 #if PYTHON_VERSION < 0x3b0
