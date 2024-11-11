@@ -3,6 +3,9 @@ Before submitting an Issue, please review the
 
 - Please check whether the bug was already reported or fixed.
 
+- Please check whether the issue appears when you run the code with Python, if it does, it's not a
+  Nuitka issue.
+
 - Please check out if the develop version of Nuitka works better for you.
 
   Download source, packages [from here](https://nuitka.net/doc/download.html) where you will also
