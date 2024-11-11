@@ -15,6 +15,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     openTextFile,
     putTextFileContents,
+    replaceFileAtomic,
 )
 
 
@@ -121,12 +122,14 @@ def updateManPages():
         "%s ./bin/nuitka" % sys.executable,
     ]
 
-    with openTextFile("doc/nuitka.1", "wb") as output:
+    with openTextFile("doc/nuitka.1.tmp", "wb") as output:
         check_call(cmd, stdout=output)
+    replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
 
     cmd[-1] += "-run"
-    with openTextFile("doc/nuitka-run.1", "wb") as output:
+    with openTextFile("doc/nuitka-run.1.tmp", "wb") as output:
         check_call(cmd, stdout=output)
+    replaceFileAtomic("doc/nuitka-run.1.tmp", "doc/nuitka-run.1")
 
     for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
         manpage_contents = getFileContents(manpage).splitlines()
