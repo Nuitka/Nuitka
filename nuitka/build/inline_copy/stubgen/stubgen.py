@@ -23,7 +23,7 @@ def generate_stub_from_source(source_code, output_file_path, text_only=False):
                 self.imports_output.add(f"import {alias.name}")
 
         def visit_ImportFrom(self, node):
-            module = node.module
+            module = node.module if node.module is not None else "."
             for alias in node.names:
                 name = alias.name
 
