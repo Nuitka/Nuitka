@@ -1885,6 +1885,56 @@ static PyObject *getDllDirectoryObject(void) {
 }
 #endif
 
+#if defined(_NUITKA_MODULE)
+static filename_char_t const *getDllFilename(void) {
+#if defined(_WIN32)
+    static WCHAR path[MAXPATHLEN + 1];
+    path[0] = 0;
+
+    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
+    assert(res != 0);
+
+    return path;
+#else
+    Dl_info where;
+
+    {
+        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+        assert(res != 0);
+    }
+
+    return where.dli_fname;
+#endif
+}
+
+PyObject *getDllFilenameObject(void) {
+    static PyObject *dll_filename = NULL;
+
+    if (dll_filename == NULL) {
+        filename_char_t const *dll_filename_str = getDllFilename();
+
+        dll_filename = Nuitka_String_FromFilename(dll_filename_str);
+
+#if PYTHON_VERSION < 0x300
+        // Avoid unnecessary unicode values.
+        PyObject *decoded_dll_filename = PyObject_Str(dll_filename);
+
+        if (decoded_dll_filename == NULL) {
+            PyThreadState *tstate = PyThreadState_GET();
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
+            Py_DECREF(dll_filename);
+            dll_filename = decoded_dll_filename;
+        }
+#endif
+    }
+
+    CHECK_OBJECT(dll_filename);
+
+    return dll_filename;
+}
+#endif
+
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #if defined(_NUITKA_EXE)
 #if defined(_NUITKA_ONEFILE_MODE)
