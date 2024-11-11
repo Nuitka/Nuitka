@@ -240,7 +240,7 @@ extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_f
     assert(path != NULL);
     PyObject *result;
 
-    if (TRACE_FILE_STAT(tstate, path, dir_fd, follow_symlinks, &result)) {
+    if (TRACE_FILE_STAT(tstate, path, dir_fd, false, &result)) {
         return result;
     }
 
