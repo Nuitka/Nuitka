@@ -61,7 +61,7 @@ checkAtHome()
 for filename in os.listdir("dist"):
     if os.path.isfile("dist/" + filename):
         if filename.startswith("nuitka-"):
-            os.rename(filename, "N" + filename[1:])
+            os.rename("dist/" + filename, "dist/N" + filename[1:])
             filename = "N" + filename[1:]
 
         assert os.system("chmod 644 dist/" + filename) == 0
