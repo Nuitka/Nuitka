@@ -252,12 +252,42 @@
       change_function:
         '_main': "'(lambda: None)'"
 
+- module-name: 'multiprocessing' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+
+- module-name: 'multiprocessing.context' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+
+- module-name: 'multiprocessing.forking' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+
+- module-name: 'multiprocessing.popen_spawn_win32' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
+
 - module-name: 'multiprocessing.resource_tracker' # checksum: e8bba98a
   anti-bloat:
     - description: "workaround for starting 'multiprocessing resource tracker"
       replacements_plain:
         "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
       when: 'not module_mode'
+
+- module-name: 'multiprocessing.spawn' # checksum: 96475306
+  anti-bloat:
+    - description: "workaround for 'sys.frozen' not being set"
+      replacements_plain:
+        "getattr(sys, 'frozen', False)": 'True'
 
 - module-name: 'opcode' # checksum: bef1771d
   implicit-imports:
