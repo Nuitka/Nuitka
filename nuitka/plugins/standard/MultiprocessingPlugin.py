@@ -9,7 +9,7 @@ point to a "Python.exe" and won't use compiled code by default.
 
 The issue applies to accelerated and standalone mode alike.
 
-spell-checker: ignore joblib
+spell-checker: ignore joblib,anyio
 """
 
 from nuitka import Options
@@ -51,26 +51,18 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
-        # TODO: Replace the setting of "sys.frozen" with a change to the source code of the
-        # modules we want to affect from this plugin, it's a huge impact on compatibility
-        # with other things potentially. We should do it, once the anti-bloat engine is
-        # reusable or supports conditional replacements based on plugin activity and is
-        # always on.
         if full_name in ("multiprocessing", "anyio"):
-            code = """\
+            yield (
+                """\
 import sys, os
-sys.frozen = 1
 argv0 = sys.argv[0]
 if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(".exe"):
     argv0 += ".exe"
 
 sys.executable = %s
 sys._base_executable = sys.executable
-""" % (
-                "__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"
-            )
-            return (
-                code,
+"""
+                % ("__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"),
                 """\
 Monkey patching "%s" load environment."""
                 % full_name,
@@ -81,7 +73,8 @@ Monkey patching "%s" load environment."""
         full_name = module.getFullName()
 
         if full_name == "multiprocessing":
-            code = """\
+            yield (
+                """\
 try:
     from multiprocessing.forking import ForkingPickler
 except ImportError:
@@ -100,10 +93,7 @@ def _reduce_compiled_method(m):
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
 if str is bytes:
     ForkingPickler.register(type(C.f), _reduce_compiled_method)
-"""
-
-            return (
-                code,
+""",
                 """\
 Monkey patching "multiprocessing" for compiled methods.""",
             )
