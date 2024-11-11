@@ -580,6 +580,8 @@ PyObject *LIST_INDEX3(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     start_ssize = PyLong_AsSsize_t(start_index);
 #endif
 
+    Py_DECREF(start_index);
+
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, Py_SIZE(list));
 }
 
@@ -608,9 +610,13 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
     start_ssize = PyLong_AsSsize_t(start_index);
 #endif
 
+    Py_DECREF(start_index);
+
     PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
 
     if (unlikely(stop_index == NULL)) {
+        Py_DECREF(start_index);
+
         CLEAR_ERROR_OCCURRED(tstate);
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
@@ -628,6 +634,8 @@ PyObject *LIST_INDEX4(PyThreadState *tstate, PyObject *list, PyObject *item, PyO
 #else
     stop_ssize = PyLong_AsSsize_t(stop_index);
 #endif
+
+    Py_DECREF(stop_index);
 
     return _LIST_INDEX_COMMON(tstate, (PyListObject *)list, item, start_ssize, stop_ssize);
 }
@@ -659,6 +667,8 @@ bool LIST_INSERT(PyThreadState *tstate, PyObject *list, PyObject *index, PyObjec
 #else
     index_ssize = PyLong_AsSsize_t(index_long);
 #endif
+
+    Py_DECREF(index_long);
 
     LIST_INSERT_CONST(list, index_ssize, item);
     return true;
