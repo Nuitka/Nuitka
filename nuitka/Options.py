@@ -1336,7 +1336,7 @@ def getModuleNameMode():
 
 def shallMakeModule():
     """:returns: bool derived from ``--module``"""
-    return options.module_mode
+    return options is not None and options.module_mode
 
 
 def shallCreatePyiFile():
