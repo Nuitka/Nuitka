@@ -1370,6 +1370,11 @@
     - depends:
         - 'fastapi.routing'
 
+- module-name: 'fastapi.exceptions' # checksum: 9806d681
+  implicit-imports:
+    - depends:
+        - 'attrs'
+
 - module-name: 'feedparser.html' # checksum: 8b17e6bc
   anti-bloat:
     - description: 'use SGML code more naturally'
