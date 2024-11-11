@@ -23,16 +23,16 @@ class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
     def build_wheel(
         self, wheel_directory, config_settings=None, metadata_directory=None
     ):
-        # Allow falling back to setuptools when the `no-nuitka` configuration setting is set to true.
+        # Allow falling back to setuptools when the `build_with_nuitka` configuration setting is set to true.
         if config_settings:
-            no_nuitka = config_settings.pop("no-nuitka", "false").lower()
+            build_with_nuitka = config_settings.pop("build_with_nuitka", "true").lower()
 
-            if no_nuitka not in {"true", "false"}:
+            if build_with_nuitka not in ("true", "false"):
                 raise ValueError(
-                    f"When passing the  `no-nuitka` setting, it must either be `true` or `false`."
+                    "When passing the 'build_with_nuitka' setting, it must either be 'true' or 'false'."
                 )
 
-            if no_nuitka == "true":
+            if build_with_nuitka == "false":
                 return super().build_wheel(
                     wheel_directory, config_settings, metadata_directory
                 )
