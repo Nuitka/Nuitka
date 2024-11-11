@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFilenameExtension,
+    getNormalizedPath,
     isFilesystemEncodable,
 )
 from nuitka.utils.Json import loadJsonFromFilename
@@ -944,6 +945,9 @@ if os.name == "nt" and not isFilesystemEncodable(result_exe):
         os.path.dirname(result_exe),
         "_nuitka_temp.pyd" if module_mode else "_nuitka_temp.exe",
     )
+
+    if not isFilesystemEncodable(result_exe):
+        result_exe = getNormalizedPath(os.path.relpath(result_exe))
 
     deleteFile(result_exe, must_exist=False)
 
