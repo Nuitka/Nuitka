@@ -53,6 +53,8 @@ shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
 checkReleaseDocumentation()
+
+# spell-checker: ignore bztar,gztar
 assert os.system("%s setup.py sdist --formats=bztar,gztar,zip" % sys.executable) == 0
 
 checkAtHome()
