@@ -98,7 +98,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyThreadState *
 
 // Call built-in functions with using defaulted values.
 extern PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObject **args,
-                                      char const **arg_names, int max_args);
+                                      char const **arg_names, int max_args, int kw_only_args);
 
 // For abstract class instantiation error message, during call.
 extern void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type);

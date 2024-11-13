@@ -228,7 +228,7 @@ extern PyObject *OS_STAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd
     PyObject *args[] = {path, dir_fd, follow_symlinks};
 
     char const *arg_names[] = {"path", "dir_fd", "follow_symlinks"};
-    result = CALL_BUILTIN_KW_ARGS(tstate, stat_func, args, arg_names, 3);
+    result = CALL_BUILTIN_KW_ARGS(tstate, stat_func, args, arg_names, 3, 2);
 #endif
 
     Py_DECREF(stat_func);
