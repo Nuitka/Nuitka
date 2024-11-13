@@ -16,10 +16,10 @@
 #endif
 
 PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObject **args, char const **arg_names,
-                               int max_args) {
+                               int max_args, int kw_only_args) {
     int i = 0;
 
-    while (i < max_args) {
+    while (i < max_args - kw_only_args) {
         if (args[i] == NULL) {
             break;
         }
@@ -225,7 +225,7 @@ PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mod
 
     char const *arg_names[] = {"name", "mode", "buffering"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3, 0);
 }
 #else
 PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mode, PyObject *buffering,
@@ -242,7 +242,7 @@ PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mod
 
     char const *arg_names[] = {"file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8, 0);
 }
 
 #endif
@@ -315,7 +315,7 @@ PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject *encod
 
     char const *arg_names[] = {"value", "encoding", "errors"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytes), args, arg_names, 3);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytes), args, arg_names, 3, 0);
 }
 #endif
 
