@@ -2565,6 +2565,12 @@
         'numba': 'ignore'
       when: 'not use_numba'
 
+- module-name: 'mne.io.array.array' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
 - module-name: 'mne.io.curry.curry' # checksum: 6051d6a
   anti-bloat:
     - description: 'workaround frame dictionary not being populated'
