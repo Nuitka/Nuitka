@@ -471,7 +471,14 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
     PyObject *args[] = {%(arg_value_names)s};
     char const *arg_names[] = {%(arg_names)s};
 
-    %(to_name)s = CALL_BUILTIN_KW_ARGS(tstate, %(called_name)s, args, arg_names, sizeof(args) / sizeof(PyObject *));
+    %(to_name)s = CALL_BUILTIN_KW_ARGS(
+        tstate,
+        %(called_name)s,
+        args,
+        arg_names,
+        sizeof(args) / sizeof(PyObject *),
+        %(kw_only_count)d
+    );
 }
 """
             % {
@@ -484,6 +491,7 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
                     (str(arg_value_name) if arg_value_name else "NULL")
                     for arg_value_name in arg_value_names
                 ),
+                "kw_only_count": spec.getKwOnlyParameterCount(),
             }
         )
 
