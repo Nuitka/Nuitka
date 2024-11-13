@@ -838,7 +838,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
         CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
+        PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
         CHECK_OBJECT(result);
     }
 #endif
@@ -851,7 +851,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
             PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
             CHECK_OBJECT(method);
 
-            PyObject *result = CALL_FUNCTION_WITH_KEYARGS(tstate, method, args);
+            PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
             CHECK_OBJECT(result);
         }
     }
@@ -1708,7 +1708,7 @@ orig_argv = argv;
 
             PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
-            CALL_FUNCTION_WITH_KEYARGS(tstate, main_function, kw_args);
+            CALL_FUNCTION_WITH_KW_ARGS(tstate, main_function, kw_args);
         }
 
         int exit_code = HANDLE_PROGRAM_EXIT(tstate);

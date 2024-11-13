@@ -91,7 +91,7 @@ extern PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *sour
                                            PyObject *positional_args);
 
 // TODO: Specialize in template too.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyThreadState *tstate, PyObject *function_object,
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KW_ARGS(PyThreadState *tstate, PyObject *function_object,
                                                                  PyObject *named_args) {
     return CALL_FUNCTION(tstate, function_object, const_tuple_empty, named_args);
 }
