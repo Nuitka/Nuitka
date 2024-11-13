@@ -31,7 +31,7 @@ PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObjec
 
     NUITKA_ASSIGN_BUILTIN(__import__);
 
-    PyObject *import_result = CALL_FUNCTION_WITH_KEYARGS(tstate, NUITKA_ACCESS_BUILTIN(__import__), kw_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(__import__), kw_args);
 
     Py_DECREF(kw_args);
 

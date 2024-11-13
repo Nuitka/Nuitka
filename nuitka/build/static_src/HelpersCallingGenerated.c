@@ -8820,8 +8820,8 @@ PyObject *CALL_FUNCTION_WITH_POS_ARGS10(PyThreadState *tstate, PyObject *called,
 
     return result;
 }
-PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *kw_values,
-                                             PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *kw_values,
+                                              PyObject *kw_names) {
 
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -8986,8 +8986,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -9074,8 +9074,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS1_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 1);
@@ -9245,8 +9245,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -9333,8 +9333,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS2_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 2);
@@ -9504,8 +9504,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -9592,8 +9592,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS3_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 3);
@@ -9763,8 +9763,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -9851,8 +9851,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS4_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 4);
@@ -10022,8 +10022,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -10110,8 +10110,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS5_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 5);
@@ -10281,8 +10281,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -10369,8 +10369,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS6_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 6);
@@ -10540,8 +10540,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -10628,8 +10628,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS7_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 7);
@@ -10799,8 +10799,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -10887,8 +10887,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS8_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 8);
@@ -11058,8 +11058,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyThreadState *tstate, PyObject *c
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                           PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                            PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -11146,8 +11146,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *call
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                               PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS9_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 9);
@@ -11317,8 +11317,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyThreadState *tstate, PyObject *
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
-                                            PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *const *args,
+                                             PyObject *const *kw_values, PyObject *kw_names) {
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
@@ -11405,8 +11405,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *cal
 
     return Nuitka_CheckFunctionResult(tstate, called, result);
 }
-PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KWSPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
-                                                PyObject *const *kw_values, PyObject *kw_names) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS10_KW_SPLIT(PyThreadState *tstate, PyObject *called, PyObject *pos_args,
+                                                 PyObject *const *kw_values, PyObject *kw_names) {
     assert(PyTuple_CheckExact(pos_args));
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
     CHECK_OBJECTS(args, 10);
