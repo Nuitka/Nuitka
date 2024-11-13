@@ -387,11 +387,17 @@
         - 'av.plane'
         - 'av.video.plane'
 
-- module-name: 'azure.cognitiveservices.speech' # checksum: 571ec995
+- module-name: 'azure.cognitiveservices.speech' # checksum: e9989c05
+  data-files:
+    - patterns:
+        - 'libMicrosoft.CognitiveServices.Speech.extension.lu.a'
+      when: 'macos'
+
   dlls:
     - from_filenames:
         prefixes:
           - 'Microsoft.CognitiveServices.Speech'
+          - 'libMicrosoft.CognitiveServices.Speech'
 
 - module-name: 'babel' # checksum: 29ed1c5b
   data-files:
