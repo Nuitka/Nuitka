@@ -230,6 +230,9 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     )
 
 
+_excluded_system_dlls = set()
+
+
 def _reduceToPythonPath(used_dll_paths):
     """Remove DLLs outside of python path."""
     inside_paths = getPythonUnpackedSearchPath()
@@ -256,7 +259,9 @@ def _reduceToPythonPath(used_dll_paths):
         if decideInside(dll_filename):
             kept_used_dll_paths.add(dll_filename)
         else:
-            inclusion_logger.info("Not including system DLL '%s'" % dll_filename)
+            if dll_filename not in _excluded_system_dlls:
+                _excluded_system_dlls.add(dll_filename)
+                inclusion_logger.info("Not including system DLL '%s'" % dll_filename)
 
             removed_dll_paths.add(dll_filename)
 
