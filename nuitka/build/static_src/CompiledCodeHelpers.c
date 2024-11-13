@@ -726,7 +726,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 
         // TODO: This should use something that does not build a dictionary at all, and not
         // uses a tuple.
-        result = CALL_FUNCTION_WITH_KEYARGS(tstate, NUITKA_ACCESS_BUILTIN(print), kw_args);
+        result = CALL_FUNCTION_WITH_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print), kw_args);
 
         Py_DECREF(kw_args);
     }
