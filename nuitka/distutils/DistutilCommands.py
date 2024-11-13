@@ -218,6 +218,9 @@ class build(distutils.command.build.build):
 
     @staticmethod
     def _parseOptionsEntry(option, value):
+        if option == "build_with_nuitka":
+            return
+
         option = "--" + option.lstrip("-")
 
         if type(value) is tuple and len(value) == 2 and value[0] == "setup.py":

@@ -23,6 +23,20 @@ class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
     def build_wheel(
         self, wheel_directory, config_settings=None, metadata_directory=None
     ):
+        # Allow falling back to setuptools when the `build_with_nuitka` configuration setting is set to true.
+        if config_settings:
+            build_with_nuitka = config_settings.pop("build_with_nuitka", "true").lower()
+
+            if build_with_nuitka not in ("true", "false"):
+                raise ValueError(
+                    "When passing the 'build_with_nuitka' setting, it must either be 'true' or 'false'."
+                )
+
+            if build_with_nuitka == "false":
+                return super().build_wheel(
+                    wheel_directory, config_settings, metadata_directory
+                )
+
         os.environ["NUITKA_TOML_FILE"] = os.path.join(os.getcwd(), "pyproject.toml")
 
         with suppress_known_deprecation():
