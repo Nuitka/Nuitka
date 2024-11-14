@@ -289,6 +289,10 @@ class build(distutils.command.build.build):
                 "--nofollow-import-to=*.tests",
                 "--nowarn-mnemonic=compiled-package-hidden-by-package",
                 "--remove-output",
+                # Note: For when we are debugging module mode of Nuitka, not for general use.
+                # "--debug",
+                # "--trace",
+                # "--python-flag=-v"
             ]
 
             if package_name is not None:
