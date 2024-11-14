@@ -1462,6 +1462,14 @@ def getShallIncludeDataDirs():
         yield src, dest
 
 
+def getShallIncludeRawDirs():
+    """*list*, items of ``--include-raw-dir=``"""
+    for data_file in options.raw_dirs:
+        src, dest = data_file.split("=", 1)
+
+        yield src, dest
+
+
 def getShallNotIncludeDataFilePatterns():
     """*list*, items of ``--noinclude-data-files=``"""
 
