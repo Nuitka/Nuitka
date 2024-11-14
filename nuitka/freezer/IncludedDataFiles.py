@@ -168,11 +168,12 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     # In accelerated mode, data files can be everywhere, but they cannot
     # change place.
     if isAcceleratedMode():
-        if "package_data" not in tags and not areSamePaths(source_path, dest_path):
-            tracer.sysexit(
-                "Error, cannot change paths for data files in accelerated mode from '%s' to '%s'."
-                % (source_path, dest_path)
-            )
+        if "copy" in tags:
+            if "package_data" not in tags and not areSamePaths(source_path, dest_path):
+                tracer.sysexit(
+                    "Error, cannot change paths for data files in accelerated mode from '%s' to '%s'."
+                    % (source_path, dest_path)
+                )
     else:
         inside = True
         if not isRelativePath(dest_path):
