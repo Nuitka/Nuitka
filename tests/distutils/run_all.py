@@ -41,6 +41,7 @@ from nuitka.tools.testing.Common import (
     test_logger,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
+from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
@@ -245,36 +246,50 @@ def _handleCase(python_version, nuitka_dir, filename):
 
         # TODO: Is this something to be abstracted into a function.
         # pylint: disable=consider-using-with
-
         if os.path.exists(runner_binary):
-            process = subprocess.Popen(
-                args=[
-                    os.path.join(
-                        venv.getVirtualenvDir(),
-                        "bin" if os.name != "nt" else "scripts",
-                        "python",
-                    ),
-                    runner_binary,
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+            command = [
+                os.path.join(
+                    venv.getVirtualenvDir(),
+                    "bin" if os.name != "nt" else "scripts",
+                    "python",
+                ),
+                runner_binary,
+            ]
         else:
             assert os.path.exists(runner_binary + ".exe")
 
+            command = [runner_binary + ".exe"]
+
+        process = subprocess.Popen(
+            args=command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        stdout_nuitka, stderr_nuitka = process.communicate()
+        exit_nuitka = process.returncode
+
+        if exit_nuitka == -11:
+            command = wrapCommandForDebuggerForSubprocess(*command)
+
+            test_logger.warning("Rerunning due to segfault in debugger.")
+            stdout_nuitka, stderr_nuitka = process.communicate()
+
             process = subprocess.Popen(
-                args=[runner_binary + ".exe"],
+                args=command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
 
-        stdout_nuitka, stderr_nuitka = process.communicate()
-        exit_nuitka = process.returncode
+            stdout_nuitka, stderr_nuitka = process.communicate()
 
         my_print("STDOUT Nuitka:")
         my_print(stdout_nuitka)
         my_print("STDERR Nuitka:")
         my_print(stderr_nuitka)
+
+        if exit_nuitka == -11:
+            os._exit(2)
 
         assert exit_nuitka == 0, exit_nuitka
         my_print("EXIT was OK.")
