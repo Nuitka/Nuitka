@@ -194,7 +194,9 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>
 #include <internal/pycore_modsupport.h>
+#include <internal/pycore_parking_lot.h>
 #include <internal/pycore_setobject.h>
+#include <internal/pycore_time.h>
 #endif
 
 #undef Py_BUILD_CORE
