@@ -18,6 +18,11 @@
 extern void *(*python_obj_malloc)(void *ctx, size_t size);
 extern void *(*python_mem_malloc)(void *ctx, size_t size);
 extern void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize);
+#ifndef Py_GIL_DISABLED
+extern void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size);
+#else
+extern void (*python_mem_free)(void *ctx, void *ptr);
+#endif
 
 #if defined(Py_DEBUG)
 extern void *python_obj_ctx;
@@ -40,10 +45,31 @@ NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) 
     return python_mem_calloc(python_mem_ctx, nelem, elsize);
 }
 
+#ifndef Py_GIL_DISABLED
+// Our version of "PyMem_Realloc".
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Realloc(void *ptr, size_t new_size) {
+    return python_mem_realloc(python_mem_ctx, ptr, new_size);
+}
+#else
+NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(python_mem_ctx, ptr); }
+#endif
+
 #else
 #define NuitkaObject_Malloc(size) PyObject_MALLOC(size)
 #define NuitkaMem_Malloc(size) PyMem_MALLOC(size)
-#define NuitkaMem_Calloc(elem, elsize) PyMem_CALLOC(elem, elsize)
+#define NuitkaMem_Calloc(elem, elsize) PyMem_Calloc(elem, elsize)
+#ifndef Py_GIL_DISABLED
+#if defined(_WIN32)
+// On Windows, mixing different runtime DLLs can cause issues at
+// release, so we need to go through the API to get the proper
+// DLL runtime.
+#define NuitkaMem_Realloc(ptr, new_size) PyMem_Realloc(ptr, new_size)
+#else
+#define NuitkaMem_Realloc(ptr, new_size) PyMem_REALLOC(ptr, new_size)
+#endif
+#else
+#define NuitkaMem_Free(ptr) PyMem_Free(ptr)
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
