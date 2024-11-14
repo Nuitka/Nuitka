@@ -10,7 +10,7 @@ def submodule21_f1(var1):
     print_str = "" + __name__ + " : function submodule21_f1: " + var1 + " "
     print(print_str, end="")
     submodule11_f1(var1)
-    print()
+    print("submodule21_f1 completed.")
 
 
 #     Python test originally created or extracted from other peoples work. The

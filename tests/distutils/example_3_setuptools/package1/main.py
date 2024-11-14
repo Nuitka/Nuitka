@@ -1,6 +1,8 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
+from __future__ import print_function
+
 from package1.module1 import module1_f1
 from package1.module2 import module2_f1
 from package1.subpackage1.submodule11 import submodule11_f2
@@ -12,6 +14,7 @@ def main():
     module2_f1("package1.main.py")
     submodule11_f2("package1.main.py")
     submodule21_f1("package1.main.py")
+    print("OK.")
 
 
 #     Python test originally created or extracted from other peoples work. The
