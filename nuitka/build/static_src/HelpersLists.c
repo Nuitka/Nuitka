@@ -14,6 +14,40 @@
 
 static PyObject *Nuitka_LongFromCLong(long ival);
 
+#ifdef Py_GIL_DISABLED
+typedef struct {
+    Py_ssize_t allocated;
+    PyObject *ob_item[];
+} _PyListArray;
+
+static _PyListArray *Nuitka_AllocateListArray(size_t capacity) {
+    if (unlikely(capacity > PY_SSIZE_T_MAX / sizeof(PyObject *) - 1)) {
+        return NULL;
+    }
+
+    _PyListArray *list_array = PyMem_Malloc(sizeof(_PyListArray) + capacity * sizeof(PyObject *));
+
+    if (unlikely(list_array == NULL)) {
+        return NULL;
+    }
+
+    list_array->allocated = capacity;
+    return list_array;
+}
+
+// spell-checker: ignore use_qsbr
+static void Nuitka_FreeListArray(PyObject **items, bool use_qsbr) {
+    _PyListArray *array = _Py_CONTAINER_OF(items, _PyListArray, ob_item);
+
+    if (use_qsbr) {
+        NuitkaMem_FreeDelayed(array);
+    } else {
+        NuitkaMem_Free(array);
+    }
+}
+
+#endif
+
 #if NUITKA_LIST_HAS_FREELIST
 
 PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
@@ -47,12 +81,21 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 
     // Elements are allocated separately.
     if (size > 0) {
+#ifdef Py_GIL_DISABLED
+        _PyListArray *list_array = Nuitka_AllocateListArray(size);
+
+        if (unlikely(list_array == NULL)) {
+            Py_DECREF(result_list);
+            return PyErr_NoMemory();
+        }
+#else
         result_list->ob_item = (PyObject **)NuitkaMem_Calloc(size, sizeof(PyObject *));
 
         if (unlikely(result_list->ob_item == NULL)) {
             Py_DECREF(result_list);
             return PyErr_NoMemory();
         }
+#endif
     } else {
         result_list->ob_item = NULL;
     }
@@ -87,34 +130,67 @@ PyObject *LIST_COPY(PyThreadState *tstate, PyObject *list) {
     return result;
 }
 
-static bool LIST_RESIZE(PyListObject *list, Py_ssize_t newsize) {
+static bool LIST_RESIZE(PyListObject *list, Py_ssize_t new_size) {
+    CHECK_OBJECT(list);
+    assert(new_size >= 0);
+
     Py_ssize_t allocated = list->allocated;
 
-    if (allocated >= newsize && newsize >= (allocated >> 1)) {
-        Py_SET_SIZE(list, newsize);
+    if (allocated >= new_size && new_size >= (allocated >> 1)) {
+        Py_SET_SIZE(list, new_size);
 
         return true;
     }
 
     size_t new_allocated;
 
-    if (newsize == 0) {
+    if (new_size == 0) {
         new_allocated = 0;
     } else {
-        new_allocated = ((size_t)newsize + (newsize >> 3) + 6) & ~(size_t)3;
+        new_allocated = ((size_t)new_size + (new_size >> 3) + 6) & ~(size_t)3;
+        assert(new_allocated >= (size_t)new_size);
     }
 
+#ifdef Py_GIL_DISABLED
+    _PyListArray *array = Nuitka_AllocateListArray(new_allocated);
+
+    if (array == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    PyObject **old_items = list->ob_item;
+    if (list->ob_item != NULL) {
+        size_t num_allocated_bytes;
+        if (new_allocated < (size_t)allocated) {
+            num_allocated_bytes = new_allocated * sizeof(PyObject *);
+        } else {
+            num_allocated_bytes = allocated * sizeof(PyObject *);
+        }
+        memcpy(array->ob_item, list->ob_item, num_allocated_bytes);
+    }
+    if (new_allocated > (size_t)allocated) {
+        memset(array->ob_item + allocated, 0, sizeof(PyObject *) * (new_allocated - allocated));
+    }
+    _Py_atomic_store_ptr_release(&list->ob_item, &array->ob_item);
+    list->allocated = new_allocated;
+    Py_SET_SIZE(list, new_size);
+    if (old_items != NULL) {
+        Nuitka_FreeListArray(old_items, _PyObject_GC_IS_SHARED(list));
+    }
+#else
     size_t num_allocated_bytes = new_allocated * sizeof(PyObject *);
 
-    PyObject **items = (PyObject **)PyMem_Realloc(list->ob_item, num_allocated_bytes);
+    // TODO: For Python3.13 No-GIL this is different code
+    PyObject **items = (PyObject **)NuitkaMem_Realloc(list->ob_item, num_allocated_bytes);
     if (unlikely(items == NULL)) {
         PyErr_NoMemory();
         return false;
     }
 
     list->ob_item = items;
-    Py_SET_SIZE(list, newsize);
+    Py_SET_SIZE(list, new_size);
     list->allocated = new_allocated;
+#endif
 
     return true;
 }
@@ -752,6 +828,7 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 
     return true;
 }
+
 #endif
 
 PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
