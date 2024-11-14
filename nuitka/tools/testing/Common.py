@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
+from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -298,6 +299,10 @@ def decideFilenameVersionSkip(filename):
 
     assert type(filename) is str, repr(filename)
 
+    # There are commercial only test cases
+    if "commercial" in filename.lower() and getCommercialVersion() is None:
+        return False
+
     # Skip runner scripts by default.
     if filename.startswith("run_"):
         return False
@@ -363,6 +368,10 @@ def decideFilenameVersionSkip(filename):
 
     # Skip tests that require Python 3.12 at least.
     if filename.endswith("312.py") and _python_version < (3, 12):
+        return False
+
+    # Skip tests that require Python 3.13 at least.
+    if filename.endswith("313.py") and _python_version < (3, 13):
         return False
 
     return True
