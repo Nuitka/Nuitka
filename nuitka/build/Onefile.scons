@@ -245,6 +245,7 @@ scons_details_logger.info(
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
+    env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
