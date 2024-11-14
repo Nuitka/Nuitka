@@ -19,6 +19,7 @@ from nuitka.Options import (
     getShallIncludeDataFiles,
     getShallIncludeExternallyDataFilePatterns,
     getShallIncludePackageData,
+    getShallIncludeRawDirs,
     getShallNotIncludeDataFilePatterns,
     isAcceleratedMode,
     isOnefileMode,
@@ -342,6 +343,8 @@ def getIncludedDataFiles():
 
 
 def _addIncludedDataFilesFromFileOptions():
+    # Many different option variants, pylint: disable=too-many-branches
+
     for pattern, source_path, dest_path, arg in getShallIncludeDataFiles():
         filenames = resolveShellPatternToFilenames(pattern)
 
@@ -392,6 +395,24 @@ def _addIncludedDataFilesFromFileOptions():
 
         if count == 0:
             options_logger.warning("No data files in directory '%s.'" % source_path)
+
+    for source_path, dest_path in getShallIncludeRawDirs():
+        count = 0
+
+        for included_datafile in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=os.path.normpath(dest_path),
+            reason="specified raw dir '%s' on command line" % source_path,
+            tracer=options_logger,
+            tags="user",
+            raw=True,
+        ):
+            yield included_datafile
+
+            count += 1
+
+        if count == 0:
+            options_logger.warning("No files in raw directory '%s.'" % source_path)
 
 
 def addIncludedDataFilesFromFileOptions():
