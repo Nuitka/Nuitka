@@ -726,6 +726,18 @@ used to detect implicit imports.
 Defaults to off.""",
 )
 
+output_group.add_option(
+    "--no-pyi-stubs",
+    action="store_false",
+    dest="pyi_stubs",
+    default=True,
+    help="""\
+Do not use stubgen when creating a '.pyi' file for extension modules
+created by Nuitka. They expose your API, but stubgen may cause issues.
+Defaults to off.""",
+)
+
+
 del output_group
 
 deployment_group = parser.add_option_group("Deployment control")
