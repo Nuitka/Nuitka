@@ -23,17 +23,35 @@ from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import buildNode
 
 
+def _getErrorMessageYieldFromOutsideFunction():
+    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
+
+    try:
+        exec("""yield from ()""")
+    except SyntaxError as e:
+        if "yield from" in str(e):
+            return "yield from"
+        else:
+            return "yield"
+
+
 def _checkInsideGenerator(construct_name, provider, node, source_ref):
+
     if provider.isCompiledPythonModule():
+        # Bug compatibility
+        if construct_name == "yield from":
+            construct_error_name = _getErrorMessageYieldFromOutsideFunction()
+        else:
+            construct_error_name = construct_name
+
         raiseSyntaxError(
-            "'%s' outside function"
-            % (construct_name if construct_name == "await" else "yield"),
+            "'%s' outside function" % construct_error_name,
             source_ref.atColumnNumber(node.col_offset),
         )
 
-    # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
+    # This yield is forbidden in 3.5, but allowed in 3.6, but "yield from"
     # is neither.
-    if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield_from":
+    if provider.isExpressionAsyncgenObjectBody() and construct_name == "yield from":
         raiseSyntaxError(
             "'%s' inside async function"
             % ("yield" if node.__class__ is ast.Yield else "yield from",),
@@ -80,7 +98,7 @@ def buildYieldNode(provider, node, source_ref):
 def buildYieldFromNode(provider, node, source_ref):
     assert python_version >= 0x300
 
-    _checkInsideGenerator("yield_from", provider, node, source_ref)
+    _checkInsideGenerator("yield from", provider, node, source_ref)
 
     return ExpressionYieldFrom(
         expression=buildNode(provider, node.value, source_ref), source_ref=source_ref

@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFilenameExtension,
+    getNormalizedPath,
     isFilesystemEncodable,
 )
 from nuitka.utils.Json import loadJsonFromFilename
@@ -92,7 +93,7 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -135,8 +136,14 @@ profile_mode = getArgumentBool("profile_mode", False)
 python_version_str = getArgumentRequired("python_version")
 python_version = tuple(int(d) for d in python_version_str.split("."))
 
+gil_mode = getArgumentBool("gil_mode")
+
 # The ABI flags to target.
 abiflags = getArgumentDefaulted("abiflags", "")
+
+if not gil_mode and "t" not in abiflags:
+    abiflags = "t" + abiflags
+
 python_abi_version = python_version_str + abiflags
 
 # Python debug mode: reference count checking, assertions in CPython core.
@@ -254,6 +261,10 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
+# python_sysflag_dontwritebytecode
+python_sysflag_dontwritebytecode = getArgumentBool(
+    "python_sysflag_dontwritebytecode", False
+)
 # python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
 # python_flag_no_docstrings
@@ -356,6 +367,7 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
+env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
 env.console_mode = console_mode
 env.source_dir = source_dir
@@ -378,6 +390,18 @@ env.clang_mode = clang_mode
 env.msvc_mode = os.name == "nt" and not env.gcc_mode
 env.mingw_mode = os.name == "nt" and env.gcc_mode
 env.clangcl_mode = clangcl_mode
+
+# For Python3.13, we need to enforce it for now to use MSVC
+if os.name == "nt" and not env.msvc_mode and python_version >= (3, 13):
+    scons_logger.sysexit(
+        """\
+Sorry, non-MSVC is not currently supported with Python 3.13,
+due to differences in layout internal structures of Python.
+
+Newer Nuitka will work to solve this. Use Python 3.12 or
+option "--msvc=latest" as a workaround for now and wait
+for updates of Nuitka to add MinGW64 support back."""
+    )
 
 # gcc compiler cf_protection option
 env.cf_protection = cf_protection
@@ -466,7 +490,7 @@ if env.debug_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
 
-        if "allow-c-warnings" not in env.experimental_flags and not debugger_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
             env.Append(
                 CCFLAGS=[
                     "-Wall",
@@ -639,6 +663,9 @@ if env.nuitka_python:
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
+if not gil_mode:
+    env.Append(CPPDEFINES="Py_GIL_DISABLED")
+
 # TODO: This ought to be decided outside of scons and per flavor maybe.
 if env.static_libpython and (
     (not os.name == "nt" and not isMacOS()) or env.nuitka_python
@@ -703,7 +730,11 @@ if os.name == "nt":
             addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix_external, "lib")
+    if env.self_compiled_python_uninstalled:
+        python_lib_path = python_prefix_external
+    else:
+        python_lib_path = os.path.join(python_prefix_external, "lib")
+
     env.Append(LIBPATH=[python_lib_path])
 
     # Any module libs that are for self-compiled Python to be static.
@@ -736,7 +767,7 @@ elif not module_mode:
         env.Append(LIBS=[env.File(env.static_libpython)])
 
         # The linker won't succeed in searching for those for system Python of Debian
-        # compiled Pythons. Help that. For self-compiled,
+        # compiled Pythons. Help that. spell-checker: ignore rdynamic,Xlinker,pthread
         if python_prefix_external == "/usr" and isDebianBasedLinux():
             env.Append(LIBS=["z", "m", "util", "pthread"])
 
@@ -778,6 +809,7 @@ if isMacOS():
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     else:
         # For macOS we need to make sure install_name_tool can do its work
+        # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
 # The static include files reside in Nuitka installation, which may be where
@@ -801,7 +833,7 @@ env.Append(
     ]
 )
 
-if env.debian_python and python_version >= (3, 12):
+if env.static_libpython and python_version >= (3, 12):
     env.Append(
         CPPPATH=[
             os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
@@ -825,6 +857,7 @@ if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
     # The rpath is no longer used unless we do this on modern Linux. The
     # option name is not very revealing, but basically without this, the
     # rpath in the binary will be ignored by the loader.
+    # spell-checker: ignore dtags
     if "linux" in sys.platform:
         env.Append(LINKFLAGS=["-Wl,--disable-new-dtags"])
 
@@ -913,6 +946,9 @@ if os.name == "nt" and not isFilesystemEncodable(result_exe):
         "_nuitka_temp.pyd" if module_mode else "_nuitka_temp.exe",
     )
 
+    if not isFilesystemEncodable(result_exe):
+        result_exe = getNormalizedPath(os.path.relpath(result_exe))
+
     deleteFile(result_exe, must_exist=False)
 
 if module_mode:
@@ -975,6 +1011,10 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
     build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
+
+    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+        1 if python_sysflag_dontwritebytecode else 0
+    )
 
     build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
 

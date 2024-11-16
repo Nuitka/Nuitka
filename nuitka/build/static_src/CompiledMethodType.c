@@ -15,7 +15,8 @@
 #include <structmember.h>
 #endif
 
-static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, void *closure) {
+static PyObject *Nuitka_Method_get__doc__(PyObject *self, void *data) {
+    struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
     PyObject *result = method->m_function->m_doc;
 
     if (result == NULL) {
@@ -26,8 +27,7 @@ static PyObject *Nuitka_Method_get__doc__(struct Nuitka_MethodObject *method, vo
     return result;
 }
 
-static PyGetSetDef Nuitka_Method_tp_getset[] = {{(char *)"__doc__", (getter)Nuitka_Method_get__doc__, NULL, NULL},
-                                                {NULL}};
+static PyGetSetDef Nuitka_Method_tp_getset[] = {{(char *)"__doc__", Nuitka_Method_get__doc__, NULL, NULL}, {NULL}};
 
 #define OFF(x) offsetof(struct Nuitka_MethodObject, x)
 
@@ -43,15 +43,12 @@ static PyMemberDef Nuitka_Method_members[] = {
      (char *)"the instance to which a method is bound; None for unbound method"},
     {NULL}};
 
-static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
+static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method, PyObject *unused) {
     PyThreadState *tstate = PyThreadState_GET();
 
 #if PYTHON_VERSION < 0x300
     // spell-checker: ignore instancemethod
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle instancemethod objects");
-    return NULL;
-#elif PYTHON_VERSION < 0x340
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "can't pickle method objects");
     return NULL;
 #else
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 2);
@@ -74,12 +71,9 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
 
     // Python API, spell-checker: ignore copyreg,newobj
 
-#if PYTHON_VERSION < 0x340
 #if PYTHON_VERSION < 0x300
     PyObject *copy_reg = PyImport_ImportModule("copy_reg");
-#else
-    PyObject *copy_reg = PyImport_ImportModule("copyreg");
-#endif
+
     CHECK_OBJECT(copy_reg);
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -101,7 +95,7 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
 
     return result;
 #else
-    return Nuitka_Method_reduce(method);
+    return Nuitka_Method_reduce(method, NULL);
 #endif
 }
 

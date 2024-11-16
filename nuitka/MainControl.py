@@ -41,6 +41,7 @@ from nuitka.Options import (
     hasPythonFlagIsolated,
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
+    hasPythonFlagNoBytecodeRuntimeCache,
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
@@ -597,6 +598,7 @@ def runSconsBackend():
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "file_reference_mode": Options.getFileReferenceMode(),
         "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
+        "gil_mode": asBoolStr(Options.isPythonWithGil()),
     }
 
     if Options.isLowMemory():
@@ -698,6 +700,9 @@ def runSconsBackend():
 
     if python_version >= 0x370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = asBoolStr(True)
+
+    if hasPythonFlagNoBytecodeRuntimeCache():
+        options["python_sysflag_unbuffered"] = asBoolStr(True)
 
     if hasPythonFlagUnbuffered():
         options["python_sysflag_unbuffered"] = asBoolStr(True)
@@ -809,7 +814,7 @@ def _executeMain(binary_filename):
 def _executeModule(tree):
     """Execute the extension module just created."""
 
-    if python_version < 0x340:
+    if python_version < 0x300:
         python_command_template = """\
 import os, imp;\
 assert os.path.normcase(os.path.abspath(os.path.normpath(\
@@ -901,8 +906,7 @@ def compileTree():
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
-    if Options.is_debug:
-        Reports.doMissingOptimizationReport()
+    Reports.doMissingOptimizationReport()
 
     if Options.shallNotDoExecCCompilerCall():
         return True, {}
@@ -1123,7 +1127,8 @@ def _main():
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
 not use compiled code while it exists."""
-                % base_path
+                % base_path,
+                mnemonic="compiled-package-hidden-by-package",
             )
 
     general.info("Successfully created '%s'." % final_filename)

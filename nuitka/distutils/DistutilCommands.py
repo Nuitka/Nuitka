@@ -21,6 +21,10 @@ from nuitka.importing.Importing import (
     locateModule,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.reports.CompilationReportReader import (
+    getEmbeddedDataFilenames,
+    parseCompilationReport,
+)
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import deleteFile, getFileList, renameFile
@@ -31,6 +35,7 @@ def setupNuitkaDistutilsCommands(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
     # build operations (build, bdist_wheel, install etc) will run via Nuitka.
     # pylint: disable=unused-argument
+    # spell-checker: ignore cmdclass
 
     if not value:
         return
@@ -213,6 +218,9 @@ class build(distutils.command.build.build):
 
     @staticmethod
     def _parseOptionsEntry(option, value):
+        if option == "build_with_nuitka":
+            return
+
         option = "--" + option.lstrip("-")
 
         if type(value) is tuple and len(value) == 2 and value[0] == "setup.py":
@@ -231,7 +239,8 @@ class build(distutils.command.build.build):
             yield "%s=%s" % (option, value)
 
     def _build(self, build_lib):
-        # High complexity, pylint: disable=too-many-branches,too-many-locals
+        # High complexity,
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         old_dir = os.getcwd()
 
@@ -248,6 +257,8 @@ class build(distutils.command.build.build):
 
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
+
+        embedded_data_files = set()
 
         for is_package, module_name in self._findBuildTasks():
             # Nuitka wants the main package by filename, probably we should stop
@@ -276,7 +287,12 @@ class build(distutils.command.build.build):
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
+                "--nowarn-mnemonic=compiled-package-hidden-by-package",
                 "--remove-output",
+                # Note: For when we are debugging module mode of Nuitka, not for general use.
+                # "--debug",
+                # "--trace",
+                # "--python-flag=-v"
             ]
 
             if package_name is not None:
@@ -319,12 +335,25 @@ class build(distutils.command.build.build):
                 ):
                     command.extend(self._parseOptionsEntry(option, value))
 
+            report_filename = None
+
             # Process any extra options from setuptools
             if "nuitka" in self.distribution.command_options:
                 for option, value in self.distribution.command_options[
                     "nuitka"
                 ].items():
-                    command.extend(self._parseOptionsEntry(option, value))
+                    for option in self._parseOptionsEntry(option, value):
+                        command.append(option)
+
+                        if option.startswith("--report="):
+                            report_filename = option.split("=", 1)[1]
+
+            if report_filename is None:
+                command.append("--report=compilation-report.xml")
+                report_filename = "compilation-report.xml"
+                delete_report = True
+            else:
+                delete_report = False
 
             command.append(main_filename)
 
@@ -337,17 +366,26 @@ class build(distutils.command.build.build):
                 "Finished compilation of '%s'." % module_name.asString(), style="green"
             )
 
+            report = parseCompilationReport(report_filename)
+
+            embedded_data_files.update(getEmbeddedDataFilenames(report))
+
+            if delete_report:
+                os.unlink(report_filename)
+
         self.build_lib = build_lib
 
-        os.chdir(old_dir)
-
         # Remove Python code from build folder, that's our job now.
-        for root, _, filenames in os.walk(build_lib):
-            for filename in filenames:
-                fullpath = os.path.join(root, filename)
+        for filename in getFileList(
+            build_lib, only_suffixes=(".py", ".pyw", ".pyc", ".pyo")
+        ):
+            os.unlink(filename)
 
-                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
-                    os.unlink(fullpath)
+        # Remove data files from build folder, that's our job now too
+        for filename in embedded_data_files:
+            os.unlink(filename)
+
+        os.chdir(old_dir)
 
 
 # Required by distutils, used as command name, pylint: disable=invalid-name
@@ -355,7 +393,8 @@ class install(distutils.command.install.install):
     # pylint: disable=attribute-defined-outside-init
     def finalize_options(self):
         distutils.command.install.install.finalize_options(self)
-        # Ensure the purelib folder is not used
+        # Ensure the "purelib" folder is not used
+        # spell-checker: ignore purelib,platlib
         self.install_lib = self.install_platlib
 
 
@@ -376,6 +415,7 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         # Force module to use correct platform in name
         self.root_is_pure = False
 
+    # virtual method name, spell-checker: ignore wheelfile
     def write_wheelfile(self, wheelfile_base, generator=None):
         if generator is None:
             from nuitka.Version import getNuitkaVersion

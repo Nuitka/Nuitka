@@ -172,7 +172,11 @@ def _getEvaluationContext():
             # Iterating packages
             "iterate_modules": _iterate_module_names,
             # Locating package directories
-            "_get_module_directory": _getModuleDirectory,
+            "get_module_directory": _getModuleDirectory,
+            # Checking module presence
+            "has_module": _hasModule,
+            # Getting data files contents
+            "get_data": _getPackageData,
             # Querying package properties
             "has_builtin_module": isBuiltinModuleName,
             # Architectures
@@ -324,6 +328,22 @@ def _getModuleDirectory(module_name):
     )
 
     return module_filename
+
+
+def _hasModule(module_name):
+    from nuitka.importing.Importing import locateModule
+
+    _module_name, _module_filename, _module_kind, finding = locateModule(
+        module_name=ModuleName(module_name), parent_package=None, level=0
+    )
+
+    return finding != "not-found"
+
+
+def _getPackageData(package_name, resource):
+    from nuitka.utils.PackageResources import getPackageData
+
+    return getPackageData(package_name=ModuleName(package_name), resource=resource)
 
 
 def _iterate_module_names(package_name):
@@ -1251,21 +1271,25 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             setup_codes = setup_codes.splitlines()
 
         if not setup_codes:
-            setup_codes = ["pass"]
+            setup_codes = ("pass",)
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
+import sys
 
 try:
 %(setup_codes)s
 except ImportError:
-    import sys
     sys.exit(38)
+try:
 %(query_codes)s
+except Exception as e:
+    sys.stderr.write("\n%%s" %% repr(e))
+    sys.exit(39)
 """ % {
             "setup_codes": "\n".join("   %s" % line for line in setup_codes),
-            "query_codes": "\n".join(query_codes),
+            "query_codes": "\n".join("   %s" % line for line in query_codes),
         }
 
         if shallShowExecutedCommands():
@@ -1282,6 +1306,16 @@ except ImportError:
 
             if Options.is_debug:
                 self.info(cmd, keep_format=True)
+
+            if e.returncode == 39:
+                # TODO: Recognize the ModuleNotFoundError or ImportError exceptions
+                # and output the missing module.
+                self.warning(
+                    "Exception during compile time command execution: %s"
+                    % e.stderr.splitlines()[-1]
+                )
+
+                return None
 
             raise
 
@@ -1469,7 +1503,7 @@ except ImportError:
 
                     if info is None:
                         self.sysexit(
-                            "Error, failed to evaluate variables for %s." % full_name
+                            "Error, failed to evaluate variables for '%s'." % full_name
                         )
 
                     variables.update(info.asDict())
@@ -1541,37 +1575,45 @@ except ImportError:
                     raise
 
                 self.sysexit(
-                    "Error, failed to evaluate expression %r in this context, exception was '%s'."
+                    "Error, failed to evaluate expression %r in this context, exception was '%r'."
                     % (expression, e)
                 )
 
         if type(result) not in (str, unicode):
             if single_value:
-                self.sysexit(
-                    """\
-Error, expression '%s' for module '%s' did not evaluate to 'str' result."""
-                    % (expression, full_name)
+                self._checkStrResult(
+                    value=result, expression=expression, full_name=full_name
                 )
             else:
-                if type(result) not in (tuple, list):
-                    self.sysexit(
-                        """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
-                        % (expression, full_name)
-                    )
+                self._checkSequenceResult(
+                    value=result, expression=expression, full_name=full_name
+                )
 
                 for v in result:
-                    if type(v) not in (str, unicode):
-                        self.sysexit(
-                            """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result."""
-                            % (expression, full_name)
-                        )
+                    self._checkStrResult(
+                        value=v, expression=expression, full_name=full_name
+                    )
 
                 # Make it immutable in case it's a list.
                 result = tuple(result)
 
         return result
+
+    def _checkStrResult(self, value, expression, full_name):
+        if type(value) not in (str, unicode):
+            self.sysexit(
+                """\
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result but '%s'"""
+                % (expression, full_name, type(value))
+            )
+
+    def _checkSequenceResult(self, value, expression, full_name):
+        if type(value) not in (tuple, list):
+            self.sysexit(
+                """\
+Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list[str]' result."""
+                % (expression, full_name)
+            )
 
     def evaluateCondition(self, full_name, condition):
         # Note: Caching makes no sense yet, this should all be very fast and

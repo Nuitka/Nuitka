@@ -68,6 +68,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, Py
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
@@ -308,6 +309,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1,
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -565,6 +567,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1,
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -1885,9 +1888,10 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_CLONG(PyObject *operand1, 
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+
     {
         PyObject *operand1_object = operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);
@@ -1987,8 +1991,9 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CLONG_INT(long operand1, PyObj
         cfloat_result = r;
         goto exit_result_ok_cfloat;
     }
+
     {
-        PyObject *operand1_object = PyLong_FromLong(operand1);
+        PyObject *operand1_object = Nuitka_PyLong_FromLong(operand1);
         PyObject *operand2_object = operand2;
 
         PyObject *r = PyLong_Type.tp_as_number->nb_true_divide(operand1_object, operand2_object);
@@ -2200,6 +2205,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_OBJECT(PyObject *operan
             cfloat_result = r;
             goto exit_result_ok_cfloat;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;

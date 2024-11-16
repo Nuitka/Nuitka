@@ -139,9 +139,9 @@ class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
         if first_statement.isStatementRaiseException():
             # Exception exit was already annotated, need not repeat it.
 
+            assert first_statement.subnode_exception_value is None, first_statement
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
-                exception_value=first_statement.subnode_exception_value,
                 source_ref=first_statement.getSourceReference(),
             )
 
@@ -264,9 +264,9 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
         if first_statement.isStatementRaiseException():
             # Exception exit was already annotated, need not repeat it.
 
+            assert first_statement.subnode_exception_value is None, first_statement
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
-                exception_value=first_statement.subnode_exception_value,
                 source_ref=first_statement.getSourceReference(),
             )
 

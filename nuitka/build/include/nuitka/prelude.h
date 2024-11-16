@@ -8,6 +8,8 @@
 #define NDEBUG
 #endif
 
+#include "nuitka/debug_settings.h"
+
 #if defined(_WIN32)
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
@@ -161,6 +163,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 // Uncompiled generator integration requires these.
 #if PYTHON_VERSION >= 0x3b0
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_opcode_utils.h>
 #include <opcode_ids.h>
 #else
 #include <internal/pycore_opcode.h>
@@ -173,7 +176,8 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <cpython/code.h>
 #endif
 
-#if !defined(PY_NOGIL) && PYTHON_VERSION < 0x3c0
+#if PYTHON_VERSION < 0x3c0
+// Make sure we go the really fast variant, spell-checker: ignore gilstate
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
@@ -190,7 +194,9 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>
 #include <internal/pycore_modsupport.h>
+#include <internal/pycore_parking_lot.h>
 #include <internal/pycore_setobject.h>
+#include <internal/pycore_time.h>
 #endif
 
 #undef Py_BUILD_CORE
@@ -235,11 +241,14 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #ifndef __NUITKA_NO_ASSERT__
 #define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
     PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
-    assert(false);                                                                                                     \
     abort();
 #else
 #define NUITKA_CANNOT_GET_HERE(NAME) abort();
 #endif
+
+#define NUITKA_ERROR_EXIT(NAME)                                                                                        \
+    PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
+    abort();
 
 #ifdef _MSC_VER
 /* Using "_alloca" extension due to MSVC restrictions for array variables
@@ -256,7 +265,6 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
  * of renaming PyObject_Unicode. Define this to be easily portable.
  */
 #if PYTHON_VERSION >= 0x300
-#define PyInt_FromLong PyLong_FromLong
 #define PyInt_AsLong PyLong_AsLong
 #define PyInt_FromSsize_t PyLong_FromSsize_t
 
@@ -270,6 +278,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
  * which makes it easier to write portable code.
  */
 #if PYTHON_VERSION < 0x300
+#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
 #define Nuitka_String_AsString PyString_AsString
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
@@ -282,10 +291,28 @@ NUITKA_MAY_BE_UNUSED static inline bool Nuitka_StringOrUnicode_CheckExact(PyObje
 #define Nuitka_String_FromStringAndSize PyString_FromStringAndSize
 #define Nuitka_String_FromFormat PyString_FromFormat
 #define PyUnicode_CHECK_INTERNED (0)
+NUITKA_MAY_BE_UNUSED static Py_UNICODE *Nuitka_UnicodeAsWideString(PyObject *str, Py_ssize_t *size) {
+    PyObject *unicode;
+
+    if (!PyUnicode_Check(str)) {
+        // Leaking memory, but for usages its acceptable to
+        // achieve that the pointer remains valid.
+        unicode = PyObject_Unicode(str);
+    } else {
+        unicode = str;
+    }
+
+    if (size != NULL) {
+        *size = (Py_ssize_t)PyUnicode_GET_LENGTH(unicode);
+    }
+
+    return PyUnicode_AsUnicode(unicode);
+}
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 
-/* Note: This is from unicodeobject.c */
+// Note: This private stuff from file "Objects/unicodeobject.c"
+// spell-checker: ignore unicodeobject
 #define _PyUnicode_UTF8(op) (((PyCompactUnicodeObject *)(op))->utf8)
 #define PyUnicode_UTF8(op)                                                                                             \
     (assert(PyUnicode_IS_READY(op)),                                                                                   \
@@ -306,10 +333,7 @@ NUITKA_MAY_BE_UNUSED static char const *Nuitka_String_AsString_Unchecked(PyObjec
 #define Nuitka_String_FromString PyUnicode_FromString
 #define Nuitka_String_FromStringAndSize PyUnicode_FromStringAndSize
 #define Nuitka_String_FromFormat PyUnicode_FromFormat
-#endif
-
-#if PYTHON_VERSION < 0x300
-#define PyUnicode_GET_LENGTH(x) (PyUnicode_GET_SIZE(x))
+#define Nuitka_UnicodeAsWideString PyUnicode_AsWideCharString
 #endif
 
 // Wrap the type lookup for debug mode, to identify errors, and potentially
@@ -333,22 +357,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyOb
 #define NUITKA_MODULE_ENTRY_FUNCTION void
 #else
 #define NUITKA_MODULE_ENTRY_FUNCTION PyObject *
-#endif
-
-/* Avoid gcc warnings about using an integer as a bool. This is a cherry-pick.
- *
- * This might apply to more versions. I am seeing this on 3.3.2, and it was
- * fixed for Python 2.x only later. We could include more versions. This is
- * only a problem with debug mode and therefore not too important maybe.
- */
-#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x340
-
-#undef PyMem_MALLOC
-#define PyMem_MALLOC(n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : malloc(((n) != 0) ? (n) : 1))
-
-#undef PyMem_REALLOC
-#define PyMem_REALLOC(p, n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : realloc((p), ((n) != 0) ? (n) : 1))
-
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -470,7 +478,7 @@ extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 #include <longintrepr.h>
 
 #if PYTHON_VERSION < 0x270
-// Not present in Python2.6 yet
+// Not present in Python2.6 yet, spell-checker: ignore sdigit
 typedef signed int sdigit;
 #endif
 #endif
@@ -531,6 +539,8 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define TRACE_FILE_ISDIR(tstate, x, y) (false)
 
 #define TRACE_FILE_LISTDIR(tstate, x, y) (false)
+
+#define TRACE_FILE_STAT(tstate, x, y, z, r) (false)
 
 #endif
 

@@ -23,7 +23,7 @@ credits.
 
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
-**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.12)
+**every** construct that Python 2 (2.6, 2.7) and Python 3 (3.4 - 3.13)
 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
@@ -101,7 +101,7 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.12) are supported. If
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.13) are supported. If
 at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
@@ -1404,6 +1404,35 @@ which you expect to be inside the onefile binary, access them like this.
    except NameError:
       open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
 
+.. note::
+
+   When the program is launched from the executable, the original
+   ``sys.argv[0]`` from the invocation command line will not be
+   preserved, it will be made an absolute path.
+
+   For advanced use cases where one needs access to the original
+   ``sys.argv[0]``, it may be found at ``__compiled__.original_argv0``.
+   The field will read back as ``None`` if the program is not launched
+   from the onefile executable, thus not having gone through the onefile
+   bootstrap stage; the original ``sys.argv[0]`` would be preserved as
+   well in this case.
+
+.. code:: python
+
+   # Suppose the onefile binary is placed at /opt/abc/bin/foo, and it was
+   # symlinked to /usr/local/bin/bar, and invoked as `bar ...`:
+   assert sys.argv[0] == "/usr/local/bin/bar"
+   assert __compiled__.original_argv0 == "bar"
+
+   # If the onefile tempdir is overridden and the program is invoked
+   # directly from the unpacked location, sys.argv[0] would not be touched.
+   #
+   # Suppose the onefile tempdir is /home/xx/.cache/abc/0.1.2, and the
+   # foo.bin executable inside is symlinked to /usr/local/bin/baz, and
+   # invoked as `baz ...`:
+   assert sys.argv[0] == "baz"
+   assert __compiled__.original_argv0 is None
+
 Windows Programs without console give no errors
 ===============================================
 
@@ -1812,11 +1841,16 @@ run is most meaningful, and eliminates usage spikes.
    echo "Compiled Python2"
    for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n | head -rn 1
 
-   echo "Uncompiled Python3"
-   for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -rn | head -n 1
-   python3 -m nuitka --lto=yes --pgo-c tests/benchmarks/pystone3.py
-   echo "Compiled Python3"
-   for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -rn | head -n 1
+   PYTHON3=python3.10
+
+   # Using a 100 gives semi-reliable values already, 1000 for best accuracy.
+   RUNS=1000
+
+   $PYTHON3 -m nuitka --lto=yes --pgo-c --static-libpython=yes tests/benchmarks/pystone3.py
+   echo "Uncompiled $PYTHON3"
+   for i in $(seq 1 $RUNS); do BENCH=1 $PYTHON3 tests/benchmarks/pystone3.py ; done | sort -rn | head -n 1
+   echo "Compiled $PYTHON3"
+   for i in $(seq 1 $RUNS); do BENCH=1 ./pystone3.bin ; done | sort -rn | head -n 1
 
 +-------------------+-------------------+----------------------+---------------------+
 | Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |

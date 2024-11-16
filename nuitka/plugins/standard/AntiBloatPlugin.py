@@ -18,7 +18,7 @@ from nuitka.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 
-# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel
+# spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -108,6 +108,10 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 "setuptools",
             )
             self.handled_modules["numpy.distutils"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["wheel.util"] = (
                 noinclude_setuptools_mode,
                 "setuptools",
             )
@@ -267,7 +271,7 @@ form 'module_name:[%s]'."""
             dest="show_changes",
             default=False,
             help="""\
-Annotate what changes are by the plugin done.""",
+Annotate what changes are done by the plugin.""",
         )
 
         group.add_option(
@@ -411,7 +415,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 replace_dst = self.evaluateExpression(
                     full_name=module_name,
                     expression=replace_code,
-                    config_name="module '%s' config 'replacements' " % module_name,
+                    config_name="module '%s' config 'replacements'" % module_name,
                     extra_context=self._getContextCode(
                         module_name=module_name, anti_bloat_config=anti_bloat_config
                     ),
@@ -556,10 +560,10 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
     def onFunctionBodyParsing(self, module_name, function_name, body):
         result = False
 
-        config = self.config.get(module_name, section="anti-bloat")
-
-        if config:
-            for anti_bloat_config in config:
+        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            ):
                 if self._onFunctionBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
@@ -604,7 +608,7 @@ class %(class_name)s:
         replacement = ast.parse(replacement).body[0]
 
         node.body[:] = replacement.body
-        node.bases = replacement.bases
+        node.bases[:] = replacement.bases
 
         if self.show_changes:
             self.info(
@@ -616,10 +620,10 @@ class %(class_name)s:
     def onClassBodyParsing(self, module_name, class_name, node):
         result = False
 
-        config = self.config.get(module_name, section="anti-bloat")
-
-        if config:
-            for anti_bloat_config in config:
+        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+            ):
                 if self._onClassBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
@@ -868,6 +872,13 @@ slow down compilation."""
 
             if module_name.hasNamespace(handled_module_name):
                 return "bytecode"
+
+        # TODO: Detect effective "change_class" and "change_function"
+        # configuration for standard library modules, but often enough we are
+        # happy to let the bytecode not have the effect, but for these ones it's
+        # required. TODO: Make the compilation mode part of the config.
+        if module_name == "xmlrpc.server":
+            return "compiled"
 
     def onModuleCompleteSet(self, module_set):
         # TODO: Maybe have an entry point that works on the set of names

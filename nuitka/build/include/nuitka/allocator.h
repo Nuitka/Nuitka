@@ -18,6 +18,11 @@
 extern void *(*python_obj_malloc)(void *ctx, size_t size);
 extern void *(*python_mem_malloc)(void *ctx, size_t size);
 extern void *(*python_mem_calloc)(void *ctx, size_t nelem, size_t elsize);
+#ifndef Py_GIL_DISABLED
+extern void *(*python_mem_realloc)(void *ctx, void *ptr, size_t new_size);
+#else
+extern void (*python_mem_free)(void *ctx, void *ptr);
+#endif
 
 #if defined(Py_DEBUG)
 extern void *python_obj_ctx;
@@ -40,10 +45,31 @@ NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Calloc(size_t nelem, size_t elsize) 
     return python_mem_calloc(python_mem_ctx, nelem, elsize);
 }
 
+#ifndef Py_GIL_DISABLED
+// Our version of "PyMem_Realloc".
+NUITKA_MAY_BE_UNUSED static void *NuitkaMem_Realloc(void *ptr, size_t new_size) {
+    return python_mem_realloc(python_mem_ctx, ptr, new_size);
+}
+#else
+NUITKA_MAY_BE_UNUSED static void NuitkaMem_Free(void *ptr) { python_mem_free(python_mem_ctx, ptr); }
+#endif
+
 #else
 #define NuitkaObject_Malloc(size) PyObject_MALLOC(size)
 #define NuitkaMem_Malloc(size) PyMem_MALLOC(size)
-#define NuitkaMem_Calloc(elem, elsize) PyMem_CALLOC(elem, elsize)
+#define NuitkaMem_Calloc(elem, elsize) PyMem_Calloc(elem, elsize)
+#ifndef Py_GIL_DISABLED
+#if defined(_WIN32)
+// On Windows, mixing different runtime DLLs can cause issues at
+// release, so we need to go through the API to get the proper
+// DLL runtime.
+#define NuitkaMem_Realloc(ptr, new_size) PyMem_Realloc(ptr, new_size)
+#else
+#define NuitkaMem_Realloc(ptr, new_size) PyMem_REALLOC(ptr, new_size)
+#endif
+#else
+#define NuitkaMem_Free(ptr) PyMem_Free(ptr)
+#endif
 #endif
 
 #if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3c0
@@ -102,6 +128,48 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
         }                                                                                                              \
     } while (0)
 
+#elif PYTHON_VERSION >= 0x3c0 && defined(_WIN32) && !defined(Py_DEBUG) && !defined(Py_TRACE_REFS) &&                   \
+    !defined(Py_GIL_DISABLED) && !defined(_NUITKA_EXPERIMENTAL_DISABLE_PY_DECREF_OVERRIDE)
+
+#undef Py_DECREF
+#define Py_DECREF(arg)                                                                                                 \
+    do {                                                                                                               \
+        PyObject *op = _PyObject_CAST(arg);                                                                            \
+        if (_Py_IsImmortal(op)) {                                                                                      \
+            break;                                                                                                     \
+        }                                                                                                              \
+        _Py_DECREF_STAT_INC();                                                                                         \
+        if (--op->ob_refcnt == 0) {                                                                                    \
+            destructor dealloc = Py_TYPE(op)->tp_dealloc;                                                              \
+            (*dealloc)(op);                                                                                            \
+        }                                                                                                              \
+    } while (0)
+
+#undef Py_XDECREF
+#define Py_XDECREF(arg)                                                                                                \
+    do {                                                                                                               \
+        PyObject *xop = _PyObject_CAST(arg);                                                                           \
+        if (xop != NULL) {                                                                                             \
+            Py_DECREF(xop);                                                                                            \
+        }                                                                                                              \
+    } while (0)
+
+#undef Py_IS_TYPE
+#define Py_IS_TYPE(ob, type) (_PyObject_CAST(ob)->ob_type == (type))
+
+#undef _Py_DECREF_SPECIALIZED
+#define _Py_DECREF_SPECIALIZED(arg, dealloc)                                                                           \
+    do {                                                                                                               \
+        PyObject *op = _PyObject_CAST(arg);                                                                            \
+        if (_Py_IsImmortal(op)) {                                                                                      \
+            break;                                                                                                     \
+        }                                                                                                              \
+        _Py_DECREF_STAT_INC();                                                                                         \
+        if (--op->ob_refcnt == 0) {                                                                                    \
+            destructor d = (destructor)(dealloc);                                                                      \
+            d(op);                                                                                                     \
+        }                                                                                                              \
+    } while (0)
 #endif
 
 // For Python3.12, avoid reference management if value is known to be immortal.
@@ -131,6 +199,7 @@ static inline void Nuitka_Py_NewReference(PyObject *op) {
 #if PYTHON_VERSION < 0x3c0
     _Py_RefTotal++;
 #else
+    // Refcounts are now in the interpreter state, spell-checker: ignore reftotal
     _PyInterpreterState_GET()->object_state.reftotal++;
 #endif
 #endif
@@ -307,6 +376,60 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 }
 #else
 #define Py_SET_REFCNT_IMMORTAL(object)
+#endif
+
+// Have these defines from newer Python for all Python versions available
+#ifndef _Py_CAST
+#define _Py_CAST(type, expr) ((type)(expr))
+#endif
+
+#ifndef _PyObject_CAST
+#define _PyObject_CAST(op) _Py_CAST(PyObject *, (op))
+#endif
+
+#ifndef Py_SETREF
+#ifdef _Py_TYPEOF
+#define Py_SETREF(dst, src)                                                                                            \
+    do {                                                                                                               \
+        _Py_TYPEOF(dst) *_tmp_dst_ptr = &(dst);                                                                        \
+        _Py_TYPEOF(dst) _tmp_old_dst = (*_tmp_dst_ptr);                                                                \
+        *_tmp_dst_ptr = (src);                                                                                         \
+        Py_DECREF(_tmp_old_dst);                                                                                       \
+    } while (0)
+#else
+#define Py_SETREF(dst, src)                                                                                            \
+    do {                                                                                                               \
+        PyObject **_tmp_dst_ptr = _Py_CAST(PyObject **, &(dst));                                                       \
+        PyObject *_tmp_old_dst = (*_tmp_dst_ptr);                                                                      \
+        PyObject *_tmp_src = _PyObject_CAST(src);                                                                      \
+        memcpy(_tmp_dst_ptr, &_tmp_src, sizeof(PyObject *));                                                           \
+        Py_DECREF(_tmp_old_dst);                                                                                       \
+    } while (0)
+#endif
+#endif
+
+#ifndef Py_XSETREF
+/* Py_XSETREF() is a variant of Py_SETREF() that uses Py_XDECREF() instead of
+ * Py_DECREF().
+ */
+#ifdef _Py_TYPEOF
+#define Py_XSETREF(dst, src)                                                                                           \
+    do {                                                                                                               \
+        _Py_TYPEOF(dst) *_tmp_dst_ptr = &(dst);                                                                        \
+        _Py_TYPEOF(dst) _tmp_old_dst = (*_tmp_dst_ptr);                                                                \
+        *_tmp_dst_ptr = (src);                                                                                         \
+        Py_XDECREF(_tmp_old_dst);                                                                                      \
+    } while (0)
+#else
+#define Py_XSETREF(dst, src)                                                                                           \
+    do {                                                                                                               \
+        PyObject **_tmp_dst_ptr = _Py_CAST(PyObject **, &(dst));                                                       \
+        PyObject *_tmp_old_dst = (*_tmp_dst_ptr);                                                                      \
+        PyObject *_tmp_src = _PyObject_CAST(src);                                                                      \
+        memcpy(_tmp_dst_ptr, &_tmp_src, sizeof(PyObject *));                                                           \
+        Py_XDECREF(_tmp_old_dst);                                                                                      \
+    } while (0)
+#endif
 #endif
 
 #endif

@@ -42,36 +42,36 @@ void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mis
     SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, format, TYPE_NAME_DESC(mistyped));
 }
 
-void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_UnboundLocalError;
-    Py_INCREF(*exception_type);
-
+void FORMAT_UNBOUND_LOCAL_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                PyObject *variable_name) {
 #if PYTHON_VERSION < 0x300
     char const *message = "local variable '%s' referenced before assignment";
-    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
+    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
 #elif PYTHON_VERSION < 0x3b0
     char const *message = "local variable '%U' referenced before assignment";
-    *exception_value = Nuitka_String_FromFormat(message, variable_name);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #else
     char const *message = "cannot access local variable '%U' where it is not associated with a value";
-    *exception_value = Nuitka_String_FromFormat(message, variable_name);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, variable_name);
 #endif
 
-    CHECK_OBJECT(*exception_value);
+    CHECK_OBJECT(exception_value);
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_UnboundLocalError,
+                                                       exception_value);
 }
 
-void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exception_value, PyObject *variable_name) {
-    *exception_type = PyExc_NameError;
-    Py_INCREF(*exception_type);
-
+void FORMAT_UNBOUND_CLOSURE_ERROR(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                  PyObject *variable_name) {
 #if PYTHON_VERSION < 0x3b0
     char const *message = "free variable '%s' referenced before assignment in enclosing scope";
 #else
     char const *message = "cannot access free variable '%s' where it is not associated with a value in enclosing scope";
 #endif
 
-    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
-    CHECK_OBJECT(*exception_value);
+    PyObject *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
+    CHECK_OBJECT(exception_value);
+
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_NameError, exception_value);
 }
 
 static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
@@ -80,7 +80,7 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
     if (value == NULL || value == Py_None) {
         exc = CALL_FUNCTION_NO_ARGS(tstate, exception_type);
     } else if (PyTuple_Check(value)) {
-        exc = CALL_FUNCTION_WITH_POSARGS(tstate, exception_type, value);
+        exc = CALL_FUNCTION_WITH_POS_ARGS(tstate, exception_type, value);
     } else {
         exc = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, exception_type, value);
     }
@@ -96,6 +96,10 @@ static PyObject *_Nuitka_Err_CreateException(PyThreadState *tstate, PyObject *ex
     }
 
     return exc;
+}
+
+PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value) {
+    return _Nuitka_Err_CreateException(tstate, exception_type, value);
 }
 
 // Our replacement for PyErr_NormalizeException, that however does not attempt
@@ -169,7 +173,11 @@ error:
 
     initial_tb = *tb;
 
-    FETCH_ERROR_OCCURRED(tstate, exc, val, tb);
+    struct Nuitka_ExceptionPreservationItem exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &exception_state);
+
+    ASSIGN_ARGS_FROM_EXCEPTION_PRESERVATION_STATE(&exception_state, exc, val, tb);
+    RELEASE_ERROR_OCCURRED_STATE(&exception_state);
 
     assert(*exc != NULL);
     if (initial_tb != NULL) {
@@ -272,40 +280,6 @@ error:
 #endif
 }
 
-#endif
-
-// Raise NameError for a given variable name.
-void SET_CURRENT_EXCEPTION_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
-#if PYTHON_VERSION >= 0x300
-    PyObject *exception_value_str = Nuitka_String_FromFormat("name '%U' is not defined", variable_name);
-#else
-    PyObject *exception_value_str =
-        Nuitka_String_FromFormat("name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-#endif
-    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
-    Py_DECREF(exception_value_str);
-
-#if PYTHON_VERSION >= 0x300
-    CHAIN_EXCEPTION(tstate, exception_value);
-#endif
-
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
-}
-
-// Raise NameError with "global" for a given variable name.
-#if PYTHON_VERSION < 0x340
-void SET_CURRENT_EXCEPTION_GLOBAL_NAME_ERROR(PyThreadState *tstate, PyObject *variable_name) {
-#if PYTHON_VERSION >= 0x300
-    PyObject *exception_value_str = Nuitka_String_FromFormat("global name '%U' is not defined", variable_name);
-#else
-    PyObject *exception_value_str =
-        Nuitka_String_FromFormat("global name '%s' is not defined", Nuitka_String_AsString_Unchecked(variable_name));
-#endif
-    PyObject *exception_value = MAKE_EXCEPTION_FROM_TYPE_ARG0(tstate, PyExc_NameError, exception_value_str);
-    Py_DECREF(exception_value_str);
-
-    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_NameError, exception_value);
-}
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

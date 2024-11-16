@@ -5,18 +5,22 @@
 
 import os
 
-from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from .ConstantRefNodes import makeConstantRefNode
-from .ExceptionNodes import ExpressionRaiseException
+from .ExceptionNodes import (
+    ExpressionRaiseException,
+    makeBuiltinMakeExceptionNode,
+)
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
     ExpressionOsListdirCallBase,
+    ExpressionOsLstatCallBase,
     ExpressionOsPathAbspathCallBase,
     ExpressionOsPathBasenameCallBase,
     ExpressionOsPathExistsCallBase,
     ExpressionOsPathIsabsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
+    ExpressionOsStatCallBase,
     ExpressionOsUnameCallBase,
 )
 
@@ -155,15 +159,42 @@ class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
         return self, None, None
 
 
+class ExpressionOsStatCall(ExpressionOsStatCallBase):
+    kind = "EXPRESSION_OS_STAT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsLstatCall(ExpressionOsLstatCallBase):
+    kind = "EXPRESSION_OS_LSTAT_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
 def makeExpressionSysExitCall(exit_code, source_ref):
+
     if exit_code is None:
-        exit_code = makeConstantRefNode(constant=None, source_ref=source_ref)
+        args = ()
+    else:
+        args = (exit_code,)
 
     return ExpressionRaiseException(
-        exception_type=ExpressionBuiltinExceptionRef(
-            exception_name="SystemExit", source_ref=source_ref
+        exception_type=makeBuiltinMakeExceptionNode(
+            exception_name="SystemExit",
+            args=args,
+            for_raise=True,
+            source_ref=source_ref,
         ),
-        exception_value=exit_code,
         source_ref=source_ref,
     )
 

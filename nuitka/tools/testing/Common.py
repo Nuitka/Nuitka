@@ -7,7 +7,6 @@ import ast
 import atexit
 import gc
 import os
-import re
 import shutil
 import signal
 import sys
@@ -18,6 +17,7 @@ from contextlib import contextmanager
 from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
+from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
@@ -228,8 +228,9 @@ def convertUsing2to3(path, force=False):
 
     if not force:
         if "xrange" not in getFileContents(path):
-            if check_result(command, stderr=getNullOutput()):
-                return path, False
+            with getNullOutput() as null_output:
+                if check_result(command, stderr=null_output):
+                    return path, False
 
     filename = os.path.basename(path)
 
@@ -258,16 +259,17 @@ def convertUsing2to3(path, force=False):
 
     command += ("-w", "-n", "--no-diffs", new_path)
 
-    try:
-        check_output(command, stderr=getNullOutput())
+    with getNullOutput() as null_output:
+        try:
+            check_output(command, stderr=null_output)
 
-    except subprocess.CalledProcessError:
-        if isWin32Windows():
-            raise
+        except subprocess.CalledProcessError:
+            if isWin32Windows():
+                raise
 
-        command[0:3] = ["2to3"]
+            command[0:3] = ["2to3"]
 
-        check_output(command, stderr=getNullOutput())
+            check_output(command, stderr=null_output)
 
     data = getFileContents(new_path)
 
@@ -296,6 +298,10 @@ def decideFilenameVersionSkip(filename):
     # pylint: disable=too-many-branches,too-many-return-statements
 
     assert type(filename) is str, repr(filename)
+
+    # There are commercial only test cases
+    if "commercial" in filename.lower() and getCommercialVersion() is None:
+        return False
 
     # Skip runner scripts by default.
     if filename.startswith("run_"):
@@ -364,11 +370,11 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("312.py") and _python_version < (3, 12):
         return False
 
+    # Skip tests that require Python 3.13 at least.
+    if filename.endswith("313.py") and _python_version < (3, 13):
+        return False
+
     return True
-
-
-def decideNeeds2to3(filename):
-    return _python_version >= (3,) and not re.match(r".*3\d+\.py", filename)
 
 
 def _removeCPythonTestSuiteDir():
@@ -395,9 +401,7 @@ def _removeCPythonTestSuiteDir():
             raise
 
 
-def compareWithCPython(
-    dirname, filename, extra_flags, search_mode, needs_2to3, on_error=None
-):
+def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=None):
     """Call the comparison tool. For a given directory filename.
 
     The search mode decides if the test case aborts on error or gets extra
@@ -405,18 +409,10 @@ def compareWithCPython(
 
     """
 
-    # Many cases to consider here, pylint: disable=too-many-branches
-
     if dirname is None:
         path = filename
     else:
         path = os.path.join(dirname, filename)
-
-    # Apply 2to3 conversion if necessary.
-    if needs_2to3:
-        path, converted = convertUsing2to3(path)
-    else:
-        converted = False
 
     if os.getenv("NUITKA_TEST_INSTALLED", "") == "1":
         command = [
@@ -454,9 +450,6 @@ def compareWithCPython(
             on_error(dirname, filename)
 
         search_mode.onErrorDetected("Error exit! %s" % result)
-
-    if converted:
-        os.unlink(path)
 
     if result == 2:
         test_logger.sysexit("Interrupted, with CTRL-C\n", exit_code=2)
@@ -545,11 +538,12 @@ def displayRuntimeTraces(logger, path):
 
 
 def hasModule(module_name):
-    result = subprocess.call(
-        (os.environ["PYTHON"], "-c", "import %s" % module_name),
-        stdout=getNullOutput(),
-        stderr=subprocess.STDOUT,
-    )
+    with getNullOutput() as null_output:
+        result = subprocess.call(
+            (os.environ["PYTHON"], "-c", "import %s" % module_name),
+            stdout=null_output,
+            stderr=subprocess.STDOUT,
+        )
 
     return result == 0
 
@@ -769,6 +763,14 @@ Execute only tests matching the pattern. Defaults to all tests.""",
         help="""\
 Execute all tests, continue execution even after failure of one.""",
     )
+    select_group.add_option(
+        "--jobs",
+        action="store",
+        dest="jobs",
+        default=None,
+        help="""\
+Pass this as the --jobs value to Nuitka.""",
+    )
 
     del select_group
 
@@ -799,6 +801,9 @@ Defaults to off.""",
 
     if options.debug:
         addExtendedExtraOptions("--debug")
+
+    if options.jobs is not None:
+        addExtendedExtraOptions("--jobs=%s" % options.jobs)
 
     if options.show_commands:
         os.environ["NUITKA_TRACE_COMMANDS"] = "1"
@@ -873,20 +878,19 @@ def executeReferenceChecked(
             continue
 
         # Avoid non-raisable output.
-        try:
-            if number in tests_stderr:
-                sys.stderr = getNullOutput()
-        except OSError:  # Windows
-            if not checkReferenceCount(names[name], explain=explain):
-                result = False
-        else:
-            if not checkReferenceCount(names[name], explain=explain):
-                result = False
-
-            if number in tests_stderr:
-                new_stderr = sys.stderr
-                sys.stderr = old_stderr
-                new_stderr.close()
+        with getNullOutput() as null_output:
+            try:
+                if number in tests_stderr:
+                    sys.stderr = null_output
+            except OSError:  # Windows
+                if not checkReferenceCount(names[name], explain=explain):
+                    result = False
+            else:
+                if not checkReferenceCount(names[name], explain=explain):
+                    result = False
+            finally:
+                if number in tests_stderr:
+                    sys.stderr = old_stderr
 
     gc.enable()
     return result
@@ -1272,12 +1276,13 @@ def setupCacheHashSalt(test_code_path):
     if os.path.exists(os.path.join(test_code_path, ".git")):
         git_cmd = ["git", "ls-tree", "-r", "HEAD", test_code_path]
 
-        process = subprocess.Popen(
-            args=git_cmd,
-            stdin=getNullInput(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with getNullInput() as null_input:
+            process = subprocess.Popen(
+                args=git_cmd,
+                stdin=null_input,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
         stdout_git, stderr_git = process.communicate()
         assert process.returncode == 0, stderr_git
@@ -1346,15 +1351,17 @@ def checkTestRequirements(filename):
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":
                 expression = line[33:]
-                result = subprocess.call(
-                    (
-                        os.environ["PYTHON"],
-                        "-c",
-                        "import sys, os; sys.exit(not bool(%s))" % expression,
-                    ),
-                    stdout=getNullOutput(),
-                    stderr=subprocess.STDOUT,
-                )
+
+                with getNullOutput() as null_output:
+                    result = subprocess.call(
+                        (
+                            os.environ["PYTHON"],
+                            "-c",
+                            "import sys, os; sys.exit(not bool(%s))" % expression,
+                        ),
+                        stdout=null_output,
+                        stderr=subprocess.STDOUT,
+                    )
                 if result != 0:
                     return (False, "Expression '%s' evaluated to false" % expression)
 

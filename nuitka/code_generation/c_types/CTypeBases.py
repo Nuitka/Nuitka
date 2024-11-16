@@ -92,13 +92,17 @@ class CTypeBase(object):
         assert False, to_name
 
     @classmethod
+    def hasReleaseCode(cls):
+        return False
+
+    @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
         """Get release code for given object."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         """Get release code for given object."""
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
@@ -108,7 +112,7 @@ class CTypeBase(object):
         """Take reference code for given object."""
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
-        assert False, cls.c_type
+        assert False, (value_name, cls.c_type)
 
     @classmethod
     def emitTruthCheckCode(cls, to_name, value_name, emit):
@@ -133,6 +137,10 @@ class CTypeBase(object):
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
+
+    @classmethod
+    def isDualType(cls):
+        return False
 
 
 class CTypeNotReferenceCountedMixin(object):

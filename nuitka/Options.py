@@ -20,7 +20,10 @@ import sys
 
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedDicts import OrderedDict
-from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.containers.OrderedSets import (
+    OrderedSet,
+    recommended_orderedset_package_name,
+)
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.OptionParsing import (
     parseOptions,
@@ -60,6 +63,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Images import checkIconUsage
+from nuitka.utils.Importing import getInlineCopyFolder
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -89,7 +93,8 @@ is_nuitka_run = None
 is_debug = None
 is_non_debug = None
 is_full_compat = None
-is_report_missing = None
+report_missing_code_helpers = None
+report_missing_trust = None
 is_verbose = None
 
 
@@ -381,7 +386,7 @@ def parseArgs():
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
     global is_nuitka_run, options, positional_args, extra_args, is_debug, is_non_debug
-    global is_full_compat, is_report_missing, is_verbose
+    global is_full_compat, report_missing_code_helpers, report_missing_trust, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -414,8 +419,8 @@ Error, the Python from Windows app store is not supported.""",
     if getattr(options, "disable_dll_dependency_cache", False):
         options.disabled_caches.append("dll-dependencies")
 
-    # TODO: Have dedicated option for it.
-    is_report_missing = is_debug
+    report_missing_code_helpers = options.report_missing_code_helpers
+    report_missing_trust = options.report_missing_trust
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
@@ -487,6 +492,19 @@ Error, the Python from Windows app store is not supported.""",
         options.show_inclusion = True
 
     Tracing.progress_logger.is_quiet = not options.show_progress
+
+    if options.compilation_mode is not None:
+        if options.is_onefile or options.is_standalone or options.module_mode:
+            Tracing.options_logger.sysexit(
+                "Cannot use both '--mode=' and deprecated options that specify mode."
+            )
+
+        if options.compilation_mode == "onefile":
+            options.is_onefile = True
+        elif options.compilation_mode == "standalone":
+            options.is_standalone = True
+        elif options.compilation_mode == "module":
+            options.module_mode = True
 
     # Onefile implies standalone build.
     if options.is_onefile:
@@ -1170,7 +1188,7 @@ but errors may happen."""
             """\
 Using very slow fallback for ordered sets, please install '%s' \
 PyPI package for best Python compile time performance."""
-            % ("ordered-set" if python_version >= 0x370 else "orderedset")
+            % recommended_orderedset_package_name
         )
 
     if shallUsePythonDebug() and not isDebugPython():
@@ -1318,7 +1336,7 @@ def getModuleNameMode():
 
 def shallMakeModule():
     """:returns: bool derived from ``--module``"""
-    return options.module_mode
+    return options is not None and options.module_mode
 
 
 def shallCreatePyiFile():
@@ -1439,6 +1457,14 @@ def getShallIncludeDataFiles():
 def getShallIncludeDataDirs():
     """*list*, items of ``--include-data-dir=``"""
     for data_file in options.data_dirs:
+        src, dest = data_file.split("=", 1)
+
+        yield src, dest
+
+
+def getShallIncludeRawDirs():
+    """*list*, items of ``--include-raw-dir=``"""
+    for data_file in options.raw_dirs:
         src, dest = data_file.split("=", 1)
 
         yield src, dest
@@ -1595,6 +1621,14 @@ def _shallUseStaticLibPython():
             and isDebianSuitableForStaticLinking()
             and not shallUsePythonDebug()
         ):
+            if python_version >= 0x3C0 and not os.path.exists(
+                getInlineCopyFolder("python_hacl")
+            ):
+                return (
+                    False,
+                    "Nuitka on Debian-Python needs inline copy of hacl not included.",
+                )
+
             return True, "Nuitka on Debian-Python needs package '%s' installed." % (
                 "python2-dev" if str is bytes else "python3-dev"
             )
@@ -2273,6 +2307,8 @@ def _getPythonFlags():
                     _python_flags.add("package_mode")
                 elif part in ("-I", "isolated"):
                     _python_flags.add("isolated")
+                elif part in ("-B", "dontwritebytecode"):
+                    _python_flags.add("dontwritebytecode")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -2329,8 +2365,14 @@ def hasPythonFlagNoRandomization():
     return "no_randomization" in _getPythonFlags()
 
 
+def hasPythonFlagNoBytecodeRuntimeCache():
+    """*bool* = "dontwritebytecode", "-u" in python flags given"""
+
+    return "dontwritebytecode" in _getPythonFlags()
+
+
 def hasPythonFlagUnbuffered():
-    """*bool* = "package_mode", "-m" in python flags given"""
+    """*bool* = "unbuffered", "-u" in python flags given"""
 
     return "unbuffered" in _getPythonFlags()
 

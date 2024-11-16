@@ -12,6 +12,7 @@ import sys
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .InlineCopies import getInlineCopyFolder
 from .ModuleNames import ModuleName
 from .Utils import withNoDeprecationWarning
 
@@ -156,20 +157,7 @@ _deleted_modules = {}
 def importFromInlineCopy(module_name, must_exist, delete_module=False):
     """Import a module from the inline copy stage."""
 
-    folder_name = os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
-        )
-    )
-
-    candidate_27 = folder_name + "_27"
-    candidate_35 = folder_name + "_35"
-
-    # Use specific versions if needed.
-    if python_version < 0x300 and os.path.exists(candidate_27):
-        folder_name = candidate_27
-    elif python_version < 0x360 and os.path.exists(candidate_35):
-        folder_name = candidate_35
+    folder_name = getInlineCopyFolder(module_name)
 
     module = _importFromFolder(
         module_name=module_name,

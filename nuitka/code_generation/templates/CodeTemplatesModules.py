@@ -90,6 +90,36 @@ void checkModuleConstants_%(module_identifier)s(PyThreadState *tstate) {
 }
 #endif
 
+// Helper to preserving module variables for Python3.11+
+#if %(module_variable_accessors_count)d
+#if PYTHON_VERSION >= 0x3c0
+NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentState(PyInterpreterState *interp, PyDictKeysObject *dk)
+{
+    if (dk->dk_version != 0) {
+        return dk->dk_version;
+    }
+    uint32_t result = interp->dict_state.next_keys_version++;
+    dk->dk_version = result;
+    return result;
+}
+#elif PYTHON_VERSION >= 0x3b0
+static uint32_t _Nuitka_next_dict_keys_version = 2;
+
+NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentState(PyDictKeysObject *dk)
+{
+    if (dk->dk_version != 0) {
+        return dk->dk_version;
+    }
+    uint32_t result = _Nuitka_next_dict_keys_version++;
+    dk->dk_version = result;
+    return result;
+}
+#endif
+#endif
+
+// Accessors to module variables.
+%(module_variable_accessors)s
+
 // The module code objects.
 %(module_code_objects_decl)s
 
@@ -152,7 +182,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
 
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
-    PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
+    PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
 #if PYTHON_VERSION >= 0x300
@@ -425,7 +455,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
 
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, Nuitka_Loader_New(loader_entry));
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
 
 #if %(is_dunder_main)s
@@ -535,7 +565,7 @@ static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, P
     }
 
     // Prevent "__spec__" update as well.
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
         return 0;
     }
@@ -690,7 +720,7 @@ template_module_exception_exit = """\
 #endif
     PGO_onModuleExit("%(module_identifier)s", false);
 
-    RESTORE_ERROR_OCCURRED(tstate, exception_type, exception_value, exception_tb);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &exception_state);
     return NULL;
 }"""
 

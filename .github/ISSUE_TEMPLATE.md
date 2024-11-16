@@ -3,6 +3,9 @@ Before submitting an Issue, please review the
 
 - Please check whether the bug was already reported or fixed.
 
+- Please check whether the issue appears when you run the code with Python, if it does, it's not a
+  Nuitka issue.
+
 - Please check out if the develop version of Nuitka works better for you.
 
   Download source, packages [from here](https://nuitka.net/doc/download.html) where you will also
@@ -61,6 +64,9 @@ you have provided at least the information below, and discard up to here:
   [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
 
 - Avoid unnecessary options
+
+  Do not use `--deployment` as it disables all potential bug catching, we are not here to replace
+  what it does, remove that option the moment you face an issue and report only then.
 
   Do not use `--onefile` if the issue also happens with `--standalone`. Minimize the use of options
   as far as you can, please. Do not disable outputs with `--quiet` and do not disable warnings.

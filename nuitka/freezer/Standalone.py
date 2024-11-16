@@ -116,6 +116,7 @@ def _detectBinaryDLLs(
     original_filename,
     binary_filename,
     package_name,
+    use_path,
     use_cache,
     update_cache,
 ):
@@ -142,6 +143,7 @@ def _detectBinaryDLLs(
                 original_dir=os.path.dirname(original_filename),
                 binary_filename=binary_filename,
                 package_name=package_name,
+                use_path=use_path,
                 use_cache=use_cache,
                 update_cache=update_cache,
             )
@@ -228,7 +230,11 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     )
 
 
-def _reduceToPythonPath(used_dlls):
+_excluded_system_dlls = set()
+
+
+def _reduceToPythonPath(used_dll_paths):
+    """Remove DLLs outside of python path."""
     inside_paths = getPythonUnpackedSearchPath()
 
     if isAnacondaPython():
@@ -246,22 +252,58 @@ def _reduceToPythonPath(used_dlls):
             for inside_path in inside_paths
         )
 
-    used_dlls = set(
-        dll_filename for dll_filename in used_dlls if decideInside(dll_filename)
-    )
+    kept_used_dll_paths = OrderedSet()
+    removed_dll_paths = OrderedSet()
 
-    return used_dlls
+    for dll_filename in used_dll_paths:
+        if decideInside(dll_filename):
+            kept_used_dll_paths.add(dll_filename)
+        else:
+            if dll_filename not in _excluded_system_dlls:
+                _excluded_system_dlls.add(dll_filename)
+                inclusion_logger.debug("Not including system DLL '%s'" % dll_filename)
+
+            removed_dll_paths.add(dll_filename)
+
+    return kept_used_dll_paths, removed_dll_paths
+
+
+_removed_dll_usages = {}
+
+
+def getRemovedUsedDllsInfo():
+    return _removed_dll_usages.items()
 
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
+    # TODO: We are handling a bunch of cases here, but also some special cases,
+    # that should live elsewhere.
+    # pylint: disable=too-many-branches,too-many-locals
+
+    if standalone_entry_point.module_name is not None:
+        module_name, module_filename, _kind, finding = locateModule(
+            standalone_entry_point.module_name, parent_package=None, level=0
+        )
+
+        # TODO: How can this be None at all.
+        if module_filename is not None and isStandardLibraryPath(module_filename):
+            allow_outside_dependencies = True
+        else:
+            allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+                standalone_entry_point.module_name
+            )
+    else:
+        allow_outside_dependencies = False
+
     binary_filename = standalone_entry_point.source_path
     try:
         used_dll_paths = _detectBinaryDLLs(
             is_main_executable=standalone_entry_point.kind == "executable",
             source_dir=source_dir,
             original_filename=standalone_entry_point.source_path,
-            binary_filename=standalone_entry_point.source_path,
+            binary_filename=binary_filename,
             package_name=standalone_entry_point.package_name,
+            use_path=allow_outside_dependencies,
             use_cache=not shallNotUseDependsExeCachedResults(),
             update_cache=not shallNotStoreDependsExeCachedResults(),
         )
@@ -269,6 +311,14 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         inclusion_logger.info(
             "Not including due to forbidden DLL '%s'." % binary_filename
         )
+    except (RuntimeError, Exception) as e:
+        inclusion_logger.warning(
+            """\
+Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
+            % (binary_filename, standalone_entry_point.package_name, str(e))
+        )
+
+        raise
     else:
         # Plugins generally decide if they allow dependencies from the outside
         # based on the package name.
@@ -284,21 +334,25 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             ), standalone_entry_point.module_name
             assert finding == "absolute", standalone_entry_point.module_name
 
-            if isStandardLibraryPath(module_filename):
-                allow_outside_dependencies = True
-            else:
-                allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
-                    standalone_entry_point.module_name
-                )
+            if not allow_outside_dependencies:
+                used_dll_paths, removed_dll_paths = _reduceToPythonPath(used_dll_paths)
 
-            if allow_outside_dependencies is False:
-                used_dll_paths = _reduceToPythonPath(used_dll_paths)
+                if removed_dll_paths:
+                    _removed_dll_usages[standalone_entry_point] = (
+                        "no outside dependencies allowed for '%s'"
+                        % standalone_entry_point.module_name,
+                        removed_dll_paths,
+                    )
 
-        # Allow plugins can prevent inclusion, this may discard things from used_dlls.
+        # Lets be sure of this
+        assert type(used_dll_paths) is OrderedSet, type(used_dll_paths)
+
+        # Allow plugins can prevent inclusion, this may discard things from
+        # used_dlls through its return value.
         removed_dlls = Plugins.removeDllDependencies(
-            dll_filename=binary_filename, dll_filenames=used_dll_paths
+            dll_filename=binary_filename, dll_filenames=OrderedSet(used_dll_paths)
         )
-        used_dll_paths = tuple(OrderedSet(used_dll_paths) - OrderedSet(removed_dlls))
+        used_dll_paths = used_dll_paths - removed_dlls
 
         for used_dll_path in used_dll_paths:
             extension_standalone_entry_point = getIncludedExtensionModule(used_dll_path)
@@ -313,7 +367,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                     "openvino",
                     "av",
                 )
-                and areInSamePaths(standalone_entry_point.source_path, used_dll_path)
+                and areInSamePaths(binary_filename, used_dll_path)
             ):
                 # TODO: If used by a DLL from the same folder, put it there,
                 # otherwise top level, but for now this is limited to a few cases
