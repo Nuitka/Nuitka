@@ -3,7 +3,7 @@
 {% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_int_exit_target, constant_float_exit_target %}
 
 {% macro int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, exit_result_ok_cbool, exit_result_ok_clong, exit_result_ok_cfloat, exit_result_object, exit_result_ok_left, exit_result_ok_const_int_0, exit_result_ok_const_int_neg_1, exit_result_ok_const_float_0_0, exit_result_ok_const_float_minus_0_0) %}
-    {% set fall_through_needed = 1 %}
+    {% do props.update(fall_through_needed = 1) %}
 
     {{ left.getCheckValueCode(operand1) }}
     {{ right.getCheckValueCode(operand2) }}
@@ -19,7 +19,7 @@
     bool t = !no_overflow || x != 0;
 
     {{ goto_exit(props, exit_result_ok_cbool, "t") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% else %}
     if (likely(no_overflow)) {
         {{ goto_exit(props, exit_result_ok_clong, "x") }}
@@ -76,7 +76,7 @@
 
 {% if bool_mode %}
     {{ goto_exit(props, exit_result_ok_cbool, "a == 0") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% else %}
     if (a == 0) {
         if (b < 0) {
@@ -120,7 +120,7 @@
     const long r = a {{operator}} b;
 
     {{ goto_exit(props, exit_result_ok_clong, "r") }}
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "<<" %}
     if (unlikely(b < 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -132,8 +132,8 @@
     if (a == 0 || b == 0) {
         {{ goto_exit(props, exit_result_ok_left) }}
     } else if (b >= LONG_BIT) {
-        PyObject *operand1_long = PyLong_FromLong(a);
-        PyObject *operand2_long = PyLong_FromLong(b);
+        PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+        PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
         // TODO: Change this to using CLONG once we specialize that too.
         PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -146,8 +146,8 @@
         long c = a << b;
 
         if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
-            PyObject *operand1_long = PyLong_FromLong(a);
-            PyObject *operand2_long = PyLong_FromLong(b);
+            PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+            PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
             // TODO: Change this to using CLONG once we specialize that too.
             PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
@@ -160,7 +160,7 @@
             {{ goto_exit(props, exit_result_ok_clong, "c") }}
         }
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == ">>" %}
     if (unlikely(b < 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -183,7 +183,7 @@
 
         {{ goto_exit(props, exit_result_ok_clong, "r") }}
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "**" %}
     if (b < 0) {
         // TODO: Use CFLOAT once available.
@@ -209,8 +209,8 @@
                     break;
                 }
                 if (ix / temp != prev) {
-                    PyObject *operand1_long = PyLong_FromLong(a);
-                    PyObject *operand2_long = PyLong_FromLong(b);
+                    PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                    PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                     PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -228,8 +228,8 @@
             temp = (unsigned long)temp * temp;
 
             if (prev != 0 && temp / prev != prev) {
-                PyObject *operand1_long = PyLong_FromLong(a);
-                PyObject *operand2_long = PyLong_FromLong(b);
+                PyObject *operand1_long = Nuitka_PyLong_FromLong(a);
+                PyObject *operand2_long = Nuitka_PyLong_FromLong(b);
 
                 PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
 
@@ -242,7 +242,7 @@
 
         {{ goto_exit(props, exit_result_ok_clong, "ix") }}
     }
-    {% set fall_through_needed = 0 %}
+    {% do props.update(fall_through_needed = 0) %}
 {% elif operator == "divmod" %}
     if (unlikely(b == 0)) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -266,20 +266,6 @@
 {% else %}
 #error Operator {{operator}} not implemented
 {% endif %}
-{% if fall_through_needed %}
-    {
-        PyObject *operand1_object = {{ left.getAsObjectValueExpression(operand1) }};
-        PyObject *operand2_object = {{ right.getAsObjectValueExpression(operand2) }};
-
-        PyObject *r = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object") }};
-        assert(r != Py_NotImplemented);
-
-        {{ left.releaseAsObjectValueStatement("operand1_object") }}
-        {{ right.releaseAsObjectValueStatement("operand2_object") }}
-
-        {{ goto_exit(props, exit_result_object, "r") }}
-    }
-{% endif %}
 {% endmacro %}
 
 {% macro int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
@@ -299,6 +285,20 @@
 #endif
 
     {{ int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, "exit_result_ok_cbool", "exit_result_ok_clong", "exit_result_ok_cfloat", "exit_result_object", "exit_result_ok_left", "exit_result_ok_const_int_0", "exit_result_ok_const_int_neg_1", "exit_result_ok_const_float_0_0", "exit_result_ok_const_float_minus_0_0") }}
+{% if props["fall_through_needed"] %}
+    {
+        PyObject *operand1_object = {{ left.getAsObjectValueExpression(operand1) }};
+        PyObject *operand2_object = {{ right.getAsObjectValueExpression(operand2) }};
+
+        PyObject *r = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object") }};
+        assert(r != Py_NotImplemented);
+
+        {{ left.releaseAsObjectValueStatement("operand1_object") }}
+        {{ right.releaseAsObjectValueStatement("operand2_object") }}
+
+        {{ goto_exit(props, "exit_result_object", "r") }}
+    }
+{% endif %}
 
 {# // {{ props }} #}
 
@@ -314,7 +314,7 @@ exit_result_ok_cbool:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    {{ operand1 }} = PyInt_FromLong(cbool_result);
+    {{ operand1 }} = Nuitka_PyInt_FromLong(cbool_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}
@@ -331,7 +331,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    {{ operand1 }} = PyInt_FromLong(clong_result);
+    {{ operand1 }} = Nuitka_PyInt_FromLong(clong_result);
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
 {% endif %}

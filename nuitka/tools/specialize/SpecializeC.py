@@ -20,6 +20,7 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
 from nuitka.code_generation.BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
+    isCommutativeOperation,
     parseTypesFromHelper,
 )
 from nuitka.code_generation.c_types.CTypePyObjectPointers import (
@@ -38,6 +39,7 @@ from nuitka.code_generation.ComparisonHelperDefinitions import (
     getSpecializedComparisonOperations,
 )
 from nuitka.code_generation.ImportCodes import getImportModuleHardCodeName
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.HardImportRegistry import (
     hard_modules,
     hard_modules_non_stdlib,
@@ -81,6 +83,7 @@ from .CTypeDescriptions import (
     list_desc,
     long_desc,
     n_bool_desc,
+    n_ilong_desc,
     object_desc,
     set_desc,
     str_desc,
@@ -124,6 +127,7 @@ types = (
     c_float_desc,
     c_bool_desc,
     n_bool_desc,
+    n_ilong_desc,
     object_desc,
 )
 
@@ -146,6 +150,34 @@ reversed_args_compare_op_codes = {
     "GE": "LE",
 }
 
+inverse_compare_op_code = {
+    "LE": "GT",
+    "LT": "GE",
+    "EQ": "NE",
+    "NE": "EQ",
+    "GT": "LE",
+    "GE": "LT",
+}
+
+standard_template_context = {
+    "isCommutativeOperation": isCommutativeOperation,
+    "object_desc": object_desc,
+    "int_desc": int_desc,
+    "long_desc": long_desc,
+    "float_desc": float_desc,
+    "list_desc": list_desc,
+    "tuple_desc": tuple_desc,
+    "set_desc": set_desc,
+    "str_desc": str_desc,
+    "unicode_desc": unicode_desc,
+    "bytes_desc": bytes_desc,
+    "c_long_desc": c_long_desc,
+    "c_digit_desc": c_digit_desc,
+    "c_bool_desc": c_bool_desc,
+    "n_bool_desc": n_bool_desc,
+    "n_ilong_desc": n_ilong_desc,
+}
+
 
 def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     # Many variations to consider, pylint: disable=too-many-branches
@@ -157,6 +189,10 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     int_types_family = (int_desc, c_long_desc)
     long_types_family = (int_desc, long_desc, c_long_desc, c_digit_desc)
     float_types_family = (int_desc, long_desc, float_desc, c_long_desc, c_float_desc)
+
+    # Special casing variant that makes no sense and is actively avoided in the templates.
+    if {left, right} == {c_long_desc, c_digit_desc}:
+        return
 
     if left in int_types_family and right in int_types_family:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
@@ -187,20 +223,24 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
 
     assert left is not int_desc or right is not int_desc or target is not n_bool_desc
 
+    python_requirement = _parseRequirements(op_code, target, left, right, emit)
+
     code = template.render(
-        operand=operator,  # TODO: rename
+        operator=operator,
         target=target,
         left=left,
         right=right,
         op_code=op_code,
         reversed_args_op_code=reversed_args_compare_op_codes[op_code],
+        inverse_compare_op_code=inverse_compare_op_code[op_code],
         name=template.name,
-        long_desc=long_desc,
-        c_long_desc=c_long_desc,
-        c_digit_desc=c_digit_desc,
+        **standard_template_context
     )
 
     emit(code)
+
+    if python_requirement:
+        emit("#endif")
 
     op_slot_codes.add(key)
 
@@ -277,6 +317,8 @@ def _parseTypesFromHelper(helper_name):
 
     if target_code is not None:
         target = findTypeFromCodeName(target_code)
+        assert target is not None, target_code
+
     else:
         target = None
 
@@ -311,23 +353,21 @@ def _parseRequirements(op_code, target, left, right, emit):
 
 
 def makeHelperOperations(
-    template, inplace, helpers_set, operator, op_code, emit_h, emit_c, emit
+    template, in_place, helpers_set, operator, op_code, emit_h, emit_c, emit
 ):
     # Complexity comes natural, pylint: disable=too-many-locals
 
     emit(
         '/* C helpers for type %s "%s" (%s) operations */'
-        % ("in-place" if inplace else "specialized", operator, op_code)
+        % ("in-place" if in_place else "specialized", operator, op_code)
     )
     emit()
 
     for helper_name in helpers_set:
         target_code, target, left, right = _parseTypesFromHelper(helper_name)
+        assert left is not None, helper_name
 
-        assert target is None or not inplace, helper_name
-
-        if target is None and not inplace:
-            assert False, target_code
+        assert target is None or not in_place, (target_code, in_place)
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
@@ -348,7 +388,7 @@ def makeHelperOperations(
         else:
             sq_slot = None
 
-        if inplace and sq_slot is not None:
+        if in_place and sq_slot is not None:
             sq_inplace_slot = sq_slot.replace("sq_", "sq_inplace_")
         else:
             sq_inplace_slot = None
@@ -361,22 +401,11 @@ def makeHelperOperations(
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
             nb_inplace_slot=(
-                _getNbInplaceSlotFromOperand(operator, op_code) if inplace else None
+                _getNbInplaceSlotFromOperand(operator, op_code) if in_place else None
             ),
             sq_slot=sq_slot,
             sq_inplace_slot=sq_inplace_slot,
-            object_desc=object_desc,
-            int_desc=int_desc,
-            long_desc=long_desc,
-            float_desc=float_desc,
-            list_desc=list_desc,
-            tuple_desc=tuple_desc,
-            set_desc=set_desc,
-            str_desc=str_desc,
-            unicode_desc=unicode_desc,
-            bytes_desc=bytes_desc,
-            c_long_desc=c_long_desc,
-            c_digit_desc=c_digit_desc,
+            **standard_template_context
         )
 
         emit_c(code)
@@ -400,14 +429,7 @@ def makeHelperComparisons(
     emit()
 
     for target in (object_desc, c_bool_desc):
-        python_requirement = _parseRequirements(
-            op_code, target, int_desc, int_desc, emit_c
-        )
-
         makeCompareSlotCode(operator, op_code, target, int_desc, int_desc, emit_c)
-
-        if python_requirement:
-            emit_c("#endif")
 
     for helper_name in helpers_set:
         assert helper_name.split("_")[:2] == ["RICH", "COMPARE"], (helper_name,)
@@ -421,8 +443,6 @@ def makeHelperComparisons(
         assert target is not None, helper_name
         assert left is not None, helper_name
         assert right is not None, helper_name
-
-        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         (
             code,
@@ -439,10 +459,23 @@ def makeHelperComparisons(
             operand2="operand2",
         )
 
-        if code:
-            makeCompareSlotCode(
-                operator, op_code, helper_target, type_desc1, type_desc2, emit_c
-            )
+        if left.isDualType() or right.isDualType():
+            if op_code in ("LT", "LE", "EQ"):
+                makeCompareSlotCode(
+                    operator,
+                    op_code,
+                    helper_target,
+                    left.getDualType("C"),
+                    right.getDualType("C"),
+                    emit_c,
+                )
+        else:
+            if code:
+                makeCompareSlotCode(
+                    operator, op_code, helper_target, type_desc1, type_desc2, emit_c
+                )
+
+        python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         emit(
             '/* Code referring to "%s" corresponds to %s and "%s" to %s. */'
@@ -472,11 +505,17 @@ def makeHelperComparisons(
             right=right,
             op_code=op_code,
             reversed_args_op_code=reversed_args_compare_op_codes[op_code],
+            inverse_compare_op_code=inverse_compare_op_code[op_code],
             operator=operator,
             is_py3_only=is_py3_only,
             is_py2_only=is_py2_only,
             object_desc=object_desc,
             int_desc=int_desc,
+            n_bool_desc=n_bool_desc,
+            c_bool_desc=c_bool_desc,
+            c_long_desc=c_long_desc,
+            c_digit_desc=c_digit_desc,
+            n_ilong_desc=n_ilong_desc,
         )
 
         emit_c(code)
@@ -506,8 +545,16 @@ def emitIDE(emit):
     )
 
 
+def _getSpecializedComparisonOperations(dual):
+    return OrderedSet(
+        helper
+        for helper in getSpecializedComparisonOperations()
+        if dual == any(part in helper for part in ("NILONG", "NFLOAT"))
+    )
+
+
 def makeHelpersComparisonOperation(operand, op_code):
-    specialized_cmp_helpers_set = getSpecializedComparisonOperations()
+    specialized_cmp_helpers_set = _getSpecializedComparisonOperations(dual=False)
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
@@ -547,8 +594,64 @@ def makeHelpersComparisonOperation(operand, op_code):
             )
 
 
-def makeHelpersBinaryOperation(operand, op_code):
-    specialized_op_helpers_set = getSpecializedBinaryOperations(op_code)
+def makeHelpersComparisonDualOperation(operand, op_code):
+    specialized_cmp_helpers_set = _getSpecializedComparisonOperations(dual=True)
+
+    template = getDoExtensionUsingTemplateC("HelperOperationComparisonDual.c.j2")
+
+    filename_c = (
+        "nuitka/build/static_src/HelpersComparisonDual%s.c" % op_code.capitalize()
+    )
+    filename_h = (
+        "nuitka/build/include/nuitka/helper/comparisons_dual_%s.h" % op_code.lower()
+    )
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeLine(output_h, *args)
+
+            def emit_c(*args):
+                writeLine(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit)
+
+            filename_utils = filename_c[:-2] + "Utils.c"
+
+            if os.path.exists(filename_utils):
+                emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            makeHelperComparisons(
+                template,
+                specialized_cmp_helpers_set,
+                operand,
+                op_code,
+                emit_h,
+                emit_c,
+                emit,
+            )
+
+
+def _getSpecializedBinaryOperations(op_code, dual):
+    return OrderedSet(
+        helper
+        for helper in getSpecializedBinaryOperations(op_code)
+        if dual == any(part in helper for part in ("NILONG", "NFLOAT"))
+    )
+
+
+def makeHelpersBinaryOperation(operator, op_code):
+    specialized_op_helpers_set = _getSpecializedBinaryOperations(
+        op_code=op_code,
+        dual=False,
+    )
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
@@ -582,18 +685,18 @@ def makeHelpersBinaryOperation(operand, op_code):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
             makeHelperOperations(
-                template,
-                False,
-                specialized_op_helpers_set,
-                operand,
-                op_code,
-                emit_h,
-                emit_c,
-                emit,
+                template=template,
+                in_place=False,
+                helpers_set=specialized_op_helpers_set,
+                operator=operator,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
             )
 
 
-def makeHelpersInplaceOperation(operand, op_code):
+def makeHelpersInplaceOperation(operator, op_code):
     specialized_op_helpers_set = getSpecializedBinaryOperations("I" + op_code)
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
@@ -628,14 +731,64 @@ def makeHelpersInplaceOperation(operand, op_code):
                 emit_c('#include "%s"' % os.path.basename(filename_utils))
 
             makeHelperOperations(
-                template,
-                True,
-                specialized_op_helpers_set,
-                operand,
-                op_code,
-                emit_h,
-                emit_c,
-                emit,
+                template=template,
+                in_place=True,
+                helpers_set=specialized_op_helpers_set,
+                operator=operator,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
+            )
+
+
+def makeHelpersBinaryDualOperation(operand, op_code):
+    specialized_op_helpers_set = _getSpecializedBinaryOperations(
+        op_code=op_code,
+        dual=True,
+    )
+
+    template = getDoExtensionUsingTemplateC("HelperOperationBinaryDual.c.j2")
+
+    filename_c = (
+        "nuitka/build/static_src/HelpersOperationBinaryDual%s.c" % op_code.capitalize()
+    )
+    filename_h = (
+        "nuitka/build/include/nuitka/helper/operations_binary_dual_%s.h"
+        % op_code.lower()
+    )
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                writeLine(output_h, *args)
+
+            def emit_c(*args):
+                writeLine(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit)
+
+            filename_utils = filename_c[:-2] + "Utils.c"
+
+            if os.path.exists(filename_utils):
+                emit_c('#include "%s"' % os.path.basename(filename_utils))
+
+            makeHelperOperations(
+                template=template,
+                in_place=False,
+                helpers_set=specialized_op_helpers_set,
+                operator=operand,
+                op_code=op_code,
+                emit_h=emit_h,
+                emit_c=emit_c,
+                emit=emit,
             )
 
 
@@ -1255,10 +1408,11 @@ def makeHelperBuiltinTypeMethods():
 
 
 def main():
+    makeHelpersBinaryDualOperation("+", "ADD")
+
     makeDictCopyHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.
-    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
 
@@ -1298,11 +1452,19 @@ def main():
     makeHelpersInplaceOperation("**", "POW")
     makeHelpersInplaceOperation("@", "MATMULT")
 
+    makeHelpersComparisonOperation("==", "EQ")
     makeHelpersComparisonOperation("!=", "NE")
     makeHelpersComparisonOperation("<=", "LE")
     makeHelpersComparisonOperation(">=", "GE")
     makeHelpersComparisonOperation(">", "GT")
     makeHelpersComparisonOperation("<", "LT")
+
+    makeHelpersComparisonDualOperation("==", "EQ")
+    makeHelpersComparisonDualOperation("!=", "NE")
+    makeHelpersComparisonDualOperation("<=", "LE")
+    makeHelpersComparisonDualOperation(">=", "GE")
+    makeHelpersComparisonDualOperation(">", "GT")
+    makeHelpersComparisonDualOperation("<", "LT")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

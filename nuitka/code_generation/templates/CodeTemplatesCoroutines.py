@@ -68,8 +68,8 @@ template_coroutine_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s
-    assert(%(exception_type)s);
-    RESTORE_ERROR_OCCURRED(tstate, %(exception_type)s, %(exception_value)s, %(exception_tb)s);
+    CHECK_EXCEPTION_STATE(&%(exception_state_name)s);
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
     return NULL;
 """
 

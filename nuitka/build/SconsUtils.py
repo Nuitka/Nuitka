@@ -15,6 +15,7 @@ import sys
 
 from nuitka.__past__ import basestring, unicode
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.Progress import enableThreading
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
@@ -43,6 +44,10 @@ def initScons():
     import SCons.dblite  # pylint: disable=I0021,import-error
 
     SCons.dblite.dblite.sync = no_sync
+
+    # We use threads during build, so keep locks if necessary for progress bar
+    # updates.
+    enableThreading()
 
 
 def setupScons(env, source_dir):

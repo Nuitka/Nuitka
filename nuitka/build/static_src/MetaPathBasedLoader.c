@@ -95,10 +95,12 @@ static char *appendModuleNameAsPath(char *buffer, char const *module_name, size_
 #if defined(_WIN32) && defined(_NUITKA_STANDALONE)
 
 static void appendModuleNameAsPathW(wchar_t *buffer, PyObject *module_name, size_t buffer_size) {
-    wchar_t const *module_name_wstr = PyUnicode_AsWideCharString(module_name, NULL);
+    Py_ssize_t size;
+    wchar_t const *module_name_wstr = Nuitka_UnicodeAsWideString(module_name, &size);
 
-    while (*module_name_wstr != 0) {
+    while (size > 0) {
         wchar_t c = *module_name_wstr++;
+        size -= 1;
 
         if (c == L'.') {
             c = SEP_L;
@@ -117,15 +119,11 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
     code_object->co_filename = module_path;
     Py_INCREF(module_path);
 
-#ifndef PY_NOGIL
     Py_ssize_t consts_count = PyTuple_GET_SIZE(code_object->co_consts);
 
     for (Py_ssize_t i = 0; i < consts_count; i++) {
         PyObject *constant = PyTuple_GET_ITEM(code_object->co_consts, i);
-#else
-    for (Py_ssize_t i = 0; i < code_object->co_nconsts; i++) {
-        PyObject *constant = code_object->co_constants[i];
-#endif
+
         if (PyCode_Check(constant)) {
             patchCodeObjectPaths((PyCodeObject *)constant, module_path);
         }
@@ -404,7 +402,7 @@ static bool scanModuleInPackagePath(PyThreadState *tstate, PyObject *module_name
 
                 if (strncmp(filename_str, module_relative_name_str, strlen(module_relative_name_str)) == 0 &&
                     filename_str[strlen(module_relative_name_str)] == '.') {
-                    LIST_APPEND1(candidates, PyTuple_Pack(2, path_element, filename));
+                    LIST_APPEND1(candidates, MAKE_TUPLE2(tstate, path_element, filename));
                 }
             }
         }
@@ -474,11 +472,7 @@ static PyObject *callIntoInstalledExtensionModule(PyThreadState *tstate, PyObjec
     // create the string needed.
     assert(PyUnicode_CheckExact(extension_module_filename));
 
-#if PYTHON_VERSION < 0x300
-    wchar_t const *extension_module_filename_str = PyUnicode_AS_UNICODE(extension_module_filename);
-#else
-    wchar_t const *extension_module_filename_str = PyUnicode_AsWideCharString(extension_module_filename, NULL);
-#endif
+    wchar_t const *extension_module_filename_str = Nuitka_UnicodeAsWideString(extension_module_filename, NULL);
 #else
     char const *extension_module_filename_str = Nuitka_String_AsString(extension_module_filename);
 #endif
@@ -687,7 +681,7 @@ extern _Thread_local const char *pkgcontext;
 static const char *NuitkaImport_SwapPackageContext(const char *new_context) {
 // TODO: The locking APIs for 3.13 give errors here that are not explained
 // yet.
-#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3d0
+#if PYTHON_VERSION >= 0x3c0
     // spell-checker: ignore pkgcontext
     const char *old_context = _PyRuntime.imports.pkgcontext;
     _PyRuntime.imports.pkgcontext = new_context;
@@ -906,10 +900,11 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         Py_DECREF(path_list);
 
+        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
+
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
-        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
         res = PyModule_ExecDef(module, def);
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_False);
 
@@ -940,7 +935,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         SET_ATTRIBUTE(tstate, module, const_str_plain___spec__, spec_value);
 
-        // Fixup __package__ after load. It seems some modules ignore _Py_PackageContext value.
+        // Fixup "__package__" after load. It seems some modules ignore _Py_PackageContext value.
         // so we patch it up here if it's None, but a package was specified.
         if (package != NULL) {
             PyObject *package_name = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___package__);
@@ -961,6 +956,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     if (likely(def != NULL)) {
         def->m_base.m_init = entrypoint;
     }
+
+#if PYTHON_VERSION >= 0x3d0
+    Nuitka_SetModuleString(full_name, module);
+#endif
 #else
     PyModuleDef *def = PyModule_GetDef(module);
 
@@ -1044,7 +1043,7 @@ static void loadTriggeredModule(PyThreadState *tstate, char const *name, char co
     }
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 static void _fixupSpecAttribute(PyThreadState *tstate, PyObject *module) {
     PyObject *spec_value = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___spec__);
 
@@ -1469,7 +1468,7 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
     return result;
 }
 
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
 
 static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
@@ -1846,7 +1845,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
     {"find_module", (PyCFunction)_nuitka_loader_find_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"load_module", (PyCFunction)_nuitka_loader_load_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"is_package", (PyCFunction)_nuitka_loader_is_package, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
-#if PYTHON_VERSION >= 0x340
+#if PYTHON_VERSION >= 0x300
     {"module_repr", (PyCFunction)_nuitka_loader_repr_module, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
     {"find_spec", (PyCFunction)_nuitka_loader_find_spec, METH_STATIC | METH_VARARGS | METH_KEYWORDS, NULL},
 #endif

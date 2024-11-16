@@ -7,30 +7,28 @@ module_value1 = 5.0
 module_value2 = 3.0
 
 
-def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
-
+def calledRepeatedly(cond):
     # Make sure we have a local variable s anyway
-    s = 2.0
+    s = module_value1
 
-    local_value = module_value1
+    if cond:
+        s += 1000.0
+        s += 1000.0
+        s += 1000.0
+        s += 1000.0
+        s += 1000.0
 
-    s += module_value1
-    # construct_begin
-    s += 1000.0
-    s += 1000.0
-    s += 1000.0
-    s += 1000.0
-    s += 1000.0
-    # construct_end
     s += module_value2
 
     return s
 
 
 for x in itertools.repeat(None, 50000):
-    calledRepeatedly()
+    # construct_begin
+    calledRepeatedly(True)
+    # construct_alternative
+    calledRepeatedly(False)
+    # construct_end
 
 print("OK.")
 

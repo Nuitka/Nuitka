@@ -170,8 +170,12 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "known to be not supported (CondaCC)"
     elif isMacOS() and env.gcc_mode and env.clang_mode:
-        lto_mode = True
-        reason = "known to be supported (macOS clang)"
+        if env.debugger_mode:
+            lto_mode = False
+            reason = "must be disabled to see line numbers (macOS clang)"
+        else:
+            lto_mode = True
+            reason = "known to be supported (macOS clang)"
     elif env.mingw_mode and env.clang_mode:
         lto_mode = False
         reason = "known to not be supported (new MinGW64 Clang)"
@@ -783,7 +787,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Even if console is forced, for Win32 it means to specify Windows
     # subsystem, we can still attach or create.
-    if env.console_mode != "force":
+    if env.console_mode in ("attach", "disable"):
         if env.mingw_mode:
             env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
@@ -793,6 +797,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     if env.console_mode == "attach" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
+
+    if env.console_mode == "hide" and os.name == "nt":
+        env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
 
     # Avoid dependency on MinGW libraries, spell-checker: ignore libgcc
     if env.mingw_mode and not env.clang_mode:
@@ -986,6 +994,9 @@ def reportCCompiler(env, context, output_func):
     if env.the_cc_name == "cl":
         cc_output = "%s %s" % (env.the_cc_name, getMsvcVersionString(env))
     elif isGccName(env.the_cc_name):
+        if env.gcc_version is None:
+            env.gcc_version = myDetectVersion(env, env.the_compiler)
+
         cc_output = "%s %s" % (
             env.the_cc_name,
             ".".join(str(d) for d in env.gcc_version),

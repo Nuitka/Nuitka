@@ -52,6 +52,9 @@ if (%(orig_name)s != %(tmp_name)s) {
                 )
             )
 
+            if ref_count:
+                context.removeCleanupTempName(tmp_name)
+
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
         tmp_name = context.allocateTempName("mvar_value")

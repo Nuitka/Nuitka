@@ -86,7 +86,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
     long current = low;
 
     for (int i = 0; i < size; i++) {
-        PyList_SET_ITEM(result, i, PyInt_FromLong(current));
+        PyList_SET_ITEM(result, i, Nuitka_PyInt_FromLong(current));
         current += step;
     }
 
@@ -99,7 +99,7 @@ static PyObject *_BUILTIN_RANGE_INT(long boundary) {
     PyObject *result = MAKE_LIST_EMPTY(tstate, boundary > 0 ? boundary : 0);
 
     for (int i = 0; i < boundary; i++) {
-        PyList_SET_ITEM(result, i, PyInt_FromLong(i));
+        PyList_SET_ITEM(result, i, Nuitka_PyInt_FromLong(i));
     }
 
     return result;
@@ -194,7 +194,7 @@ PyObject *BUILTIN_RANGE2(PyThreadState *tstate, PyObject *low, PyObject *high) {
         PyObject *pos_args = MAKE_TUPLE2_0(tstate, low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -254,7 +254,7 @@ PyObject *BUILTIN_RANGE3(PyThreadState *tstate, PyObject *low, PyObject *high, P
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POS_ARGS3(tstate, NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -300,6 +300,8 @@ PyObject *MAKE_XRANGE(PyThreadState *tstate, long start, long stop, long step) {
 
         return NULL;
     }
+
+    // spell-checker: ignore rangeobject
 
     struct _rangeobject2 *result = (struct _rangeobject2 *)PyObject_New(struct _rangeobject2, &PyRange_Type);
     assert(result != NULL);
@@ -674,7 +676,7 @@ PyObject *BUILTIN_FORMAT(PyThreadState *tstate, PyObject *value, PyObject *forma
 }
 
 // Helper functions for print. Need to play nice with Python softspace
-// behavior.
+// behavior. spell-checker: ignore softspace
 
 #if PYTHON_VERSION >= 0x300
 NUITKA_DEFINE_BUILTIN(print);
@@ -724,7 +726,7 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
 
         // TODO: This should use something that does not build a dictionary at all, and not
         // uses a tuple.
-        result = CALL_FUNCTION_WITH_KEYARGS(tstate, NUITKA_ACCESS_BUILTIN(print), kw_args);
+        result = CALL_FUNCTION_WITH_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(print), kw_args);
 
         Py_DECREF(kw_args);
     }
@@ -836,7 +838,7 @@ void PRINT_REFCOUNT(PyObject *object) {
     if (object) {
 #if PYTHON_VERSION >= 0x3c0
         if (_Py_IsImmortal(object)) {
-            PRINT_STRING(" recnf IMMORTAL");
+            PRINT_STRING(" refcnt IMMORTAL");
             return;
         }
 #endif
@@ -915,37 +917,42 @@ bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
 bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
-#if PYTHON_VERSION < 0x3b0
-void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
-#else
-void _PRINT_EXCEPTION(PyObject *exception_value) {
-    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
-    PyTracebackObject *exception_tb = (exception_value && PyExceptionInstance_Check(exception_value))
-                                          ? GET_EXCEPTION_TRACEBACK(exception_value)
-                                          : NULL;
-#endif
+void _PRINT_EXCEPTION3(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
     PRINT_REPR(exception_type);
-    if (exception_type) {
+    if (exception_type != NULL) {
         PRINT_REFCOUNT(exception_type);
     }
     PRINT_STRING("|");
     PRINT_REPR(exception_value);
-    if (exception_value) {
+    if (exception_value != NULL) {
         PRINT_REFCOUNT(exception_value);
     }
 #if PYTHON_VERSION >= 0x300
     if (exception_value != NULL && PyExceptionInstance_Check(exception_value)) {
         PRINT_STRING(" <- context ");
-        PyObject *context = PyException_GetContext(exception_value);
+        PyObject *context = Nuitka_Exception_GetContext(exception_value);
         PRINT_REPR(context);
-        Py_XDECREF(context);
     }
 #endif
     PRINT_STRING("|");
     PRINT_REPR((PyObject *)exception_tb);
+    if (exception_tb != NULL) {
+        PRINT_REFCOUNT((PyObject *)exception_tb);
+    }
 
     PRINT_NEW_LINE();
 }
+
+#if PYTHON_VERSION >= 0x3b0
+void _PRINT_EXCEPTION1(PyObject *exception_value) {
+    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
+    PyTracebackObject *exception_tb = (exception_value && PyExceptionInstance_Check(exception_value))
+                                          ? GET_EXCEPTION_TRACEBACK(exception_value)
+                                          : NULL;
+
+    _PRINT_EXCEPTION3(exception_type, exception_value, exception_tb);
+}
+#endif
 
 void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -954,7 +961,7 @@ void PRINT_CURRENT_EXCEPTION(void) {
 #if PYTHON_VERSION < 0x3c0
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
 #else
-    _PRINT_EXCEPTION(tstate->exc_info->exc_value);
+    _PRINT_EXCEPTION1(tstate->exc_info->exc_value);
 #endif
 }
 
@@ -962,7 +969,11 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("thread_exc=");
+#if PYTHON_VERSION < 0x3b0
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
+#else
+    PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), GET_EXCEPTION_TRACEBACK(EXC_VALUE(tstate)));
+#endif
 }
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
@@ -1277,7 +1288,7 @@ static PyObject *QUICK_ITERATOR_NEXT(PyThreadState *tstate, struct Nuitka_QuickI
 
     switch (qiter->iterator_mode) {
     case ITERATOR_GENERIC:
-        result = ITERATOR_NEXT(qiter->iterator_data.iter);
+        result = ITERATOR_NEXT_ITERATOR(qiter->iterator_data.iter);
 
         if (result == NULL) {
             Py_DECREF(qiter->iterator_data.iter);
@@ -1349,11 +1360,7 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         item = QUICK_ITERATOR_NEXT(tstate, &qiter, &finished);
 
         if (finished) {
-#if PYTHON_VERSION < 0x300
-            return PyInt_FromLong(int_result);
-#else
-            return PyLong_FromLong(int_result);
-#endif
+            return Nuitka_PyInt_FromLong(int_result);
         } else if (item == NULL) {
             return NULL;
         }
@@ -1417,12 +1424,8 @@ PyObject *BUILTIN_SUM1(PyThreadState *tstate, PyObject *sequence) {
         break;
     }
 
-/* Switch over to objects, and redo last step. */
-#if PYTHON_VERSION < 0x300
-    result = PyInt_FromLong(int_result);
-#else
-    result = PyLong_FromLong(int_result);
-#endif
+    /* Switch over to objects, and redo last step. */
+    result = Nuitka_PyInt_FromLong(int_result);
     CHECK_OBJECT(result);
 
     PyObject *temp = PyNumber_Add(result, item);
@@ -1476,7 +1479,7 @@ PyObject *BUILTIN_SUM2(PyThreadState *tstate, PyObject *sequence, PyObject *star
 
     PyObject *pos_args = MAKE_TUPLE2(tstate, sequence, start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POS_ARGS2(tstate, NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
 
@@ -1717,8 +1720,8 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#ifdef _NUITKA_STANDALONE
-static PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
+#ifdef _NUITKA_EXE
+PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
 
@@ -1816,7 +1819,7 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 #else
 
 #if defined(_WIN32)
-/* Small helper function to get current DLL handle. */
+// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
 static HMODULE getDllModuleHandle(void) {
     static HMODULE hm = NULL;
 
@@ -1832,7 +1835,7 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
-static filename_char_t const *getDllDirectory(void) {
+filename_char_t const *getDllDirectory(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1];
     path[0] = 0;
@@ -1879,6 +1882,56 @@ static PyObject *getDllDirectoryObject(void) {
     CHECK_OBJECT(dll_directory);
 
     return dll_directory;
+}
+#endif
+
+#if defined(_NUITKA_MODULE)
+static filename_char_t const *getDllFilename(void) {
+#if defined(_WIN32)
+    static WCHAR path[MAXPATHLEN + 1];
+    path[0] = 0;
+
+    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
+    assert(res != 0);
+
+    return path;
+#else
+    Dl_info where;
+
+    {
+        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+        assert(res != 0);
+    }
+
+    return where.dli_fname;
+#endif
+}
+
+PyObject *getDllFilenameObject(void) {
+    static PyObject *dll_filename = NULL;
+
+    if (dll_filename == NULL) {
+        filename_char_t const *dll_filename_str = getDllFilename();
+
+        dll_filename = Nuitka_String_FromFilename(dll_filename_str);
+
+#if PYTHON_VERSION < 0x300
+        // Avoid unnecessary unicode values.
+        PyObject *decoded_dll_filename = PyObject_Str(dll_filename);
+
+        if (decoded_dll_filename == NULL) {
+            PyThreadState *tstate = PyThreadState_GET();
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
+            Py_DECREF(dll_filename);
+            dll_filename = decoded_dll_filename;
+        }
+#endif
+    }
+
+    CHECK_OBJECT(dll_filename);
+
+    return dll_filename;
 }
 #endif
 
@@ -2089,6 +2142,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersOperationBinaryMatmult.c"
 #endif
 
+#include "HelpersOperationBinaryDualAdd.c"
+
 #include "HelpersOperationInplaceAdd.c"
 #include "HelpersOperationInplaceBitand.c"
 #include "HelpersOperationInplaceBitor.c"
@@ -2109,11 +2164,20 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #endif
 
 #include "HelpersComparisonEq.c"
-#include "HelpersComparisonGe.c"
-#include "HelpersComparisonGt.c"
 #include "HelpersComparisonLe.c"
 #include "HelpersComparisonLt.c"
+
+#include "HelpersComparisonGe.c"
+#include "HelpersComparisonGt.c"
 #include "HelpersComparisonNe.c"
+
+#include "HelpersComparisonDualEq.c"
+#include "HelpersComparisonDualLe.c"
+#include "HelpersComparisonDualLt.c"
+
+#include "HelpersComparisonDualGe.c"
+#include "HelpersComparisonDualGt.c"
+#include "HelpersComparisonDualNe.c"
 
 #include "HelpersChecksumTools.c"
 #include "HelpersConstantsBlob.c"

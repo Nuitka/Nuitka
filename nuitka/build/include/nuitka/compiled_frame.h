@@ -143,7 +143,7 @@ NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObjec
         frame_object == NULL ||
         // Still in use
         Py_REFCNT(frame_object) > 1 ||
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
         // Last used by another thread (TODO: Could just set it when re-using)
         frame_object->m_frame.f_tstate != PyThreadState_GET() ||
 #endif
@@ -483,6 +483,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGeneratorCompiledFrame(PyT
 #define NUITKA_TYPE_DESCRIPTION_OBJECT 'o'
 #define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR 'O'
 #define NUITKA_TYPE_DESCRIPTION_BOOL 'b'
+#define NUITKA_TYPE_DESCRIPTION_NILONG 'L'
 
 #if _DEBUG_REFCOUNTS
 extern int count_active_Nuitka_Frame_Type;

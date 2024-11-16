@@ -137,6 +137,9 @@ print("\\n".join(sorted(
                     "_collections_abc.py",
                     "_collections_abc.pyc",
                 ):
+                    if python_version >= 0x3D0:
+                        detections.append((module_name, 2, "sourcefile", filename))
+
                     module_name = ModuleName("_collections_abc")
 
                 if filename.endswith(".py"):

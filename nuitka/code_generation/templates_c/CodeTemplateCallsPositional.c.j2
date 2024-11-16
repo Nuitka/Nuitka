@@ -8,7 +8,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *called,
     PyObject *const *args = &arg; // For easier code compatibility.
 {% else %}
 {% if has_tuple_arg %}
-PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
+PyObject *CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(PyThreadState *tstate, PyObject *called, PyObject *pos_args) {
     assert(PyTuple_CheckExact(pos_args));
     assert(PyTuple_GET_SIZE(pos_args) == {{args_count}});
     PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
@@ -484,7 +484,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
                             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
                         } else {
 {% if has_tuple_arg %}
-                            result = CALL_FUNCTION_WITH_POSARGS{{args_count}}(tstate, init_method, pos_args);
+                            result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
                             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
 {% endif %}
@@ -595,7 +595,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyThreadState *tstate, PyObject 
             result = Nuitka_CallMethodFunctionPosArgs(tstate, (struct Nuitka_FunctionObject const *)init_method, obj, args, {{args_count}});
         } else {
 {% if has_tuple_arg %}
-            result = CALL_FUNCTION_WITH_POSARGS{{args_count}}(tstate, init_method, pos_args);
+            result = CALL_FUNCTION_WITH_POS_ARGS{{args_count}}(tstate, init_method, pos_args);
 {% else %}
             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(tstate, init_method, args);
 {% endif %}
