@@ -23,12 +23,24 @@ from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import buildNode
 
 
+def _getErrorMessageYieldFromOutsideFunction():
+    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
+
+    try:
+        exec("""yield from ()""")
+    except SyntaxError as e:
+        if "yield from" in str(e):
+            return "yield from"
+        else:
+            return "yield"
+
+
 def _checkInsideGenerator(construct_name, provider, node, source_ref):
 
     if provider.isCompiledPythonModule():
         # Bug compatibility
-        if python_version < 0x3D0 and construct_name == "yield from":
-            construct_error_name = "yield"
+        if construct_name == "yield from":
+            construct_error_name = _getErrorMessageYieldFromOutsideFunction()
         else:
             construct_error_name = construct_name
 
