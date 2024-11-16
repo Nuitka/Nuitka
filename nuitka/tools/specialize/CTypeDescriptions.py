@@ -9,6 +9,9 @@ import math
 from abc import abstractmethod
 
 from nuitka.__past__ import long
+from nuitka.code_generation.BinaryOperationHelperDefinitions import (
+    isCommutativeType,
+)
 from nuitka.code_generation.Namify import namifyConstant
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
@@ -562,12 +565,11 @@ return %(return_value)s;""" % {
         else:
             return object_desc
 
-    def isSimilarOrSameTypesAsOneOf(self, *others):
-        for other in others:
-            assert other is not None
+    def isSimilarOrSameTypesAsOneOf(self, other):
+        assert other is not None
 
-            if self is other or other in related_types.get(self, ()):
-                return True
+        if self is other or other in related_types.get(self, ()):
+            return True
 
         return False
 
@@ -709,6 +711,10 @@ return %(return_value)s;""" % {
                 return "Py_INCREF(%s); %s = %s;" % (operand, result, operand)
             else:
                 return "%s = %s;" % (result, operand)
+        elif cls.isDualType():
+            ref_taking = "Py_INCREF(%s); " if take_ref else ""
+
+            return "%sSET_NILONG_OBJECT_VALUE(%s, %s);" % (ref_taking, result, operand)
         else:
             if take_ref:
                 return """%s = %s; """ % (
@@ -759,7 +765,7 @@ return %(return_value)s;""" % {
             # Need to not use that, but pick one.
             assert False
         elif cls.type_name == "int":
-            return "%s = PyInt_FromLong(%s);" % (result, operand)
+            return "%s = Nuitka_PyInt_FromLong(%s);" % (result, operand)
         elif cls.type_name == "long":
             return "%s = Nuitka_LongFromCLong(%s);" % (result, operand)
         elif cls.type_name == "nbool":
@@ -767,6 +773,8 @@ return %(return_value)s;""" % {
                 result,
                 cls.getToValueFromBoolExpression("%s != 0" % operand),
             )
+        elif cls.type_name == "nilong":
+            return "SET_NILONG_C_VALUE(%s, %s);" % (result, operand)
         else:
             assert False, cls
 
@@ -944,6 +952,14 @@ Py_INCREF(%(result)s);""" % {
                     assert False, left.type_name
             else:
                 assert False, cls.type_name
+
+    @classmethod
+    def isDualType(cls):
+        return False
+
+    @classmethod
+    def isCommutativeType(cls):
+        return isCommutativeType(cls.getHelperCodeName())
 
 
 class ConcreteTypeBase(TypeDescBase):
@@ -1447,6 +1463,12 @@ class ObjectDesc(TypeDescBase):
     def getNoSequenceSlotAccessTestCode(self, type_name):
         return "%s->tp_as_sequence == NULL" % type_name
 
+    @classmethod
+    def getDualValidityCheckCode(cls, value_choice, operand):
+        # Virtual method, pylint: disable=unused-argument
+        assert value_choice == "C", value_choice
+        return "false"
+
 
 object_desc = ObjectDesc()
 
@@ -1472,6 +1494,25 @@ class ConcreteCTypeBase(TypeDescBase):
     def hasPreferredSlot(right, slot):
         return False
 
+    @classmethod
+    def isDualType(cls):
+        return False
+
+    @classmethod
+    def getDualValidityCheckCode(cls, value_choice, operand):
+        # Virtual method, pylint: disable=unused-argument
+        assert value_choice == "C", value_choice
+        return "true"
+
+    def getDualType(self, value_choice):
+        assert value_choice == "C", value_choice
+        return self
+
+    @classmethod
+    def getDualTypeAccessCode(cls, value_choice, operand):
+        assert value_choice == "C", (value_choice, cls)
+        return operand
+
 
 class CLongDesc(ConcreteCTypeBase):
     type_name = "clong"
@@ -1496,7 +1537,7 @@ class CLongDesc(ConcreteCTypeBase):
 
     @staticmethod
     def getAsObjectValueExpression(operand):
-        return "PyLong_FromLong(%s)" % operand
+        return "Nuitka_PyLong_FromLong(%s)" % operand
 
     @staticmethod
     def releaseAsObjectValueStatement(operand):
@@ -1663,6 +1704,108 @@ class NBoolDesc(ConcreteCTypeBase):
 n_bool_desc = NBoolDesc()
 
 
+class DualTypeBase(ConcreteCTypeBase):
+    @classmethod
+    def getDualValidityCheckCode(cls, value_choice, operand):
+        if value_choice == "C":
+            helper = "IS_%s_C_VALUE_VALID" % cls.type_name.upper()
+        elif value_choice == "Python":
+            helper = "IS_%s_OBJECT_VALUE_VALID" % cls.type_name.upper()
+        else:
+            assert False
+
+        return "%s(%s)" % (helper, operand)
+
+    @classmethod
+    def getDualType(cls, value_choice):
+        if value_choice == "C":
+            return cls.type_dual_types[1]
+        elif value_choice == "Python":
+            return cls.type_dual_types[0]
+        else:
+            assert False
+
+    @classmethod
+    def getDualTypeAccessCode(cls, value_choice, operand):
+        if value_choice == "C":
+            return "%s->c_value" % operand
+        elif value_choice == "Python":
+            return "%s->python_value" % operand
+        else:
+            assert False
+
+    @classmethod
+    def getSetDualValueCode(cls, value_choice, target, value):
+        if value_choice == "C":
+            helper = "SET_%s_C_VALUE" % cls.type_name.upper()
+        elif value_choice == "Python":
+            helper = "SET_%s_OBJECT_VALUE" % cls.type_name.upper()
+        else:
+            assert False
+
+        return "%s(%s, %s);" % (helper, target, value)
+
+    @classmethod
+    def isDualType(cls):
+        return True
+
+    @classmethod
+    def getDualTypeEnsurePythonObjectCode(cls, operand):
+        return "ENFORCE_%s_OBJECT_VALUE(%s);" % (cls.type_name.upper(), operand)
+
+
+class NILongDesc(DualTypeBase):
+    type_name = "nilong"
+    type_desc = "Nuitka int/long/C long value"
+    type_decl = "nuitka_ilong *"
+
+    type_dual_types = long_desc, c_long_desc
+
+    @classmethod
+    def getCheckValueCode(cls, operand):
+        return "CHECK_NILONG_OBJECT(%s);" % operand
+
+    @classmethod
+    def getTypeValueExpression(cls, operand):
+        assert False
+        return "NULL"
+
+    @classmethod
+    def getNewStyleNumberTypeCheckExpression(cls, operand):
+        return "0"
+
+    @staticmethod
+    def getAsLongValueExpression(operand):
+        return "GET_NILONG_C_VALUE(%s)" % operand
+
+    @staticmethod
+    def getAsObjectValueExpression(operand):
+        return "GET_NILONG_OBJECT_VALUE(%s)" % operand
+
+    @staticmethod
+    def getToValueFromBoolExpression(operand):
+        assert False
+        return "%s ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE" % operand
+
+    @classmethod
+    def getToValueFromObjectExpression(cls, operand):
+        # TODO: Seems wrong, int return values only happen to match nuitka_bool here
+        return cls.getToValueFromBoolExpression("CHECK_IF_TRUE(%s)" % operand)
+
+    @staticmethod
+    def getTakeReferenceStatement(operand, immortal):
+        assert False
+        return ""
+
+    @staticmethod
+    def getExceptionResultIndicatorValue():
+        assert False
+        return "NUITKA_BOOL_EXCEPTION"
+
+
+n_ilong_desc = NILongDesc()
+
+
 class NVoidDesc(ConcreteCTypeBase):
     type_name = "nvoid"
     type_desc = "Nuitka C void value"
@@ -1755,12 +1898,18 @@ related_types = {}
 
 
 def _addRelatedTypes(type_desc_1, type_desc_2):
-    related_types[type_desc_1] = (type_desc_2,)
-    related_types[type_desc_2] = (type_desc_1,)
+    if type_desc_1 not in related_types:
+        related_types[type_desc_1] = set()
+    if type_desc_2 not in related_types:
+        related_types[type_desc_2] = set()
+
+    related_types[type_desc_1].add(type_desc_2)
+    related_types[type_desc_2].add(type_desc_1)
 
 
 _addRelatedTypes(int_desc, c_long_desc)
 _addRelatedTypes(long_desc, c_digit_desc)
+_addRelatedTypes(long_desc, c_long_desc)
 _addRelatedTypes(float_desc, c_float_desc)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

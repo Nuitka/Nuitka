@@ -146,6 +146,7 @@ from .ReformulationAssignmentStatements import (
     buildInplaceAssignNode,
     buildNamedExprNode,
     buildTypeAliasNode,
+    buildTypeVarNode,
 )
 from .ReformulationBooleanExpressions import buildBoolOpNode
 from .ReformulationCallExpressions import buildCallNode
@@ -463,7 +464,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             provider.isExpressionClassBodyBase()
             and closure_variable.getName() == "__class__"
         ):
-            if python_version < 0x340:
+            if python_version < 0x300:
                 SyntaxErrors.raiseSyntaxError(
                     "cannot make __class__ global", source_ref
                 )
@@ -778,6 +779,7 @@ setBuildingDispatchers(
         "Num": buildNumberNode,
         "Bytes": buildBytesNode,
         "Continue": buildStatementLoopContinue,
+        "TypeVar": buildTypeVarNode,
     },
     path_args1={"Ellipsis": buildEllipsisNode},
 )
@@ -785,7 +787,7 @@ setBuildingDispatchers(
 
 def buildParseTree(provider, ast_tree, source_ref, is_main):
     # There are a bunch of branches here, mostly to deal with version
-    # differences for module default variables. pylint: disable=too-many-branches
+    # differences for module default variables.
 
     # Maybe one day, we do exec inlining again, that is what this is for,
     # then is_module won't be True, for now it always is.
@@ -873,7 +875,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
         # This assigns "__path__" value.
         statements.append(createPathAssignment(provider, internal_source_ref))
 
-    if python_version >= 0x340 and not is_main:
+    if python_version >= 0x300 and not is_main:
         statements += (
             StatementAssignmentAttribute(
                 expression=ExpressionModuleAttributeSpecRef(
@@ -925,23 +927,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
             )
         )
 
-    needs__initializing__ = (
-        not provider.isMainModule() and 0x300 <= python_version < 0x340
-    )
-
-    if needs__initializing__:
-        # Set "__initializing__" at the beginning to True
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__initializing__",
-                source=makeConstantRefNode(
-                    constant=True, source_ref=internal_source_ref, user_provided=True
-                ),
-                source_ref=internal_source_ref,
-            )
-        )
-
     if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
@@ -958,19 +943,6 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
     # Now the module body if there is any at all.
     if result is not None:
         statements.extend(result.subnode_statements)
-
-    if needs__initializing__:
-        # Set "__initializing__" at the end to False
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=provider,
-                variable_name="__initializing__",
-                source=makeConstantRefNode(
-                    constant=False, source_ref=internal_source_ref, user_provided=True
-                ),
-                source_ref=internal_source_ref,
-            )
-        )
 
     result = makeModuleFrame(
         module=provider, statements=statements, source_ref=source_ref
@@ -990,14 +962,15 @@ def decideCompilationMode(is_top, module_name, module_filename, for_pgo):
 
     is_stdlib = module_filename is not None and isStandardLibraryPath(module_filename)
 
-    # Technically required modules must be bytecode
+    # Technically required modules must be bytecode, do not even ask plugins
+    # about it.
     if is_stdlib and module_name in detectEarlyImports():
         return "bytecode"
 
     result = Plugins.decideCompilation(module_name)
 
-    # Cannot change mode of __main__ to bytecode, that is not going
-    # to work currently.
+    # Cannot change mode of "__main__" to bytecode, that is not going to work
+    # currently, maybe in the future we could allow it.
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
@@ -1010,7 +983,7 @@ required to compiled."""
 
     # Include all of standard library as bytecode, for now. We need to identify
     # which ones really need that.
-    if not is_top and is_stdlib:
+    if not is_top and is_stdlib and result is None:
         result = "bytecode"
 
     # Plugins need to win over PGO, as they might know it better

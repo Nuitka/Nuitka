@@ -144,6 +144,7 @@ def enableCcache(
 
     if inject_ccache:
         # The ccache needs absolute path, otherwise it will not work.
+        # spell-checker: ignore getpid
         ccache_logfile = getExternalUsePath(
             os.path.abspath(os.path.join(source_dir, "ccache-%d.txt" % os.getpid())),
             only_dirname=True,
@@ -373,6 +374,7 @@ to install it."""
                     "preprocessed_cache_miss",
                     "primary_storage_miss",
                     "called_for_link",
+                    "no_input_file",
                     "local_storage_read_hit",
                     "local_storage_read_miss",
                     "local_storage_write",

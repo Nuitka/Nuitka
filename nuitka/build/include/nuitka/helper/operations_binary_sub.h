@@ -86,6 +86,12 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, long
  * Python3 'int'. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2);
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_CLONG(PyObject *operand1, long operand2);
+
+/* Code referring to "CLONG" corresponds to C platform long value and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_CLONG_LONG(long operand1, PyObject *operand2);
+
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
 

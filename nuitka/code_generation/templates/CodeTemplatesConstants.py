@@ -134,6 +134,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
         {(char *)"no_annotations", (char *)"boolean indicating --python-flag=no_annotations usage"},
         {(char *)"module", (char *)"boolean indicating --module usage"},
         {(char *)"main", (char *)"name of main module at runtime"},
+        {(char *)"original_argv0", (char *)"original argv[0] as received by the onefile binary, None otherwise"},
         {0}
     };
 
@@ -149,9 +150,9 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     Nuitka_dunder_compiled_value = PyStructSequence_New(&Nuitka_VersionInfoType);
     assert(Nuitka_dunder_compiled_value != NULL);
 
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 0, PyInt_FromLong(%(nuitka_version_major)s));
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, PyInt_FromLong(%(nuitka_version_minor)s));
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, PyInt_FromLong(%(nuitka_version_micro)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 0, Nuitka_PyInt_FromLong(%(nuitka_version_major)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 1, Nuitka_PyInt_FromLong(%(nuitka_version_minor)s));
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 2, Nuitka_PyInt_FromLong(%(nuitka_version_micro)s));
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
@@ -233,6 +234,13 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyObject *main_name = Nuitka_String_FromString("__main__");
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
+
+#if defined(_NUITKA_EXE)
+    PyObject *original_argv0 = getOriginalArgv0Object();
+#else
+    PyObject *original_argv0 = Py_None;
+# endif
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 13, original_argv0);
 
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;

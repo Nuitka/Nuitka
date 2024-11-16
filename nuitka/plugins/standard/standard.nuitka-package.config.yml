@@ -40,6 +40,12 @@
     - depends:
         - 'yaml'
 
+- module-name: 'absl.testing' # checksum: 2f66bb94
+  anti-bloat:
+    - description: 'Need to allow unittest usage'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
 - module-name: 'accessible_output2' # checksum: 27cd20b7
   data-files:
     - dirs:
@@ -134,6 +140,14 @@
         'import unittest': ''
       change_class:
         'Test': 'un-usable'
+
+- module-name: 'anyio' # checksum: f47c3c24
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+        '_pytest': 'ignore'
+      when: 'not use_pytest'
 
 - module-name: 'anyio._core._eventloop' # checksum: c0b82a1e
   implicit-imports:
@@ -331,10 +345,11 @@
     - depends:
         - 'av.filter.pad'
 
-- module-name: 'av.frame' # checksum: e8ab2d30
+- module-name: 'av.frame' # checksum: 121c2594
   implicit-imports:
     - depends:
         - 'av.buffer'
+        - 'av.opaque'
 
 - module-name: 'av.logging' # checksum: 7da91901
   implicit-imports:
@@ -347,11 +362,12 @@
         - 'av.enum'
         - 'av.utils'
 
-- module-name: 'av.packet' # checksum: 13e9006a
+- module-name: 'av.packet' # checksum: 3bd21471
   implicit-imports:
     - depends:
         - 'av.dictionary'
         - 'av.sidedata.sidedata'
+        - 'av.opaque'
 
 - module-name: 'av.sidedata.sidedata' # checksum: 6adb0fe2
   implicit-imports:
@@ -371,11 +387,17 @@
         - 'av.plane'
         - 'av.video.plane'
 
-- module-name: 'azure.cognitiveservices.speech' # checksum: 571ec995
+- module-name: 'azure.cognitiveservices.speech' # checksum: e9989c05
+  data-files:
+    - patterns:
+        - 'libMicrosoft.CognitiveServices.Speech.extension.lu.a'
+      when: 'macos'
+
   dlls:
     - from_filenames:
         prefixes:
           - 'Microsoft.CognitiveServices.Speech'
+          - 'libMicrosoft.CognitiveServices.Speech'
 
 - module-name: 'babel' # checksum: 29ed1c5b
   data-files:
@@ -555,6 +577,12 @@
   implicit-imports:
     - depends:
         - '_cffi_backend'
+
+- module-name: 'bsdiff4' # checksum: b157a72f
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test': 'un-callable'
 
 - module-name: 'cairo' # checksum: 16042494
   implicit-imports:
@@ -840,7 +868,12 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 9f6fdcf0
+- module-name: 'cv2' # checksum: 6069a546
+  variables:
+    setup_code:
+      - 'import cv2'
+    declarations:
+      'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -863,7 +896,7 @@
         ? "load_first_config([\n"
         : 'if False: (['
       replacements:
-        "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        "load_first_config(['config.py'], True)": "textwrap.indent(get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
     - description: 'workaround for colliding native module import'
       replacements:
         # Before OpenCV 4.6
@@ -875,11 +908,21 @@
       replacements:
         'native_module = importlib.import_module("cv2")': '"from importlib.machinery import ExtensionFileLoader; from importlib.util import spec_from_file_location; from importlib._bootstrap import _load; __path = os.path.join(os.path.dirname(__file__), \"cv2%s\"); native_module = _load(spec_from_file_location(\"cv2\", __path, loader=ExtensionFileLoader(\"cv2\", __path)))" % extension_suffix'
       when: 'standalone and python312_or_higher and not nuitka_python'
+    - description: 'remove error hiding code'
+      replacements_plain:
+        "print('OpenCV bindings requires \"numpy\" package.')": 'raise'
+    - description: 'submodules'
+      replacements:
+        '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
+      change_function:
+        '__collect_extra_submodules': 'un-callable'
+      when: 'standalone'
   implicit-imports:
     - depends:
         - 'cv2.cv2'
         - 'numpy'
         - 'numpy.core'
+        - '["cv2.%s" % m for m in get_variable("cv2_extra_sub_modules")]'
     - pre-import-code:
         - |
           import os
@@ -888,8 +931,8 @@
       when: 'linux and standalone'
   options:
     checks:
-      - description: 'OpenCV2 is best supported with 4.6 or later'
-        support_info: 'warning'
+      - description: 'OpenCV2 is only supported with 4.6 or later'
+        support_info: 'error'
         when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
@@ -1121,7 +1164,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 18979466
+- module-name: 'django.core.management' # checksum: cb686c29
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1150,7 +1193,7 @@
     checks:
       - description: "Django settings module must be specified with '--module-parameter=django-settings-module=<settings_module_name>'"
         support_info: 'parameter'
-        when: 'standalone and get_parameter("settings-module", None) is None'
+        when: 'get_parameter("settings-module", None) is None'
 
 - module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
   anti-bloat:
@@ -1259,11 +1302,11 @@
     - patterns:
         - 'specs/*.json'
 
-- module-name: 'Equation' # checksum: aa47a17f
+- module-name: 'Equation' # checksum: b92f083c
   anti-bloat:
     - description: 'workaround for standalone mode'
       replacements:
-        'os.listdir(dirname)': 'repr(os.listdir(_get_module_directory("Equation")))'
+        'os.listdir(dirname)': 'repr(os.listdir(get_module_directory("Equation")))'
       when: 'standalone'
   implicit-imports:
     - depends:
@@ -1332,6 +1375,11 @@
   implicit-imports:
     - depends:
         - 'fastapi.routing'
+
+- module-name: 'fastapi.exceptions' # checksum: 9806d681
+  implicit-imports:
+    - depends:
+        - 'attrs'
 
 - module-name: 'feedparser.html' # checksum: 8b17e6bc
   anti-bloat:
@@ -2051,6 +2099,13 @@
     - dirs:
         - 'schemas'
 
+- module-name: 'keras' # checksum: 292d6ceb
+  import-hacks:
+    # This package adds another directory to the search path of itself,
+    # which we will not find packages in unless added.
+    - package-paths:
+        - 'keras.api'
+
 - module-name: 'keras.api._v2.keras.__internal__.utils' # checksum: 63342938
   anti-bloat:
     - description: 'remove keras testing tools reference'
@@ -2110,6 +2165,25 @@
     - depends:
         - 'kivy.weakmethod'
 
+- module-name: 'kivy.core.clipboard' # checksum: d1e34cc4
+  implicit-imports:
+    - depends:
+        - 'kivy.core.clipboard.clipboard_winctypes'
+      when: 'win32'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_nspaste'
+      when: 'macos and has_module("pyobjus")'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_sdl2'
+      when: 'macos and not has_module("pyobjus")'
+    - depends:
+        - 'kivy.core.clipboard.clipboard_xclip'
+        - 'kivy.core.clipboard.clipboard_xsel'
+        - 'kivy.core.clipboard.clipboard_dbusklipper'
+        - 'kivy.core.clipboard.clipboard_gtk3'
+        - 'kivy.core.clipboard.clipboard_sdl2'
+      when: 'linux'
+
 - module-name: 'kivy.graphics.compiler' # checksum: c064234c
   implicit-imports:
     - depends:
@@ -2127,7 +2201,7 @@
     - depends:
         - 'kivy.graphics.compiler'
 
-- module-name: 'kivymd' # checksum: b3f15565
+- module-name: 'kivymd' # checksum: 6d57c0fa
   data-files:
     - dirs:
         - 'fonts'
@@ -2137,6 +2211,7 @@
   implicit-imports:
     - depends:
         - 'kivymd.icon_definitions'
+        - 'kivymd.uix.*'
 
 - module-name: 'kiwisolver' # checksum: a0fc11a6
   dlls:
@@ -2242,6 +2317,11 @@
         'ipykernel': 'ignore'
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+- module-name: 'lttbc' # checksum: d072aa03
+  implicit-imports:
+    - depends:
+        - 'numpy.core.multiarray'
 
 - module-name: 'lxml' # checksum: f89961a7
   implicit-imports:
@@ -2485,6 +2565,63 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'mne.fixes' # checksum: dd3b5473
+  anti-bloat:
+    - no-auto-follow:
+        'numba': 'ignore'
+      when: 'not use_numba'
+
+- module-name: 'mne.io.array.array' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.curry.curry' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.edf.edf' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.egi.egi' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.egi.egimff' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.eyelink.eyelink' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.fiff.raw' # checksum: 6051d6a
+  anti-bloat:
+    - description: 'workaround frame dictionary not being populated'
+      replacements_plain:
+        'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.utils._testing' # checksum: 76efa1b7
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'from unittest import SkipTest': 'SkipTest = None'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'mnemonic' # checksum: cfacd704
   data-files:
     - dirs:
@@ -2669,6 +2806,12 @@
     - description: 'remove numexpr.tests usage'
       replacements_plain:
         'import numexpr.tests': 'raise ImportError'
+
+- module-name: 'numexpr.cpuinfo' # checksum: 53d827f7
+  anti-bloat:
+    - description: 'workaround for "is type" test'
+      replacements_plain:
+        'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
 - module-name: 'numpy' # checksum: d50b5b5e
   dlls:
@@ -3239,7 +3382,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 5c2e9d81
+- module-name: 'pandas' # checksum: 158bd2af
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3247,6 +3390,10 @@
         'import pandas.testing': ''
         'from pandas import testing': 'testing = None'
         'from pandas import api, arrays, errors, io, plotting, testing': 'from pandas import api, arrays, errors, io, plotting'
+    - description: 'avoid numba in pandas'
+      no-auto-follow:
+        'pandas.core._numba.extensions': 'no numba acceleration'
+      when: 'not use_numba'
 
 - module-name: 'pandas._libs' # checksum: 582d52b9
   implicit-imports:
@@ -3790,6 +3937,35 @@
       change_function:
         'embedded_data_path': "'(lambda: app_path())'"
 
+- module-name: 'playwright' # checksum: 3c59447d
+  data-files:
+    - patterns:
+        - '**/*.json'
+        - '**/*.js'
+        - '**/*.ts'
+        - '**/*.html'
+        - '**/*.css'
+        - '**/*.svg'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'driver'
+        prefixes:
+          - 'node'
+        executable: 'yes'
+
+- module-name: 'playwright._impl._transport' # checksum: 708d0cf7
+  anti-bloat:
+    - description: 'fix globals.get() usage'
+      replacements_plain:
+        'globals().get("_compiled__")': 'globals().get("__compiled__")'
+      when: 'version("playwright") >= (1, 45, 0)'
+
+    - description: 'support for older versions of playwright'
+      replacements_plain:
+        'if getattr(sys, "frozen", False):': 'if getattr(sys, "frozen", False) or "__compiled__" in globals():'
+      when: 'version("playwright") < (1, 45, 0)'
+
 - module-name: 'playwright_stealth' # checksum: 26b9c88c
   data-files:
     - dirs:
@@ -3961,6 +4137,22 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'py_mini_racer' # checksum: d45d7bdb
+  data-files:
+    - patterns:
+        - 'icudtl.dat'
+        - 'snapshot_blob.bin'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'mini_racer'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'libmini_racer'
+      when: 'not win32'
+
 - module-name: 'pyarrow' # checksum: 9da51f71
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -4076,7 +4268,7 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: face0a9
+- module-name: 'pygame' # checksum: 245d8530
   data-files:
     - patterns:
         - 'freesansbold.ttf'
@@ -4087,6 +4279,12 @@
         - 'pygame_icon.bmp'
       when: 'not macos'
 
+  anti-bloat:
+    - no-auto-follow:
+        'pygame.tests': 'ignore'
+      when: 'not use_unittest'
+    - no-auto-follow:
+        'cv2': 'camera functionality via OpenCV-Python (cv2)'
   implicit-imports:
     - depends:
         - 'pygame.*'
@@ -5101,6 +5299,53 @@
     - depends:
         - 'huggingface_hub.repository'
 
+- module-name: 'setuptools' # checksum: aafdeb36
+  anti-bloat:
+    - description: 'no runtime expansion of sys.path needed'
+      replacements_plain:
+        'sys.path.extend(': '('
+      when: 'version("setuptools") >= (71,)'
+    - description: 'find setuptools.distutils directly'
+      replacements_plain:
+        'import _distutils_hack.override': 'import setuptools._distutils as distutils; sys.modules["distutils"] = distutils'
+      when: 'python312_or_higher'
+  import-hacks:
+    - global-sys-path:
+        # This package forces vendored packages into "sys.path" and causes
+        # absolute imports from there to be available.
+        - '_vendor'
+      when: 'version("setuptools") >= (71,)'
+
+- module-name: 'setuptools.command' # checksum: eb17e343
+  anti-bloat:
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'from distutils.command.bdist import bdist': 'from setuptools._distutils.command.bdist import bdist'
+      when: 'python312_or_higher'
+
+- module-name: 'setuptools.config.expand' # checksum: cd2c573e
+  anti-bloat:
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'from distutils.errors import DistutilsOptionError': 'from setuptools._distutils.errors import DistutilsOptionError'
+      when: 'python312_or_higher'
+
+- module-name: 'setuptools.discovery' # checksum: d8699eb7
+  anti-bloat:
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'from distutils.util import convert_path': 'from setuptools._distutils.util import convert_path'
+      when: 'python312_or_higher'
+
+- module-name: 'setuptools.extension' # checksum: a8b782ae
+  anti-bloat:
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'import distutils.core': 'import setuptools._distutils as distutils; import setuptools._distutils.core'
+        'import distutils.errors': 'import setuptools._distutils.errors'
+        'import distutils.extension': 'import setuptools._distutils.extension'
+      when: 'python312_or_higher'
+
 - module-name: 'setuptools.extern' # checksum: 2b2a3793
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
   # similar, and we might try and avoid duplication between the two of them on
@@ -5110,7 +5355,14 @@
         - 'setuptools._vendor.*'
         - 'setuptools._vendor.*.*'
 
-- module-name: 'setuptools.monkey' # checksum: 1ea728a1
+- module-name: 'setuptools.logging' # checksum: 70588c58
+  anti-bloat:
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'import distutils.log': 'import setuptools._distutils as distutils; import setuptools._distutils.log'
+      when: 'python312_or_higher'
+
+- module-name: 'setuptools.monkey' # checksum: c31be2f0
   anti-bloat:
     - description: 'remove MSVC patching on non-Windows'
       replacements_plain:
@@ -5120,6 +5372,11 @@
         # these are done, and try to do it in source code somehow.
         'patch_for_msvc_specialized_compiler': "'(lambda: None)'"
       when: 'standalone and not win32'
+    - description: 'find setuptools distutils'
+      replacements_plain:
+        'import distutils.filelist': 'import setuptools._distutils as distutils; import setuptools._distutils.filelist'
+      when: 'python312_or_higher'
+
   implicit-imports:
     - depends:
         - '.msvc'
@@ -7184,7 +7441,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 9fbf3613
+- module-name: 'torch' # checksum: 9ff3b94c
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -7204,14 +7461,20 @@
       bloat-mode-overrides:
         'unittest': 'allow'
       when: 'not use_unittest'
-    - description: 'remove setuptools usage via triton'
+    - description: 'remove setuptools usage'
       no-auto-follow:
+        'torch.utils.cpp_extension': 'ignore'
         'triton': 'ignore'
       when: 'not use_setuptools'
     - description: 'remove numba reference'
       no-auto-follow:
         'numba': 'ignore'
       when: 'not use_numba and standalone'
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+        '_pytest': 'ignore'
+      when: 'not use_pytest'
 
   options:
     checks:
@@ -7540,7 +7803,7 @@
     - patterns:
         - '*.css'
 
-- module-name: 'transformers' # checksum: 745d44d5
+- module-name: 'transformers' # checksum: c402fbfe
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -7561,6 +7824,8 @@
         - 'sentencepiece'
         - 'timm'
         - 'openai'
+        - 'pygments'
+        - 'soundfile'
 
   anti-bloat:
     - description: 'remove IPython reference'
@@ -7596,7 +7861,21 @@
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'transformers.models.deprecated.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'transformers.models.deta.modeling_deta' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.grounding_dino.modeling_grounding_dino' # checksum: baab8e6b
   anti-bloat:
     - description: 'remove setuptools usage'
       change_function:
@@ -7608,6 +7887,20 @@
     - description: 'remove setuptools usage'
       replacements_plain:
         'from torch.utils.cpp_extension import load': ''
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.omdet_turbo.modeling_omdet_turbo' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.rt_detr.modeling_rt_detr' # checksum: baab8e6b
+  anti-bloat:
+    - description: 'remove setuptools usage'
       change_function:
         'load_cuda_kernels': 'un-callable'
       when: 'not use_setuptools'
@@ -7638,6 +7931,12 @@
     - description: 'workaround manual import issue'
       replacements_plain:
         'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
+
+- module-name: 'transformers.tokenization_utils_base' # checksum: 836ef550
+  anti-bloat:
+    - description: 'disable transformers warnings'
+      replacements_plain:
+        'warnings.warn(': 'if False: warnings.warn('
 
 - module-name: 'transformers.trainer' # checksum: f71d17eb
   anti-bloat:
@@ -7791,6 +8090,12 @@
         'from distributed import Client, LocalCluster': 'raise ImportError'
         'from distributed import Client': 'raise ImportError'
       when: 'not use_dask'
+
+- module-name: 'tufup.repo' # checksum: 737f453f
+  anti-bloat:
+    - description: 'need to use setuptools'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
 
 - module-name: 'twofish' # checksum: c8ae9b1e
   implicit-imports:
@@ -8076,6 +8381,12 @@
       replacements_plain:
         'if use_reloader:': 'if False:'
 
+- module-name: 'wheel' # checksum: 737f453f
+  anti-bloat:
+    - description: 'need to use setuptools'
+      bloat-mode-overrides:
+        'setuptools': 'allow'
+
 - module-name: 'win32com' # checksum: 8d4a0be8
   import-hacks:
     # This package adds another directory to the search path of itself,
@@ -8084,13 +8395,19 @@
         - 'win32comext'
       when: 'win32'
 
-- module-name: 'win32com.server.register' # checksum: cb126a6d
+- module-name: 'win32com.server.register' # checksum: ee461289
   anti-bloat:
     - replacements_plain:
         'pythoncom.frozen': '1'
         'sys.frozen': 'True'
+        'GetShortPathName(sys.executable)': 'GetShortPathName(sys.argv[0])'
       change_function:
         'ReExecuteElevated': "'''raise (RuntimeError('Nuitka: Needs to be elevated already, use --windows-uac-admin'))'''"
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
+
+- module-name: 'win32file' # checksum: 2531fce0
   implicit-imports:
     - depends:
         - 'win32timezone'

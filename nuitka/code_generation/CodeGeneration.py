@@ -275,6 +275,7 @@ from .PackageResourceCodes import (
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
     generateOsListdirCallCode,
+    generateOsLstatCallCode,
     generateOsPathAbspathCallCode,
     generateOsPathBasenameCallCode,
     generateOsPathDirnameCallCode,
@@ -283,6 +284,7 @@ from .PackageResourceCodes import (
     generateOsPathIsdirCallCode,
     generateOsPathIsfileCallCode,
     generateOsPathNormpathCallCode,
+    generateOsStatCallCode,
     generateOsUnameCallCode,
     generatePkglibGetDataCallCode,
     generatePkgResourcesDistributionValueCode,
@@ -345,7 +347,11 @@ from .SubscriptCodes import (
 from .TensorflowCodes import generateTensorflowFunctionCallCode
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
-from .TypeAliasCodes import generateTypeAliasCode
+from .TypeAliasCodes import (
+    generateTypeAliasCode,
+    generateTypeGenericCode,
+    generateTypeVarCode,
+)
 from .VariableCodes import (
     generateAssignmentVariableCode,
     generateDelVariableCode,
@@ -673,6 +679,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_IMPORT_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION_MODULE_NOT_FOUND_ERROR": generateBuiltinMakeExceptionCode,
+        "EXPRESSION_BUILTIN_MAKE_EXCEPTION_ATTRIBUTE_ERROR": generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_WITH_CONTEXT_REF": generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF": generateExceptionRefCode,
@@ -906,6 +913,8 @@ addExpressionDispatchDict(
         "EXPRESSION_SYS_EXIT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_LISTDIR_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_STAT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_LSTAT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_EXISTS_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISDIR_REF": generateImportModuleNameHardCode,
@@ -945,7 +954,11 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_NORMPATH_CALL": generateOsPathNormpathCallCode,
         "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
+        "EXPRESSION_OS_STAT_CALL": generateOsStatCallCode,
+        "EXPRESSION_OS_LSTAT_CALL": generateOsLstatCallCode,
         "EXPRESSION_TYPE_ALIAS": generateTypeAliasCode,
+        "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
+        "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
@@ -1028,7 +1041,6 @@ setStatementDispatchDict(
         "STATEMENT_LOOP_BREAK": generateLoopBreakCode,
         "STATEMENT_LOOP_CONTINUE": generateLoopContinueCode,
         "STATEMENT_RAISE_EXCEPTION": generateRaiseCode,
-        "STATEMENT_RAISE_EXCEPTION_IMPLICIT": generateRaiseCode,
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,

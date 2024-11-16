@@ -24,6 +24,12 @@ def makeNamedtupleClass(name, element_names):
         def asDict(self):
             return self._asdict()
 
+        def replace(self, **kwargs):
+            new_data = self.asDict()
+            new_data.update(**kwargs)
+
+            return self.__class__(**new_data)
+
     DynamicNamedtuple.__name__ = name
 
     return DynamicNamedtuple

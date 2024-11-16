@@ -46,6 +46,7 @@ static inline bool _INPLACE_OPERATION_SUB_INT_INT(PyObject **operand1, PyObject 
         clong_result = x;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
         PyObject *operand2_object = operand2;
@@ -64,7 +65,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -289,6 +290,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_INT(PyObject **operand1, PyObje
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -307,7 +309,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_INT(PyObject **operand1, PyObje
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -537,6 +539,7 @@ static inline bool _INPLACE_OPERATION_SUB_INT_OBJECT(PyObject **operand1, PyObje
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -555,7 +558,7 @@ static inline bool _INPLACE_OPERATION_SUB_INT_OBJECT(PyObject **operand1, PyObje
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -693,7 +696,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyLong_FromLong(clong_result);
+    *operand1 = Nuitka_PyLong_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -984,7 +987,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_LONG(PyObject **operand1, PyObj
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyLong_FromLong(clong_result);
+        *operand1 = Nuitka_PyLong_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1280,7 +1283,7 @@ static inline bool _INPLACE_OPERATION_SUB_LONG_OBJECT(PyObject **operand1, PyObj
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyLong_FromLong(clong_result);
+        *operand1 = Nuitka_PyLong_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -2241,9 +2244,10 @@ static inline bool _INPLACE_OPERATION_SUB_INT_CLONG(PyObject **operand1, long op
         clong_result = x;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = *operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_subtract(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);
@@ -2261,7 +2265,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
+    *operand1 = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -2394,7 +2398,7 @@ exit_result_ok_clong:
 
     // That's our return value then. As we use a dedicated variable, it's
     // OK that way.
-    *operand1 = PyLong_FromLong(clong_result);
+    *operand1 = Nuitka_PyLong_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -2406,6 +2410,154 @@ exit_result_exception:
 
 bool INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long operand2) {
     return _INPLACE_OPERATION_SUB_LONG_DIGIT(operand1, operand2);
+}
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "CLONG" to C platform long value. */
+static inline bool _INPLACE_OPERATION_SUB_LONG_CLONG(PyObject **operand1, long operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
+
+    bool operand2_is_negative;
+    unsigned long operand2_abs_ival;
+
+    if (operand2 < 0) {
+        operand2_abs_ival = (unsigned long)(-1 - operand2) + 1;
+        operand2_is_negative = true;
+    } else {
+        operand2_abs_ival = (unsigned long)operand2;
+        operand2_is_negative = false;
+    }
+
+    Py_ssize_t operand2_digit_count = 0;
+    digit operand2_digits[5] = {0}; // Could be more minimal and depend on sizeof(digit)
+    {
+        unsigned long t = operand2_abs_ival;
+
+        while (t != 0) {
+            operand2_digit_count += 1;
+            assert(operand2_digit_count <= (Py_ssize_t)(sizeof(operand2_digit_count) / sizeof(digit)));
+
+            operand2_digits[operand2_digit_count] = (digit)(t & PyLong_MASK);
+            t >>= PyLong_SHIFT;
+        }
+    }
+
+    NUITKA_MAY_BE_UNUSED Py_ssize_t operand2_size =
+        operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
+
+    if (Nuitka_LongGetDigitSize(operand1_long_object) <= 1 && operand2_digit_count <= 1) {
+        long r = (long)(MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2);
+
+        if (Py_REFCNT(*operand1) == 1) {
+            Nuitka_LongUpdateFromCLong(&*operand1, r);
+            goto exit_result_ok;
+        } else {
+            PyObject *obj = Nuitka_LongFromCLong(r);
+
+            obj_result = obj;
+            goto exit_result_object;
+        }
+        clong_result = r;
+        goto exit_result_ok_clong;
+    }
+
+    if (Py_REFCNT(*operand1) == 1) {
+        digit const *b_digits = operand2_digits;
+        Py_ssize_t b_digit_count = operand2_digit_count;
+
+        bool a_negative = Nuitka_LongIsNegative(operand1_long_object);
+        bool b_negative = operand2_is_negative;
+
+        if (a_negative) {
+            if (b_negative) {
+                *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
+            } else {
+                *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
+                Nuitka_LongSetSignNegative(*operand1);
+            }
+        } else {
+            if (b_negative) {
+                *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
+            } else {
+                *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, 1);
+            }
+        }
+
+        goto exit_result_ok;
+    }
+    {
+        PyLongObject *z;
+
+        digit const *a_digits = Nuitka_LongGetDigitPointer(operand1_long_object);
+        Py_ssize_t a_digit_count = Nuitka_LongGetDigitSize(operand1_long_object);
+        bool a_negative = Nuitka_LongIsNegative(operand1_long_object);
+        digit const *b_digits = operand2_digits;
+        Py_ssize_t b_digit_count = operand2_digit_count;
+        bool b_negative = operand2_is_negative;
+
+        if (a_negative) {
+            if (b_negative) {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+
+            Nuitka_LongFlipSign(z);
+        } else {
+            if (b_negative) {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+        }
+
+        obj_result = (PyObject *)z;
+        goto exit_result_object;
+    }
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = Nuitka_PyLong_FromLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_SUB_LONG_CLONG(PyObject **operand1, long operand2) {
+    return _INPLACE_OPERATION_SUB_LONG_CLONG(operand1, operand2);
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
@@ -2494,6 +2646,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
             clong_result = x;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = *operand1;
             PyObject *operand2_object = operand2;
@@ -2512,7 +2665,7 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyO
 
         // That's our return value then. As we use a dedicated variable, it's
         // OK that way.
-        *operand1 = PyInt_FromLong(clong_result);
+        *operand1 = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:

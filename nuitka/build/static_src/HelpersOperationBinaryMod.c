@@ -57,6 +57,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObje
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
@@ -69,7 +70,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_INT(PyObject *operand1, PyObje
     }
 
 exit_result_ok_clong:
-    result = PyInt_FromLong(clong_result);
+    result = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -275,6 +276,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -287,7 +289,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_INT(PyObject *operand1, PyO
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -510,6 +512,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -522,7 +525,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(PyObject *operand1, PyO
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -595,6 +598,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_INT(PyObject *operand1, PyObj
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
         PyObject *operand2_object = operand2;
@@ -822,6 +826,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_INT(PyObject *operand1, Py
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -1066,6 +1071,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(PyObject *operand1, Py
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -3707,9 +3713,10 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_CLONG(PyObject *operand1, long
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);
@@ -3721,7 +3728,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_CLONG(PyObject *operand1, long
     }
 
 exit_result_ok_clong:
-    result = PyInt_FromLong(clong_result);
+    result = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -3788,8 +3795,9 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject 
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
-        PyObject *operand1_object = PyLong_FromLong(operand1);
+        PyObject *operand1_object = Nuitka_PyLong_FromLong(operand1);
         PyObject *operand2_object = operand2;
 
         PyObject *r = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
@@ -3802,7 +3810,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_CLONG_INT(long operand1, PyObject 
     }
 
 exit_result_ok_clong:
-    result = PyInt_FromLong(clong_result);
+    result = Nuitka_PyInt_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -3868,9 +3876,10 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_CLONG(PyObject *operand1, lon
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
         PyObject *operand1_object = operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
+        PyObject *operand2_object = Nuitka_PyLong_FromLong(operand2);
 
         PyObject *r = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
         assert(r != Py_NotImplemented);
@@ -3950,8 +3959,9 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_CLONG_INT(long operand1, PyObject
         clong_result = r;
         goto exit_result_ok_clong;
     }
+
     {
-        PyObject *operand1_object = PyLong_FromLong(operand1);
+        PyObject *operand1_object = Nuitka_PyLong_FromLong(operand1);
         PyObject *operand2_object = operand2;
 
         PyObject *r = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
@@ -6099,6 +6109,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;
@@ -6111,7 +6122,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
         }
 
     exit_result_ok_clong:
-        result = PyInt_FromLong(clong_result);
+        result = Nuitka_PyInt_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -6329,6 +6340,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
             clong_result = r;
             goto exit_result_ok_clong;
         }
+
         {
             PyObject *operand1_object = operand1;
             PyObject *operand2_object = operand2;

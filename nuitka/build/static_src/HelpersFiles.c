@@ -83,10 +83,10 @@ PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyThreadState *tstate, PyObject *filen
 }
 
 PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename) {
-    PyObject *result;
+    PyObject *read_result;
 
-    if (TRACE_FILE_READ(tstate, filename, &result)) {
-        return result;
+    if (TRACE_FILE_READ(tstate, filename, &read_result)) {
+        return read_result;
     }
 
     PyObject *data_file = BUILTIN_OPEN_BINARY_READ_SIMPLE(tstate, filename);
@@ -103,9 +103,32 @@ PyObject *GET_FILE_BYTES(PyThreadState *tstate, PyObject *filename) {
         return NULL;
     }
 
-    result = CALL_FUNCTION_NO_ARGS(tstate, read_method);
+    PyObject *close_method = LOOKUP_ATTRIBUTE(tstate, data_file, const_str_plain_close);
+
+    if (unlikely(close_method == NULL)) {
+        Py_DECREF(read_method);
+        return NULL;
+    }
+
+    read_result = CALL_FUNCTION_NO_ARGS(tstate, read_method);
     Py_DECREF(read_method);
-    return result;
+
+    if (unlikely(read_result == NULL)) {
+        Py_DECREF(close_method);
+        return NULL;
+    }
+
+    PyObject *close_result = CALL_FUNCTION_NO_ARGS(tstate, close_method);
+    Py_DECREF(close_method);
+
+    if (unlikely(close_result == NULL)) {
+        Py_DECREF(read_result);
+        return NULL;
+    }
+
+    Py_DECREF(close_result);
+
+    return read_result;
 }
 
 // TODO: Don't we have this generated.
@@ -183,6 +206,57 @@ PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path) {
 
     Py_DECREF(listdir_func);
     return result;
+}
+
+extern PyObject *OS_STAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd, PyObject *follow_symlinks) {
+    assert(path != NULL);
+
+    PyObject *result;
+
+    if (TRACE_FILE_STAT(tstate, path, dir_fd, follow_symlinks, &result)) {
+        return result;
+    }
+
+    PyObject *stat_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_stat);
+
+#if PYTHON_VERSION < 0x300
+    assert(dir_fd == NULL);
+
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, stat_func, path);
+#else
+
+    PyObject *args[] = {path, dir_fd, follow_symlinks};
+
+    char const *arg_names[] = {"path", "dir_fd", "follow_symlinks"};
+    result = CALL_BUILTIN_KW_ARGS(tstate, stat_func, args, arg_names, 3, 2);
+#endif
+
+    Py_DECREF(stat_func);
+    return result;
+}
+
+extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd) {
+#if PYTHON_VERSION < 0x300
+    assert(path != NULL);
+    PyObject *result;
+
+    if (TRACE_FILE_STAT(tstate, path, dir_fd, false, &result)) {
+        return result;
+    }
+
+    assert(path != NULL);
+    assert(dir_fd == NULL);
+    PyObject *stat_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_stat);
+
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, stat_func, path);
+
+    Py_DECREF(stat_func);
+    return result;
+#else
+    PyObject *follow_symlinks = Py_False;
+
+    return OS_STAT(tstate, path, dir_fd, follow_symlinks);
+#endif
 }
 
 PyObject *OS_PATH_BASENAME(PyThreadState *tstate, PyObject *filename) {

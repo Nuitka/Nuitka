@@ -252,6 +252,16 @@ covered. With Python 2.x these are not run. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-cpython313-tests",
+        action="store_false",
+        dest="cpython313",
+        default=True,
+        help="""\
+The standard CPython3.13 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action="store_true",
         dest="cpython_no_other",
@@ -381,6 +391,15 @@ Do not use Python3.12 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.13",
+        action="store_true",
+        dest="no313",
+        default=False,
+        help="""\
+Do not use Python3.13 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -416,6 +435,17 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows. D
 Enforce the use of MinGW64 on Windows. Defaults to off.""",
     )
 
+    parser.add_option(
+        "--jobs",
+        action="store",
+        dest="jobs",
+        default=None,
+        help="""\
+The value of --jobs to use when calling Nuitka. Use negative values to
+keep cores unused. Nuitka uses available cores by default. Defaults to
+not being passed.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -446,6 +476,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.no311 = True
         if sys.version_info[0:2] != (3, 12):
             options.no312 = True
+        if sys.version_info[0:2] != (3, 13):
+            options.no313 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -472,6 +504,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.cpython311 = False
         if sys.version_info[0:2] != (3, 12):
             options.cpython312 = False
+        if sys.version_info[0:2] != (3, 13):
+            options.cpython313 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -486,6 +520,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
         options.cpython310 = False
         options.cpython311 = False
         options.cpython312 = False
+        options.cpython313 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -593,6 +628,8 @@ def main():
             return False
         if command == "python3.12" and options.no312:
             return False
+        if command == "python3.13" and options.no313:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -615,6 +652,10 @@ def main():
         if command == "python3.10" and sys.version_info[0:2] == (3, 10):
             return True
         if command == "python3.11" and sys.version_info[0:2] == (3, 11):
+            return True
+        if command == "python3.12" and sys.version_info[0:2] == (3, 12):
+            return True
+        if command == "python3.13" and sys.version_info[0:2] == (3, 13):
             return True
 
         path = os.environ["PATH"]
@@ -654,6 +695,9 @@ def main():
         if os.name == "nt" and options.mingw64:
             yield "--mingw64"
 
+        if options.jobs is not None:
+            yield "--jobs=%s" % options.jobs
+
         if where is not None:
             tmp_dir = getTempDir()
 
@@ -686,7 +730,8 @@ def main():
         my_print("Run '%s' in '%s'." % (" ".join(parts), os.getcwd()))
 
         if hide_output:
-            result = subprocess.call(parts, stdout=getNullOutput())
+            with getNullOutput() as null_output:
+                result = subprocess.call(parts, stdout=null_output)
         else:
             result = subprocess.call(parts)
 
@@ -933,6 +978,17 @@ def main():
                     else:
                         my_print("The CPython3.12 tests are not present, not run.")
 
+            # Running the Python 3.12 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if options.cpython313:
+                    if os.path.exists("./tests/CPython313/run_all.py"):
+                        with withExtendedExtraOptions(
+                            *getExtraFlags(where, "313tests", flags)
+                        ):
+                            executeSubTest("./tests/CPython313/run_all.py search")
+                    else:
+                        my_print("The CPython3.13 tests are not present, not run.")
+
     if not any(
         checkExecutableCommand("python%s" % python_version)
         for python_version in getTestExecutionPythonVersions()
@@ -951,54 +1007,64 @@ def main():
             my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python2.6"):
-        execute_tests("python2.6-nodebug", "python2.6", "")
+        execute_tests("python2.6-no-debug", "python2.6", "")
     else:
         my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
     if checkExecutableCommand("python2.7"):
-        execute_tests("python2.7-nodebug", "python2.7", "")
+        execute_tests("python2.7-no-debug", "python2.7", "")
     else:
         my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.4"):
-        execute_tests("python3.4-nodebug", "python3.4", "")
+        execute_tests("python3.4-no-debug", "python3.4", "")
     else:
         my_print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
     if checkExecutableCommand("python3.5"):
-        execute_tests("python3.5-nodebug", "python3.5", "")
+        execute_tests("python3.5-no-debug", "python3.5", "")
     else:
         my_print("Cannot execute tests with Python 3.5, disabled or not installed.")
 
     if checkExecutableCommand("python3.6"):
-        execute_tests("python3.6-nodebug", "python3.6", "")
+        execute_tests("python3.6-no-debug", "python3.6", "")
     else:
         my_print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
     if checkExecutableCommand("python3.7"):
-        execute_tests("python3.7-nodebug", "python3.7", "")
+        execute_tests("python3.7-no-debug", "python3.7", "")
     else:
         my_print("Cannot execute tests with Python 3.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.8"):
-        execute_tests("python3.8-nodebug", "python3.8", "")
+        execute_tests("python3.8-no-debug", "python3.8", "")
     else:
         my_print("Cannot execute tests with Python 3.8, disabled or not installed.")
 
     if checkExecutableCommand("python3.9"):
-        execute_tests("python3.9-nodebug", "python3.9", "")
+        execute_tests("python3.9-no-debug", "python3.9", "")
     else:
         my_print("Cannot execute tests with Python 3.9, disabled or not installed.")
 
     if checkExecutableCommand("python3.10"):
-        execute_tests("python3.10-nodebug", "python3.10", "")
+        execute_tests("python3.10-no-debug", "python3.10", "")
     else:
         my_print("Cannot execute tests with Python 3.10, disabled or not installed.")
 
     if checkExecutableCommand("python3.11"):
-        execute_tests("python3.11-nodebug", "python3.11", "")
+        execute_tests("python3.11-no-debug", "python3.11", "")
     else:
         my_print("Cannot execute tests with Python 3.11, disabled or not installed.")
+
+    if checkExecutableCommand("python3.12"):
+        execute_tests("python3.12-no-debug", "python3.12", "")
+    else:
+        my_print("Cannot execute tests with Python 3.12, disabled or not installed.")
+
+    if checkExecutableCommand("python3.13"):
+        execute_tests("python3.13-no-debug", "python3.13", "")
+    else:
+        my_print("Cannot execute tests with Python 3.13, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()

@@ -269,8 +269,10 @@ class ConstantAccessor(GlobalConstantAccessor):
 
         if constant_type is tuple and not constant:
             return "const_tuple_empty"
-
-        return GlobalConstantAccessor._getConstantCode(self, constant)
+        elif constant_type is int and constant in (-1, 0, 1):
+            return "const_" + namifyConstant(constant)
+        else:
+            return GlobalConstantAccessor._getConstantCode(self, constant)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -198,7 +198,7 @@ static void SET_CURRENT_EXCEPTION_KEY_ERROR(PyThreadState *tstate, PyObject *key
      * welcome. The check is inexact, as the unwrapping one is too.
      */
     if (PyTuple_Check(key) || key == Py_None) {
-        PyObject *tuple = PyTuple_Pack(1, key);
+        PyObject *tuple = MAKE_TUPLE1(tstate, key);
 
         SET_CURRENT_EXCEPTION_TYPE0_VALUE1(tstate, PyExc_KeyError, tuple);
     } else {
@@ -751,7 +751,8 @@ typedef struct {
 #endif
 
 // Generic helper for various dictionary iterations, to be inlined.
-static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *type, bool is_iteritems) {
+static inline PyObject *_MAKE_DICT_ITERATOR(PyThreadState *tstate, PyDictObject *dict, PyTypeObject *type,
+                                            bool is_iteritems) {
     CHECK_OBJECT((PyObject *)dict);
     assert(PyDict_CheckExact((PyObject *)dict));
 
@@ -765,7 +766,7 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
     di->len = dict->ma_used;
     if (is_iteritems) {
         // TODO: Have this as faster variants, we do these sometimes.
-        di->di_result = PyTuple_Pack(2, Py_None, Py_None);
+        di->di_result = MAKE_TUPLE2(tstate, Py_None, Py_None);
         CHECK_OBJECT(di->di_result);
     } else {
         di->di_result = NULL;
@@ -785,58 +786,54 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
 #endif
 }
 
-PyObject *DICT_ITERITEMS(PyObject *dict) {
+PyObject *DICT_ITERITEMS(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiteritems_type = NULL;
 
     if (unlikely(dictiteritems_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
         dictiteritems_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iteritems")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiteritems_type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictiteritems_type, true);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterItem_Type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterItem_Type, true);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictItems_Type, true);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictItems_Type, true);
 #endif
 }
 
-PyObject *DICT_ITERKEYS(PyObject *dict) {
+PyObject *DICT_ITERKEYS(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictiterkeys_type = NULL;
 
     if (unlikely(dictiterkeys_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
         dictiterkeys_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "iterkeys")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictiterkeys_type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictiterkeys_type, false);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterKey_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterKey_Type, false);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictKeys_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictKeys_Type, false);
 #endif
 }
 
-PyObject *DICT_ITERVALUES(PyObject *dict) {
+PyObject *DICT_ITERVALUES(PyThreadState *tstate, PyObject *dict) {
 #if PYTHON_VERSION < 0x270
     static PyTypeObject *dictitervalues_type = NULL;
 
     if (unlikely(dictitervalues_type == NULL)) {
-        PyThreadState *tstate = PyThreadState_GET();
-
         dictitervalues_type =
             Py_TYPE(CALL_FUNCTION_NO_ARGS(tstate, PyObject_GetAttrString(const_dict_empty, "itervalues")));
     }
 
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, dictitervalues_type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, dictitervalues_type, false);
 #elif PYTHON_VERSION < 0x300
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictIterValue_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictIterValue_Type, false);
 #else
-    return _MAKE_DICT_ITERATOR((PyDictObject *)dict, &PyDictValues_Type, false);
+    return _MAKE_DICT_ITERATOR(tstate, (PyDictObject *)dict, &PyDictValues_Type, false);
 #endif
 }
 
@@ -898,6 +895,111 @@ PyObject *DICT_VIEWITEMS(PyObject *dict) {
     return _MAKE_DICT_VIEW((PyDictObject *)dict, &PyDictItems_Type);
 #endif
 }
+
+#if PYTHON_VERSION >= 0x300
+static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
+    PyDictObject *result_mp;
+
+#if NUITKA_DICT_HAS_FREELIST
+    // This is the CPython name, spell-checker: ignore numfree
+
+#if PYTHON_VERSION < 0x3d0
+    PyDictObject **items = tstate->interp->dict_state.free_list;
+    int *numfree = &tstate->interp->dict_state.numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dict_freelist *state = &freelists->dicts;
+    PyDictObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        result_mp = items[*numfree];
+
+        Nuitka_Py_NewReference((PyObject *)result_mp);
+
+        assert(PyDict_CheckExact((PyObject *)result_mp));
+        assert(result_mp != NULL);
+    } else
+#endif
+    {
+        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+    }
+
+    return result_mp;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x360
+static PyDictKeysObject *_Nuitka_AllocatePyDictKeysObject(PyThreadState *tstate, Py_ssize_t keys_size) {
+    // CPython names, spell-checker: ignore numfree,dictkeys
+    PyDictKeysObject *dk;
+
+// TODO: Cannot always use cached objects. Need to also consider
+// "log2_size == PyDict_LOG_MINSIZE && unicode" as a criterion,
+// seems it can only be used for the smallest keys type.
+#if NUITKA_DICT_HAS_FREELIST && 0
+#if PYTHON_VERSION < 0x3d0
+    PyDictKeysObject **items = tstate->interp->dict_state.keys_free_list;
+    int *numfree = &tstate->interp->dict_state.keys_numfree;
+#else
+    struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
+    struct _Py_dictkeys_freelist *state = &freelists->dictkeys;
+    PyDictKeysObject **items = state->items;
+    int *numfree = &state->numfree;
+#endif
+
+    if (*numfree) {
+        (*numfree) -= 1;
+        dk = items[*numfree];
+    } else
+#endif
+    {
+#if PYTHON_VERSION < 0x3d0
+        dk = (PyDictKeysObject *)NuitkaObject_Malloc(keys_size);
+#else
+        dk = (PyDictKeysObject *)NuitkaMem_Malloc(keys_size);
+#endif
+    }
+
+    return dk;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x360 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
+
+// Usable fraction of keys.
+#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
+
+static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
+#if PYTHON_VERSION < 0x360
+    return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
+#elif PYTHON_VERSION < 0x370
+    return (sizeof(PyDictKeysObject) - Py_MEMBER_SIZE(PyDictKeysObject, dk_indices) + DK_IXSIZE(keys) * DK_SIZE(keys) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
+#elif PYTHON_VERSION < 0x3b0
+    return (sizeof(PyDictKeysObject) + DK_IXSIZE(keys) * DK_SIZE(keys) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
+#else
+    size_t entry_size = keys->dk_kind == DICT_KEYS_GENERAL ? sizeof(PyDictKeyEntry) : sizeof(PyDictUnicodeEntry);
+    return (sizeof(PyDictKeysObject) + ((size_t)1 << keys->dk_log2_index_bytes) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * entry_size);
+#endif
+}
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+typedef PyObject *PyDictValues;
+#endif
+
+#if PYTHON_VERSION < 0x360
+#define DK_ENTRIES_SIZE(keys) (keys->dk_size)
+#elif PYTHON_VERSION < 0x3b0
+#define DK_ENTRIES_SIZE(keys) DK_USABLE_FRACTION(DK_SIZE(keys))
+#else
+#define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
+#endif
 
 #include "HelpersDictionariesGenerated.c"
 
@@ -1002,9 +1104,9 @@ static Py_ssize_t Nuitka_Py_unicodekeys_lookup_generic(PyDictObject *mp, PyDictK
     NUITKA_CANNOT_GET_HERE("Nuitka_Py_unicodekeys_lookup_generic failed");
 }
 
-// TODO: Make use of this one in Nuitka_PyDictLookupStr
-static Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash) {
+Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash) {
     assert(PyUnicode_CheckExact(key));
+    assert(dk->dk_kind != DICT_KEYS_GENERAL);
 
     PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(dk);
 
@@ -1095,7 +1197,6 @@ static Py_ssize_t Nuitka_Py_dictkeys_generic_lookup(PyDictObject *mp, PyDictKeys
         perturb >>= PERTURB_SHIFT;
         i = mask & (i * 5 + perturb + 1);
     }
-    Py_UNREACHABLE();
 }
 
 Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
@@ -1146,11 +1247,25 @@ restart:
     return ix;
 }
 
-// TODO: Take advantage of string key knowledge directly.
 Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
     assert(PyUnicode_CheckExact(key));
 
-    return Nuitka_PyDictLookup(mp, key, hash, value_addr);
+    PyDictKeysObject *dk = mp->ma_keys;
+    assert(dk->dk_kind != DICT_KEYS_GENERAL);
+
+    Py_ssize_t ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+
+    if (ix >= 0) {
+        if (dk->dk_kind == DICT_KEYS_SPLIT) {
+            *value_addr = &mp->ma_values->values[ix];
+        } else {
+            *value_addr = &DK_UNICODE_ENTRIES(dk)[ix].me_value;
+        }
+    } else {
+        *value_addr = NULL;
+    }
+
+    return ix;
 }
 
 #endif
@@ -1158,8 +1273,8 @@ Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t has
 bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
-    assert(key_ptr);
-    assert(value_ptr);
+    assert(key_ptr != NULL);
+    assert(value_ptr != NULL);
 
 #if PYTHON_VERSION < 0x300
     Py_ssize_t i = *pos;
@@ -1182,6 +1297,39 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 
     return true;
 
+#elif PYTHON_VERSION < 0x360
+    PyDictObject *mp = (PyDictObject *)dict;
+    PyObject **dict_value_ptr;
+    Py_ssize_t offset;
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+
+    if (mp->ma_values) {
+        dict_value_ptr = &mp->ma_values[i];
+        offset = sizeof(PyObject *);
+    } else {
+        dict_value_ptr = &mp->ma_keys->dk_entries[i].me_value;
+        offset = sizeof(PyDictKeyEntry);
+    }
+
+    Py_ssize_t mask = DK_MASK(mp->ma_keys);
+
+    while ((i <= mask) && (*dict_value_ptr == NULL)) {
+        dict_value_ptr = (PyObject **)(((char *)dict_value_ptr) + offset);
+        i++;
+    }
+
+    if (i > mask) {
+        return false;
+    }
+
+    *key_ptr = mp->ma_keys->dk_entries[i].me_key;
+    *value_ptr = *dict_value_ptr;
+    *pos = i + 1;
+
+    return true;
+
 #elif PYTHON_VERSION < 0x3b0
     PyDictObject *mp = (PyDictObject *)dict;
     PyDictKeyEntry *entry;
@@ -1190,7 +1338,6 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
     Py_ssize_t i = *pos;
     assert(i >= 0);
 
-#ifndef PY_NOGIL
     if (mp->ma_values) {
         if (i >= mp->ma_used) {
             return false;
@@ -1200,15 +1347,9 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
         value = DK_VALUE(mp, i);
 
         assert(value != NULL);
-#else
-    if (false) {
-#endif
     } else {
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t n = mp->ma_keys->dk_size;
-#else
         Py_ssize_t n = mp->ma_keys->dk_nentries;
-#endif
+
         if (i >= n) {
             return false;
         }
@@ -1357,6 +1498,10 @@ PyObject *TO_DICT(PyThreadState *tstate, PyObject *seq_obj, PyObject *dict_obj) 
     return result;
 }
 
+#if _NUITKA_MAINTAIN_DICT_VERSION_TAG
+uint64_t nuitka_dict_version_tag_counter = ((uint64_t)1) << 32;
+#endif
+
 #if NUITKA_DICT_HAS_FREELIST
 PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
@@ -1372,6 +1517,8 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     result_mp->ma_used = 0;
 #if PYTHON_VERSION >= 0x3c0
     result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
+#elif PYTHON_VERSION >= 0x360
+    result_mp->ma_version_tag = 1;
 #endif
 
     // Key reference needs to be counted on older Python

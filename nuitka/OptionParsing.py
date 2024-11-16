@@ -70,6 +70,20 @@ Create an importable binary extension module executable instead of a program. De
 )
 
 parser.add_option(
+    "--mode",
+    action="store",
+    dest="compilation_mode",
+    metavar="COMPILATION_MODE",
+    choices=("onefile", "standalone", "accelerated", "module"),
+    default=None,
+    help="""\
+Mode in which to compile. Accelerated runs in your Python
+installation and depends on it. Standalone creates a folder
+with an executable contained to run it. Onefile creates a
+single executable to deploy. Default is 'accelerated'.""",
+)
+
+parser.add_option(
     "--standalone",
     action="store_true",
     dest="is_standalone",
@@ -176,11 +190,12 @@ parser.add_option(
     dest="github_workflow_options",
     default=False,
     github_action=False,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # For use in GitHub Action only.
 )
 
 include_group = parser.add_option_group(
-    "Control the inclusion of modules and packages in result"
+    "Control the inclusion of modules and packages in result",
+    link="include-section",
 )
 
 include_group.add_option(
@@ -441,8 +456,9 @@ data_group.add_option(
     help="""\
 Include the specified data file patterns outside of the onefile binary,
 rather than on the inside. Makes only sense in case of '--onefile'
-compilation. First files have to be specified as included somehow,
-then this refers to target paths. Default empty.""",
+compilation. First files have to be specified as included with other
+`--include-*data*` options, and then this refers to target paths
+inside the distribution. Default empty.""",
 )
 
 data_group.add_option(
@@ -806,17 +822,6 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 )
 
 debug_group.add_option(
-    "--internal-graph",
-    action="store_true",
-    dest="internal_graph",
-    default=False,
-    github_action=False,
-    help="""\
-Create graph of optimization process internals, do not use for whole programs, but only
-for small test cases. Defaults to off.""",
-)
-
-debug_group.add_option(
     "--trace-execution",
     action="store_true",
     dest="trace_execution",
@@ -824,20 +829,6 @@ debug_group.add_option(
     help="""\
 Traced execution output, output the line of code before executing it.
 Defaults to off.""",
-)
-
-debug_group.add_option(
-    "--recompile-c-only",
-    action="store_true",
-    dest="recompile_c_only",
-    default=False,
-    github_action=False,
-    help="""\
-This is not incremental compilation, but for Nuitka development only. Takes
-existing files and simply compile them as C again. Allows compiling edited
-C files for quick debugging changes to the generated source, e.g. to see if
-code is passed by, values output, etc, Defaults to off. Depends on compiling
-Python source to determine which files it should look at.""",
 )
 
 debug_group.add_option(
@@ -905,6 +896,61 @@ off. Do not think you can use this directly.""",
 
 
 del debug_group
+
+
+development_group = parser.add_option_group("Nuitka Development features")
+
+
+development_group.add_option(
+    "--devel-missing-code-helpers",
+    action="store_true",
+    dest="report_missing_code_helpers",
+    default=False,
+    help="""\
+Report warnings for code helpers for types that were attempted, but don't
+exist. This helps to identify opportunities for improving optimization of
+generated code from type knowledge not used. Default False.""",
+)
+
+development_group.add_option(
+    "--devel-missing-trust",
+    action="store_true",
+    dest="report_missing_trust",
+    default=False,
+    help="""\
+Report warnings for imports that could be trusted, but currently are not. This
+is to identify opportunities for improving handling of hard modules, where this
+sometimes could allow more static optimization. Default False.""",
+)
+
+development_group.add_option(
+    "--devel-recompile-c-only",
+    action="store_true",
+    dest="recompile_c_only",
+    default=False,
+    github_action=False,
+    help="""\
+This is not incremental compilation, but for Nuitka development only. Takes
+existing files and simply compiles them as C again after doing the Python
+steps. Allows compiling edited C files for manual debugging changes to the
+generated source. Allows us to add printing, check and print values, but it
+is now what users would want. Depends on compiling Python source to
+determine which files it should look at.""",
+)
+
+development_group.add_option(
+    "--devel-internal-graph",
+    action="store_true",
+    dest="internal_graph",
+    default=False,
+    github_action=False,
+    help="""\
+Create graph of optimization process internals, do not use for whole programs, but only
+for small test cases. Defaults to off.""",
+)
+
+
+del development_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -1058,9 +1104,7 @@ caching_group.add_option(
     action="store_true",
     dest="disable_bytecode_cache",
     default=False,
-    help="""\
-Do not reuse dependency analysis results for modules, esp. from standard library,
-that are included as bytecode. Same as --disable-cache=bytecode.""",
+    help=SUPPRESS_HELP,
 )
 
 caching_group.add_option(
@@ -1068,23 +1112,18 @@ caching_group.add_option(
     action="store_true",
     dest="disable_ccache",
     default=False,
-    help="""\
-Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).
-Same as --disable-cache=ccache.""",
+    help=SUPPRESS_HELP,
+)
+
+caching_group.add_option(
+    "--disable-dll-dependency-cache",
+    action="store_true",
+    dest="disable_dll_dependency_cache",
+    default=False,
+    help=SUPPRESS_HELP,
 )
 
 if isWin32Windows():
-    caching_group.add_option(
-        "--disable-dll-dependency-cache",
-        action="store_true",
-        dest="disable_dll_dependency_cache",
-        default=False,
-        help="""\
-Disable the dependency walker cache. Will result in much longer times to create
-the distribution folder, but might be used in case the cache is suspect to cause
-errors. Same as --disable-cache=dll-dependencies.""",
-    )
-
     caching_group.add_option(
         "--force-dll-dependency-cache-update",
         action="store_true",
@@ -1119,7 +1158,7 @@ pgo_group.add_option(
     action="store_true",
     dest="is_python_pgo",
     default=False,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
@@ -1127,7 +1166,7 @@ pgo_group.add_option(
     action="store",
     dest="python_pgo_input",
     default=None,
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
@@ -1136,7 +1175,7 @@ pgo_group.add_option(
     dest="python_pgo_policy_unused_module",
     choices=("include", "exclude", "bytecode"),
     default="include",
-    help=SUPPRESS_HELP,
+    help=SUPPRESS_HELP,  # Not yet ready
 )
 
 pgo_group.add_option(
@@ -1351,14 +1390,16 @@ windows_group.add_option(
     "--windows-console-mode",
     action="store",
     dest="console_mode",
-    choices=("force", "disable", "attach"),
+    choices=("force", "disable", "attach", "hide"),
     metavar="CONSOLE_MODE",
     default=None,
     help="""\
 Select console mode to use. Default mode is 'force' and creates a
 console window unless the program was started from one. With 'disable'
 it doesn't create or use a console at all. With 'attach' an existing
-console will be used for outputs. Default is 'force'.
+console will be used for outputs. With 'hide' a newly spawned console
+will be hidden and an already existing console will behave like
+'force'. Default is 'force'.
 """,
 )
 

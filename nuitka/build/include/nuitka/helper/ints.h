@@ -3,63 +3,112 @@
 #ifndef __NUITKA_HELPER_INTS_H__
 #define __NUITKA_HELPER_INTS_H__
 
-typedef enum {
-    NUITKA_INT_UNASSIGNED = 0,
-    NUITKA_INT_OBJECT_VALID = 1,
-    NUITKA_INT_VALUE_VALID = 2,
-    NUITKA_INT_BOTH_VALID = 3
-} nuitka_int_validity;
+// Our "PyLong_FromLong" replacement.
+extern PyObject *Nuitka_PyLong_FromLong(long ival);
 
-typedef struct {
-    nuitka_int_validity validity;
+// Our "PyInt_FromLong" replacement, not done (yet?).
+#if PYTHON_VERSION >= 0x300
+#define Nuitka_PyInt_FromLong(ival) Nuitka_PyLong_FromLong(ival)
+#else
+#define Nuitka_PyInt_FromLong(ival) PyInt_FromLong(ival)
+#endif
 
-    PyObject *int_object;
-    long int_value;
-} nuitka_int;
+// We are using this mixed type for both Python2 and Python3, since then we
+// avoid the complexity of overflowed integers for Python2 to switch over.
 
-typedef enum {
-    NUITKA_LONG_UNASSIGNED = 0,
-    NUITKA_LONG_OBJECT_VALID = 1,
-    NUITKA_LONG_VALUE_VALID = 2,
-    NUITKA_LONG_BOTH_VALID = 3 // NUITKA_LONG_VALUE_VALID | NUITKA_LONG_OBJECT_VALID
-} nuitka_long_validity;
-
-typedef struct {
-    nuitka_long_validity validity;
-
-    PyObject *long_object;
-    long long_value;
-} nuitka_long;
-
-#if PYTHON_VERSION < 0x300
 typedef enum {
     NUITKA_ILONG_UNASSIGNED = 0,
     NUITKA_ILONG_OBJECT_VALID = 1,
-    NUITKA_ILONG_VALUE_VALID = 2,
-    NUITKA_ILONG_BOTH_VALID = 3
+    NUITKA_ILONG_CLONG_VALID = 2,
+    NUITKA_ILONG_BOTH_VALID = 3,
+    NUITKA_ILONG_EXCEPTION = 4
 } nuitka_ilong_validity;
 
 typedef struct {
     nuitka_ilong_validity validity;
 
-    PyObject *ilong_object;
-    long ilong_value;
+    PyObject *python_value;
+    long c_value;
 } nuitka_ilong;
 
-NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value) {
-    assert(value->validity != NUITKA_ILONG_UNASSIGNED);
+#define IS_NILONG_OBJECT_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_OBJECT_VALID) != 0)
+#define IS_NILONG_C_VALUE_VALID(value) (((value)->validity & NUITKA_ILONG_CLONG_VALID) != 0)
 
-    if ((value->validity & NUITKA_ILONG_OBJECT_VALID) == 0) {
-        value->ilong_object = PyLong_FromLong(value->ilong_value);
+NUITKA_MAY_BE_UNUSED static void SET_NILONG_OBJECT_VALUE(nuitka_ilong *dual_value, PyObject *python_value) {
+    dual_value->validity = NUITKA_ILONG_OBJECT_VALID;
+    dual_value->python_value = python_value;
+}
 
-        value->validity = NUITKA_ILONG_BOTH_VALID;
+NUITKA_MAY_BE_UNUSED static void SET_NILONG_C_VALUE(nuitka_ilong *dual_value, long c_value) {
+    dual_value->validity = NUITKA_ILONG_CLONG_VALID;
+    dual_value->c_value = c_value;
+}
+
+NUITKA_MAY_BE_UNUSED static void SET_NILONG_OBJECT_AND_C_VALUE(nuitka_ilong *dual_value, PyObject *python_value,
+                                                               long c_value) {
+    dual_value->validity = NUITKA_ILONG_BOTH_VALID;
+    dual_value->python_value = python_value;
+    dual_value->c_value = c_value;
+}
+
+NUITKA_MAY_BE_UNUSED static void RELEASE_NILONG_VALUE(nuitka_ilong *dual_value) {
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        CHECK_OBJECT(dual_value);
+        Py_DECREF(dual_value->python_value);
+    }
+
+    dual_value->validity = NUITKA_ILONG_UNASSIGNED;
+}
+
+NUITKA_MAY_BE_UNUSED static void INCREF_NILONG_VALUE(nuitka_ilong *dual_value) {
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        CHECK_OBJECT(dual_value);
+        Py_INCREF(dual_value->python_value);
     }
 }
 
-#endif
+NUITKA_MAY_BE_UNUSED static long GET_NILONG_C_VALUE(nuitka_ilong const *dual_value) {
+    assert(IS_NILONG_C_VALUE_VALID(dual_value));
+    return dual_value->c_value;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_NILONG_OBJECT_VALUE(nuitka_ilong const *dual_value) {
+    assert(IS_NILONG_OBJECT_VALUE_VALID(dual_value));
+    return dual_value->python_value;
+}
+
+NUITKA_MAY_BE_UNUSED static void ENFORCE_NILONG_OBJECT_VALUE(nuitka_ilong *dual_value) {
+    assert(dual_value->validity != NUITKA_ILONG_UNASSIGNED);
+
+    if (!IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        dual_value->python_value = Nuitka_PyLong_FromLong(dual_value->c_value);
+
+        dual_value->validity = NUITKA_ILONG_BOTH_VALID;
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static void CHECK_NILONG_OBJECT(nuitka_ilong const *dual_value) {
+    assert(dual_value->validity != NUITKA_ILONG_UNASSIGNED);
+
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        CHECK_OBJECT(dual_value);
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static void PRINT_NILONG(nuitka_ilong const *dual_value) {
+    PRINT_FORMAT("NILONG: %d", dual_value->validity);
+    if (IS_NILONG_C_VALUE_VALID(dual_value)) {
+        PRINT_FORMAT("C=%d", dual_value->c_value);
+    }
+    if (IS_NILONG_OBJECT_VALUE_VALID(dual_value)) {
+        PRINT_STRING("Python=");
+        PRINT_ITEM(dual_value->python_value);
+    }
+}
 
 #if PYTHON_VERSION < 0x3c0
-// Convert single digit to sdigit (int32_t)
+// Convert single digit to sdigit (int32_t),
+// spell-checker: ignore sdigit,stwodigits
 typedef long medium_result_value_t;
 #define MEDIUM_VALUE(x)                                                                                                \
     (Py_SIZE(x) < 0 ? -(sdigit)((PyLongObject *)(x))->ob_digit[0]                                                      \

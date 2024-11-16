@@ -195,6 +195,12 @@ else:
     module_sys_trust["exc_value"] = trust_not_exist
     module_sys_trust["exc_traceback"] = trust_not_exist
 
+
+# If we are not a module, we are not in REPL mode.
+if not Options.shallMakeModule():
+    module_sys_trust["ps1"] = trust_not_exist
+    module_sys_trust["ps2"] = trust_not_exist
+
 module_typing_trust = {
     "TYPE_CHECKING": trust_constant,
 }
@@ -223,6 +229,8 @@ def makeTypingModuleTrust():
 module_os_trust = {
     "name": trust_constant,
     "listdir": trust_node,
+    "stat": trust_node,
+    "lstat": trust_node,
     "curdir": trust_constant,
     "pardir": trust_constant,
     "sep": trust_constant,

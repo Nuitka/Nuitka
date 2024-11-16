@@ -185,6 +185,19 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
+    def getContainingLoopNode(self):
+        """Return the parent that is module."""
+        parent = self.parent
+
+        while parent is not None and not parent.isExpressionFunctionBodyBase():
+
+            if parent.isStatementLoop():
+                return parent
+
+            parent = parent.getParent()
+
+        return parent
+
     def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
         return isinstance(self, ClosureGiverNodeMixin)
@@ -315,6 +328,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isStatementsSequenceButNotFrame():
+        return False
+
+    @staticmethod
     def isCompiledPythonModule():
         # For overload by module nodes
         return False
@@ -404,6 +421,11 @@ class NodeBase(NodeMetaClassBase):
     @staticmethod
     def getVisitableNodes():
         return ()
+
+    def checkChildren(self):
+        for c in self.getVisitableNodes():
+            assert c.parent is self, (c, "parent", self, "!=", c.parent)
+            c.checkChildren()
 
     @staticmethod
     def getVisitableNodesNamed():
@@ -707,6 +729,11 @@ class StatementBase(NodeBase):
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseAnyException():
+                # They probably have changed.
+                expressions = self.getVisitableNodes()
+
+                child_name = expression.getChildNameNice()
+
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
                     expressions[: count + 1]
                 )
@@ -717,7 +744,7 @@ class StatementBase(NodeBase):
                     wrapped_expression,
                     "new_raise",
                     lambda: "For %s the child expression '%s' will raise."
-                    % (self.getStatementNiceName(), expression.getChildNameNice()),
+                    % (self.getStatementNiceName(), child_name),
                 )
 
         return self, None, None
