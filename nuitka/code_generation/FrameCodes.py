@@ -421,22 +421,23 @@ def getFrameGuardGeneratorCode(
 
     if frame_exception_exit is not None:
         emit(
-            template_frame_guard_generator_exception_handler
-            % {
-                "context_identifier": context_identifier,
-                "frame_identifier": frame_identifier,
-                "frame_cache_identifier": frame_cache_identifier,
-                "exception_state_name": exception_state_name,
-                "exception_lineno": exception_lineno,
-                "tb_making": getTracebackMakingIdentifier(
+            renderTemplateFromString(
+                template_frame_guard_generator_exception_handler,
+                context_identifier=context_identifier,
+                frame_identifier=frame_identifier,
+                frame_cache_identifier=frame_cache_identifier,
+                exception_state_name=exception_state_name,
+                exception_lineno=exception_lineno,
+                tb_making=getTracebackMakingIdentifier(
                     context=context, lineno_name=exception_lineno
                 ),
-                "attach_locals": indented(
+                attach_locals=indented(
                     getFrameAttachLocalsCode(context, frame_identifier)
                 ),
-                "frame_exception_exit": frame_exception_exit,
-                "parent_exception_exit": parent_exception_exit,
-            }
+                frame_exception_exit=frame_exception_exit,
+                parent_exception_exit=parent_exception_exit,
+                is_python3=python_version >= 0x300,
+            )
         )
 
     getLabelCode(no_exception_exit, emit)

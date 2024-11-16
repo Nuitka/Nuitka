@@ -5,7 +5,7 @@
 
 """
 
-# This uses STORE_ASYNCGEN_EXCEPTION
+# This uses STORE_GENERATOR_EXCEPTION,STORE_COROUTINE_EXCEPTION,STORE_ASYNCGEN_EXCEPTION
 
 template_frame_guard_normal_main_block = """\
 {% if frame_cache_identifier %}
@@ -176,47 +176,43 @@ goto %(return_exit)s;
 
 
 template_frame_guard_generator_exception_handler = """\
-%(frame_exception_exit)s:;
+{{frame_exception_exit}}:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &%(exception_state_name)s)) {
-    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s);
+if (!EXCEPTION_STATE_MATCH_GENERATOR(tstate, &{{exception_state_name}})) {
+    PyTracebackObject *exception_tb = GET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}});
     if (exception_tb == NULL) {
-        exception_tb = %(tb_making)s;
-        SET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s, exception_tb);
-    } else if ((%(exception_lineno)s != 0) && (exception_tb->tb_frame != &%(frame_identifier)s->m_frame)) {
-        exception_tb = ADD_TRACEBACK(exception_tb, %(frame_identifier)s, %(exception_lineno)s);
-        SET_EXCEPTION_STATE_TRACEBACK(&%(exception_state_name)s, exception_tb);
+        exception_tb = {{tb_making}};
+        SET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}}, exception_tb);
+    } else if (({{exception_lineno}} != 0) && (exception_tb->tb_frame != &{{frame_identifier}}->m_frame)) {
+        exception_tb = ADD_TRACEBACK(exception_tb, {{frame_identifier}}, {{exception_lineno}});
+        SET_EXCEPTION_STATE_TRACEBACK(&{{exception_state_name}}, exception_tb);
     }
 
-%(attach_locals)s
+{{attach_locals}}
 
     // Release cached frame if used for exception.
-    if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+    if ({{frame_identifier}} == {{frame_cache_identifier}}) {
 #if _DEBUG_REFCOUNTS
         count_active_frame_cache_instances -= 1;
         count_released_frame_cache_instances += 1;
 #endif
 
-        Py_DECREF(%(frame_cache_identifier)s);
-        %(frame_cache_identifier)s = NULL;
+        Py_DECREF({{frame_cache_identifier}});
+        {{frame_cache_identifier}} = NULL;
     }
 
-    assertFrameObject(%(frame_identifier)s);
+    assertFrameObject({{frame_identifier}});
 }
 
-#if PYTHON_VERSION >= 0x300
-#if PYTHON_VERSION < 0x3b0
-Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
-#endif
-Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
-#if PYTHON_VERSION < 0x3b0
-Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
-#endif
-#endif
+{% if is_python3 %}
+// Release exception attached to the frame
+DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
+
+{% endif %}
 
 // Return the error.
-goto %(parent_exception_exit)s;
+goto {{parent_exception_exit}};
 """
 
 from . import TemplateDebugWrapper  # isort:skip
