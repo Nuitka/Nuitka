@@ -1195,6 +1195,30 @@ def async_iterate(g):
     return res
 
 
+def sync_iterate(g):
+    """Execute sync generator until it's done."""
+    res = []
+
+    while True:
+        try:
+            if str is bytes:
+                res.append(next(g))
+            else:
+                res.append(g.__next__())
+        except StopIteration as ex:
+            if ex.args:
+                res.append("StopIteration arg %s" % ex.args[0])
+            else:
+                res.append("EMPTY StopIteration")
+
+            break
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+
+            res.append(str(type(ex)))
+
+    return res
+
+
 def getTestingCacheDir():
     cache_dir = getCacheDir("tests_state")
     makePath(cache_dir)
