@@ -1007,54 +1007,64 @@ def main():
             my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python2.6"):
-        execute_tests("python2.6-nodebug", "python2.6", "")
+        execute_tests("python2.6-no-debug", "python2.6", "")
     else:
         my_print("Cannot execute tests with Python 2.6, disabled or not installed.")
 
     if checkExecutableCommand("python2.7"):
-        execute_tests("python2.7-nodebug", "python2.7", "")
+        execute_tests("python2.7-no-debug", "python2.7", "")
     else:
         my_print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.4"):
-        execute_tests("python3.4-nodebug", "python3.4", "")
+        execute_tests("python3.4-no-debug", "python3.4", "")
     else:
         my_print("Cannot execute tests with Python 3.4, disabled or not installed.")
 
     if checkExecutableCommand("python3.5"):
-        execute_tests("python3.5-nodebug", "python3.5", "")
+        execute_tests("python3.5-no-debug", "python3.5", "")
     else:
         my_print("Cannot execute tests with Python 3.5, disabled or not installed.")
 
     if checkExecutableCommand("python3.6"):
-        execute_tests("python3.6-nodebug", "python3.6", "")
+        execute_tests("python3.6-no-debug", "python3.6", "")
     else:
         my_print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
     if checkExecutableCommand("python3.7"):
-        execute_tests("python3.7-nodebug", "python3.7", "")
+        execute_tests("python3.7-no-debug", "python3.7", "")
     else:
         my_print("Cannot execute tests with Python 3.7, disabled or not installed.")
 
     if checkExecutableCommand("python3.8"):
-        execute_tests("python3.8-nodebug", "python3.8", "")
+        execute_tests("python3.8-no-debug", "python3.8", "")
     else:
         my_print("Cannot execute tests with Python 3.8, disabled or not installed.")
 
     if checkExecutableCommand("python3.9"):
-        execute_tests("python3.9-nodebug", "python3.9", "")
+        execute_tests("python3.9-no-debug", "python3.9", "")
     else:
         my_print("Cannot execute tests with Python 3.9, disabled or not installed.")
 
     if checkExecutableCommand("python3.10"):
-        execute_tests("python3.10-nodebug", "python3.10", "")
+        execute_tests("python3.10-no-debug", "python3.10", "")
     else:
         my_print("Cannot execute tests with Python 3.10, disabled or not installed.")
 
     if checkExecutableCommand("python3.11"):
-        execute_tests("python3.11-nodebug", "python3.11", "")
+        execute_tests("python3.11-no-debug", "python3.11", "")
     else:
         my_print("Cannot execute tests with Python 3.11, disabled or not installed.")
+
+    if checkExecutableCommand("python3.12"):
+        execute_tests("python3.12-no-debug", "python3.12", "")
+    else:
+        my_print("Cannot execute tests with Python 3.12, disabled or not installed.")
+
+    if checkExecutableCommand("python3.13"):
+        execute_tests("python3.13-no-debug", "python3.13", "")
+    else:
+        my_print("Cannot execute tests with Python 3.13, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()
