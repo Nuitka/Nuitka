@@ -1344,6 +1344,11 @@ def shallCreatePyiFile():
     return options.pyi_file
 
 
+def shallCreatePyiFileContainStubs():
+    """*bool* = **not** ``--no-pyi-stubs``"""
+    return options.pyi_stubs
+
+
 def isAllowedToReexecute():
     """*bool* = **not** ``--must-not-re-execute``"""
     return options.allow_reexecute
