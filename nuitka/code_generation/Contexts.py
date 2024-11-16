@@ -49,7 +49,7 @@ class TempMixin(object):
         self.false_target = None
 
         self.keeper_variable_count = 0
-        self.exception_keepers = (None, None, None, None)
+        self.exception_keepers = (None, None)
 
         self.preserver_variable_declaration = {}
 
@@ -64,6 +64,9 @@ class TempMixin(object):
     def allocateTempName(self, base_name, type_name="PyObject *", unique=False):
         # We might be hard coding too many details for special temps
         # here, pylint: disable=too-many-branches
+
+        # TODO: This should be achieved.
+        # assert not base_name.startswith("tmp_"), base_name
 
         if unique:
             number = None
@@ -169,24 +172,14 @@ class TempMixin(object):
         debug = Options.is_debug and python_version >= 0x300
 
         if debug:
-            keeper_obj_init = "NULL"
+            keeper_obj_init = "Empty_Nuitka_ExceptionPreservationItem"
         else:
             keeper_obj_init = None
 
         return (
             self.variable_storage.addVariableDeclarationTop(
-                "PyObject *",
-                "exception_keeper_type_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-            ),
-            self.variable_storage.addVariableDeclarationTop(
-                "PyObject *",
-                "exception_keeper_value_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-            ),
-            self.variable_storage.addVariableDeclarationTop(
-                "PyTracebackObject *",
-                "exception_keeper_tb_%d" % self.keeper_variable_count,
+                "struct Nuitka_ExceptionPreservationItem",
+                "exception_keeper_name_%d" % self.keeper_variable_count,
                 keeper_obj_init,
             ),
             self.variable_storage.addVariableDeclarationTop(
@@ -202,6 +195,7 @@ class TempMixin(object):
     def setExceptionKeeperVariables(self, keeper_vars):
         result = self.exception_keepers
         self.exception_keepers = tuple(keeper_vars)
+        assert len(self.exception_keepers) == 2
         return result
 
     def addExceptionPreserverVariables(self, preserver_id):
@@ -321,7 +315,7 @@ class CodeObjectsMixin(object):
         )
 
         if key not in self.code_objects:
-            self.code_objects[key] = "codeobj_%s" % self._calcHash(key)
+            self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
 
         return self.code_objects[key]
 
@@ -570,6 +564,9 @@ class PythonChildContextBase(PythonContextBase):
     def addFunctionCreationInfo(self, creation_info):
         return self.parent.addFunctionCreationInfo(creation_info)
 
+    def setModuleVariableAccessorCaching(self, variable_name, caching):
+        self.parent.setModuleVariableAccessorCaching(variable_name, caching)
+
 
 class FrameDeclarationsMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
@@ -606,7 +603,7 @@ class FrameDeclarationsMixin(object):
             )
 
         else:
-            frame_handle = code_identifier.replace("codeobj_", "frame_")
+            frame_handle = code_identifier.replace("code_objects_", "frame_")
 
             if self.frames_used > 1:
                 frame_handle += "_%d" % self.frames_used
@@ -772,6 +769,7 @@ class PythonModuleContext(
         "function_table_entries",
         "constant_accessor",
         "module_init_codes",
+        "module_variable_caching",
         # FrameDeclarationsMixin
         "frame_variables_stack",
         "frame_type_descriptions",
@@ -830,6 +828,8 @@ class PythonModuleContext(
 
         self.module_init_codes = []
 
+        self.module_variable_caching = {}
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.name
 
@@ -838,6 +838,18 @@ class PythonModuleContext(
 
     def getEntryPoint(self):
         return self.module
+
+    def setModuleVariableAccessorCaching(self, variable_name, caching):
+        if caching:
+            self.module_variable_caching[variable_name] = True
+        elif variable_name not in self.module_variable_caching:
+            self.module_variable_caching[variable_name] = False
+
+    def isModuleVariableAccessorCaching(self, variable_name):
+        return self.module_variable_caching.get(variable_name, False)
+
+    def getModuleVariableAccessors(self):
+        return self.module_variable_caching
 
     def isCompiledPythonModule(self):
         return True

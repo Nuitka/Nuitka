@@ -166,7 +166,7 @@ static PyObject *ERROR_GET_STOP_ITERATION_VALUE(PyThreadState *tstate) {
 
     PyObject *value = NULL;
 
-    if (exception_value) {
+    if (exception_value != NULL) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, exception_value, PyExc_StopIteration)) {
             value = ((PyStopIterationObject *)exception_value)->value;
             Py_XINCREF(value);
@@ -281,7 +281,7 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
 
     PyObject *throw_method = PyObject_GetAttr(value, const_str_plain_throw);
 
-    if (throw_method) {
+    if (throw_method != NULL) {
         PyObject *result = Nuitka_CallGeneratorThrowMethod(throw_method, exception_state);
         Py_DECREF(throw_method);
 
@@ -289,16 +289,16 @@ static PyObject *_Nuitka_YieldFromPassExceptionTo(PyThreadState *tstate, PyObjec
         RELEASE_ERROR_OCCURRED_STATE(exception_state);
 
         return result;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-        // Restoring the exception we own, to be released when handling it.
-        RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
-
-        return NULL;
     } else {
         assert(HAS_ERROR_OCCURRED(tstate));
 
-        // Releasing exception we own.
-        RELEASE_ERROR_OCCURRED_STATE(exception_state);
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+            // Restoring the exception we own, to be released when handling it.
+            RESTORE_ERROR_OCCURRED_STATE(tstate, exception_state);
+        } else {
+            // Releasing exception we own.
+            RELEASE_ERROR_OCCURRED_STATE(exception_state);
+        }
 
         return NULL;
     }
@@ -471,23 +471,20 @@ static void RAISE_RUNTIME_ERROR_RAISED_STOP_ITERATION(PyThreadState *tstate, cha
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
 #if PYTHON_VERSION < 0x3c0
-    NORMALIZE_EXCEPTION(tstate, &saved_exception_state.exception_type, &saved_exception_state.exception_value,
-                        &saved_exception_state.exception_tb);
+    NORMALIZE_EXCEPTION_STATE(tstate, &saved_exception_state);
 #endif
 
     struct Nuitka_ExceptionPreservationItem new_exception_state;
     SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_STR(tstate, &new_exception_state, PyExc_RuntimeError, message);
 
 #if PYTHON_VERSION < 0x3c0
-    NORMALIZE_EXCEPTION(tstate, &new_exception_state.exception_type, &new_exception_state.exception_value,
-                        &new_exception_state.exception_tb);
+    NORMALIZE_EXCEPTION_STATE(tstate, &new_exception_state);
 #endif
 
     Py_INCREF(saved_exception_state.exception_value);
-    RAISE_EXCEPTION_WITH_CAUSE_STATE(tstate, &new_exception_state, saved_exception_state.exception_value);
+    RAISE_EXCEPTION_WITH_CAUSE(tstate, &new_exception_state, saved_exception_state.exception_value);
 
-    Py_INCREF(saved_exception_state.exception_value);
-    PyException_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
+    Nuitka_Exception_SetContext(new_exception_state.exception_value, saved_exception_state.exception_value);
 
     RELEASE_ERROR_OCCURRED_STATE_X(&saved_exception_state);
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
@@ -500,7 +497,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
     assert(Nuitka_Generator_Check((PyObject *)generator));
     CHECK_EXCEPTION_STATE_X(exception_state);
     CHECK_OBJECT_X(value);
-    assert(PyThreadState_GET() == tstate);
 
 #if _DEBUG_GENERATOR
     PRINT_GENERATOR_STATUS("Enter", generator);
@@ -581,7 +577,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 #else
         yielded = ((generator_code)generator->m_code)(tstate, generator, value);
 #endif
-        assert(PyThreadState_GET() == tstate);
 
 #if PYTHON_VERSION >= 0x300
         // If the generator returns with m_yield_from set, it wants us to yield
@@ -590,8 +585,6 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             yielded = Nuitka_YieldFromGeneratorNext(tstate, generator);
         }
 #endif
-        assert(PyThreadState_GET() == tstate);
-
         Nuitka_MarkGeneratorAsNotRunning(generator);
 
         // Remove the generator from the frame stack.
@@ -679,7 +672,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             PyObject *old_value = tstate->exc_value;
             PyTracebackObject *old_tb = (PyTracebackObject *)tstate->exc_traceback;
 
-            // Set sys attributes in the fastest possible way.
+            // Set sys attributes in the fastest possible way, spell-checker: ignore sysdict
             PyObject *sys_dict = tstate->interp->sysdict;
             CHECK_OBJECT(sys_dict);
 
@@ -761,7 +754,7 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 
@@ -849,7 +842,7 @@ static bool _Nuitka_Generator_close(PyThreadState *tstate, struct Nuitka_Generat
     return true;
 }
 
-static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_close(struct Nuitka_GeneratorObject *generator, PyObject *unused) {
     PyThreadState *tstate = PyThreadState_GET();
 
     bool r = _Nuitka_Generator_close(tstate, generator);
@@ -954,8 +947,7 @@ static bool _Nuitka_Generator_check_throw(PyThreadState *tstate,
 
     if (PyExceptionClass_Check(exception_state->exception_type)) {
         // TODO: Must not / need not normalize here?
-        NORMALIZE_EXCEPTION(tstate, &exception_state->exception_type, &exception_state->exception_value,
-                            &exception_state->exception_tb);
+        NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
     } else if (PyExceptionInstance_Check(exception_state->exception_type)) {
         if (exception_state->exception_value != NULL && exception_state->exception_value != Py_None) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError,
@@ -1222,7 +1214,7 @@ static PyObject *_Nuitka_Generator_throw2(PyThreadState *tstate, struct Nuitka_G
             }
 
             PyObject *val;
-            if (_PyGen_FetchStopIterationValue(&val) == 0) {
+            if (Nuitka_PyGen_FetchStopIterationValue(tstate, &val)) {
                 CHECK_OBJECT(val);
 
 #if _DEBUG_GENERATOR
@@ -1281,8 +1273,8 @@ throw_here:
         PyObject *result = _Nuitka_Generator_send(tstate, generator, NULL, exception_state);
 
         if (result == NULL) {
-            if (GET_ERROR_OCCURRED(tstate) == NULL) {
-                SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            if (HAS_ERROR_OCCURRED(tstate) == false) {
+                SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
             }
         }
 
@@ -1338,7 +1330,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 
     if (result == NULL) {
         if (HAS_ERROR_OCCURRED(tstate) == false) {
-            SET_CURRENT_EXCEPTION_TYPE0(tstate, PyExc_StopIteration);
+            SET_CURRENT_EXCEPTION_STOP_ITERATION_EMPTY(tstate);
         }
     }
 
@@ -1441,14 +1433,15 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
 static long Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
 
-static PyObject *Nuitka_Generator_get_name(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_name(PyObject *self, void *data) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     PyObject *result = generator->m_name;
     Py_INCREF(result);
     return result;
 }
 
 #if PYTHON_VERSION >= 0x350
-static int Nuitka_Generator_set_name(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static int Nuitka_Generator_set_name(PyObject *self, PyObject *value, void *data) {
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -1457,6 +1450,7 @@ static int Nuitka_Generator_set_name(struct Nuitka_GeneratorObject *generator, P
         return -1;
     }
 
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     PyObject *tmp = generator->m_name;
     Py_INCREF(value);
     generator->m_name = value;
@@ -1465,13 +1459,14 @@ static int Nuitka_Generator_set_name(struct Nuitka_GeneratorObject *generator, P
     return 0;
 }
 
-static PyObject *Nuitka_Generator_get_qualname(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_qualname(PyObject *self, void *data) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     PyObject *result = generator->m_qualname;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Generator_set_qualname(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static int Nuitka_Generator_set_qualname(PyObject *self, PyObject *value, void *data) {
     // Cannot be deleted, not be non-unicode value.
     if (unlikely((value == NULL) || !PyUnicode_Check(value))) {
         PyThreadState *tstate = PyThreadState_GET();
@@ -1480,6 +1475,7 @@ static int Nuitka_Generator_set_qualname(struct Nuitka_GeneratorObject *generato
         return -1;
     }
 
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     PyObject *tmp = generator->m_qualname;
     Py_INCREF(value);
     generator->m_qualname = value;
@@ -1488,7 +1484,8 @@ static int Nuitka_Generator_set_qualname(struct Nuitka_GeneratorObject *generato
     return 0;
 }
 
-static PyObject *Nuitka_Generator_get_yieldfrom(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_yield_from(PyObject *self, void *data) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     if (generator->m_yield_from) {
         Py_INCREF(generator->m_yield_from);
         return generator->m_yield_from;
@@ -1500,22 +1497,24 @@ static PyObject *Nuitka_Generator_get_yieldfrom(struct Nuitka_GeneratorObject *g
 
 #endif
 
-static PyObject *Nuitka_Generator_get_code(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_code(PyObject *self, void *data) {
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     PyObject *result = (PyObject *)generator->m_code_object;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Generator_set_code(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static int Nuitka_Generator_set_code(PyObject *self, PyObject *value, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "gi_code is not writable in Nuitka");
     return -1;
 }
 
-static PyObject *Nuitka_Generator_get_frame(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_frame(PyObject *self, void *data) {
     PyObject *result;
 
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
     if (generator->m_frame) {
         result = (PyObject *)generator->m_frame;
     } else {
@@ -1526,19 +1525,20 @@ static PyObject *Nuitka_Generator_get_frame(struct Nuitka_GeneratorObject *gener
     return result;
 }
 
-static int Nuitka_Generator_set_frame(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static int Nuitka_Generator_set_frame(PyObject *self, PyObject *value, void *data) {
     PyThreadState *tstate = PyThreadState_GET();
 
     SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "gi_frame is not writable in Nuitka");
     return -1;
 }
 
-static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *generator) {
+static PyObject *Nuitka_Generator_get_running(PyObject *self, void *data) {
     PyObject *result;
 
+    struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)self;
 /* The type of "gi_running" changed in Python3. */
 #if PYTHON_VERSION < 0x300
-    result = PyInt_FromLong(generator->m_running);
+    result = Nuitka_PyInt_FromLong(generator->m_running);
 #else
     result = BOOL_FROM(generator->m_running != 0);
     Py_INCREF_IMMORTAL(result);
@@ -1546,7 +1546,7 @@ static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *gen
     return result;
 }
 
-static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+static int Nuitka_Generator_set_running(PyObject *self, PyObject *value, void *data) {
 #if PYTHON_VERSION < 0x300
     PyObject *exception_type = PyExc_TypeError;
 #else
@@ -1564,17 +1564,19 @@ static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator
     return -1;
 }
 
+// spell-checker: ignore gi_yieldfrom
+
 static PyGetSetDef Nuitka_Generator_tp_getset[] = {
 #if PYTHON_VERSION < 0x350
-    {(char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL},
+    {(char *)"__name__", Nuitka_Generator_get_name, NULL, NULL},
 #else
-    {(char *)"__name__", (getter)Nuitka_Generator_get_name, (setter)Nuitka_Generator_set_name, NULL},
-    {(char *)"__qualname__", (getter)Nuitka_Generator_get_qualname, (setter)Nuitka_Generator_set_qualname, NULL},
-    {(char *)"gi_yieldfrom", (getter)Nuitka_Generator_get_yieldfrom, NULL, NULL},
+    {(char *)"__name__", Nuitka_Generator_get_name, Nuitka_Generator_set_name, NULL},
+    {(char *)"__qualname__", Nuitka_Generator_get_qualname, Nuitka_Generator_set_qualname, NULL},
+    {(char *)"gi_yieldfrom", Nuitka_Generator_get_yield_from, NULL, NULL},
 #endif
-    {(char *)"gi_code", (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL},
-    {(char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL},
-    {(char *)"gi_running", (getter)Nuitka_Generator_get_running, (setter)Nuitka_Generator_set_running, NULL},
+    {(char *)"gi_code", Nuitka_Generator_get_code, Nuitka_Generator_set_code, NULL},
+    {(char *)"gi_frame", Nuitka_Generator_get_frame, Nuitka_Generator_set_frame, NULL},
+    {(char *)"gi_running", Nuitka_Generator_get_running, Nuitka_Generator_set_running, NULL},
 
     {NULL}};
 
@@ -1617,7 +1619,7 @@ PyTypeObject Nuitka_Generator_Type = {
     0,                                  // tp_getattro (PyObject_GenericGetAttr)
     0,                                  // tp_setattro
     0,                                  // tp_as_buffer
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 #else
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,

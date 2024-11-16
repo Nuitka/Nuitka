@@ -3,14 +3,38 @@
 
 from __future__ import print_function
 
+import pprint
+
 print("Importing child.")
+
+
+def displayDict(d):
+    d = dict(d)
+
+    if "__loader__" in d:
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d["__file__"] = "<__file__ removed>"
+
+    if "__firstlineno__" in d:
+        del d["__firstlineno__"]
+
+    if "__static_attributes__" in d:
+        del d["__static_attributes__"]
+
+    # Avoid recursion that we don't offer for classes.
+    if "__locals__" in d:
+        del d["__locals__"]
+
+    return pprint.pformat(d)
 
 
 class A:
     pass
 
 
-print("Class defined here, has these vars", vars(A))
+print("Class defined here, has these vars", displayDict(vars(A)))
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

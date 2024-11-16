@@ -31,7 +31,7 @@ PyObject *IMPORT_MODULE_KW(PyThreadState *tstate, PyObject *module_name, PyObjec
 
     NUITKA_ASSIGN_BUILTIN(__import__);
 
-    PyObject *import_result = CALL_FUNCTION_WITH_KEYARGS(tstate, NUITKA_ACCESS_BUILTIN(__import__), kw_args);
+    PyObject *import_result = CALL_FUNCTION_WITH_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(__import__), kw_args);
 
     Py_DECREF(kw_args);
 
@@ -143,19 +143,23 @@ bool IMPORT_MODULE_STAR(PyThreadState *tstate, PyObject *target, bool is_module,
         }
 
         all_case = true;
-    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-        CLEAR_ERROR_OCCURRED(tstate);
-
-        iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
-        CHECK_OBJECT(iter);
-
-        all_case = false;
     } else {
-        return false;
+        assert(HAS_ERROR_OCCURRED(tstate));
+
+        if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+            CLEAR_ERROR_OCCURRED(tstate);
+
+            iter = MAKE_ITERATOR(tstate, PyModule_GetDict(module));
+            CHECK_OBJECT(iter);
+
+            all_case = false;
+        } else {
+            return false;
+        }
     }
 
     for (;;) {
-        PyObject *item = ITERATOR_NEXT(iter);
+        PyObject *item = ITERATOR_NEXT_ITERATOR(iter);
         if (item == NULL) {
             break;
         }

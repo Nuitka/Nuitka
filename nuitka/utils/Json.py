@@ -19,9 +19,9 @@ def loadJsonFromFilename(filename):
         return None
 
 
-def writeJsonToFilename(filename, contents):
+def writeJsonToFilename(filename, contents, indent=2):
     with openTextFile(filename, "w") as output:
-        json.dump(contents, output)
+        json.dump(contents, output, indent=indent)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

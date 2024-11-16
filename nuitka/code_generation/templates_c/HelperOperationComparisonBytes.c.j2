@@ -9,7 +9,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
 
     // Same object has fast path for all operations.
     if (operand1 == operand2) {
-{% if operand in ("==", ">=", "<=") %}
+{% if operator in ("==", ">=", "<=") %}
         bool r = true;
 {% else %}
         bool r = false;
@@ -24,10 +24,10 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
     Py_ssize_t len_a = Py_SIZE(operand1);
     Py_ssize_t len_b = Py_SIZE(operand2);
 
-{% if operand in ("==", "!=") %}
+{% if operator in ("==", "!=") %}
     if (len_a != len_b) {
         {# Shortcut for equality/inequality, driven by length divergence. #}
-{% if operand == "==" %}
+{% if operator == "==" %}
         bool r = false;
 {% else %}
         bool r = true;
@@ -39,7 +39,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         return result;
     } else {
         if ((a->ob_sval[0] == b->ob_sval[0]) && (memcmp(a->ob_sval, b->ob_sval, len_a) == 0)) {
-{% if operand == "==" %}
+{% if operator == "==" %}
             bool r = true;
 {% else %}
             bool r = false;
@@ -50,7 +50,7 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
             {{ target.getTakeReferenceStatement("result", immortal=True) }}
             return result;
         } else {
-{% if operand == "==" %}
+{% if operator == "==" %}
             bool r = false;
 {% else %}
             bool r = true;
@@ -81,13 +81,13 @@ static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName
         c = (len_a < len_b) ? -1 : (len_a > len_b) ? 1 : 0;
     }
 
-{% if operand == "<" %}
+{% if operator == "<" %}
     c = c < 0;
-{% elif operand == "<=" %}
+{% elif operator == "<=" %}
     c = c <= 0;
-{% elif operand == ">" %}
+{% elif operator == ">" %}
     c = c > 0;
-{% elif operand == ">=" %}
+{% elif operator == ">=" %}
     c = c >= 0;
 {% endif %}
 

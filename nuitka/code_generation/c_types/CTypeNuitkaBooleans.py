@@ -33,9 +33,8 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
                 to_name=value_name, condition=test_code, emit=emit
             )
 
-            # TODO: Refcount and context needs release are redundant.
-            if ref_count:
-                getReleaseCode(tmp_name, emit, context)
+        if ref_count:
+            getReleaseCode(tmp_name, emit, context)
 
     @classmethod
     def emitAssignmentCodeToNuitkaIntOrLong(
@@ -94,7 +93,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
         return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod

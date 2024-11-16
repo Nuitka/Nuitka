@@ -148,8 +148,8 @@ static PyObject *callPythonFunctionNoArgs(PyObject *func) {
 
 #endif
 
-PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
-                                   PyObject *positional_args) {
+PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
+                                    PyObject *positional_args) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(positional_args);
@@ -170,7 +170,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyOb
         // Note: The "called_object" was found without taking a reference,
         // so we need not release it in this branch.
         if (called_object != NULL) {
-            return CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
+            return CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
         }
         // Then check the class dictionaries.
         called_object = FIND_ATTRIBUTE_IN_CLASS(source_instance->in_class, attr_name);
@@ -191,11 +191,11 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyOb
                     return NULL;
                 }
 
-                PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, method, positional_args);
+                PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, method, positional_args);
                 Py_DECREF(method);
                 return result;
             } else {
-                return CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
+                return CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
             }
         } else if (unlikely(source_instance->in_class->cl_getattr == NULL)) {
             PyErr_Format(PyExc_AttributeError, "%s instance has no attribute '%s'",
@@ -214,7 +214,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyOb
                 return NULL;
             }
 
-            PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
+            PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
             Py_DECREF(called_object);
             return result;
         }
@@ -240,7 +240,7 @@ PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyOb
             return NULL;
         }
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(tstate, called_object, positional_args);
+        PyObject *result = CALL_FUNCTION_WITH_POS_ARGS(tstate, called_object, positional_args);
         Py_DECREF(called_object);
         return result;
     }

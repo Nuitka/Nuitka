@@ -92,6 +92,8 @@ def getConstantDefaultPopulation():
         # Meta path based loader.
         "read",
         "rb",
+        "w",
+        "b",
         # File handling
         "/",
         "\\",
@@ -105,10 +107,15 @@ def getConstantDefaultPopulation():
         "isdir",
         "isfile",
         "listdir",
+        "stat",
+        "close",
     ]
 
+    if python_version < 0x300:
+        result += ("lstat",)
+
     # Pickling of instance methods.
-    if python_version < 0x340:
+    if python_version < 0x300:
         result += ("__newobj__",)
     else:
         result += ("getattr",)
@@ -143,7 +150,6 @@ def getConstantDefaultPopulation():
         result += (
             # YIELD_FROM uses this
             "throw",
-            "close",
         )
 
     if python_version < 0x300:

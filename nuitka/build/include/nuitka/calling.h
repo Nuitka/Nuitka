@@ -81,24 +81,24 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyThreadState *tstate, PyObj
 extern PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called);
 
 // Function call variants with positional arguments tuple.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS(PyThreadState *tstate, PyObject *function_object,
-                                                                 PyObject *positional_args) {
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POS_ARGS(PyThreadState *tstate, PyObject *function_object,
+                                                                  PyObject *positional_args) {
     return CALL_FUNCTION(tstate, function_object, positional_args, NULL);
 }
 
 // Method call variants with positional arguments tuple.
-extern PyObject *CALL_METHOD_WITH_POSARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
-                                          PyObject *positional_args);
+extern PyObject *CALL_METHOD_WITH_POS_ARGS(PyThreadState *tstate, PyObject *source, PyObject *attr_name,
+                                           PyObject *positional_args);
 
 // TODO: Specialize in template too.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyThreadState *tstate, PyObject *function_object,
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KW_ARGS(PyThreadState *tstate, PyObject *function_object,
                                                                  PyObject *named_args) {
     return CALL_FUNCTION(tstate, function_object, const_tuple_empty, named_args);
 }
 
 // Call built-in functions with using defaulted values.
 extern PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObject **args,
-                                      char const **arg_names, int max_args);
+                                      char const **arg_names, int max_args, int kw_only_args);
 
 // For abstract class instantiation error message, during call.
 extern void formatCannotInstantiateAbstractClass(PyThreadState *tstate, PyTypeObject *type);

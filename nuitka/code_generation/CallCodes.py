@@ -193,28 +193,28 @@ def _getCallCodeKwSplitFromConstant(
     kw_names = tuple(item[0] for item in kw_items)
 
     if isMutable(values):
-        args_kwsplit_name = context.allocateTempName("call_args_kwsplit")
+        args_kw_split_name = context.allocateTempName("call_args_kw_split")
 
-        args_kwsplit_name.getCType().emitAssignmentCodeFromConstant(
-            to_name=args_kwsplit_name,
+        args_kw_split_name.getCType().emitAssignmentCodeFromConstant(
+            to_name=args_kw_split_name,
             constant=values,
             may_escape=True,
             emit=emit,
             context=context,
         )
-        split_name = args_kwsplit_name
+        split_name = args_kw_split_name
     else:
-        args_kwsplit_name = context.getConstantCode(values)
+        args_kw_split_name = context.getConstantCode(values)
         split_name = None
 
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        """%s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(tstate, %s, &PyTuple_GET_ITEM(%s, 0), %s);"""
+        """%s = CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(tstate, %s, &PyTuple_GET_ITEM(%s, 0), %s);"""
         % (
             to_name,
             called_name,
-            args_kwsplit_name,
+            args_kw_split_name,
             context.getConstantCode(kw_names),
         )
     )
@@ -238,7 +238,7 @@ def getCallCodeKwSplit(
 {
     PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
 
-    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(tstate, %(called_name)s, kw_values, %(kw_names)s);
+    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KW_SPLIT(tstate, %(called_name)s, kw_values, %(kw_names)s);
 }
 """
         % {
@@ -347,7 +347,7 @@ def _generateCallCodeKwDict(
 
     emit(
         """\
-%(to_name)s = CALL_FUNCTION_WITH_KEYARGS(tstate, %(called_name)s, %(kw_dict_name)s);
+%(to_name)s = CALL_FUNCTION_WITH_KW_ARGS(tstate, %(called_name)s, %(kw_dict_name)s);
 """
         % {
             "to_name": to_name,
@@ -744,7 +744,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
     # recreated for cases, e.g. when calling C functions, so this is a good way of
     # having them.
     if isMutable(args_value):
-        arg_tuple_name = context.allocateTempName("call_args_kwsplit")
+        arg_tuple_name = context.allocateTempName("call_args_tuple")
 
         arg_tuple_name.getCType().emitAssignmentCodeFromConstant(
             to_name=arg_tuple_name,
@@ -762,7 +762,7 @@ def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, co
 
     emit(
         """\
-%s = CALL_FUNCTION_WITH_POSARGS%d(tstate, %s, %s);
+%s = CALL_FUNCTION_WITH_POS_ARGS%d(tstate, %s, %s);
 """
         % (to_name, arg_size, called_name, arg_tuple_name)
     )
@@ -790,7 +790,7 @@ def _getInstanceCallCodePosArgs(
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_METHOD_WITH_POSARGS(%s, %s, %s);"
+        "%s = CALL_METHOD_WITH_POS_ARGS(%s, %s, %s);"
         % (to_name, called_name, called_attribute_name, args_name)
     )
 
@@ -809,7 +809,7 @@ def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, conte
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_POSARGS(tstate, %s, %s);"
+        "%s = CALL_FUNCTION_WITH_POS_ARGS(tstate, %s, %s);"
         % (to_name, called_name, args_name)
     )
 
@@ -855,7 +855,7 @@ def _getCallCodePosConstKeywordVariableArgs(
     quick_mixed_calls_used.add((args_count, True, True))
 
     if isMutable(args):
-        args_value_name = context.allocateTempName("call_posargs_values")
+        args_value_name = context.allocateTempName("call_pos_args_values")
 
         args_value_name.getCType().emitAssignmentCodeFromConstant(
             to_name=args_value_name,
@@ -875,7 +875,7 @@ def _getCallCodePosConstKeywordVariableArgs(
         """\
 {
     PyObject *kw_values[%(kw_size)d] = {%(kw_values)s};
-    %(to_name)s = CALL_FUNCTION_WITH_POSARGS%(args_count)d_KWSPLIT(\
+    %(to_name)s = CALL_FUNCTION_WITH_POS_ARGS%(args_count)d_KW_SPLIT(\
 tstate, %(called_name)s, %(pos_args)s, kw_values, %(kw_names)s);
 }
 """
@@ -962,7 +962,7 @@ def getCallCodePosVariableKeywordVariableArgs(
 {
     PyObject *args[] = {%(call_arg_names)s};
     PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
-    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d_KWSPLIT(tstate, %(called_name)s, args, kw_values, %(kw_names)s);
+    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d_KW_SPLIT(tstate, %(called_name)s, args, kw_values, %(kw_names)s);
 }
 """
         % {

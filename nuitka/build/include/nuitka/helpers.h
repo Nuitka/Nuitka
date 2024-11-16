@@ -88,6 +88,7 @@ extern void stopProfiling(void);
 
 #include "nuitka/helper/raising.h"
 
+#include "nuitka/helper/ints.h"
 #include "nuitka/helper/richcomparisons.h"
 #include "nuitka/helper/sequences.h"
 
@@ -101,7 +102,6 @@ static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 #include "nuitka/helper/bytes.h"
 #include "nuitka/helper/complex.h"
 #include "nuitka/helper/floats.h"
-#include "nuitka/helper/ints.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyThreadState *tstate, PyObject *source) {
     CHECK_OBJECT(source);
@@ -172,8 +172,12 @@ extern PyObject *OS_PATH_FILE_EXISTS(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISFILE(PyThreadState *tstate, PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISDIR(PyThreadState *tstate, PyObject *filename);
 
-// Small helper to list a directory.
+// Small helper to list a directory (like "os.listdir")
 extern PyObject *OS_LISTDIR(PyThreadState *tstate, PyObject *path);
+
+// Small helper to get stat structure of a path (like "os.stat" and "os.lstat)
+extern PyObject *OS_STAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd, PyObject *follow_symlinks);
+extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_fd);
 
 // Platform standard slash for filenames
 #if defined(_WIN32)
@@ -373,6 +377,12 @@ extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
 
 // Get the containing directory as an object with symlinks resolved or not.
 extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
+
+// Get the original argv[0] as recorded by the bootstrap stage. Returns
+// None, if not available, in module mode.
+#if defined(_NUITKA_EXE)
+extern PyObject *getOriginalArgv0Object(void);
+#endif
 
 #ifdef _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate);

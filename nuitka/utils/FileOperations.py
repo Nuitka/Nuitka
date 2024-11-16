@@ -28,17 +28,10 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     FileNotFoundError,
     PermissionError,
     basestring,
-    raw_input,
     unicode,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import (
-    flushStandardOutputs,
-    general,
-    my_print,
-    options_logger,
-    printLine,
-)
+from nuitka.Tracing import general, my_print, options_logger, queryUser
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -1024,33 +1017,6 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
         os.chmod(dest_path, source_mode)
 
 
-def queryUser(question, choices, default, default_non_interactive):
-    assert default in choices, (default, choices)
-    assert default_non_interactive in choices, (default, choices)
-
-    prompt = "%s? %s : " % (
-        question,
-        "/".join(
-            "[%s]" % choice.title() if choice == default else choice.title()
-            for choice in choices
-        ),
-    )
-
-    # Integrates with progress bar by closing it.
-    printLine(prompt, end="")
-    flushStandardOutputs()
-
-    try:
-        reply = raw_input() or default
-    except EOFError:
-        reply = default_non_interactive
-
-    if reply == "y":
-        reply = "yes"
-
-    return reply.lower()
-
-
 def copyFile(source_path, dest_path):
     """Improved version of shutil.copy
 
@@ -1470,6 +1436,16 @@ def isFilesystemEncodable(filename):
         return value == filename
     else:
         return True
+
+
+def makeFilesystemEncodable(filename):
+    if not os.path.isabs(filename):
+        filename = os.path.abspath(filename)
+
+    if not isFilesystemEncodable(filename):
+        filename = getExternalUsePath(filename)
+
+    return filename
 
 
 def openPickleFile(filename, mode, protocol=-1):

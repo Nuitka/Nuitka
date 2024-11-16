@@ -27,7 +27,7 @@ extern volatile int _Py_Ticker;
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
 #if PYTHON_VERSION < 0x390
     _PyRuntimeState *const runtime = &_PyRuntime;
-#else
+#elif PYTHON_VERSION < 0x3d0
     _PyRuntimeState *const runtime = tstate->interp->runtime;
 #endif
 
@@ -72,6 +72,20 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate
 
     return true;
 }
+#else
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(PyThreadState *tstate) {
+    if (unlikely(tstate->async_exc != NULL)) {
+        PyObject *async_exc = tstate->async_exc;
+        tstate->async_exc = NULL;
+
+        SET_CURRENT_EXCEPTION_TYPE0(tstate, async_exc);
+
+        return false;
+    }
+
+    return true;
+}
+
 #endif
 
 #else

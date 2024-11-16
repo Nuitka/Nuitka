@@ -114,6 +114,7 @@ result = executeReferenceChecked(
     tests_stderr=tests_stderr,
 )
 
+print("OK." if result else "FAIL.")
 sys.exit(0 if result else 1)
 
 #     Python tests originally created or extracted from other peoples work. The

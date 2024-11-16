@@ -16,10 +16,10 @@
 #endif
 
 PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObject **args, char const **arg_names,
-                               int max_args) {
+                               int max_args, int kw_only_args) {
     int i = 0;
 
-    while (i < max_args) {
+    while (i < max_args - kw_only_args) {
         if (args[i] == NULL) {
             break;
         }
@@ -225,7 +225,7 @@ PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mod
 
     char const *arg_names[] = {"name", "mode", "buffering"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3, 0);
 }
 #else
 PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mode, PyObject *buffering,
@@ -242,7 +242,7 @@ PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mod
 
     char const *arg_names[] = {"file", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8, 0);
 }
 
 #endif
@@ -315,7 +315,7 @@ PyObject *BUILTIN_BYTES3(PyThreadState *tstate, PyObject *value, PyObject *encod
 
     char const *arg_names[] = {"value", "encoding", "errors"};
 
-    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytes), args, arg_names, 3);
+    return CALL_BUILTIN_KW_ARGS(tstate, NUITKA_ACCESS_BUILTIN(bytes), args, arg_names, 3, 0);
 }
 #endif
 
@@ -422,6 +422,7 @@ PyObject *BUILTIN_HEX(PyThreadState *tstate, PyObject *value) {
 
 static void SET_HASH_NOT_IMPLEMENTED_ERROR(PyThreadState *tstate, PyObject *value) {
     // TODO: Use our own formatting code.
+    // spell-checker: ignore unhashable
 
     PyErr_Format(PyExc_TypeError, "unhashable type: '%s'", Py_TYPE(value)->tp_name);
 }
@@ -450,8 +451,9 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
         }
 
 #if PYTHON_VERSION < 0x300
-        return PyInt_FromLong(hash);
+        return Nuitka_PyInt_FromLong(hash);
 #else
+        // TODO: Have a dedicated helper of ours for this as well.
         return PyLong_FromSsize_t(hash);
 #endif
     }
@@ -459,7 +461,7 @@ PyObject *BUILTIN_HASH(PyThreadState *tstate, PyObject *value) {
 #if PYTHON_VERSION < 0x300
     if (likely(type->tp_compare == NULL && TP_RICHCOMPARE(type) == NULL)) {
         Py_hash_t hash = Nuitka_HashFromPointer(value);
-        return PyInt_FromLong(hash);
+        return Nuitka_PyInt_FromLong(hash);
     }
 #endif
 
@@ -553,7 +555,7 @@ PyObject *BUILTIN_BYTEARRAY3(PyThreadState *tstate, PyObject *string, PyObject *
  * This comes in two flavors, with one or two arguments. The second one
  * creates a "calliterobject" that is private to CPython. We define it here
  * for ourselves. The one argument version is in headers for in-lining of
- * the code.
+ * the code. spell-checker: ignore calliterobject
  *
  **/
 
@@ -720,13 +722,18 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     PyObject *result = PyObject_GetAttr(object, attribute);
 
     if (result == NULL) {
-        if (default_value != NULL &&
-            EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED(tstate);
+        if (default_value != NULL) {
+            if (HAS_ERROR_OCCURRED(tstate)) {
+                if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, GET_ERROR_OCCURRED(tstate), PyExc_AttributeError)) {
+                    CLEAR_ERROR_OCCURRED(tstate);
+                }
+            }
 
             Py_INCREF(default_value);
             return default_value;
         } else {
+            assert(HAS_ERROR_OCCURRED(tstate));
+
             return NULL;
         }
     } else {
@@ -750,7 +757,7 @@ PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value
 }
 
 PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
-#if PYTHON_VERSION < 0x340
+#if PYTHON_VERSION < 0x300
     long base_int = PyInt_AsLong(base);
 #else
     Py_ssize_t base_int = PyNumber_AsSsize_t(base, NULL);
@@ -759,7 +766,9 @@ PyObject *BUILTIN_INT2(PyThreadState *tstate, PyObject *value, PyObject *base) {
     if (unlikely(base_int == -1)) {
         PyObject *error = GET_ERROR_OCCURRED(tstate);
 
-        if (likely(error)) {
+        if (likely(error != NULL)) {
+            assert(HAS_ERROR_OCCURRED(tstate));
+
 #if PYTHON_VERSION >= 0x300
             if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, error, PyExc_OverflowError)) {
                 PyErr_Format(PyExc_ValueError,

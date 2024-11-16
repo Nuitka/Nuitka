@@ -27,6 +27,10 @@ class StatementsSequenceMixin(object):
     def isStatementsSequence():
         return True
 
+    def computeStatement(self, trace_collection):
+        # Don't want to be called like this.
+        assert False, self
+
     def trimStatements(self, statement):
         assert statement.parent is self
 
@@ -119,9 +123,9 @@ class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
 
     named_children = ("statements|tuple+setter",)
 
-    def computeStatement(self, trace_collection):
-        # Don't want to be called like this.
-        assert False, self
+    @staticmethod
+    def isStatementsSequenceButNotFrame():
+        return True
 
     def computeStatementsSequence(self, trace_collection):
         new_statements = []
@@ -137,10 +141,7 @@ class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
                 new_statement = trace_collection.onStatement(statement=statement)
 
             if new_statement is not None:
-                if (
-                    new_statement.isStatementsSequence()
-                    and not new_statement.isStatementsFrame()
-                ):
+                if new_statement.isStatementsSequenceButNotFrame():
                     new_statements.extend(new_statement.subnode_statements)
                 else:
                     new_statements.append(new_statement)

@@ -20,7 +20,10 @@ import sys
 import textwrap
 import traceback
 
-from nuitka.__past__ import BrokenPipeError  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    BrokenPipeError,
+    raw_input,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 # Written by Options module.
@@ -99,6 +102,39 @@ def _enableAnsi():
             os.system("")
 
         _enabled_ansi = True
+
+
+def hasTerminalLinkSupport():
+    if not sys.stdout.isatty():
+        return False
+
+    terminal_name = os.getenv("TERM_PROGRAM")
+
+    if terminal_name is not None:
+        if terminal_name == "vscode":
+            return True
+
+    # Windows terminal, in some cases, but not on Windows 11 unfortunately there
+    # is no difference between CMD with its own terminal and CMD in Windows
+    # Terminal, not even parent processes.
+    if isWin32Windows():
+        if "WT_SESSION" in os.environ or "WT_PROFILE_ID" in os.environ:
+            return True
+
+    # Powershell, should be used in new terminals only. Also hard to detect,
+    # although here we could search parent process names to determine it.
+    if isWin32Windows():
+        if "PSModulePath" in os.environ:
+            return True
+
+    return False
+
+
+def formatTerminalLink(text, link):
+    if link is not None and hasTerminalLinkSupport():
+        return "\033]8;;%s\033\\%s\033]8;;\033\\" % (link, text)
+    else:
+        return text
 
 
 def _getDisableStyleCode():
@@ -389,6 +425,10 @@ class FileLogger(OurLogger):
 
         self.file_handle = file_handle
 
+    def __del__(self):
+        if self.file_handle is not None:
+            self.file_handle.close()
+
     def my_print(self, message, **kwargs):
         if "file" not in kwargs:
             kwargs["file"] = self.file_handle or sys.stdout
@@ -451,6 +491,34 @@ tools_logger = OurLogger("Nuitka-Tools")
 wheel_logger = OurLogger("Nuitka-Wheel", base_style="blue")
 cache_logger = OurLogger("Nuitka-Cache")
 reports_logger = OurLogger("Nuitka-Reports")
+
+
+def queryUser(question, choices, default, default_non_interactive):
+    assert default in choices, (default, choices)
+    assert default_non_interactive in choices, (default, choices)
+
+    prompt = "%s? %s : " % (
+        question,
+        "/".join(
+            "[%s]" % choice.title() if choice == default else choice.title()
+            for choice in choices
+        ),
+    )
+
+    # Integrates with progress bar by closing it.
+    printLine(prompt, end="")
+    flushStandardOutputs()
+
+    try:
+        reply = raw_input() or default
+    except EOFError:
+        reply = default_non_interactive
+
+    if reply == "y":
+        reply = "yes"
+
+    return reply.lower()
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

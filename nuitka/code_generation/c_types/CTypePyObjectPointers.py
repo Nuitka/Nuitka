@@ -67,6 +67,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 else:
                     template = template_write_local_unclear_ref1
 
+            if ref_count:
+                context.removeCleanupTempName(tmp_name)
+
         emit(template % {"identifier": value_name, "tmp_name": tmp_name})
 
     @classmethod
@@ -76,8 +79,8 @@ class CPythonPyObjectPtrBase(CTypeBase):
         to_type = to_name.getCType()
 
         to_type.emitVariantAssignmentCode(
-            int_name=to_name,
-            value_name=value_name,
+            to_name=to_name,
+            ilong_value_name=value_name,
             int_value=None,
             emit=emit,
             context=context,
@@ -92,6 +95,10 @@ class CPythonPyObjectPtrBase(CTypeBase):
         assert to_name.c_type == "int", to_name
 
         emit("%s = CHECK_IF_TRUE(%s);" % (to_name, value_name))
+
+    @classmethod
+    def hasReleaseCode(cls):
+        return True
 
     @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
@@ -318,7 +325,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return "%s %s NULL" % (value_name, "==" if inverted else "!=")
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NULL;" % value_name)
 
     @classmethod
@@ -376,9 +383,9 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                 emit=emit,
             )
         elif value_name.c_type == "nuitka_ilong":
-            emit("ENFORCE_ILONG_OBJECT_VALUE(&%s);" % value_name)
+            emit("ENFORCE_NILONG_OBJECT_VALUE(&%s);" % value_name)
 
-            emit("%s = %s.ilong_object;" % (to_name, value_name))
+            emit("%s = %s.python_value;" % (to_name, value_name))
 
             context.transferCleanupTempName(value_name, to_name)
         else:
@@ -477,6 +484,9 @@ class CTypeCellObject(CTypeBase):
                     template = template_write_shared_clear_ref0
                 else:
                     template = template_write_shared_unclear_ref0
+
+                if ref_count:
+                    context.removeCleanupTempName(tmp_name)
             else:
                 if needs_release is False:
                     template = template_write_shared_clear_ref1
@@ -534,7 +544,7 @@ class CTypeCellObject(CTypeBase):
         emit(template % {"identifier": value_name})
 
     @classmethod
-    def emitReinitCode(cls, value_name, emit):
+    def emitReInitCode(cls, value_name, emit):
         emit("%s = NULL;" % value_name)
 
     @classmethod
