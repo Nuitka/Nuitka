@@ -76,6 +76,8 @@ def generate_stub_from_source(source_code, output_file_path, text_only=False):
                 elif isinstance(target, ast.Subscript):
                     if isinstance(target.value, ast.Name):
                         target_name = target.value.id
+                    else:
+                        continue
                     target_type = ast.unparse(node.value).strip()
                     stub = f"{target_name}: {target_type}\n"
                     self.stubs.append(stub)
