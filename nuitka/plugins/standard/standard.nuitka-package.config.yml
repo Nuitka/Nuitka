@@ -2296,6 +2296,13 @@
     - patterns:
         - 'version.info'
 
+- module-name: 'llama_cpp' # checksum: 34acaa89
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - ''
+
 - module-name: 'llvmlite.binding.analysis' # checksum: 3083141d
   anti-bloat:
     - description: 'remove IPython reference'
