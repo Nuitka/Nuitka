@@ -532,7 +532,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
         }
 #endif
 
-        // Put the asyncgen back on the frame stack.
+        // Put the generator back on the frame stack.
         Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(tstate);
 
         if (generator->m_status == status_Unused) {
@@ -762,6 +762,12 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 }
 
 static PyObject *Nuitka_Generator_tp_iternext(struct Nuitka_GeneratorObject *generator) {
+#if _DEBUG_GENERATOR
+    PRINT_GENERATOR_STATUS("Enter", generator);
+    PRINT_CURRENT_EXCEPTION();
+    PRINT_NEW_LINE();
+#endif
+
     PyThreadState *tstate = PyThreadState_GET();
 
     Py_INCREF_IMMORTAL(Py_None);
