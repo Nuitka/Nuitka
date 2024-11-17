@@ -255,7 +255,7 @@ _python311_min_msvc_version = (14, 3)
 
 
 def checkWindowsCompilerFound(
-    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
+    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads, download_ok
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
@@ -397,6 +397,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
+                download_ok=download_ok,
             )
 
             if compiler_path is not None:

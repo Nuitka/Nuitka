@@ -59,9 +59,10 @@ def getCachedDownload(
     message,
     reject,
     assume_yes_for_downloads,
+    download_ok,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     nuitka_download_dir = getDownloadCacheDir()
 
@@ -81,7 +82,9 @@ def getCachedDownload(
     makePath(nuitka_download_dir)
 
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
-        if assume_yes_for_downloads:
+        if not download_ok:
+            reply = "no"
+        elif assume_yes_for_downloads:
             reply = "yes"
         else:
             reply = queryUser(
@@ -99,6 +102,9 @@ Fully automatic, cached. Proceed and download"""
 
         if reply != "yes":
             if reject is not None:
+                if not download_ok:
+                    reject += " Make sure to allow downloading it when prompted."
+
                 Tracing.general.sysexit(reject)
         else:
             Tracing.general.info("Downloading '%s'." % url)
@@ -163,7 +169,7 @@ Fully automatic, cached. Proceed and download"""
         return download_path
 
 
-def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
+def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads, download_ok):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
@@ -188,6 +194,7 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
         message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
         reject="Only this specific gcc is supported with Nuitka.",
         assume_yes_for_downloads=assume_yes_for_downloads,
+        download_ok=download_ok,
     )
 
     return gcc_binary

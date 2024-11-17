@@ -98,6 +98,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                         message="Nuitka will make use of ccache to speed up repeated compilation.",
                         reject=None,
                         assume_yes_for_downloads=assume_yes_for_downloads,
+                        download_ok=True,
                     )
 
     else:
