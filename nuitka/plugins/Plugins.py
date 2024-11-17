@@ -33,6 +33,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
     getDllBasename,
+    getNormalizedPath,
     makePath,
     putTextFileContents,
 )
@@ -784,9 +785,11 @@ class Plugins(object):
 
         try:
             trigger_module = buildModule(
-                module_filename=os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()),
-                    module_name.asPath() + ".py",
+                module_filename=getNormalizedPath(
+                    os.path.join(
+                        os.path.dirname(module.getCompileTimeFilename()),
+                        module_name.asPath() + ".py",
+                    )
                 ),
                 module_name=module_name,
                 reason="trigger",
