@@ -15,6 +15,7 @@ import os
 from nuitka import Options
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
+    getNormalizedPath,
     makePath,
     putTextFileContents,
 )
@@ -143,7 +144,7 @@ def getResultFullpath(onefile):
         if not isWin32OrPosixWindows() and Options.isOnefileMode() and not onefile:
             result = addFilenameExtension(result, ".bin")
 
-    return result
+    return getNormalizedPath(result)
 
 
 def getResultRunFilename(onefile):

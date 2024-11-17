@@ -23,6 +23,7 @@ from nuitka.plugins.Plugins import (
     replaceTriggerModule,
 )
 from nuitka.Tracing import inclusion_logger
+from nuitka.utils.FileOperations import getNormalizedPath
 
 
 def demoteSourceCodeToBytecode(module_name, source_code, filename):
@@ -59,7 +60,7 @@ def demoteCompiledModuleToBytecode(module):
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
         reason=module.reason,
-        filename=filename,
+        filename=getNormalizedPath(filename),
         bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
         technical=full_name in detectEarlyImports(),
