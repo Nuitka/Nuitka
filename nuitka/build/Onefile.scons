@@ -267,6 +267,7 @@ env = checkWindowsCompilerFound(
     clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
+    download_ok=True,
 )
 
 env.the_compiler = env["CC"] or env["CXX"]
