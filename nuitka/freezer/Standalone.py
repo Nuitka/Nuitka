@@ -285,7 +285,8 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
             standalone_entry_point.module_name, parent_package=None, level=0
         )
 
-        if isStandardLibraryPath(module_filename):
+        # TODO: How can this be None at all.
+        if module_filename is not None and isStandardLibraryPath(module_filename):
             allow_outside_dependencies = True
         else:
             allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(

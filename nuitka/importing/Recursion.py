@@ -339,7 +339,7 @@ def _addIncludedModule(module, package_only):
                         module_package=module.getFullName(),
                         package_only=False,
                     )
-                elif sub_path.endswith(".py"):
+                elif sub_filename.endswith(".py"):
                     checkPluginSinglePath(
                         sub_path,
                         module_package=module.getFullName(),
@@ -347,7 +347,10 @@ def _addIncludedModule(module, package_only):
                     )
                 else:
                     for suffix in getSharedLibrarySuffixes():
-                        if sub_path.endswith(suffix):
+                        if (
+                            sub_filename.endswith(suffix)
+                            and "." not in sub_filename[: -len(suffix)]
+                        ):
                             checkPluginSinglePath(
                                 sub_path,
                                 module_package=module.getFullName(),
