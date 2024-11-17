@@ -3,12 +3,13 @@
 
 """ Interface to depends.exe on Windows.
 
-We use depends.exe to investigate needed DLLs of Python DLLs.
+We use "depends.exe" to investigate needed DLLs of Python DLLs.
 
 """
 
 import os
 
+# pylint: disable=I0021,import-error,redefined-builtin
 from nuitka.__past__ import WindowsError
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import assumeYesForDownloads
