@@ -440,7 +440,7 @@ def getFileList(
             fullname = os.path.join(root, filename)
 
             if normalize:
-                fullname = os.path.normpath(fullname)
+                fullname = getNormalizedPath(fullname)
 
             result.append(fullname)
 
@@ -1168,7 +1168,7 @@ def getWindowsLongPathName(filename):
     while True:
         output_buf = ctypes.create_unicode_buffer(output_buf_size)
         needed = GetLongPathNameW(
-            os.path.abspath(filename), output_buf, output_buf_size
+            getNormalizedPath(os.path.abspath(filename)), output_buf, output_buf_size
         )
 
         if needed == 0:

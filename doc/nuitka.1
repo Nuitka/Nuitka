@@ -350,6 +350,11 @@ or exe file. Defaults to off.
 Do not create a '.pyi' file for extension modules
 created by Nuitka. This is used to detect implicit
 imports. Defaults to off.
+.TP
+\fB\-\-no\-pyi\-stubs\fR
+Do not use stubgen when creating a '.pyi' file for
+extension modules created by Nuitka. They expose your
+API, but stubgen may cause issues. Defaults to off.
 .IP
 Deployment control:
 .TP
