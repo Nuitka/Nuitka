@@ -36,7 +36,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir, removeDirectory
+from nuitka.utils.FileOperations import (
+    getNormalizedPath,
+    listDir,
+    removeDirectory,
+)
 from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
     builtin_module_names,
@@ -829,7 +833,7 @@ def locateModule(module_name, parent_package, level):
     ), ("Must not attempt to locate %r" % module_name)
 
     if module_filename is not None:
-        module_filename = os.path.normpath(module_filename)
+        module_filename = getNormalizedPath(module_filename)
 
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
@@ -874,7 +878,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     is_package = False
 
     if is_main and os.path.isdir(filename):
-        source_filename = os.path.join(filename, "__main__.py")
+        source_filename = getNormalizedPath(os.path.join(filename, "__main__.py"))
 
         if not os.path.isfile(source_filename):
             sys.stderr.write(
@@ -904,7 +908,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
     elif isPackageDir(filename):
         is_package = True
 
-        source_filename = os.path.join(filename, "__init__.py")
+        source_filename = getNormalizedPath(os.path.join(filename, "__init__.py"))
 
         if not os.path.isfile(source_filename):
             source_ref = SourceCodeReferences.fromFilename(
@@ -913,7 +917,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
             is_namespace = True
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename=os.path.abspath(source_filename)
+                filename=getNormalizedPath(os.path.abspath(source_filename))
             )
 
     else:

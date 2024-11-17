@@ -20,6 +20,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFileContentByLine,
+    getNormalizedPath,
     getWindowsLongPathName,
     isFilenameBelowPath,
     isFilesystemEncodable,
@@ -161,7 +162,7 @@ def _parseDependsExeOutput2(lines):
 
         assert os.path.isfile(dll_filename), (dll_filename, line)
 
-        result.add(os.path.normcase(os.path.abspath(dll_filename)))
+        result.add(getNormalizedPath(os.path.normcase(dll_filename)))
 
     return result
 
