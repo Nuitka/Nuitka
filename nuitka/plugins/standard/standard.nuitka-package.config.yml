@@ -2099,6 +2099,11 @@
     - dirs:
         - 'schemas'
 
+- module-name: 'jupyter_client' # checksum: f62be95d
+  data-files:
+    - include-metadata:
+        - 'jupyter_client'
+
 - module-name: 'keras' # checksum: 292d6ceb
   import-hacks:
     # This package adds another directory to the search path of itself,
@@ -2295,6 +2300,13 @@
   data-files:
     - patterns:
         - 'version.info'
+
+- module-name: 'llama_cpp' # checksum: 34acaa89
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - ''
 
 - module-name: 'llvmlite.binding.analysis' # checksum: 3083141d
   anti-bloat:
