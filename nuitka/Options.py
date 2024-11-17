@@ -1344,6 +1344,11 @@ def shallCreatePyiFile():
     return options.pyi_file
 
 
+def shallCreatePyiFileContainStubs():
+    """*bool* = **not** ``--no-pyi-stubs``"""
+    return options.pyi_stubs
+
+
 def isAllowedToReexecute():
     """*bool* = **not** ``--must-not-re-execute``"""
     return options.allow_reexecute
@@ -1581,7 +1586,7 @@ def getMainEntryPointFilenames():
     else:
         result = (positional_args[0],)
 
-    return tuple(os.path.normpath(r).rstrip(os.path.sep) for r in result)
+    return tuple(getNormalizedPath(r) for r in result)
 
 
 def isMultidistMode():
