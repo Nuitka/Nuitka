@@ -34,7 +34,7 @@ def getPythonEntryPointExportedSymbolName(module_name):
     return result
 
 
-def isExtensionModule(module_filename):
+def isFileExtensionModule(module_filename):
     for suffix in getSharedLibrarySuffixes():
         if module_filename.endswith(suffix):
             module_name = ModuleName(os.path.basename(module_filename)[: -len(suffix)])
@@ -97,7 +97,7 @@ def displayDLLs(module_name):
         for package_dll_filename, _dll_basename in listDllFilesFromDirectory(
             package_dll_dir
         ):
-            if isExtensionModule(package_dll_filename):
+            if isFileExtensionModule(package_dll_filename):
                 continue
 
             if first:
