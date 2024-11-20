@@ -148,12 +148,15 @@ static void SET_CURRENT_EXCEPTION_GENERATOR_EXIT(PyThreadState *tstate) {
 
 #if PYTHON_VERSION >= 0x300
 static bool Nuitka_PyGen_FetchStopIterationValue(PyThreadState *tstate, PyObject **pvalue) {
-    assert(HAS_ERROR_OCCURRED(tstate));
-
 #if PYTHON_VERSION < 0x3c0
-    PyObject *value = NULL;
+    if (!HAS_ERROR_OCCURRED(tstate)) {
+        *pvalue = Py_None;
+        Py_INCREF_IMMORTAL(Py_None);
 
-    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->curexc_type, PyExc_StopIteration)) {
+        return true;
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->curexc_type, PyExc_StopIteration)) {
+        PyObject *value = NULL;
+
         PyObject *exception_type, *exception_value;
         PyTracebackObject *exception_tb;
 
@@ -185,38 +188,44 @@ static bool Nuitka_PyGen_FetchStopIterationValue(PyThreadState *tstate, PyObject
 
         Py_XDECREF(exception_type);
         Py_XDECREF(exception_tb);
-    } else if (HAS_ERROR_OCCURRED(tstate)) {
+
+        if (value == NULL) {
+            value = Py_None;
+            Py_INCREF(value);
+        }
+
+        *pvalue = value;
+
+        return true;
+    } else {
         return false;
     }
-
-    if (value == NULL) {
-        value = Py_None;
-        Py_INCREF(value);
-    }
-
-    *pvalue = value;
-
-    return true;
 #else
-    PyObject *value = NULL;
+    if (!HAS_ERROR_OCCURRED(tstate)) {
+        *pvalue = Py_None;
+        Py_INCREF_IMMORTAL(Py_None);
 
-    if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->current_exception, PyExc_StopIteration)) {
+        return true;
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate, tstate->current_exception, PyExc_StopIteration)) {
+        PyObject *value = NULL;
+
         PyObject *exc = tstate->current_exception;
         tstate->current_exception = NULL;
 
         value = Py_NewRef(((PyStopIterationObject *)exc)->value);
         Py_DECREF(exc);
-    } else if (HAS_ERROR_OCCURRED(tstate)) {
+
+        if (value == NULL) {
+            value = Py_None;
+        }
+
+        *pvalue = value;
+
+        return true;
+
+    } else {
         return false;
     }
-
-    if (value == NULL) {
-        value = Py_None;
-    }
-
-    *pvalue = value;
-
-    return true;
 #endif
 }
 #endif
