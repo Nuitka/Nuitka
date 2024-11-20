@@ -472,6 +472,8 @@ def setCommonSconsOptions(options):
 
     options["debug_modes"] = ",".join(Options.getDebugModeIndications())
 
+    options["deployment"] = asBoolStr(Options.isDeploymentMode())
+
     options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
 
     if Options.shallRunInDebugger():
