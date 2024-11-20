@@ -117,6 +117,7 @@ if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
     addInlineCopy("clcache")
     addInlineCopy("colorama")
+    addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")

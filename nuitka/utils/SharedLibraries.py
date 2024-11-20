@@ -26,6 +26,7 @@ from .FileOperations import (
     makeContainingPath,
     withMadeWritableFileMode,
 )
+from .Importing import importFromInlineCopy
 from .Utils import (
     isAlpineLinux,
     isLinux,
@@ -836,8 +837,32 @@ _nm_usage = """\
 Error, needs 'nm' on your system, to detect exported DLL symbols."""
 
 
+def _decodeWin32EntryPoint(entry_point_name):
+    if str is bytes:
+        return entry_point_name
+    else:
+        # Not sure about the actual encoding used, this will cover most cases.
+        return entry_point_name.decode("utf8", "backslashreplace")
+
+
 def getDllExportedSymbols(logger, filename):
-    if isLinux or isMacOS():
+    if isWin32Windows():
+        try:
+            pefile = importFromInlineCopy("pefile", must_exist=True)
+
+            try:
+                pe_info = pefile.PE(filename)
+            except pefile.PEFormatError:
+                return None
+
+            return tuple(
+                _decodeWin32EntryPoint(entry_point.name)
+                for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
+                if entry_point.name is not None
+            )
+        except ModuleNotFoundError:
+            return None
+    else:
         if isLinux():
             command = ("nm", "-D", filename)
         elif isMacOS():
@@ -863,8 +888,6 @@ def getDllExportedSymbols(logger, filename):
                 result.add(symbol_name.decode("utf8"))
 
         return result
-    else:
-        return None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
