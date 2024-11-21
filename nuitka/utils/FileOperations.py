@@ -890,7 +890,7 @@ def changeTextFileContents(filename, contents, encoding=None, compare_only=False
         or getFileContents(filename, encoding=encoding) != contents
     ):
         if not compare_only:
-            putTextFileContents(filename, contents)
+            putTextFileContents(filename, contents, encoding=encoding)
 
         return True
     else:
