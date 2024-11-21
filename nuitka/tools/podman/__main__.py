@@ -275,7 +275,7 @@ def _checkContainerArgument(options, default_container_directory):
             container_file_path_template = container_file_path
             container_file_path = container_file_path[:-3]
         else:
-            assert False
+            container_file_path_template = None
 
         options.container_id = changeFilenameExtension(
             os.path.basename(container_file_path), ""
@@ -306,7 +306,9 @@ def main():
         options=options, default_container_directory=default_container_directory
     )
 
-    if os.path.isfile(container_file_path_template):
+    if container_file_path_template is not None and os.path.isfile(
+        container_file_path_template
+    ):
         # Check requirement.
         cpp_path = getCppPath()
         command = [
