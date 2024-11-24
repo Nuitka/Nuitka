@@ -2307,6 +2307,13 @@
     - patterns:
         - 'version.info'
 
+- module-name: 'litellm' # checksum: fa10c772
+  data-files:
+    - patterns:
+        - '*.json'
+    - dirs:
+        - 'llms/tokenizers'
+
 - module-name: 'llama_cpp' # checksum: 34acaa89
   dlls:
     - from_filenames:
