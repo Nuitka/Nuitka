@@ -74,13 +74,14 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("onefile", "standalone", "accelerated", "module"),
+    choices=("app", "onefile", "standalone", "accelerated", "module"),
     default=None,
     help="""\
 Mode in which to compile. Accelerated runs in your Python
 installation and depends on it. Standalone creates a folder
 with an executable contained to run it. Onefile creates a
-single executable to deploy. Default is 'accelerated'.""",
+single executable to deploy. App is onefile except on macOS
+where it's not to be used. Default is 'accelerated'.""",
 )
 
 parser.add_option(
@@ -641,7 +642,7 @@ compilation_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
-    metavar="MODE",
+    metavar="FILE_MODE",
     choices=("original", "runtime", "frozen"),
     default=None,
     help="""\
@@ -660,7 +661,7 @@ compilation_group.add_option(
     "--module-name-choice",
     action="store",
     dest="module_name_mode",
-    metavar="MODE",
+    metavar="MODULE_NAME_MODE",
     choices=("original", "runtime"),
     default=None,
     help="""\
@@ -1560,7 +1561,7 @@ macos_group.add_option(
     "--macos-app-mode",
     action="store",
     dest="macos_app_mode",
-    metavar="MODE",
+    metavar="APP_MODE",
     choices=("gui", "background", "ui-element"),
     default="gui",
     help="""\

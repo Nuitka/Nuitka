@@ -197,9 +197,17 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
     }
 
 #else
-    // Will be written by Nuitka_PyDictLookupStr in all cases.
     PyObject **value;
-    NUITKA_MAY_BE_UNUSED Py_ssize_t found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
+    NUITKA_MAY_BE_UNUSED Py_ssize_t found;
+
+    // We cannot use Nuitka_PyDictLookupStr in all cases, some modules misbehave
+    // and put non-strings in module dictionaries.
+    if (unlikely(dict->ma_keys->dk_kind == DICT_KEYS_GENERAL)) {
+        found = Nuitka_PyDictLookup(dict, (PyObject *)key, hash, &value);
+    } else {
+        found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
+    }
+
     assert(found != DKIX_ERROR);
 
     return value;
