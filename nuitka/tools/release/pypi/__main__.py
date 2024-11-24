@@ -6,7 +6,6 @@
 
 import os
 import shutil
-import sys
 from optparse import OptionParser
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
@@ -69,7 +68,7 @@ Token to use for upload.
         action="store_true",
         dest="check",
         help="""
-Do not update the the container, use it if updating was done recently.
+Check if it would build, without uploading.
 """,
     )
 
@@ -93,10 +92,22 @@ Do not update the the container, use it if updating was done recently.
     tools_logger.info("Creating documentation.", style="blue")
     checkReleaseDocumentation()
     tools_logger.info("Creating source distribution.", style="blue")
-    assert (
-        os.system("umask 0022 && chmod -R a+rX . && %s setup.py sdist" % sys.executable)
-        == 0
+
+    python = findInstalledPython(
+        python_versions=("3.10",), module_name=None, module_version=None
     )
+
+    os.system("umask 0022 && chmod -R a+rX")
+
+    with withVirtualenv(
+        "venv_nuitka",
+        logger=tools_logger,
+        style="blue",
+        delete=False,
+        python=python.getPythonExe(),
+    ) as venv:
+        venv.runCommand("python -m pip install -U 'setuptools<68'")
+        venv.runCommand("python setup.py sdist", keep_cwd=True)
 
     # Delete requires.txt as it confuses poetry and potentially other tools
     assert os.system("gunzip dist/Nuitka*.tar.gz") == 0
