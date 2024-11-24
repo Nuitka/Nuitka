@@ -20,7 +20,7 @@ from .NodeMakingHelpers import (
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
-from .shapes.StandardShapes import tshape_iterator
+from .shapes.IteratorShapes import tshape_iterator
 from .StatementBasesGenerated import (
     StatementSpecialUnpackCheckBase,
     StatementSpecialUnpackCheckFromIteratedBase,

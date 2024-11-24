@@ -11,6 +11,7 @@ from .ControlFlowDescriptions import (
     ControlFlowDescriptionNoEscape,
     ControlFlowDescriptionSubUnsupported,
 )
+from .StandardShapes import tshape_unknown
 
 
 class ShapeContainerMixin(object):
@@ -140,11 +141,11 @@ class ShapeNotNumberMixin(object):
 
     @staticmethod
     def getOperationUnaryAddShape():
-        return None, ControlFlowDescriptionAddUnsupported
+        return tshape_unknown, ControlFlowDescriptionAddUnsupported
 
     @staticmethod
     def getOperationUnarySubShape():
-        return None, ControlFlowDescriptionSubUnsupported
+        return tshape_unknown, ControlFlowDescriptionSubUnsupported
 
 
 class ShapeNumberMixin(object):
