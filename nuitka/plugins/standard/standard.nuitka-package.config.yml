@@ -2224,6 +2224,12 @@
         prefixes:
           - '_cext'
 
+- module-name: 'lab_lamma' # checksum: 2c54cdc3
+  implicit-imports:
+    - depends:
+        - 'vipm_io'
+        - 'keyring'
+
 - module-name: 'langchain.chains.llm_summarization_checker' # checksum: 9ac5f4e6
   data-files:
     - patterns:
@@ -2300,6 +2306,13 @@
   data-files:
     - patterns:
         - 'version.info'
+
+- module-name: 'litellm' # checksum: fa10c772
+  data-files:
+    - patterns:
+        - '*.json'
+    - dirs:
+        - 'llms/tokenizers'
 
 - module-name: 'llama_cpp' # checksum: 34acaa89
   dlls:

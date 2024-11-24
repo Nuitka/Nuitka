@@ -99,7 +99,7 @@ https://matplotlib.org/stable/users/installing/environment_variables_faq.html#en
 
         if info.backend == "QtAgg" and getActiveQtPlugin() is None:
             self.sysexit(
-                "Error, cannot use 'QtAgg' with not plugin for Qt binding active."
+                "Error, cannot use 'QtAgg' without a plugin for Qt binding active, use e.g. '--enable-plugin=pyside6'."
             )
 
         return info
