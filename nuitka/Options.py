@@ -493,7 +493,12 @@ Error, the Python from Windows app store is not supported.""",
     Tracing.progress_logger.is_quiet = not options.show_progress
 
     if options.compilation_mode is not None:
-        if options.is_onefile or options.is_standalone or options.module_mode:
+        if (
+            options.is_onefile
+            or options.is_standalone
+            or options.module_mode
+            or options.macos_create_bundle
+        ):
             Tracing.options_logger.sysexit(
                 "Cannot use both '--mode=' and deprecated options that specify mode."
             )
@@ -504,6 +509,11 @@ Error, the Python from Windows app store is not supported.""",
             options.is_standalone = True
         elif options.compilation_mode == "module":
             options.module_mode = True
+        elif options.compilation_mode == "app":
+            if isMacOS():
+                options.macos_create_bundle = True
+            else:
+                options.is_onefile = True
 
     # Onefile implies standalone build.
     if options.is_onefile:
