@@ -10,7 +10,10 @@ from optparse import OptionParser
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import (
+    checkBranchName,
+    makeNuitkaSourceDistribution,
+)
 from nuitka.Tracing import tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
@@ -93,31 +96,7 @@ Check if it would build, without uploading.
     checkReleaseDocumentation()
     tools_logger.info("Creating source distribution.", style="blue")
 
-    python = findInstalledPython(
-        python_versions=("3.10",), module_name=None, module_version=None
-    )
-
-    os.system("umask 0022 && chmod -R a+rX")
-
-    with withVirtualenv(
-        "venv_nuitka",
-        logger=tools_logger,
-        style="blue",
-        delete=False,
-        python=python.getPythonExe(),
-    ) as venv:
-        venv.runCommand("python -m pip install -U 'setuptools<68'")
-        venv.runCommand("python setup.py sdist", keep_cwd=True)
-
-    # Delete requires.txt as it confuses poetry and potentially other tools
-    assert os.system("gunzip dist/Nuitka*.tar.gz") == 0
-    assert (
-        os.system(
-            "tar --wildcards --delete --file dist/Nuitka*.tar Nuitka-*/Nuitka.egg-info/requires.txt"
-        )
-        == 0
-    )
-    assert os.system("gzip -9 dist/Nuitka*.tar") == 0
+    dist_filenames = makeNuitkaSourceDistribution(formats=("gztar",), sign=False)
 
     # Test with these Pythons if the installed package would work.
     pythons = [
@@ -132,14 +111,18 @@ Check if it would build, without uploading.
     for python in pythons:
         _checkNuitkaInVirtualenv(python)
 
-    assert os.system("twine check dist/*") == 0
+    assert os.system("twine check %s" % dist_filenames[0]) == 0
 
     if not options.check:
         tools_logger.info("Uploading source dist")
+
         assert (
             os.system(
-                "twine upload --username=__token__ --password=%s dist/* "
-                % options.token
+                "twine upload --username=__token__ --password=%s %s"
+                % (
+                    dist_filenames[0],
+                    options.token,
+                )
             )
             == 0
         )
