@@ -260,6 +260,16 @@ Error, unknown plug-in '%s' in wrong case referenced, use '%s' instead."""
     return plugin_name2plugin_classes[plugin_name][0]
 
 
+def hasPluginName(plugin_name):
+    # First, load plugin classes, to know what we are talking about.
+    loadPlugins()
+
+    # Backward compatibility.
+    plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
+
+    return plugin_name in plugin_name2plugin_classes
+
+
 def _addPluginClass(plugin_class, detector):
     plugin_name = plugin_class.plugin_name
 
