@@ -1334,7 +1334,7 @@ int main(int argc, char **argv) {
     /* Initial command line handling only. */
 
 // Make sure, we use the absolute program path for argv[0]
-#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 0
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
 #endif
@@ -1343,6 +1343,8 @@ int main(int argc, char **argv) {
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
 
+        // If forked from the parent process, it's set, otherwise fall back
+        // to standalone executable binary name as set above.
         if (parent_original_argv0 != NULL) {
             original_argv0 = strdupFilename(parent_original_argv0);
 
@@ -1362,7 +1364,7 @@ orig_argv = argv;
 #endif
 
 // Make sure, we use the absolute program path for argv[0]
-#if !defined(_NUITKA_ONEFILE_MODE) && _NUITKA_NATIVE_WCHAR_ARGV == 1
+#if _NUITKA_NATIVE_WCHAR_ARGV == 1
     original_argv0 = argv[0];
 #if PYTHON_VERSION >= 0x300
     orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);

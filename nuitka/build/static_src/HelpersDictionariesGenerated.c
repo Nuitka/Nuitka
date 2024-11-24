@@ -75,7 +75,11 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
+#if PYTHON_VERSION < 0x3b0
             Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+#else
+            Py_ssize_t size = dict_mp->ma_keys->dk_nentries + dict_mp->ma_keys->dk_usable;
+#endif
 
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
@@ -289,7 +293,11 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
+#if PYTHON_VERSION < 0x3b0
             Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+#else
+            Py_ssize_t size = dict_mp->ma_keys->dk_nentries + dict_mp->ma_keys->dk_usable;
+#endif
 
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
@@ -514,8 +522,11 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
+#if PYTHON_VERSION < 0x3b0
             Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
-
+#else
+            Py_ssize_t size = dict_mp->ma_keys->dk_nentries + dict_mp->ma_keys->dk_usable;
+#endif
 #if PYTHON_VERSION < 0x3b0
             for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
