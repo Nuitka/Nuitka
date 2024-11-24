@@ -57,6 +57,7 @@ from nuitka.PythonVersions import (
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getNormalizedPath,
+    getReportPath,
     isLegalPath,
     isPathExecutable,
     openTextFile,
@@ -296,15 +297,13 @@ it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
 
 
 def _getVersionInformationValues():
-    # TODO: Might be nice if we could delay version information computation
-    # until it's actually used.
     yield getNuitkaVersion()
     yield "Commercial: %s" % getCommercialVersion()
     yield "Python: %s" % sys.version.split("\n", 1)[0]
     yield "Flavor: %s" % getPythonFlavorName()
     if python_version >= 0x3D0:
         yield "GIL: %s" % ("yes" if isPythonWithGil() else "no")
-    yield "Executable: %s" % sys.executable
+    yield "Executable: %s" % getReportPath(sys.executable)
     yield "OS: %s" % getOS()
     yield "Arch: %s" % getArchitecture()
 
