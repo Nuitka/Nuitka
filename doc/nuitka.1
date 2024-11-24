@@ -22,7 +22,8 @@ executable instead of a program. Defaults to off.
 Mode in which to compile. Accelerated runs in your
 Python installation and depends on it. Standalone
 creates a folder with an executable contained to run
-it. Onefile creates a single executable to deploy.
+it. Onefile creates a single executable to deploy. App
+is onefile except on macOS where it's not to be used.
 Default is 'accelerated'.
 .TP
 \fB\-\-standalone\fR
@@ -301,7 +302,7 @@ messages which are not really incompatible, but only
 different or worse. This is intended for tests only
 and should *not* be used.
 .TP
-\fB\-\-file\-reference\-choice\fR=\fI\,MODE\/\fR
+\fB\-\-file\-reference\-choice\fR=\fI\,FILE_MODE\/\fR
 Select what value "__file__" is going to be. With
 "runtime" (default for standalone binary mode and
 module mode), the created binaries and modules, use
@@ -316,7 +317,7 @@ module_name>" is used. For compatibility reasons, the
 "__file__" value will always have ".py" suffix
 independent of what it really is.
 .TP
-\fB\-\-module\-name\-choice\fR=\fI\,MODE\/\fR
+\fB\-\-module\-name\-choice\fR=\fI\,MODULE_NAME_MODE\/\fR
 Select what value "__name__" and "__package__" are
 going to be. With "runtime" (default for module mode),
 the created module uses the parent package to deduce
@@ -686,7 +687,7 @@ will potentially grant protected API accesses.
 Name of the product to use in macOS bundle
 information. Defaults to base filename of the binary.
 .TP
-\fB\-\-macos\-app\-mode\fR=\fI\,MODE\/\fR
+\fB\-\-macos\-app\-mode\fR=\fI\,APP_MODE\/\fR
 Mode of application for the application bundle. When
 launching a Window, and appearing in Docker is
 desired, default value "gui" is a good fit. Without a
