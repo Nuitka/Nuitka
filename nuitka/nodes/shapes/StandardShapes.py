@@ -15,7 +15,6 @@ from nuitka.code_generation.Reports import (
 from nuitka.utils.SlotMetaClasses import getMetaClassBase
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
-from .ShapeMixins import ShapeIteratorMixin
 
 
 class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
@@ -130,7 +129,7 @@ class ShapeBase(getMetaClassBase("Shape", require_slots=True)):
             return operation_result_unknown
 
     # TODO: Change defaults to be "None" for easier catching of
-    # non-overloaders
+    # non-overloading cases.
     iadd_shapes = {}
 
     def getOperationInplaceAddShape(self, right_shape):
@@ -630,54 +629,6 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
         ShapeLargeConstantValue.__init__(self, size, shape)
 
         self.predictor = predictor
-
-
-class ShapeIterator(ShapeBase, ShapeIteratorMixin):
-    """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
-
-    __slots__ = ()
-
-    @staticmethod
-    def isShapeIterator():
-        return None
-
-    @staticmethod
-    def hasShapeSlotBool():
-        return None
-
-    @staticmethod
-    def hasShapeSlotLen():
-        return None
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return None
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return None
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return None
-
-    @staticmethod
-    def getShapeIter():
-        return tshape_iterator
-
-    @staticmethod
-    def getOperationUnaryReprEscape():
-        return ControlFlowDescriptionFullEscape
-
-    def getOperationUnaryAddShape(self):
-        # TODO: Move prepared values to separate module
-        return tshape_unknown, ControlFlowDescriptionFullEscape
-
-    def getOperationUnarySubShape(self):
-        return tshape_unknown, ControlFlowDescriptionFullEscape
-
-
-tshape_iterator = ShapeIterator()
 
 
 class ShapeLoopInitialAlternative(ShapeBase):
