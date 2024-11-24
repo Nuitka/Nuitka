@@ -18,6 +18,7 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
+    relpath,
     removeDirectory,
     withDirectoryChange,
 )
@@ -28,15 +29,20 @@ class Virtualenv(object):
         self.env_dir = os.path.abspath(env_dir)
         self.logger = logger
 
-    def runCommand(self, commands, env=None, style=None):
+    def runCommand(self, commands, keep_cwd=False, env=None, style=None):
         if type(commands) in (str, unicode):
             commands = [commands]
 
-        with withDirectoryChange(self.env_dir):
-            if os.name == "nt":
-                commands = [r"call scripts\activate.bat"] + commands
+        with withDirectoryChange(None if keep_cwd else self.env_dir, allow_none=True):
+            if keep_cwd:
+                activate_dir = relpath(self.env_dir, os.getcwd())
             else:
-                commands = [". bin/activate"] + commands
+                activate_dir = "."
+
+            if os.name == "nt":
+                commands = [r"call %s\scripts\activate.bat" % activate_dir] + commands
+            else:
+                commands = [". %s/bin/activate" % activate_dir] + commands
 
             command = " && ".join(commands)
 
@@ -47,7 +53,9 @@ class Virtualenv(object):
                 exit_code = os.system(command)
                 if exit_code != 0:
                     self.logger.info(
-                        "Failure %s for: %s" % (exit_code, command), style=style
+                        "Failure %s for: %s" % (exit_code, command),
+                        keep_format=True,
+                        style=style,
                     )
 
                     raise NuitkaCalledProcessError(
