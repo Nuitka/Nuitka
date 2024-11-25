@@ -1336,7 +1336,9 @@ int main(int argc, char **argv) {
 // Make sure, we use the absolute program path for argv[0]
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
+#if !defined(_NUITKA_ONEFILE_MODE)
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
+#endif
 #endif
 
 #if defined(_NUITKA_ONEFILE_MODE)
@@ -1366,7 +1368,7 @@ orig_argv = argv;
 // Make sure, we use the absolute program path for argv[0]
 #if _NUITKA_NATIVE_WCHAR_ARGV == 1
     original_argv0 = argv[0];
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_ONEFILE_MODE)
     orig_argv[0] = (wchar_t *)getBinaryFilenameWideChars(false);
 #endif
 #endif
