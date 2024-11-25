@@ -4,7 +4,7 @@
 #define __NUITKA_FREELISTS_H__
 
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL

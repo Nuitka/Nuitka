@@ -8,7 +8,7 @@ spell-checker: ignore structseq
 
 template_constants_reading = r"""
 #include "nuitka/prelude.h"
-#include "structseq.h"
+#include <structseq.h>
 
 #include "build_definitions.h"
 
