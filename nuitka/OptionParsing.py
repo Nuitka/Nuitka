@@ -65,6 +65,7 @@ parser.add_option(
     action="store_true",
     dest="module_mode",
     default=False,
+    github_action=False,
     help="""\
 Create an importable binary extension module executable instead of a program. Defaults to off.""",
 )
@@ -76,6 +77,7 @@ parser.add_option(
     metavar="COMPILATION_MODE",
     choices=("app", "onefile", "standalone", "accelerated", "module"),
     default=None,
+    github_action_default="app",
     help="""\
 Mode in which to compile. Accelerated runs in your Python
 installation and depends on it. Standalone creates a folder
@@ -89,6 +91,7 @@ parser.add_option(
     action="store_true",
     dest="is_standalone",
     default=False,
+    github_action=False,
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
@@ -110,7 +113,7 @@ parser.add_option(
     action="store_true",
     dest="is_onefile",
     default=False,
-    github_action_default=True,
+    github_action=False,
     help="""\
 On top of standalone mode, enable onefile mode. This means not a folder,
 but a compressed executable is created and used. Defaults to off.""",
@@ -1504,6 +1507,7 @@ macos_group.add_option(
     action="store_true",
     dest="macos_create_bundle",
     default=False,
+    github_action=False,
     help="""\
 When compiling for macOS, create a bundle rather than a plain binary
 application. This is the only way to unlock the disabling of console,
