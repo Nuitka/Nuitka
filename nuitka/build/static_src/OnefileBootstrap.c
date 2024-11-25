@@ -41,7 +41,7 @@
 
 /* Type bool */
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #if !defined(_WIN32)
