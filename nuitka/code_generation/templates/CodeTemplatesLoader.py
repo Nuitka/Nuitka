@@ -46,7 +46,7 @@ template_metapath_loader_body = r"""
 
 /* Type bool */
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #if %(bytecode_count)d > 0
