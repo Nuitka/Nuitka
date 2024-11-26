@@ -42,7 +42,7 @@ class OurOptionGroup(OptionGroup):
         require_compiling = kwargs.pop("require_compiling", True)
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
-        link = kwargs.pop("github_action_default", None)
+        link = kwargs.pop("link", None)
 
         result = OptionGroup.add_option(self, *args, **kwargs)
 
