@@ -3764,6 +3764,11 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
+- module-name: 'pdfminer' # checksum: a3629ef7
+  data-files:
+    - dirs:
+        - 'cmap'
+
 - module-name: 'pendulum' # checksum: 71704ba2
   data-files:
     - empty_dir_structures:
