@@ -101,8 +101,8 @@ Currently, this means, you need to use one of these compilers:
 Python
 ======
 
-**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.13) are supported. If
-at any moment, there is a stable Python release that is not in this
+**Python 2** (2.6, 2.7) and **Python 3** (3.4 — 3.13) are supported.
+If at any moment, there is a stable Python release that is not in this
 list, rest assured it is being worked on and will be added.
 
 .. important::
@@ -361,7 +361,7 @@ will make the debugging only harder, e.g. in case of missing data files.
 ***********
 
 Use Case 1 — Program compilation with all modules embedded
-==========================================================
+============================================================
 
 If you want to compile a whole program recursively, and not only the
 single file that is the main program, do it like this:
@@ -414,7 +414,7 @@ executable:
    platforms) put inside.
 
 Use Case 2 — Extension Module compilation
-=========================================
+===========================================
 
 If you want to compile a single extension module, all you have to do is
 this:
@@ -460,7 +460,7 @@ The resulting file ``some_module.so`` can then be used instead of
    the same version and doesn't include other extension modules.
 
 Use Case 3 — Package compilation
-================================
+==================================
 
 If you need to compile a whole package and embed all modules, that is
 also feasible, use Nuitka like this:
@@ -485,7 +485,7 @@ also feasible, use Nuitka like this:
    <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
 Use Case 4 — Program Distribution
-=================================
+===================================
 
 For distribution to other systems, there is the standalone mode, which
 produces a folder for which you can specify ``--standalone``.
@@ -577,7 +577,7 @@ the correct folder for you.
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
 issues if you encounter something in these. Even better, raise PRs with
-enhancements to the Nuitka package configuration. With want 3rd party
+enhancements to the Nuitka package configuration. We want 3rd party
 software to just work out of the box.
 
 When that is working, you can use the onefile mode if you so desire.
@@ -605,8 +605,8 @@ Finding files`_ as well.
 For the unpacking, by default a unique user temporary path one is used,
 and then deleted, however this default
 ``--onefile-tempdir-spec="{TEMP}/onefile_{PID}_{TIME}"`` can be
-overridden with a path specification that is using then using a cached
-path, avoiding repeated unpacking, e.g. with
+overridden with a path specification, then using a cached path, avoiding
+repeated unpacking, e.g. with
 ``--onefile-tempdir-spec="{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}"``
 which uses version information, and user-specific cache directory.
 
@@ -674,7 +674,7 @@ Currently, these expanded tokens are available:
    ``pythonw.exe`` which is behaving like ``{NONE}``.
 
 Use Case 5 — Setuptools Wheels
-==============================
+================================
 
 If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
 creation of wheels for your software in place, putting Nuitka to use is
@@ -782,7 +782,7 @@ value:
    # options with single values, e.g. enable a plugin of Nuitka
    enable-plugin = "pyside2"
 
-   # options with several values, e.g. avoiding including modules, accepts
+   # options with several values, e.g. avoid including modules, accepts
    # list argument.
    nofollow-import-to = ["*.tests", "*.distutils"]
 
@@ -801,7 +801,7 @@ value:
    and not as a file in the wheel.
 
 Use Case 6 — Multidist
-======================
+========================
 
 If you have multiple programs, that each should be executable, in the
 past you had to compile multiple times, and deploy all of these. With
@@ -833,7 +833,7 @@ This mode works with standalone, onefile, and mere acceleration. It does
 not work with module mode.
 
 Use Case 7 — Building with GitHub Workflows
-===========================================
+=============================================
 
 For integration with GitHub workflows there is this `Nuitka-Action
 <https://github.com/Nuitka/Nuitka-Action>`__ that you should use that
@@ -1568,18 +1568,18 @@ The C compiler, when invoked with the same input files, will take a long
 time and much CPU to compile over and over. Make sure you are having
 ``ccache`` installed and configured when using gcc (even on Windows). It
 will make repeated compilations much faster, even if things are not yet
-not perfect, i.e. changes to the program can cause many C files to
-change, requiring a new compilation instead of using the cached result.
+perfect, i.e. changes to the program can cause many C files to change,
+requiring a new compilation instead of using the cached result.
 
-On Windows, with gcc Nuitka supports using ``ccache.exe`` which it will
-offer to download from an official source and it automatically. This is
-the recommended way of using it on Windows, as other versions can e.g.
-hang.
+On Windows, with gcc, Nuitka supports using ``ccache.exe``, which it
+will offer to download from an official source and install it
+automatically. This is the recommended way of using it on Windows, as
+other versions may cause issues e.g. hanging.
 
 Nuitka will pick up ``ccache`` if it's found in system ``PATH``, and it
 will also be possible to provide if by setting ``NUITKA_CCACHE_BINARY``
 to the full path of the binary, this is for use in CI systems where
-things might be non-standard.
+environments might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
@@ -1755,9 +1755,9 @@ Providing extra Options to Nuitka C compilation
 
 Nuitka will apply values from the environment variables ``CCFLAGS``,
 ``LDFLAGS`` during the compilation on top of what it determines to be
-necessary. Beware, of course, that is this is only useful if you know
-what you are doing, so should this pose issues, raise them only with
-perfect information.
+necessary. Beware, of course, that this is only useful if you know what
+you are doing, so should this pose issues, raise them only with perfect
+information.
 
 Producing a 32 bit binary on a 64 bit Windows system
 ====================================================
