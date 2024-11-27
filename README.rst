@@ -702,7 +702,7 @@ Nuitka.
             '--clang': None,
             # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': "pyside2",
-            # options with several values, e.g. avoiding including modules
+            # options with several values, e.g. avoid including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
          },
       },
@@ -727,7 +727,7 @@ Nuitka.
             '--clang': ("setup.py", None),
             # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': ("setup.py", "pyside2"),
-            # options with several values, e.g. avoiding including modules
+            # options with several values, e.g. avoid including modules
             '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
          }
       },
