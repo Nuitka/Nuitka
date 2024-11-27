@@ -16,6 +16,8 @@ from __future__ import print_function
 
 import sys
 
+print("START:")
+
 # Python3 changed module name.
 if str is bytes:
     import Tkinter as tkinter
