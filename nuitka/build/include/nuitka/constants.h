@@ -143,6 +143,8 @@ extern PyObject **global_constants;
 #define const_str_plain_isfile global_constants[42]
 // 'listdir'
 #define const_str_plain_listdir global_constants[42]
+// 'lstat'
+#define const_str_plain_lstat global_constants[42]
 // 'stat'
 #define const_str_plain_stat global_constants[42]
 // 'basename'
