@@ -258,6 +258,29 @@ def _getMacOSArchOption():
         return ()
 
 
+# TODO: Use this for more output filters.
+def _filterOutputByLine(output, filter_func):
+    non_errors = []
+
+    for line in output.splitlines():
+        if line and not filter_func(line):
+            non_errors.append(line)
+
+    output = b"\n".join(non_errors)
+
+    return (0 if non_errors else None), output
+
+
+def _filterOtoolErrorOutput(stderr):
+    def isNonErrorExit(line):
+        if b"missing from root that overrides" in line:
+            return True
+
+        return False
+
+    return _filterOutputByLine(stderr, isNonErrorExit)
+
+
 def _getOToolCommandOutput(otool_option, filename):
     filename = os.path.abspath(filename)
 
@@ -272,6 +295,7 @@ def _getOToolCommandOutput(otool_option, filename):
         _otool_output_cache[cache_key] = executeToolChecked(
             logger=postprocessing_logger,
             command=command,
+            stderr_filter=_filterOtoolErrorOutput,
             absence_message="The 'otool' is used to analyze dependencies on macOS and required to be found.",
         )
 
