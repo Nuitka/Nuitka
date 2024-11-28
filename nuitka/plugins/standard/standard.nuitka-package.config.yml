@@ -1242,6 +1242,11 @@
         - '.IN.*'
         - '.CH.A'
 
+- module-name: 'docling_core' # checksum: 690d0f0d
+  data-files:
+    - include-metadata:
+        - 'docling-core'
+
 - module-name: 'dotenv' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
