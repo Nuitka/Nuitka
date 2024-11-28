@@ -25,20 +25,13 @@ from nuitka.plugins.Plugins import (
 )
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Distributions import (
-    getDistributionFromModuleName,
-    getDistributionInstallerName,
-    getDistributionName,
-)
+from nuitka.utils.Distributions import getDistributionFromModuleName
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
-    # We are a bit detail rich and caching a bunch,
-    # pylint: disable=too-many-instance-attributes
-
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
@@ -48,16 +41,19 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     warned_about = set()
 
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
-        self.distribution = getDistributionFromModuleName(self.binding_name)
+        self.binding_package_name = ModuleName(self.binding_name)
+
+        # TODO: Find a more dedicated slot, where the module path will be fully
+        # setup to do this. Plugins should be called before compilation for a
+        # chance to error out like this.
+        self.distribution = getDistributionFromModuleName(
+            self.binding_package_name, prefer_shorter_distribution_name=True
+        )
 
         if self.distribution is None:
             self.sysexit(
                 "Error, failed to locate the %s installation." % self.binding_name
             )
-
-        self.distribution_name = getDistributionName(self.distribution)
-
-        self.installer_name = getDistributionInstallerName(self.distribution_name)
 
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
@@ -90,8 +86,6 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         self.web_engine_done_binaries = False
         self.web_engine_done_data = False
-
-        self.binding_package_name = ModuleName(self.binding_name)
 
         # Allow to specify none.
         if self.qt_plugins == set(["none"]):
