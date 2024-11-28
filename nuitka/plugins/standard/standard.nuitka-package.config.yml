@@ -4423,7 +4423,7 @@
     - patterns:
         - 'version.json'
 
-- module-name: 'pypdfium2_raw' # checksum: 2bdc1095
+- module-name: 'pypdfium2_raw' # checksum: 2df23eb6
   data-files:
     - patterns:
         - 'version.json'
@@ -4432,6 +4432,7 @@
     - from_filenames:
         prefixes:
           - 'pdfium'
+          - 'libpdfium'
 
 - module-name: 'pyphen' # checksum: aa53bb0a
   data-files:
