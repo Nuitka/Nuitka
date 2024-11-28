@@ -1033,6 +1033,11 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'debian' # checksum: a633a55a
+  data-files:
+    - include-metadata:
+        - 'debian'
+
 - module-name: 'deepspeed' # checksum: 5af29274
   anti-bloat:
     - description: 'remove setuptools usage via triton'
