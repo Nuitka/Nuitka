@@ -113,10 +113,11 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
         if module.getFullName() != "playwright":
             return
 
+
         if not self.include_browsers:
 
             self.sysexit(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
+                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones. or if you want to exclude all browsers use '--playwright-include-browser=browserless'"  # pylint: disable=C0301
             )
 
         self.getInstalledPlaywrightBrowsers()
@@ -125,6 +126,10 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             self.sysexit(
                 "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
             )
+
+        if "browserless" in self.include_browsers:
+            self.info("you have chosen to not include any browsers")
+            return
 
         self.info("Including browsers: %s" % ", ".join(self.include_browsers))
         if "all" in self.include_browsers:
