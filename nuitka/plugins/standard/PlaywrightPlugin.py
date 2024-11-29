@@ -135,9 +135,12 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
 
         if not self.installed_browsers:
             self.warning("No browsers installed.")
+            if self.exclude_browsers:
+                self.warning("since there are no browsers installed. Cannot exclude browsers.")
             return
 
         for browser in self.exclude_browsers:
+            self.warning("Excluding browser %s." % browser)
             if browser in self.installed_browsers:
                 self.installed_browsers.pop(browser)
                 self.info("Excluding browser %s." % browser)
