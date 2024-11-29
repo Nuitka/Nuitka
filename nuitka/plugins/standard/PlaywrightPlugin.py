@@ -1,3 +1,8 @@
+import os
+
+from nuitka.Options import isStandaloneMode
+from nuitka.plugins.PluginBase import NuitkaPluginBase
+
 #     Copyright 2024, Kevin Rodriguez <mailto:turcioskevinr@gmail.com> find license text at end of file
 
 
@@ -6,11 +11,6 @@
 spell-checker: ignore Playwright
 """
 
-import os
-
-from nuitka.Options import isStandaloneMode
-from nuitka.plugins.PluginBase import NuitkaPluginBase
-
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
@@ -18,8 +18,9 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
     plugin_name = "playwright"
     plugin_desc = "Required by 'playwright' package."
 
-    def __init__(self, include_browsers):
+    def __init__(self, include_browsers, exclude_browsers):
         self.include_browsers = list(include_browsers)
+        self.exclude_browsers = list(exclude_browsers)
         self.installed_browsers = None
 
     @staticmethod
@@ -39,6 +40,15 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             default=[],
             help="""\
             Playwright browser to include. Can be specified multiple times. use "all" to include all installed browsers.
+            """,
+        )
+        group.add_option(
+            "--playwright-exclude-browser",
+            action="append",
+            dest="exclude_browsers",
+            default=[],
+            help="""\
+            Playwright browser to exclude. Can be specified multiple times, use "all" to exclude all installed browsers.
             """,
         )
 
@@ -109,61 +119,48 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             self.installed_browsers[browser.name] = browser
 
     def considerDataFiles(self, module):
-
         if module.getFullName() != "playwright":
             return
 
-
-        if not self.include_browsers:
-
+        if not self.include_browsers and not self.exclude_browsers:
             self.sysexit(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones. or if you want to exclude all browsers use '--playwright-include-browser=browserless'"  # pylint: disable=C0301
+                "No browsers included. Use '--playwright-include-browser=browser_name' or 'all' to include them.\n"
+                "Or '--playwright-exclude-browser=browser_name' to exclude specific browsers."
             )
-
         self.getInstalledPlaywrightBrowsers()
 
-        if not self.installed_browsers:
-            self.sysexit(
-                "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
-            )
-
-        if "browserless" in self.include_browsers:
-            self.info("you have chosen to not include any browsers")
+        if "all" in self.exclude_browsers:
+            self.info("All browsers excluded.")
             return
 
-        self.info("Including browsers: %s" % ", ".join(self.include_browsers))
+        if not self.installed_browsers:
+            self.warning("No browsers installed.")
+            return
+
+        for browser in self.exclude_browsers:
+            if browser in self.installed_browsers:
+                self.installed_browsers.pop(browser)
+                self.info("Excluding browser %s." % browser)
+            else:
+                self.warning(
+                    "Browser '%s' not found. Installed browsers: %s"
+                    % (browser, ", ".join(self.installed_browsers))
+                )
+
         if "all" in self.include_browsers:
-            self.include_browsers = self.installed_browsers
-        elif "ffmpeg" not in self.include_browsers and any(
-            browser.startswith("chrom") for browser in self.include_browsers
-        ):
-            for browser in self.installed_browsers:
-                if "ffmpeg" in self.installed_browsers[browser].name:
-                    self.include_browsers.append(browser)
-                    self.info(
-                        "Including 'ffmpeg' for chromium-based browser. It is required by playwright."
-                    )
-                    break
+            self.include_browsers = list(self.installed_browsers.keys())
 
         for browser in self.include_browsers:
             if browser not in self.installed_browsers:
-                msg = (
-                    "Error, requested to include browser '%s' that was not found, the list of installed ones is '%s'."
-                    % (
-                        browser,
-                        ", ".join(self.installed_browsers),
-                    )
+                self.sysexit(
+                    "Browser '%s' not found. Installed browsers: %s"
+                    % (browser, ", ".join(self.installed_browsers))
                 )
-                self.sysexit(msg)
 
-            msg = "Including '%s' from '%s'." % (
-                browser,
-                self.installed_browsers[browser].path,
-            )
-            self.info(msg)
-
+            source_path = self.installed_browsers[browser].path
+            self.info("Including browser '%s' from '%s'." % (browser, source_path))
             yield self.makeIncludedDataDirectory(
-                source_path=self.installed_browsers[browser],
+                source_path=source_path,
                 dest_path=os.path.join(
                     "playwright", "driver", "package", ".local-browsers", browser
                 ),
