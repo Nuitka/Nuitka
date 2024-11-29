@@ -127,51 +127,41 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
                 "No browsers included. Use '--playwright-include-browser=browser_name' or 'all' to include them.\n"
                 "Or '--playwright-exclude-browser=browser_name' to exclude specific browsers."
             )
+
         self.getInstalledPlaywrightBrowsers()
+        available_browsers = set(self.installed_browsers.keys())
+
+        if not available_browsers:
+            self.warning("No browsers installed - nothing to include or exclude.")
+            return
 
         if "all" in self.exclude_browsers:
             self.info("All browsers excluded.")
             return
 
-        if not self.installed_browsers:
-            self.warning("No browsers installed.")
-            if self.exclude_browsers:
-                self.warning("since there are no browsers installed. Cannot exclude browsers.")
-            return
+        browsers_to_include = set(available_browsers if "all" in self.include_browsers else self.include_browsers)
+        browsers_to_exclude = set(self.exclude_browsers)
 
-        for browser in self.exclude_browsers:
-            self.warning("Excluding browser %s." % browser)
-            if browser in self.installed_browsers:
-                self.installed_browsers.pop(browser)
-                self.info("Excluding browser %s." % browser)
-            else:
-                self.warning(
-                    "Browser '%s' not found. Installed browsers: %s"
-                    % (browser, ", ".join(self.installed_browsers))
-                )
+        invalid_includes = browsers_to_include - available_browsers
+        if invalid_includes:
+            self.sysexit('Browsers not found: %s. Available: %s' % (', '.join(invalid_includes), ', '.join(available_browsers)))
 
-        if "all" in self.include_browsers:
-            self.include_browsers = list(self.installed_browsers.keys())
+        invalid_excludes = browsers_to_exclude - available_browsers
+        if invalid_excludes:
+            self.warning('Excluding non-existent browsers: %s' % ', '.join(invalid_excludes))
 
-        for browser in self.include_browsers:
-            if browser not in self.installed_browsers:
-                self.sysexit(
-                    "Browser '%s' not found. Installed browsers: %s"
-                    % (browser, ", ".join(self.installed_browsers))
-                )
+        final_browsers = browsers_to_include - browsers_to_exclude
 
+        for browser in final_browsers:
             source_path = self.installed_browsers[browser].path
-            self.info("Including browser '%s' from '%s'." % (browser, source_path))
+            self.info('Including browser "%s" from "%s".' % (browser, source_path))
             yield self.makeIncludedDataDirectory(
                 source_path=source_path,
-                dest_path=os.path.join(
-                    "playwright", "driver", "package", ".local-browsers", browser
-                ),
-                reason="Playwright browser '%s'" % browser,
+                dest_path=os.path.join("playwright", "driver", "package", ".local-browsers", browser),
+                reason='Playwright browser "%s"' % browser,
                 tags="playwright",
                 raw=True,
             )
-
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
