@@ -515,6 +515,9 @@ if env.debug_mode:
         )
 
     elif env.msvc_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
+            env.Append(CCFLAGS=["/WX"])
+
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -526,7 +529,6 @@ if env.debug_mode:
                 "/wd4189",
                 "/wd4211",
                 "/wd4115",
-                "/WX",
             ]
         )
 
