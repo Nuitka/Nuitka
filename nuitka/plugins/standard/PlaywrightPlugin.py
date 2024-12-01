@@ -1,8 +1,3 @@
-import os
-
-from nuitka.Options import isStandaloneMode
-from nuitka.plugins.PluginBase import NuitkaPluginBase
-
 #     Copyright 2024, Kevin Rodriguez <mailto:turcioskevinr@gmail.com> find license text at end of file
 
 
@@ -10,6 +5,11 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 spell-checker: ignore Playwright
 """
+
+import os
+
+from nuitka.Options import isStandaloneMode
+from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
@@ -139,16 +139,25 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             self.info("All browsers excluded.")
             return
 
-        browsers_to_include = set(available_browsers if "all" in self.include_browsers else self.include_browsers)
+        browsers_to_include = set(
+            available_browsers
+            if "all" in self.include_browsers
+            else self.include_browsers
+        )
         browsers_to_exclude = set(self.exclude_browsers)
 
         invalid_includes = browsers_to_include - available_browsers
         if invalid_includes:
-            self.sysexit('Browsers not found: %s. Available: %s' % (', '.join(invalid_includes), ', '.join(available_browsers)))
+            self.sysexit(
+                "Browsers not found: %s. Available: %s"
+                % (", ".join(invalid_includes), ", ".join(available_browsers))
+            )
 
         invalid_excludes = browsers_to_exclude - available_browsers
         if invalid_excludes:
-            self.warning('Excluding non-existent browsers: %s' % ', '.join(invalid_excludes))
+            self.warning(
+                "Excluding non-existent browsers: %s" % ", ".join(invalid_excludes)
+            )
 
         final_browsers = browsers_to_include - browsers_to_exclude
 
@@ -157,11 +166,14 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             self.info('Including browser "%s" from "%s".' % (browser, source_path))
             yield self.makeIncludedDataDirectory(
                 source_path=source_path,
-                dest_path=os.path.join("playwright", "driver", "package", ".local-browsers", browser),
+                dest_path=os.path.join(
+                    "playwright", "driver", "package", ".local-browsers", browser
+                ),
                 reason='Playwright browser "%s"' % browser,
                 tags="playwright",
                 raw=True,
             )
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
