@@ -261,7 +261,7 @@ def _reduceToPythonPath(used_dll_paths):
         else:
             if dll_filename not in _excluded_system_dlls:
                 _excluded_system_dlls.add(dll_filename)
-                inclusion_logger.info("Not including system DLL '%s'" % dll_filename)
+                inclusion_logger.debug("Not including system DLL '%s'" % dll_filename)
 
             removed_dll_paths.add(dll_filename)
 
