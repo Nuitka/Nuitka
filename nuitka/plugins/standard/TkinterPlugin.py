@@ -66,14 +66,14 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         self.tcl_library_dir = tcl_library_dir
         self.tk_library_dir = tk_library_dir
 
-        # ensure one-time action, we deal with two names for the execution, yet we
-        # only want to do it once.
+        # ensure one-time action, we deal with several names for the execution,
+        # yet we only want to do it once.
         self.files_copied = False
 
         self.tk_inter_version = getTkInterVersion()
 
         if self.tk_inter_version is None:
-            self.sysexit("Error, it seems tk-inter is not installed.")
+            self.sysexit("Error, it seems 'tk-inter' is not installed.")
 
         # Only ever saw these 2 in use.
         assert self.tk_inter_version in ("8.5", "8.6"), self.tk_inter_version
@@ -164,6 +164,16 @@ The Tcl library dir. See comments for Tk library dir.""",
                 )
             )
 
+            # Homebrew is compiled to think it's 8.6, but it might actually
+            # be the version 9.
+            yield os.path.normpath(
+                os.path.join(
+                    _getHomebrewPrefix(self),
+                    "lib",
+                    "tcl9",
+                )
+            )
+
     def _getTkCandidatePaths(self):
         yield os.getenv("TK_LIBRARY")
 
@@ -188,6 +198,16 @@ The Tcl library dir. See comments for Tk library dir.""",
                     _getHomebrewPrefix(self),
                     "lib",
                     "tk%s" % self.tk_inter_version,
+                )
+            )
+
+            # Homebrew is compiled to think it's 8.6, but it might actually
+            # be the version 9.
+            yield os.path.normpath(
+                os.path.join(
+                    _getHomebrewPrefix(self),
+                    "lib",
+                    "tk9.0",
                 )
             )
 
