@@ -246,7 +246,7 @@ extern PyObject *OS_LSTAT(PyThreadState *tstate, PyObject *path, PyObject *dir_f
 
     assert(path != NULL);
     assert(dir_fd == NULL);
-    PyObject *stat_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_stat);
+    PyObject *stat_func = LOOKUP_ATTRIBUTE(tstate, IMPORT_HARD_OS(), const_str_plain_lstat);
 
     result = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, stat_func, path);
 

@@ -97,7 +97,7 @@ Check if it would build, without uploading.
         python_versions=("3.10",), module_name=None, module_version=None
     )
 
-    os.system("umask 0022 && chmod -R a+rX")
+    os.system("umask 0022 && chmod -R a+rX .")
 
     with withVirtualenv(
         "venv_nuitka",

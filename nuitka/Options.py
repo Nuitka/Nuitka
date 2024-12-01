@@ -511,7 +511,7 @@ Error, the Python from Windows app store is not supported.""",
             options.module_mode = True
         elif options.compilation_mode == "app":
             if isMacOS():
-                options.create_app_bundle = True
+                options.macos_create_bundle = True
             else:
                 options.is_onefile = True
 
