@@ -531,7 +531,7 @@ if env.debug_mode:
         )
 
         # Disable warnings, that CPython headers already show.
-        if python_version >= (3, 4):
+        if python_version >= (3,):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
         if python_version >= (3, 13):
