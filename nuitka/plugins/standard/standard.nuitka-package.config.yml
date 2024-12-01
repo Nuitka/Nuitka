@@ -1033,6 +1033,11 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'debian' # checksum: a633a55a
+  data-files:
+    - include-metadata:
+        - 'debian'
+
 - module-name: 'deepspeed' # checksum: 5af29274
   anti-bloat:
     - description: 'remove setuptools usage via triton'
@@ -1236,6 +1241,11 @@
         - '.ANY.*'
         - '.IN.*'
         - '.CH.A'
+
+- module-name: 'docling_core' # checksum: 690d0f0d
+  data-files:
+    - include-metadata:
+        - 'docling-core'
 
 - module-name: 'dotenv' # checksum: c120bb25
   anti-bloat:
@@ -3764,6 +3774,11 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
+- module-name: 'pdfminer' # checksum: a3629ef7
+  data-files:
+    - dirs:
+        - 'cmap'
+
 - module-name: 'pendulum' # checksum: 71704ba2
   data-files:
     - empty_dir_structures:
@@ -4413,7 +4428,7 @@
     - patterns:
         - 'version.json'
 
-- module-name: 'pypdfium2_raw' # checksum: 2bdc1095
+- module-name: 'pypdfium2_raw' # checksum: 2df23eb6
   data-files:
     - patterns:
         - 'version.json'
@@ -4422,6 +4437,7 @@
     - from_filenames:
         prefixes:
           - 'pdfium'
+          - 'libpdfium'
 
 - module-name: 'pyphen' # checksum: aa53bb0a
   data-files:
