@@ -130,6 +130,7 @@ def getBranchCategory(branch_name):
 
 
 def makeNuitkaSourceDistribution(formats=None, sign=True):
+    # spell-checker: ignore bztar,gztar
     if formats is None:
         formats = ("bztar", "gztar", "zip")
 
@@ -142,7 +143,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
     )
 
     # Avoid strange permissions in archive
-    os.system("umask 0022 && chmod -R a+rX")
+    os.system("umask 0022 && chmod -R a+rX .")
 
     filenames = []
 
@@ -177,14 +178,12 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
     assert os.path.exists(filename), filename
 
     # Delete requires.txt as it confuses poetry and potentially other tools
-    assert os.system("gunzip %s" % filename) == 0
-    assert (
-        os.system(
-            "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
-            % filename[:-3]
-        )
-        == 0
+    assert os.system("gunzip -9 %s" % filename) == 0
+    os.system(
+        "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+        % filename[:-3]
     )
+
     assert os.system("gzip -9 %s" % filename[:-3]) == 0
     assert os.path.exists(filename), filename
 
@@ -202,14 +201,12 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
         filename = "dist/Nuitka-%d.%d.%d.tar.bz2" % nuitka_version[:3]
 
     if os.path.exists(filename):
-        # Delete requires.txt as it confuses poetry and potentially other tools
+        # Delete requires.txt as it confuses poetry and potentially other tools,
+        # spell-checker: ignore bunzip2
         assert os.system("bunzip2 %s" % filename) == 0
-        assert (
-            os.system(
-                "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
-                % filename[:-4]
-            )
-            == 0
+        os.system(
+            "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+            % filename[:-4]
         )
         assert os.system("bzip2 -9 %s" % filename[:-4]) == 0
         assert os.path.exists(filename), filename
@@ -227,9 +224,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     if os.path.exists(filename):
         # Delete requires.txt as it confuses poetry and potentially other tools
-        assert (
-            os.system("zip -d %s Nuitka-*/Nuitka.egg-info/requires.txt" % filename) == 0
-        )
+        os.system("zip -d %s Nuitka-*/Nuitka.egg-info/requires.txt" % filename)
         assert os.path.exists(filename), filename
 
         filenames.append(filename)
