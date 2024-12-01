@@ -84,6 +84,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
     getExternalUsePath,
+    getReportPath,
     openTextFile,
     removeDirectory,
     resetDirectory,
@@ -1131,7 +1132,7 @@ not use compiled code while it exists."""
                 mnemonic="compiled-package-hidden-by-package",
             )
 
-    general.info("Successfully created '%s'." % final_filename)
+    general.info("Successfully created '%s'." % getReportPath(final_filename))
 
     writeCompilationReports(aborted=False)
 
