@@ -14,9 +14,12 @@
 
 from __future__ import print_function
 
+import os
 import sys
 
 print("START:")
+# os.chdir(os.path.dirname(sys.argv[0]))
+# print(os.getcwd())
 
 # Python3 changed module name.
 if str is bytes:
