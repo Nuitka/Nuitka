@@ -108,11 +108,9 @@ def getConstantDefaultPopulation():
         "isfile",
         "listdir",
         "stat",
+        "lstat",
         "close",
     ]
-
-    if python_version < 0x300:
-        result += ("lstat",)
 
     # Pickling of instance methods.
     if python_version < 0x300:
