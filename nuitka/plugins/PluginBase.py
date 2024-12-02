@@ -1603,7 +1603,7 @@ except Exception as e:
         if type(value) not in (str, unicode):
             self.sysexit(
                 """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result but '%s'"""
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result, but '%s'"""
                 % (expression, full_name, type(value))
             )
 
