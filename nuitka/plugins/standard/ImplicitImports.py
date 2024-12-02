@@ -543,6 +543,10 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 ):
                     code = "\n".join(entry.get("pre-import-code"))
 
+                    # TODO: Add a description to the Yaml file.
+                    yield code, """\
+According to Yaml 'pre-import-code' configuration."""
+
         for entry in self.config.get(full_name, section="import-hacks"):
             if "force-environment-variables" in entry:
                 if self.evaluateCondition(
