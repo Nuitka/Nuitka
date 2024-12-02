@@ -5055,18 +5055,38 @@
           - 'librlottie'
       when: 'not win32'
 
-- module-name: 'rtree' # checksum: 7b6be18
+- module-name: 'rtree.finder' # checksum: 312489cf
+  variables:
+    setup_code:
+      - 'import ctypes, os, rtree.finder'
+      - 'orig_LoadLibrary = ctypes.cdll.LoadLibrary'
+      - 'val = []'
+      - 'def my_LoadLibrary(filename):'
+      - '    val.append(filename)'
+      - '    return orig_LoadLibrary(filename)'
+      - 'ctypes.cdll.LoadLibrary = my_LoadLibrary'
+      - 'rtree.finder.load()'
+    declarations:
+      'rtree_dll_source_paths': 'val[0]'
+      'rtree_dll_names': '"libspatialindex" + (".dll" if os.name=="nt" else ".so")'
   dlls:
-    - from_filenames:
-        relative_path: 'lib'
-        prefixes:
-          - 'spatialindex'
+    - from_sources:
+        'source_paths':
+          - 'get_variable("rtree_dll_source_paths")'
+        'dest_names':
+          - 'get_variable("rtree_dll_names")'
+  anti-bloat:
+    - description: 'workaround libspatialindex DLL name changes for arches'
+      replacements_plain:
+        'str(path / lib_name)': 'str(path)'
+        'os.environ["PATH"] = ";".join([str(path), oldenv])': 'os.environ["PATH"] = ";".join([str(path.parent), oldenv])'
       when: 'win32'
-    - from_filenames:
-        relative_path: 'lib'
-        prefixes:
-          - 'libspatialindex'
-      when: 'not win32'
+
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          os.environ["SPATIALINDEX_C_LIBRARY"] = os.path.join(os.path.dirname(__file__), "libspatialindex" + (".dll" if os.name=="nt" else ".so"))
 
 - module-name: 'scapy.all' # checksum: 8a9944ce
   implicit-imports:
