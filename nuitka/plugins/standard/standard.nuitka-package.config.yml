@@ -7547,6 +7547,11 @@
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
 
+- module-name: 'torch._dynamo.polyfills.loader' # checksum: e5019356
+  implicit-imports:
+    - depends:
+        - 'torch._dynamo.polyfills.*'
+
 - module-name: 'torch._dynamo.skipfiles' # checksum: 120e0012
   anti-bloat:
     # When calling inspect.getfile() on Nuitka's loader, it will yield
