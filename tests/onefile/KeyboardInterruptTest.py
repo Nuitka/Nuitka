@@ -5,7 +5,9 @@
 
 """
 
-# nuitka-project: --onefile
+# nuitka-project: --mode=onefile
+
+from __future__ import print_function
 
 import sys
 import time
