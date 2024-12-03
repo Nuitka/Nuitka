@@ -1491,7 +1491,7 @@ def getShallNotIncludeDataFilePatterns():
 
 
 def getShallIncludeExternallyDataFilePatterns():
-    """*list*, items of ``--include-onefile-external-data=``"""
+    """*list*, items of ``--include-data-files-external=``"""
 
     return options.data_files_external
 
