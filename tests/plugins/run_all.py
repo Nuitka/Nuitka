@@ -28,11 +28,11 @@ from nuitka.tools.testing.Common import (
     getMainProgramFilename,
     my_print,
     reportSkip,
+    scanDirectoryForTestCases,
     setup,
     withPythonPathChange,
 )
 from nuitka.utils.Utils import isWin32Windows
-from nuitka.Version import getCommercialVersion
 
 
 def main():
@@ -42,14 +42,7 @@ def main():
     search_mode = createSearchMode()
 
     # TODO: Add a directory test case scanner instead of duplicating this kind of code.
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
-        ):
-            continue
-
+    for filename in scanDirectoryForTestCases(dirname=".", cases_are_directories=True):
         filename = os.path.relpath(filename)
 
         extra_flags = ["expect_success"]
@@ -70,11 +63,7 @@ def main():
 
         my_print("Consider output of recursively compiled program:", filename)
 
-        if filename in ("code_signing",):
-            if getCommercialVersion() is None:
-                reportSkip("Plugin only available in Nuitka commercial", ".", filename)
-                continue
-
+        if filename in ("code_signing_commercial",):
             if not isWin32Windows():
                 reportSkip("Plugin only works on Windows", ".", filename)
                 continue
