@@ -410,6 +410,7 @@ Default empty.""",
 
 data_group.add_option(
     "--include-data-files",
+    "--include-data-file",
     action="append",
     dest="data_files",
     metavar="DESC",
@@ -453,6 +454,7 @@ whole directory simply use 'package_name'. Default empty.""",
 
 data_group.add_option(
     "--include-onefile-external-data",
+    "--include-data-files-external",
     action="append",
     dest="data_files_external",
     metavar="PATTERN",
