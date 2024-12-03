@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-# nuitka-project: --onefile
+# nuitka-project: --mode=onefile
 # nuitka-project: --enable-plugin=signing
 # nuitka-project: --windows-certificate-filename={MAIN_DIRECTORY}/../../../misc/test-cert.pfx
 # nuitka-project: --windows-certificate-password=password
