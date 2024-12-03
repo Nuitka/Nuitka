@@ -1234,21 +1234,36 @@ def getTestingCPythonOutputsCacheDir():
     return result
 
 
-def scanDirectoryForTestCases(dirname, template_context=None):
+def scanDirectoryForTestCases(
+    dirname, template_context=None, cases_are_directories=False
+):
     filenames = os.listdir(dirname)
 
-    filenames = [
-        filename
-        for filename in filenames
-        if (filename.endswith(".py") and filename + ".j2" not in filenames)
-        or filename.endswith(".j2")
-    ]
+    if not cases_are_directories:
+        filenames = [
+            filename
+            for filename in filenames
+            if (filename.endswith(".py") and filename + ".j2" not in filenames)
+            or filename.endswith(".j2")
+        ]
 
     for filename in sorted(filenames):
+        if filename.endswith((".build", ".onefile-build", ".dist", ".app")):
+            continue
+
+        filename_full = os.path.join(dirname, filename)
+
+        if cases_are_directories:
+            if not os.path.isdir(filename_full):
+                continue
+        else:
+            if not os.path.isfile(filename_full):
+                continue
+
         if not decideFilenameVersionSkip(filename):
             continue
 
-        if filename.endswith(".j2"):
+        if cases_are_directories and filename.endswith(".j2"):
             # Needs to be a dictionary with template arguments.
             assert template_context is not None
 
