@@ -718,8 +718,9 @@ def getPackageSearchPath(package_name):
                 if isPackageDir(package_dir) or force_package:
                     result.append(package_dir)
 
-    result = [element for element in result if os.path.exists(element)]
-    return OrderedSet(result)
+    return OrderedSet(
+        element for element in OrderedSet(result) if os.path.exists(element)
+    )
 
 
 def _findModuleInPath(module_name):
