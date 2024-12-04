@@ -6,6 +6,7 @@
 """
 
 from nuitka.Options import (
+    getMacOSSignedAppName,
     getMacOSSigningIdentity,
     shallUseSigningForNotarization,
 )
@@ -104,8 +105,15 @@ def addMacOSCodeSignature(filenames):
         "--force",
         "--deep",
         "--preserve-metadata=entitlements",
-        # ,
     ]
+
+    macos_signed_app_name = getMacOSSignedAppName()
+
+    if macos_signed_app_name is not None:
+        command += [
+            "-i",
+            macos_signed_app_name,
+        ]
 
     if shallUseSigningForNotarization():
         command.append("--options=runtime")
