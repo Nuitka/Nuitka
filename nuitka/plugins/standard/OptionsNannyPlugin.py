@@ -81,15 +81,16 @@ Error, package '%s' requires '--macos-create-app-bundle' to be used or else it c
         elif macos_bundle == "no":
             pass
         elif macos_bundle == "recommend":
-            self.info(
-                """\
+            if not shallCreateAppBundle():
+                self.info(
+                    """\
 Note, when using '%s', consider using '--macos-create-app-bundle' option. \
 Otherwise high resolution will not be available and a terminal window will \
 open. However for debugging, terminal output is the easiest way to see \
 informative traceback and error information, so launch it from there if \
 possible."""
-                % full_name
-            )
+                    % full_name
+                )
         else:
             self.sysexitIllegalOptionValue(full_name, "macos_bundle", macos_bundle)
 

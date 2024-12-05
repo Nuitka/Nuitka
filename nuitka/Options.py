@@ -1565,7 +1565,7 @@ def getOutputFilename():
 def getOutputPath(path):
     """Return output pathname of a given path (filename)."""
     if options.output_dir:
-        return os.path.normpath(os.path.join(options.output_dir, path))
+        return getNormalizedPath(os.path.join(options.output_dir, path))
     else:
         return path
 

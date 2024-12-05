@@ -27,7 +27,7 @@ from nuitka.Options import (
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
-from nuitka.Tracing import general, options_logger
+from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
     containsPathElements,
@@ -335,6 +335,15 @@ def addIncludedDataFile(included_datafile):
                 path=external_datafile_pattern, filename=included_datafile.dest_path
             ):
                 included_datafile.tags.add("external")
+
+                dest_path = getOutputPath(included_datafile.dest_path)
+
+                if areSamePaths(dest_path, included_datafile.source_path):
+                    inclusion_logger.sysexit(
+                        """\
+Error, when asking to copy files external data, you cannot output to\
+same directory and need to use '--output-dir' option."""
+                    )
 
     _included_data_files.append(included_datafile)
 

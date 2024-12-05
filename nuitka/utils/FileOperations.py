@@ -1515,6 +1515,9 @@ def getNormalizedPath(path):
     if isWin32Windows():
         path = path.replace("/", "\\")
 
+    if isMacOS():
+        path = os.path.expanduser(path)
+
     return path
 
 

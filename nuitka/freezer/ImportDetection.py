@@ -137,7 +137,10 @@ print("\\n".join(sorted(
                     "_collections_abc.py",
                     "_collections_abc.pyc",
                 ):
-                    if python_version >= 0x3D0:
+                    # Note: This was only useful for 3.13.0, and 3.13.1 already
+                    # didn't need it anymore. So precise version check for a major
+                    # version is correct here.
+                    if python_version == 0x3D0:
                         detections.append((module_name, 2, "sourcefile", filename))
 
                     module_name = ModuleName("_collections_abc")

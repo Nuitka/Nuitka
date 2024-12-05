@@ -230,6 +230,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
     if isMacOS():
         addMacOSCodeSignature(filenames=[onefile_output_filename])
+        assert payload_used_in_build
 
     if not payload_used_in_build:
         runOnefileCompressor(

@@ -1015,9 +1015,14 @@ void DICT_CLEAR(PyObject *dict) {
 #if PYTHON_VERSION >= 0x3b0
 static inline int Nuitka_py_get_index_from_order(PyDictObject *mp, Py_ssize_t i) {
     assert(mp->ma_used <= SHARED_KEYS_MAX_SIZE);
+#if PYTHON_VERSION < 0x3d0
     assert(i < (((char *)mp->ma_values)[-2]));
-
     return ((char *)mp->ma_values)[-3 - i];
+#else
+    assert(i < mp->ma_values->size);
+    uint8_t *array = get_insertion_order_array(mp->ma_values);
+    return array[i];
+#endif
 }
 #endif
 
@@ -1049,7 +1054,14 @@ static inline Py_ssize_t Nuitka_Py_dictkeys_get_index(const PyDictKeysObject *ke
     return ix;
 }
 
-static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) { return _PyASCIIObject_CAST(o)->hash; }
+static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
+#if PYTHON_VERSION < 0x3d0
+    return _PyASCIIObject_CAST(o)->hash;
+#else
+    assert(PyUnicode_CheckExact(o));
+    return FT_ATOMIC_LOAD_SSIZE_RELAXED(_PyASCIIObject_CAST(o)->hash);
+#endif
+}
 
 // From CPython
 #define PERTURB_SHIFT 5

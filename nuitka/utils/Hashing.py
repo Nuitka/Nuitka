@@ -7,6 +7,7 @@ Offers support for hashing incrementally and files esp. without having
 to read their contents.
 """
 
+import struct
 from binascii import crc32
 
 from nuitka.__past__ import md5, unicode
@@ -111,10 +112,13 @@ class HashCRC32(HashBase):
         self.hash = crc32(value, self.hash)
 
     def asDigest(self):
+        if self.hash < 0:
+            return struct.unpack("I", struct.pack("i", self.hash))[0]
+
         return self.hash
 
     def asHexDigest(self):
-        return hex(self.hash)[2:]
+        return hex(self.asDigest())[2:]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

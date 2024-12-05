@@ -16,6 +16,10 @@
 #include <windows.h>
 #endif
 
+#if defined(__APPLE__)
+#include <unistd.h>
+#endif
+
 #include "nuitka/prelude.h"
 
 #ifndef __IDE_ONLY__
@@ -1217,6 +1221,19 @@ int main(int argc, char **argv) {
     // cannot even output traces.
 #if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
     inheritAttachedConsole();
+#endif
+
+#ifdef _NUITKA_MACOS_BUNDLE
+    {
+        char *current_dir = getcwd(NULL, -1);
+
+        if (strcmp(current_dir, "/") == 0) {
+            chdir(getBinaryDirectoryHostEncoded(false));
+            chdir("../../../");
+        }
+
+        free(current_dir);
+    }
 #endif
 
     // Set up stdout/stderr according to user specification.
