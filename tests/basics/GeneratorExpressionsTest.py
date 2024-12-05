@@ -49,9 +49,9 @@ def iteratorCreationTiming():
     gen = ((y, z) for y in getIterable(3) for z in getIterable(2))
 
     print("Using generator", gen)
-    next(gen)
+    print("next value is", next(gen))
     res = tuple(gen)
-    print(res)
+    print("remaining generator is", res)
 
     print("*" * 20)
 

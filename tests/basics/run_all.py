@@ -26,13 +26,14 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     getDebugPython,
+    reportSkip,
     scanDirectoryForTestCases,
     setup,
 )
 
 
 def main():
-    setup(suite="basics", needs_io_encoding=True)
+    python_version = setup(suite="basics", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -81,6 +82,11 @@ def main():
         # import won't raise ImportError.
         if filename == "BuiltinOverloadTest.py":
             extra_flags.append("ignore_warnings")
+
+        if python_version == (3, 13, 1):
+            if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
+                reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
+                continue
 
         active = search_mode.consider(dirname=None, filename=filename)
 
