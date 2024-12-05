@@ -195,6 +195,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_intrinsics.h>
 #include <internal/pycore_modsupport.h>
 #include <internal/pycore_parking_lot.h>
+#include <internal/pycore_pyatomic_ft_wrappers.h>
 #include <internal/pycore_setobject.h>
 #include <internal/pycore_time.h>
 #endif
