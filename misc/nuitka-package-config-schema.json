@@ -130,6 +130,27 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "from_sources": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "source_paths": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "dest_names": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "source_paths"
+                            ]
+                        },
                         "from_filenames": {
                             "type": "object",
                             "additionalProperties": false,

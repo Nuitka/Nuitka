@@ -317,8 +317,6 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
         for config_package_dir in config.get("package-dirs", ()):
             yield os.path.normpath(os.path.join(package_dir, "..", config_package_dir))
 
-            yield package_dir
-
         for config_package_name in config.get("package-paths", ()):
             module_filename = self.locateModule(config_package_name)
 
