@@ -317,8 +317,6 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
         for config_package_dir in config.get("package-dirs", ()):
             yield os.path.normpath(os.path.join(package_dir, "..", config_package_dir))
 
-            yield package_dir
-
         for config_package_name in config.get("package-paths", ()):
             module_filename = self.locateModule(config_package_name)
 
@@ -542,6 +540,10 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     full_name=full_name, condition=entry.get("when", "True")
                 ):
                     code = "\n".join(entry.get("pre-import-code"))
+
+                    # TODO: Add a description to the Yaml file.
+                    yield code, """\
+According to Yaml 'pre-import-code' configuration."""
 
         for entry in self.config.get(full_name, section="import-hacks"):
             if "force-environment-variables" in entry:
