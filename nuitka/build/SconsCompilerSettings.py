@@ -211,6 +211,22 @@ version for lto mode (>= 4.6). Disabled."""
         lto_mode = False
         reason = "gcc 4.6 is doesn't have good enough LTO support"
 
+    if (
+        lto_mode
+        and env.gcc_mode
+        and not env.clang_mode
+        and not isWin32Windows()
+        and not isMacOS()
+        and getExecutablePath("make", env=env) is None
+    ):
+        scons_logger.warning(
+            """\
+The gcc compiler for LTO mode requires 'make' to be installed \
+for parallel linking to be used, compilation might be a lot \
+slower without it.
+"""
+        )
+
     if env.gcc_mode and lto_mode:
         if env.clang_mode:
             env.Append(CCFLAGS=["-flto"])
