@@ -502,6 +502,8 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
             context=context,
         )
 
+        context.addCleanupTempName(value_name)
+
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
