@@ -31,6 +31,7 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
 from nuitka.nodes.NodeMetaClasses import NodeCheckMetaClass
@@ -454,6 +455,7 @@ def makeBuiltinOperationNodes():
                 addChildrenMixin=addChildrenMixin,
                 reversed=reversed,
                 str=str,
+                repr=repr,
                 name=template.name,
             )
 
@@ -955,6 +957,8 @@ def getSpecVersions(spec_module):
             (0x390, "39"),
             (0x3A0, "310"),
             (0x3B0, "311"),
+            (0x3C0, "312"),
+            (0x3D0, "313"),
         ):
             if "since_%s" % str_version in spec_name:
                 python_criterion = ">= 0x%x" % version
@@ -1018,7 +1022,7 @@ hard_import_node_classes = {}
         for spec_descriptions in getSpecVersions(nuitka.specs.HardImportSpecs):
             spec = spec_descriptions[0][2]
 
-            named_children_checkers = {}
+            named_children_checkers = OrderedDict()
 
             module_name, function_name = spec.name.rsplit(".", 1)
             module_name_title = makeTitleCased(adaptModuleName(module_name))
@@ -1048,7 +1052,7 @@ hard_import_node_classes = {}
 
             for spec_desc in spec_descriptions:
                 spec = spec_desc.spec
-                parameter_names = spec.getParameterNames()
+                parameter_names = spec.getParameterNames2()
 
                 named_children_types = {}
                 if spec.name == "pkg_resources.require":

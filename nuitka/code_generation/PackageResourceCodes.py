@@ -5,6 +5,7 @@
 
 from nuitka.Options import shallMakeModule
 
+from .BuiltinCodes import getBuiltinCallViaSpecCode
 from .CallCodes import (
     getCallCodeKwPairs,
     getCallCodeKwSplit,
@@ -694,13 +695,6 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
 
 
 def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, context):
-    (
-        package_name,
-        resource_name,
-        encoding_name,
-        errors_name,
-    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
-
     with withObjectCodeTemporaryAssignment(
         to_name, "read_text_value", expression, emit, context
     ) as result_name:
@@ -715,11 +709,11 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
             context=context,
         )
 
-        getCallCodePosArgsQuick(
+        getBuiltinCallViaSpecCode(
+            spec=expression.spec,
             to_name=result_name,
             called_name=read_text_function,
             expression=expression,
-            arg_names=(package_name, resource_name, encoding_name, errors_name),
             emit=emit,
             context=context,
         )
