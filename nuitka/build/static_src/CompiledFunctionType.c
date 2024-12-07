@@ -2170,9 +2170,8 @@ static bool _handleArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_Funct
     Py_ssize_t arg_count = function->m_args_positional_count;
 
     // Check if too many arguments were given in case of non list star arg.
-    // For Python3.3 it's done only later, when more knowledge has
-    // been gained. TODO: Could be done this way for improved mode
-    // on all versions.
+    // For Python3 it's done only later, when more knowledge has
+    // been gained.
 #if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size > arg_count)) {
@@ -2277,9 +2276,8 @@ static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_
     }
 
     // Check if too many arguments were given in case of non list star arg.
-    // For Python3.3 it's done only later, when more knowledge has
-    // been gained. TODO: Could be done this way for improved mode
-    // on all versions.
+    // For Python3 it's done only later, when more knowledge has
+    // been gained.
 #if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size + 1 > arg_count)) {
@@ -2373,9 +2371,8 @@ static bool _handleArgumentsPlain(PyThreadState *tstate, struct Nuitka_FunctionO
     Py_ssize_t arg_count = function->m_args_positional_count;
 
     // Check if too many arguments were given in case of non list star arg.
-    // For Python3.3 it's done only later, when more knowledge has
-    // been gained. TODO: Could be done this way for improved mode
-    // on all versions.
+    // For Python3 it's done only later, when more knowledge has
+    // been gained.
 #if PYTHON_VERSION < 0x300
     if (function->m_args_star_list_index == -1) {
         if (unlikely(args_size > arg_count)) {
@@ -2520,7 +2517,7 @@ static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObjec
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3.3 the keyword only errors are all reported at once.
+    // For Python3 the keyword only errors are all reported at once.
     bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
@@ -2665,7 +2662,7 @@ static bool parseArgumentsFullKwSplit(PyThreadState *tstate, struct Nuitka_Funct
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3.3 the keyword only errors are all reported at once.
+    // For Python3 the keyword only errors are all reported at once.
     bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
@@ -2756,7 +2753,7 @@ static bool parseArgumentsFull(PyThreadState *tstate, struct Nuitka_FunctionObje
     }
 
 #if PYTHON_VERSION >= 0x300
-    // For Python3.3 the keyword only errors are all reported at once.
+    // For Python3 the keyword only errors are all reported at once.
     bool kw_only_error = false;
 
     for (Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++) {
