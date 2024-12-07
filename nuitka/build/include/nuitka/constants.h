@@ -89,6 +89,8 @@ extern PyObject **global_constants;
 #define const_str_plain_rb global_constants[29]
 // 'b'
 #define const_str_plain_b global_constants[29]
+// 'r'
+#define const_str_plain_r global_constants[29]
 // 'w'
 #define const_str_plain_w global_constants[29]
 // 'open'
