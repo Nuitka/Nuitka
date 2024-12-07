@@ -238,12 +238,27 @@ class ParameterSpec(object):
         return result
 
     def getParameterNames(self):
+        """Get parameter names in code object order."""
         result = list(self.pos_only_args + self.normal_args)
 
         result += self.kw_only_args
 
         if self.list_star_arg is not None:
             result.append(self.list_star_arg)
+
+        if self.dict_star_arg is not None:
+            result.append(self.dict_star_arg)
+
+        return tuple(result)
+
+    def getParameterNames2(self):
+        """Get parameter names in call order of execution."""
+        result = list(self.pos_only_args + self.normal_args)
+
+        if self.list_star_arg is not None:
+            result.append(self.list_star_arg)
+
+        result += self.kw_only_args
 
         if self.dict_star_arg is not None:
             result.append(self.dict_star_arg)
@@ -590,7 +605,7 @@ def matchCall(
                     unassigned,
                     "s" if unassigned > 1 else "",
                     " and ".join(
-                        "'%s'" % [arg for arg in kw_only_args if not isAssigned(arg)]
+                        ["'%s'" % arg for arg in kw_only_args if not isAssigned(arg)]
                     ),
                 )
             )
