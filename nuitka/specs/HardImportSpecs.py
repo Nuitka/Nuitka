@@ -93,7 +93,15 @@ importlib_resources_backport_read_binary_spec = BuiltinParameterSpec(
     default_count=0,
     type_shape=tshape_bytes,
 )
-importlib_resources_read_text_spec = BuiltinParameterSpec(
+importlib_resources_read_text_since_313_spec = BuiltinParameterSpec(
+    "importlib.resources.read_text",
+    ("package",),
+    list_star_arg="resources",
+    kw_only_args=("encoding", "errors"),
+    default_count=2,
+    type_shape=tshape_str,
+)
+importlib_resources_read_text_before_313_spec = BuiltinParameterSpec(
     "importlib.resources.read_text",
     ("package", "resource", "encoding", "errors"),
     default_count=2,
