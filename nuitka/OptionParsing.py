@@ -1009,7 +1009,7 @@ c_compiler_group.add_option(
     "--mingw64",
     action="store_true",
     dest="mingw64",
-    default=False,
+    default=None,
     help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW Python is used.""",
 )
@@ -1508,7 +1508,7 @@ macos_group.add_option(
     "--macos-create-app-bundle",
     action="store_true",
     dest="macos_create_bundle",
-    default=False,
+    default=None,
     github_action=False,
     help="""\
 When compiling for macOS, create a bundle rather than a plain binary
@@ -1569,7 +1569,7 @@ macos_group.add_option(
     dest="macos_app_mode",
     metavar="APP_MODE",
     choices=("gui", "background", "ui-element"),
-    default="gui",
+    default=None,
     help="""\
 Mode of application for the application bundle. When launching a Window, and appearing
 in Docker is desired, default value "gui" is a good fit. Without a Window ever, the
@@ -1583,7 +1583,7 @@ macos_group.add_option(
     action="store",
     dest="macos_sign_identity",
     metavar="MACOS_APP_VERSION",
-    default="ad-hoc",
+    default=None,
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
 option your get to specify another identity to use. The signing of code is now
@@ -1595,7 +1595,7 @@ macos_group.add_option(
     "--macos-sign-notarization",
     action="store_true",
     dest="macos_sign_notarization",
-    default=False,
+    default=None,
     help="""\
 When signing for notarization, using a proper TeamID identity from Apple, use
 the required runtime signing option, such that it can be accepted.""",
