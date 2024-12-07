@@ -255,11 +255,11 @@ def withEnvironmentVarsOverridden(mapping):
             os.environ[env_var_name] = old_values[env_var_name]
 
 
-def wrapCommandForDebuggerForExec(*args):
+def wrapCommandForDebuggerForExec(command, debugger=None):
     """Wrap a command for system debugger to call exec
 
     Args:
-        args: (list of str) args for call to be debugged
+        command: (iterable of str) args for call to be debugged
     Returns:
         args tuple with debugger command inserted
 
@@ -268,11 +268,13 @@ def wrapCommandForDebuggerForExec(*args):
         debuggers would be very welcome.
     """
 
+    command = tuple(command)
+
     gdb_path = getExecutablePath("gdb")
-    lldb_path = None
+    lldb_path = getExecutablePath("lldb")
 
     # Windows extra ball, attempt the downloaded one.
-    if isWin32Windows() and gdb_path is None:
+    if isWin32Windows() and gdb_path is None and lldb_path is None:
         from nuitka.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
@@ -285,12 +287,23 @@ def wrapCommandForDebuggerForExec(*args):
             lldb_path = getExecutablePath("lldb")
 
     if gdb_path is None and lldb_path is None:
-        lldb_path = getExecutablePath("lldb")
-
         if lldb_path is None:
             general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
-    if gdb_path is not None:
+    # TODO: Allow choosing lldb over gdb somehow.
+    if lldb_path is not None and debugger != "gdb":
+        args = (
+            lldb_path,
+            "lldb",
+            "-o",
+            "run",
+            "-o",
+            "bt",
+            "-o",
+            "quit",
+            "--",
+        ) + command
+    elif gdb_path is not None and debugger != "lldb":
         args = (
             gdb_path,
             "gdb",
@@ -301,14 +314,14 @@ def wrapCommandForDebuggerForExec(*args):
             "-ex=where",
             "-ex=quit",
             "--args",
-        ) + args
+        ) + command
     else:
-        args = (lldb_path, "lldb", "-o", "run", "-o", "bt", "-o", "quit", "--") + args
+        general.sysexit("Error, the selected debugger '%s' was not found in path.")
 
     return args
 
 
-def wrapCommandForDebuggerForSubprocess(*args):
+def wrapCommandForDebuggerForSubprocess(command, debugger=None):
     """Wrap a command for system debugger with subprocess module.
 
     Args:
@@ -321,7 +334,7 @@ def wrapCommandForDebuggerForSubprocess(*args):
         debuggers would be very welcome.
     """
 
-    args = wrapCommandForDebuggerForExec(*args)
+    args = wrapCommandForDebuggerForExec(command=command, debugger=debugger)
 
     # Discard exec only argument.
     args = args[0:1] + args[2:]
