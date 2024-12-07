@@ -158,21 +158,32 @@ static PyObject *Nuitka_ResourceReaderFiles_read_bytes(struct Nuitka_ResourceRea
     return GET_FILE_BYTES(tstate, file_name);
 }
 
-//    def read_text(self, encoding=None):
+//    def read_text(self, encoding=None, errors=None):
 //        """
-//        Read contents of self as text
+//        Read contents of self as text, errors is new in Python3.13
 //        """
 //        with self.open(encoding=encoding) as strm:
 //            return strm.read()
 
+#if PYTHON_VERSION >= 0x3d0
+static char const *_kw_list_encoding_errors[] = {"encoding", "errors", NULL};
+#else
 static char const *_kw_list_encoding[] = {"encoding", NULL};
+#endif
 
 static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                       PyObject *kwds) {
 
     PyObject *encoding = NULL;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|O:read_text", (char **)_kw_list_encoding, &encoding);
+    PyObject *errors = NULL;
+
+    // The errors argument is only available for 3.13 only
+#if PYTHON_VERSION >= 0x3d0
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|OO:read_text", (char **)_kw_list_encoding_errors, &encoding);
+#else
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|O:read_text", (char **)_kw_list_encoding);
+#endif
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -186,7 +197,11 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
         return NULL;
     }
 
+    // TODO: Ignoring "errors" for Python3.13 is wrong, probably should just
+    // use BUILTIN_OPEN as done in our own "open" method to do the opening.
     PyObject *file_object = BUILTIN_OPEN_SIMPLE(tstate, file_name, "r", true, encoding);
+
+    file_object = BUILTIN_OPEN(tstate, file_name, const_str_plain_r, Py_True, encoding, errors, NULL, NULL, NULL);
 
     Py_DECREF(file_name);
 
