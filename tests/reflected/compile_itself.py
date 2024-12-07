@@ -354,7 +354,7 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 # In case of segfault or assertion triggered, run in debugger.
                 if exit_nuitka in (-11, -6) and sys.platform != "nt":
-                    command2 = wrapCommandForDebuggerForSubprocess(*command)
+                    command2 = wrapCommandForDebuggerForSubprocess(command=command)
                     subprocess.call(command2)
 
                 if exit_nuitka != 0:
