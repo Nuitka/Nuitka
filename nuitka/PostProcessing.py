@@ -384,7 +384,7 @@ set NUITKA_PYTHONPATH=%(python_path)s
 %(debugger_call)s"%%~dp0%(exe_filename)s" %%*
 """ % {
             "debugger_call": (
-                (" ".join(wrapCommandForDebuggerForExec()) + " ")
+                (" ".join(wrapCommandForDebuggerForExec(command=())) + " ")
                 if Options.shallRunInDebugger()
                 else ""
             ),
