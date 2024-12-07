@@ -261,7 +261,7 @@ def _handleCase(python_version, nuitka_dir, filename):
         exit_nuitka = process.returncode
 
         if exit_nuitka == -11:
-            command = wrapCommandForDebuggerForSubprocess(*command)
+            command = wrapCommandForDebuggerForSubprocess(command=command)
 
             test_logger.warning("Rerunning due to segfault in debugger.")
             stdout_nuitka, stderr_nuitka = process.communicate()

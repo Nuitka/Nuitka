@@ -176,9 +176,6 @@ def main():
                 reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
-            # For the plug-in information.
-            extra_flags.append("plugin_enable:tk-inter")
-
         if filename == "FlaskUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
