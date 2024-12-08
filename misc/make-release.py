@@ -58,7 +58,6 @@ shutil.rmtree("build", ignore_errors=True)
 
 checkReleaseDocumentation()
 
-# spell-checker: ignore bztar,gztar
 dist_filename = makeNuitkaSourceDistribution(sign=True)
 
 print("Finished.")

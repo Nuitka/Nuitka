@@ -515,6 +515,9 @@ if env.debug_mode:
         )
 
     elif env.msvc_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
+            env.Append(CCFLAGS=["/WX"])
+
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -526,12 +529,11 @@ if env.debug_mode:
                 "/wd4189",
                 "/wd4211",
                 "/wd4115",
-                "/WX",
             ]
         )
 
         # Disable warnings, that CPython headers already show.
-        if python_version >= (3, 4):
+        if python_version >= (3,):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
         if python_version >= (3, 13):

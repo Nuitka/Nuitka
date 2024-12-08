@@ -196,14 +196,18 @@ def needsDuplicateArgumentColOffset():
         return True
 
 
+def getRunningPythonDllHandle():
+    # We trust ctypes internals here, pylint: disable=protected-access
+    # spell-checker: ignore pythonapi
+    return ctypes.pythonapi._handle
+
+
 def getRunningPythonDLLPath():
     from nuitka.utils.SharedLibraries import (
         getWindowsRunningProcessModuleFilename,
     )
 
-    # We trust ctypes internals here, pylint: disable=protected-access
-    # spell-checker: ignore pythonapi
-    return getWindowsRunningProcessModuleFilename(ctypes.pythonapi._handle)
+    return getWindowsRunningProcessModuleFilename(getRunningPythonDllHandle())
 
 
 def getTargetPythonDLLPath():

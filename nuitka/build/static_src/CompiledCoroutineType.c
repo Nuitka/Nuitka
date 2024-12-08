@@ -1402,7 +1402,7 @@ static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth)
         frame_count += 1;
     }
 
-    PyObject *cr_origin = MAKE_TUPLE_EMPTY(tstate, frame_count);
+    PyObject *cr_origin = MAKE_TUPLE_EMPTY_VAR(tstate, frame_count);
 
     frame = PyEval_GetFrame();
 

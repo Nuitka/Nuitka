@@ -48,7 +48,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyThreadState *tstate, PyObject *callable, PyObje
         i++;
     }
 
-    PyObject *args_tuple = MAKE_TUPLE(tstate, args, usable_args);
+    PyObject *args_tuple = MAKE_TUPLE_VAR(tstate, args, usable_args);
 
     PyObject *result = CALL_FUNCTION(tstate, callable, args_tuple, kw_dict);
     Py_XDECREF(kw_dict);

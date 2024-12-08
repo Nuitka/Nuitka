@@ -594,6 +594,7 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyThreadState *tstate, PyObject *value,
     Py_ssize_t size = PyTuple_GET_SIZE(value);
 
     // We cannot have size 0, so this is safe.
+    assert(size > 0);
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
