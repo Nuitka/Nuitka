@@ -341,9 +341,15 @@ def isManyLinuxPython():
 def isGithubActionsPython():
     # spell-checker: ignore hostedtoolcache
 
-    return os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
+    result = os.getenv("GITHUB_ACTIONS") == "true" and getSystemPrefixPath().startswith(
         "/opt/hostedtoolcache/Python"
     )
+
+    # To confirm that it's actually that flavor to us as well.
+    if result:
+        assert isHomebrewPython()
+
+    return result
 
 
 def getPythonFlavorName():
