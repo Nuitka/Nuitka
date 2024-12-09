@@ -38,7 +38,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             dest="include_browsers",
             default=[],
             help="""\
-            Playwright browser to include. Can be specified multiple times. use "all" to include all installed browsers.
+            Playwright browser to include. Can be specified multiple times. use "all" to include all installed browsers or use "none" to exclude all browsers.\
             """,
         )
 
@@ -109,24 +109,14 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             self.installed_browsers[browser.name] = browser
 
     def considerDataFiles(self, module):
-
         if module.getFullName() != "playwright":
             return
 
-        if not self.include_browsers:
-
-            self.sysexit(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
-            )
-
         self.getInstalledPlaywrightBrowsers()
 
-        if not self.installed_browsers:
-            self.sysexit(
-                "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
-            )
-
         self.info("Including browsers: %s" % ", ".join(self.include_browsers))
+        if "none" in self.include_browsers:
+            return
         if "all" in self.include_browsers:
             self.include_browsers = self.installed_browsers
         elif "ffmpeg" not in self.include_browsers and any(
