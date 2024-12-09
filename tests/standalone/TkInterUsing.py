@@ -5,6 +5,8 @@
 
 """
 
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=tk-inter
 
@@ -27,7 +29,7 @@ if str is bytes:
 else:
     import tkinter
 
-# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+print("Imported tkinter.")
 
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
