@@ -543,6 +543,14 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 
 #if PYTHON_VERSION >= 0x300
 
+static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
+#if PYTHON_VERSION < 0x3b0
+    return nuitka_frame->m_frame.f_gen;
+#else
+    return nuitka_frame->m_generator;
+#endif
+}
+
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *unused) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
     CHECK_OBJECT((PyObject *)frame);

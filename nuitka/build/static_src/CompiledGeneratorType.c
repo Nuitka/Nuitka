@@ -550,6 +550,7 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 
         // Check for thrown exception, publish it to the generator code.
         if (unlikely(HAS_EXCEPTION_STATE(exception_state))) {
+            // TODO: Original value is meant here probably.
             assert(value == NULL);
 
             // Transfer exception ownership to published.
