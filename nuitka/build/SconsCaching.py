@@ -283,11 +283,12 @@ def _getCcacheStatistics(ccache_logfile):
         # can be matched against it.
         commands = {}
 
-        # Due to upstream issues, lines in the log might have different encodings.
-        # All command and result lines use the platform's default encoding,
-        # so we follow this to ensure these lines are correct.
-        # Unrecognized characters are replaced by byte values, e.g. "\xde\xad"
-        for line in getFileContentByLine(ccache_logfile, errors="backslashreplace"):
+        # Due to upstream ccache issues, lines in the log might have different
+        # encodings, but latin1 will always work and was chosen to write this
+        # file therefore.
+        for line in getFileContentByLine(
+            ccache_logfile, encoding="latin1", errors="backslashreplace"
+        ):
             match = re_command.match(line)
 
             if match:
@@ -322,7 +323,7 @@ def _getCcacheStatistics(ccache_logfile):
                     all_text = []
 
                     for line2 in getFileContentByLine(
-                        ccache_logfile, errors="backslashreplace"
+                        ccache_logfile, encoding="latin1", errors="backslashreplace"
                     ):
                         match = re_anything.match(line2)
 
