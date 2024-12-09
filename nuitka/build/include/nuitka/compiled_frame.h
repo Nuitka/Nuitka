@@ -394,8 +394,6 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
 #endif
 }
 
-// TODO: These can be moved to private code, once all C library is included by
-// compiled code helpers, but generators are currently not.
 #if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame,
                                                           PyObject *generator) {
@@ -409,14 +407,6 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObj
     if (generator) {
         Nuitka_Frame_MarkAsExecuting(nuitka_frame);
     }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 0x3b0
-    return nuitka_frame->m_frame.f_gen;
-#else
-    return nuitka_frame->m_generator;
-#endif
 }
 #endif
 
