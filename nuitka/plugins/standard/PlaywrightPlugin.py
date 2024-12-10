@@ -11,6 +11,9 @@ import os
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
+# We use chrom to identify either chrome or chromium
+# spell-checker: ignore chrom
+
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
@@ -38,8 +41,9 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             dest="include_browsers",
             default=[],
             help="""\
-            Playwright browser to include. Can be specified multiple times. use "all" to include all installed browsers or use "none" to exclude all browsers.\
-            """,
+Playwright browser to include by name. Can be specified multiple
+times. Use "all" to include all installed browsers or use "none"
+to exclude all browsers.""",
         )
 
     def _getPlaywrightPath(self):
