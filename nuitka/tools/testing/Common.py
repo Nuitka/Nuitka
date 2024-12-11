@@ -657,7 +657,7 @@ def getTotalReferenceCount():
         return result
 
 
-def checkReferenceCount(checked_function, max_rounds=20, explain=False):
+def checkReferenceCount(checked_function, max_rounds=20, explain=False, no_print=True):
     # This is obviously going to be complex, pylint: disable=too-many-branches
 
     # Clean start conditions.
@@ -666,7 +666,8 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
     my_print(checked_function.__name__ + ": ", end="")
     sys.stdout.flush()
 
-    disablePrinting()
+    if no_print:
+        disablePrinting()
 
     # Make sure reference for these are already taken at the start.
     ref_count1 = 17
@@ -699,7 +700,8 @@ def checkReferenceCount(checked_function, max_rounds=20, explain=False):
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(before=False)
 
-    reenablePrinting()
+    if no_print:
+        reenablePrinting()
 
     if result:
         my_print("PASSED")
@@ -853,7 +855,7 @@ def reportSkip(reason, dirname, filename):
 
 
 def executeReferenceChecked(
-    prefix, names, tests_skipped=(), tests_stderr=(), explain=False
+    prefix, names, tests_skipped=(), tests_stderr=(), explain=False, no_print=True
 ):
     gc.disable()
 
@@ -883,10 +885,14 @@ def executeReferenceChecked(
                 if number in tests_stderr:
                     sys.stderr = null_output
             except OSError:  # Windows
-                if not checkReferenceCount(names[name], explain=explain):
+                if not checkReferenceCount(
+                    names[name], explain=explain, no_print=no_print
+                ):
                     result = False
             else:
-                if not checkReferenceCount(names[name], explain=explain):
+                if not checkReferenceCount(
+                    names[name], explain=explain, no_print=no_print
+                ):
                     result = False
             finally:
                 if number in tests_stderr:
