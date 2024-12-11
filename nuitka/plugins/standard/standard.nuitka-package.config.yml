@@ -8373,9 +8373,10 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'webview' # checksum: 596b35ba
+- module-name: 'webview' # checksum: f4e8fc01
   data-files:
     - dirs:
+        - 'js'
         - 'lib'
   dlls:
     - from_filenames:
