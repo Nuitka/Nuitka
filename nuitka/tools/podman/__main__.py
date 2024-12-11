@@ -328,7 +328,8 @@ def main():
 
     if not os.path.isfile(container_file_path):
         containers_logger.sysexit(
-            "Error, no container ID '%s' found" % options.container_id
+            "Error, no container ID '%s' found at '%s'."
+            % (options.container_id, container_file_path)
         )
 
     getBranchRemoteIdentifier()
