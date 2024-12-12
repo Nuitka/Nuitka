@@ -2848,12 +2848,13 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: d50b5b5e
+- module-name: 'numpy' # checksum: a738cd92
   dlls:
     - from_filenames:
         relative_path: '.libs'
         prefixes:
           - 'lib'
+      dest_path: '.'
       when: 'win32'
     - by_code:
         setup_code: |
