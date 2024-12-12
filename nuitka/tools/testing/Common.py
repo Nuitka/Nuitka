@@ -1293,7 +1293,7 @@ def scanDirectoryForTestCases(
         yield filename
 
 
-def scanDirectoryForTestCaseFolders(dirname):
+def scanDirectoryForTestCaseFolders(dirname, allow_none=False):
     filenames = os.listdir(dirname)
 
     for filename in sorted(filenames):
@@ -1310,7 +1310,7 @@ def scanDirectoryForTestCaseFolders(dirname):
         ):
             continue
 
-        filename_main = getMainProgramFilename(filename)
+        filename_main = getMainProgramFilename(filename, allow_none=allow_none)
 
         yield filename, filename_main
 
@@ -1898,7 +1898,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
     return illegal_accesses
 
 
-def getMainProgramFilename(filename):
+def getMainProgramFilename(filename, allow_none=False):
     for filename_main in os.listdir(filename):
         if filename_main.endswith(("Main.py", "Main")):
             return filename_main
@@ -1910,6 +1910,9 @@ def getMainProgramFilename(filename):
             "pyproject.nuitka.toml",
         ):
             return filename_main
+
+    if allow_none:
+        return None
 
     test_logger.sysexit(
         """\
