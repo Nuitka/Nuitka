@@ -380,6 +380,12 @@ def executeToolChecked(
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
 
+    if None in command:
+        logger.sysexit(
+            "Error, call to '%s' failed due to 'None' value: %s index %d."
+            % (tool, command, command.index(None))
+        )
+
     with withEnvironmentVarOverridden("LC_ALL", "C"):
         with getNullInput() as null_input:
             process = subprocess.Popen(
