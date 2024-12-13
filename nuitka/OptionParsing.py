@@ -400,8 +400,8 @@ This will only include non-DLL, non-extension modules, i.e. actual data
 files. After a ":" optionally a filename pattern can be given as
 well, selecting only matching files. Examples:
 "--include-package-data=package_name" (all files)
-"--include-package-data=package_name=*.txt" (only certain type)
-"--include-package-data=package_name=some_filename.dat (concrete file)
+"--include-package-data=package_name:*.txt" (only certain type)
+"--include-package-data=package_name:some_filename.dat (concrete file)
 Default empty.""",
 )
 
