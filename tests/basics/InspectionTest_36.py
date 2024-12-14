@@ -9,22 +9,30 @@ import types
 # nuitka-project: --python-flag=no_warnings
 
 
-async def compiledAsyncgen():
+async def someAsyncgen():
     yield 1
 
 
-print(type(compiledAsyncgen()))
+print("Function 'someAsyncgen' has result type:", type(someAsyncgen()))
 
-assert inspect.isfunction(compiledAsyncgen) is True
-assert inspect.isgeneratorfunction(compiledAsyncgen) is False
-assert inspect.iscoroutinefunction(compiledAsyncgen) is False
-assert inspect.isasyncgenfunction(compiledAsyncgen) is True
+assert inspect.isfunction(someAsyncgen) is True
+assert inspect.isfunction(someAsyncgen()) is False
+assert inspect.isgeneratorfunction(someAsyncgen) is False
+assert inspect.isgeneratorfunction(someAsyncgen()) is False
+assert inspect.iscoroutinefunction(someAsyncgen) is False
+assert inspect.iscoroutinefunction(someAsyncgen()) is False
+assert inspect.isasyncgenfunction(someAsyncgen) is True
+assert inspect.isasyncgenfunction(someAsyncgen()) is False
+assert inspect.isawaitable(someAsyncgen) is False
+assert inspect.isawaitable(someAsyncgen()) is False
 
-assert isinstance(compiledAsyncgen(), types.GeneratorType) is False
-assert isinstance(compiledAsyncgen(), types.CoroutineType) is False
-assert isinstance(compiledAsyncgen(), types.AsyncGeneratorType) is True
-assert type(compiledAsyncgen()) == types.AsyncGeneratorType, type(compiledAsyncgen())
-assert isinstance(compiledAsyncgen, types.AsyncGeneratorType) is False
+assert isinstance(someAsyncgen(), types.GeneratorType) is False
+assert isinstance(someAsyncgen(), types.CoroutineType) is False
+assert isinstance(someAsyncgen(), types.AsyncGeneratorType) is True
+assert type(someAsyncgen()) == types.AsyncGeneratorType, type(someAsyncgen())
+assert isinstance(someAsyncgen, types.AsyncGeneratorType) is False
+
+print("OK.")
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
