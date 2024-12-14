@@ -608,8 +608,9 @@ execute_group.add_option(
     dest="debugger",
     default=False,
     help="""\
-Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace.
-Defaults to off.""",
+Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The
+debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE
+environment variable. Defaults to off.""",
 )
 
 del execute_group
