@@ -11537,32 +11537,22 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyThreadState *tstate, PyObject *call
         PyObject *result;
 
 #if PYTHON_VERSION < 0x360
-        PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
-
         if (flags & METH_KEYWORDS) {
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
         } else {
-            result = (*method)(self, pos_args);
+            result = (*method)(self, const_tuple_empty);
         }
-
-        Py_DECREF(pos_args);
 #else
         if (flags == (METH_VARARGS | METH_KEYWORDS)) {
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
-            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
-            Py_DECREF(pos_args);
+            result = (*(PyCFunctionWithKeywords)method)(self, const_tuple_empty, NULL);
         } else if (flags == METH_FASTCALL) {
 #if PYTHON_VERSION < 0x370
             result = (*(_PyCFunctionFast)method)(self, (PyObject **)args + 1, 0, NULL);
 #else
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
-            result = (*(_PyCFunctionFast)method)(self, &pos_args, 1);
-            Py_DECREF(pos_args);
+            result = (*(_PyCFunctionFast)method)(self, &const_tuple_empty, 1);
 #endif
         } else {
-            PyObject *pos_args = MAKE_TUPLE(tstate, args + 1, 0);
-            result = (*method)(self, pos_args);
-            Py_DECREF(pos_args);
+            result = (*method)(self, const_tuple_empty);
         }
 #endif
 #ifndef __NUITKA_NO_ASSERT__
