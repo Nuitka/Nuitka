@@ -1005,6 +1005,11 @@
         'import IPython.display as display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'dask.widgets' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
 - module-name: 'datasets.packaged_modules' # checksum: 4c45e344
   anti-bloat:
     - description: 'workaround dependency source code usages'
