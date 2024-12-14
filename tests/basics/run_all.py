@@ -88,6 +88,10 @@ def main():
                 reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
                 continue
 
+        if "Wip" in filename:
+            reportSkip("Test not for automatic execution.", ".", filename)
+            continue
+
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
