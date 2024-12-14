@@ -9,21 +9,28 @@ import types
 # nuitka-project: --python-flag=no_warnings
 
 
-async def compiledCoroutine():
+async def someCoroutine():
     async with _x:
         pass
 
 
-print(type(compiledCoroutine()))
+print("Function 'someCoroutine' has result type:", type(someCoroutine()))
 
-assert inspect.isfunction(compiledCoroutine) is True
-assert inspect.isgeneratorfunction(compiledCoroutine) is False
-assert inspect.iscoroutinefunction(compiledCoroutine) is True
+assert inspect.isfunction(someCoroutine) is True
+assert inspect.isfunction(someCoroutine()) is False
+assert inspect.isgeneratorfunction(someCoroutine) is False
+assert inspect.isgeneratorfunction(someCoroutine()) is False
+assert inspect.iscoroutinefunction(someCoroutine) is True
+assert inspect.iscoroutinefunction(someCoroutine()) is False
+assert inspect.isawaitable(someCoroutine) is False
+assert inspect.isawaitable(someCoroutine()) is True
 
-assert isinstance(compiledCoroutine(), types.GeneratorType) is False
-assert isinstance(compiledCoroutine(), types.CoroutineType) is True
-assert type(compiledCoroutine()) == types.CoroutineType, type(compiledCoroutine())
-assert isinstance(compiledCoroutine, types.CoroutineType) is False
+assert isinstance(someCoroutine(), types.GeneratorType) is False
+assert isinstance(someCoroutine(), types.CoroutineType) is True
+assert type(someCoroutine()) == types.CoroutineType, type(someCoroutine())
+assert isinstance(someCoroutine, types.CoroutineType) is False
+
+print("OK.")
 
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
