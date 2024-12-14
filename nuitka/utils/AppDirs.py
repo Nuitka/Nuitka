@@ -24,7 +24,10 @@ from .Importing import importFromInlineCopy
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
 
 if appdirs is None:
-    import appdirs  # pylint: disable=I0021,import-error
+    try:
+        import appdirs  # pylint: disable=I0021,import-error
+    except ImportError:
+        appdirs = None
 
 
 def getAppdirsModule():
