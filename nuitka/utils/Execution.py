@@ -273,6 +273,13 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
 
+    # Default from environment variable.
+    if debugger is None:
+        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
+
+    if debugger not in ("gdb", "lldb", None):
+        general.sysexit("Error, the selected debugger name '%s' is not supported.")
+
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
         from nuitka.Options import assumeYesForDownloads
@@ -290,7 +297,6 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         if lldb_path is None:
             general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
-    # TODO: Allow choosing lldb over gdb somehow.
     if lldb_path is not None and debugger != "gdb":
         args = (
             lldb_path,
