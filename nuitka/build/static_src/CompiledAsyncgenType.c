@@ -397,7 +397,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
         _Nuitka_GeneratorPopFrame(tstate, return_frame);
 
 #if _DEBUG_ASYNCGEN
-        PRINT_ASYNCGEN_STATUS("Returned from coroutine", asyncgen);
+        PRINT_ASYNCGEN_STATUS("Returned from asyncgen", asyncgen);
         // dumpFrameStack();
 #endif
 
