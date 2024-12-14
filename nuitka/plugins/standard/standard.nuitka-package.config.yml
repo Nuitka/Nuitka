@@ -7870,7 +7870,7 @@
     - patterns:
         - '*.css'
 
-- module-name: 'transformers' # checksum: c402fbfe
+- module-name: 'transformers' # checksum: d013b95f
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -7893,6 +7893,7 @@
         - 'openai'
         - 'pygments'
         - 'soundfile'
+        - 'tqdm'
 
   anti-bloat:
     - description: 'remove IPython reference'
