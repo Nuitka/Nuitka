@@ -8638,12 +8638,13 @@
         prefixes:
           - 'xgboost'
 
-- module-name: 'xgboost.sklearn' # checksum: 5480616e
+- module-name: 'xgboost.sklearn' # checksum: d0a963f4
   anti-bloat:
     - description: 'remove docstring dependency'
       replacements_plain:
         'fit.__doc__ = XGBModel.fit.__doc__.replace(': 'fit.__doc__ = "Fit gradient boosting model".replace('
-      when: 'no_docstrings and no_asserts'
+        'assert XGBModel.fit.__doc__ is not None': ''
+      when: 'no_docstrings'
 
 - module-name: 'Xlib.display' # checksum: 3b1d6e64
   implicit-imports:
