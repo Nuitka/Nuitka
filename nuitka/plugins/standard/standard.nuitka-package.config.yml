@@ -5968,6 +5968,11 @@
         - 'sklearn.tree._tree'
         - 'sklearn.tree._utils'
 
+- module-name: 'sklearn.tree._splitter' # checksum: f99ea94
+  implicit-imports:
+    - depends:
+        - 'sklearn.tree._partitioner'
+
 - module-name: 'sklearn.tree._tree' # checksum: 327dee3d
   implicit-imports:
     - depends:
