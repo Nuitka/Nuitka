@@ -99,6 +99,9 @@ def isHomebrewPython():
     if not isMacOS():
         return False
 
+    if isGithubActionsPython():
+        return True
+
     candidate = os.path.join(
         getSystemPrefixPath(), "lib", "python" + python_version_str, "sitecustomize.py"
     )
@@ -364,6 +367,8 @@ def getPythonFlavorName():
         return "Arch Python"
     elif isAlpinePackagePython():
         return "Alpine Python"
+    elif isGithubActionsPython():
+        return "GitHub Actions Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isRyePython():
@@ -382,8 +387,6 @@ def getPythonFlavorName():
         return "CPython Official"
     elif isSelfCompiledPythonUninstalled():
         return "Self Compiled Uninstalled"
-    elif isGithubActionsPython():
-        return "GitHub Actions Python"
     elif isManyLinuxPython():
         return "Manylinux Python"
     else:

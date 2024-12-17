@@ -92,6 +92,7 @@ def getConstantDefaultPopulation():
         # Meta path based loader.
         "read",
         "rb",
+        "r",
         "w",
         "b",
         # File handling

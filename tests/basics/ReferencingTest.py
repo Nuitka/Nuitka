@@ -1332,8 +1332,7 @@ def simpleFunction134():
     return copy_func(to_copy)
 
 
-# This leaks a reference to "None" for unknown reasons.
-def nosimpleFunction135():
+def simpleFunction135():
     def sync_gen():
         raise ZeroDivisionError
         yield 100
