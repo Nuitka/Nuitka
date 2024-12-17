@@ -1191,7 +1191,7 @@ def async_iterate(g):
             break
         except StopIteration as ex:
             if ex.args:
-                res.append("ex arg %s" % ex.args[0])
+                res.append("StopIteration args %s" % ex.args)
             else:
                 res.append("EMPTY StopIteration")
                 break
