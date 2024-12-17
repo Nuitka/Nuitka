@@ -13025,7 +13025,7 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
     #   ExpressionImportlibResourcesBackportReadText
     #   ExpressionImportlibResourcesBackportReadTextCall
     #   ExpressionImportlibResourcesReadText
-    #   ExpressionImportlibResourcesReadTextCall
+    #   ExpressionImportlibResourcesReadTextBefore313Call
 
     def __init__(
         self,
@@ -13216,8 +13216,232 @@ ChildrenExpressionImportlibResourcesBackportReadTextCallMixin = (
 ChildrenExpressionImportlibResourcesReadTextMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
 )
-ChildrenExpressionImportlibResourcesReadTextCallMixin = (
+ChildrenExpressionImportlibResourcesReadTextBefore313CallMixin = (
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin
+)
+
+
+class ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin(
+    object
+):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionImportlibResourcesReadText
+    #   ExpressionImportlibResourcesReadTextSince313Call
+
+    def __init__(
+        self,
+        package,
+        resources,
+        encoding,
+        errors,
+    ):
+        if package is not None:
+            package.parent = self
+
+        self.subnode_package = package
+
+        assert type(resources) is tuple
+
+        for val in resources:
+            val.parent = self
+
+        self.subnode_resources = resources
+
+        if encoding is not None:
+            encoding.parent = self
+
+        self.subnode_encoding = encoding
+
+        if errors is not None:
+            errors.parent = self
+
+        self.subnode_errors = errors
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_package
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        result.extend(self.subnode_resources)
+        value = self.subnode_encoding
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        value = self.subnode_errors
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("package", self.subnode_package),
+            ("resources", self.subnode_resources),
+            ("encoding", self.subnode_encoding),
+            ("errors", self.subnode_errors),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_package
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_package = new_node
+
+            return
+
+        value = self.subnode_resources
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_resources = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_resources = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        value = self.subnode_encoding
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_encoding = new_node
+
+            return
+
+        value = self.subnode_errors
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_errors = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "package": (
+                self.subnode_package.makeClone()
+                if self.subnode_package is not None
+                else None
+            ),
+            "resources": tuple(v.makeClone() for v in self.subnode_resources),
+            "encoding": (
+                self.subnode_encoding.makeClone()
+                if self.subnode_encoding is not None
+                else None
+            ),
+            "errors": (
+                self.subnode_errors.makeClone()
+                if self.subnode_errors is not None
+                else None
+            ),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_package is not None:
+            self.subnode_package.finalize()
+        del self.subnode_package
+        for c in self.subnode_resources:
+            c.finalize()
+        del self.subnode_resources
+        if self.subnode_encoding is not None:
+            self.subnode_encoding.finalize()
+        del self.subnode_encoding
+        if self.subnode_errors is not None:
+            self.subnode_errors.finalize()
+        del self.subnode_errors
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_package = self.subnode_package
+
+        if subnode_package is not None:
+            self.subnode_package.collectVariableAccesses(emit_read, emit_write)
+        for element in self.subnode_resources:
+            element.collectVariableAccesses(emit_read, emit_write)
+        subnode_encoding = self.subnode_encoding
+
+        if subnode_encoding is not None:
+            self.subnode_encoding.collectVariableAccesses(emit_read, emit_write)
+        subnode_errors = self.subnode_errors
+
+        if subnode_errors is not None:
+            self.subnode_errors.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionImportlibResourcesReadTextMixin = (
+    ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin
+)
+ChildrenExpressionImportlibResourcesReadTextSince313CallMixin = (
+    ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin
 )
 
 

@@ -53,7 +53,8 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_backport_read_text_spec,
     importlib_resources_files_spec,
     importlib_resources_read_binary_spec,
-    importlib_resources_read_text_spec,
+    importlib_resources_read_text_before_313_spec,
+    importlib_resources_read_text_since_313_spec,
     os_listdir_spec,
     os_lstat_spec,
     os_path_abspath_spec,
@@ -91,6 +92,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalWinmodeOptionalMixin,
+    ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin,
     ChildrenHavingPackageOrRequirementResourceNameMixin,
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ChildrenHavingPackageResourceMixin,
@@ -168,7 +170,7 @@ class ExpressionCtypesCdllSince38CallBase(
 ):
     """Base class for CtypesCdllCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     python_version_spec = ">= 0x380"
@@ -239,7 +241,7 @@ class ExpressionCtypesCdllBefore38CallBase(
 ):
     """Base class for CtypesCdllCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     python_version_spec = "< 0x380"
@@ -347,7 +349,7 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
 ):
     """Base class for ImportlibMetadataBackportDistributionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -441,7 +443,7 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
 ):
     """Base class for ImportlibMetadataBackportEntryPointsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("params|tuple",)
@@ -535,7 +537,7 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
 ):
     """Base class for ImportlibMetadataBackportMetadataCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -629,7 +631,7 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
 ):
     """Base class for ImportlibMetadataBackportVersionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -723,7 +725,7 @@ class ExpressionImportlibMetadataDistributionCallBase(
 ):
     """Base class for ImportlibMetadataDistributionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -834,7 +836,7 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
 ):
     """Base class for ImportlibMetadataEntryPointsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     python_version_spec = ">= 0x3a0"
@@ -886,7 +888,7 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
 ):
     """Base class for ImportlibMetadataEntryPointsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     python_version_spec = "< 0x3a0"
@@ -972,7 +974,7 @@ class ExpressionImportlibMetadataMetadataCallBase(
 ):
     """Base class for ImportlibMetadataMetadataCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -1065,7 +1067,7 @@ class ExpressionImportlibMetadataVersionCallBase(
 ):
     """Base class for ImportlibMetadataVersionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("distribution_name",)
@@ -1158,7 +1160,7 @@ class ExpressionImportlibResourcesBackportFilesCallBase(
 ):
     """Base class for ImportlibResourcesBackportFilesCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("package",)
@@ -1252,7 +1254,7 @@ class ExpressionImportlibResourcesBackportReadBinaryCallBase(
 ):
     """Base class for ImportlibResourcesBackportReadBinaryCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -1355,7 +1357,7 @@ class ExpressionImportlibResourcesBackportReadTextCallBase(
 ):
     """Base class for ImportlibResourcesBackportReadTextCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -1460,7 +1462,7 @@ class ExpressionImportlibResourcesFilesCallBase(
 ):
     """Base class for ImportlibResourcesFilesCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("package",)
@@ -1553,7 +1555,7 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
 ):
     """Base class for ImportlibResourcesReadBinaryCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -1626,37 +1628,119 @@ class ExpressionImportlibResourcesReadTextRef(
         # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        from .PackageResourceNodes import (
-            makeExpressionImportlibResourcesReadTextCall,
-        )
+        if python_version >= 0x3D0:
+            from .PackageResourceNodes import (
+                makeExpressionImportlibResourcesReadTextSince313Call,
+            )
 
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=makeExpressionImportlibResourcesReadTextCall,
-            builtin_spec=importlib_resources_read_text_spec,
-        )
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=makeExpressionImportlibResourcesReadTextSince313Call,
+                builtin_spec=importlib_resources_read_text_since_313_spec,
+            )
 
-        return (
-            result,
-            "new_expression",
-            "Call to 'importlib.resources.read_text' recognized.",
-        )
+            return (
+                result,
+                "new_expression",
+                "Call to 'importlib.resources.read_text' recognized.",
+            )
+
+        if python_version < 0x3D0:
+            from .PackageResourceNodes import (
+                makeExpressionImportlibResourcesReadTextBefore313Call,
+            )
+
+            result = extractBuiltinArgs(
+                node=call_node,
+                builtin_class=makeExpressionImportlibResourcesReadTextBefore313Call,
+                builtin_spec=importlib_resources_read_text_before_313_spec,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Call to 'importlib.resources.read_text' recognized.",
+            )
 
 
 hard_import_node_classes[ExpressionImportlibResourcesReadTextRef] = (
-    importlib_resources_read_text_spec
+    importlib_resources_read_text_since_313_spec
 )
 
 
-class ExpressionImportlibResourcesReadTextCallBase(
+class ExpressionImportlibResourcesReadTextSince313CallBase(
+    ExpressionStrShapeExactMixin,
+    ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin,
+    ExpressionBase,
+):
+    """Base class for ImportlibResourcesReadTextCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    python_version_spec = ">= 0x3d0"
+
+    named_children = (
+        "package|optional",
+        "resources|tuple",
+        "encoding|optional",
+        "errors|optional",
+    )
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_read_text_since_313_spec
+
+    def __init__(self, package, resources, encoding, errors, source_ref):
+
+        ChildrenHavingPackageOptionalResourcesTupleEncodingOptionalErrorsOptionalMixin.__init__(
+            self,
+            package=package,
+            resources=resources,
+            encoding=encoding,
+            errors=errors,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_read_text_since_313_spec.isCompileTimeComputable(
+                (self.subnode_package,) + self.subnode_resources
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesReadTextBefore313CallBase(
     ExpressionStrShapeExactMixin,
     ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin,
     ExpressionBase,
 ):
     """Base class for ImportlibResourcesReadTextCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
+
+    python_version_spec = "< 0x3d0"
 
     named_children = (
         "package",
@@ -1667,7 +1751,7 @@ class ExpressionImportlibResourcesReadTextCallBase(
 
     __slots__ = ("attempted",)
 
-    spec = importlib_resources_read_text_spec
+    spec = importlib_resources_read_text_before_313_spec
 
     def __init__(self, package, resource, encoding, errors, source_ref):
 
@@ -1686,7 +1770,7 @@ class ExpressionImportlibResourcesReadTextCallBase(
     def computeExpression(self, trace_collection):
         if (
             self.attempted
-            or not importlib_resources_read_text_spec.isCompileTimeComputable(
+            or not importlib_resources_read_text_before_313_spec.isCompileTimeComputable(
                 (
                     self.subnode_package,
                     self.subnode_resource,
@@ -1753,7 +1837,7 @@ hard_import_node_classes[ExpressionOsListdirRef] = os_listdir_spec
 class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
     """Base class for OsListdirCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path|optional",)
@@ -1837,7 +1921,7 @@ class ExpressionOsLstatCallBase(
 ):
     """Base class for OsLstatCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -1923,7 +2007,7 @@ hard_import_node_classes[ExpressionOsPathAbspathRef] = os_path_abspath_spec
 class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
     """Base class for OsPathAbspathCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path",)
@@ -2005,7 +2089,7 @@ hard_import_node_classes[ExpressionOsPathBasenameRef] = os_path_basename_spec
 class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
     """Base class for OsPathBasenameCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("p",)
@@ -2087,7 +2171,7 @@ hard_import_node_classes[ExpressionOsPathDirnameRef] = os_path_dirname_spec
 class ExpressionOsPathDirnameCallBase(ChildHavingPMixin, ExpressionBase):
     """Base class for OsPathDirnameCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("p",)
@@ -2169,7 +2253,7 @@ hard_import_node_classes[ExpressionOsPathExistsRef] = os_path_exists_spec
 class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     """Base class for OsPathExistsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path",)
@@ -2253,7 +2337,7 @@ class ExpressionOsPathIsabsCallBase(
 ):
     """Base class for OsPathIsabsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("s",)
@@ -2335,7 +2419,7 @@ hard_import_node_classes[ExpressionOsPathIsdirRef] = os_path_isdir_spec
 class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
     """Base class for OsPathIsdirCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path",)
@@ -2417,7 +2501,7 @@ hard_import_node_classes[ExpressionOsPathIsfileRef] = os_path_isfile_spec
 class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     """Base class for OsPathIsfileCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path",)
@@ -2499,7 +2583,7 @@ hard_import_node_classes[ExpressionOsPathNormpathRef] = os_path_normpath_spec
 class ExpressionOsPathNormpathCallBase(ChildHavingPathMixin, ExpressionBase):
     """Base class for OsPathNormpathCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("path",)
@@ -2583,7 +2667,7 @@ class ExpressionOsStatCallBase(
 ):
     """Base class for OsStatCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -2671,7 +2755,7 @@ hard_import_node_classes[ExpressionOsUnameRef] = os_uname_spec
 class ExpressionOsUnameCallBase(ExpressionBase):
     """Base class for OsUnameCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     __slots__ = ("attempted",)
@@ -2755,7 +2839,7 @@ class ExpressionPkgResourcesGetDistributionCallBase(
 ):
     """Base class for PkgResourcesGetDistributionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("dist",)
@@ -2849,7 +2933,7 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
 ):
     """Base class for PkgResourcesIterEntryPointsCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -2946,7 +3030,7 @@ class ExpressionPkgResourcesRequireCallBase(
 ):
     """Base class for PkgResourcesRequireCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("requirements|tuple",)
@@ -3037,7 +3121,7 @@ class ExpressionPkgResourcesResourceStreamCallBase(
 ):
     """Base class for PkgResourcesResourceStreamCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -3138,7 +3222,7 @@ class ExpressionPkgResourcesResourceStringCallBase(
 ):
     """Base class for PkgResourcesResourceStringCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -3233,7 +3317,7 @@ class ExpressionPkgutilGetDataCallBase(
 ):
     """Base class for PkgutilGetDataCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
@@ -3322,7 +3406,7 @@ hard_import_node_classes[ExpressionSysExitRef] = sys_exit_spec
 class ExpressionSysExitCallBase(ChildHavingExitCodeOptionalMixin, ExpressionBase):
     """Base class for SysExitCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = ("exit_code|optional",)
@@ -3408,7 +3492,7 @@ class ExpressionTensorflowFunctionCallBase(
 ):
     """Base class for TensorflowFunctionCall
 
-    Generated boiler plate code.
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
     """
 
     named_children = (
