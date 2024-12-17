@@ -19,7 +19,8 @@ from .HardImportNodesGenerated import (
     ExpressionImportlibResourcesBackportReadTextCallBase,
     ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
-    ExpressionImportlibResourcesReadTextCallBase,
+    ExpressionImportlibResourcesReadTextBefore313CallBase,
+    ExpressionImportlibResourcesReadTextSince313CallBase,
     ExpressionPkgResourcesResourceStreamCallBase,
     ExpressionPkgResourcesResourceStringCallBase,
     ExpressionPkgutilGetDataCallBase,
@@ -128,7 +129,7 @@ class ExpressionImportlibResourcesBackportReadBinaryCall(
         return self, None, None
 
 
-def makeExpressionImportlibResourcesReadTextCall(
+def makeExpressionImportlibResourcesReadTextBefore313Call(
     package, resource, encoding, errors, source_ref
 ):
     # Avoid making things optional.
@@ -137,7 +138,7 @@ def makeExpressionImportlibResourcesReadTextCall(
     if errors is None:
         errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
 
-    return ExpressionImportlibResourcesReadTextCall(
+    return ExpressionImportlibResourcesReadTextBefore313Call(
         package=package,
         resource=resource,
         encoding=encoding,
@@ -146,15 +147,49 @@ def makeExpressionImportlibResourcesReadTextCall(
     )
 
 
-class ExpressionImportlibResourcesReadTextCall(
+def makeExpressionImportlibResourcesReadTextSince313Call(
+    package, resources, encoding, errors, source_ref
+):
+    # Avoid making things optional.
+    if encoding is None:
+        encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
+    if errors is None:
+        errors = makeConstantRefNode(constant="strict", source_ref=source_ref)
+
+    return ExpressionImportlibResourcesReadTextSince313Call(
+        package=package,
+        resources=resources,
+        encoding=encoding,
+        errors=errors,
+        source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibResourcesReadTextBefore313Call(
     SideEffectsFromChildrenMixin,
-    ExpressionImportlibResourcesReadTextCallBase,
+    ExpressionImportlibResourcesReadTextBefore313CallBase,
 ):
     """Call to "importlib.resources.read_text" """
 
-    kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL"
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_BEFORE_313_CALL"
 
     python_version_spec = ">= 0x370"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesReadTextSince313Call(
+    SideEffectsFromChildrenMixin,
+    ExpressionImportlibResourcesReadTextSince313CallBase,
+):
+    """Call to "importlib.resources.read_text" """
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_SINCE_313_CALL"
+
+    python_version_spec = ">= 0x3D0"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
