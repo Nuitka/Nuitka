@@ -21,7 +21,10 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
-from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.Importing import (
+    getPackageDirFilename,
+    getSharedLibrarySuffixes,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 from .Importing import (
@@ -340,6 +343,10 @@ def _addIncludedModule(module, package_only):
                         package_only=False,
                     )
                 elif sub_filename.endswith(".py"):
+                    if os.path.isdir(sub_path[:-3]):
+                        if getPackageDirFilename(sub_path[:-3]) is not None:
+                            continue
+
                     checkPluginSinglePath(
                         sub_path,
                         module_package=module.getFullName(),

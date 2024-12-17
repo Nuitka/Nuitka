@@ -462,6 +462,15 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
         expression=expression, emit=emit, context=context
     )
 
+    value_names = []
+    for arg_value_name in arg_value_names:
+        if arg_value_name is None:
+            value_names.append("NULL")
+        elif type(arg_value_name) is tuple:
+            value_names.extend(arg_value_name)
+        else:
+            value_names.append(arg_value_name)
+
     with withObjectCodeTemporaryAssignment(
         to_name, "%s_result" % spec.name.replace(".", "_"), expression, emit, context
     ) as value_name:
@@ -485,11 +494,10 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
                 "to_name": value_name,
                 "called_name": called_name,
                 "arg_names": ",".join(
-                    '"%s"' % arg_name for arg_name in spec.getArgumentNames()
+                    '"%s"' % arg_name for arg_name in spec.getParameterNames2()
                 ),
                 "arg_value_names": ",".join(
-                    (str(arg_value_name) if arg_value_name else "NULL")
-                    for arg_value_name in arg_value_names
+                    str(value_name) for value_name in value_names
                 ),
                 "kw_only_count": spec.getKwOnlyParameterCount(),
             }
@@ -497,10 +505,12 @@ def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, cont
 
         getErrorExitCode(
             check_name=value_name,
-            release_names=[called_name] + list(arg_value_names),
+            release_names=[called_name] + value_names,
             emit=emit,
             context=context,
         )
+
+        context.addCleanupTempName(value_name)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
