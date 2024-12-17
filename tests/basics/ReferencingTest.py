@@ -21,7 +21,7 @@ sys.path.insert(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     ),
 )
-from nuitka.tools.testing.Common import executeReferenceChecked
+from nuitka.tools.testing.Common import executeReferenceChecked, sync_iterate
 
 # isort:start
 
@@ -1332,8 +1332,16 @@ def simpleFunction134():
     return copy_func(to_copy)
 
 
+def simpleFunction135():
+    def sync_gen():
+        raise ZeroDivisionError
+        yield 100
+
+    sync_iterate(sync_gen())
+
+
 # TODO: This memory leaks closure cells and needs a fix
-def nosimpleFunction135():
+def nosimpleFunction136():
     def someGenWithClosureGiven():
         if x:
             return
