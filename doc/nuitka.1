@@ -182,8 +182,8 @@ included by default, but package configuration can do
 it. This will only include non\-DLL, non\-extension
 modules, i.e. actual data files. After a ":"
 optionally a filename pattern can be given as well,
-selecting only matching files. Examples: "\-\-includepackage\-data=package_name" (all files) "\-\-includepackage\-data=package_name=*.txt" (only certain type) "
-\fB\-\-include\-package\-data\fR=\fI\,package_name=some_filename\/\fR.dat
+selecting only matching files. Examples: "\-\-includepackage\-data=package_name" (all files) "\-\-includepackage\-data=package_name:*.txt" (only certain type) "
+\fB\-\-include\-package\-data\fR=\fI\,package_name\/\fR:some_filename.dat
 (concrete file) Default empty.
 .TP
 \fB\-\-include\-data\-files\fR=\fI\,DESC\/\fR
@@ -886,10 +886,10 @@ resources not found.
 Plugin options of 'playwright':
 .TP
 \fB\-\-playwright\-include\-browser\fR=\fI\,INCLUDE_BROWSERS\/\fR
-Playwright browser to include. Can be
-.TP
-specified multiple times. use "all" to include all
-installed browsers.
+Playwright browser to include by name. Can be
+specified multiple times. Use "all" to include all
+installed browsers or use "none" to exclude all
+browsers.
 .IP
 Plugin options of 'spacy':
 .TP

@@ -46,7 +46,7 @@ def editModuleCode(module_search_desc):
             candidate = module_search_desc
 
             # spell-checker: ignore ONEFIL
-            while not candidate.endswith(".DIS") and not os.path.basename(
+            while not candidate.endswith((".DIS", ".dist")) and not os.path.basename(
                 candidate
             ).startswith("ONEFIL"):
                 candidate = os.path.dirname(candidate)
