@@ -38,8 +38,9 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             dest="include_browsers",
             default=[],
             help="""\
-            Playwright browser to include. Can be specified multiple times. use "all" to include all installed browsers.
-            """,
+Playwright browser to include by name. Can be specified multiple
+times. Use "all" to include all installed browsers or use "none"
+to exclude all browsers.""",
         )
 
     def _getPlaywrightPath(self):
@@ -127,6 +128,8 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
             )
 
         self.info("Including browsers: %s" % ", ".join(self.include_browsers))
+        if "none" in self.include_browsers:
+            return
         if "all" in self.include_browsers:
             self.include_browsers = self.installed_browsers
         elif "ffmpeg" not in self.include_browsers and any(

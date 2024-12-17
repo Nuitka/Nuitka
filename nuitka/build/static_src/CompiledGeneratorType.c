@@ -724,6 +724,11 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
             return yielded;
         }
     } else {
+        Py_XDECREF(value);
+
+        // Release exception if any, we are finished with it and will raise another.
+        RELEASE_ERROR_OCCURRED_STATE_X(exception_state);
+
         return NULL;
     }
 }

@@ -672,6 +672,26 @@ if env.static_libpython and (
 ):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
+if env.static_libpython and python_version >= (3, 12):
+    env.Append(
+        CPPPATH=[
+            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
+            os.path.join(
+                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
+            ),
+        ]
+    )
+
+    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
+
+    # Remove it from static link libraries as well, if present, so far they are
+    # bugs and do not exist.
+    link_module_libs = [
+        link_module_lib
+        for link_module_lib in link_module_libs
+        if "libHacl_Hash_SHA2" not in link_module_libs
+    ]
+
 if os.name == "nt":
     if env.nuitka_python:
         env.Append(
@@ -832,18 +852,6 @@ env.Append(
         os.path.join(env.nuitka_src, "inline_copy", "libbacktrace"),
     ]
 )
-
-if env.static_libpython and python_version >= (3, 12):
-    env.Append(
-        CPPPATH=[
-            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
-            os.path.join(
-                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
-            ),
-        ]
-    )
-
-    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
 
 # Set load libpython from binary directory default
 if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
