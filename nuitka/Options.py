@@ -331,15 +331,15 @@ def printVersionInformation():
 
     from nuitka.build.SconsInterface import (
         asBoolStr,
+        getCommonSconsOptions,
         runScons,
-        setCommonSconsOptions,
     )
 
-    scons_options = {"compiler_version_mode": asBoolStr("true")}
-    env_values = setCommonSconsOptions(options=scons_options)
+    scons_options, env_values = getCommonSconsOptions()
+    scons_options["compiler_version_mode"] = asBoolStr("true")
 
     runScons(
-        options=scons_options,
+        scons_options=scons_options,
         env_values=env_values,
         scons_filename="CCompilerVersion.scons",
     )
