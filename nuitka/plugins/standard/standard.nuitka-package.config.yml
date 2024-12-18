@@ -6217,7 +6217,13 @@
     - depends:
         - 'sqlalchemy.orm.dependency'
 
-- module-name: 'sqlfluff' # checksum: 17fc165a
+- module-name: 'sqlfluff' # checksum: 3fc9a782
+  data-files:
+    - include-metadata:
+      # TODO: Actually we should be able to include by
+      # entry point names.
+        - 'sqlfluff'
+
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
