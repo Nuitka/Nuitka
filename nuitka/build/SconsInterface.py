@@ -280,6 +280,14 @@ def _createSconsDebugScript(source_dir, scons_command):
     # we wrote debug shell script only if build process called, not "--version" call.
     scons_debug_python_name = "scons-debug.py"
 
+    # Reduce environment variables from unusable stuff that is also very runtime
+    # dependent, spell-checker: ignore COLORTERM
+    env = OrderedDict(
+        (key, value)
+        for (key, value) in os.environ.items()
+        if not key.startswith(("VSCODE", "GIT", "WSL", "COLORTERM", "TERM"))
+    )
+
     putTextFileContents(
         filename=os.path.join(source_dir, scons_debug_python_name),
         contents="""\
@@ -291,10 +299,13 @@ import subprocess
 
 exit_code = subprocess.call(
     %(scons_command)r,
-    env=%(env)r,
+    env={%(env)s}
     shell=False
 )"""
-        % {"scons_command": scons_command, "env": dict(os.environ)},
+        % {
+            "scons_command": scons_command,
+            "env": ",".join("%r: %r" % (key, value) for key, value in env.items()),
+        },
         encoding="utf8",
     )
 
@@ -331,24 +342,29 @@ cd "${0%/*}"
     )
 
 
-def runScons(options, env_values, scons_filename):
+def runScons(scons_options, env_values, scons_filename):
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
-        if "source_dir" in options and Options.shallCompileWithoutBuildDirectory():
+        if (
+            "source_dir" in scons_options
+            and Options.shallCompileWithoutBuildDirectory()
+        ):
             # Make sure we become non-local, by changing all paths to be
             # absolute, but ones that can be resolved by any program
             # externally, as the Python of Scons may not be good at unicode.
 
-            options = copy.deepcopy(options)
-            source_dir = options["source_dir"]
-            options["source_dir"] = "."
-            options["nuitka_src"] = getExternalUsePath(options["nuitka_src"])
+            scons_options = copy.deepcopy(scons_options)
+            source_dir = scons_options["source_dir"]
+            scons_options["source_dir"] = "."
+            scons_options["nuitka_src"] = getExternalUsePath(
+                scons_options["nuitka_src"]
+            )
 
-            orig_result_exe = options.get("result_exe")
-            if "result_exe" in options:
-                options["result_exe"] = getExternalUsePath(
-                    options["result_exe"], only_dirname=True
+            orig_result_exe = scons_options.get("result_exe")
+            if "result_exe" in scons_options:
+                scons_options["result_exe"] = getExternalUsePath(
+                    scons_options["result_exe"], only_dirname=True
                 )
 
         else:
@@ -361,7 +377,7 @@ def runScons(options, env_values, scons_filename):
         env_values["NUITKA_QUIET"] = "1" if Tracing.is_quiet else "0"
 
         scons_command = _buildSconsCommand(
-            options=options, scons_filename=scons_filename
+            options=scons_options, scons_filename=scons_filename
         )
 
         if Options.isShowScons():
@@ -386,10 +402,10 @@ def runScons(options, env_values, scons_filename):
         # current source_dir.
         flushSconsReports()
 
-        if "source_dir" in options and result == 0:
-            if "result_exe" in options:
+        if "source_dir" in scons_options and result == 0:
+            if "result_exe" in scons_options:
                 scons_created_exe = getSconsReportValue(
-                    source_dir or options["source_dir"], "TARGET"
+                    source_dir or scons_options["source_dir"], "TARGET"
                 )
 
                 if not os.path.exists(scons_created_exe):
@@ -398,10 +414,10 @@ def runScons(options, env_values, scons_filename):
                         % scons_created_exe
                     )
 
-                if not areSamePaths(options["result_exe"], scons_created_exe):
+                if not areSamePaths(scons_options["result_exe"], scons_created_exe):
                     renameFile(scons_created_exe, orig_result_exe)
 
-            checkCachingSuccess(source_dir or options["source_dir"])
+            checkCachingSuccess(source_dir or scons_options["source_dir"])
 
         return result == 0
 
@@ -458,87 +474,90 @@ def cleanSconsDirectory(source_dir):
                 check(path)
 
 
-def setCommonSconsOptions(options):
+def getCommonSconsOptions():
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches and statements,
+    # have checks for them, leading to many branches and statements.
     # pylint: disable=too-many-branches,too-many-statements
-    options["nuitka_src"] = getSconsDataPath()
 
-    options["python_version"] = python_version_str
+    scons_options = OrderedDict()
 
-    options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
+    scons_options["nuitka_src"] = getSconsDataPath()
 
-    options["experimental"] = ",".join(Options.getExperimentalIndications())
+    scons_options["python_version"] = python_version_str
 
-    options["debug_modes"] = ",".join(Options.getDebugModeIndications())
+    scons_options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 
-    options["deployment"] = asBoolStr(Options.isDeploymentMode())
+    scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
 
-    options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
+    scons_options["debug_modes"] = ",".join(Options.getDebugModeIndications())
+
+    scons_options["deployment"] = asBoolStr(Options.isDeploymentMode())
+
+    scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
 
     if Options.shallRunInDebugger():
-        options["full_names"] = asBoolStr(True)
+        scons_options["full_names"] = asBoolStr(True)
 
     if Options.assumeYesForDownloads():
-        options["assume_yes_for_downloads"] = asBoolStr(True)
+        scons_options["assume_yes_for_downloads"] = asBoolStr(True)
 
     if not Options.shallUseProgressBar():
-        options["progress_bar"] = asBoolStr(False)
+        scons_options["progress_bar"] = asBoolStr(False)
 
     if Options.isClang():
-        options["clang_mode"] = asBoolStr(True)
+        scons_options["clang_mode"] = asBoolStr(True)
 
     if Options.isShowScons():
-        options["show_scons"] = asBoolStr(True)
+        scons_options["show_scons"] = asBoolStr(True)
 
     if Options.isMingw64():
-        options["mingw_mode"] = asBoolStr(True)
+        scons_options["mingw_mode"] = asBoolStr(True)
 
     if Options.getMsvcVersion():
-        options["msvc_version"] = Options.getMsvcVersion()
+        scons_options["msvc_version"] = Options.getMsvcVersion()
 
     if Options.shallDisableCCacheUsage():
-        options["disable_ccache"] = asBoolStr(True)
+        scons_options["disable_ccache"] = asBoolStr(True)
 
     if isWin32Windows() and Options.getWindowsConsoleMode() != "attach":
-        options["console_mode"] = Options.getWindowsConsoleMode()
+        scons_options["console_mode"] = Options.getWindowsConsoleMode()
 
     if Options.getLtoMode() != "auto":
-        options["lto_mode"] = Options.getLtoMode()
+        scons_options["lto_mode"] = Options.getLtoMode()
 
     if isWin32OrPosixWindows() or isMacOS():
-        options["noelf_mode"] = asBoolStr(True)
+        scons_options["noelf_mode"] = asBoolStr(True)
 
     if Options.isUnstripped():
-        options["unstripped_mode"] = asBoolStr(True)
+        scons_options["unstripped_mode"] = asBoolStr(True)
 
     if isAnacondaPython():
-        options["anaconda_python"] = asBoolStr(True)
+        scons_options["anaconda_python"] = asBoolStr(True)
 
     if isMSYS2MingwPython():
-        options["msys2_mingw_python"] = asBoolStr(True)
+        scons_options["msys2_mingw_python"] = asBoolStr(True)
 
     if isSelfCompiledPythonUninstalled():
-        options["self_compiled_python_uninstalled"] = asBoolStr(True)
+        scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
-        options["cpp_defines"] = ",".join(
+        scons_options["cpp_defines"] = ",".join(
             "%s%s%s" % (key, "=" if value else "", value or "")
             for key, value in cpp_defines.items()
         )
 
     cpp_include_dirs = Plugins.getExtraIncludeDirectories()
     if cpp_include_dirs:
-        options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
+        scons_options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
 
     link_dirs = Plugins.getExtraLinkDirectories()
     if link_dirs:
-        options["link_dirs"] = ",".join(link_dirs)
+        scons_options["link_dirs"] = ",".join(link_dirs)
 
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
-        options["link_libraries"] = ",".join(link_libraries)
+        scons_options["link_libraries"] = ",".join(link_libraries)
 
     if isMacOS():
         macos_min_version = detectBinaryMinMacOS(sys.executable)
@@ -548,14 +567,14 @@ def setCommonSconsOptions(options):
                 "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 
-        options["macos_min_version"] = macos_min_version
+        scons_options["macos_min_version"] = macos_min_version
 
-        options["macos_target_arch"] = Options.getMacOSTargetArch()
+        scons_options["macos_target_arch"] = Options.getMacOSTargetArch()
 
-    options["target_arch"] = getArchitecture()
+    scons_options["target_arch"] = getArchitecture()
 
     if Options.getFcfProtectionMode() != "auto":
-        options["cf_protection"] = Options.getFcfProtectionMode()
+        scons_options["cf_protection"] = Options.getFcfProtectionMode()
 
     env_values = OrderedDict()
 
@@ -600,7 +619,7 @@ def setCommonSconsOptions(options):
             getOnefileChildGraceTime()
         )
 
-    return env_values
+    return scons_options, env_values
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
