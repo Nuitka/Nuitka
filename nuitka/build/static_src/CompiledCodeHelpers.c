@@ -1595,25 +1595,6 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     return result;
 }
 
-#if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
-NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
-
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-#endif
-
 #if defined(_NUITKA_EXE)
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
@@ -1940,13 +1921,12 @@ PyObject *getDllFilenameObject(void) {
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #if defined(_NUITKA_EXE)
 #if defined(_NUITKA_ONEFILE_MODE)
-    environment_char_t const *onefile_binary = getEnvironmentVariable("NUITKA_ONEFILE_BINARY");
-    if (onefile_binary != NULL) {
-        PyObject *result = Nuitka_String_FromFilename(onefile_binary);
-        unsetEnvironmentVariable("NUITKA_ONEFILE_BINARY");
+    environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
+    if (onefile_directory != NULL) {
+        PyObject *result = Nuitka_String_FromFilename(onefile_directory);
+        unsetEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
 
-        PyThreadState *tstate = PyThreadState_GET();
-        return OS_PATH_DIRNAME(tstate, result);
+        return result;
     }
 
     return getBinaryDirectoryObject(resolve_symlinks);
