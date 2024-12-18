@@ -13,8 +13,8 @@ from nuitka import Options, OutputDirectories
 from nuitka.build.SconsInterface import (
     asBoolStr,
     cleanSconsDirectory,
+    getCommonSconsOptions,
     runScons,
-    setCommonSconsOptions,
 )
 from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
 from nuitka.OutputDirectories import getResultFullpath
@@ -55,22 +55,20 @@ def packDistFolderToOnefile(dist_dir):
 
 
 def _runOnefileScons(onefile_compression, onefile_archive):
+    scons_options, env_values = getCommonSconsOptions()
+
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
 
     # Let plugins do their thing for onefile mode too.
     Plugins.writeExtraCodeFiles(onefile=True)
 
-    options = {
-        "result_exe": OutputDirectories.getResultFullpath(onefile=True),
-        "source_dir": source_dir,
-        "debug_mode": asBoolStr(Options.is_debug),
-        "trace_mode": asBoolStr(Options.shallTraceExecution()),
-        "onefile_splash_screen": asBoolStr(
-            Options.getWindowsSplashScreen() is not None
-        ),
-    }
-
-    env_values = setCommonSconsOptions(options)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=True)
+    scons_options["source_dir"] = source_dir
+    scons_options["debug_mode"] = asBoolStr(Options.is_debug)
+    scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
+    scons_options["onefile_splash_screen"] = asBoolStr(
+        Options.getWindowsSplashScreen() is not None
+    )
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_TEMP_BOOL"] = "1" if isOnefileTempDirMode() else "0"
@@ -82,7 +80,7 @@ def _runOnefileScons(onefile_compression, onefile_archive):
     env_values.update(Plugins.getBuildDefinitions())
 
     result = runScons(
-        options=options,
+        scons_options=scons_options,
         env_values=env_values,
         scons_filename="Onefile.scons",
     )

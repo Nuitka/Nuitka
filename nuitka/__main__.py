@@ -65,6 +65,9 @@ def main():
         )
         sys.exit(1)
 
+    # Make sure this is removed if it exists.
+    getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME")
+
     nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_BINARY_NAME")
     if nuitka_binary_name is not None:
         sys.argv[0] = nuitka_binary_name
