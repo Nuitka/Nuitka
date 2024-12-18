@@ -281,7 +281,7 @@ def _createSconsDebugScript(source_dir, scons_command):
     scons_debug_python_name = "scons-debug.py"
 
     # Reduce environment variables from unusable stuff that is also very runtime
-    # dependant, spell-checker: ignore COLORTERM
+    # dependent, spell-checker: ignore COLORTERM
     env = OrderedDict(
         (key, value)
         for (key, value) in os.environ.items()
