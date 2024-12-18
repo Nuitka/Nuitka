@@ -1510,6 +1510,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "/sys",
             "/tmp",
             "/var",
+            "/private/var",
             # Locals may of course be loaded.
             "/usr/lib/locale",
             "/usr/share/locale",
