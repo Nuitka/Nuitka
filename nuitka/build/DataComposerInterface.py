@@ -55,6 +55,7 @@ def _runDataComposer(source_dir):
 
     blob_filename = getConstantBlobFilename(source_dir)
 
+    # This ends up being "__constants.txt" right now.
     stats_filename = changeFilenameExtension(blob_filename, ".txt")
 
     with withEnvironmentVarsOverridden(mapping):
