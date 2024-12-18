@@ -1157,7 +1157,7 @@ int main(int argc, char **argv) {
 #else
     filename_char_t const *binary_filename = getBinaryFilenameHostEncoded(false);
 #endif
-    setEnvironmentVariable("NUITKA_ONEFILE_BINARY", binary_filename);
+    setEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY", stripBaseFilename(binary_filename));
 
     setEnvironmentVariable("NUITKA_ORIGINAL_ARGV0", argv[0]);
 

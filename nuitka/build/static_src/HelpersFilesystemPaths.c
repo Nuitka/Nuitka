@@ -1053,6 +1053,41 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
 #endif
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static wchar_t result[MAXPATHLEN + 1];
+
+    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
+    stripFilenameW(result);
+
+    return result;
+}
+#else
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static char result[MAXPATHLEN + 1];
+    copyStringSafe(result, filename, sizeof(result));
+
+    return dirname(result);
+}
+#endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
