@@ -369,7 +369,7 @@ def getNullInput():
 
 
 def executeToolChecked(
-    logger, command, absence_message, stderr_filter=None, optional=False
+    logger, command, absence_message, stderr_filter=None, optional=False, decoding=False
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
@@ -379,7 +379,7 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return ""
+            return b"" if decoding else ""
         else:
             logger.sysexit(absence_message)
 
@@ -419,6 +419,9 @@ def executeToolChecked(
         logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
+
+    if decoding:
+        stdout = stdout.decode("utf8")
 
     return stdout
 

@@ -21,14 +21,13 @@ from nuitka.TreeXML import fromFile
 from nuitka.utils.Execution import (
     check_call,
     executeProcess,
-    executeToolChecked,
     withEnvironmentVarOverridden,
 )
 from nuitka.utils.FileOperations import (
-    changeTextFileContents,
     deleteFile,
     getFileContents,
     getFileList,
+    getNormalizedPath,
     listDir,
     makePath,
     putTextFileContents,
@@ -41,7 +40,14 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
 from nuitka.Version import parseNuitkaVersionToTuple
 
+from .Conda import (
+    getCondaRunCommand,
+    updateCondaEnvironmentFile,
+    updateCondaEnvironmentLockFile,
+)
 from .GitHub import createNuitkaWatchPR
+from .Pacman import updatePacmanFile, updatePacmanLockFile
+from .Pipenv import updatePipenvFile
 
 watch_logger = OurLogger("", base_style="blue")
 
@@ -89,137 +95,50 @@ def selectPythons(python_version_req, anaconda, msys2_mingw64):
 
 
 def selectOS(os_values):
-    # return driven, pylint: disable=too-many-return-statements
+    # Need to move the Anaconda/MSYS2 handling into options of installed Pythons
+    # return driven, pylint: disable=too-many-branches,too-many-return-statements
 
     for value in os_values:
-        if value not in ("Linux", "Win32", "macOS", "Win32-MSYS2", "Win32-Anaconda"):
+        if value not in (
+            "Linux",
+            "Win32",
+            "macOS",
+            "Win32-MSYS2",
+            "Win32-Anaconda",
+            "Linux-Anaconda",
+            "macOS-Anaconda",
+        ):
             watch_logger.sysexit("Illegal value for OS: %s" % value)
 
-    if isLinux() and "Linux" in os_values:
-        return "Linux"
+    # TODO: Once installed python detects MSYS2 and Anaconda, we should remove
+    # this in favor of passed options that allow flavors or not.
+    if isLinux():
+        if isAnacondaPython():
+            if "Linux-Anaconda" in os_values:
+                return "Linux-Anaconda"
+
+            return None
+        elif "Linux" in os_values:
+            return "Linux"
     if isWin32Windows():
         if isMSYS2MingwPython():
             if "Win32-MSYS2" in os_values:
                 return "Win32-MSYS2"
 
             return None
-        if isAnacondaPython():
+        elif isAnacondaPython():
             if "Win32-Anaconda" in os_values:
                 return "Win32-Anaconda"
-
-            return None
-        if "Win32" in os_values:
+        elif "Win32" in os_values:
             return "Win32"
-    if isMacOS() and "macOS" in os_values:
-        return "macOS"
+    if isMacOS():
+        if isAnacondaPython():
+            if "macOS-Anaconda" in os_values:
+                return "macOS-Anaconda"
+        elif "macOS" in os_values:
+            return "macOS"
 
     return None
-
-
-def getPlatformRequirements(installed_python, case_data):
-    requirements = list(case_data["requirements"])
-
-    # Nuitka house keeping, these are from setup.py but we ignore onefile needs
-    # as that is not currently covered in watches.
-    # spell-checker: ignore orderedset,imageio
-    needs_onefile = False
-
-    if installed_python.getHexVersion() >= 0x370:
-        requirements.append("ordered-set >= 4.1.0")
-    if installed_python.getHexVersion() < 0x300:
-        requirements.append("subprocess32")
-    if needs_onefile and installed_python.getHexVersion() >= 0x370:
-        requirements.append("zstandard >= 0.15")
-    if (
-        os.name != "nt"
-        and sys.platform != "darwin"
-        and installed_python.getHexVersion() < 0x370
-    ):
-        requirements.append("orderedset >= 2.0.3")
-    if sys.platform == "darwin" and installed_python.getHexVersion() < 0x370:
-        requirements.append("orderedset >= 2.0.3")
-
-    # For icon conversion.
-    if case_data.get("icons", "no") == "yes":
-        requirements.append("imageio")
-
-    return requirements
-
-
-def _updatePipenvFile(installed_python, case_data, dry_run, result_path):
-    pipenv_filename = os.path.join(result_path, "Pipfile")
-    pipenv_package_requirements = []
-
-    for requirement in getPlatformRequirements(
-        installed_python=installed_python, case_data=case_data
-    ):
-        # Ignore spaces in requirements.
-        requirement = requirement.replace(" ", "")
-
-        if all(char not in requirement for char in "=><"):
-            pipenv_package_requirements.append('"%s" = "*"' % requirement)
-        else:
-            operator_index = min(
-                requirement.find(char) for char in "=><" if char in requirement
-            )
-
-            pipenv_package_requirements.append(
-                '"%s" = "%s"'
-                % (requirement[:operator_index], requirement[operator_index:])
-            )
-
-    # TODO: Other indexes, e.g. nvidia might be needed too
-    changed_pipenv_file = changeTextFileContents(
-        pipenv_filename,
-        """\
-[[source]]
-name = "pypi"
-url = "https://pypi.org/simple"
-verify_ssl = true
-
-[requires]
-python_version = "%(python_version)s"
-
-[packages]
-%(pipenv_package_requirements)s
-"""
-        % {
-            "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
-            "python_version": installed_python.getPythonVersion(),
-        },
-        compare_only=dry_run,
-    )
-
-    return changed_pipenv_file, pipenv_filename
-
-
-def _updatePacmanFile(installed_python, case_data, dry_run, result_path):
-    pipenv_filename = os.path.join(result_path, "Pacman.txt")
-    pipenv_package_requirements = []
-
-    for requirement in getPlatformRequirements(
-        installed_python=installed_python, case_data=case_data
-    ):
-        # Ignore spaces in requirements.
-        requirement = requirement.replace(" ", "")
-
-    # TODO: Other indexes, e.g. nvidia might be needed too
-    changed_pipenv_file = changeTextFileContents(
-        pipenv_filename,
-        """\
-[python]
-%(python_version)s
-[packages]
-%(pipenv_package_requirements)s
-"""
-        % {
-            "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
-            "python_version": installed_python.getPythonVersion(),
-        },
-        compare_only=dry_run,
-    )
-
-    return changed_pipenv_file, pipenv_filename
 
 
 def _execPipenvCommand(installed_python, command, retry=False):
@@ -283,23 +202,6 @@ def _updatePipenvLockFile(
     return "Pipfile.lock"
 
 
-def _updatePacmanLockFile():
-    pacman_lock_filename = "Pacman.lock"
-
-    pacman_output = executeToolChecked(
-        logger=watch_logger,
-        command=["pacman", "-Q"],
-        absence_message="needs pacman to query package status on MSYS2",
-    )
-
-    if str is not bytes:
-        pacman_output = pacman_output.decode("utf8")
-
-    changeTextFileContents(filename=pacman_lock_filename, contents=pacman_output)
-
-    return pacman_lock_filename
-
-
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     preferred_package_type = installed_python.getPreferredPackageType()
 
@@ -319,8 +221,12 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         run_command = ["python"]
 
         extra_options.append("--disable-ccache")
+    elif preferred_package_type == "conda":
+        run_command = getCondaRunCommand(
+            installed_python=installed_python, case_data=case_data
+        )
     else:
-        assert False
+        assert False, preferred_package_type
 
     if jobs is not None:
         extra_options.append("--jobs=%s" % jobs)
@@ -336,7 +242,8 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             "--report-user-provided=pipenv_hash=%s"
             % getFileContentsHash(lock_filename),
         ]
-        + extra_options
+        + extra_options,
+        logger=watch_logger,
     )
 
     if case_data["interactive"] == "no":
@@ -371,6 +278,80 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
             )
 
 
+def _updateCaseLock(
+    dry_run,
+    installed_python,
+    case_data,
+    case_dir,
+    no_pipenv_update,
+    result_path,
+):
+    # Update the pipenv file in any case, ought to be stable but we follow
+    # global changes this way.
+    preferred_package_type = installed_python.getPreferredPackageType()
+
+    # Not good for actual dry run, but tough life.
+    makePath(result_path)
+
+    with withDirectoryChange(result_path):
+        if preferred_package_type == "pip":
+            changed_pipenv_file, pipenv_filename = updatePipenvFile(
+                installed_python=installed_python,
+                case_data=case_data,
+                dry_run=dry_run,
+            )
+
+            pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
+
+            if dry_run and changed_pipenv_file:
+                watch_logger.info(
+                    "Would create pipenv file '%s'." % pipenv_filename_full
+                )
+                return None, None
+
+            # Update or create lockfile of pipenv.
+            lock_filename = _updatePipenvLockFile(
+                installed_python=installed_python,
+                dry_run=dry_run,
+                pipenv_filename_full=pipenv_filename_full,
+                no_pipenv_update=no_pipenv_update,
+            )
+        elif preferred_package_type == "pacman":
+            changed_pipenv_file, conda_env_filename = updatePacmanFile(
+                installed_python=installed_python,
+                case_data=case_data,
+                dry_run=dry_run,
+                result_path=result_path,
+            )
+
+            # Update or create lockfile of pipenv.
+            lock_filename = updatePacmanLockFile(logger=watch_logger)
+        elif preferred_package_type == "conda":
+            changed_pipenv_file, conda_env_filename = updateCondaEnvironmentFile(
+                installed_python=installed_python,
+                case_data=case_data,
+                dry_run=dry_run,
+            )
+
+            if dry_run and changed_pipenv_file:
+                watch_logger.info(
+                    "Would create conda environment file '%s'." % conda_env_filename
+                )
+                return
+
+            # Update or create lockfile of pipenv.
+            lock_filename = updateCondaEnvironmentLockFile(
+                logger=watch_logger,
+                dry_run=dry_run,
+                installed_python=installed_python,
+                case_data=case_data,
+            )
+
+        lock_filename = os.path.abspath(lock_filename)
+
+    return False, lock_filename
+
+
 def _updateCase(
     case_dir,
     case_data,
@@ -382,49 +363,18 @@ def _updateCase(
     jobs,
 ):
     # Many details and cases due to package method being handled here.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches
 
-    # Not good for dry run, but tough life.
-    makePath(result_path)
-
-    # Update the pipenv file in any case, ought to be stable but we follow
-    # global changes this way.
-    preferred_package_type = installed_python.getPreferredPackageType()
-    if preferred_package_type == "pip":
-        changed_pipenv_file, pipenv_filename = _updatePipenvFile(
-            installed_python=installed_python,
-            case_data=case_data,
-            dry_run=dry_run,
-            result_path=result_path,
-        )
-
-        pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
-
-        if dry_run and changed_pipenv_file:
-            watch_logger.info("Would create pipenv file '%s'." % pipenv_filename_full)
-            return
-
-        with withDirectoryChange(result_path):
-            # Update or create lockfile of pipenv.
-            lock_filename = _updatePipenvLockFile(
-                installed_python=installed_python,
-                dry_run=dry_run,
-                pipenv_filename_full=pipenv_filename_full,
-                no_pipenv_update=no_pipenv_update,
-            )
-    elif preferred_package_type == "pacman":
-        changed_pipenv_file, pipenv_filename = _updatePacmanFile(
-            installed_python=installed_python,
-            case_data=case_data,
-            dry_run=dry_run,
-            result_path=result_path,
-        )
-
-        with withDirectoryChange(result_path):
-            # Update or create lockfile of pipenv.
-            lock_filename = _updatePacmanLockFile()
-    else:
-        assert False, preferred_package_type
+    early_return, lock_filename = _updateCaseLock(
+        dry_run=dry_run,
+        installed_python=installed_python,
+        case_data=case_data,
+        case_dir=case_dir,
+        no_pipenv_update=no_pipenv_update,
+        result_path=result_path,
+    )
+    if early_return:
+        return
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
@@ -449,7 +399,7 @@ def _updateCase(
                     if existing_hash != old_report_root_hash:
                         watch_logger.info(
                             "Recompilation with identical Nuitka for '%s' due to changed pipfile."
-                            % pipenv_filename_full
+                            % lock_filename
                         )
 
                         need_compile = True
@@ -459,7 +409,7 @@ def _updateCase(
                         else:
                             watch_logger.info(
                                 "Skipping compilation with identical Nuitka for '%s'."
-                                % pipenv_filename_full
+                                % lock_filename
                             )
 
                             need_compile = False
@@ -469,7 +419,7 @@ def _updateCase(
                             % (
                                 old_nuitka_version,
                                 nuitka_version,
-                                pipenv_filename_full,
+                                lock_filename,
                             )
                         )
 
@@ -520,7 +470,6 @@ def updateCase(
 
     selected_pythons = tuple(
         selectPythons(
-            # TODO: Enable Anaconda support through options/detection.
             anaconda="Anaconda" in os_name,
             msys2_mingw64="MSYS2" in os_name,
             python_version_req=case_data.get("python_version_req"),
@@ -533,18 +482,20 @@ def updateCase(
 
     # For all relevant Pythons applicable to this case.
     for installed_python in selectPythons(
-        # TODO: Enable Anaconda support through options/detection.
         anaconda="Anaconda" in os_name,
         msys2_mingw64="MSYS2" in os_name,
         python_version_req=case_data.get("python_version_req"),
     ):
         watch_logger.info("Consider with Python %s." % installed_python)
 
-        result_path = "result/%(case_name)s/%(python_version)s-%(os_name)s" % {
-            "case_name": case_name,
-            "os_name": os_name,
-            "python_version": installed_python.getPythonVersion(),
-        }
+        result_path = getNormalizedPath(
+            "result/%(case_name)s/%(python_version)s-%(os_name)s"
+            % {
+                "case_name": case_name,
+                "os_name": os_name,
+                "python_version": installed_python.getPythonVersion(),
+            }
+        )
 
         _updateCase(
             case_dir=case_dir,
@@ -666,7 +617,7 @@ to reserve cores.""",
         getTestExecutionPythonVersions()
     ):
         installed_pythons[python_version] = findPythons(
-            python_version, module_name="pipenv"
+            python_version, module_name=None if isAnacondaPython() else "pipenv"
         )
 
     nuitka_binary = os.path.abspath(os.path.expanduser(options.nuitka_binary))
