@@ -1097,6 +1097,9 @@ def isFilenameBelowPath(path, filename, consider_short=True):
 
 def isFilenameSameAsOrBelowPath(path, filename):
     """Is a filename inside of a given directory path or the same path as that directory."""
+    if type(path) in (tuple, list):
+        return any(isFilenameSameAsOrBelowPath(path=p, filename=filename) for p in path)
+
     return isFilenameBelowPath(path, filename) or areSamePaths(path, filename)
 
 
