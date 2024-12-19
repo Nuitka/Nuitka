@@ -640,10 +640,8 @@ def _getFileCommandOutput(filename):
             logger=postprocessing_logger,
             command=("file", filename),
             absence_message=_file_usage,
+            decoding=str is not bytes,
         )
-
-        if str is not bytes:
-            file_output = file_output.decode("utf8")
 
         assert file_output.startswith(filename + ":")
         file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
