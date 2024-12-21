@@ -6,6 +6,7 @@
 import base64
 import hashlib
 import os
+import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     FileNotFoundError,
@@ -19,15 +20,58 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isPosixWindows,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import metadata_logger
 
-from .FileOperations import isFilenameBelowPath, searchPrefixPath
+from .FileOperations import (
+    getFileContentByLine,
+    getFileList,
+    isFilenameBelowPath,
+    searchPrefixPath,
+)
 from .Importing import getModuleNameAndKindFromFilenameSuffix
+from .Json import loadJsonFromFilename
 from .ModuleNames import ModuleName, checkModuleName
 from .Utils import isMacOS, isWin32Windows
 
 _package_to_distribution = None
+
+_conda_package_infos = None
+
+
+def _getCondaMetaDataFiles(distribution_name):
+    # Cached result, pylint: disable=global-statement
+    global _conda_package_infos
+
+    if _conda_package_infos is None:
+        _conda_package_infos = {}
+
+        conda_meta_dir = os.path.join(sys.prefix, "conda-meta")
+
+        for filename in getFileList(conda_meta_dir, only_suffixes=".json"):
+            conda_data = loadJsonFromFilename(filename)
+
+            if conda_data is not None:
+                for contained_filename in conda_data["files"]:
+                    if contained_filename.endswith(".dist-info/METADATA"):
+                        contained_filename_full = os.path.join(
+                            sys.prefix, contained_filename
+                        )
+                        if os.path.exists(contained_filename_full):
+                            for line in getFileContentByLine(
+                                contained_filename_full, encoding="utf8"
+                            ):
+                                if line.startswith("Name:"):
+                                    contained_distribution_name = line.split(" ", 1)[1]
+                                    _conda_package_infos[
+                                        contained_distribution_name
+                                    ] = conda_data
+                                    break
+
+    if distribution_name in _conda_package_infos:
+        return _conda_package_infos[distribution_name]["files"]
+    else:
+        return ()
 
 
 def getDistributionFiles(distribution):
@@ -42,22 +86,40 @@ is typically caused by corruption of its installation."""
         )
         hasattr_files = False
 
-    if hasattr_files:
-        for filename in distribution.files or ():
+    if hasattr_files and distribution.files is not None:
+        for filename in distribution.files:
             filename = filename.as_posix()
 
             yield filename
     else:
-        for record in _getDistributionMetadataRecordData(distribution):
-            yield record[0]
+        record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
+
+        if record_data is not None:
+            for record in _getDistributionMetadataRecordData(distribution):
+                yield record[0]
+        else:
+            if isAnacondaPython():
+                # On different OSes, different Python versions, different
+                # prefixes are used by Anaconda.
+                candidate_prefixes = (
+                    "lib/site-packages/",
+                    "lib/python%s/site-packages/" % python_version_str,
+                )
+
+                for filename in _getCondaMetaDataFiles(
+                    distribution_name=getDistributionName(distribution)
+                ):
+                    for candidate_prefix in candidate_prefixes:
+                        if filename.lower().startswith(candidate_prefix):
+                            yield filename[len(candidate_prefix) :]
+                            break
 
 
 def _getDistributionMetadataRecordData(distribution):
     record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
 
-    if record_data is not None:
-        for line in record_data.splitlines():
-            yield line.split(",")
+    for line in record_data.splitlines():
+        yield line.split(",")
 
 
 def _readChunks(file_handle):
@@ -123,10 +185,14 @@ is typically caused by corruption of its installation."""
 
 
 def _getDistributionInstallerFileContents(distribution):
-    installer_name = _getDistributionMetadataFileContents(distribution, "INSTALLER")
+    installer_file_contents = _getDistributionMetadataFileContents(
+        distribution, "INSTALLER"
+    )
 
-    if installer_name:
-        installer_name = installer_name.strip().lower()
+    if installer_file_contents:
+        installer_name = installer_file_contents.strip().lower()
+    else:
+        installer_name = None
 
     return installer_name
 
@@ -148,7 +214,7 @@ def getDistributionTopLevelPackageNames(distribution):
 
             first_path_element, _, remainder = filename.partition("/")
 
-            if first_path_element.endswith("dist-info"):
+            if first_path_element.endswith((".dist-info", ".egg-info")):
                 continue
             if first_path_element == "__pycache__":
                 continue
@@ -274,8 +340,8 @@ def getDistributionsFromModuleName(module_name):
     """
 
     # Cached result, pylint: disable=global-statement
-
     global _package_to_distribution
+
     if _package_to_distribution is None:
         _package_to_distribution = _initPackageToDistributionName()
 
