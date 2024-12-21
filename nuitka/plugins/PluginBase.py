@@ -150,7 +150,7 @@ def _getEvaluationContext():
             "android32": isAndroidBasedLinux() and sys.maxsize < 2**32,
             "android64": isAndroidBasedLinux() and sys.maxsize >= 2**64 - 1,
             "anaconda": isAnacondaPython(),
-            "is_conda_package": isDistributionCondaPackage,
+            "is_conda_package": _isCondaPackage,
             "debian_python": isDebianPackagePython(),
             "nuitka_python": isNuitkaPython(),
             "standalone": isStandaloneMode(),
@@ -264,6 +264,12 @@ def _getDistributionNameFromPackageName(package_name):
         return package_name.asString()
     else:
         return getDistributionName(distribution)
+
+
+def _isCondaPackage(package_name):
+    package_name = _getDistributionNameFromPackageName(package_name)
+
+    return isDistributionCondaPackage(package_name)
 
 
 def _getPackageVersion(distribution_name):
