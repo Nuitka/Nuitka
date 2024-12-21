@@ -267,9 +267,9 @@ def _getDistributionNameFromPackageName(package_name):
 
 
 def _isCondaPackage(package_name):
-    package_name = _getDistributionNameFromPackageName(package_name)
+    distribution_name = _getDistributionNameFromPackageName(package_name)
 
-    return isDistributionCondaPackage(package_name)
+    return isDistributionCondaPackage(distribution_name)
 
 
 def _getPackageVersion(distribution_name):
