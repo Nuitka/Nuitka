@@ -85,6 +85,9 @@ extern uint32_t getFileCRC32(filename_char_t const *filename);
 extern bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 extern bool expandTemplatePath(char *target, char const *source, size_t buffer_size);
 
+// Strip the last part of a filename, giving the directory name.
+extern filename_char_t *stripBaseFilename(filename_char_t const *filename);
+
 #endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.

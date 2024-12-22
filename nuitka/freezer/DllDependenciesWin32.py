@@ -14,6 +14,7 @@ from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isShowProgress
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
@@ -22,6 +23,7 @@ from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     getFileContentByLine,
     getSubDirectoriesWithDlls,
+    isFilenameSameAsOrBelowPath,
     listDllFilesFromDirectory,
     makePath,
     putTextFileContents,
@@ -95,9 +97,53 @@ def detectBinaryPathDLLsWin32(
     return result
 
 
+_path_contributions = {}
+
+
+def _getPathContribution(use_path):
+    """Contributions from PATH environment variable.
+
+    These are ignored if use_path is False, but for
+    Anaconda we need to keep those elements pointing
+    to inside of it.
+    """
+    if use_path not in _path_contributions:
+        _path_contributions[use_path] = OrderedSet()
+
+        for path_dir in os.environ["PATH"].split(";"):
+            if not os.path.isdir(path_dir):
+                continue
+
+            # spell-checker: ignore SYSTEMROOT
+            if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
+                continue
+            if areSamePaths(
+                path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")
+            ):
+                continue
+            if areSamePaths(
+                path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
+            ):
+                continue
+
+            # For Anaconda, we cannot ignore PATH on its inside.
+            if not use_path:
+                if not isAnacondaPython() or not isFilenameSameAsOrBelowPath(
+                    filename=path_dir,
+                    path=(
+                        getSystemPrefixPath(),
+                        sys.prefix,
+                    ),
+                ):
+                    continue
+
+            _path_contributions[use_path].add(path_dir)
+
+    return _path_contributions[use_path]
+
+
 def _getScanDirectories(package_name, original_dir, use_path):
     # TODO: Move PyWin32 specific stuff to yaml dll section
-    # pylint: disable=too-many-branches
 
     cache_key = package_name, original_dir
 
@@ -124,23 +170,7 @@ def _getScanDirectories(package_name, original_dir, use_path):
         if py_win32_dir is not None:
             scan_dirs.append(py_win32_dir)
 
-    if use_path:
-        for path_dir in os.environ["PATH"].split(";"):
-            if not os.path.isdir(path_dir):
-                continue
-
-            if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
-                continue
-            if areSamePaths(
-                path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")
-            ):
-                continue
-            if areSamePaths(
-                path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")
-            ):
-                continue
-
-            scan_dirs.append(path_dir)
+    scan_dirs.extend(_getPathContribution(use_path=use_path))
 
     result = []
 
