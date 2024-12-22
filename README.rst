@@ -902,6 +902,11 @@ this should then be a bundle.
    #    nuitka-project: --macos-create-app-bundle
    #
 
+.. note::
+
+   This is best expression with ``nuitka-project: --mode=app`` which
+   encapsulates these options.
+
 ********
  Tweaks
 ********
@@ -973,8 +978,8 @@ project syntax to combine the code with the creation, compile this:
 
 .. code:: python
 
-   # nuitka-project: --onefile
-   # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
+   # nuitka-project: --mode=onefile
+   # nuitka-project: --mode=onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
 
    # Whatever this is, obviously
    print("Delaying startup by 10s...")
@@ -1505,9 +1510,9 @@ variables, this is an example:
 
    # Compilation mode, support OS-specific options
    # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
-   #    nuitka-project: --onefile
+   #    nuitka-project: --mode=app
    # nuitka-project-else:
-   #    nuitka-project: --standalone
+   #    nuitka-project: --mode=standalone
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2

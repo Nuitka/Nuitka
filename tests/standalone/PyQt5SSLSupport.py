@@ -7,8 +7,7 @@
 # nuitka-project: --enable-plugin=pyqt5
 
 # nuitka-project-if: {OS} == "Darwin":
-#   nuitka-project: --macos-create-app-bundle
-#   nuitka-project: --onefile
+#   nuitka-project: --mode=app
 
 from PyQt5.QtNetwork import QSslSocket
 
