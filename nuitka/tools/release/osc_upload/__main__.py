@@ -11,8 +11,11 @@ import os
 import shutil
 import sys
 
+from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import checkReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
+from nuitka.Tracing import tools_logger
+from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
 
 
@@ -47,10 +50,21 @@ def main():
     shutil.rmtree("osc", ignore_errors=True)
     os.makedirs("osc")
 
+    installed_python = findInstalledPython(
+        python_versions=("3.10",), module_name=None, module_version=None
+    )
+
+    with withVirtualenv(
+        "venv_nuitka",
+        logger=tools_logger,
+        style="blue",
+        python=installed_python.getPythonExe(),
+    ) as venv:
+        venv.runCommand("python -m pip osc")
+
     # Stage the "osc" checkout from the ground up.
-    assert (
-        os.system(
-            f"""\
+    venv.runCommand(
+        f"""\
 cd osc && \
 osc checkout home:kayhayen {osc_project_name} && \
 rm home:kayhayen/{osc_project_name}/* && \
@@ -64,8 +78,6 @@ osc addremove -r && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
 """
-        )
-        == 0
     )
 
 
