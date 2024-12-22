@@ -3,12 +3,42 @@
 
 """ Pipenv backend for maintaining locked package state with nuitka-watch. """
 
+import os
+import subprocess
+
+from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import changeTextFileContents
 
 from .Common import getPlatformRequirements
 
 
-def updatePipenvFile(installed_python, case_data, dry_run):
+def _execPipenvCommand(logger, installed_python, command, retry=False):
+    try:
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                command,
+                "--python",
+                installed_python.getPythonExe(),
+            ],
+            logger=logger,
+        )
+    except subprocess.CalledProcessError:
+        if command in ("install", "update") and not retry:
+            _execPipenvCommand(
+                logger=logger, installed_python=installed_python, command="--rm"
+            )
+            _execPipenvCommand(
+                logger=logger, installed_python=installed_python, command=command
+            )
+
+        else:
+            raise
+
+
+def updatePipenvFile(installed_python, case_data):
     pipenv_filename = "Pipfile"
     pipenv_package_requirements = []
 
@@ -31,7 +61,7 @@ def updatePipenvFile(installed_python, case_data, dry_run):
             )
 
     # TODO: Other indexes, e.g. nvidia might be needed too
-    changed_pipenv_file = changeTextFileContents(
+    changeTextFileContents(
         pipenv_filename,
         """\
 [[source]]
@@ -49,10 +79,52 @@ python_version = "%(python_version)s"
             "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
             "python_version": installed_python.getPythonVersion(),
         },
-        compare_only=dry_run,
     )
 
-    return changed_pipenv_file, pipenv_filename
+    return pipenv_filename
+
+
+def updatePipenvLockFile(
+    logger, installed_python, pipenv_filename_full, no_pipenv_update
+):
+    if os.path.exists("Pipfile.lock"):
+        if no_pipenv_update:
+            logger.info(
+                "Keeping existing lock file with pipenv file '%s'."
+                % pipenv_filename_full
+            )
+
+            _execPipenvCommand(
+                logger=logger, installed_python=installed_python, command="install"
+            )
+
+        else:
+            logger.info(
+                "Working with existing pipenv file '%s' to update virtualenv, may take a while."
+                % pipenv_filename_full
+            )
+
+            _execPipenvCommand(
+                logger=logger, installed_python=installed_python, command="update"
+            )
+    else:
+        logger.info(
+            "Working with pipenv file '%s' to install virtualenv, may take a while."
+            % pipenv_filename_full
+        )
+
+        check_call(
+            [
+                installed_python.getPythonExe(),
+                "-m",
+                "pipenv",
+                "install",
+                "--python",
+                installed_python.getPythonExe(),
+            ]
+        )
+
+    return "Pipfile.lock"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -8,7 +8,6 @@ of Nuitka changes on PyPI packages.
 """
 
 import os
-import subprocess
 import sys
 from optparse import OptionParser
 
@@ -47,7 +46,7 @@ from .Conda import (
 )
 from .GitHub import createNuitkaWatchPR
 from .Pacman import updatePacmanFile, updatePacmanLockFile
-from .Pipenv import updatePipenvFile
+from .Pipenv import updatePipenvFile, updatePipenvLockFile
 
 watch_logger = OurLogger("", base_style="blue")
 
@@ -141,67 +140,6 @@ def selectOS(os_values):
     return None
 
 
-def _execPipenvCommand(installed_python, command, retry=False):
-    try:
-        check_call(
-            [
-                installed_python.getPythonExe(),
-                "-m",
-                "pipenv",
-                command,
-                "--python",
-                installed_python.getPythonExe(),
-            ],
-            logger=watch_logger,
-        )
-    except subprocess.CalledProcessError:
-        if command in ("install", "update") and not retry:
-            _execPipenvCommand(installed_python, "--rm")
-            _execPipenvCommand(installed_python, command)
-
-        else:
-            raise
-
-
-def _updatePipenvLockFile(
-    installed_python, dry_run, pipenv_filename_full, no_pipenv_update
-):
-    if os.path.exists("Pipfile.lock"):
-        if no_pipenv_update:
-            watch_logger.info(
-                "Keeping existing lock file with pipenv file '%s'."
-                % pipenv_filename_full
-            )
-
-            _execPipenvCommand(installed_python, "install")
-
-        elif not dry_run:
-            watch_logger.info(
-                "Working with pipenv file '%s' to update virtualenv, may take a while."
-                % pipenv_filename_full
-            )
-
-            _execPipenvCommand(installed_python, "update")
-    else:
-        watch_logger.info(
-            "Working with pipenv file '%s' to install virtualenv, may take a while."
-            % pipenv_filename_full
-        )
-
-        check_call(
-            [
-                installed_python.getPythonExe(),
-                "-m",
-                "pipenv",
-                "install",
-                "--python",
-                installed_python.getPythonExe(),
-            ]
-        )
-
-    return "Pipfile.lock"
-
-
 def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     preferred_package_type = installed_python.getPreferredPackageType()
 
@@ -279,7 +217,6 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
 
 
 def _updateCaseLock(
-    dry_run,
     installed_python,
     case_data,
     case_dir,
@@ -295,67 +232,50 @@ def _updateCaseLock(
 
     with withDirectoryChange(result_path):
         if preferred_package_type == "pip":
-            changed_pipenv_file, pipenv_filename = updatePipenvFile(
+            pipenv_filename = updatePipenvFile(
                 installed_python=installed_python,
                 case_data=case_data,
-                dry_run=dry_run,
             )
 
             pipenv_filename_full = os.path.join(case_dir, pipenv_filename)
 
-            if dry_run and changed_pipenv_file:
-                watch_logger.info(
-                    "Would create pipenv file '%s'." % pipenv_filename_full
-                )
-                return None, None
-
             # Update or create lockfile of pipenv.
-            lock_filename = _updatePipenvLockFile(
+            lock_filename = updatePipenvLockFile(
+                logger=watch_logger,
                 installed_python=installed_python,
-                dry_run=dry_run,
                 pipenv_filename_full=pipenv_filename_full,
                 no_pipenv_update=no_pipenv_update,
             )
         elif preferred_package_type == "pacman":
-            changed_pipenv_file, conda_env_filename = updatePacmanFile(
+            updatePacmanFile(
                 installed_python=installed_python,
                 case_data=case_data,
-                dry_run=dry_run,
                 result_path=result_path,
             )
 
             # Update or create lockfile of pipenv.
             lock_filename = updatePacmanLockFile(logger=watch_logger)
         elif preferred_package_type == "conda":
-            changed_pipenv_file, conda_env_filename = updateCondaEnvironmentFile(
+            updateCondaEnvironmentFile(
                 installed_python=installed_python,
                 case_data=case_data,
-                dry_run=dry_run,
             )
-
-            if dry_run and changed_pipenv_file:
-                watch_logger.info(
-                    "Would create conda environment file '%s'." % conda_env_filename
-                )
-                return
 
             # Update or create lockfile of pipenv.
             lock_filename = updateCondaEnvironmentLockFile(
                 logger=watch_logger,
-                dry_run=dry_run,
                 installed_python=installed_python,
                 case_data=case_data,
             )
 
         lock_filename = os.path.abspath(lock_filename)
 
-    return False, lock_filename
+    return lock_filename
 
 
 def _updateCase(
     case_dir,
     case_data,
-    dry_run,
     no_pipenv_update,
     nuitka_update_mode,
     installed_python,
@@ -365,16 +285,13 @@ def _updateCase(
     # Many details and cases due to package method being handled here.
     # pylint: disable=too-many-branches
 
-    early_return, lock_filename = _updateCaseLock(
-        dry_run=dry_run,
+    lock_filename = _updateCaseLock(
         installed_python=installed_python,
         case_data=case_data,
         case_dir=case_dir,
         no_pipenv_update=no_pipenv_update,
         result_path=result_path,
     )
-    if early_return:
-        return
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
@@ -446,9 +363,7 @@ def _updateCase(
             )
 
 
-def updateCase(
-    case_dir, case_data, dry_run, no_pipenv_update, nuitka_update_mode, jobs
-):
+def updateCase(case_dir, case_data, no_pipenv_update, nuitka_update_mode, jobs):
     case_name = case_data["case"]
 
     watch_logger.info("Consider '%s' ... " % case_name)
@@ -500,7 +415,6 @@ def updateCase(
         _updateCase(
             case_dir=case_dir,
             case_data=case_data,
-            dry_run=dry_run,
             no_pipenv_update=no_pipenv_update,
             nuitka_update_mode=nuitka_update_mode,
             installed_python=installed_python,
@@ -509,12 +423,11 @@ def updateCase(
         )
 
 
-def updateCases(case_dir, dry_run, no_pipenv_update, nuitka_update_mode, jobs):
+def updateCases(case_dir, no_pipenv_update, nuitka_update_mode, jobs):
     for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
         updateCase(
             case_dir=case_dir,
             case_data=case_data,
-            dry_run=dry_run,
             no_pipenv_update=no_pipenv_update,
             nuitka_update_mode=nuitka_update_mode,
             jobs=jobs,
@@ -560,15 +473,6 @@ Nuitka binary to compile with. Defaults to one near the nuitka-watch usage.""",
         default=False,
         help="""\
 Do not update the pipenv environment. Best to see only effect of Nuitka update. Default %default.""",
-    )
-
-    parser.add_option(
-        "--dry-run",
-        action="store_false",
-        dest="dry_run",
-        default=False,
-        help="""\
-Do not change anything, just report what would be done. Not yet perfectly true. Default %default.""",
     )
 
     parser.add_option(
@@ -648,7 +552,6 @@ to reserve cores.""",
             with withDirectoryChange(os.path.dirname(case_filename)):
                 updateCases(
                     case_dir=os.path.dirname(case_filename),
-                    dry_run=options.dry_run,
                     no_pipenv_update=options.no_pipenv_update,
                     nuitka_update_mode=options.nuitka_update_mode,
                     jobs=options.jobs,
