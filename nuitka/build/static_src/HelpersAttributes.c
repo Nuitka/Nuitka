@@ -958,8 +958,11 @@ static bool SET_ATTRIBUTE_GENERIC(PyThreadState *tstate, PyTypeObject *type, PyO
 
 #if PYTHON_VERSION >= 0x300
         if ((type->tp_flags & Py_TPFLAGS_HEAPTYPE) && (CACHED_KEYS(type) != NULL)) {
+#if PYTHON_VERSION >= 0x3d0
+            int res = _PyObjectDict_SetItem(type, target, dict_pointer, attr_name, value);
+#else
             int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
-
+#endif
             // TODO: Not possible for set, is it?
             if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
                 SET_CURRENT_EXCEPTION_TYPE0_VALUE0(tstate, PyExc_AttributeError, attr_name);
