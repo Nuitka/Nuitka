@@ -250,7 +250,6 @@ def _updateCaseLock(
             updatePacmanFile(
                 installed_python=installed_python,
                 case_data=case_data,
-                result_path=result_path,
             )
 
             # Update or create lockfile of pipenv.
