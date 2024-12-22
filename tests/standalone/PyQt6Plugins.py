@@ -3,7 +3,7 @@
 
 from PyQt6 import QtGui
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyqt6
 
 # nuitka-project-if: {OS} == "Darwin":

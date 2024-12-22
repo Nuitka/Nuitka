@@ -225,8 +225,8 @@ def main():
     )
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
-    standalone_mode = hasArg("--standalone")
-    onefile_mode = hasArg("--onefile")
+    standalone_mode = hasArg("--standalone") or hasArg("--mode=standalone")
+    onefile_mode = hasArg("--onefile") or hasArg("--mode=onefile")
     no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
@@ -287,9 +287,9 @@ def main():
         )
     )
 
-    if "--standalone" in project_options:
+    if "--standalone" in project_options or "--mode=standalone" in project_options:
         standalone_mode = True
-    if "--onefile" in project_options:
+    if "--onefile" in project_options or "--mode=onefile" in project_options:
         standalone_mode = True
         onefile_mode = True
 
@@ -538,9 +538,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if module_mode:
             extra_options.append("--module")
         elif onefile_mode:
-            extra_options.append("--onefile")
+            extra_options.append("--mode=onefile")
         elif standalone_mode:
-            extra_options.append("--standalone")
+            extra_options.append("--mode=standalone")
 
         nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
 

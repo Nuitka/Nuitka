@@ -1,7 +1,7 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 import ctypes
 import os

@@ -6,7 +6,7 @@
 
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 import signal
 import socket

@@ -5,7 +5,7 @@
 
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 from __future__ import print_function
 

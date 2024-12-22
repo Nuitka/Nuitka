@@ -128,7 +128,7 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--standalone",
+            "--mode=standalone",
             "remove_output",
             # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",

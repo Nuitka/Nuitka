@@ -1,7 +1,7 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --include-data-file={MAIN_DIRECTORY}/for_import.zip=for_import.zip
 
 # isort:start

@@ -3,7 +3,7 @@
 
 from PySide6 import QtGui
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyside6
 
 # nuitka-skip-unless-imports: PySide6.QtGui
