@@ -63,6 +63,9 @@
                         "additionalProperties": {
                             "type": "string"
                         }
+                    },
+                    "when": {
+                        "type": "string"
                     }
                 }
             },
