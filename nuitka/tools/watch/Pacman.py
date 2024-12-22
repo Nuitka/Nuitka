@@ -11,8 +11,8 @@ from nuitka.utils.FileOperations import changeTextFileContents
 from .Common import getPlatformRequirements
 
 
-def updatePacmanFile(installed_python, case_data, dry_run, result_path):
-    pipenv_filename = os.path.join(result_path, "Pacman.txt")
+def updatePacmanFile(installed_python, case_data, result_path):
+    pacman_filename = os.path.join(result_path, "Pacman.txt")
     pipenv_package_requirements = []
 
     for requirement in getPlatformRequirements(
@@ -21,9 +21,8 @@ def updatePacmanFile(installed_python, case_data, dry_run, result_path):
         # Ignore spaces in requirements.
         requirement = requirement.replace(" ", "")
 
-    # TODO: Other indexes, e.g. nvidia might be needed too
-    changed_pipenv_file = changeTextFileContents(
-        pipenv_filename,
+    changeTextFileContents(
+        pacman_filename,
         """\
 [python]
 %(python_version)s
@@ -34,10 +33,9 @@ def updatePacmanFile(installed_python, case_data, dry_run, result_path):
             "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
             "python_version": installed_python.getPythonVersion(),
         },
-        compare_only=dry_run,
     )
 
-    return changed_pipenv_file, pipenv_filename
+    return pacman_filename
 
 
 def updatePacmanLockFile(logger):

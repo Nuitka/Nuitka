@@ -43,7 +43,7 @@ def _translatePyPIPackageName(package_name):
     return package_name
 
 
-def updateCondaEnvironmentFile(installed_python, case_data, dry_run):
+def updateCondaEnvironmentFile(installed_python, case_data):
     conda_env_filename = "environment.yml"
     conda_package_requirements = ["python=%s" % installed_python.getPythonVersion()]
 
@@ -62,7 +62,7 @@ def updateCondaEnvironmentFile(installed_python, case_data, dry_run):
 
         conda_package_requirements.append(requirement)
 
-    changed_environment_file = changeTextFileContents(
+    changeTextFileContents(
         conda_env_filename,
         """\
 name: "%(name)s"
@@ -78,15 +78,10 @@ dependencies:
                 for conda_package_requirement in conda_package_requirements
             ),
         },
-        compare_only=dry_run,
     )
 
-    return changed_environment_file, conda_env_filename
 
-
-def updateCondaEnvironmentLockFile(logger, dry_run, installed_python, case_data):
-    assert not dry_run
-
+def updateCondaEnvironmentLockFile(logger, installed_python, case_data):
     conda_lock_filename = "environment.lock"
 
     check_call(
