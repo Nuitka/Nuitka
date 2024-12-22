@@ -552,8 +552,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             nuitka_cmd1 = (
                 nuitka_call + extra_options + ["--module", os.path.abspath(filename)]
             )
+        elif onefile_mode:
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=onefile", filename]
         elif standalone_mode:
-            nuitka_cmd1 = nuitka_call + extra_options + ["--standalone", filename]
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=standalone", filename]
         else:
             nuitka_cmd1 = nuitka_call + extra_options + [filename]
 

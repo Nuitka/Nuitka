@@ -7,8 +7,7 @@
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
 # nuitka-project-if: {OS} == "Darwin":
-#   nuitka-project: --macos-create-app-bundle
-#   nuitka-project: --onefile
+#   nuitka-project: --mode=app
 
 from __future__ import print_function
 
