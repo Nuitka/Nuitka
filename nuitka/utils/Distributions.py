@@ -3,7 +3,10 @@
 
 """ Tools for accessing distributions and resolving package names for them. """
 
+import base64
+import hashlib
 import os
+import sys
 
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     FileNotFoundError,
@@ -17,15 +20,58 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isPosixWindows,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import metadata_logger
 
-from .FileOperations import searchPrefixPath
+from .FileOperations import (
+    getFileContentByLine,
+    getFileList,
+    isFilenameBelowPath,
+    searchPrefixPath,
+)
 from .Importing import getModuleNameAndKindFromFilenameSuffix
+from .Json import loadJsonFromFilename
 from .ModuleNames import ModuleName, checkModuleName
 from .Utils import isMacOS, isWin32Windows
 
 _package_to_distribution = None
+
+_conda_package_infos = None
+
+
+def _getCondaMetaDataFiles(distribution_name):
+    # Cached result, pylint: disable=global-statement
+    global _conda_package_infos
+
+    if _conda_package_infos is None:
+        _conda_package_infos = {}
+
+        conda_meta_dir = os.path.join(sys.prefix, "conda-meta")
+
+        for filename in getFileList(conda_meta_dir, only_suffixes=".json"):
+            conda_data = loadJsonFromFilename(filename)
+
+            if conda_data is not None:
+                for contained_filename in conda_data["files"]:
+                    if contained_filename.endswith(".dist-info/METADATA"):
+                        contained_filename_full = os.path.join(
+                            sys.prefix, contained_filename
+                        )
+                        if os.path.exists(contained_filename_full):
+                            for line in getFileContentByLine(
+                                contained_filename_full, encoding="utf8"
+                            ):
+                                if line.startswith("Name:"):
+                                    contained_distribution_name = line.split(" ", 1)[1]
+                                    _conda_package_infos[
+                                        contained_distribution_name
+                                    ] = conda_data
+                                    break
+
+    if distribution_name in _conda_package_infos:
+        return _conda_package_infos[distribution_name]["files"]
+    else:
+        return ()
 
 
 def getDistributionFiles(distribution):
@@ -40,8 +86,8 @@ is typically caused by corruption of its installation."""
         )
         hasattr_files = False
 
-    if hasattr_files:
-        for filename in distribution.files or ():
+    if hasattr_files and distribution.files is not None:
+        for filename in distribution.files:
             filename = filename.as_posix()
 
             yield filename
@@ -49,10 +95,73 @@ is typically caused by corruption of its installation."""
         record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
 
         if record_data is not None:
-            for line in record_data.splitlines():
-                filename = line.split(",", 1)[0]
+            for record in _getDistributionMetadataRecordData(distribution):
+                yield record[0]
+        else:
+            if isAnacondaPython():
+                # On different OSes, different Python versions, different
+                # prefixes are used by Anaconda.
+                candidate_prefixes = (
+                    "lib/site-packages/",
+                    "lib/python%s/site-packages/" % python_version_str,
+                )
 
-                yield filename
+                for filename in _getCondaMetaDataFiles(
+                    distribution_name=getDistributionName(distribution)
+                ):
+                    for candidate_prefix in candidate_prefixes:
+                        if filename.lower().startswith(candidate_prefix):
+                            yield filename[len(candidate_prefix) :]
+                            break
+
+
+def _getDistributionMetadataRecordData(distribution):
+    record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
+
+    for line in record_data.splitlines():
+        yield line.split(",")
+
+
+def _readChunks(file_handle):
+    while True:
+        chunk = file_handle.read(1 << 20)
+        if not chunk:
+            break
+        yield chunk
+
+
+def _makeRecordData(filename):
+    h = hashlib.sha256()
+    length = 0
+    with open(filename, "rb") as file_handle:
+        for block in _readChunks(file_handle):
+            length += len(block)
+            h.update(block)
+    digest = "sha256=" + base64.urlsafe_b64encode(h.digest()).decode("latin1").rstrip(
+        "="
+    )
+
+    return digest, str(length)
+
+
+def checkDistributionMetadataRecord(package_dir, distribution):
+    problems = 0
+    ok = 0
+
+    for record in _getDistributionMetadataRecordData(distribution):
+        filename = os.path.join(package_dir, "..", record[0])
+
+        if not isFilenameBelowPath(path=package_dir, filename=filename):
+            continue
+
+        checksum, size = _makeRecordData(filename)
+
+        if checksum != record[1] or size != record[2]:
+            problems += 1
+        else:
+            ok += 1
+
+    return ok, problems
 
 
 def _getDistributionMetadataFileContents(distribution, filename):
@@ -76,10 +185,14 @@ is typically caused by corruption of its installation."""
 
 
 def _getDistributionInstallerFileContents(distribution):
-    installer_name = _getDistributionMetadataFileContents(distribution, "INSTALLER")
+    installer_file_contents = _getDistributionMetadataFileContents(
+        distribution, "INSTALLER"
+    )
 
-    if installer_name:
-        installer_name = installer_name.strip().lower()
+    if installer_file_contents:
+        installer_name = installer_file_contents.strip().lower()
+    else:
+        installer_name = None
 
     return installer_name
 
@@ -101,7 +214,7 @@ def getDistributionTopLevelPackageNames(distribution):
 
             first_path_element, _, remainder = filename.partition("/")
 
-            if first_path_element.endswith("dist-info"):
+            if first_path_element.endswith((".dist-info", ".egg-info")):
                 continue
             if first_path_element == "__pycache__":
                 continue
@@ -227,8 +340,8 @@ def getDistributionsFromModuleName(module_name):
     """
 
     # Cached result, pylint: disable=global-statement
-
     global _package_to_distribution
+
     if _package_to_distribution is None:
         _package_to_distribution = _initPackageToDistributionName()
 
@@ -249,16 +362,65 @@ def getDistributionsFromModuleName(module_name):
     )
 
 
-def getDistributionFromModuleName(module_name):
+def _getDistributionFromModuleName(module_name, prefer_shorter_distribution_name):
     """Get the distribution name associated with a module name."""
+
     distributions = getDistributionsFromModuleName(module_name)
 
     if not distributions:
         return None
     elif len(distributions) == 1:
         return distributions[0]
+    elif prefer_shorter_distribution_name:
+
+        def sortDist(dist):
+            return len(getDistributionName(dist))
+
+        return min(distributions, key=sortDist)
     else:
-        return min(distributions, key=lambda dist: len(getDistributionName(dist)))
+        # Cyclic dependency here.
+        from nuitka.importing.Importing import locateModule
+
+        _used_module_name, filename, _module_kind, _finding = locateModule(
+            module_name=module_name,
+            parent_package=None,
+            level=0,
+        )
+
+        # Sometimes competing distributions are installed. In that case we try
+        # and guess which one is the most correct here by compare the records
+        # if they are available and otherwise just picking the shortest name.
+        check_data = dict(
+            (dist, checkDistributionMetadataRecord(filename, dist))
+            for dist in distributions
+        )
+
+        if all(d[0] == 0 for d in check_data.values()):
+
+            def sortDist(dist):
+                return len(getDistributionName(dist))
+
+        else:
+
+            def sortDist(dist):
+                return check_data[dist][1]
+
+        return min(distributions, key=sortDist)
+
+
+_distribution_from_name_cache = {}
+
+
+def getDistributionFromModuleName(module_name, prefer_shorter_distribution_name=False):
+    """Get the distribution name associated with a module name."""
+
+    if module_name not in _distribution_from_name_cache:
+        _distribution_from_name_cache[module_name] = _getDistributionFromModuleName(
+            module_name=module_name,
+            prefer_shorter_distribution_name=prefer_shorter_distribution_name,
+        )
+
+    return _distribution_from_name_cache[module_name]
 
 
 def getDistribution(distribution_name):

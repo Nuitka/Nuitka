@@ -868,12 +868,13 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 6069a546
+- module-name: 'cv2' # checksum: 61e3c28c
   variables:
     setup_code:
       - 'import cv2'
     declarations:
       'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
+    when: 'not is_conda_package("cv2")'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -922,7 +923,9 @@
         - 'cv2.cv2'
         - 'numpy'
         - 'numpy.core'
+    - depends:
         - '["cv2.%s" % m for m in get_variable("cv2_extra_sub_modules")]'
+      when: 'not is_conda_package("cv2")'
     - pre-import-code:
         - |
           import os
@@ -6217,7 +6220,13 @@
     - depends:
         - 'sqlalchemy.orm.dependency'
 
-- module-name: 'sqlfluff' # checksum: 17fc165a
+- module-name: 'sqlfluff' # checksum: 3fc9a782
+  data-files:
+    - include-metadata:
+      # TODO: Actually we should be able to include by
+      # entry point names.
+        - 'sqlfluff'
+
   anti-bloat:
     - description: 'remove pytest reference'
       replacements_plain:
