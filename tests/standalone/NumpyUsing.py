@@ -5,7 +5,7 @@ from __future__ import print_function
 
 # nuitka-skip-unless-imports: numpy
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 # Make sure, the usual bad ones are not included with anti-bloat.
 

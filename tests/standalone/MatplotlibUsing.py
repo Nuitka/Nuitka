@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 # nuitka-skip-unless-imports: matplotlib
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=no-qt
 
 # Make sure, the usual bad ones are not included with anti-bloat.

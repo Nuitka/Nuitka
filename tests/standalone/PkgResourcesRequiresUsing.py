@@ -7,7 +7,7 @@ But since Nuitka resolves them at compile time, no issue should happen, unless
 the module used in the example is not installed.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 import sys
 

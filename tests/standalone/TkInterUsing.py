@@ -7,7 +7,7 @@
 
 # nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=tk-inter
 
 # Make sure, the usual bad ones are not included with anti-bloat.
@@ -20,7 +20,7 @@ import os
 import sys
 
 print("START:")
-# os.chdir(os.path.dirname(sys.argv[0]))
+# os.chdir(os.path.dirname(__file__))
 # print(os.getcwd())
 
 # Python3 changed module name.

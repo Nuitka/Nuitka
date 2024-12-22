@@ -7,7 +7,7 @@ Please help make it more useful, ideally by adding something
 that would work on every machine.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 from win32com import storagecon
 from win32com.shell import shell, shellcon

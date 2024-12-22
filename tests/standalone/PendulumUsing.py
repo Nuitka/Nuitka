@@ -6,7 +6,7 @@
 When this import works, locales are there.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 # nuitka-skip-unless-imports: pendulum
 

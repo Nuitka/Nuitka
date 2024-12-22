@@ -5,7 +5,7 @@
 
 # nuitka-skip-unless-imports: pandas
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 # Avoid Qt, not being used
 # nuitka-project: --enable-plugin=no-qt

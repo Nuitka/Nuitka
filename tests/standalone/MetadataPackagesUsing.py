@@ -6,7 +6,7 @@
 But since Nuitka resolves them at compile time, no issue should happen.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 import warnings
 

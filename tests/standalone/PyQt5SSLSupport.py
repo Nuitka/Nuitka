@@ -3,7 +3,7 @@
 
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyqt5
 
 # nuitka-project-if: {OS} == "Darwin":
