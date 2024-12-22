@@ -3,17 +3,15 @@
 
 """ Pacman backend for maintaining locked package state with nuitka-watch. """
 
-import os
-
-from nuitka.utils.Execution import executeToolChecked
-from nuitka.utils.FileOperations import changeTextFileContents
+from nuitka.utils.Execution import check_call, executeToolChecked
+from nuitka.utils.FileOperations import changeTextFileContents, openTextFile
 
 from .Common import getPlatformRequirements
 
 
-def updatePacmanFile(installed_python, case_data, result_path):
-    pacman_filename = os.path.join(result_path, "Pacman.txt")
-    pipenv_package_requirements = []
+def updatePacmanFile(installed_python, case_data):
+    pacman_filename = "Pacman.txt"
+    pacman_package_requirements = []
 
     for requirement in getPlatformRequirements(
         installed_python=installed_python, case_data=case_data
@@ -21,16 +19,16 @@ def updatePacmanFile(installed_python, case_data, result_path):
         # Ignore spaces in requirements.
         requirement = requirement.replace(" ", "")
 
+        pacman_package_requirements.append(requirement)
+
     changeTextFileContents(
         pacman_filename,
         """\
-[python]
 %(python_version)s
-[packages]
-%(pipenv_package_requirements)s
+%(pacman_package_requirements)s
 """
         % {
-            "pipenv_package_requirements": "\n".join(pipenv_package_requirements),
+            "pacman_package_requirements": "\n".join(pacman_package_requirements),
             "python_version": installed_python.getPythonVersion(),
         },
     )
@@ -41,11 +39,17 @@ def updatePacmanFile(installed_python, case_data, result_path):
 def updatePacmanLockFile(logger):
     pacman_lock_filename = "Pacman.lock"
 
+    with openTextFile("Pacman.txt", "r") as pacman_env_file:
+        check_call(["pacman", "-S", "-"], stdin=pacman_env_file)
+
     pacman_output = executeToolChecked(
         logger=logger,
-        command=["pacman", "-Q"],
+        command=["pacman", "-Qe"],
         absence_message="needs pacman to query package status on MSYS2",
         decoding=str is not bytes,
+    )
+    pacman_output = "\n".join(
+        line.replace(" ", "=") for line in pacman_output.splitlines()
     )
 
     changeTextFileContents(filename=pacman_lock_filename, contents=pacman_output)
