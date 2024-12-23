@@ -22,6 +22,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general
 
+from .Execution import executeToolChecked
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
@@ -210,6 +211,22 @@ def getSystemStaticLibPythonPath():
         _static_lib_python_path = _getSystemStaticLibPythonPath()
 
     return _static_lib_python_path
+
+
+_nm_usage = "nm is used to detect symbols of static link libraries"
+
+
+def getStaticLinkLibrarySymbols(logger, static_library_path):
+    """Get the list of symbols exported by a static link library."""
+
+    output = executeToolChecked(
+        logger=logger,
+        command=("nm", "-U", "-g", "-j", static_library_path),
+        absence_message=_nm_usage,
+        decoding=str is not bytes,
+    )
+
+    return output.splitlines()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
