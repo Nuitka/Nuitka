@@ -104,6 +104,7 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
+    "python.terminal.activateEnvironment": true,
     "cSpell.words": [
         "__abstractmethods__",
         "__aenter__",
