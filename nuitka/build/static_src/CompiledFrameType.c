@@ -265,14 +265,9 @@ static PyObject *_Nuitka_Frame_get_trace(PyObject *self, void *data) {
 }
 
 static int _Nuitka_Frame_set_trace(PyObject *self, PyObject *value, void *data) {
-    assert(Nuitka_Frame_CheckExact(self));
-    CHECK_OBJECT(self);
-    assert(_PyObject_GC_IS_TRACKED(self));
-
-    PyThreadState *tstate = PyThreadState_GET();
-
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace is not writable in Nuitka");
-    return -1;
+    PyObject *result = Py_False;
+    Py_INCREF_IMMORTAL(result);
+    return result;
 }
 
 #if PYTHON_VERSION >= 0x370
