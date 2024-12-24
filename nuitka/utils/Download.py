@@ -16,6 +16,7 @@ from .AppDirs import getCacheDir
 from .FileOperations import (
     addFileExecutablePermission,
     deleteFile,
+    getNormalizedPath,
     makePath,
     queryUser,
 )
@@ -164,9 +165,9 @@ Fully automatic, cached. Proceed and download"""
 
             exe_path = None
 
-        return exe_path
+        return getNormalizedPath(exe_path)
     else:
-        return download_path
+        return getNormalizedPath(download_path)
 
 
 def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads, download_ok):
