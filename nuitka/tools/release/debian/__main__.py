@@ -49,6 +49,17 @@ Update the pbuilder chroot before building. Default %default.""",
 Check only, if the package builds, do not upload. Default %default.""",
     )
 
+    parser.add_option(
+        "--src",
+        action="store",
+        dest="src",
+        default="/src",
+        help="""\
+Where the package source resides. Default %default.""",
+    )
+
+
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) == 1, positional_args
@@ -109,7 +120,7 @@ def main():
     tools_logger.info(
         "Copying src to temporary location before modifying it.", style="blue"
     )
-    copyTree("/src", "/var/tmp/src")
+    copyTree(options.src, "/var/tmp/src")
     os.chdir("/var/tmp/src")
 
     fixupPermissionsInplace(
