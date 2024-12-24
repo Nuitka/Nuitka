@@ -213,8 +213,9 @@ NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(PyThreadState *tstate
                                                            struct Nuitka_CoroutineObject *coroutine) {
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(coroutine) = EXC_TYPE(tstate);
-    if (EXC_TYPE_F(coroutine) == Py_None)
+    if (EXC_TYPE_F(coroutine) == Py_None) {
         EXC_TYPE_F(coroutine) = NULL;
+    }
     Py_XINCREF(EXC_TYPE_F(coroutine));
 #endif
     EXC_VALUE_F(coroutine) = EXC_VALUE(tstate);
