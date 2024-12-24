@@ -55,6 +55,7 @@ from nuitka.Progress import (
     setupProgressBar,
 )
 from nuitka.PythonFlavors import (
+    getPythonFlavorName,
     isApplePython,
     isArchPackagePython,
     isDebianPackagePython,
@@ -970,9 +971,10 @@ def _main():
         readPGOInputFile(pgo_filename)
 
     general.info(
-        "Starting Python compilation with Nuitka %r on Python %r commercial grade %r."
+        "Starting Python compilation with Nuitka %r on Python (flavor %s), %r commercial grade %r."
         % (
             getNuitkaVersion(),
+            getPythonFlavorName(),
             python_version_str,
             getCommercialVersion() or "not installed",
         )
