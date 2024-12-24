@@ -51,6 +51,7 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     isDebugPython,
     isPythonWithGil,
+    isStaticallyLinkedPython,
     python_version,
     python_version_str,
 )
@@ -1722,6 +1723,11 @@ added to provide the static link library.""",
             return True, None
 
         if isArchPackagePython():
+            return True, None
+
+        # If not dynamic link library is available, the static link library will
+        # have to do it.
+        if isStaticallyLinkedPython():
             return True, None
 
     return options.static_libpython == "yes", None

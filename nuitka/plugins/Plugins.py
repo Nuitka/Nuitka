@@ -603,7 +603,7 @@ class Plugins(object):
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
-            plugin.onStandaloneDistributionFinished(filename)
+            plugin.onOnefileFinished(filename)
 
     @staticmethod
     def onBootstrapBinary(filename):
