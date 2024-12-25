@@ -58,8 +58,6 @@ Check only, if the package builds, do not upload. Default %default.""",
 Where the package source resides. Default %default.""",
     )
 
-
-
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) == 1, positional_args
