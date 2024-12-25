@@ -16,6 +16,7 @@ __pycache__/
 *.exe
 *.exe.away
 *.cmd
+*.sh
 *.bin
 *.build
 *.onefile-build

@@ -150,8 +150,10 @@ def getResultFullpath(onefile):
 def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile)
 
-    if isWin32Windows() and Options.shallTreatUninstalledPython():
-        result = getResultBasePath(onefile=onefile) + ".cmd"
+    if Options.shallCreateScriptFileForExecution():
+        result = getResultBasePath(onefile=onefile) + (
+            ".cmd" if isWin32Windows() else ".sh"
+        )
 
     return result
 

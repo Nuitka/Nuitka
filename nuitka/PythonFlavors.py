@@ -180,6 +180,9 @@ def isUninstalledPython():
     if isDebianPackagePython():
         return False
 
+    if isSelfCompiledPythonUninstalled():
+        return True
+
     if isStaticallyLinkedPython():
         return False
 

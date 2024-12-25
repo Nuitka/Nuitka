@@ -1779,13 +1779,15 @@ def shallTreatUninstalledPython():
     return isUninstalledPython()
 
 
-def shallCreateCmdFileForExecution():
+def shallCreateScriptFileForExecution():
     """*bool* = derived from Python installation and modes
 
-    Notes: Mostly for accelerated mode on Windows with uninstalled python, to
-    make sure they find their Python DLL.
+    Notes: Mostly for accelerated mode with uninstalled python, to make sure
+    they find their Python DLL and Python packages.
     """
-    return isWin32Windows() and shallTreatUninstalledPython()
+
+    # TODO: Are we having a need for both names really?
+    return shallTreatUninstalledPython()
 
 
 def isShowScons():
