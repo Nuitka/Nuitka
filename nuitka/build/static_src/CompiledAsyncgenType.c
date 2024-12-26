@@ -367,6 +367,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(PyThreadState *tstate, struct Nuitka_
         PyObject *yielded;
 
         if (asyncgen->m_yield_from == NULL) {
+            // This consumes a reference to the value.
             yielded = ((asyncgen_code)asyncgen->m_code)(tstate, asyncgen, value);
         } else {
             // This does not release the value if any, so we need to do it afterwards.
@@ -1951,6 +1952,7 @@ static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *
     struct Nuitka_ExceptionPreservationItem exception_state;
     INIT_ERROR_OCCURRED_STATE(&exception_state);
 
+    Py_INCREF(arg);
     retval = _Nuitka_Asyncgen_send(tstate, asyncgen, arg, false, &exception_state);
 
     if (asyncgen_athrow->m_args) {
