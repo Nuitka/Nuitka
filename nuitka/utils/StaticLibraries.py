@@ -13,6 +13,7 @@ from nuitka.PythonFlavors import (
     isDebianPackagePython,
     isNuitkaPython,
     isRyePython,
+    isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -155,6 +156,12 @@ def _getSystemStaticLibPythonPath():
 
     if isMacOS() and isRyePython():
         return None
+
+    if isSelfCompiledPythonUninstalled():
+        candidate = os.path.join(sys_prefix, "libpython" + python_abi_version + ".a")
+
+        if os.path.exists(candidate):
+            return candidate
 
     candidate = os.path.join(sys_prefix, "lib", "libpython" + python_abi_version + ".a")
 
