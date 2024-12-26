@@ -792,7 +792,7 @@ static PyObject *Nuitka_Asyncgen_throw(PyThreadState *tstate, struct Nuitka_Asyn
     return result;
 }
 
-static int _Nuitka_Asyncgen_init_hooks(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen) {
+static bool _Nuitka_Asyncgen_init_hooks(PyThreadState *tstate, struct Nuitka_AsyncgenObject *asyncgen) {
     /* Just do this once per async generator object. */
     if (asyncgen->m_hooks_init_done) {
         return 0;
@@ -816,13 +816,13 @@ static int _Nuitka_Asyncgen_init_hooks(PyThreadState *tstate, struct Nuitka_Asyn
         Py_DECREF(firstiter);
 
         if (unlikely(res == NULL)) {
-            return 1;
+            return true;
         }
 
         Py_DECREF(res);
     }
 
-    return 0;
+    return false;
 }
 
 static PyObject *Nuitka_AsyncgenAsend_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *sendval);
@@ -896,13 +896,13 @@ static PySendResult _Nuitka_Asyncgen_am_send(struct Nuitka_AsyncgenObject *async
 #endif
 
     *result = NULL;
-    Py_INCREF(arg);
 
     PyThreadState *tstate = PyThreadState_GET();
 
     struct Nuitka_ExceptionPreservationItem exception_state;
     INIT_ERROR_OCCURRED_STATE(&exception_state);
 
+    Py_INCREF(arg);
     PySendResult res = _Nuitka_Asyncgen_sendR(tstate, asyncgen, arg, false, &exception_state, result);
 
 #if _DEBUG_ASYNCGEN
@@ -1761,8 +1761,8 @@ struct Nuitka_AsyncgenAthrowObject {
 
 #if _DEBUG_ASYNCGEN
 
-NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENATHROW_STATUS(char const *descriptor, char const *context,
-                                                              struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
+NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGEN_ATHROW_STATUS(char const *descriptor, char const *context,
+                                                               struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
     char const *status;
 
     switch (asyncgen_athrow->m_state) {
@@ -1790,8 +1790,8 @@ NUITKA_MAY_BE_UNUSED static void _PRINT_ASYNCGENATHROW_STATUS(char const *descri
     PRINT_NEW_LINE();
 }
 
-#define PRINT_ASYNCGENATHROW_STATUS(context, coroutine)                                                                \
-    _PRINT_ASYNCGENATHROW_STATUS(__FUNCTION__, context, asyncgen_athrow)
+#define PRINT_ASYNCGEN_ATHROW_STATUS(context, coroutine)                                                               \
+    _PRINT_ASYNCGEN_ATHROW_STATUS(__FUNCTION__, context, asyncgen_athrow)
 
 #endif
 
@@ -1826,7 +1826,7 @@ static int Nuitka_AsyncgenAthrow_traverse(struct Nuitka_AsyncgenAthrowObject *as
 
 static PyObject *Nuitka_AsyncgenAthrow_send(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *arg) {
 #if _DEBUG_ASYNCGEN
-    PRINT_ASYNCGENATHROW_STATUS("Enter", asyncgen_athrow);
+    PRINT_ASYNCGEN_ATHROW_STATUS("Enter", asyncgen_athrow);
     PRINT_COROUTINE_VALUE("arg", arg);
     PRINT_NEW_LINE();
 #endif
@@ -2002,7 +2002,7 @@ check_error:
 
 static PyObject *Nuitka_AsyncgenAthrow_throw(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow, PyObject *args) {
 #if _DEBUG_ASYNCGEN
-    PRINT_ASYNCGENATHROW_STATUS("Enter", asyncgen_athrow);
+    PRINT_ASYNCGEN_ATHROW_STATUS("Enter", asyncgen_athrow);
     PRINT_COROUTINE_VALUE("args", args);
     PRINT_NEW_LINE();
 #endif
