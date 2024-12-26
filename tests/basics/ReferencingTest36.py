@@ -184,9 +184,7 @@ def simpleFunction7():
     run_async(funcTrace2())
 
 
-# This refleaks big time, but the construct is rare enough to not bother
-# as this proves hard to find.
-def disabled_simpleFunction8():
+def simpleFunction8():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(None)
 
@@ -216,6 +214,31 @@ def disabled_simpleFunction8():
         pass
 
     loop.run_until_complete(loop.shutdown_asyncgens())
+
+    loop.close()
+
+
+def simpleFunction9():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(None)
+
+    async def gen():
+        raise ZeroDivisionError
+        yield 1
+
+    async def to_list(gen):
+        res = []
+        async for i in gen:
+            res.append(i)
+        return res
+
+    task = to_list(gen())
+
+    try:
+        loop.run_until_complete(task)
+    except ZeroDivisionError:
+        # print("GOT ZeroDivisionError from asyncgen")
+        pass
 
     loop.close()
 
