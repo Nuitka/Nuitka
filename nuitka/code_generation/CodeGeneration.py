@@ -404,21 +404,25 @@ def generateFunctionBodyCode(function_body, context):
     needs_exception_exit = function_body.mayRaiseException(BaseException)
 
     if function_body.isExpressionGeneratorObjectBody():
-        function_code = getGeneratorObjectCode(
-            context=function_context,
-            function_identifier=function_identifier,
-            closure_variables=function_body.getClosureVariables(),
-            user_variables=function_body.getUserLocalVariables(),
-            outline_variables=function_body.getOutlineLocalVariables(),
-            temp_variables=function_body.getTempVariables(),
-            needs_exception_exit=needs_exception_exit,
-            needs_generator_return=function_body.needsGeneratorReturnExit(),
-        )
+        if function_body.subnode_body is not None:
+            function_code = getGeneratorObjectCode(
+                context=function_context,
+                function_identifier=function_identifier,
+                closure_variables=function_body.getClosureVariables(),
+                user_variables=function_body.getUserLocalVariables(),
+                outline_variables=function_body.getOutlineLocalVariables(),
+                temp_variables=function_body.getTempVariables(),
+                needs_exception_exit=needs_exception_exit,
+                needs_generator_return=function_body.needsGeneratorReturnExit(),
+            )
 
-        function_decl = getGeneratorObjectDeclCode(
-            function_identifier=function_identifier,
-            closure_variables=function_body.getClosureVariables(),
-        )
+            function_decl = getGeneratorObjectDeclCode(
+                function_identifier=function_identifier,
+                closure_variables=function_body.getClosureVariables(),
+            )
+        else:
+            function_code = None
+            function_decl = None
     elif function_body.isExpressionCoroutineObjectBody():
         function_code = getCoroutineObjectCode(
             context=function_context,
@@ -535,7 +539,8 @@ def _generateModuleCode(module, data_filename):
             function_body=function_body, context=context
         )
 
-        function_body_codes.append(function_code)
+        if function_code is not None:
+            function_body_codes.append(function_code)
 
         if function_decl is not None:
             function_decl_codes.append(function_decl)
