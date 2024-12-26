@@ -19,11 +19,11 @@ from .FunctionCodes import (
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesGeneratorFunction import (
+    template_generator_context_body_template,
+    template_generator_context_maker_decl,
     template_generator_exception_exit,
     template_generator_noexception_exit,
     template_generator_return_exit,
-    template_genfunc_yielder_body_template,
-    template_genfunc_yielder_maker_decl,
     template_make_empty_generator,
     template_make_generator,
 )
@@ -43,7 +43,7 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         tstate=False,
     )
 
-    return template_genfunc_yielder_maker_decl % {
+    return template_generator_context_maker_decl % {
         "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
         "generator_creation_args": ", ".join(generator_creation_args),
     }
@@ -127,7 +127,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         tstate=False,
     )
 
-    return template_genfunc_yielder_body_template % {
+    return template_generator_context_body_template % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
         "heap_declaration": indented(heap_declaration),
