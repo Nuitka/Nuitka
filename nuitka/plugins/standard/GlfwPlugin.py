@@ -31,6 +31,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
     plugin_desc = (
         "Required for 'OpenGL' (PyOpenGL) and 'glfw' package in standalone mode."
     )
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

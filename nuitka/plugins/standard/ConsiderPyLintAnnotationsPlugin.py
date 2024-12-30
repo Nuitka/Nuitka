@@ -26,6 +26,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     plugin_name = "pylint-warnings"
     plugin_desc = "Support PyLint / PyDev linting source markers."
+    plugin_category = "feature"
 
     def __init__(self):
         self.line_annotations = {}
