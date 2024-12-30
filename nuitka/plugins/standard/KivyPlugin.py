@@ -13,6 +13,7 @@ class NuitkaPluginKivy(NuitkaPluginBase):
 
     plugin_name = "kivy"
     plugin_desc = "Required by 'kivy' package."
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

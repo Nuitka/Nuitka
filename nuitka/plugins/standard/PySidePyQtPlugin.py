@@ -32,6 +32,8 @@ from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
+    plugin_category = "package-support,qt-binding"
+
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
@@ -1436,6 +1438,7 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
 
     plugin_name = "no-qt"
     plugin_desc = "Disable inclusion of all Qt bindings."
+    plugin_category = "package-support"
 
     warned_about = set()
 

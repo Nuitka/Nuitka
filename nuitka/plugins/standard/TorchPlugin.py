@@ -12,6 +12,7 @@ class NuitkaPluginTorch(NuitkaPluginBase):
 
     plugin_name = "torch"
     plugin_desc = "Deprecated, was once required by the torch package"
+    plugin_category = "package-support,obsolete"
 
     @classmethod
     def isDeprecated(cls):

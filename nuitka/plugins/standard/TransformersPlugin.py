@@ -10,8 +10,8 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 class NuitkaPluginTransformers(NuitkaPluginBase):
     plugin_name = "transformers"
-
     plugin_desc = "Provide implicit imports for transformers package."
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

@@ -13,8 +13,8 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     """This is to make dill module work with compiled methods."""
 
     plugin_name = "dill-compat"
-
     plugin_desc = "Required for 'dill' package compatibility."
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

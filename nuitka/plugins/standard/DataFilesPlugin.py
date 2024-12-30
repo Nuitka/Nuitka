@@ -23,8 +23,8 @@ from nuitka.utils.FileOperations import (
 
 class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
     plugin_name = "data-files"
-
     plugin_desc = "Include data files specified by package configuration files."
+    plugin_category = "core"
 
     @classmethod
     def isRelevant(cls):
