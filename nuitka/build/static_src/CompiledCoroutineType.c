@@ -1082,13 +1082,7 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
-// Need to integrate with garbage collector to undo finalization.
-#if PYTHON_VERSION >= 0x380
-#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
-#define _PyGC_SET_UNFINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
-#else
-#define _PyGC_SET_UNFINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
-#endif
+// Freelist setup
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
 static struct Nuitka_CoroutineObject *free_list_coroutines = NULL;
 static int free_list_coroutines_count = 0;
