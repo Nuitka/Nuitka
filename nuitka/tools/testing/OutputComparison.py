@@ -96,9 +96,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             line = line[:-1]
 
         if line.startswith("REFCOUNTS"):
-            first_value = line[line.find("[") + 1 : line.find(",")]
-            last_value = line[line.rfind(" ") + 1 : line.rfind("]")]
-            line = line.replace(first_value, "xxxxx").replace(last_value, "xxxxx")
+            if "[" in line:
+                first_value = line[line.find("[") + 1 : line.find(",")]
+                last_value = line[line.rfind(" ") + 1 : line.rfind("]")]
+                line = line.replace(first_value, "xxxxx").replace(last_value, "xxxxx")
 
         if line.startswith("[") and line.endswith("refs]"):
             continue
