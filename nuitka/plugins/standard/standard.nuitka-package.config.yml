@@ -3815,6 +3815,12 @@
     - depends:
         - '.region_*'
 
+- module-name: 'PIL' # checksum: 52d41000
+  anti-bloat:
+    - description: 'avoid numpy dependency'
+      no-auto-follow:
+        'numpy': 'ignore'
+
 - module-name: 'PIL._imagingtk' # checksum: 52df48a8
   implicit-imports:
     - depends:
