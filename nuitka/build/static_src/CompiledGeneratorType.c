@@ -1356,7 +1356,6 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
     return result;
 }
 
-#if PYTHON_VERSION >= 0x300
 static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generator) {
     if (generator->m_status != status_Running) {
         return;
@@ -1376,8 +1375,18 @@ static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generat
     // Restore the saved exception if any.
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
+
+// Need to integrate with garbage collector to undo finalization.
+#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x380
+#define _PyGC_SET_UNFINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
+#else
+#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
+#define _PyGC_SET_UNFINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
+#endif
 #endif
 
+// Freelist setup
 #define MAX_GENERATOR_FREE_LIST_COUNT 100
 static struct Nuitka_GeneratorObject *free_list_generators = NULL;
 static int free_list_generators_count = 0;
@@ -1388,6 +1397,26 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     count_released_Nuitka_Generator_Type += 1;
 #endif
 
+    if (generator->m_weakrefs != NULL) {
+        Nuitka_GC_UnTrack(generator);
+
+        // TODO: Avoid API call and make this our own function to reuse the
+        // pattern of temporarily untracking the value or maybe even to avoid
+        // the need to do it. It may also be a lot of work to do that though
+        // and maybe having weakrefs is uncommon.
+        PyObject_ClearWeakRefs((PyObject *)generator);
+        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
+
+        Nuitka_GC_Track(generator);
+    }
+
+#if PYTHON_VERSION >= 0x300
+    // TODO: Avoid this API call, it's bound to be slow on some platforms and
+    // does more checks than necessary for us.
+    if (PyObject_CallFinalizerFromDealloc((PyObject *)generator)) {
+        return;
+    }
+#else
     // Revive temporarily.
     assert(Py_REFCNT(generator) == 0);
     Py_SET_REFCNT(generator, 1);
@@ -1414,27 +1443,37 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     if (Py_REFCNT(generator) >= 1) {
         return;
     }
+#endif
+
+    // Now it is safe to release references and memory for it.
+    Nuitka_GC_UnTrack(generator);
+
+#if PYTHON_VERSION >= 0x300
+    PyThreadState *tstate = PyThreadState_GET();
+    // Save the current exception, if any, we must preserve it.
+    struct Nuitka_ExceptionPreservationItem saved_exception_state;
+    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
+#endif
+
+    Nuitka_Generator_release_closure(generator);
 
     if (generator->m_frame != NULL) {
 #if PYTHON_VERSION >= 0x300
         Nuitka_SetFrameGenerator(generator->m_frame, NULL);
 #endif
         Py_DECREF(generator->m_frame);
-        generator->m_frame = NULL;
-    }
-
-    // Now it is safe to release references and memory for it.
-    Nuitka_GC_UnTrack(generator);
-
-    if (generator->m_weakrefs != NULL) {
-        PyObject_ClearWeakRefs((PyObject *)generator);
-        assert(!HAS_ERROR_OCCURRED(tstate));
     }
 
     Py_DECREF(generator->m_name);
 
 #if PYTHON_VERSION >= 0x350
     Py_DECREF(generator->m_qualname);
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    // TODO: Maybe push this into the freelist code and do
+    // it on allocation.
+    _PyGC_SET_UNFINALIZED((PyObject *)generator);
 #endif
 
     /* Put the object into free list or release to GC */

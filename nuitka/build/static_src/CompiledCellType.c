@@ -22,6 +22,7 @@ int count_allocated_Nuitka_Cell_Type;
 int count_released_Nuitka_Cell_Type;
 #endif
 
+// Freelist setup
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
 static int free_list_cells_count = 0;
