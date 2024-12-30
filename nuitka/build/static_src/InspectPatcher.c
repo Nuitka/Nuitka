@@ -357,6 +357,7 @@ void patchTypeComparison(void) {
 
 #include "nuitka/freelists.h"
 
+// Freelist setup
 #define MAX_TRACEBACK_FREE_LIST_COUNT 1000
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;

@@ -731,6 +731,7 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
     return (PyObject *)result;
 }
 
+// Freelist setup
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;

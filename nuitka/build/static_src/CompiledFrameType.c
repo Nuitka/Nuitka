@@ -413,6 +413,7 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
     }
 }
 
+// Freelist setup
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
