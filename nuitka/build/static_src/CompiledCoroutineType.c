@@ -177,8 +177,6 @@ static int Nuitka_Coroutine_set_frame(PyObject *self, PyObject *value, void *dat
 }
 
 static void Nuitka_Coroutine_release_closure(struct Nuitka_CoroutineObject *coroutine) {
-    CHECK_OBJECT(coroutine);
-
     for (Py_ssize_t i = 0; i < coroutine->m_closure_given; i++) {
         CHECK_OBJECT(coroutine->m_closure[i]);
         Py_DECREF(coroutine->m_closure[i]);
@@ -1084,19 +1082,43 @@ static void Nuitka_Coroutine_tp_finalize(struct Nuitka_CoroutineObject *coroutin
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
+// Need to integrate with garbage collector to undo finalization.
+#if PYTHON_VERSION >= 0x380
+#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
+#define _PyGC_SET_UNFINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
+#else
+#define _PyGC_SET_UNFINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
+#endif
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
-static struct Nuitka_CoroutineObject *free_list_coros = NULL;
-static int free_list_coros_count = 0;
+static struct Nuitka_CoroutineObject *free_list_coroutines = NULL;
+static int free_list_coroutines_count = 0;
 
 static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine) {
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Coroutine_Type -= 1;
     count_released_Nuitka_Coroutine_Type += 1;
 #endif
+    if (coroutine->m_weakrefs != NULL) {
+        Nuitka_GC_UnTrack(coroutine);
 
-    // Revive temporarily.
-    assert(Py_REFCNT(coroutine) == 0);
-    Py_SET_REFCNT(coroutine, 1);
+        // TODO: Avoid API call and make this our own function to reuse the
+        // pattern of temporarily untracking the value or maybe even to avoid
+        // the need to do it. It may also be a lot of work to do that though
+        // and maybe having weakrefs is uncommon.
+        PyObject_ClearWeakRefs((PyObject *)coroutine);
+        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
+
+        Nuitka_GC_Track(coroutine);
+    }
+
+    // TODO: Avoid this API call, it's bound to be slow on some platforms and
+    // does more checks than necessary for us.
+    if (PyObject_CallFinalizerFromDealloc((PyObject *)coroutine)) {
+        return;
+    }
+
+    // Now it is safe to release references and memory for it.
+    Nuitka_GC_UnTrack(coroutine);
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -1109,44 +1131,26 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     PRINT_NEW_LINE();
 #endif
 
-    bool close_result = _Nuitka_Coroutine_close(tstate, coroutine);
-
-    if (unlikely(close_result == false)) {
-        PyErr_WriteUnraisable((PyObject *)coroutine);
-    }
-
     Nuitka_Coroutine_release_closure(coroutine);
-
-    // Allow for above code to resurrect the coroutine.
-    Py_SET_REFCNT(coroutine, Py_REFCNT(coroutine) - 1);
-    if (Py_REFCNT(coroutine) >= 1) {
-        RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
-        return;
-    }
 
     if (coroutine->m_frame) {
         Nuitka_SetFrameGenerator(coroutine->m_frame, NULL);
         Py_DECREF(coroutine->m_frame);
-        coroutine->m_frame = NULL;
     }
-
-    // Now it is safe to release references and memory for it.
-    Nuitka_GC_UnTrack(coroutine);
-
-    if (coroutine->m_weakrefs != NULL) {
-        PyObject_ClearWeakRefs((PyObject *)coroutine);
-        assert(!HAS_ERROR_OCCURRED(tstate));
-    }
-
-    Py_DECREF(coroutine->m_name);
-    Py_DECREF(coroutine->m_qualname);
 
 #if PYTHON_VERSION >= 0x370
     Py_XDECREF(coroutine->m_origin);
 #endif
 
+    Py_DECREF(coroutine->m_name);
+    Py_DECREF(coroutine->m_qualname);
+
+    // TODO: Maybe push this into the freelist code and do
+    // it on allocation.
+    _PyGC_SET_UNFINALIZED((PyObject *)coroutine);
+
     /* Put the object into free list or release to GC */
-    releaseToFreeList(free_list_coros, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
+    releaseToFreeList(free_list_coroutines, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
 
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
@@ -1435,7 +1439,7 @@ PyObject *Nuitka_Coroutine_New(PyThreadState *tstate, coroutine_code code, PyObj
     Py_ssize_t full_size = closure_given + (heap_storage_size + sizeof(void *) - 1) / sizeof(void *);
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(free_list_coros, struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, full_size);
+    allocateFromFreeList(free_list_coroutines, struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, full_size);
 
     // For quicker access of generator heap.
     result->m_heap_storage = &result->m_closure[closure_given];

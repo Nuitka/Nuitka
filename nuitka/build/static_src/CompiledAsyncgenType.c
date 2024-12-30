@@ -177,13 +177,13 @@ static int Nuitka_Asyncgen_set_frame(PyObject *self, PyObject *value, void *data
 }
 
 static void Nuitka_Asyncgen_release_closure(struct Nuitka_AsyncgenObject *asyncgen) {
-    CHECK_OBJECT(asyncgen);
-
     for (Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++) {
         CHECK_OBJECT(asyncgen->m_closure[i]);
         Py_DECREF(asyncgen->m_closure[i]);
     }
 
+    // This can be ran multiple times, set the count to zero,
+    // after first run, which deactivates the above loop.
     asyncgen->m_closure_given = 0;
 }
 
@@ -965,10 +965,31 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
     count_active_Nuitka_Asyncgen_Type -= 1;
     count_released_Nuitka_Asyncgen_Type += 1;
 #endif
+    if (asyncgen->m_weakrefs != NULL) {
+        Nuitka_GC_UnTrack(asyncgen);
 
-    // Revive temporarily.
-    assert(Py_REFCNT(asyncgen) == 0);
-    Py_SET_REFCNT(asyncgen, 1);
+        // TODO: Avoid API call and make this our own function to reuse the
+        // pattern of temporarily untracking the value or maybe even to avoid
+        // the need to do it. It may also be a lot of work to do that though
+        // and maybe having weakrefs is uncommon.
+        PyObject_ClearWeakRefs((PyObject *)asyncgen);
+        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
+
+        Nuitka_GC_Track(asyncgen);
+    }
+
+    // TODO: Avoid this API call, it's bound to be slow on some platforms and
+    // does more checks than necessary for us.
+    if (PyObject_CallFinalizerFromDealloc((PyObject *)asyncgen)) {
+        return;
+    }
+    // if (!_PyGC_FINALIZED(asyncgen)) {
+    //     Nuitka_Asyncgen_tp_finalize(asyncgen);
+
+    //     _PyGC_SET_FINALIZED(asyncgen);
+    // }
+
+    Nuitka_GC_UnTrack(asyncgen);
 
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -977,39 +998,22 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 
-    bool close_result = _Nuitka_Asyncgen_close(tstate, asyncgen);
-
-    if (unlikely(close_result == false)) {
-        PyErr_WriteUnraisable((PyObject *)asyncgen);
-    }
-
     Nuitka_Asyncgen_release_closure(asyncgen);
 
-    // Allow for above code to resurrect the coroutine, do not release the object
-    // like Py_DECREF would.
-    Py_SET_REFCNT(asyncgen, Py_REFCNT(asyncgen) - 1);
-    if (Py_REFCNT(asyncgen) >= 1) {
-        return;
-    }
+    Py_XDECREF(asyncgen->m_finalizer);
 
     if (asyncgen->m_frame) {
         Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
         Py_DECREF(asyncgen->m_frame);
-        asyncgen->m_frame = NULL;
     }
 
     // Now it is safe to release references and memory for it.
-    Nuitka_GC_UnTrack(asyncgen);
-
-    Py_XDECREF(asyncgen->m_finalizer);
-
-    if (asyncgen->m_weakrefs != NULL) {
-        PyObject_ClearWeakRefs((PyObject *)asyncgen);
-        assert(!HAS_ERROR_OCCURRED(tstate));
-    }
-
     Py_DECREF(asyncgen->m_name);
     Py_DECREF(asyncgen->m_qualname);
+
+    // TODO: Maybe push this into the freelist code and do
+    // it on allocation.
+    _PyGC_SET_UNFINALIZED((PyObject *)asyncgen);
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgens, asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT);
