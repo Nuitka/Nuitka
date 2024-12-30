@@ -9,7 +9,7 @@
 #endif
 
 // Removed flag in 3.11, but we keep code compatible for now. We do not use old
-// value, but 0 because it might get re-used. TODO: Probably better to #ifdef
+// value, but 0 because it might get reused. TODO: Probably better to #ifdef
 // usages of it away.
 #if PYTHON_VERSION >= 0x3b0
 #define CO_NOFREE 0

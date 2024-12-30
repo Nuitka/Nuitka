@@ -243,6 +243,29 @@ def simpleFunction9():
     loop.close()
 
 
+async def asyncgen_to_close():
+    try:
+        yield 1
+    finally:
+        await asyncio.sleep(0.001)
+
+
+async def run_close_test():
+    gen = asyncgen_to_close()
+    it = gen.__aiter__()
+    await it.__anext__()
+    await gen.aclose()
+
+
+def simpleFunction10():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(None)
+
+    loop.run_until_complete(run_close_test())
+
+    loop.close()
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 
