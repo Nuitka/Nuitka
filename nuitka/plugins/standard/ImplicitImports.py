@@ -22,10 +22,10 @@ from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     plugin_name = "implicit-imports"
-
     plugin_desc = (
         "Provide implicit imports of package as per package configuration files."
     )
+    plugin_category = "core"
 
     def __init__(self):
         NuitkaYamlPluginBase.__init__(self)

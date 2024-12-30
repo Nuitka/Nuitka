@@ -16,8 +16,8 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
     """This is to make enum module work when compiled with Nuitka."""
 
     plugin_name = "enum-compat"
-
     plugin_desc = "Required for Python2 and 'enum' package."
+    plugin_category = "package-support"
 
     @classmethod
     def isRelevant(cls):

@@ -12,6 +12,7 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
 
     plugin_name = "eventlet"
     plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching."
+    plugin_category = "package-support"
 
     # TODO: Change this to Yaml configuration.
 

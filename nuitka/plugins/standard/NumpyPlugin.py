@@ -12,6 +12,7 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
 
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Deprecated, was once required by the numpy package"
+    plugin_category = "package-support,obsolete"
 
     @classmethod
     def isDeprecated(cls):

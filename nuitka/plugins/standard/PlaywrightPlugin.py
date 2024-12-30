@@ -17,6 +17,7 @@ class NuitkaPluginPlaywright(NuitkaPluginBase):
 
     plugin_name = "playwright"
     plugin_desc = "Required by 'playwright' package."
+    plugin_category = "package-support"
 
     def __init__(self, include_browsers):
         self.include_browsers = list(include_browsers)

@@ -13,6 +13,7 @@ class NuitkaPluginGevent(NuitkaPluginBase):
 
     plugin_name = "gevent"
     plugin_desc = "Required by the 'gevent' package."
+    plugin_category = "package-support"
 
     # TODO: Change this to Yaml configuration.
 
