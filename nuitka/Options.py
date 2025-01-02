@@ -1248,11 +1248,12 @@ and not with the non-debug version.
 """
         )
 
-    if isMacOS() and shallCreateAppBundle() and not getMacOSIconPaths():
+    if isMacOS() and shallCreateAppBundle() and not options.macos_icon_path:
         Tracing.options_logger.warning(
             """\
 For application bundles, you ought to specify an icon with '--macos-app-icon'.", \
-otherwise a dock icon may not be present."""
+otherwise a dock icon may not be present. Specify 'none' value to disable \
+this warning."""
         )
 
     if (
@@ -2131,7 +2132,11 @@ def getLinuxIconPaths():
 
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
-    return _checkIconPaths(options.macos_icon_path)
+    return tuple(
+        _checkIconPaths(
+            icon_path for icon_path in options.macos_icon_path if icon_path != "none"
+        )
+    )
 
 
 def getWindowsIconExecutablePath():
