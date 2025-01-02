@@ -801,6 +801,16 @@
         prefixes:
           - 'native'
 
+- module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libsecp256k1'
+
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+
 - module-name: 'connexion' # checksum: ae5ca038
   data-files:
     - dirs:
