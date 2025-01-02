@@ -340,7 +340,10 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
         setupMetaPathBasedLoader(tstate);
-#if PYTHON_VERSION >= 0x3c0
+#if %(module_def_size)s >= 0
+#ifdef _NUITKA_TRACE
+        PRINT_STRING("%(module_identifier)s: Calling updateMetaPathBasedLoaderModuleRoot().\n");
+#endif
         updateMetaPathBasedLoaderModuleRoot(module_full_name);
 #endif
 
@@ -646,7 +649,7 @@ static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
 static int %(module_dll_entry_point)s_slot(PyObject *module) {
     PyObject *result = %(module_dll_entry_point)s_phase2(module);
 
-    if (result == NULL) {
+    if (unlikely(result == NULL)) {
         return 1;
     } else {
         return 0;

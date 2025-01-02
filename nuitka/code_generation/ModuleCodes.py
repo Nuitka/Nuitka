@@ -8,6 +8,7 @@
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
+from nuitka.PythonVersions import python_version
 from nuitka.utils.CStrings import encodePythonStringToC
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
@@ -129,7 +130,13 @@ def getModuleCode(
         try:
             module_dll_entry_point = module_name.encode("ascii")
             module_dll_entry_point_prefix = "PyInit_"
-            module_def_size = -1
+
+            # Where possible, we default to 2-phase loading, the -1 means the
+            # old single phase loading.
+            if python_version >= 0x350:
+                module_def_size = 0
+            else:
+                module_def_size = -1
         except UnicodeEncodeError:
             module_dll_entry_point = module_name.encode("punycode")
             module_dll_entry_point_prefix = "PyInitU_"
