@@ -453,6 +453,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
         return hasattr(cls, "detector_for")
 
     @classmethod
+    def hasCategory(cls, category):
+        return category in cls.getCategories()
+
+    @classmethod
+    def getCategories(cls):
+        plugin_category = getattr(cls, "plugin_category", None)
+
+        if plugin_category is None:
+            result = ()
+        else:
+            result = plugin_category.split(",")
+
+        return OrderedSet(sorted(result))
+
+    @classmethod
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
