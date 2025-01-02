@@ -170,7 +170,7 @@ def getEnhancedToolDetect():
     return myDetect
 
 
-def makeGccUseLinkerFile(source_files, module_mode, env):
+def makeGccUseLinkerFile(env, source_files):
     tmp_linker_filename = os.path.join(env.source_dir, "@link_input.txt")
 
     # Note: For Windows, it's done in mingw.py because of its use of
@@ -188,7 +188,7 @@ def makeGccUseLinkerFile(source_files, module_mode, env):
     with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + (
-                ".os" if module_mode and os.name != "nt" else ".o"
+                ".os" if env.module_mode and os.name != "nt" else ".o"
             )
 
             if os.name == "nt":

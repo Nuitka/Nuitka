@@ -18,9 +18,16 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import (
+    getDebugModeIndications,
+    getExperimentalIndications,
+    getJobLimit,
     getOnefileChildGraceTime,
+    getPythonPathForScons,
+    isDeploymentMode,
     isExperimental,
     isOnefileMode,
+    isShowScons,
+    shallCompileWithoutBuildDirectory,
 )
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import (
@@ -31,6 +38,7 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getSystemPrefixPath,
+    isPythonWithGil,
     python_version,
     python_version_str,
 )
@@ -111,7 +119,7 @@ def _getPythonForSconsExePath():
 
     Scons needs it as it doesn't support all Python versions.
     """
-    python_exe = Options.getPythonPathForScons()
+    python_exe = getPythonPathForScons()
 
     if python_exe is not None:
         return python_exe
@@ -234,7 +242,7 @@ def _buildSconsCommand(options, scons_filename):
 
     scons_command = _getSconsBinaryCall()
 
-    if not Options.isShowScons():
+    if not isShowScons():
         scons_command.append("--quiet")
 
     scons_command += [
@@ -243,14 +251,14 @@ def _buildSconsCommand(options, scons_filename):
         getExternalUsePath(os.path.join(getSconsDataPath(), scons_filename)),
         # Parallel compilation.
         "--jobs",
-        str(Options.getJobLimit()),
+        str(getJobLimit()),
         # Do not warn about deprecation from Scons
         "--warn=no-deprecated",
         # Don't load "site_scons" at all.
         "--no-site-dir",
     ]
 
-    if Options.isShowScons():
+    if isShowScons():
         scons_command.append("--debug=stacktrace")
 
     # Python2, encoding unicode values
@@ -346,10 +354,7 @@ def runScons(scons_options, env_values, scons_filename):
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
-        if (
-            "source_dir" in scons_options
-            and Options.shallCompileWithoutBuildDirectory()
-        ):
+        if "source_dir" in scons_options and shallCompileWithoutBuildDirectory():
             # Make sure we become non-local, by changing all paths to be
             # absolute, but ones that can be resolved by any program
             # externally, as the Python of Scons may not be good at unicode.
@@ -380,7 +385,7 @@ def runScons(scons_options, env_values, scons_filename):
             options=scons_options, scons_filename=scons_filename
         )
 
-        if Options.isShowScons():
+        if isShowScons():
             Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
         Tracing.flushStandardOutputs()
@@ -487,11 +492,11 @@ def getCommonSconsOptions():
 
     scons_options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 
-    scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
+    scons_options["experimental"] = ",".join(getExperimentalIndications())
 
-    scons_options["debug_modes"] = ",".join(Options.getDebugModeIndications())
+    scons_options["debug_modes"] = ",".join(getDebugModeIndications())
 
-    scons_options["deployment"] = asBoolStr(Options.isDeploymentMode())
+    scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
     scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
 
@@ -620,6 +625,10 @@ def getCommonSconsOptions():
         )
 
     return scons_options, env_values
+
+
+def setPythonTargetOptions(scons_options):
+    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
