@@ -2870,7 +2870,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: a738cd92
+- module-name: 'numpy' # checksum: 9622e2de
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -2889,7 +2889,7 @@
            for filename in os.listdir(library_path)
            if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'is_conda_package("numpy")'
+      when: 'is_conda_package("numpy") and version("numpy") < (2,)'
 
   anti-bloat:
     - description: 'avoid URLs for AV noise'
