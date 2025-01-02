@@ -25,6 +25,7 @@ static _PyListArray *Nuitka_AllocateListArray(size_t capacity) {
         return NULL;
     }
 
+    // TODO: API call to be removed.
     _PyListArray *list_array = PyMem_Malloc(sizeof(_PyListArray) + capacity * sizeof(PyObject *));
 
     if (unlikely(list_array == NULL)) {
