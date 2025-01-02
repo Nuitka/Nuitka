@@ -48,6 +48,27 @@ else:
     usage_template = "usage: %s [options] main_module.py"
 
 
+def _handleHelpModes():
+    result = False
+    for count, arg in enumerate(sys.argv[1:], start=1):
+        if arg == "--":
+            break
+        if arg in ("--help-all", "--help-plugin", "--help-plugins"):
+            result = True
+            sys.argv[count] = "--help"
+            break
+    return result
+
+
+plugin_help_mode = _handleHelpModes()
+
+
+if not plugin_help_mode:
+    usage_template += """\n
+    Note: For general plugin help (they often have their own
+    command line options too), consider the output of
+    '--help-plugins'."""
+
 parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
 
 parser.add_option(
@@ -1854,7 +1875,9 @@ def _considerPluginOptions(logger):
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandLineOptions(parser=parser)
+    addStandardPluginCommandLineOptions(
+        parser=parser, plugin_help_mode=plugin_help_mode
+    )
 
     for arg in sys.argv[1:]:
         if arg.startswith(
@@ -1870,6 +1893,7 @@ def _considerPluginOptions(logger):
             addPluginCommandLineOptions(
                 parser=parser,
                 plugin_names=plugin_names.split(","),
+                plugin_help_mode=plugin_help_mode,
             )
 
         if arg.startswith("--user-plugin="):
