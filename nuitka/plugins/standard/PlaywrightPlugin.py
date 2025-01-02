@@ -11,6 +11,9 @@ import os
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
+# We use chrom to identify either chrome or chromium
+# spell-checker: ignore chrom
+
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
