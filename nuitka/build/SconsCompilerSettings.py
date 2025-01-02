@@ -262,9 +262,10 @@ slower without it.
 
     env.lto_mode = lto_mode
     env.orig_lto_mode = orig_lto_mode
+    env.pgo_mode = pgo_mode
 
     # PGO configuration
-    _enablePgoSettings(env, pgo_mode)
+    _enablePgoSettings(env)
 
 
 _python311_min_msvc_version = (14, 3)
@@ -856,13 +857,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(LIBS="z")
 
 
-def _enablePgoSettings(env, pgo_mode):
-    if pgo_mode == "no":
+def _enablePgoSettings(env):
+    if env.pgo_mode == "no":
         env.progressbar_name = "Backend"
-    elif pgo_mode == "python":
+    elif env.pgo_mode == "python":
         env.progressbar_name = "Python Profile"
         env.Append(CPPDEFINES=["_NUITKA_PGO_PYTHON"])
-    elif pgo_mode == "generate":
+    elif env.pgo_mode == "generate":
         env.progressbar_name = "Profile"
         env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])
 
@@ -879,7 +880,7 @@ def _enablePgoSettings(env, pgo_mode):
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
             )
-    elif pgo_mode == "use":
+    elif env.pgo_mode == "use":
         env.progressbar_name = "Backend"
 
         env.Append(CPPDEFINES=["_NUITKA_PGO_USE"])
@@ -900,8 +901,6 @@ def _enablePgoSettings(env, pgo_mode):
             )
     else:
         assert False, env.pgo_mode
-
-    env.pgo_mode = pgo_mode
 
 
 def _enableDebugSystemSettings(env, job_count):

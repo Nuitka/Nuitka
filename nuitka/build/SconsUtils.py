@@ -20,8 +20,10 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
+    deleteFile,
     getFileContentByLine,
     getFilenameExtension,
+    getNormalizedPath,
     getWindowsShortPathName,
     hasFilenameExtension,
     isFilesystemEncodable,
@@ -852,6 +854,23 @@ def addBinaryBlobSection(env, blob_filename, section_name):
         )
     else:
         assert False
+
+
+def makeResultPathFileSystemEncodable(env, result_exe):
+    deleteFile(result_exe, must_exist=False)
+
+    if os.name == "nt" and not isFilesystemEncodable(result_exe):
+        result_exe = os.path.join(
+            os.path.dirname(result_exe),
+            "_nuitka_temp.pyd" if env.module_mode else "_nuitka_temp.exe",
+        )
+
+        if not isFilesystemEncodable(result_exe):
+            result_exe = getNormalizedPath(os.path.relpath(result_exe))
+
+            deleteFile(result_exe, must_exist=False)
+
+    return result_exe
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

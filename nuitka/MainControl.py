@@ -107,6 +107,7 @@ from .build.SconsInterface import (
     cleanSconsDirectory,
     getCommonSconsOptions,
     runScons,
+    setPythonTargetOptions,
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
@@ -589,6 +590,8 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
+    setPythonTargetOptions(scons_options)
+
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath()
     scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
@@ -600,7 +603,6 @@ def runSconsBackend():
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
     scons_options["file_reference_mode"] = Options.getFileReferenceMode()
     scons_options["module_count"] = "%d" % len(ModuleRegistry.getDoneModules())
-    scons_options["gil_mode"] = asBoolStr(Options.isPythonWithGil())
 
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
