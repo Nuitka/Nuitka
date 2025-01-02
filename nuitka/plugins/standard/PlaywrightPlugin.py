@@ -114,22 +114,10 @@ to exclude all browsers.""",
             self.installed_browsers[browser.name] = browser
 
     def considerDataFiles(self, module):
-
         if module.getFullName() != "playwright":
             return
 
-        if not self.include_browsers:
-
-            self.sysexit(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
-            )
-
         self.getInstalledPlaywrightBrowsers()
-
-        if not self.installed_browsers:
-            self.sysexit(
-                "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
-            )
 
         self.info("Including browsers: %s" % ", ".join(self.include_browsers))
         if "none" in self.include_browsers:
