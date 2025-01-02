@@ -968,6 +968,15 @@ Create graph of optimization process internals, do not use for whole programs, b
 for small test cases. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-generate-ming64-header",
+    action="store_true",
+    dest="generate_mingw64_header",
+    default=False,
+    require_compiling=False,
+    github_action=False,
+    help=SUPPRESS_HELP,
+)
 
 del development_group
 
@@ -2251,6 +2260,14 @@ def runSpecialCommandsFromOptions(options):
             ),
             report_filename=os.path.expanduser(options.compilation_report_filename),
         )
+        sys.exit(0)
+
+    if options.generate_mingw64_header:
+        from nuitka.tools.general.generate_header.GenerateHeader import (
+            generateHeader,
+        )
+
+        generateHeader()
         sys.exit(0)
 
 

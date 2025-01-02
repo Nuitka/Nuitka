@@ -774,11 +774,29 @@ def resetDirectory(path, logger, ignore_errors, extra_recommendation):
 
 
 @contextmanager
-def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
+def withTemporaryFile(prefix="", suffix="", mode="w", delete=True, temp_path=None):
+    """Provide a temporary file opened and potentially deleted."""
     with tempfile.NamedTemporaryFile(
-        suffix=suffix, mode=mode, delete=delete, dir=temp_path
+        prefix=prefix, suffix=suffix, mode=mode, delete=delete, dir=temp_path
     ) as temp_file:
         yield temp_file
+
+
+@contextmanager
+def withTemporaryFilename(prefix="", suffix="", temp_path=None):
+    """Provide a temporary filename."""
+    with tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        suffix=suffix,
+        mode="wb",
+        delete=False,
+        dir=temp_path,
+    ) as temp_file:
+        filename = temp_file.name
+        temp_file.close()
+        deleteFile(filename, must_exist=True)
+
+        yield filename
 
 
 def getFileContentByLine(filename, mode="r", encoding=None, errors=None):
