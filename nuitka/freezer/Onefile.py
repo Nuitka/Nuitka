@@ -117,7 +117,7 @@ another discoverable Python >= 3.5 on your system."""
             else:
                 onefile_logger.warning(
                     """\
-Onefile mode cannot compress without 'zstandard' module installed."""
+Onefile mode cannot compress without 'zstandard' package installed."""
                 )
 
     return _compressor_python
