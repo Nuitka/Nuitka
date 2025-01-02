@@ -810,6 +810,17 @@
     - depends:
         - '_cffi_backend'
 
+- module-name: 'comm' # checksum: db60cdd5
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
+
 - module-name: 'connexion' # checksum: ae5ca038
   data-files:
     - dirs:
