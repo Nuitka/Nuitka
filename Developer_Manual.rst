@@ -4427,6 +4427,16 @@ This an area where to drop random ideas on our minds, to later sort it
 out, and out it into action, which could be code changes, plan changes,
 issues created, etc.
 
+-  Debugging memory leak template, to be added to develop docs
+
+   .. code:: python
+
+      # nuitka-project: --follow-import-to=LeakingModule
+      from LeakingModule import main
+      from nuitka.tools.testing.Common import checkReferenceCount
+
+      checkReferenceCount(main)
+
 -  Make "SELECT_METACLASS" meta class selection transparent.
 
    Looking at the "SELECT_METACLASS" it should become an anonymous
