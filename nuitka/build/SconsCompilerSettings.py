@@ -453,6 +453,12 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isMacOS():
         resource_mode = "mac_section"
         reason = "default for macOS"
+    elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
+        resource_mode = "c23_embed"
+        reason = "default for newer clang"
+    elif env.gcc_mode and not env.clang_mode and env.gcc_version >= (15,):
+        resource_mode = "c23_embed"
+        reason = "default for newer gcc"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
@@ -544,7 +550,7 @@ unsigned char const *getConstantsBlobData(void) {
                 ),
             ]
         )
-    elif resource_mode == "code":
+    elif resource_mode in ("code", "c23_embed"):
         # Indicate "code" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
@@ -567,19 +573,22 @@ unsigned char constant_bin_data[] =\n{\n
 """
                 )
 
-                with open(blob_filename, "rb") as f:
-                    content = f.read()
-                for count, stream_byte in enumerate(content):
-                    if count % 16 == 0:
-                        if count > 0:
-                            output.write("\n")
+                if resource_mode == "code":
+                    with open(blob_filename, "rb") as f:
+                        content = f.read()
+                    for count, stream_byte in enumerate(content):
+                        if count % 16 == 0:
+                            if count > 0:
+                                output.write("\n")
 
-                        output.write("   ")
+                            output.write("   ")
 
-                    if str is bytes:
-                        stream_byte = ord(stream_byte)
+                        if str is bytes:
+                            stream_byte = ord(stream_byte)
 
-                    output.write(" 0x%02x," % stream_byte)
+                        output.write(" 0x%02x," % stream_byte)
+                else:
+                    output.write('#embed "%s"\n' % blob_filename)
 
                 output.write("\n};\n")
 
@@ -1018,15 +1027,15 @@ def reportCCompiler(env, context, output_func):
             ".".join(str(d) for d in env.gcc_version),
         )
     elif isClangName(env.the_cc_name):
-        clang_version = myDetectVersion(env, env.the_cc_name)
-        if clang_version is None:
-            clang_version = "not found"
-        else:
-            clang_version = ".".join(str(d) for d in clang_version)
+        env.clang_version = myDetectVersion(env, env.the_cc_name)
 
         cc_output = "%s %s" % (
             env.the_cc_name,
-            clang_version,
+            (
+                ".".join(str(d) for d in env.clang_version)
+                if env.clang_version is not None
+                else "not found"
+            ),
         )
     else:
         cc_output = env.the_cc_name
