@@ -35,7 +35,13 @@ from nuitka.freezer.IncludedEntryPoints import (
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
-from nuitka.importing import Importing, Recursion
+from nuitka.importing.Importing import locateModule, setupImportingFromOptions
+from nuitka.importing.Recursion import (
+    scanIncludedPackage,
+    scanPluginFilenamePattern,
+    scanPluginPath,
+    scanPluginSinglePath,
+)
 from nuitka.Options import (
     getPythonPgoInput,
     hasPythonFlagIsolated,
@@ -208,31 +214,20 @@ def _createMainModule():
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
-        Recursion.checkPluginPath(plugin_filename=plugin_filename, module_package=None)
+        scanPluginPath(plugin_filename=plugin_filename, module_package=None)
 
     for pattern in Options.getShallFollowExtraFilePatterns():
-        Recursion.checkPluginFilenamePattern(pattern=pattern)
+        scanPluginFilenamePattern(pattern=pattern)
+
+    # For packages, include the full suite.
+    if Options.shallMakePackage():
+        scanIncludedPackage(main_module.getFullName())
 
     for package_name in Options.getMustIncludePackages():
-        package_name, package_directory, _module_kind, finding = Importing.locateModule(
-            module_name=ModuleName(package_name),
-            parent_package=None,
-            level=0,
-        )
-
-        if finding != "absolute":
-            inclusion_logger.sysexit(
-                "Error, failed to locate package '%s' you asked to include."
-                % package_name
-            )
-
-        Recursion.checkPluginPath(
-            plugin_filename=package_directory,
-            module_package=package_name.getPackageName(),
-        )
+        scanIncludedPackage(package_name)
 
     for module_name in Options.getMustIncludeModules():
-        module_name, module_filename, _module_kind, finding = Importing.locateModule(
+        module_name, module_filename, _module_kind, finding = locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
@@ -244,7 +239,7 @@ def _createMainModule():
                 % module_name.asString()
             )
 
-        Recursion.checkPluginSinglePath(
+        scanPluginSinglePath(
             plugin_filename=module_filename,
             module_package=module_name.getPackageName(),
             package_only=True,
@@ -993,7 +988,7 @@ def _main():
 
     # Initialize the importing layer from options, main filenames, debugging
     # options, etc.
-    Importing.setupImportingFromOptions()
+    setupImportingFromOptions()
 
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()

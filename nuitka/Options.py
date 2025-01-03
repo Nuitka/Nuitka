@@ -534,6 +534,8 @@ Error, the Python from Windows app store is not supported.""",
             options.is_standalone = True
         elif options.compilation_mode == "module":
             options.module_mode = True
+        elif options.compilation_mode == "package":
+            options.module_mode = True
         elif options.compilation_mode == "app":
             if isMacOS():
                 options.macos_create_bundle = True
@@ -1385,8 +1387,13 @@ def getModuleNameMode():
 
 
 def shallMakeModule():
-    """:returns: bool derived from ``--module``"""
+    """:returns: bool derived from ``--mode=module|package``."""
     return options is not None and options.module_mode
+
+
+def shallMakePackage():
+    """:returns: bool derived from ``--mode=package``."""
+    return options is not None and options.compilation_mode == "package"
 
 
 def shallCreatePyiFile():
@@ -1456,12 +1463,14 @@ def getShallFollowExtraFilePatterns():
 
 def getMustIncludeModules():
     """*list*, items of ``--include-module=``"""
-    return sum([_splitShellPattern(x) for x in options.include_modules], [])
+    return OrderedSet(sum([_splitShellPattern(x) for x in options.include_modules], []))
 
 
 def getMustIncludePackages():
     """*list*, items of ``--include-package=``"""
-    return sum([_splitShellPattern(x) for x in options.include_packages], [])
+    return OrderedSet(
+        sum([_splitShellPattern(x) for x in options.include_packages], [])
+    )
 
 
 def getShallIncludeDistributionMetadata():
