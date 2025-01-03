@@ -337,7 +337,7 @@ def _addIncludedModule(module, package_only):
                     continue
 
                 if isPackageDir(sub_path) and not os.path.exists(sub_path + ".py"):
-                    checkPluginSinglePath(
+                    scanPluginSinglePath(
                         sub_path,
                         module_package=module.getFullName(),
                         package_only=False,
@@ -347,7 +347,7 @@ def _addIncludedModule(module, package_only):
                         if getPackageDirFilename(sub_path[:-3]) is not None:
                             continue
 
-                    checkPluginSinglePath(
+                    scanPluginSinglePath(
                         sub_path,
                         module_package=module.getFullName(),
                         package_only=False,
@@ -358,7 +358,7 @@ def _addIncludedModule(module, package_only):
                             sub_filename.endswith(suffix)
                             and "." not in sub_filename[: -len(suffix)]
                         ):
-                            checkPluginSinglePath(
+                            scanPluginSinglePath(
                                 sub_path,
                                 module_package=module.getFullName(),
                                 package_only=False,
@@ -373,7 +373,7 @@ def _addIncludedModule(module, package_only):
         assert False, module
 
 
-def checkPluginSinglePath(plugin_filename, module_package, package_only):
+def scanPluginSinglePath(plugin_filename, module_package, package_only):
     # The importing wants these to be unique.
     plugin_filename = os.path.abspath(plugin_filename)
 
@@ -429,7 +429,7 @@ the compiled result, and therefore asking to include them makes no sense.
             )
 
 
-def checkPluginPath(plugin_filename, module_package):
+def scanPluginPath(plugin_filename, module_package):
     if Options.isShowInclusion():
         recursion_logger.info(
             "Checking top level inclusion path '%s' '%s'."
@@ -438,7 +438,7 @@ def checkPluginPath(plugin_filename, module_package):
 
     # Files and package directories are handled here.
     if os.path.isfile(plugin_filename) or isPackageDir(plugin_filename):
-        checkPluginSinglePath(
+        scanPluginSinglePath(
             plugin_filename,
             module_package=module_package,
             package_only=False,
@@ -450,7 +450,7 @@ def checkPluginPath(plugin_filename, module_package):
             assert sub_filename != "__init__.py"
 
             if isPackageDir(sub_path) or sub_path.endswith(".py"):
-                checkPluginSinglePath(
+                scanPluginSinglePath(
                     sub_path,
                     module_package=None,
                     package_only=False,
@@ -459,7 +459,7 @@ def checkPluginPath(plugin_filename, module_package):
 
             for suffix in getSharedLibrarySuffixes():
                 if sub_path.endswith(suffix):
-                    checkPluginSinglePath(
+                    scanPluginSinglePath(
                         sub_path,
                         module_package=None,
                         package_only=False,
@@ -471,7 +471,7 @@ def checkPluginPath(plugin_filename, module_package):
         )
 
 
-def checkPluginFilenamePattern(pattern):
+def scanPluginFilenamePattern(pattern):
     if Options.isShowInclusion():
         recursion_logger.info("Checking plug-in pattern '%s':" % pattern)
 
@@ -487,7 +487,7 @@ def checkPluginFilenamePattern(pattern):
             continue
 
         found = True
-        checkPluginSinglePath(
+        scanPluginSinglePath(
             filename,
             module_package=None,
             package_only=False,
@@ -571,6 +571,24 @@ def considerUsedModules(module, pass_count):
             "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."
             % (e.args[0], e.args[1], module.getFullName())
         )
+
+
+def scanIncludedPackage(package_name):
+    package_name, package_directory, _module_kind, finding = locateModule(
+        module_name=ModuleName(package_name),
+        parent_package=None,
+        level=0,
+    )
+
+    if finding != "absolute":
+        recursion_logger.sysexit(
+            "Error, failed to locate package '%s' you asked to include." % package_name
+        )
+
+    scanPluginPath(
+        plugin_filename=package_directory,
+        module_package=package_name.getPackageName(),
+    )
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
