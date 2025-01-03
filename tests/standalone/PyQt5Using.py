@@ -1,13 +1,17 @@
 #     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyqt5
 
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
-# nuitka-project-if: {OS} == "Darwin":
+# nuitka-project-if: {OS} != "Darwin":
+#   nuitka-project: --mode=standalone
+# nuitka-project-else:
 #   nuitka-project: --mode=app
+
+# TODO: App bundles with contained onefile as a workaround are nothing the mode
+# argument even allows to say.
 
 from __future__ import print_function
 
