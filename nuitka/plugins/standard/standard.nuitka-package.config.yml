@@ -4486,7 +4486,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'PyQt5' # checksum: ce59d72b
+- module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
     - empty_dirs:
         - 'Qt5'
@@ -4500,9 +4500,6 @@
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
         when: 'macos and not is_conda_package("pyqt5") and use_pyqt5'
-      - description: 'PyQt5 cannot be signed unless onefile'
-        macos_bundle_as_onefile: 'yes'
-        when: 'macos and use_pyqt5'
 
   import-hacks:
     - acceptable-missing-dlls:
