@@ -215,7 +215,8 @@ def main():
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug") or hasArg("--python-debug")
-    module_mode = hasArg("--module")
+    package_mode = hasArg("--mode=package")
+    module_mode = hasArg("--mode=module") or hasArg("--mode=module") or package_mode
     module_entry_point = hasArgValue("--module-entry-point")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
@@ -535,8 +536,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
-        if module_mode:
-            extra_options.append("--module")
+        if package_mode:
+            extra_options.append("--mode=package")
+        elif module_mode:
+            extra_options.append("--mode=module")
         elif onefile_mode:
             extra_options.append("--mode=onefile")
         elif standalone_mode:
@@ -548,9 +551,17 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
 
     else:
-        if module_mode:
+        if package_mode:
             nuitka_cmd1 = (
-                nuitka_call + extra_options + ["--module", os.path.abspath(filename)]
+                nuitka_call
+                + extra_options
+                + ["--mode=package", os.path.abspath(filename)]
+            )
+        elif module_mode:
+            nuitka_cmd1 = (
+                nuitka_call
+                + extra_options
+                + ["--mode=module", os.path.abspath(filename)]
             )
         elif onefile_mode:
             nuitka_cmd1 = nuitka_call + extra_options + ["--mode=onefile", filename]

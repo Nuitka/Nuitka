@@ -43,9 +43,11 @@ if _nuitka_binary_name == "__main__.py":
 is_nuitka_run = _nuitka_binary_name.lower().endswith("-run")
 
 if not is_nuitka_run:
-    usage_template = "usage: %s [--module] [--run] [options] main_module.py"
+    usage_template = (
+        "usage: %s [--mode=compilation_mode] [--run] [options] main_module.py"
+    )
 else:
-    usage_template = "usage: %s [options] main_module.py"
+    usage_template = "usage: %s [--mode=compilation_mode] [options] main_module.py"
 
 
 def _handleHelpModes():
@@ -2202,7 +2204,7 @@ def parseOptions(logger):
         if arg.startswith(("--main=", "--script-name=")):
             filename_args.append(arg.split("=", 1)[1])
 
-        if arg == "--module":
+        if arg in ("--mode=module", "--mode=module", "--module=package"):
             module_mode = True
 
         if arg[0] != "-":

@@ -53,7 +53,7 @@ def main():
             my_print("Consider output of compiled package:", filename)
 
             extra_flags = [
-                "--module",
+                "--mode=module",
                 "expect_success",
                 "remove_output",
                 "two_step_execution",
@@ -64,7 +64,7 @@ def main():
             # TODO: This mismatches a rename and means the test is never
             # actually ran.
             if filename == "top_level_attributes":
-                extra_flags.append("--module-entry-point=main")
+                extra_flags.append("--mode=module-entry-point=main")
 
             compareWithCPython(
                 dirname=filename,

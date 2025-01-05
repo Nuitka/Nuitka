@@ -57,7 +57,7 @@ Try to explain the differences by comparing object counts.""",
         sys.executable,
         "-m",
         "nuitka",
-        "--module",
+        "--mode=module",
         options.checked_module,
         "--output-dir=%s" % temp_dir,
     ]

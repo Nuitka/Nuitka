@@ -283,7 +283,7 @@ class build(distutils.command.build.build):
                 sys.executable,
                 "-m",
                 "nuitka",
-                "--module",
+                "--mode=module",
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",

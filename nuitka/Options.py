@@ -2003,7 +2003,7 @@ def isOnefileMode():
 
 
 def isAcceleratedMode():
-    """:returns: bool derived from ``--standalone`` and `--module`"""
+    """:returns: bool derived from ``--mode=accelerated``"""
     return not isStandaloneMode() and not shallMakeModule()
 
 

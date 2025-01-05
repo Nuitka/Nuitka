@@ -421,7 +421,7 @@ this:
 
 .. code:: bash
 
-   python -m nuitka --module some_module.py
+   python -m nuitka --mode=module some_module.py
 
 The resulting file ``some_module.so`` can then be used instead of
 ``some_module.py``.
@@ -467,7 +467,7 @@ also feasible, use Nuitka like this:
 
 .. code:: bash
 
-   python -m nuitka --module some_package --include-package=some_package
+   python -m nuitka --mode=module some_package --include-package=some_package
 
 .. note::
 

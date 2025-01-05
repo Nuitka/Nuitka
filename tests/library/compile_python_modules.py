@@ -79,7 +79,7 @@ def action(stage_dir, _root, path):
     command = [
         sys.executable,
         os.path.join("..", "..", "bin", "nuitka"),
-        "--module",
+        "--mode=module",
         "--output-dir=%s" % stage_dir,
         "--remove-output",
         "--quiet",
