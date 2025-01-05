@@ -21,7 +21,7 @@
 
 version_string = """\
 Nuitka V2.6rc10
-Copyright (C) 2024 Kay Hayen."""
+Copyright (C) 2025 Kay Hayen."""
 
 
 def getNuitkaVersion():

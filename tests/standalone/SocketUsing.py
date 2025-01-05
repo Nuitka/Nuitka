@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2024, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com> find license text at end of file
+#     Copyright 2025, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com> find license text at end of file
 
 
 """ Test that shows that the socket module can properly be used.

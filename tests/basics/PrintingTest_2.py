@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 # All of these should be identical with correct software behavior.

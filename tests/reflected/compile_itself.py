@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Test Nuitka compiling itself and compiling itself in compiled form again.

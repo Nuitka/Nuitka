@@ -1,4 +1,4 @@
-{#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
+{#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
 PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix}}(PyThreadState *tstate, {{builtin_type.getVariableDecl(builtin_arg_name)}} {{formatArgumentDeclaration(arg_types, arg_names, starting=False)}}) {
     {{builtin_type.getCheckValueCode(builtin_arg_name)}}
