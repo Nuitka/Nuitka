@@ -44,7 +44,7 @@ def main():
         "--include-package=package",
         "--nofollow-import-to=*.tests",
         "--debug",
-        "--module",
+        "--mode=module",
         "package",
     ]
 

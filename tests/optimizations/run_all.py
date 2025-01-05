@@ -184,7 +184,7 @@ def main():
                 os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
                 "--xml=%s" % xml_filename,
                 "--quiet",
-                "--module",
+                "--mode=module",
                 "--nofollow-imports",
                 "--generate-c-only",
                 "--no-progressbar",

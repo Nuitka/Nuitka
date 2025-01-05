@@ -49,7 +49,7 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           python -m nuitka --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
       - name: Archive compilation reports for empty modules
@@ -139,7 +139,7 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
           python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
@@ -178,7 +178,7 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
           python -m nuitka --show-scons --run tests\basics\EmptyModuleTest.py
 
       - name: Run Nuitka test suite
