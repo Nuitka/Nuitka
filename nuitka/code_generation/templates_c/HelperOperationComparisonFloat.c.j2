@@ -1,4 +1,4 @@
-{#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
+{#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
 static {{ target.getTypeDecl() }} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{ left.getCheckValueCode("operand1") }}

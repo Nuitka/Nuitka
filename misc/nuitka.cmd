@@ -1,5 +1,5 @@
 @echo off
-rem     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+rem     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 setlocal

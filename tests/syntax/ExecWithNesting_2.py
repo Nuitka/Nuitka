@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 # In Python2, it is not allowed to take closure variables, in a function that

@@ -1,4 +1,4 @@
-#     Copyright 2024, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """ Details see below in class definition.

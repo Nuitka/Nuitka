@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* This helpers is used to quickly create a string object from C char.
 

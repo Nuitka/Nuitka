@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 # In this test we show that return in try/finally executes the finally part

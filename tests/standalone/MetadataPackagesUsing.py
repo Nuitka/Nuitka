@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This test uses the meta data of metadata entry points lookups that wouldn't work at runtime.

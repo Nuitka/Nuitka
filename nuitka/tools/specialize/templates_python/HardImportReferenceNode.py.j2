@@ -1,4 +1,4 @@
-{#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
+{#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file #}
 
 {% macro apply_builtin_extraction(spec_name, call_suffix) %}
 from nuitka.nodes.{{call_node_module_name}} import {{translateNodeClassName("Expression" + module_name_title + function_name_title + call_suffix + "Call")}}
