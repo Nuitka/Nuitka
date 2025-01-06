@@ -561,6 +561,17 @@ dll_group.add_option(
 Output the DLLs found for a given package name. Default not done.""",
 )
 
+dll_group.add_option(
+    "--list-package-exe",
+    action="store",
+    dest="list_package_exe",
+    default="",
+    require_compiling=False,
+    help="""\
+Output the EXEs found for a given package name. Default not done.""",
+)
+
+
 del dll_group
 
 warnings_group = parser.add_option_group("Control the warnings to be given by Nuitka")
@@ -2261,6 +2272,12 @@ def runSpecialCommandsFromOptions(options):
         from nuitka.tools.scanning.DisplayPackageDLLs import displayDLLs
 
         displayDLLs(options.list_package_dlls)
+        sys.exit(0)
+
+    if options.list_package_exe:
+        from nuitka.tools.scanning.DisplayPackageDLLs import displayEXEs
+
+        displayEXEs(options.list_package_exe)
         sys.exit(0)
 
     if options.list_package_data:
