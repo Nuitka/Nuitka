@@ -5404,6 +5404,13 @@
       bloat-mode-overrides:
         'unittest': 'allow'
 
+- module-name: 'seleniumbase.core.colored_traceback' # checksum: 6e89a07b
+  anti-bloat:
+    - description: 'disable colored tracebacks for standalone'
+      replacements_plain:
+        'sys.excepthook =': '# sys.excepthook ='
+      when: 'standalone'
+
 - module-name: 'seleniumbase.drivers' # checksum: 63813ab
   data-files:
     - empty_dirs:
