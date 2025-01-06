@@ -3803,6 +3803,13 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
+- module-name: 'pdbp' # checksum: ae97ca9d
+  anti-bloat:
+    - no-auto-follow:
+        '_pytest': 'ignore'
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'pdfminer' # checksum: a3629ef7
   data-files:
     - dirs:
