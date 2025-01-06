@@ -5394,6 +5394,26 @@
     - dirs:
         - '.'
 
+- module-name: 'seleniumbase' # checksum: bcee33b2
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+    - description: 'Need to allow unittest usage'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
+- module-name: 'seleniumbase.drivers' # checksum: 63813ab
+  data-files:
+    - empty_dirs:
+        - '.'
+  options:
+    checks:
+      - description: "need to use cached onefile mode with 'seleniumbase.drivers' to download persistently"
+        support_info: 'warning'
+        when: 'onefile and not onefile_cached'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
