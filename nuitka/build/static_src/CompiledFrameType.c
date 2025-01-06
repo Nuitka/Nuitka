@@ -268,11 +268,20 @@ static int _Nuitka_Frame_set_trace(PyObject *self, PyObject *value, void *data) 
     assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT(self);
     assert(_PyObject_GC_IS_TRACKED(self));
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_FRAME_USELESS_SET_TRACE)
+    if (value == Py_None) {
+        return 0;
+    } else {
+        PyThreadState *tstate = PyThreadState_GET();
 
-    PyThreadState *tstate = PyThreadState_GET();
-
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace is not writable in Nuitka");
-    return -1;
+        SET_CURRENT_EXCEPTION_TYPE0_STR(
+            tstate, PyExc_RuntimeError,
+            "f_trace is not writable in Nuitka, ignore with '--no-deployment-flag=frame-useless-set-trace'");
+        return -1;
+    }
+#else
+    return 0;
+#endif
 }
 
 #if PYTHON_VERSION >= 0x370
