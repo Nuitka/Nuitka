@@ -24,6 +24,7 @@ def main():
         "--checked-module",
         action="store",
         dest="checked_module",
+        default=None,
         help="""\
 Module with main() function to be checked for reference count stability.""",
     )
@@ -41,6 +42,9 @@ Try to explain the differences by comparing object counts.""",
 
     if positional_args and options.checked_module is None:
         options.checked_module = positional_args.pop()
+
+    if options.checked_module is None:
+        sys.exit("\nNeed to provide checked module filename.")
 
     if positional_args and options.checked_module:
         parser.print_help()

@@ -3,6 +3,8 @@
 
 """ Small Python2 only test that demonstrates the hex encoding to work. """
 
+# nuitka-project: --mode=standalone
+
 print("4B4159".decode("hex"))  # Should output "KAY"
 
 #     Python test originally created or extracted from other peoples work. The

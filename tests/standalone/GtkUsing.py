@@ -5,6 +5,8 @@
 
 """
 
+# nuitka-project: --mode=standalone
+
 # nuitka-skip-unless-imports: pygtk
 
 

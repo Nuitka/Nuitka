@@ -5,6 +5,9 @@ from flask import Flask
 
 # nuitka-skip-unless-imports: flask
 
+# nuitka-project: --mode=standalone
+
+
 app = Flask(__name__)
 
 

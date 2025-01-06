@@ -37,6 +37,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
+from nuitka.utils.Utils import isMacOS
 
 
 def displayOutput(stdout, stderr):
@@ -226,7 +227,10 @@ def main():
     )
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
-    standalone_mode = hasArg("--standalone") or hasArg("--mode=standalone")
+    app_bundle_mode = hasArg("--mode=app") and isMacOS()
+    standalone_mode = (
+        hasArg("--standalone") or hasArg("--mode=standalone") or app_bundle_mode
+    )
     onefile_mode = hasArg("--onefile") or hasArg("--mode=onefile")
     no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
@@ -293,6 +297,13 @@ def main():
     if "--onefile" in project_options or "--mode=onefile" in project_options:
         standalone_mode = True
         onefile_mode = True
+    if "--mode=app" in project_options:
+        if isMacOS():
+            standalone_mode = True
+            app_bundle_mode = True
+        else:
+            standalone_mode = True
+            onefile_mode = True
 
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual
@@ -542,6 +553,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             extra_options.append("--mode=module")
         elif onefile_mode:
             extra_options.append("--mode=onefile")
+        elif app_bundle_mode:
+            extra_options.append("--mode=app")
         elif standalone_mode:
             extra_options.append("--mode=standalone")
 
