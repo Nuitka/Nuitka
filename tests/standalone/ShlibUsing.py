@@ -3,6 +3,10 @@
 
 # nuitka-skip-unless-imports: pyexpat
 
+# nuitka-project: --mode=standalone
+
+# spell-checker: ignore pyexpat
+
 import pyexpat
 
 print(pyexpat.__doc__)

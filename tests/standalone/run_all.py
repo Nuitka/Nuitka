@@ -28,6 +28,7 @@ sys.path.insert(
 
 from nuitka.reports.CompilationReportReader import (
     getCompilationOutputBinary,
+    getCompilationOutputMode,
     parseCompilationReport,
 )
 from nuitka.tools.testing.Common import (
@@ -128,7 +129,9 @@ def main():
 
         extra_flags = [
             "expect_success",
-            "--mode=standalone",
+            # Note: Tests need to specify it themselves through project options,
+            # we check for that in the report generated.
+            # "--mode=standalone",
             "remove_output",
             # Cache the CPython results for reuse, they will normally not change.
             "cpython_cache",
@@ -232,6 +235,13 @@ def main():
         )
 
         compilation_report = parseCompilationReport(report_filename)
+
+        compilation_mode = getCompilationOutputMode(
+            compilation_report=compilation_report
+        )
+
+        if compilation_mode not in ("standalone", "app", "onefile"):
+            test_logger.sysexit("Error, didn't compile in at least standalone mode.")
 
         binary_filename = getCompilationOutputBinary(
             compilation_report=compilation_report,

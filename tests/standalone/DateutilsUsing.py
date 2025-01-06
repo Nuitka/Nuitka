@@ -3,6 +3,7 @@
 
 # nuitka-skip-unless-imports: dateutil
 
+# nuitka-project: --mode=standalone
 
 from datetime import *
 

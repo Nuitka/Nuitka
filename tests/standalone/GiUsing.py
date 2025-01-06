@@ -4,6 +4,8 @@
 # nuitka-skip-unless-imports: cairo
 # nuitka-skip-unless-imports: gi
 
+# nuitka-project: --mode=standalone
+
 import cairo
 import gi
 
