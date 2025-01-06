@@ -51,6 +51,10 @@ def getCompilationOutputBinary(compilation_report, prefixes):
     )
 
 
+def getCompilationOutputMode(compilation_report):
+    return compilation_report.attrib["mode"]
+
+
 def getEmbeddedDataFilenames(compilation_report):
     result = []
 
