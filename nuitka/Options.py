@@ -2721,6 +2721,23 @@ def getForcedRuntimeEnvironmentVariableValues():
         yield (name, value)
 
 
+def getCompilationMode():
+    """For reporting only, use shorter specific tests."""
+
+    if isAcceleratedMode():
+        return "accelerated"
+    elif shallMakeModule():
+        return "module"
+    elif shallMakePackage():
+        return "package"
+    elif shallCreateAppBundle():
+        return "app"
+    elif isOnefileMode():
+        return "onefile"
+    elif isStandaloneMode():
+        return "standalone"
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
