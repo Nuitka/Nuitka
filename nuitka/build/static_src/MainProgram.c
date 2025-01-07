@@ -1651,6 +1651,11 @@ orig_argv = argv;
 #endif
 #endif
 
+#if _NUITKA_PGO_PYTHON
+    // Profiling with our own Python PGO if enabled.
+    PGO_Initialize();
+#endif
+
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
 
@@ -1681,11 +1686,6 @@ orig_argv = argv;
 #if _NUITKA_PROFILE
     // Profiling with "vmprof" if enabled.
     startProfiling();
-#endif
-
-#if _NUITKA_PGO_PYTHON
-    // Profiling with our own Python PGO if enabled.
-    PGO_Initialize();
 #endif
 
     // Execute the main module unless plugins want to do something else. In case
