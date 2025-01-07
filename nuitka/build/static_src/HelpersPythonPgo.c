@@ -11,7 +11,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-static FILE *pgo_output;
+static FILE *pgo_output = NULL;
 
 // Saving space by not repeating strings.
 
@@ -39,6 +39,8 @@ uint32_t PGO_getStringID(char const *str) {
 }
 
 static void PGO_writeString(char const *value) {
+    assert(pgo_output != NULL);
+
     uint32_t id = PGO_getStringID(value);
     fwrite(&id, sizeof(id), 1, pgo_output);
 }
@@ -69,6 +71,7 @@ void PGO_Initialize(void) {
 void PGO_Finalize(void) {
     PGO_writeString("END");
 
+    assert(pgo_output != NULL);
     uint32_t offset = (uint32_t)ftell(pgo_output);
 
     for (uint32_t i = 0; i < PGO_ProbeNameMappings_used; i++) {
