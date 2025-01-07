@@ -160,6 +160,7 @@
         "co_exceptiontable",
         "co_firstlineno",
         "co_freevars",
+        "CO_FUTURE_BARRY_AS_BDFL",
         "co_has_stardict",
         "co_has_starlist",
         "co_kwonlyargcount",
