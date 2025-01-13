@@ -97,9 +97,9 @@ class CodeObjectSpec(object):
         self.filename = co_filename
         self.line_number = int(co_lineno)
 
-        if type(co_has_starlist) is not bool:
+        if type(co_new_locals) is not bool:
             co_new_locals = co_new_locals != "False"
-        if type(co_has_starlist) is not bool:
+        if type(co_is_optimized) is not bool:
             co_is_optimized = co_is_optimized != "False"
 
         self.new_locals = co_new_locals
@@ -111,7 +111,7 @@ class CodeObjectSpec(object):
     def __repr__(self):
         return (
             """\
-<CodeObjectSpec %(co_kind)s '%(co_name)s' with %(co_varnames)r>"""
+<CodeObjectSpec %(co_kind)s '%(co_name)s' with var_names %(co_varnames)r>"""
             % self.getDetails()
         )
 

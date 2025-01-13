@@ -431,18 +431,18 @@ def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
     if Options.is_full_compat:
-        code_name = "<module>"
+        co_name = "<module>"
     else:
         if module.isMainModule():
-            code_name = "<module>"
+            co_name = "<module>"
         else:
-            code_name = "<module %s>" % module.getFullName()
+            co_name = "<module %s>" % module.getFullName()
 
     return StatementsFrameModule(
         statements=tuple(statements),
         code_object=CodeObjectSpec(
-            co_name=code_name,
-            co_qualname=code_name,
+            co_name=co_name,
+            co_qualname=co_name,
             co_kind="Module",
             co_varnames=(),
             co_freevars=(),
@@ -455,6 +455,7 @@ def makeModuleFrame(module, statements, source_ref):
             co_lineno=source_ref.getLineNumber(),
             future_spec=module.getFutureSpec(),
         ),
+        owner_code_name=module.getCodeName(),
         source_ref=source_ref,
     )
 
@@ -497,26 +498,39 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
     if provider.isExpressionFunctionBody():
         result = StatementsFrameFunction(
-            statements=statements, code_object=code_object, source_ref=source_ref
+            statements=statements,
+            code_object=code_object,
+            owner_code_name=provider.getCodeName(),
+            source_ref=source_ref,
         )
     elif provider.isExpressionClassBodyBase():
         result = StatementsFrameClass(
             statements=statements,
             code_object=code_object,
+            owner_code_name=provider.getCodeName(),
             locals_scope=provider.getLocalsScope(),
             source_ref=source_ref,
         )
     elif provider.isExpressionGeneratorObjectBody():
         result = StatementsFrameGenerator(
-            statements=statements, code_object=code_object, source_ref=source_ref
+            statements=statements,
+            code_object=code_object,
+            owner_code_name=provider.getCodeName(),
+            source_ref=source_ref,
         )
     elif provider.isExpressionCoroutineObjectBody():
         result = StatementsFrameCoroutine(
-            statements=statements, code_object=code_object, source_ref=source_ref
+            statements=statements,
+            code_object=code_object,
+            owner_code_name=provider.getCodeName(),
+            source_ref=source_ref,
         )
     elif provider.isExpressionAsyncgenObjectBody():
         result = StatementsFrameAsyncgen(
-            statements=statements, code_object=code_object, source_ref=source_ref
+            statements=statements,
+            code_object=code_object,
+            owner_code_name=provider.getCodeName(),
+            source_ref=source_ref,
         )
     else:
         assert False, provider

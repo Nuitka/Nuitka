@@ -496,6 +496,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         return result;
 #endif
+    } else if (PyCode_Check(value)) {
+        return DEEP_HASH_INIT(tstate, value);
     } else {
         NUITKA_CANNOT_GET_HERE("Unknown type hashed");
 

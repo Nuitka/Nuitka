@@ -37,16 +37,18 @@ def checkFrameStatements(value):
 class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     checkers = {"statements": checkFrameStatements}
 
-    __slots__ = ("code_object", "needs_frame_exception_preserve")
+    __slots__ = ("code_object", "owner_code_name", "needs_frame_exception_preserve")
 
     named_children = ("statements|tuple+setter",)
 
-    def __init__(self, statements, code_object, source_ref):
+    def __init__(self, statements, code_object, owner_code_name, source_ref):
         StatementsSequenceBase.__init__(
             self, statements=statements, source_ref=source_ref
         )
 
         self.code_object = code_object
+
+        self.owner_code_name = owner_code_name
 
         self.needs_frame_exception_preserve = False
 
@@ -276,15 +278,20 @@ class StatementsFrameBase(StatementsSequenceMixin, StatementsSequenceBase):
     def getStatementNiceName():
         return "frame statements sequence"
 
+    # TODO: Proper names for all of them?
+    def getFrameCodeName(self):
+        return "frame_" + self.owner_code_name
+
 
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
 
-    def __init__(self, statements, code_object, source_ref):
+    def __init__(self, statements, code_object, owner_code_name, source_ref):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
+            owner_code_name=owner_code_name,
             source_ref=source_ref,
         )
 
@@ -296,11 +303,12 @@ class StatementsFrameModule(StatementsFrameBase):
 class StatementsFrameFunction(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_FUNCTION"
 
-    def __init__(self, statements, code_object, source_ref):
+    def __init__(self, statements, code_object, owner_code_name, source_ref):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
+            owner_code_name=owner_code_name,
             source_ref=source_ref,
         )
 
@@ -314,11 +322,14 @@ class StatementsFrameClass(StatementsFrameBase):
 
     __slots__ = ("locals_scope",)
 
-    def __init__(self, statements, code_object, locals_scope, source_ref):
+    def __init__(
+        self, statements, code_object, owner_code_name, locals_scope, source_ref
+    ):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
+            owner_code_name=owner_code_name,
             source_ref=source_ref,
         )
 
@@ -333,11 +344,12 @@ class StatementsFrameClass(StatementsFrameBase):
 
 
 class StatementsFrameGeneratorBase(StatementsFrameBase):
-    def __init__(self, statements, code_object, source_ref):
+    def __init__(self, statements, code_object, owner_code_name, source_ref):
         StatementsFrameBase.__init__(
             self,
             statements=statements,
             code_object=code_object,
+            owner_code_name=owner_code_name,
             source_ref=source_ref,
         )
 
