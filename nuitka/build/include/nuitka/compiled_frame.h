@@ -88,6 +88,9 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
 #endif
 }
 
+// Prepare code object for use, patching up its filename.
+extern PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_object, PyObject *module_filename_obj);
+
 extern PyTypeObject Nuitka_Frame_Type;
 
 static inline bool Nuitka_Frame_CheckExact(PyObject *object) {

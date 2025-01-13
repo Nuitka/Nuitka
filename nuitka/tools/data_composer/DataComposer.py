@@ -14,6 +14,7 @@ from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import (
     BlobData,
@@ -180,6 +181,7 @@ def _writeConstantValue(output, constant_value):
             output.write(b"f" + struct.pack("d", constant_value))
     elif constant_type is unicode:
         if str is not bytes:
+            # spell-checker: ignore surrogatepass
             encoded = constant_value.encode("utf8", "surrogatepass")
         else:
             encoded = constant_value.encode("utf8")
@@ -296,10 +298,132 @@ def _writeConstantValue(output, constant_value):
         output.write(b"E")
         output.write(constant_value.__name__.encode("utf8"))
         output.write(b"\0")
+    elif constant_type is CodeObjectSpec:
+        output.write(b"C")
+        _last_written = None
+
+        _writeConstantValueCodeObject(output, constant_value)
+
     else:
         assert False, (type(constant_value), constant_value)
 
     _last_written = constant_value
+
+
+def _writeConstantValueCodeObject(output, code_object):
+    # Lots of details and optimization to deal with
+    # pylint: disable=too-many-branches,too-many-statements
+
+    # Flags for the code object, not all items will be present.
+    flags = 0
+
+    # Current bit, allocated dynamically based on availability of a feature
+    # per version and compatibility modes.
+    flag_base = 1
+
+    if python_version >= 0x3B0:
+        if code_object.getCodeObjectQualname() != code_object.getCodeObjectName():
+
+            assert code_object.getCodeObjectQualname().endswith(
+                "." + code_object.getCodeObjectName()
+            )
+            flags |= flag_base
+
+        qualname_flag_value = flag_base
+        flag_base <<= 1
+    else:
+        qualname_flag_value = 0
+
+    if code_object.getFreeVarNames():
+        flags |= flag_base
+    free_var_flag_value = flag_base
+    flag_base <<= 1
+
+    if python_version >= 0x300:
+        if code_object.getKwOnlyParameterCount():
+            flags |= flag_base
+        kw_only_flag_value = flag_base
+        flag_base <<= 1
+    else:
+        kw_only_flag_value = 0
+
+    # TODO: Not all versions have this.
+    if python_version >= 0x380:
+        if code_object.getPosOnlyParameterCount():
+            flags |= flag_base
+        pos_only_flag_value = flag_base
+        flag_base <<= 1
+    else:
+        pos_only_flag_value = 0
+
+    co_kind = code_object.getCodeObjectKind()
+
+    # TODO: Not all versions have coroutines and asyncgen.
+    if co_kind == "Generator":
+        flags |= flag_base  # CO_GENERATOR
+    elif co_kind == "Coroutine":
+        flags |= flag_base * 2  # CO_COROUTINE
+    elif co_kind == "Asyncgen":
+        flags |= flag_base * 3  # CO_ASYNC_GENERATOR
+    flag_base <<= 2
+
+    # TODO: Version specific?
+    # TODO: Maybe invert the logic, if this is default
+    if code_object.getFlagIsOptimizedValue():
+        flags |= flag_base
+    flag_base <<= 1
+
+    # TODO: Version specific?
+    if code_object.getFlagNewLocalsValue():
+        flags |= flag_base
+    flag_base <<= 1
+
+    if code_object.hasStarListArg():
+        flags |= flag_base
+    flag_base <<= 1
+
+    if code_object.hasStarDictArg():
+        flags |= flag_base
+    flag_base <<= 1
+
+    # Note: This is the last, so the actual bit size doesn't
+    # have to be dealt with here.
+    flags |= flag_base * code_object.getFutureSpec().encode()
+
+    output.write(_encodeVariableLength(flags))
+
+    # Name is mandatory, no flag needed.
+    _writeConstantValue(output, code_object.getCodeObjectName())
+
+    # Line number is mandatory, no flag needed. Encoded values start at 0,
+    # where 1 is what is normally used.
+    output.write(_encodeVariableLength(code_object.getLineNumber() - 1))
+
+    # Right now this is only argument names, so argument count is implied,
+    # it is mandatory so no flag is needed, empty value is very compact
+    # anyway and rare.
+    _writeConstantValue(output, code_object.getVarNames())
+
+    # TODO: Not sure if this is redundant potentially it can
+    # be derives from the var names already.
+    output.write(_encodeVariableLength(code_object.getArgumentCount()))
+
+    # Do not include the name part in the code object, saving
+    # the repetition.
+    if flags & qualname_flag_value:
+        _writeConstantValue(output, code_object.getCodeObjectQualname().rsplit(".")[0])
+
+    # Free vars are optional.
+    if flags & free_var_flag_value:
+        _writeConstantValue(output, code_object.getFreeVarNames())
+
+    # Keyword-only args are optional and version dependent.
+    if flags & kw_only_flag_value:
+        output.write(_encodeVariableLength(code_object.getKwOnlyParameterCount() - 1))
+
+    # Positional-only args are optional and version dependent.
+    if flags & pos_only_flag_value:
+        output.write(_encodeVariableLength(code_object.getPosOnlyParameterCount() - 1))
 
 
 def _writeConstantStream(constants_reader):

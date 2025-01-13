@@ -5,6 +5,8 @@
 
 """
 
+import os
+
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.code_generation import Emission
@@ -43,7 +45,7 @@ def getModuleCode(
     module, function_decl_codes, function_body_codes, module_const_blob_name, context
 ):
     # For the module code, lots of arguments and attributes come together.
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Temporary variable initializations
     # TODO: Move that to a place outside of functions.
@@ -117,6 +119,24 @@ def getModuleCode(
     module_code_objects_decl = getCodeObjectsDeclCode(context)
     module_code_objects_init = getCodeObjectsInitCode(context)
 
+    module_init_codes = context.getModuleInitCodes()
+
+    if Options.isExperimental("new-code-objects"):
+        # Create the always identical, but dynamic filename first thing.
+        module_filename = module.getRunTimeFilename()
+
+        # We do not care about release of this object, as code object live
+        # forever anyway.
+        if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+            module_filename_obj_code = context.getConstantCode(constant=module_filename)
+        else:
+            module_filename_obj_code = (
+                "MAKE_RELATIVE_PATH(%s);"
+                % context.getConstantCode(constant=module_filename)
+            )
+
+        module_init_codes.append("module_filename_obj = %s;" % module_filename_obj_code)
+
     is_dunder_main = module.isMainModule()
 
     dunder_main_package = context.getConstantCode(
@@ -179,7 +199,7 @@ def getModuleCode(
         "temps_decl": indented(local_var_inits),
         "module_variable_accessors": indented(module_variable_accessor_codes, 0),
         "module_variable_accessors_count": len(module_variable_accessor_codes),
-        "module_init_codes": indented(context.getModuleInitCodes()),
+        "module_init_codes": indented(module_init_codes),
         "module_codes": indented(module_codes.codes),
         "module_exit": module_exit,
         "module_code_objects_decl": indented(module_code_objects_decl, 0),

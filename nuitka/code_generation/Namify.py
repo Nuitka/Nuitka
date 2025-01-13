@@ -16,6 +16,7 @@ from types import BuiltinFunctionType
 
 from nuitka.__past__ import GenericAlias, UnionType, long, md5, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.Tracing import general
 
 
@@ -162,6 +163,8 @@ def namifyConstant(constant):
         return "builtin_%s" % constant.__name__
     elif constant is NotImplemented:
         return "type_notimplemented"
+    elif constant_type is CodeObjectSpec:
+        return "codeobj_" + constant.getHash()
     elif constant_type is GenericAlias:
         return "genalias_%s_%s" % (
             namifyConstant(constant.__origin__),

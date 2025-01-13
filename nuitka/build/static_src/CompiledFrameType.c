@@ -893,8 +893,17 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                              int pos_only_count
 #endif
 ) {
+
+    if (filename == Py_None) {
+        filename = const_str_empty;
+    }
+
+    // TODO: We don't do that anymore once new-code-objects
+    // is the default, then we don't need to pass it, since
+    // we create them incomplete anyway.
     CHECK_OBJECT(filename);
     assert(Nuitka_StringOrUnicode_CheckExact(filename));
+
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_CheckExact(function_name));
 
@@ -1052,7 +1061,38 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     Py_DECREF(filename_str);
 #endif
 
+    if (result == NULL) {
+        PyErr_PrintEx(0);
+        NUITKA_CANNOT_GET_HERE("Failed to create code object");
+    }
+
     return result;
+}
+
+PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_object, PyObject *module_filename_obj) {
+    assert(PyCode_Check(code_object));
+    CHECK_OBJECT(module_filename_obj);
+
+    PyCodeObject *co = (PyCodeObject *)code_object;
+    PyObject *old = co->co_filename;
+
+    if (old == const_str_empty) {
+        // Set the filename, ignore the loss of a reference to empty string,
+        // that's our singleton and immortal at least practically.
+        co->co_filename = Py_NewRef(module_filename_obj);
+
+#if PYTHON_VERSION >= 0x3b0
+        // Also, make sure the qualname is completed from the partial
+        // name.
+        if (co->co_qualname != co->co_name) {
+            PyObject *w = UNICODE_CONCAT(tstate, co->co_qualname, const_str_dot);
+            co->co_qualname = UNICODE_CONCAT(tstate, w, co->co_name);
+            Py_DECREF(w);
+        }
+#endif
+    }
+
+    return co;
 }
 
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char const *type_description, ...) {

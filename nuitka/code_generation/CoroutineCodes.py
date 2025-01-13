@@ -10,6 +10,7 @@ from .CodeHelpers import (
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
 )
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
@@ -43,7 +44,6 @@ def getCoroutineObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=True,
     )
 
     return template_coroutine_object_maker % {
@@ -124,7 +124,6 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=True,
     )
 
     return template_coroutine_object_body % {
@@ -145,8 +144,8 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         "coroutine_qualname_obj": getFunctionQualnameObj(
             coroutine_object_body, context
         ),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=coroutine_object_body.getCodeObject()
+        "code_identifier": getCodeObjectAccessCode(
+            code_object=coroutine_object_body.getCodeObject(), context=context
         ),
         "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),

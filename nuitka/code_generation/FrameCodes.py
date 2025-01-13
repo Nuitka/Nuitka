@@ -11,6 +11,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import _generateStatementSequenceCode
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .ExceptionCodes import getTracebackMakingIdentifier
@@ -69,7 +70,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     guard_mode = statement_sequence.getGuardMode()
 
     code_object = statement_sequence.getCodeObject()
-    code_identifier = context.getCodeObjectHandle(code_object=code_object)
+    code_object_access_code = getCodeObjectAccessCode(
+        code_object=code_object, context=context
+    )
 
     parent_exception_exit = context.getExceptionEscape()
 
@@ -79,7 +82,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         parent_exception_exit = context.allocateLabel("nested_frame_exit")
 
     # Allow stacking of frame handles.
-    context.pushFrameHandle(code_identifier, statement_sequence.hasStructureMember())
+    context.pushFrameHandle(
+        statement_sequence.getFrameCodeName(), statement_sequence.hasStructureMember()
+    )
 
     context.setExceptionEscape(context.allocateLabel("frame_exception_exit"))
 
@@ -127,9 +132,12 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # TODO: This case should also care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.
 
+        # TODO: Rename "code_identifier" to "code_object_access_code" in these
+        # functions and make it work with function call result properly and not
+        # have to be a variable name.
         getFrameGuardGeneratorCode(
             frame_node=statement_sequence,
-            code_identifier=code_identifier,
+            code_identifier=code_object_access_code,
             codes=local_emit.codes,
             parent_exception_exit=parent_exception_exit,
             frame_exception_exit=frame_exception_exit,
@@ -141,7 +149,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     elif guard_mode in ("full", "once"):
         getFrameGuardHeavyCode(
             frame_node=statement_sequence,
-            code_identifier=code_identifier,
+            code_identifier=code_object_access_code,
             parent_exception_exit=parent_exception_exit,
             parent_return_exit=parent_return_exit,
             frame_exception_exit=frame_exception_exit,

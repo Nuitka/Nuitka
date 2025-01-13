@@ -6,6 +6,7 @@
 """
 
 from .CodeHelpers import generateStatementSequenceCode
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
@@ -37,7 +38,6 @@ def getAsyncgenObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     return template_asyncgen_object_maker_template % {
@@ -116,7 +116,6 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     return template_asyncgen_object_body % {
@@ -135,8 +134,8 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
             constant=asyncgen_object_body.getFunctionName()
         ),
         "asyncgen_qualname_obj": getFunctionQualnameObj(asyncgen_object_body, context),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=asyncgen_object_body.getCodeObject()
+        "code_identifier": getCodeObjectAccessCode(
+            code_object=asyncgen_object_body.getCodeObject(), context=context
         ),
         "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
@@ -152,7 +151,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
         closure_variables=closure_variables, context=context
     )
 
-    args = []
+    args = ["tstate"]
     if closure_name:
         args.append(closure_name)
 

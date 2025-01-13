@@ -8,6 +8,7 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateStatementSequenceCode
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
@@ -40,7 +41,6 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     return template_generator_context_maker_decl % {
@@ -124,7 +124,6 @@ struct %(function_identifier)s_locals *generator_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     return template_generator_context_body_template % {
@@ -145,8 +144,8 @@ struct %(function_identifier)s_locals *generator_heap = \
         "generator_qualname_obj": getFunctionQualnameObj(
             generator_object_body, context
         ),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=generator_object_body.getCodeObject()
+        "code_identifier": getCodeObjectAccessCode(
+            code_object=generator_object_body.getCodeObject(), context=context
         ),
         "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
@@ -162,7 +161,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         closure_variables=closure_variables, context=context
     )
 
-    args = []
+    args = ["tstate"]
     if closure_name:
         args.append(closure_name)
 
