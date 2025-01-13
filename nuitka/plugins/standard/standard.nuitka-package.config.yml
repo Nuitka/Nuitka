@@ -35,6 +35,12 @@
     - depends:
         - 'ruamel.yaml.error'
 
+- module-name: '_soundfile_data' # checksum: be356cb6
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libsndfile'
+
 - module-name: '_yaml' # checksum: 35d3c787
   implicit-imports:
     - depends:
@@ -6150,24 +6156,6 @@
         relative_path: '_sounddevice_data/portaudio-binaries'
         prefixes:
           - 'libportaudio'
-      when: 'macos'
-
-- module-name: 'soundfile' # checksum: ea2aad42
-  dlls:
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile*64bit'
-      when: 'win32 and arch_amd64'
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile*32bit'
-      when: 'win32 and arch_x86'
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile'
       when: 'macos'
 
 - module-name: 'spacy' # checksum: 4943d3fa
