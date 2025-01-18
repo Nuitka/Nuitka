@@ -867,23 +867,47 @@ def _decodeWin32EntryPoint(entry_point_name):
         return entry_point_name.decode("utf8", "backslashreplace")
 
 
+def getPEFileUsedDllNames(filename):
+    """Return the used DLL PE file information of a Windows EXE or DLL
+
+    Args:
+        filename - The file to be investigated.
+
+    Notes:
+        Use of this is obviously only for Windows, although the module
+        will exist on other platforms too.
+    """
+
+    pefile = importFromInlineCopy("pefile", must_exist=True)
+
+    try:
+        pe_info = pefile.PE(filename)
+    except pefile.PEFormatError:
+        return None
+
+    # TODO: Check arch with pefile as well and ignore wrong arches if asked to.
+
+    # TODO: The decoding cannot expect ASCII, but also surely is not UTF8.
+    return OrderedSet(
+        dll_entry.dll.decode("utf8")
+        for dll_entry in getattr(pe_info, "DIRECTORY_ENTRY_IMPORT", ())
+    )
+
+
 def getDllExportedSymbols(logger, filename):
     if isWin32Windows():
+        pefile = importFromInlineCopy("pefile", must_exist=True)
+
         try:
-            pefile = importFromInlineCopy("pefile", must_exist=True)
-
-            try:
-                pe_info = pefile.PE(filename)
-            except pefile.PEFormatError:
-                return None
-
-            return tuple(
-                _decodeWin32EntryPoint(entry_point.name)
-                for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
-                if entry_point.name is not None
-            )
-        except ModuleNotFoundError:
+            pe_info = pefile.PE(filename)
+        except pefile.PEFormatError:
             return None
+
+        return tuple(
+            _decodeWin32EntryPoint(entry_point.name)
+            for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
+            if entry_point.name is not None
+        )
     else:
         if isLinux():
             command = ("nm", "-D", filename)
