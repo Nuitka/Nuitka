@@ -21,6 +21,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.tools.testing.Common import (
     checkTestRequirements,
     compareWithCPython,
@@ -70,11 +71,22 @@ def main():
 
         filename_main = getMainProgramFilename(filename)
 
+        # TODO: Push this into extra_flags at some point.
         extra_python_path = [
             os.path.abspath(os.path.join(filename, entry))
             for entry in os.listdir(filename)
             if entry.startswith("path")
         ]
+
+        if filename == "output_encryption_commercial":
+            extra_flags = OrderedDict(
+                (
+                    ("", extra_flags),
+                    ("stderr", extra_flags),
+                    ("stdout", extra_flags),
+                    ("stdout+stderr", extra_flags),
+                )
+            )
 
         with withPythonPathChange(extra_python_path):
             compareWithCPython(
