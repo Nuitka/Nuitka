@@ -16,6 +16,7 @@ from nuitka.__past__ import md5
 from nuitka.OptionParsing import getNuitkaProjectOptions
 from nuitka.tools.testing.Common import (
     addToPythonPath,
+    decryptOutput,
     executeAfterTimePassed,
     getDebugPython,
     getTempDir,
@@ -743,6 +744,14 @@ Stderr was:
 
     stop_watch.stop()
     nuitka_time = stop_watch.getDelta()
+
+    if "--encrypt-stderr" in project_options:
+        with withPythonPathChange(nuitka_package_dir):
+            stderr_nuitka = decryptOutput(project_options, stderr_nuitka)
+
+    if "--encrypt-stdout" in project_options:
+        with withPythonPathChange(nuitka_package_dir):
+            stdout_nuitka = decryptOutput(project_options, stdout_nuitka)
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)

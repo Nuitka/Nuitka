@@ -17,6 +17,7 @@ from contextlib import contextmanager
 from optparse import OptionParser
 
 from nuitka.__past__ import md5, subprocess
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
@@ -28,6 +29,7 @@ from nuitka.utils.Execution import (
     executeProcess,
     getNullInput,
     getNullOutput,
+    withEnvironmentVarOverridden,
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -401,6 +403,48 @@ def _removeCPythonTestSuiteDir():
             raise
 
 
+def _compareWithCPythonVariations(
+    dirname, filename, extra_flags, search_mode, on_error=None
+):
+    if "" not in extra_flags:
+        test_logger.sysexit("Error, default flags not present")
+
+    # Drop empty values or identical values.
+    extra_flags = OrderedDict(
+        (key, value) for (key, value) in extra_flags.items() if (value or key == "")
+    )
+
+    def _getVariation(source, variant_name):
+        if type(source) in (dict, OrderedDict):
+            return source.get(variant_name, source.get(""))
+        else:
+            return source
+
+    if len(extra_flags) == 1:
+        return compareWithCPython(
+            dirname=dirname,
+            filename=filename,
+            extra_flags=_getVariation(extra_flags, ""),
+            search_mode=search_mode,
+            on_error=on_error,
+        )
+
+    for test_variant_name in extra_flags.keys():
+        if test_variant_name == "":
+            test_logger.info("Default variation of the test.")
+        else:
+            test_logger.info("Extra variation '%s'." % test_variant_name)
+
+        with withEnvironmentVarOverridden("NUITKA_TEST_VARIANT", test_variant_name):
+            compareWithCPython(
+                dirname=_getVariation(dirname, test_variant_name),
+                filename=_getVariation(filename, test_variant_name),
+                extra_flags=_getVariation(extra_flags, test_variant_name),
+                search_mode=search_mode,
+                on_error=on_error,
+            )
+
+
 def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=None):
     """Call the comparison tool. For a given directory filename.
 
@@ -408,6 +452,16 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, on_error=Non
     flags that are exceptions.
 
     """
+
+    # Allow being called with variations of extra flags.
+    if type(extra_flags) in (dict, OrderedDict):
+        return _compareWithCPythonVariations(
+            dirname=dirname,
+            filename=filename,
+            extra_flags=extra_flags,
+            search_mode=search_mode,
+            on_error=on_error,
+        )
 
     if dirname is None:
         path = filename
@@ -2029,6 +2083,24 @@ def extractNuitkaVersionFromFilePath(version_filename):
     (version_line,) = [line for line in option_lines if line.startswith("Nuitka V")]
 
     return version_line[8:].rstrip()
+
+
+def decryptOutput(project_options, output):
+    nuitka_decrypt_call = [
+        os.environ.get("PYTHON", sys.executable),
+        "-m",
+        "nuitka.tools.commercial.decrypt",  # Note: Needed for Python2.6
+    ]
+
+    for project_option in project_options:
+        if project_option.startswith("--encryption-key="):
+            nuitka_decrypt_call.append("--key=" + project_option.split("=", 1)[1])
+
+    stdout, stderr, exit_code = executeProcess(nuitka_decrypt_call, stdin=output)
+
+    assert exit_code == 0, stderr
+
+    return stdout
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
