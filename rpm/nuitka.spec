@@ -125,7 +125,8 @@ else
     rm -rf nuitka/build/inline_copy/tqdm
 fi
 
-# These are all Windows only or used only there.
+# This is Windows only
+rm -rf nuitka/build/inline_copy/pefile
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
