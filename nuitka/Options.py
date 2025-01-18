@@ -1329,6 +1329,18 @@ have any effect anymore on non-Windows."""
                 )
             )
 
+    if (
+        isWin32Windows()
+        and getWindowsVersionInfoStrings()
+        and getProductFileVersion() is None
+    ):
+        Tracing.options_logger.sysexit(
+            """\
+Error, when providing version information on Windows, you must also
+provide either '--product-version' or '--file-version' as these can
+not have good defaults, but are forced to be present by the OS."""
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
