@@ -837,10 +837,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
         env.Append(CPPDEFINES=["MS_WIN64"])
 
-    # For shell API usage to lookup app folders we need this. Note that on Windows ARM
-    # we didn't manage to have a "shell32.lib" that is not considered corrupt, so we
-    # have to do this.
-    if env.msvc_mode and env.target_arch != "arm64":
+    # For shell API usage to lookup app folders we need this.
+    if env.msvc_mode:
         env.Append(LIBS=["Shell32"])
 
     # Since Fedora 36, the system Python will not link otherwise.
