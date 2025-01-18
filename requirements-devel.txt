@@ -1,3 +1,8 @@
+# This requirement is optional to use and for development purposes mainly.
+# spell-checker: ignore Pygments,deepdiff,doxypypy,mdformat,frontmatter
+# spell-checker: ignore orderedset,rstcheck,rstfmt,ruamel,tqdm,pytest
+# spell-checker: ignore pyyaml
+
 # Speed up Nuitka by having this available. On Windows, installing on 2.7 is not
 # working easily, so let's exclude that.
 ordered-set == 4.1.0; python_version >= '3.7'
