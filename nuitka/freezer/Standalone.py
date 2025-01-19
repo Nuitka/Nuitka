@@ -33,6 +33,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isHomebrewPython,
     isMSYS2MingwPython,
+    isNuitkaPython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
@@ -126,7 +127,9 @@ def _detectBinaryDLLs(
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
+    if isNuitkaPython():
+        return OrderedSet()
+    elif getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
         return detectBinaryPathDLLsPosix(
             dll_filename=original_filename,
             package_name=package_name,
