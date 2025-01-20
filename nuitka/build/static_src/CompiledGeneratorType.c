@@ -1356,6 +1356,7 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
     return result;
 }
 
+#if PYTHON_VERSION >= 0x300
 static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generator) {
     if (generator->m_status != status_Running) {
         return;
@@ -1375,6 +1376,7 @@ static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generat
     // Restore the saved exception if any.
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
+#endif
 
 // Need to integrate with garbage collector to undo finalization.
 #if PYTHON_VERSION >= 0x300
