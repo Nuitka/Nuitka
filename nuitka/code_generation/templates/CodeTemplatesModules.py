@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Main module code templates
@@ -120,12 +120,14 @@ NUITKA_MAY_BE_UNUSED static uint32_t _Nuitka_PyDictKeys_GetVersionForCurrentStat
 // Accessors to module variables.
 %(module_variable_accessors)s
 
+#if !defined(_NUITKA_EXPERIMENTAL_NEW_CODE_OBJECTS)
 // The module code objects.
 %(module_code_objects_decl)s
 
 static void createModuleCodeObjects(void) {
 %(module_code_objects_init)s
 }
+#endif
 
 // The module function declarations.
 %(module_functions_decl)s
@@ -340,7 +342,10 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         PRINT_STRING("%(module_identifier)s: Calling setupMetaPathBasedLoader().\n");
 #endif
         setupMetaPathBasedLoader(tstate);
-#if PYTHON_VERSION >= 0x3c0
+#if %(module_def_size)s >= 0
+#ifdef _NUITKA_TRACE
+        PRINT_STRING("%(module_identifier)s: Calling updateMetaPathBasedLoaderModuleRoot().\n");
+#endif
         updateMetaPathBasedLoaderModuleRoot(module_full_name);
 #endif
 
@@ -355,8 +360,9 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         NUITKA_PRINT_TRACE("%(module_identifier)s: Calling createModuleConstants().\n");
         createModuleConstants(tstate);
 
+#if !defined(_NUITKA_EXPERIMENTAL_NEW_CODE_OBJECTS)
         createModuleCodeObjects();
-
+#endif
         init_done = true;
     }
 
@@ -453,7 +459,8 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value);
     }
 
-    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, Nuitka_Loader_New(loader_entry));
+    PyObject *module_loader = Nuitka_Loader_New(loader_entry);
+    UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, module_loader);
 
 #if PYTHON_VERSION >= 0x300
 // Set the "__spec__" value
@@ -481,8 +488,13 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
             abort();
         }
 
-// Mark the execution in the "__spec__" value.
+        // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
+
+#if defined(_NUITKA_MODULE) && %(is_top)d && %(module_def_size)s >= 0
+        // Set our loader object in the "__spec__" value.
+        SET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);
+#endif
 
         UPDATE_STRING_DICT1(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value);
     }
@@ -606,11 +618,12 @@ static void onModuleFileValueRelease(void *v) {
  * library export.
  */
 
+extern struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name);
 
 static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *result = modulecode_%(module_identifier)s(tstate, module, NULL);
+    PyObject *result = modulecode_%(module_identifier)s(tstate, module, getLoaderEntry(%(module_name_cstr)s));
 
 #if PYTHON_VERSION < 0x300
     // Our "__file__" value will not be respected by CPython and one
@@ -646,7 +659,7 @@ static PyObject *%(module_dll_entry_point)s_phase2(PyObject *module) {
 static int %(module_dll_entry_point)s_slot(PyObject *module) {
     PyObject *result = %(module_dll_entry_point)s_phase2(module);
 
-    if (result == NULL) {
+    if (unlikely(result == NULL)) {
         return 1;
     } else {
         return 0;
@@ -691,7 +704,7 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
 
 #if %(module_def_size)s >= 0
     static PyModuleDef_Slot _module_slots[] = {
-        {Py_mod_exec, %(module_dll_entry_point)s_slot},
+        {Py_mod_exec, (void *)%(module_dll_entry_point)s_slot},
         {0, NULL}
     };
 

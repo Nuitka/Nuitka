@@ -1,9 +1,11 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from passlib.hash import sha512_crypt as sha512
 
 # nuitka-skip-unless-imports: passlib
+
+# nuitka-project: --mode=standalone
 
 print("hello")
 print(len(sha512.using(rounds=1000).hash("password")))

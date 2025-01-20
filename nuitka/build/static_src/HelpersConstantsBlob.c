@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /** Providing access to the constants binary blob.
  *
@@ -386,15 +386,6 @@ static uint32_t unpackValueUint32(unsigned char const **data) {
     *data += sizeof(value);
 
     return value;
-}
-
-static int unpackValueInt(unsigned char const **data) {
-    int size;
-
-    memcpy(&size, *data, sizeof(size));
-    *data += sizeof(size);
-
-    return size;
 }
 
 static double unpackValueFloat(unsigned char const **data) {
@@ -1116,33 +1107,171 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
 #endif
     case 'C': {
-        // Code object, without the filename, we let the module do that, depending on
-        // the source mode.
-        int line = unpackValueInt(&data);
-        int flags = unpackValueInt(&data);
+        // Code object, without the filename, we let the module do that,
+        // depending on the source mode and this is highly compact
+        // representation of it.
 
+        // First, flags with the optional bits. It's handling
+        // must match that of encoder 100%, the flag value to
+        // use changes per version and mode.
+        uint64_t flags = _unpackVariableLength(&data);
+
+        // Current flag indicator value, we trust the C compiler
+        // to optimize it away among the ifdefs.
+        uint64_t flag_base = 1;
+
+        // Code object flags as used by Python, encoded in the
+        // flags as well.
+        int co_flags = 0;
+
+        // Name is mandatory, no flag needed.
         PyObject *function_name;
         data = _unpackBlobConstant(tstate, &function_name, data);
-        // TODO: Version specific if we have this
-#if PYTHON_VERSION >= 0x3b0
-        PyObject *function_qualname;
-        data = _unpackBlobConstant(tstate, &function_qualname, data);
-#endif
+
+        // Line number is mandatory, no flag needed. Encoded values start at 0,
+        // where 1 is what is normally used.
+        int line_number = (int)_unpackVariableLength(&data) + 1;
+
+        // Right now this is only argument names, so argument count is implied,
+        // it is mandatory so no flag is needed, empty value is very compact
+        // anyway and rare.
         PyObject *arg_names;
         data = _unpackBlobConstant(tstate, &arg_names, data);
-        PyObject *free_vars;
-        data = _unpackBlobConstant(tstate, &free_vars, data);
-        int arg_count = unpackValueInt(&data);
+
+        // TODO: Not sure if this is redundant potentially it can be derives
+        // from the var names already. It might be possible to derive by other
+        // means.
+        int arg_count = (int)_unpackVariableLength(&data);
+
+        // It is version specific if we have this, and dependent on a flag, if
+        // it's present at all.
+#if PYTHON_VERSION >= 0x3b0
+        PyObject *function_qualname;
+
+        if (flags & flag_base) {
+            data = _unpackBlobConstant(tstate, &function_qualname, data);
+        } else {
+            function_qualname = function_name;
+        }
+        flag_base <<= 1;
+#endif
+
+        // Free vars are optional.
+        PyObject *free_vars = NULL;
+
+        if (flags & flag_base) {
+            data = _unpackBlobConstant(tstate, &free_vars, data);
+        }
+        flag_base <<= 1;
 
 #if PYTHON_VERSION >= 0x300
-        int kw_only_count = unpackValueInt(&data);
+        int kw_only_count = 0;
+        if (flags & flag_base) {
+            kw_only_count = (int)_unpackVariableLength(&data) + 1;
+        }
+        flag_base <<= 1;
+        assert(kw_only_count >= 0);
+#endif
+
 #if PYTHON_VERSION >= 0x380
-        int pos_only_count = unpackValueInt(&data);
+        int pos_only_count = 0;
+        if (flags & flag_base) {
+            pos_only_count = (int)_unpackVariableLength(&data) + 1;
+        }
+        flag_base <<= 1;
+        assert(pos_only_count >= 0);
 #endif
+
+        // TODO: For pre-Python3.5 we could save one bit here, but not worth it
+        // for now.
+#if PYTHON_VERSION >= 0x360
+        if ((flags & (flag_base * 3)) == (flag_base * 3)) {
+            co_flags += CO_ASYNC_GENERATOR;
+        } else
 #endif
+#if PYTHON_VERSION >= 0x350
+            if ((flags & (flag_base * 2)) == (flag_base * 2)) {
+            co_flags += CO_COROUTINE;
+        } else
+#endif
+            if (flags & flag_base) {
+            co_flags += CO_GENERATOR;
+        }
+
+        flag_base <<= 2;
+
+        if (flags & flag_base) {
+            co_flags += CO_OPTIMIZED;
+        }
+        flag_base <<= 1;
+
+        if (flags & flag_base) {
+            co_flags += CO_NEWLOCALS;
+        }
+        flag_base <<= 1;
+
+        if (flags & flag_base) {
+            co_flags += CO_VARARGS;
+        }
+        flag_base <<= 1;
+
+        if (flags & flag_base) {
+            co_flags += CO_VARKEYWORDS;
+        }
+        flag_base <<= 1;
+
+#if PYTHON_VERSION < 0x300
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_DIVISION;
+        }
+        flag_base <<= 1;
+#endif
+
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_UNICODE_LITERALS;
+        }
+        flag_base <<= 1;
+
+#if PYTHON_VERSION < 0x300
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_PRINT_FUNCTION;
+        }
+        flag_base <<= 1;
+#endif
+
+#if PYTHON_VERSION < 0x300
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_ABSOLUTE_IMPORT;
+        }
+        flag_base <<= 1;
+#endif
+
+#if PYTHON_VERSION >= 0x350 && PYTHON_VERSION < 0x370
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_GENERATOR_STOP;
+        }
+        flag_base <<= 1;
+#endif
+
+#if PYTHON_VERSION >= 0x370
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_ANNOTATIONS;
+        }
+        flag_base <<= 1;
+#endif
+
+#if PYTHON_VERSION >= 0x300
+        if (flags & flag_base) {
+            co_flags += CO_FUTURE_BARRY_AS_BDFL;
+        }
+        flag_base <<= 1;
+#endif
+
         // Filename will be supplied later during usage.
-        *output = (PyObject *)MAKE_CODE_OBJECT(Py_None, line, flags, function_name, function_qualname, arg_names,
-                                               free_vars, arg_count, kw_only_count, pos_only_count);
+        *output = (PyObject *)MAKE_CODE_OBJECT(Py_None, line_number, co_flags, function_name, function_qualname,
+                                               arg_names, free_vars, arg_count, kw_only_count, pos_only_count);
+
+        CHECK_OBJECT(*output);
 
         is_object = true;
         break;

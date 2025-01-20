@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Postprocessing tasks for create binaries or modules.
@@ -12,10 +12,12 @@ import sys
 from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
 from nuitka.ModuleRegistry import getImportedModuleNames
+from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.Tracing import postprocessing_logger
 from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
     getFileContents,
     getFileSize,
     hasFilenameExtension,
@@ -205,6 +207,76 @@ def _addWindowsIconFromIcons(onefile):
         )
 
 
+def createScriptFileForExecution(result_filename):
+    script_filename = OutputDirectories.getResultRunFilename(onefile=False)
+
+    # TODO: This is probably a prefix kind that should be used more often, e.g.
+    # in reporting.
+    if isSelfCompiledPythonUninstalled():
+        sys_prefix = os.path.dirname(sys.executable)
+    else:
+        sys_prefix = sys.prefix
+
+    python_home = makeFilesystemEncodable(sys_prefix)
+    python_path = os.pathsep.join(makeFilesystemEncodable(e) for e in sys.path)
+
+    debugger_call = (
+        (" ".join(wrapCommandForDebuggerForExec(command=())) + " ")
+        if Options.shallRunInDebugger()
+        else ""
+    )
+    exe_filename = os.path.basename(makeFilesystemEncodable(result_filename))
+
+    if isWin32Windows():
+        script_contents = """
+@echo off
+rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
+set PATH=%(dll_directory)s;%%PATH%%
+set PYTHONHOME=%(python_home)s
+set NUITKA_PYTHONPATH=%(python_path)s
+%(debugger_call)s"%%~dp0%(exe_filename)s" %%*
+""" % {
+            "debugger_call": debugger_call,
+            "dll_directory": makeFilesystemEncodable(
+                os.path.dirname(getTargetPythonDLLPath())
+            ),
+            "python_home": python_home,
+            "python_path": python_path,
+            "exe_filename": exe_filename,
+        }
+    else:
+        # TODO: Setting PYTHONPATH should not be needed, but it fails to work
+        # unlike on Windows for unknown reasons.
+
+        script_contents = """\
+#!/bin/sh
+# Absolute path to this script, e.g. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+SCRIPT_PATH=$(dirname "$SCRIPT")
+
+PYTHONHOME=%(python_home)s
+export PYTHONHOME
+NUITKA_PYTHONPATH="%(python_path)s"
+export NUITKA_PYTHONPATH
+PYTHONPATH="%(python_path)s"
+export PYTHONPATH
+
+%(debugger_call)s"$SCRIPT_PATH/%(exe_filename)s" $@
+
+""" % {
+            "debugger_call": debugger_call,
+            "python_home": python_home,
+            "python_path": python_path,
+            "exe_filename": exe_filename,
+        }
+
+    putTextFileContents(script_filename, script_contents)
+
+    if not isWin32Windows():
+        addFileExecutablePermission(script_filename)
+
+
 def executePostProcessingResources(manifest, onefile):
     """Adding Windows resources to the binary.
 
@@ -280,7 +352,7 @@ def executePostProcessing():
     """
 
     # Lots of cases to deal with,
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements
 
     result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
@@ -372,31 +444,8 @@ Error, expected 'libpython dependency not found. Please report the bug."""
         cleanupHeaderForAndroid(result_filename)
 
     # Might have to create a CMD file, potentially with debugger run.
-    if Options.shallCreateCmdFileForExecution():
-        cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
-
-        cmd_contents = """
-@echo off
-rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
-set PATH=%(dll_directory)s;%%PATH%%
-set PYTHONHOME=%(python_home)s
-set NUITKA_PYTHONPATH=%(python_path)s
-%(debugger_call)s"%%~dp0%(exe_filename)s" %%*
-""" % {
-            "debugger_call": (
-                (" ".join(wrapCommandForDebuggerForExec()) + " ")
-                if Options.shallRunInDebugger()
-                else ""
-            ),
-            "dll_directory": makeFilesystemEncodable(
-                os.path.dirname(getTargetPythonDLLPath())
-            ),
-            "python_home": makeFilesystemEncodable(sys.prefix),
-            "python_path": ";".join(makeFilesystemEncodable(e) for e in sys.path),
-            "exe_filename": os.path.basename(makeFilesystemEncodable(result_filename)),
-        }
-
-        putTextFileContents(cmd_filename, cmd_contents)
+    if Options.shallCreateScriptFileForExecution():
+        createScriptFileForExecution(result_filename=result_filename)
 
     # Create a ".pyi" file for created modules
     if Options.shallMakeModule() and Options.shallCreatePyiFile():

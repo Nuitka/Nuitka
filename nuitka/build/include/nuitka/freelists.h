@@ -1,10 +1,10 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_FREELISTS_H__
 #define __NUITKA_FREELISTS_H__
 
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DISABLE_FREELIST_ALL

@@ -1,11 +1,11 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Low coverage Pandas importing test. """
 
 # nuitka-skip-unless-imports: pandas
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 # Avoid Qt, not being used
 # nuitka-project: --enable-plugin=no-qt

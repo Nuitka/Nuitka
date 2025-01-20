@@ -98,9 +98,13 @@
         "nuitka/build/inline_copy/lib/scons-3.1.2",
         "nuitka/build/inline_copy/clcache"
     ],
+    "python.analysis.exclude": [
+        "nuitka/build/inline_copy/stubgen",
+    ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
+    "python.terminal.activateEnvironment": true,
     "cSpell.words": [
         "__abstractmethods__",
         "__aenter__",
@@ -156,6 +160,7 @@
         "co_exceptiontable",
         "co_firstlineno",
         "co_freevars",
+        "CO_FUTURE_BARRY_AS_BDFL",
         "co_has_stardict",
         "co_has_starlist",
         "co_kwonlyargcount",

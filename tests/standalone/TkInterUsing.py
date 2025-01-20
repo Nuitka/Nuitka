@@ -1,11 +1,13 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ TkInter standalone test, trying to make sure it loads.
 
 """
 
-# nuitka-project: --standalone
+# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=tk-inter
 
 # Make sure, the usual bad ones are not included with anti-bloat.
@@ -14,7 +16,12 @@
 
 from __future__ import print_function
 
+import os
 import sys
+
+print("START:")
+# os.chdir(os.path.dirname(__file__))
+# print(os.getcwd())
 
 # Python3 changed module name.
 if str is bytes:
@@ -22,7 +29,7 @@ if str is bytes:
 else:
     import tkinter
 
-# nuitka-skip-unless-expression: __import__("Tkinter" if sys.version_info[0] < 3 else "tkinter")
+print("Imported tkinter.")
 
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL

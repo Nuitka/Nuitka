@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Generation of Nuitka documentation.
@@ -120,7 +120,7 @@ def updateManPages():
         "--no-info",
         "--include",
         "doc/nuitka-man-include.txt",
-        "%s ./bin/nuitka" % sys.executable,
+        "%s ./bin/nuitka --help-plugins" % sys.executable,
     ]
 
     with openTextFile("doc/nuitka.1.tmp", "wb") as output:

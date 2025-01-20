@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This test runner compiles all Python files as a module.
@@ -79,7 +79,7 @@ def action(stage_dir, _root, path):
     command = [
         sys.executable,
         os.path.join("..", "..", "bin", "nuitka"),
-        "--module",
+        "--mode=module",
         "--output-dir=%s" % stage_dir,
         "--remove-output",
         "--quiet",

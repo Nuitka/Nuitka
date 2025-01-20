@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Templates for the loading of embedded modules.
@@ -30,7 +30,7 @@ template_metapath_loader_bytecode_module_entry = """\
 template_metapath_loader_body = r"""
 /* Code to register embedded modules for meta path based loading if any. */
 
-#include <Python.h>
+#include "nuitka/prelude.h"
 
 /* Use a hex version of our own to compare for versions. We do not care about pre-releases */
 #if PY_MICRO_VERSION < 16
@@ -46,7 +46,7 @@ template_metapath_loader_body = r"""
 
 /* Type bool */
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #if %(bytecode_count)d > 0
@@ -134,6 +134,29 @@ void copyFrozenModulesTo(struct _frozen *destination) {
         destination += 1;
     };
 }
+
+#ifdef _NUITKA_MODULE
+
+struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
+    struct Nuitka_MetaPathBasedLoaderEntry *current = meta_path_loader_entries;
+
+    while (current->name != NULL) {
+        if ((current->flags & NUITKA_TRANSLATED_FLAG) != 0) {
+            current->name = UN_TRANSLATE(current->name);
+            current->flags -= NUITKA_TRANSLATED_FLAG;
+        }
+
+        if (strcmp(name, current->name) == 0) {
+            return current;
+        }
+
+        current++;
+    }
+
+    assert(false);
+    return NULL;
+}
+#endif
 
 """
 

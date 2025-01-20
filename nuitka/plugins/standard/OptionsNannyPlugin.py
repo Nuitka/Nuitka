@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to tell user about needed or useful options for packages.
@@ -19,10 +19,10 @@ from nuitka.utils.Utils import isMacOS
 
 class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
     plugin_name = "options-nanny"
-
     plugin_desc = (
         "Inform the user about potential problems as per package configuration files."
     )
+    plugin_category = "core"
 
     @staticmethod
     def isAlwaysEnabled():

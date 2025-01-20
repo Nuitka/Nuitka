@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """DLL dependency scan methods for Win32 Windows.
@@ -12,7 +12,7 @@ import sys
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Options import isShowProgress
+from nuitka.Options import isExperimental, isShowProgress
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSystemPrefixPath
@@ -30,13 +30,54 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.Hashing import Hash
-from nuitka.utils.SharedLibraries import getPyWin32Dir
+from nuitka.utils.SharedLibraries import getPEFileUsedDllNames, getPyWin32Dir
+from nuitka.utils.Utils import getArchitecture
 from nuitka.Version import version_string
 
 from .DependsExe import detectDLLsWithDependencyWalker
 from .DllDependenciesCommon import getPackageSpecificDLLDirectories
 
 _scan_dir_cache = {}
+
+
+def detectDLLsWithPEFile(binary_filename, scan_dirs):
+    pe_dll_names = getPEFileUsedDllNames(binary_filename)
+
+    result = OrderedSet()
+
+    # Get DLL imports from PE file
+    for dll_name in pe_dll_names:
+        dll_name = dll_name.lower()
+
+        # Search DLL path from scan dirs
+        for scan_dir in scan_dirs:
+            dll_filename = os.path.normcase(
+                os.path.abspath(os.path.join(scan_dir, dll_name))
+            )
+
+            if os.path.isfile(dll_filename):
+                result.add(dll_filename)
+
+                break
+        else:
+            if dll_name.startswith("API-MS-WIN-") or dll_name.startswith("EXT-MS-WIN-"):
+                continue
+
+            # Ignore this runtime DLL of Python2, will be coming via manifest.
+            # spell-checker: ignore msvcr90
+            if dll_name == "msvcr90.dll":
+                continue
+
+            # Ignore API DLLs, they can come in from PATH, but we do not want to
+            # include them.
+            if dll_name.startswith("api-ms-win-"):
+                continue
+
+            # Ignore UCRT runtime, this must come from OS, spell-checker: ignore ucrtbase
+            if dll_name == "ucrtbase.dll":
+                continue
+
+    return result
 
 
 def detectBinaryPathDLLsWin32(
@@ -49,10 +90,18 @@ def detectBinaryPathDLLsWin32(
     use_cache,
     update_cache,
 ):
+    # For ARM64 and on user request, we can use "pefile" for dependency detection.
+    dependency_tool = (
+        "pefile"
+        if (getArchitecture() == "arm64" or isExperimental("force-dependencies-pefile"))
+        else "depends.exe"
+    )
+
     # This is the caching mechanism and plugin handling for DLL imports.
     if use_cache or update_cache:
+
         cache_filename = _getCacheFilename(
-            dependency_tool="depends.exe",
+            dependency_tool=dependency_tool,
             is_main_executable=is_main_executable,
             source_dir=source_dir,
             original_dir=original_dir,
@@ -87,9 +136,17 @@ def detectBinaryPathDLLsWin32(
         package_name=package_name, original_dir=original_dir, use_path=use_path
     )
 
-    result = detectDLLsWithDependencyWalker(
-        binary_filename=binary_filename, source_dir=source_dir, scan_dirs=scan_dirs
-    )
+    if dependency_tool == "depends.exe":
+        result = detectDLLsWithDependencyWalker(
+            binary_filename=binary_filename,
+            source_dir=source_dir,
+            scan_dirs=scan_dirs,
+        )
+    else:
+        result = detectDLLsWithPEFile(
+            binary_filename=binary_filename,
+            scan_dirs=scan_dirs,
+        )
 
     if update_cache:
         putTextFileContents(filename=cache_filename, contents=result)

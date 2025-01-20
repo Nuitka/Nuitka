@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This module deals with finding and information about shared libraries.
@@ -26,6 +26,7 @@ from .FileOperations import (
     makeContainingPath,
     withMadeWritableFileMode,
 )
+from .Importing import importFromInlineCopy
 from .Utils import (
     isAlpineLinux,
     isLinux,
@@ -639,10 +640,8 @@ def _getFileCommandOutput(filename):
             logger=postprocessing_logger,
             command=("file", filename),
             absence_message=_file_usage,
+            decoding=str is not bytes,
         )
-
-        if str is not bytes:
-            file_output = file_output.decode("utf8")
 
         assert file_output.startswith(filename + ":")
         file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
@@ -860,8 +859,56 @@ _nm_usage = """\
 Error, needs 'nm' on your system, to detect exported DLL symbols."""
 
 
+def _decodeWin32EntryPoint(entry_point_name):
+    if str is bytes:
+        return entry_point_name
+    else:
+        # Not sure about the actual encoding used, this will cover most cases.
+        return entry_point_name.decode("utf8", "backslashreplace")
+
+
+def getPEFileUsedDllNames(filename):
+    """Return the used DLL PE file information of a Windows EXE or DLL
+
+    Args:
+        filename - The file to be investigated.
+
+    Notes:
+        Use of this is obviously only for Windows, although the module
+        will exist on other platforms too.
+    """
+
+    pefile = importFromInlineCopy("pefile", must_exist=True)
+
+    try:
+        pe_info = pefile.PE(filename)
+    except pefile.PEFormatError:
+        return None
+
+    # TODO: Check arch with pefile as well and ignore wrong arches if asked to.
+
+    # TODO: The decoding cannot expect ASCII, but also surely is not UTF8.
+    return OrderedSet(
+        dll_entry.dll.decode("utf8")
+        for dll_entry in getattr(pe_info, "DIRECTORY_ENTRY_IMPORT", ())
+    )
+
+
 def getDllExportedSymbols(logger, filename):
-    if isLinux or isMacOS():
+    if isWin32Windows():
+        pefile = importFromInlineCopy("pefile", must_exist=True)
+
+        try:
+            pe_info = pefile.PE(filename)
+        except pefile.PEFormatError:
+            return None
+
+        return tuple(
+            _decodeWin32EntryPoint(entry_point.name)
+            for entry_point in pe_info.DIRECTORY_ENTRY_EXPORT.symbols
+            if entry_point.name is not None
+        )
+    else:
         if isLinux():
             command = ("nm", "-D", filename)
         elif isMacOS():
@@ -887,8 +934,6 @@ def getDllExportedSymbols(logger, filename):
                 result.add(symbol_name.decode("utf8"))
 
         return result
-    else:
-        return None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

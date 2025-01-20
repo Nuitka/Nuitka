@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -40,11 +40,8 @@ from nuitka.Tracing import (
 )
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
-    deleteFile,
     getExternalUsePath,
     getFilenameExtension,
-    getNormalizedPath,
-    isFilesystemEncodable,
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
@@ -84,6 +81,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    makeResultPathFileSystemEncodable,
     prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
@@ -361,10 +359,12 @@ env = checkWindowsCompilerFound(
     clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
+    download_ok=True,
 )
 
 env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
+env.module_mode = module_mode
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
@@ -443,20 +443,6 @@ setupCCompiler(
 
 # Avoid them as appearing to be different files. TODO: Find out which
 # clang version has this, clang-8 does not.
-if env.gcc_mode and not env.clang_mode and env.gcc_version >= (8,):
-    if source_dir != "." and not full_names:
-        # TODO: This also lies for modules codes.
-        env.Append(
-            CCFLAGS=[
-                "--file-prefix-map=%s=%s" % (os.path.normpath(source_dir), "."),
-                "--file-prefix-map=%s=%s"
-                % (
-                    os.path.normpath(os.path.join(env.source_dir, "static_src")),
-                    os.path.normpath(os.path.join(env.nuitka_src, "static_src")),
-                ),
-            ]
-        )
-
 if env.msvc_mode:
     # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
     env.Append(
@@ -471,7 +457,7 @@ if env.msvc_mode:
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
-    if module_mode:
+    if env.module_mode:
         # Make sure we handle import library on our own and put it into the
         # build directory, spell-checker: ignore IMPLIB
 
@@ -483,8 +469,9 @@ if env.msvc_mode:
             ]
         )
 
-if not module_mode:
+if not env.module_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
+
 if env.debug_mode:
     if env.gcc_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
@@ -514,6 +501,9 @@ if env.debug_mode:
         )
 
     elif env.msvc_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
+            env.Append(CCFLAGS=["/WX"])
+
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -525,12 +515,11 @@ if env.debug_mode:
                 "/wd4189",
                 "/wd4211",
                 "/wd4115",
-                "/WX",
             ]
         )
 
         # Disable warnings, that CPython headers already show.
-        if python_version >= (3, 4):
+        if python_version >= (3,):
             env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
 
         if python_version >= (3, 13):
@@ -694,13 +683,6 @@ if env.static_libpython and python_version >= (3, 12):
 
 if os.name == "nt":
     if env.nuitka_python:
-        env.Append(
-            LINKFLAGS=[
-                "/LTCG",
-                "/USEPROFILE:PGD=" + os.path.join(python_prefix_external, "python.pgd"),
-            ]
-        )
-
         link_data = loadJsonFromFilename(
             os.path.join(python_prefix_external, "link.json")
         )
@@ -748,7 +730,7 @@ if os.name == "nt":
 
         if not env.msys2_mingw_python:
             addWinLib()
-elif not module_mode:
+elif not env.module_mode:
     # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = python_prefix_external
@@ -824,7 +806,7 @@ elif not module_mode:
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
 
 if isMacOS():
-    if module_mode:
+    if env.module_mode:
         # Dynamic lookup needed for extension modules.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     else:
@@ -854,7 +836,7 @@ env.Append(
 )
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not isMacOS() and not os.name == "nt" and not module_mode:
+if env.gcc_mode and not isMacOS() and not os.name == "nt" and not env.module_mode:
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -880,7 +862,7 @@ addConstantBlobFile(
 env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
-if module_mode:
+if env.module_mode:
     if isGccName(env.the_cc_name):
         env.Append(CCFLAGS=["-shared"])
     elif env.clang_mode:
@@ -901,7 +883,7 @@ else:
         else:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
-if module_mode:
+if env.module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])
 else:
     env.Append(CPPDEFINES=["_NUITKA_EXE"])
@@ -923,7 +905,7 @@ def discoverSourceFiles():
     static_src_filenames = []
 
     # Main program, unless of course it's a Python module/package we build.
-    if not module_mode:
+    if not env.module_mode:
         static_src_filenames.append("MainProgram.c")
 
     # Compiled types.
@@ -943,23 +925,13 @@ def discoverSourceFiles():
 
 source_files = discoverSourceFiles()
 
-# Remove the target file to avoid cases where it falsely doesn't get rebuild
-# and then lingers from previous builds,
-deleteFile(result_exe, must_exist=False)
+# Remove the target file to avoid cases where it falsely doesn't get rebuild and
+# then lingers from previous builds, and also workaround for MinGW64 not
+# supporting unicode result paths for "-o" basename.
+result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
 
-# Workaround for MinGW64 not supporting unicode result paths for "-o" basename.
-if os.name == "nt" and not isFilesystemEncodable(result_exe):
-    result_exe = os.path.join(
-        os.path.dirname(result_exe),
-        "_nuitka_temp.pyd" if module_mode else "_nuitka_temp.exe",
-    )
 
-    if not isFilesystemEncodable(result_exe):
-        result_exe = getNormalizedPath(os.path.relpath(result_exe))
-
-    deleteFile(result_exe, must_exist=False)
-
-if module_mode:
+if env.module_mode:
     # For Python modules, the standard shared library extension is not what gets
     # used. spell-checker: ignore SHLIBSUFFIX
     module_suffix = getFilenameExtension(result_exe)
@@ -1071,7 +1043,7 @@ createBuildDefinitionsFile()
 
 # The meta path based loader might want to respect that, so it does verbose traces in module
 # mode, mostly for debugging purposes only.
-if module_mode and python_sysflag_verbose:
+if env.module_mode and python_sysflag_verbose:
     env.Append(CPPDEFINES=["_NUITKA_SYSFLAG_VERBOSE=1"])
 
 # Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
@@ -1079,9 +1051,8 @@ if module_mode and python_sysflag_verbose:
 # but useful on other platforms too.
 if env.gcc_mode:
     makeGccUseLinkerFile(
-        source_files=source_files,
-        module_mode=module_mode,
         env=env,
+        source_files=source_files,
     )
 
 # Plugin contributed C defines should be used too.
@@ -1096,7 +1067,6 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    module_mode=module_mode,
     source_files=source_files,
 )
 

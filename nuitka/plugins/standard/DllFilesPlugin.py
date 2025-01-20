@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to tell Nuitka about DLLs needed for standalone imports.
@@ -30,8 +30,8 @@ from nuitka.utils.Utils import isFreeBSD, isLinux, isMacOS, isWin32Windows
 
 class NuitkaPluginDllFiles(NuitkaYamlPluginBase):
     plugin_name = "dll-files"
-
     plugin_desc = "Include DLLs as per package configuration files."
+    plugin_category = "core"
 
     @staticmethod
     def isAlwaysEnabled():
@@ -374,16 +374,6 @@ conditions are missing, or this version of the module needs treatment added."""
                 module_name=full_name,
                 package_name=None,
                 reason="needed by 'iptc'",
-            )
-        elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
-            yield self.makeDllEntryPoint(
-                source_path=os.path.join(
-                    module.getCompileTimeDirectory(), "libsecp256k1.dll"
-                ),
-                dest_path=os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
-                module_name=full_name,
-                package_name=full_name.getPackageName(),
-                reason="needed by 'coincurve._libsecp256k1'",
             )
         # TODO: This should be its own plugin.
         elif (

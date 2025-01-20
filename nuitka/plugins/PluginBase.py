@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -451,6 +451,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     def isDetector(cls):
         """Is this a detection plugin, i.e. one which is only there to inform."""
         return hasattr(cls, "detector_for")
+
+    @classmethod
+    def hasCategory(cls, category):
+        return category in cls.getCategories()
+
+    @classmethod
+    def getCategories(cls):
+        plugin_category = getattr(cls, "plugin_category", None)
+
+        if plugin_category is None:
+            result = ()
+        else:
+            result = plugin_category.split(",")
+
+        return OrderedSet(sorted(result))
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -1609,7 +1624,7 @@ except Exception as e:
         if type(value) not in (str, unicode):
             self.sysexit(
                 """\
-Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result but '%s'"""
+Error, expression '%s' for module '%s' did not evaluate to 'str', 'tuple[str]' or 'list[str]' result, but '%s'"""
                 % (expression, full_name, type(value))
             )
 

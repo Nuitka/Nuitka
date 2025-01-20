@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This test runner compiles all extension modules for standalone mode.
@@ -149,13 +149,13 @@ def main():
             # TODO: This won't be bloat for long anymore.
             output.write("# nuitka-project: --noinclude-numba-mode=warning\n")
 
-            output.write("# nuitka-project: --standalone\n")
+            output.write("# nuitka-project: --mode=standalone\n")
 
             if isMacOS():
                 output.write("# nuitka-project: --macos-create-app-bundle\n")
 
                 if module_name.hasNamespace("PyQt5"):
-                    output.write("# nuitka-project: --onefile\n")
+                    output.write("# nuitka-project: --mode=onefile\n")
 
             output.write("import " + module_name.asString() + "\n")
             output.write("print('OK.')")

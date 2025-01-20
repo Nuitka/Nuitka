@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 // This implements the loading of C compiled modules and shared library
 // extension modules bundled for standalone mode.
@@ -1881,6 +1881,7 @@ static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 // no big harm too, but make it small, maybe be allowing a toggle that makes a specific macro not
 // use the free list mechanism at all.
 
+// Freelist setup
 #define MAX_LOADER_FREE_LIST_COUNT 10
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;
 static int free_list_loaders_count = 0;

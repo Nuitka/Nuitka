@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Matplotlib standard plugin module. """
@@ -35,6 +35,7 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
 
     plugin_name = "matplotlib"  # Nuitka knows us by this name
     plugin_desc = "Required for 'matplotlib' module."
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

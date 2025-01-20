@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ OpenSUSE Build Service (OSC) status check.
@@ -14,19 +14,35 @@ import csv
 import sys
 
 from nuitka.__past__ import StringIO
-from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output
+from nuitka.tools.environments.Virtualenv import withVirtualenv
+from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.InstalledPythons import findInstalledPython
 
 
 def main():
-    # many cases, pylint: disable=too-many-branches
+    # TODO: The setup of the osc virtualenv ought to be shared.
+    # many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     my_print("Querying openSUSE build service status of Nuitka packages.")
 
     # spell-checker: ignore kayhayen
-    osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
+    osc_cmd = "osc pr -c home:kayhayen"
 
-    stdout_osc = check_output(args=osc_cmd)
+    installed_python = findInstalledPython(
+        python_versions=("3.10",), module_name=None, module_version=None
+    )
+
+    with withVirtualenv(
+        "venv_nuitka",
+        logger=tools_logger,
+        style="blue",
+        python=installed_python.getPythonExe(),
+    ) as venv:
+        venv.runCommand("python -m pip install osc")
+
+        stdout_osc, stderr, exit_code = venv.runCommandWithOutput(osc_cmd)
+
+        assert exit_code == 0, stderr
 
     if str is not bytes:
         stdout_osc = stdout_osc.decode("utf8")

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Caching of C compiler output.
@@ -98,6 +98,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
                         message="Nuitka will make use of ccache to speed up repeated compilation.",
                         reject=None,
                         assume_yes_for_downloads=assume_yes_for_downloads,
+                        download_ok=True,
                     )
 
     else:

@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
@@ -220,8 +220,9 @@ NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(PyThreadState *tstate
                                                            struct Nuitka_GeneratorObject *generator) {
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(generator) = EXC_TYPE(tstate);
-    if (EXC_TYPE_F(generator) == Py_None)
+    if (EXC_TYPE_F(generator) == Py_None) {
         EXC_TYPE_F(generator) = NULL;
+    }
     Py_XINCREF(EXC_TYPE_F(generator));
 #endif
     EXC_VALUE_F(generator) = EXC_VALUE(tstate);

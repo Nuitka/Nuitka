@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Setup file for Nuitka.
@@ -117,6 +117,7 @@ if os.name == "nt" or sdist_mode:
     addInlineCopy("atomicwrites")
     addInlineCopy("clcache")
     addInlineCopy("colorama")
+    addInlineCopy("pefile")
 
 if sys.version_info < (3,) or sdist_mode:
     addInlineCopy("yaml_27")
@@ -415,20 +416,20 @@ setup(
         "Topic :: Software Development :: Quality Assurance",
         # Nuitka standalone mode aims at distribution
         "Topic :: System :: Software Distribution",
-        # Python2 supported versions.
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
         # Python3 supported versions.
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.4",
+        # Python2 supported versions.
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 2.6",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the

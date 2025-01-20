@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Display the DLLs in a package. """
@@ -15,7 +15,11 @@ from nuitka.importing.Importing import (
 )
 from nuitka.Tracing import tools_logger
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
-from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
+from nuitka.utils.FileOperations import (
+    listDllFilesFromDirectory,
+    listExeFilesFromDirectory,
+    relpath,
+)
 from nuitka.utils.Importing import (
     getPackageDirFilename,
     getSharedLibrarySuffixes,
@@ -34,7 +38,7 @@ def getPythonEntryPointExportedSymbolName(module_name):
     return result
 
 
-def isExtensionModule(module_filename):
+def isFileExtensionModule(module_filename):
     for suffix in getSharedLibrarySuffixes():
         if module_filename.endswith(suffix):
             module_name = ModuleName(os.path.basename(module_filename)[: -len(suffix)])
@@ -53,8 +57,7 @@ def isExtensionModule(module_filename):
     return False
 
 
-def displayDLLs(module_name):
-    """Display the DLLs for a module name."""
+def scanModule(module_name, scan_function):
     module_name = ModuleName(module_name)
 
     if not hasMainScriptDirectory():
@@ -87,30 +90,50 @@ def displayDLLs(module_name):
 
     tools_logger.info("Checking package directory '%s' .. " % package_directory)
 
-    count = 0
-
     for package_dll_dir in getPackageSpecificDLLDirectories(
         module_name, consider_plugins=True
     ):
-        first = True
-
-        for package_dll_filename, _dll_basename in listDllFilesFromDirectory(
-            package_dll_dir
-        ):
-            if isExtensionModule(package_dll_filename):
+        for package_dll_filename, _dll_basename in scan_function(package_dll_dir):
+            if isFileExtensionModule(package_dll_filename):
                 continue
 
-            if first:
-                tools_logger.my_print(package_dll_dir)
-                first = False
+            yield package_dll_filename, package_dll_dir
 
-            tools_logger.my_print(
-                "  %s" % relpath(package_dll_filename, start=package_dll_dir),
-            )
 
-            count += 1
+def displayDLLs(module_name):
+    """Display the DLLs for a module name."""
+
+    count = 0
+
+    for package_dll_filename, package_dll_dir in scanModule(
+        module_name=module_name, scan_function=listDllFilesFromDirectory
+    ):
+
+        tools_logger.my_print(
+            "  %s" % relpath(package_dll_filename, start=package_dll_dir),
+        )
+
+        count += 1
 
     tools_logger.info("Found %s DLLs." % count)
+
+
+def displayEXEs(module_name):
+    """Display the EXEs for a module name."""
+
+    count = 0
+
+    for package_dll_filename, package_dll_dir in scanModule(
+        module_name=module_name, scan_function=listExeFilesFromDirectory
+    ):
+
+        tools_logger.my_print(
+            "  %s" % relpath(package_dll_filename, start=package_dll_dir),
+        )
+
+        count += 1
+
+    tools_logger.info("Found %s EXEs." % count)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

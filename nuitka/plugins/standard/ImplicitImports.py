@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to tell Nuitka about implicit imports.
@@ -22,10 +22,10 @@ from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     plugin_name = "implicit-imports"
-
     plugin_desc = (
         "Provide implicit imports of package as per package configuration files."
     )
+    plugin_category = "core"
 
     def __init__(self):
         NuitkaYamlPluginBase.__init__(self)
@@ -121,8 +121,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                     dependency = full_name.getChildNamed(dependency[1:]).asString()
                 elif full_name.getPackageName() is None:
                     # Not a package, potentially a naming conflict, when
-                    # compiling with "--module" something that matches a PyPI
-                    # name.
+                    # compiling with "--mode=module" something that matches a
+                    # PyPI name.
                     continue
                 else:
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()

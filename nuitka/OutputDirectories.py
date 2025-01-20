@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Directories and paths to for output of Nuitka.
@@ -150,8 +150,10 @@ def getResultFullpath(onefile):
 def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile)
 
-    if isWin32Windows() and Options.shallTreatUninstalledPython():
-        result = getResultBasePath(onefile=onefile) + ".cmd"
+    if Options.shallCreateScriptFileForExecution():
+        result = getResultBasePath(onefile=onefile) + (
+            ".cmd" if isWin32Windows() else ".sh"
+        )
 
     return result
 

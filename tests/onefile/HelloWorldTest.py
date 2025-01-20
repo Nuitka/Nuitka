@@ -1,12 +1,9 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from __future__ import print_function
 
-# nuitka-project: --onefile
-
-# Sometimes we disable with --no-onefile to only do standalone.
-# nuitka-project: --standalone
+# nuitka-project: --mode=onefile
 
 # Lets have some version information to coverage purposes in here too.
 

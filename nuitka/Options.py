@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Options module
@@ -231,12 +231,12 @@ Absolute run time paths of '%s' can only be at the start of \
 
         if candidate == value:
             Tracing.options_logger.sysexit(
-                """Cannot use general system folder %s, may only be the \
+                """Cannot use folder %s, may only be the \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
 
-        if value.startswith(candidate):
+        if value.startswith(candidate) and candidate != "{PROGRAM_BASE}":
             if value[len(candidate)] != os.path.sep:
                 Tracing.options_logger.sysexit(
                     """Cannot use general system folder %s, without a path \
@@ -332,15 +332,15 @@ def printVersionInformation():
 
     from nuitka.build.SconsInterface import (
         asBoolStr,
+        getCommonSconsOptions,
         runScons,
-        setCommonSconsOptions,
     )
 
-    scons_options = {"compiler_version_mode": asBoolStr("true")}
-    env_values = setCommonSconsOptions(options=scons_options)
+    scons_options, env_values = getCommonSconsOptions()
+    scons_options["compiler_version_mode"] = asBoolStr("true")
 
     runScons(
-        options=scons_options,
+        scons_options=scons_options,
         env_values=env_values,
         scons_filename="CCompilerVersion.scons",
     )
@@ -348,12 +348,36 @@ def printVersionInformation():
 
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
-        Tracing.options_logger.warning(
-            """\
-Using onefile specific option '%s' has no effect \
-when '--onefile' is not specified."""
-            % option_name
-        )
+        if options.github_workflow_options and isMacOS() and shallCreateAppBundle():
+            Tracing.options_logger.info(
+                """\
+Note: Using onefile mode specific option '%s' has no effect \
+with macOS app bundles."""
+                % option_name
+            )
+        else:
+            Tracing.options_logger.warning(
+                """\
+Using onefile mode specific option '%s' has no effect \
+when '--mode=onefile' is not specified."""
+                % option_name
+            )
+
+
+def _warnOSSpecificOption(option_name, *supported_os):
+    if getOS() not in supported_os:
+        if options.github_workflow_options:
+            Tracing.options_logger.info(
+                """\
+Note: Using OS specific option '%s' has no effect on %s."""
+                % (option_name, getOS())
+            )
+        else:
+            Tracing.options_logger.warning(
+                """\
+Using OS specific option '%s' has no effect on %s."""
+                % (option_name, getOS())
+            )
 
 
 def _checkDataDirOptionValue(data_dir, option_name):
@@ -509,6 +533,8 @@ Error, the Python from Windows app store is not supported.""",
         elif options.compilation_mode == "standalone":
             options.is_standalone = True
         elif options.compilation_mode == "module":
+            options.module_mode = True
+        elif options.compilation_mode == "package":
             options.module_mode = True
         elif options.compilation_mode == "app":
             if isMacOS():
@@ -1029,23 +1055,38 @@ and recommended only for use in Nuitka development and testing."""
             % default_mode_name_mode
         )
 
-    # TODO: Not all of these are usable with MSYS2 really, split those off.
-    if not isWin32OrPosixWindows():
-        # Too many Windows specific options clearly
-        if (
-            getWindowsIconExecutablePath()
-            or shallAskForWindowsAdminRights()
-            or shallAskForWindowsUIAccessRights()
-            or getWindowsSplashScreen()
-        ):
-            Tracing.options_logger.warning(
-                "Using Windows specific options has no effect on other platforms."
-            )
-
-        if options.mingw64 or options.msvc_version:
-            Tracing.options_logger.warning(
-                "Requesting Windows specific compilers has no effect on other platforms."
-            )
+    # TODO: This could be done via a generic option attribute and iterating over
+    # them all, but maybe that's too inflexible long term.
+    if getWindowsIconExecutablePath():
+        _warnOSSpecificOption("--windows-icon-from-exe", "Windows")
+    if shallAskForWindowsAdminRights():
+        _warnOSSpecificOption("--windows-uac-admin", "Windows")
+    if shallAskForWindowsUIAccessRights():
+        _warnOSSpecificOption("--windows-uac-uiaccess", "Windows")
+    if getWindowsSplashScreen():
+        _warnOSSpecificOption("--onefile-windows-splash-screen-image", "Windows")
+    if options.mingw64 is not None:
+        _warnOSSpecificOption("--mingw64", "Windows")
+    if options.msvc_version is not None:
+        _warnOSSpecificOption("--msvc", "Windows")
+    if options.macos_target_arch is not None:
+        _warnOSSpecificOption("--macos-target-arch", "Darwin")
+    if options.macos_create_bundle is not None:
+        _warnOSSpecificOption("--macos-create-app-bundle", "Darwin")
+    if options.macos_sign_identity is not None:
+        _warnOSSpecificOption("--macos-sign-identity", "Darwin")
+    if options.macos_sign_notarization is not None:
+        _warnOSSpecificOption("--macos-sign-notarization", "Darwin")
+    if getMacOSAppName():
+        _warnOSSpecificOption("--macos-app-name", "Darwin")
+    if getMacOSSignedAppName():
+        _warnOSSpecificOption("--macos-signed-app-name", "Darwin")
+    if getMacOSAppVersion():
+        _warnOSSpecificOption("--macos-app-version", "Darwin")
+    if getMacOSAppProtectedResourcesAccesses():
+        _warnOSSpecificOption("--macos-app-protected-resource", "Darwin")
+    if options.macos_app_mode is not None:
+        _warnOSSpecificOption("--macos-app-mode", "Darwin")
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
@@ -1061,7 +1102,7 @@ and recommended only for use in Nuitka development and testing."""
             x.isdigit() for x in getMsvcVersion().split(".")
         ):
             Tracing.options_logger.sysexit(
-                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
+                "For '--msvc' only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
                 % getMsvcVersion()
             )
 
@@ -1209,11 +1250,12 @@ and not with the non-debug version.
 """
         )
 
-    if isMacOS() and shallCreateAppBundle() and not getMacOSIconPaths():
-        Tracing.general.warning(
+    if isMacOS() and shallCreateAppBundle() and not options.macos_icon_path:
+        Tracing.options_logger.warning(
             """\
 For application bundles, you ought to specify an icon with '--macos-app-icon'.", \
-otherwise a dock icon may not be present."""
+otherwise a dock icon may not be present. Specify 'none' value to disable \
+this warning."""
         )
 
     if (
@@ -1287,6 +1329,18 @@ have any effect anymore on non-Windows."""
                 )
             )
 
+    if (
+        isWin32Windows()
+        and getWindowsVersionInfoStrings()
+        and getProductFileVersion() is None
+    ):
+        Tracing.options_logger.sysexit(
+            """\
+Error, when providing version information on Windows, you must also
+provide either '--product-version' or '--file-version' as these can
+not have good defaults, but are forced to be present by the OS."""
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
@@ -1345,8 +1399,13 @@ def getModuleNameMode():
 
 
 def shallMakeModule():
-    """:returns: bool derived from ``--module``"""
+    """:returns: bool derived from ``--mode=module|package``."""
     return options is not None and options.module_mode
+
+
+def shallMakePackage():
+    """:returns: bool derived from ``--mode=package``."""
+    return options is not None and options.compilation_mode == "package"
 
 
 def shallCreatePyiFile():
@@ -1416,12 +1475,14 @@ def getShallFollowExtraFilePatterns():
 
 def getMustIncludeModules():
     """*list*, items of ``--include-module=``"""
-    return sum([_splitShellPattern(x) for x in options.include_modules], [])
+    return OrderedSet(sum([_splitShellPattern(x) for x in options.include_modules], []))
 
 
 def getMustIncludePackages():
     """*list*, items of ``--include-package=``"""
-    return sum([_splitShellPattern(x) for x in options.include_packages], [])
+    return OrderedSet(
+        sum([_splitShellPattern(x) for x in options.include_packages], [])
+    )
 
 
 def getShallIncludeDistributionMetadata():
@@ -1492,7 +1553,7 @@ def getShallNotIncludeDataFilePatterns():
 
 
 def getShallIncludeExternallyDataFilePatterns():
-    """*list*, items of ``--include-onefile-external-data=``"""
+    """*list*, items of ``--include-data-files-external=``"""
 
     return options.data_files_external
 
@@ -1740,13 +1801,15 @@ def shallTreatUninstalledPython():
     return isUninstalledPython()
 
 
-def shallCreateCmdFileForExecution():
+def shallCreateScriptFileForExecution():
     """*bool* = derived from Python installation and modes
 
-    Notes: Mostly for accelerated mode on Windows with uninstalled python, to
-    make sure they find their Python DLL.
+    Notes: Mostly for accelerated mode with uninstalled python, to make sure
+    they find their Python DLL and Python packages.
     """
-    return isWin32Windows() and shallTreatUninstalledPython()
+
+    # TODO: Are we having a need for both names really?
+    return shallTreatUninstalledPython()
 
 
 def isShowScons():
@@ -1793,7 +1856,7 @@ def isClang():
 def isMingw64():
     """:returns: bool derived from ``--mingw64``, available only on Windows, otherwise false"""
     if isWin32Windows():
-        return options.mingw64 or isMSYS2MingwPython()
+        return bool(options.mingw64 or isMSYS2MingwPython())
     else:
         return None
 
@@ -1952,7 +2015,7 @@ def isOnefileMode():
 
 
 def isAcceleratedMode():
-    """:returns: bool derived from ``--standalone`` and `--module`"""
+    """:returns: bool derived from ``--mode=accelerated``"""
     return not isStandaloneMode() and not shallMakeModule()
 
 
@@ -2051,6 +2114,8 @@ def shallOnefileAsArchive():
 
 
 def _checkIconPaths(icon_paths):
+    icon_paths = tuple(icon_paths)
+
     for icon_path in icon_paths:
         if not os.path.exists(icon_path):
             Tracing.options_logger.sysexit(
@@ -2090,7 +2155,9 @@ def getLinuxIconPaths():
 
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
-    return _checkIconPaths(options.macos_icon_path)
+    return _checkIconPaths(
+        icon_path for icon_path in options.macos_icon_path if icon_path != "none"
+    )
 
 
 def getWindowsIconExecutablePath():
@@ -2239,6 +2306,9 @@ def getMacOSSigningIdentity():
     """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
     result = options.macos_sign_identity
 
+    if result is None:
+        result = "ad-hoc"
+
     if result == "ad-hoc":
         result = "-"
 
@@ -2247,7 +2317,7 @@ def getMacOSSigningIdentity():
 
 def shallUseSigningForNotarization():
     """*bool* flag to use for codesign, derived from ``--macos-sign-notarization`` value"""
-    return options.macos_sign_notarization
+    return bool(options.macos_sign_notarization)
 
 
 def getMacOSAppName():
@@ -2267,8 +2337,12 @@ def getMacOSAppVersion():
 
 def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
+    result = []
+
     for macos_protected_resource in options.macos_protected_resources:
-        yield macos_protected_resource.split(":", 1)
+        result.append(macos_protected_resource.split(":", 1))
+
+    return result
 
 
 def isMacOSBackgroundApp():
@@ -2657,6 +2731,23 @@ def getForcedRuntimeEnvironmentVariableValues():
         name, value = forced_runtime_env_variables_spec.split("=", 1)
 
         yield (name, value)
+
+
+def getCompilationMode():
+    """For reporting only, use shorter specific tests."""
+
+    if isAcceleratedMode():
+        return "accelerated"
+    elif shallMakeModule():
+        return "module"
+    elif shallMakePackage():
+        return "package"
+    elif shallCreateAppBundle():
+        return "app"
+    elif isOnefileMode():
+        return "onefile"
+    elif isStandaloneMode():
+        return "standalone"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

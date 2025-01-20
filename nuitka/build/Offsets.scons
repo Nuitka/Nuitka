@@ -1,0 +1,644 @@
+# -*- python -*-
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+
+"""
+The Offset scons file. If you have Scons or platform knowledge, please be
+especially invited and contribute improvements.
+
+This file is used to build an executable that outputs data about offsets, it is
+needed to make up for differences in offsets of structures for the Python
+headers between MSVC and MinGW64, that can only be accounted for with a
+structure that is generated and achieves same layout for MinGW64 despite the
+internals being different. As of Python3.13, internal only structures do not
+enforce layouts of all structures anymore.
+"""
+
+# Make nuitka package importable from calling installation
+
+import sys
+import os
+import types
+
+sys.modules["nuitka"] = types.ModuleType("nuitka")
+sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
+
+# We are in the build.build package really.
+import nuitka.build  # pylint: disable=unused-import
+
+__package__ = "nuitka.build"  # pylint: disable=redefined-builtin
+
+# isort:start
+
+from SCons.Script import (  # pylint: disable=I0021,import-error
+    ARGUMENTS,
+    Environment,
+    GetOption,
+)
+
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
+)
+from nuitka.utils.FileOperations import getExternalUsePath
+
+from .SconsCaching import enableCcache, enableClcache
+from .SconsCompilerSettings import (
+    checkWindowsCompilerFound,
+    importEnvironmentVariableSettings,
+    reportCCompiler,
+    setupCCompiler,
+    switchFromGccToGpp,
+)
+from .SconsHacks import getEnhancedToolDetect
+from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
+from .SconsSpawn import enableSpawnMonitoring
+from .SconsUtils import (
+    addClangClPathFromMSVC,
+    changeKeyboardInterruptToErrorExit,
+    createEnvironment,
+    getArgumentBool,
+    getArgumentDefaulted,
+    getArgumentList,
+    getArgumentRequired,
+    getExecutablePath,
+    getMsvcVersionString,
+    initScons,
+    isClangName,
+    isGccName,
+    makeResultPathFileSystemEncodable,
+    prepareEnvironment,
+    provideStaticSourceFile,
+    raiseNoCompilerFoundErrorExit,
+    setArguments,
+    setupScons,
+    writeSconsReport,
+)
+
+# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
+
+# Set the arguments.
+setArguments(ARGUMENTS)
+
+# Set up the basic stuff.
+initScons()
+
+# The directory used for building.
+source_dir = getArgumentRequired("source_dir")
+
+# The directory containing Nuitka provided C files to be built and where it
+# should be used.
+nuitka_src = getArgumentRequired("nuitka_src")
+
+# The name of executable that we are supposed to produce.
+result_exe = getArgumentRequired("result_exe")
+
+# Python version to target.
+python_version_str = getArgumentRequired("python_version")
+python_version = tuple(int(d) for d in python_version_str.split("."))
+
+gil_mode = getArgumentBool("gil_mode")
+
+# The ABI flags to target.
+abiflags = getArgumentDefaulted("abiflags", "")
+
+if not gil_mode and "t" not in abiflags:
+    abiflags = "t" + abiflags
+
+python_abi_version = python_version_str + abiflags
+
+# Python debug mode: reference count checking, assertions in CPython core.
+python_debug = getArgumentBool("python_debug", False)
+
+# LTO mode: Use link time optimizations of C compiler if available and known
+# good with the compiler in question.
+lto_mode = getArgumentDefaulted("lto_mode", "auto")
+
+# Target arch, uses for compiler choice and quick linking of constants binary
+# data.
+target_arch = getArgumentRequired("target_arch")
+
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getArgumentBool("mingw_mode", False)
+
+# Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
+clang_mode = getArgumentBool("clang_mode", False)
+
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
+clangcl_mode = False
+if os.name == "nt" and not mingw_mode and clang_mode:
+    clang_mode = False
+    clangcl_mode = True
+
+# Show scons mode, output information about Scons operation
+show_scons_mode = getArgumentBool("show_scons", False)
+scons_details_logger.is_quiet = not show_scons_mode
+
+if int(os.getenv("NUITKA_QUIET", "0")):
+    setQuiet()
+
+# Home of Python to be compiled against, used to find include files and
+# libraries to link against.
+python_prefix = getArgumentRequired("python_prefix")
+
+python_prefix_external = getExternalUsePath(python_prefix)
+
+# Forced MSVC version (windows-only)
+msvc_version = getArgumentDefaulted("msvc_version", None)
+
+# Disable ccache/clcache usage if that is requested
+disable_ccache = getArgumentBool("disable_ccache", False)
+
+# Preprocessor defines from plugins
+cpp_defines = getArgumentList("cpp_defines", "")
+cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
+link_dirs = getArgumentList("link_dirs", "")
+link_libraries = getArgumentList("link_libraries", "")
+
+# From statically compiled modules of the Python
+link_module_libs = getArgumentList("link_module_libs", "")
+
+# Allow automatic downloads for ccache, etc.
+assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+# Minimum version required on macOS.
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
+
+# gcc compiler cf_protection option
+cf_protection = getArgumentDefaulted("cf_protection", "auto")
+
+if getArgumentBool("progress_bar", True) and not show_scons_mode:
+    enableSconsProgressBar()
+
+# Amount of jobs to use.
+job_count = GetOption("num_jobs")
+
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
+
+# Patch the compiler detection.
+Environment.Detect = getEnhancedToolDetect()
+
+# Create Scons environment, the main control tool. Don't include "mingw" on
+# Windows immediately, we will default to MSVC if available.
+env = createEnvironment(
+    mingw_mode=mingw_mode,
+    msvc_version=msvc_version,
+    target_arch=target_arch,
+    experimental=[],
+    no_deployment=[],
+    debug_modes=[],
+)
+
+scons_details_logger.info("Initial CC: %r" % env.get("CC"))
+scons_details_logger.info(
+    "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
+)
+
+if "CC" in os.environ:
+    # If the environment variable CC is set, use that.
+    env["CC"] = os.environ["CC"]
+    env["CCVERSION"] = None
+
+    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
+elif clangcl_mode:
+    # If possible, add Clang directory from MSVC if available.
+    addClangClPathFromMSVC(env=env)
+elif clang_mode and not mingw_mode:
+    # If requested by the user, use the clang compiler, overriding what was
+    # said in environment.
+
+    env["CC"] = "clang"
+    env["CCVERSION"] = None
+
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
+env = checkWindowsCompilerFound(
+    env=env,
+    target_arch=target_arch,
+    clang_mode=clang_mode,
+    msvc_version=msvc_version,
+    assume_yes_for_downloads=assume_yes_for_downloads,
+    download_ok=True,
+)
+
+env.the_compiler = env["CC"]
+env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
+env.module_mode = False
+env.standalone_mode = False
+env.debug_mode = False
+env.debugger_mode = False
+env.unstripped_mode = False
+env.console_mode = "force"
+env.source_dir = source_dir
+env.nuitka_src = nuitka_src
+env.low_memory = False
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
+
+# Requested or user provided, detect if it's clang even from environment
+if isClangName(env.the_cc_name):
+    clang_mode = True
+    env["CCVERSION"] = None
+
+# We consider clang to be a form of gcc for the most things, they strive to
+# be compatible.
+env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
+env.clang_mode = clang_mode
+
+# Only use MSVC if not already clear, we are using MinGW.
+env.msvc_mode = os.name == "nt" and not env.gcc_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode
+env.clangcl_mode = clangcl_mode
+
+# For Python3.13, we need to enforce it for now to use MSVC
+if os.name == "nt" and not env.msvc_mode and python_version >= (3, 13):
+    scons_logger.sysexit(
+        """\
+Sorry, non-MSVC is not currently supported with Python 3.13,
+due to differences in layout internal structures of Python.
+
+Newer Nuitka will work to solve this. Use Python 3.12 or
+option "--msvc=latest" as a workaround for now and wait
+for updates of Nuitka to add MinGW64 support back."""
+    )
+
+# gcc compiler cf_protection option
+env.cf_protection = cf_protection
+
+# Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
+switchFromGccToGpp(
+    env=env,
+)
+
+if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
+    raiseNoCompilerFoundErrorExit()
+
+no_import_lib = False
+
+if show_scons_mode:
+    my_print("Scons: Compiler used", end=" ")
+    my_print(getExecutablePath(env.the_compiler, env=env), end=" ")
+
+    if os.name == "nt" and env.msvc_mode:
+        my_print("(MSVC %s)" % getMsvcVersionString(env))
+
+    my_print()
+
+# Set build directory and scons general settings.
+setupScons(env, source_dir)
+
+# Report the C compiler used.
+reportCCompiler(env, "Backend", scons_logger.info)
+
+# Set up C compiler settings.
+setupCCompiler(
+    env=env,
+    lto_mode=lto_mode,
+    pgo_mode="no",
+    job_count=job_count,
+    onefile_compile=False,
+)
+
+if env.msvc_mode:
+    # With Clang on Windows, there is also an linker to use. spell-checker: ignore bigobj
+    env.Append(
+        CCFLAGS=[
+            "/EHsc",  # No C++ exception handling code.
+            "/J",  # default char type is unsigned.
+            "/Gd",  # Use C calling convention by default.
+            "/bigobj",  # Product object files with larger internal limits.
+        ]
+    )
+
+    # No incremental linking.
+    env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
+
+if env.debug_mode:
+    if env.gcc_mode:
+        # Allow gcc/clang to point out all kinds of inconsistency to us by
+        # raising an error.
+
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
+            env.Append(
+                CCFLAGS=[
+                    "-Wall",
+                    "-Werror",
+                ]
+            )
+        else:
+            env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
+
+        env.Append(
+            CCFLAGS=[
+                # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
+                # which are unfounded, so disable them.
+                "-Wno-error=strict-aliasing",
+                "-Wno-strict-aliasing",
+                # At least for self-compiled Python3.2, and MinGW this happens
+                # and has little use anyway.
+                "-Wno-error=format",
+                "-Wno-format",
+            ]
+        )
+
+    elif env.msvc_mode:
+        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
+            env.Append(CCFLAGS=["/WX"])
+
+        # Disable warnings that system headers already show.
+        env.Append(
+            CCFLAGS=[
+                "/W4",
+                "/wd4505",
+                "/wd4127",
+                "/wd4100",
+                "/wd4702",
+                "/wd4189",
+                "/wd4211",
+                "/wd4115",
+            ]
+        )
+
+        # Disable warnings, that CPython headers already show.
+        if python_version >= (3,):
+            env.Append(CCFLAGS=["/wd4512", "/wd4510", "/wd4610"])
+
+        if python_version >= (3, 13):
+            env.Append(CCFLAGS=["/wd4324"])
+
+        # We use null arrays in our structure Python declarations, which C11 does
+        # not really allow, but should work.
+        env.Append(CCFLAGS=["/wd4200"])
+
+        # Do not show deprecation warnings, we will use methods for as long
+        # as they work.
+        env.Append(CCFLAGS=["/wd4996"])
+
+if not env.msvc_mode:
+    env.Append(LIBS=["m"])
+
+if python_debug:
+    env.Append(CPPDEFINES=["Py_DEBUG"])
+
+if env.static_libpython:
+    env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
+
+
+def _detectPythonHeaderPath():
+    if os.name == "nt":
+        # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
+        # compiled for mingw64, it's more standard.
+
+        candidates = [
+            os.path.join(python_prefix_external, "include"),
+            # On MSYS2 with MinGW64 Python, it is also the other form.
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+        ]
+    else:
+        # The python header path is a combination of python version and debug
+        # indication, we make sure the headers are found by adding it to the C
+        # include path.
+
+        candidates = [
+            os.path.join(
+                python_prefix_external, "include", "python" + python_abi_version
+            ),
+            # CPython source code checkout
+            os.path.join(python_prefix_external, "Include"),
+            # Haiku specific paths:
+            os.path.join(
+                python_prefix_external, "develop/headers", "python" + python_abi_version
+            ),
+        ]
+
+        # Not all Python versions, have the ABI version to use for the debug version.
+        if python_debug and "d" in python_abi_version:
+            candidates.append(
+                os.path.join(
+                    python_prefix_external,
+                    "include",
+                    "python" + python_abi_version.replace("d", ""),
+                )
+            )
+
+    for candidate in candidates:
+        if os.path.exists(os.path.join(candidate, "Python.h")):
+            yield candidate
+            break
+    else:
+        if os.name == "nt":
+            scons_logger.sysexit(
+                """\
+Error, you seem to be using the unsupported embeddable CPython distribution \
+use a full Python instead."""
+            )
+        else:
+            scons_logger.sysexit(
+                """\
+Error, no 'Python.h' %s headers can be found at '%s', dependency \
+not satisfied!"""
+                % ("debug" if python_debug else "development", candidates)
+            )
+
+    if python_version >= (3, 13):
+        yield os.path.join(candidate, "internal", "mimalloc")
+
+    if env.self_compiled_python_uninstalled:
+        yield python_prefix_external
+
+
+env.Append(CPPPATH=list(_detectPythonHeaderPath()))
+
+# To support self-built Python on Windows, need to also add the "PC" directory,
+# that a normal install won't have.
+if os.name == "nt":
+    python_header_path = os.path.join(python_prefix_external, "PC")
+
+    if os.path.exists(python_header_path):
+        env.Append(CPPPATH=[python_header_path])
+
+if env.nuitka_python:
+    env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
+
+if env.static_libpython:
+    env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
+
+if not gil_mode:
+    env.Append(CPPDEFINES="Py_GIL_DISABLED")
+
+if env.static_libpython and python_version >= (3, 12):
+    env.Append(
+        CPPPATH=[
+            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
+            os.path.join(
+                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
+            ),
+        ]
+    )
+
+    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
+
+    # Remove it from static link libraries as well, if present, so far they are
+    # bugs and do not exist.
+    link_module_libs = [
+        link_module_lib
+        for link_module_lib in link_module_libs
+        if "libHacl_Hash_SHA2" not in link_module_libs
+    ]
+
+# TODO: Make backend libpython handling reusable.
+if env.gcc_mode and env.static_libpython:
+    env.Append(LIBS=[env.File(env.static_libpython)])
+else:
+    # Some non CPython flavors on Windows have this.
+    def addWinLib():
+        # Make sure to locate the Python link library from multiple potential
+        # locations (installed vs. self-built).
+        if python_debug:
+            win_lib_name = "python" + python_abi_version.replace(".", "") + "_d"
+        else:
+            win_lib_name = "python" + python_abi_version.replace(".", "")
+
+        if python_version >= (3,):
+            pc_build_dir = (
+                "PCBuild/amd64" if target_arch == "x86_64" else "PCBuild/win32"
+            )
+        else:
+            pc_build_dir = "PCBuild"
+
+        for candidate in ("libs", pc_build_dir):
+            win_lib_path = os.path.join(python_prefix_external, candidate)
+
+            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                break
+        else:
+            scons_logger.sysexit("Error, cannot find '%s.lib' file." % win_lib_name)
+
+        env.Append(LIBPATH=[win_lib_path])
+        env.Append(LIBS=[win_lib_name])
+
+    if not env.msys2_mingw_python:
+        addWinLib()
+
+# The static include files reside in Nuitka installation, which may be where
+# the "nuitka.build" package lives.
+nuitka_include = os.path.join(env.nuitka_src, "include")
+
+if not os.path.exists(os.path.join(nuitka_include, "nuitka", "prelude.h")):
+    scons_logger.sysexit(
+        "Error, cannot locate Nuitka includes at '%s', this is a broken Nuitka installation."
+        % nuitka_include
+    )
+
+# We have include files in the build directory and the static include directory
+# that is located inside Nuitka installation.
+env.Append(
+    CPPPATH=[
+        source_dir,
+        nuitka_include,
+        os.path.join(env.nuitka_src, "static_src"),
+        os.path.join(env.nuitka_src, "inline_copy", "libbacktrace"),
+    ]
+)
+
+
+# TODO: Make this more easily reusable across scons files by fixed names as
+# arguments to a general scan.
+def discoverSourceFiles():
+    result = []
+
+    static_src_filenames = ["GenerateHeadersMain.c"]
+
+    result += [
+        provideStaticSourceFile(
+            env=env,
+            sub_path=filename,
+            c11_mode=env.c11_mode,
+        )
+        for filename in static_src_filenames
+    ]
+
+    return result
+
+
+source_files = discoverSourceFiles()
+
+# Remove the target file to avoid cases where it falsely doesn't get rebuild and
+# then lingers from previous builds, and also workaround for MinGW64 not
+# supporting unicode result paths for "-o" basename.
+result_exe = makeResultPathFileSystemEncodable(env=env, result_exe=result_exe)
+
+target = env.Program(result_exe, source_files)
+
+# Use compiler/linker flags provided via environment variables
+importEnvironmentVariableSettings(env)
+
+
+if job_count:
+    scons_details_logger.info("Told to run compilation on %d CPUs." % job_count)
+
+# Plugin contributed C defines should be used too.
+env.Append(CPPDEFINES=cpp_defines)
+# Plugin contributed C include directories should be used too.
+env.Append(CPPPATH=cpp_include_dirs)
+# Plugin contributed link dirs should be used too.
+env.Append(LIBPATH=link_dirs)
+# Plugin contributed link libraries should be used too.
+env.Append(LIBS=link_libraries)
+
+# Work around windows bugs and use watchdogs to track progress of compilation.
+enableSpawnMonitoring(
+    env=env,
+    source_files=source_files,
+)
+
+# Before we go, also lets turn KeyboardInterrupt into a mere error exit as the
+# scons traceback is not going to be very interesting to us.
+changeKeyboardInterruptToErrorExit()
+
+# Check if ccache is installed, and complain if it is not.
+if env.gcc_mode:
+    enableCcache(
+        env=env,
+        source_dir=source_dir,
+        python_prefix=python_prefix_external,
+        assume_yes_for_downloads=assume_yes_for_downloads,
+        disable_ccache=disable_ccache,
+    )
+
+if env.msvc_mode and not disable_ccache:
+    enableClcache(
+        env=env,
+        source_dir=source_dir,
+    )
+
+writeSconsReport(env=env, target=target)
+
+setSconsProgressBarTotal(name=env.progressbar_name, total=len(source_files))
+
+scons_details_logger.info("Launching Scons target: %s" % target)
+env.Default(target)
+
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

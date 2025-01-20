@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifdef __IDE_ONLY__
 #include "nuitka/freelists.h"
@@ -268,11 +268,20 @@ static int _Nuitka_Frame_set_trace(PyObject *self, PyObject *value, void *data) 
     assert(Nuitka_Frame_CheckExact(self));
     CHECK_OBJECT(self);
     assert(_PyObject_GC_IS_TRACKED(self));
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_FRAME_USELESS_SET_TRACE)
+    if (value == Py_None) {
+        return 0;
+    } else {
+        PyThreadState *tstate = PyThreadState_GET();
 
-    PyThreadState *tstate = PyThreadState_GET();
-
-    SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_RuntimeError, "f_trace is not writable in Nuitka");
-    return -1;
+        SET_CURRENT_EXCEPTION_TYPE0_STR(
+            tstate, PyExc_RuntimeError,
+            "f_trace is not writable in Nuitka, ignore with '--no-deployment-flag=frame-useless-set-trace'");
+        return -1;
+    }
+#else
+    return 0;
+#endif
 }
 
 #if PYTHON_VERSION >= 0x370
@@ -404,6 +413,7 @@ static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
     }
 }
 
+// Freelist setup
 #define MAX_FRAME_FREE_LIST_COUNT 100
 static struct Nuitka_FrameObject *free_list_frames = NULL;
 static int free_list_frames_count = 0;
@@ -542,6 +552,14 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 }
 
 #if PYTHON_VERSION >= 0x300
+
+static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
+#if PYTHON_VERSION < 0x3b0
+    return nuitka_frame->m_frame.f_gen;
+#else
+    return nuitka_frame->m_generator;
+#endif
+}
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame, PyObject *unused) {
     assert(Nuitka_Frame_CheckExact((PyObject *)frame));
@@ -875,8 +893,17 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                              int pos_only_count
 #endif
 ) {
+
+    if (filename == Py_None) {
+        filename = const_str_empty;
+    }
+
+    // TODO: We don't do that anymore once new-code-objects
+    // is the default, then we don't need to pass it, since
+    // we create them incomplete anyway.
     CHECK_OBJECT(filename);
     assert(Nuitka_StringOrUnicode_CheckExact(filename));
+
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_CheckExact(function_name));
 
@@ -1034,7 +1061,38 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     Py_DECREF(filename_str);
 #endif
 
+    if (result == NULL) {
+        PyErr_PrintEx(0);
+        NUITKA_CANNOT_GET_HERE("Failed to create code object");
+    }
+
     return result;
+}
+
+PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_object, PyObject *module_filename_obj) {
+    assert(PyCode_Check(code_object));
+    CHECK_OBJECT(module_filename_obj);
+
+    PyCodeObject *co = (PyCodeObject *)code_object;
+    PyObject *old = co->co_filename;
+
+    if (old == const_str_empty) {
+        // Set the filename, ignore the loss of a reference to empty string,
+        // that's our singleton and immortal at least practically.
+        co->co_filename = Py_NewRef(module_filename_obj);
+
+#if PYTHON_VERSION >= 0x3b0
+        // Also, make sure the qualname is completed from the partial
+        // name.
+        if (co->co_qualname != co->co_name) {
+            PyObject *w = UNICODE_CONCAT(tstate, co->co_qualname, const_str_dot);
+            co->co_qualname = UNICODE_CONCAT(tstate, w, co->co_name);
+            Py_DECREF(w);
+        }
+#endif
+    }
+
+    return co;
 }
 
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char const *type_description, ...) {

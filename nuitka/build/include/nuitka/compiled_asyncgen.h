@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_COMPILED_ASYNCGEN_H__
 #define __NUITKA_COMPILED_ASYNCGEN_H__
@@ -217,9 +217,11 @@ NUITKA_MAY_BE_UNUSED static void STORE_ASYNCGEN_EXCEPTION(PyThreadState *tstate,
 
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(asyncgen) = EXC_TYPE(tstate);
-    if (EXC_TYPE_F(asyncgen) == Py_None)
+    if (EXC_TYPE_F(asyncgen) == Py_None) {
         EXC_TYPE_F(asyncgen) = NULL;
+    }
     Py_XINCREF(EXC_TYPE_F(asyncgen));
+    assert(EXC_TYPE_F(asyncgen) == NULL);
 #endif
     EXC_VALUE_F(asyncgen) = EXC_VALUE(tstate);
     Py_XINCREF(EXC_VALUE_F(asyncgen));

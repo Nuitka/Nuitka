@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Code to generate and interact with compiled function objects.
@@ -15,6 +15,7 @@ from .CodeHelpers import (
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment,
 )
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode, getReleaseCode
@@ -41,12 +42,9 @@ from .VariableCodes import (
 
 
 def getFunctionCreationArgs(
-    defaults_name, kw_defaults_name, annotations_name, closure_variables, tstate
+    defaults_name, kw_defaults_name, annotations_name, closure_variables
 ):
-    result = []
-
-    if tstate:
-        result.append("PyThreadState *tstate")
+    result = ["PyThreadState *tstate"]
 
     if defaults_name is not None:
         result.append("PyObject *defaults")
@@ -75,7 +73,6 @@ def getFunctionMakerDecl(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     return template_function_make_declaration % {
@@ -135,7 +132,6 @@ def getFunctionMakerCode(
         kw_defaults_name=kw_defaults_name,
         annotations_name=annotations_name,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
     if function_doc is None:
@@ -173,10 +169,6 @@ def getFunctionMakerCode(
         function_identifier=function_identifier
     )
 
-    code_identifier = context.getCodeObjectHandle(
-        code_object=function_body.getCodeObject()
-    )
-
     module_identifier = getModuleAccessCode(context=context)
 
     result = template_maker_function_body % {
@@ -187,7 +179,9 @@ def getFunctionMakerCode(
         "function_maker_identifier": function_maker_identifier,
         "function_impl_identifier": function_impl_identifier,
         "function_creation_args": ", ".join(function_creation_args),
-        "code_identifier": code_identifier,
+        "code_identifier": getCodeObjectAccessCode(
+            code_object=function_body.getCodeObject(), context=context
+        ),
         "function_doc": function_doc,
         "defaults": "defaults" if defaults_name else "NULL",
         "kw_defaults": "kw_defaults" if kw_defaults_name else "NULL",
@@ -348,7 +342,7 @@ def getFunctionCreationCode(
     emit,
     context,
 ):
-    args = []
+    args = ["tstate"]
 
     if defaults_name is not None:
         getReferenceExportCode(defaults_name, emit, context)
@@ -734,7 +728,7 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
     arg_names = []
     for count, arg_value in enumerate(argument_values, 1):
-        arg_name = context.allocateTempName("dircall_arg%d" % count)
+        arg_name = context.allocateTempName("direct_call_arg%d" % count)
 
         generateExpressionCode(
             to_name=arg_name, expression=arg_value, emit=emit, context=context

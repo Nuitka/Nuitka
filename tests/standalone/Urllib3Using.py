@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from __future__ import print_function
@@ -14,7 +14,7 @@ from threading import Thread
 
 import urllib3
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-skip-unless-imports: urllib3,ssl
 
 if str is bytes:

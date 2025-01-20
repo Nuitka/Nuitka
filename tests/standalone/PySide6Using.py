@@ -1,11 +1,11 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This test is using signals and will only work if PySide properly accepts
 compiled functions as callables.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyside6
 
 # nuitka-skip-unless-imports: PySide6.QtCore

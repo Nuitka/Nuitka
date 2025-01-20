@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Details see below in class definition.
@@ -17,6 +17,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
 
     plugin_name = "pywebview"
     plugin_desc = "Required by the 'webview' package (pywebview on PyPI)."
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

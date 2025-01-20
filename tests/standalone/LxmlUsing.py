@@ -1,11 +1,11 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Lxml standalone basic test.
 
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 from __future__ import print_function
 

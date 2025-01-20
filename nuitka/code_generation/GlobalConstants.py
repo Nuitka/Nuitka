@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Global constant values.
@@ -109,11 +109,9 @@ def getConstantDefaultPopulation():
         "isfile",
         "listdir",
         "stat",
+        "lstat",
         "close",
     ]
-
-    if python_version < 0x300:
-        result += ("lstat",)
 
     # Pickling of instance methods.
     if python_version < 0x300:
@@ -193,6 +191,9 @@ def getConstantDefaultPopulation():
 
     if not Options.shallMakeModule():
         result.append("__main__")
+
+    if Options.shallMakeModule():
+        result.append("loader")
 
     # Resource reader files interface, including for backport
     if python_version >= 0x390:

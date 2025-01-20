@@ -1,24 +1,23 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+
+""" In this test, we show external data files to be found.
+
+"""
+
+# nuitka-project: --mode=onefile
+# nuitka-project: --include-data-dir={MAIN_DIRECTORY}/external-data=external-data
+# nuitka-project: --include-data-files-external=external-data
 
 from __future__ import print_function
 
 import os
-import pkgutil
+import sys
 
-# Note: Only the commercial version of Nuitka that can embed files can do this
-
-# nuitka-project: --module
-# nuitka-project: --include-data-dir={MAIN_DIRECTORY}/sub_dir=sub_dir
-# nuitka-project: --include-data-file={MAIN_DIRECTORY}/lala.txt=lala.txt
-# nuitka-project: --embed-data-files-runtime-pattern=*.txt
-
-assert os.path.exists(os.path.join(os.path.dirname(__file__), "lala.txt"))
-assert os.path.exists(os.path.join(os.path.dirname(__file__), "sub_dir/lulu.txt"))
-
-
-print(pkgutil.get_data(__name__, "lala.txt"))
-print(pkgutil.get_data(__name__, "sub_dir/lulu.txt"))
+for line in open(
+    os.path.join(os.path.dirname(sys.argv[0]), "external-data/external-data.txt")
+):
+    print("External data:", line)
 
 print("OK.")
 

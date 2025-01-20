@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ For macOS application bundle creation
@@ -44,7 +44,7 @@ def createPlistInfoFile(logger, onefile):
             ("CFBundleIdentifier", signed_app_name),
             ("CFBundleExecutable", executable_name),
             ("CFBundleInfoDictionaryVersion", "6.0"),
-            ("CFBundlePackageType", "APPL"),
+            ("CFBundlePackageType", "APPL"),  # spell-checker: ignore appl
             ("CFBundleShortVersionString", app_version),
         ]
     )
@@ -56,6 +56,7 @@ def createPlistInfoFile(logger, onefile):
         icon_path = icon_paths[0]
 
         # Convert to single macOS .icns file if necessary
+        # spell-checker: ignore icns
         if not icon_path.endswith(".icns"):
             logger.info(
                 "File '%s' is not in macOS icon format, converting to it." % icon_path
@@ -90,7 +91,7 @@ def createPlistInfoFile(logger, onefile):
     if Options.isMacOSBackgroundApp():
         infos["LSBackgroundOnly"] = True
     elif Options.isMacOSUiElementApp():
-        infos["LSUIElement"] = True
+        infos["LSUIElement"] = True  # spell-checker: ignore LSUI
     else:
         infos["NSHighResolutionCapable"] = True
 

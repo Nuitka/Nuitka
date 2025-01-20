@@ -1,17 +1,15 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Basic Python PGO test. """
 
-# nuitka-test-variations: TEST_VARIANT ("yes","no")
-
-# nuitka-project-if: os.getenv("TEST_VARIANT", "yes") != "no":
+# nuitka-project-if: "no-gpo" not in os.getenv("NUITKA_TEST_VARIANT", ""):
 #   nuitka-project: --pgo-python
 #   nuitka-project: --pgo-python-policy-unused-module=exclude
 
 import os
 
-if os.getenv("NUITKA_TEST_USE_IT", "no") == "yes":
+if "use" in os.getenv("NUITKA_TEST_VARIANT", ""):
     print("Using ImportedButMaybeNotUsed module:")
     import ImportedButMaybeNotUsed
 

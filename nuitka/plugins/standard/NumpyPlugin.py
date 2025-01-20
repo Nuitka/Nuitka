@@ -1,4 +1,4 @@
-#     Copyright 2024, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """ Details see below in class definition.
@@ -12,6 +12,7 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
 
     plugin_name = "numpy"  # Nuitka knows us by this name
     plugin_desc = "Deprecated, was once required by the numpy package"
+    plugin_category = "package-support,obsolete"
 
     @classmethod
     def isDeprecated(cls):

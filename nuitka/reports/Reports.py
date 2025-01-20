@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Collection of information for reports and their writing.
@@ -30,6 +30,7 @@ from nuitka.ModuleRegistry import (
     getModuleOptimizationTimingInfos,
 )
 from nuitka.Options import (
+    getCompilationMode,
     getCompilationReportFilename,
     getCompilationReportTemplates,
     getCompilationReportUserData,
@@ -239,6 +240,8 @@ def _getReportInputData(aborted):
     else:
         scons_error_report_data = {}
         output_run_filename = "failed too early"
+
+    compilation_mode = getCompilationMode()
 
     return dict(
         (var_name, var_value)
@@ -509,6 +512,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         "nuitka-compilation-report",
         nuitka_version=report_input_data["nuitka_version"],
         nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
+        mode=report_input_data["compilation_mode"],
         completion=completion,
     )
 

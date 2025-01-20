@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /**
  * This is responsible for updating parts of CPython to better work with Nuitka
@@ -357,6 +357,7 @@ void patchTypeComparison(void) {
 
 #include "nuitka/freelists.h"
 
+// Freelist setup
 #define MAX_TRACEBACK_FREE_LIST_COUNT 1000
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;

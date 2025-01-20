@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for basic tests of Nuitka.
@@ -87,6 +87,10 @@ def main():
             if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
                 reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
                 continue
+
+        if "Wip" in filename:
+            reportSkip("Test not for automatic execution.", ".", filename)
+            continue
 
         active = search_mode.consider(dirname=None, filename=filename)
 

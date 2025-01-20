@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Test that uses win32com superficially.
@@ -7,7 +7,7 @@ Please help make it more useful, ideally by adding something
 that would work on every machine.
 """
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 
 from win32com import storagecon
 from win32com.shell import shell, shellcon

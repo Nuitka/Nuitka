@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Interface to data composer
@@ -55,6 +55,7 @@ def _runDataComposer(source_dir):
 
     blob_filename = getConstantBlobFilename(source_dir)
 
+    # This ends up being "__constants.txt" right now.
     stats_filename = changeFilenameExtension(blob_filename, ".txt")
 
     with withEnvironmentVarsOverridden(mapping):

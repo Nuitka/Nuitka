@@ -125,7 +125,8 @@ else
     rm -rf nuitka/build/inline_copy/tqdm
 fi
 
-# These are all Windows only or used only there.
+# This is Windows only
+rm -rf nuitka/build/inline_copy/pefile
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
@@ -187,7 +188,7 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
+    $python2 -m nuitka.__main__ --mode=module --show-scons --run --report=out.xml tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
     $python2 -m nuitka.__main__ --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
@@ -196,7 +197,7 @@ else
     echo "Nuitka Version information"
     python3 -m nuitka --version
     echo "Basic compilation test of empty module:"
-    python3 -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
+    python3 -m nuitka --mode=module --show-scons --run tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
     python3 -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 

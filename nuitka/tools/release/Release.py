@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Release related common functionality.
@@ -6,15 +6,19 @@
 """
 
 import os
+import shutil
 
 from nuitka.tools.Basics import getHomePath
+from nuitka.tools.environments.Virtualenv import withVirtualenv
+from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileFirstLine,
     withDirectoryChange,
 )
-from nuitka.Version import getNuitkaVersion
+from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.Version import getNuitkaVersion, getNuitkaVersionTuple
 
 
 def checkAtHome(expected="Nuitka Staging"):
@@ -123,6 +127,118 @@ def getBranchCategory(branch_name):
         assert False
 
     return category
+
+
+def makeNuitkaSourceDistribution(formats=None, sign=True):
+    # spell-checker: ignore bztar,gztar
+    if formats is None:
+        formats = ("bztar", "gztar", "zip")
+
+    checkAtHome()
+
+    python = findInstalledPython(
+        python_versions=("3.10", "3.11", "3.12"),
+        module_name="setuptools",
+        module_version=None,
+    )
+
+    # Avoid strange permissions in archive
+    os.system("umask 0022 && chmod -R a+rX .")
+
+    filenames = []
+
+    with withVirtualenv(
+        "venv_nuitka",
+        logger=tools_logger,
+        style="blue",
+        delete=False,
+        python=python.getPythonExe(),
+    ) as venv:
+        # TODO: Should use a newer one, and predict more compliant filename, and
+        # release 75.3.0 ought to work fine.
+        venv.runCommand("python -m pip install -U 'setuptools<68'")
+        venv.runCommand(
+            "python setup.py sdist --formats=%s" % ",".join(formats), keep_cwd=True
+        )
+
+    # Cleanup the build directory, not needed.
+    shutil.rmtree("build", ignore_errors=True)
+
+    nuitka_version = getNuitkaVersionTuple()
+
+    if nuitka_version[3] is False:
+        filename = "dist/Nuitka-%d.%drc%d.tar.gz" % (
+            nuitka_version[0],
+            nuitka_version[1],
+            nuitka_version[-1],
+        )
+    else:
+        filename = "dist/Nuitka-%d.%d.%d.tar.gz" % nuitka_version[:3]
+
+    assert os.path.exists(filename), filename
+
+    # Delete requires.txt as it confuses poetry and potentially other tools
+    assert os.system("gunzip -9 %s" % filename) == 0
+    os.system(
+        "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+        % filename[:-3]
+    )
+
+    assert os.system("gzip -9 %s" % filename[:-3]) == 0
+    assert os.path.exists(filename), filename
+
+    assert os.system("chmod 644 %s" % filename) == 0
+
+    filenames.append(filename)
+
+    if nuitka_version[3] is False:
+        filename = "dist/Nuitka-%d.%drc%d.tar.bz2" % (
+            nuitka_version[0],
+            nuitka_version[1],
+            nuitka_version[-1],
+        )
+    else:
+        filename = "dist/Nuitka-%d.%d.%d.tar.bz2" % nuitka_version[:3]
+
+    if os.path.exists(filename):
+        # Delete requires.txt as it confuses poetry and potentially other tools,
+        # spell-checker: ignore bunzip2
+        assert os.system("bunzip2 %s" % filename) == 0
+        os.system(
+            "tar --wildcards --delete --file %s Nuitka-*/Nuitka.egg-info/requires.txt"
+            % filename[:-4]
+        )
+        assert os.system("bzip2 -9 %s" % filename[:-4]) == 0
+        assert os.path.exists(filename), filename
+
+        filenames.append(filename)
+
+    if nuitka_version[3] is False:
+        filename = "dist/Nuitka-%d.%drc%d.zip" % (
+            nuitka_version[0],
+            nuitka_version[1],
+            nuitka_version[-1],
+        )
+    else:
+        filename = "dist/Nuitka-%d.%d.%d.zip" % nuitka_version[:3]
+
+    if os.path.exists(filename):
+        # Delete requires.txt as it confuses poetry and potentially other tools
+        os.system("zip -d %s Nuitka-*/Nuitka.egg-info/requires.txt" % filename)
+        assert os.path.exists(filename), filename
+
+        filenames.append(filename)
+
+    for filename in filenames:
+        assert os.system("chmod 644 %s" % filename) == 0
+
+        if sign:
+            assert (
+                os.system("gpg --local-user 2912B99C --detach-sign %s" % filename) == 0
+            )
+
+    tools_logger.info("Created source distribution as '%s'." % filenames[0])
+    return filenames
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

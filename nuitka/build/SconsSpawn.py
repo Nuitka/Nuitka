@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Spawning processes.
@@ -415,10 +415,10 @@ it or using '--clang' option."""
     return spawnCommand
 
 
-def enableSpawnMonitoring(env, module_mode, source_files):
+def enableSpawnMonitoring(env, source_files):
     if os.name == "nt":
         env["SPAWN"] = _getWindowsSpawnFunction(
-            env=env, module_mode=module_mode, source_files=source_files
+            env=env, module_mode=env.module_mode, source_files=source_files
         )
     else:
         env["SPAWN"] = _getWrappedSpawnFunction(env=env)

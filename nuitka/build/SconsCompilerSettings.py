@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This contains the tuning of the compilers towards defined goals.
@@ -211,6 +211,22 @@ version for lto mode (>= 4.6). Disabled."""
         lto_mode = False
         reason = "gcc 4.6 is doesn't have good enough LTO support"
 
+    if (
+        lto_mode
+        and env.gcc_mode
+        and not env.clang_mode
+        and not isWin32Windows()
+        and not isMacOS()
+        and getExecutablePath("make", env=env) is None
+    ):
+        scons_logger.warning(
+            """\
+The gcc compiler for LTO mode requires 'make' to be installed \
+for parallel linking to be used, compilation might be a lot \
+slower without it.
+"""
+        )
+
     if env.gcc_mode and lto_mode:
         if env.clang_mode:
             env.Append(CCFLAGS=["-flto"])
@@ -246,16 +262,17 @@ version for lto mode (>= 4.6). Disabled."""
 
     env.lto_mode = lto_mode
     env.orig_lto_mode = orig_lto_mode
+    env.pgo_mode = pgo_mode
 
     # PGO configuration
-    _enablePgoSettings(env, pgo_mode)
+    _enablePgoSettings(env)
 
 
 _python311_min_msvc_version = (14, 3)
 
 
 def checkWindowsCompilerFound(
-    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
+    env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads, download_ok
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
@@ -397,6 +414,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
             compiler_path = getCachedDownloadedMinGW64(
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
+                download_ok=download_ok,
             )
 
             if compiler_path is not None:
@@ -435,6 +453,12 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isMacOS():
         resource_mode = "mac_section"
         reason = "default for macOS"
+    elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
+        resource_mode = "c23_embed"
+        reason = "default for newer clang"
+    elif env.gcc_mode and not env.clang_mode and env.gcc_version >= (15,):
+        resource_mode = "c23_embed"
+        reason = "default for newer gcc"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
@@ -526,7 +550,7 @@ unsigned char const *getConstantsBlobData(void) {
                 ),
             ]
         )
-    elif resource_mode == "code":
+    elif resource_mode in ("code", "c23_embed"):
         # Indicate "code" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
@@ -549,19 +573,22 @@ unsigned char constant_bin_data[] =\n{\n
 """
                 )
 
-                with open(blob_filename, "rb") as f:
-                    content = f.read()
-                for count, stream_byte in enumerate(content):
-                    if count % 16 == 0:
-                        if count > 0:
-                            output.write("\n")
+                if resource_mode == "code":
+                    with open(blob_filename, "rb") as f:
+                        content = f.read()
+                    for count, stream_byte in enumerate(content):
+                        if count % 16 == 0:
+                            if count > 0:
+                                output.write("\n")
 
-                        output.write("   ")
+                            output.write("   ")
 
-                    if str is bytes:
-                        stream_byte = ord(stream_byte)
+                        if str is bytes:
+                            stream_byte = ord(stream_byte)
 
-                    output.write(" 0x%02x," % stream_byte)
+                        output.write(" 0x%02x," % stream_byte)
+                else:
+                    output.write('#embed "%s"\n' % blob_filename)
 
                 output.write("\n};\n")
 
@@ -810,10 +837,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
         env.Append(CPPDEFINES=["MS_WIN64"])
 
-    # For shell API usage to lookup app folders we need this. Note that on Windows ARM
-    # we didn't manage to have a "shell32.lib" that is not considered corrupt, so we
-    # have to do this.
-    if env.msvc_mode and env.target_arch != "arm64":
+    # For shell API usage to lookup app folders we need this.
+    if env.msvc_mode:
         env.Append(LIBS=["Shell32"])
 
     # Since Fedora 36, the system Python will not link otherwise.
@@ -839,13 +864,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(LIBS="z")
 
 
-def _enablePgoSettings(env, pgo_mode):
-    if pgo_mode == "no":
+def _enablePgoSettings(env):
+    if env.pgo_mode == "no":
         env.progressbar_name = "Backend"
-    elif pgo_mode == "python":
+    elif env.pgo_mode == "python":
         env.progressbar_name = "Python Profile"
         env.Append(CPPDEFINES=["_NUITKA_PGO_PYTHON"])
-    elif pgo_mode == "generate":
+    elif env.pgo_mode == "generate":
         env.progressbar_name = "Profile"
         env.Append(CPPDEFINES=["_NUITKA_PGO_GENERATE"])
 
@@ -862,7 +887,7 @@ def _enablePgoSettings(env, pgo_mode):
             scons_logger.sysexit(
                 "Error, PGO not supported for '%s' compiler." % env.the_cc_name
             )
-    elif pgo_mode == "use":
+    elif env.pgo_mode == "use":
         env.progressbar_name = "Backend"
 
         env.Append(CPPDEFINES=["_NUITKA_PGO_USE"])
@@ -883,8 +908,6 @@ def _enablePgoSettings(env, pgo_mode):
             )
     else:
         assert False, env.pgo_mode
-
-    env.pgo_mode = pgo_mode
 
 
 def _enableDebugSystemSettings(env, job_count):
@@ -1002,15 +1025,15 @@ def reportCCompiler(env, context, output_func):
             ".".join(str(d) for d in env.gcc_version),
         )
     elif isClangName(env.the_cc_name):
-        clang_version = myDetectVersion(env, env.the_cc_name)
-        if clang_version is None:
-            clang_version = "not found"
-        else:
-            clang_version = ".".join(str(d) for d in clang_version)
+        env.clang_version = myDetectVersion(env, env.the_cc_name)
 
         cc_output = "%s %s" % (
             env.the_cc_name,
-            clang_version,
+            (
+                ".".join(str(d) for d in env.clang_version)
+                if env.clang_version is not None
+                else "not found"
+            ),
         )
     else:
         cc_output = env.the_cc_name

@@ -1,15 +1,15 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Generator function (with yield) related templates.
 
 """
 
-template_genfunc_yielder_maker_decl = """\
+template_generator_context_maker_decl = """\
 static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s);
 """
 
-template_genfunc_yielder_body_template = """
+template_generator_context_body_template = """
 #if %(has_heap_declaration)s
 struct %(function_identifier)s_locals {
 %(function_local_types)s

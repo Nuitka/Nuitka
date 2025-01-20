@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Tool to compare output of CPython and Nuitka.
@@ -16,6 +16,7 @@ from nuitka.__past__ import md5
 from nuitka.OptionParsing import getNuitkaProjectOptions
 from nuitka.tools.testing.Common import (
     addToPythonPath,
+    decryptOutput,
     executeAfterTimePassed,
     getDebugPython,
     getTempDir,
@@ -37,6 +38,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Timing import StopWatch
+from nuitka.utils.Utils import isMacOS
 
 
 def displayOutput(stdout, stderr):
@@ -215,7 +217,8 @@ def main():
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
     python_debug = hasArg("python_debug") or hasArg("--python-debug")
-    module_mode = hasArg("--module")
+    package_mode = hasArg("--mode=package")
+    module_mode = hasArg("--mode=module") or hasArg("--mode=module") or package_mode
     module_entry_point = hasArgValue("--module-entry-point")
     coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
@@ -225,8 +228,11 @@ def main():
     )
     remove_output = hasArg("remove_output")
     remove_binary = not hasArg("--keep-binary")
-    standalone_mode = hasArg("--standalone")
-    onefile_mode = hasArg("--onefile")
+    app_bundle_mode = hasArg("--mode=app") and isMacOS()
+    standalone_mode = (
+        hasArg("--standalone") or hasArg("--mode=standalone") or app_bundle_mode
+    )
+    onefile_mode = hasArg("--onefile") or hasArg("--mode=onefile")
     no_site = hasArg("no_site") or coverage_mode
     report = hasArgValue("--report")
     nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
@@ -287,11 +293,18 @@ def main():
         )
     )
 
-    if "--standalone" in project_options:
+    if "--standalone" in project_options or "--mode=standalone" in project_options:
         standalone_mode = True
-    if "--onefile" in project_options:
+    if "--onefile" in project_options or "--mode=onefile" in project_options:
         standalone_mode = True
         onefile_mode = True
+    if "--mode=app" in project_options:
+        if isMacOS():
+            standalone_mode = True
+            app_bundle_mode = True
+        else:
+            standalone_mode = True
+            onefile_mode = True
 
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual
@@ -535,12 +548,16 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
-        if module_mode:
-            extra_options.append("--module")
+        if package_mode:
+            extra_options.append("--mode=package")
+        elif module_mode:
+            extra_options.append("--mode=module")
         elif onefile_mode:
-            extra_options.append("--onefile")
+            extra_options.append("--mode=onefile")
+        elif app_bundle_mode:
+            extra_options.append("--mode=app")
         elif standalone_mode:
-            extra_options.append("--standalone")
+            extra_options.append("--mode=standalone")
 
         nuitka_cmd = nuitka_call + extra_options + ["--run", filename]
 
@@ -548,12 +565,22 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
 
     else:
-        if module_mode:
+        if package_mode:
             nuitka_cmd1 = (
-                nuitka_call + extra_options + ["--module", os.path.abspath(filename)]
+                nuitka_call
+                + extra_options
+                + ["--mode=package", os.path.abspath(filename)]
             )
+        elif module_mode:
+            nuitka_cmd1 = (
+                nuitka_call
+                + extra_options
+                + ["--mode=module", os.path.abspath(filename)]
+            )
+        elif onefile_mode:
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=onefile", filename]
         elif standalone_mode:
-            nuitka_cmd1 = nuitka_call + extra_options + ["--standalone", filename]
+            nuitka_cmd1 = nuitka_call + extra_options + ["--mode=standalone", filename]
         else:
             nuitka_cmd1 = nuitka_call + extra_options + [filename]
 
@@ -698,7 +725,9 @@ Stderr was:
 
                     # In case of segfault or assertion triggered, run in debugger.
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
-                        nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
+                        nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(
+                            command=nuitka_cmd2
+                        )
 
                         callProcess(nuitka_cmd2, shell=False)
                 else:
@@ -715,6 +744,14 @@ Stderr was:
 
     stop_watch.stop()
     nuitka_time = stop_watch.getDelta()
+
+    if "--encrypt-stderr" in project_options:
+        with withPythonPathChange(nuitka_package_dir):
+            stderr_nuitka = decryptOutput(project_options, stderr_nuitka)
+
+    if "--encrypt-stdout" in project_options:
+        with withPythonPathChange(nuitka_package_dir):
+            stdout_nuitka = decryptOutput(project_options, stdout_nuitka)
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)

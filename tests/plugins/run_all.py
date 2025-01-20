@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for plugins tests of Nuitka.
@@ -21,6 +21,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.tools.testing.Common import (
     checkTestRequirements,
     compareWithCPython,
@@ -28,11 +29,11 @@ from nuitka.tools.testing.Common import (
     getMainProgramFilename,
     my_print,
     reportSkip,
+    scanDirectoryForTestCases,
     setup,
     withPythonPathChange,
 )
 from nuitka.utils.Utils import isWin32Windows
-from nuitka.Version import getCommercialVersion
 
 
 def main():
@@ -42,14 +43,7 @@ def main():
     search_mode = createSearchMode()
 
     # TODO: Add a directory test case scanner instead of duplicating this kind of code.
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
-        ):
-            continue
-
+    for filename in scanDirectoryForTestCases(dirname=".", cases_are_directories=True):
         filename = os.path.relpath(filename)
 
         extra_flags = ["expect_success"]
@@ -70,22 +64,29 @@ def main():
 
         my_print("Consider output of recursively compiled program:", filename)
 
-        if filename in ("code_signing",):
-            if getCommercialVersion() is None:
-                reportSkip("Plugin only available in Nuitka commercial", ".", filename)
-                continue
-
+        if filename in ("code_signing_commercial",):
             if not isWin32Windows():
                 reportSkip("Plugin only works on Windows", ".", filename)
                 continue
 
         filename_main = getMainProgramFilename(filename)
 
+        # TODO: Push this into extra_flags at some point.
         extra_python_path = [
             os.path.abspath(os.path.join(filename, entry))
             for entry in os.listdir(filename)
             if entry.startswith("path")
         ]
+
+        if filename == "output_encryption_commercial":
+            extra_flags = OrderedDict(
+                (
+                    ("", extra_flags),
+                    ("stderr", extra_flags),
+                    ("stdout", extra_flags),
+                    ("stdout+stderr", extra_flags),
+                )
+            )
 
         with withPythonPathChange(extra_python_path):
             compareWithCPython(

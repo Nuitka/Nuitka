@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Code to generate and interact with compiled function objects.
@@ -8,6 +8,7 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateStatementSequenceCode
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
@@ -19,11 +20,11 @@ from .FunctionCodes import (
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesGeneratorFunction import (
+    template_generator_context_body_template,
+    template_generator_context_maker_decl,
     template_generator_exception_exit,
     template_generator_noexception_exit,
     template_generator_return_exit,
-    template_genfunc_yielder_body_template,
-    template_genfunc_yielder_maker_decl,
     template_make_empty_generator,
     template_make_generator,
 )
@@ -40,10 +41,9 @@ def getGeneratorObjectDeclCode(function_identifier, closure_variables):
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
-    return template_genfunc_yielder_maker_decl % {
+    return template_generator_context_maker_decl % {
         "generator_maker_identifier": _getGeneratorMakerIdentifier(function_identifier),
         "generator_creation_args": ", ".join(generator_creation_args),
     }
@@ -124,10 +124,9 @@ struct %(function_identifier)s_locals *generator_heap = \
         kw_defaults_name=None,
         annotations_name=None,
         closure_variables=closure_variables,
-        tstate=False,
     )
 
-    return template_genfunc_yielder_body_template % {
+    return template_generator_context_body_template % {
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
         "heap_declaration": indented(heap_declaration),
@@ -145,8 +144,8 @@ struct %(function_identifier)s_locals *generator_heap = \
         "generator_qualname_obj": getFunctionQualnameObj(
             generator_object_body, context
         ),
-        "code_identifier": context.getCodeObjectHandle(
-            code_object=generator_object_body.getCodeObject()
+        "code_identifier": getCodeObjectAccessCode(
+            code_object=generator_object_body.getCodeObject(), context=context
         ),
         "closure_name": "closure" if closure_variables else "NULL",
         "closure_count": len(closure_variables),
@@ -162,7 +161,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         closure_variables=closure_variables, context=context
     )
 
-    args = []
+    args = ["tstate"]
     if closure_name:
         args.append(closure_name)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for onefile program tests of Nuitka.
@@ -26,6 +26,10 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.reports.CompilationReportReader import (
+    getCompilationOutputBinary,
+    parseCompilationReport,
+)
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkTestRequirements,
@@ -33,6 +37,7 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     displayFileContents,
     displayRuntimeTraces,
+    getTempDir,
     reportSkip,
     scanDirectoryForTestCases,
     setup,
@@ -42,6 +47,7 @@ from nuitka.tools.testing.RuntimeTracing import (
     doesSupportTakingRuntimeTrace,
     getRuntimeTraceOfLoadedFiles,
 )
+from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import isMacOS
 
@@ -64,6 +70,8 @@ def main():
         if not active:
             continue
 
+        report_filename = "test-compilation-report.xml"
+
         extra_flags = [
             "expect_success",
             "remove_output",
@@ -75,6 +83,8 @@ def main():
             "timing",
             # The onefile can warn about zstandard not being installed.
             "ignore_warnings",
+            # To be able to find where the binary ended up being created.
+            "--report=%s" % report_filename,
         ]
 
         if filename == "KeyboardInterruptTest.py":
@@ -104,6 +114,9 @@ def main():
 
             extra_flags.append("--send-ctrl-c")
 
+        if filename == "ExternalDataTest.py":
+            extra_flags.append("--output-dir=%s" % getTempDir())
+
         # skip each test if their respective requirements are not met
         requirements_met, error_message = checkTestRequirements(filename)
         if not requirements_met:
@@ -123,7 +136,21 @@ def main():
             on_error=displayError,
         )
 
-        binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
+        compilation_report = parseCompilationReport(report_filename)
+
+        binary_filename = getCompilationOutputBinary(
+            compilation_report=compilation_report,
+            prefixes=(
+                (
+                    "~",
+                    os.path.expanduser("~"),
+                ),
+                (
+                    "${cwd}",
+                    os.getcwd(),
+                ),
+            ),
+        )
 
         try:
             if not doesSupportTakingRuntimeTrace():
@@ -160,7 +187,7 @@ def main():
                 search_mode.onErrorDetected(1)
 
         finally:
-            os.unlink(binary_filename)
+            deleteFile(binary_filename, must_exist=True)
 
     search_mode.finish()
 

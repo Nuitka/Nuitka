@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_CONSTANTS_H__
 #define __NUITKA_CONSTANTS_H__
@@ -213,6 +213,8 @@ extern PyObject **global_constants;
 #define const_str_plain_parent global_constants[65]
 // types
 #define const_str_plain_types global_constants[66]
+// 'loader'
+#define const_str_plain_loader global_constants[67]
 // '__loader__'
 #define const_str_plain___loader__ global_constants[67]
 // '__match_args__'

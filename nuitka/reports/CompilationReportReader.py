@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This is for use in testing, but also for user tools too."""
@@ -49,6 +49,10 @@ def getCompilationOutputBinary(compilation_report, prefixes):
     return _getResolvedCompilationPath(
         path=compilation_report.find("output").attrib["run_filename"], prefixes=prefixes
     )
+
+
+def getCompilationOutputMode(compilation_report):
+    return compilation_report.attrib["mode"]
 
 
 def getEmbeddedDataFilenames(compilation_report):

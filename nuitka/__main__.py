@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -64,6 +64,9 @@ def main():
             0x1000,  # MB_SYSTEMMODAL
         )
         sys.exit(1)
+
+    # Make sure this is removed if it exists.
+    getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME")
 
     nuitka_binary_name = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_BINARY_NAME")
     if nuitka_binary_name is not None:

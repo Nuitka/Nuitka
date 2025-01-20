@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to handle pkg_resource special needs.
@@ -18,6 +18,7 @@ from nuitka.utils.Utils import withNoDeprecationWarning
 class NuitkaPluginResources(NuitkaPluginBase):
     plugin_name = "pkg-resources"
     plugin_desc = "Workarounds for 'pkg_resources'."
+    plugin_category = "package-support"
 
     def __init__(self):
         with withNoDeprecationWarning():

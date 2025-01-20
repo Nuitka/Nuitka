@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 def displayDict(d):
@@ -15,18 +15,18 @@ def displayDict(d):
     return result
 
 
-def kwonlysimple(*, a):
+def kw_only_simple(*, a):
     return a
 
 
-print("Keyword only function case: ", kwonlysimple(a=3))
+print("Keyword only function case: ", kw_only_simple(a=3))
 
 
-def kwonlysimpledefaulted(*, a=5):
+def kw_only_simple_defaulted(*, a=5):
     return a
 
 
-print("Keyword only function, using default value: ", kwonlysimpledefaulted())
+print("Keyword only function, using default value: ", kw_only_simple_defaulted())
 
 
 def default1():
@@ -108,7 +108,7 @@ def annotation9():
 print("Defining function with annotations, and defaults as functions for everything:")
 
 
-def kwonlyfunc(
+def kw_only_func(
     x: annotation1(),
     y: annotation2() = default1(),
     z: annotation3() = default2(),
@@ -122,25 +122,25 @@ def kwonlyfunc(
     print(x, y, z, a, b, c, d)
 
 
-print("__kwdefaults__", displayDict(kwonlyfunc.__kwdefaults__))
+print("__kwdefaults__", displayDict(kw_only_func.__kwdefaults__))
 
 print("Keyword only function called:")
-kwonlyfunc(7, a=8, d=12)
+kw_only_func(7, a=8, d=12)
 print("OK.")
 
-print("Annotations come out as", sorted(kwonlyfunc.__annotations__))
-kwonlyfunc.__annotations__ = {}
-print("After updating to None it is", kwonlyfunc.__annotations__)
+print("Annotations come out as", sorted(kw_only_func.__annotations__))
+kw_only_func.__annotations__ = {}
+print("After updating to None it is", kw_only_func.__annotations__)
 
-kwonlyfunc.__annotations__ = {"k": 9}
-print("After updating to None it is", kwonlyfunc.__annotations__)
+kw_only_func.__annotations__ = {"k": 9}
+print("After updating to None it is", kw_only_func.__annotations__)
 
 
-def kwonlystarfunc(*, a, b, **d):
+def kw_only_star_func(*, a, b, **d):
     return a, b, d
 
 
-print("kwonlystarfunc", kwonlystarfunc(a=8, b=12, k=9, j=7))
+print("kw_only_star_func:", kw_only_star_func(a=8, b=12, k=9, j=7))
 
 
 def deeplyNestedNonLocalWrite():
@@ -160,7 +160,7 @@ def deeplyNestedNonLocalWrite():
     return f(), x
 
 
-print("Deeply nested non local writing function", deeplyNestedNonLocalWrite())
+print("Deeply nested non local writing function:", deeplyNestedNonLocalWrite())
 
 
 def deletingClosureVariable():

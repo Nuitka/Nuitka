@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* The main program for onefile bootstrap.
  *
@@ -41,7 +41,7 @@
 
 /* Type bool */
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 #if !defined(_WIN32)

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Reformulation of contraction expressions.
@@ -336,6 +336,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
             statement=frame_node_class(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
+                owner_code_name=code_body.getCodeName(),
                 source_ref=source_ref,
             )
         )
@@ -649,6 +650,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
             StatementsFrameGenerator(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
+                owner_code_name=function_body.getCodeName(),
                 source_ref=source_ref,
             ),
         )

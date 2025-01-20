@@ -1,25 +1,41 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-FROM debian:buster
+    FROM debian:buster
 
-# Install dependencies
-RUN apt-get update && apt-get install -y curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev gdb
+    # Install dependencies
+    RUN apt-get update && apt-get install -y curl wget build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev gdb ccache
 
-# Install Python 3.7.3
-RUN wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tgz \
- && tar -xf Python-3.7.3.tgz \
- && cd Python-3.7.3 \
- && ./configure --prefix=/opt/python3.7.3/ --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
- && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
- && make install
+    # Install Python 3.7.3
+    RUN wget https://www.python.org/ftp/python/3.7.3/Python-3.7.3.tgz \
+     && tar -xf Python-3.7.3.tgz \
+     && cd Python-3.7.3 \
+     && ./configure --prefix=/opt/python3.7.3/ --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+     && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+     && make install
 
-# Install Python 3.7.4
-RUN wget https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz \
- && tar -xf Python-3.7.4.tgz \
- && cd Python-3.7.4 \
- && ./configure --prefix=/opt/python3.7.4/ --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
- && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
- && make install
+    # Install Python 3.7.4
+    RUN wget https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz \
+     && tar -xf Python-3.7.4.tgz \
+     && cd Python-3.7.4 \
+     && ./configure --prefix=/opt/python3.7.4/ --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+     && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+     && make install
+
+    # Install Python 3.12.6
+    RUN wget https://www.python.org/ftp/python/3.12.6/Python-3.12.6.tgz \
+    && tar -xf Python-3.12.6.tgz \
+    && cd Python-3.12.6 \
+    && ./configure --prefix=/opt/python3.12.6/ --with-assertions --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+    && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+    && make install
+
+    # Install Python 3.12.7
+    RUN wget https://www.python.org/ftp/python/3.12.7/Python-3.12.7.tgz \
+    && tar -xf Python-3.12.7.tgz \
+    && cd Python-3.12.7 \
+    && ./configure --prefix=/opt/python3.12.7/ --with-assertions --disable-shared --enable-ipv6 --enable-optimizations LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+    && make LDFLAGS='-Xlinker -export-dynamic -rdynamic' \
+    && make install
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
