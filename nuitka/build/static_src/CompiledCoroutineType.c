@@ -1105,9 +1105,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
         Nuitka_GC_Track(coroutine);
     }
 
-    // TODO: Avoid this API call, it's bound to be slow on some platforms and
-    // does more checks than necessary for us.
-    if (PyObject_CallFinalizerFromDealloc((PyObject *)coroutine)) {
+    if (Nuitka_CallFinalizerFromDealloc((PyObject *)coroutine) == false) {
         return;
     }
 
@@ -1141,7 +1139,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
 
     // TODO: Maybe push this into the freelist code and do
     // it on allocation.
-    _PyGC_SET_UNFINALIZED((PyObject *)coroutine);
+    _PyGC_CLEAR_FINALIZED((PyObject *)coroutine);
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutines, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
