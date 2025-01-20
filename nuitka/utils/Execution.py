@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Program execution related stuff.
@@ -255,11 +255,11 @@ def withEnvironmentVarsOverridden(mapping):
             os.environ[env_var_name] = old_values[env_var_name]
 
 
-def wrapCommandForDebuggerForExec(*args):
+def wrapCommandForDebuggerForExec(command, debugger=None):
     """Wrap a command for system debugger to call exec
 
     Args:
-        args: (list of str) args for call to be debugged
+        command: (iterable of str) args for call to be debugged
     Returns:
         args tuple with debugger command inserted
 
@@ -268,28 +268,48 @@ def wrapCommandForDebuggerForExec(*args):
         debuggers would be very welcome.
     """
 
+    command = tuple(command)
+
     gdb_path = getExecutablePath("gdb")
-    lldb_path = None
+    lldb_path = getExecutablePath("lldb")
+
+    # Default from environment variable.
+    if debugger is None:
+        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
+
+    if debugger not in ("gdb", "lldb", None):
+        general.sysexit("Error, the selected debugger name '%s' is not supported.")
 
     # Windows extra ball, attempt the downloaded one.
-    if isWin32Windows() and gdb_path is None:
+    if isWin32Windows() and gdb_path is None and lldb_path is None:
         from nuitka.Options import assumeYesForDownloads
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
+            download_ok=True,
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
             lldb_path = getExecutablePath("lldb")
 
     if gdb_path is None and lldb_path is None:
-        lldb_path = getExecutablePath("lldb")
-
         if lldb_path is None:
             general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
 
-    if gdb_path is not None:
+    if lldb_path is not None and debugger != "gdb":
+        args = (
+            lldb_path,
+            "lldb",
+            "-o",
+            "run",
+            "-o",
+            "bt",
+            "-o",
+            "quit",
+            "--",
+        ) + command
+    elif gdb_path is not None and debugger != "lldb":
         args = (
             gdb_path,
             "gdb",
@@ -300,14 +320,14 @@ def wrapCommandForDebuggerForExec(*args):
             "-ex=where",
             "-ex=quit",
             "--args",
-        ) + args
+        ) + command
     else:
-        args = (lldb_path, "lldb", "-o", "run", "-o", "bt", "-o", "quit", "--") + args
+        general.sysexit("Error, the selected debugger '%s' was not found in path.")
 
     return args
 
 
-def wrapCommandForDebuggerForSubprocess(*args):
+def wrapCommandForDebuggerForSubprocess(command, debugger=None):
     """Wrap a command for system debugger with subprocess module.
 
     Args:
@@ -320,7 +340,7 @@ def wrapCommandForDebuggerForSubprocess(*args):
         debuggers would be very welcome.
     """
 
-    args = wrapCommandForDebuggerForExec(*args)
+    args = wrapCommandForDebuggerForExec(command=command, debugger=debugger)
 
     # Discard exec only argument.
     args = args[0:1] + args[2:]
@@ -349,7 +369,7 @@ def getNullInput():
 
 
 def executeToolChecked(
-    logger, command, absence_message, stderr_filter=None, optional=False
+    logger, command, absence_message, stderr_filter=None, optional=False, decoding=False
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
@@ -359,12 +379,18 @@ def executeToolChecked(
     if not isExecutableCommand(tool):
         if optional:
             logger.warning(absence_message)
-            return ""
+            return b"" if decoding else ""
         else:
             logger.sysexit(absence_message)
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
+
+    if None in command:
+        logger.sysexit(
+            "Error, call to '%s' failed due to 'None' value: %s index %d."
+            % (tool, command, command.index(None))
+        )
 
     with withEnvironmentVarOverridden("LC_ALL", "C"):
         with getNullInput() as null_input:
@@ -393,6 +419,9 @@ def executeToolChecked(
         logger.sysexit(
             "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
+
+    if decoding:
+        stdout = stdout.decode("utf8")
 
     return stdout
 

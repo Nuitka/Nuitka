@@ -1,16 +1,15 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from PyQt5 import QtGui
 
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --enable-plugin=pyqt5
 #
 # nuitka-project-if: {OS} == "Darwin":
-#   nuitka-project: --macos-create-app-bundle
-#   nuitka-project: --onefile
+#   nuitka-project: --mode=app
 
 print(QtGui.QImageReader.supportedImageFormats())
 

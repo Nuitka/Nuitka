@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Signing of executables.
@@ -44,10 +44,8 @@ def detectMacIdentity():
         logger=postprocessing_logger,
         command=["security", "find-identity"],
         absence_message="The 'security' program is used to scan for signing identities",
+        decoding=str is not bytes,
     )
-
-    if str is not bytes:
-        output = output.decode("utf8")
 
     signing_name = None
     result = None

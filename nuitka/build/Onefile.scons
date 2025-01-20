@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -51,7 +51,7 @@ from .SconsCompilerSettings import (
     setupCCompiler,
     switchFromGccToGpp,
 )
-from .SconsHacks import getEnhancedToolDetect, makeGccUseLinkerFile
+from .SconsHacks import getEnhancedToolDetect
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
@@ -267,10 +267,12 @@ env = checkWindowsCompilerFound(
     clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
+    download_ok=True,
 )
 
 env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
+env.module_mode = False  # We are only used in this case.
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
@@ -496,7 +498,6 @@ env.Append(LIBS=link_libraries)
 # Work around windows bugs and use watchdogs to track progress of compilation.
 enableSpawnMonitoring(
     env=env,
-    module_mode=module_mode,
     source_files=source_files,
 )
 
@@ -536,15 +537,6 @@ def createBuildDefinitionsFile():
 
 createBuildDefinitionsFile()
 
-# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
-# which can make linking fail with many modules otherwise. Most needed on Windows,
-# but useful on other platforms too.
-if env.gcc_mode:
-    makeGccUseLinkerFile(
-        source_files=source_files,
-        module_mode=module_mode,
-        env=env,
-    )
 
 writeSconsReport(env=env, target=target)
 

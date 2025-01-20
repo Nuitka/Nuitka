@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Nuitka distutils integration.
@@ -283,7 +283,7 @@ class build(distutils.command.build.build):
                 sys.executable,
                 "-m",
                 "nuitka",
-                "--module",
+                "--mode=module",
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",

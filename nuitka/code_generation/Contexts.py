@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Code generation contexts.
@@ -262,6 +262,8 @@ class TempMixin(object):
         del self.cleanup_names[-1]
 
 
+# TODO: Remove when isExperimental("new-code-objects") is becoming the
+# standard.
 CodeObjectHandle = collections.namedtuple(
     "CodeObjectHandle",
     (
@@ -284,43 +286,50 @@ CodeObjectHandle = collections.namedtuple(
 )
 
 
-class CodeObjectsMixin(object):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
+if Options.isExperimental("new-code-objects"):
 
-    def __init__(self):
-        # Code objects needed made unique by a key.
-        self.code_objects = {}
+    class CodeObjectsMixin(object):
+        __slots__ = ()
 
-    def getCodeObjects(self):
-        return sorted(iterItems(self.code_objects))
+else:
 
-    def getCodeObjectHandle(self, code_object):
-        key = CodeObjectHandle(
-            co_filename=code_object.getFilename(),
-            co_name=code_object.getCodeObjectName(),
-            co_qualname=code_object.getCodeObjectQualname(),
-            line_number=code_object.getLineNumber(),
-            co_varnames=code_object.getVarNames(),
-            co_argcount=code_object.getArgumentCount(),
-            co_freevars=code_object.getFreeVarNames(),
-            co_posonlyargcount=code_object.getPosOnlyParameterCount(),
-            co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
-            co_kind=code_object.getCodeObjectKind(),
-            is_optimized=code_object.getFlagIsOptimizedValue(),
-            co_new_locals=code_object.getFlagNewLocalsValue(),
-            co_has_starlist=code_object.hasStarListArg(),
-            co_has_stardict=code_object.hasStarDictArg(),
-            future_flags=code_object.getFutureSpec().asFlags(),
-        )
+    class CodeObjectsMixin(object):
+        # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+        __slots__ = ()
 
-        if key not in self.code_objects:
-            self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
+        def __init__(self):
+            # Code objects needed made unique by a key.
+            self.code_objects = {}
 
-        return self.code_objects[key]
+        def getCodeObjects(self):
+            return sorted(iterItems(self.code_objects))
 
-    def _calcHash(self, key):
-        return getStringHash("-".join(str(s) for s in key))
+        def getCodeObjectHandle(self, code_object):
+            key = CodeObjectHandle(
+                co_filename=code_object.getFilename(),
+                co_name=code_object.getCodeObjectName(),
+                co_qualname=code_object.getCodeObjectQualname(),
+                line_number=code_object.getLineNumber(),
+                co_varnames=code_object.getVarNames(),
+                co_argcount=code_object.getArgumentCount(),
+                co_freevars=code_object.getFreeVarNames(),
+                co_posonlyargcount=code_object.getPosOnlyParameterCount(),
+                co_kwonlyargcount=code_object.getKwOnlyParameterCount(),
+                co_kind=code_object.getCodeObjectKind(),
+                is_optimized=code_object.getFlagIsOptimizedValue(),
+                co_new_locals=code_object.getFlagNewLocalsValue(),
+                co_has_starlist=code_object.hasStarListArg(),
+                co_has_stardict=code_object.hasStarDictArg(),
+                future_flags=code_object.getFutureSpec().asFlags(),
+            )
+
+            if key not in self.code_objects:
+                self.code_objects[key] = "code_objects_%s" % self._calcHash(key)
+
+            return self.code_objects[key]
+
+        def _calcHash(self, key):
+            return getStringHash("-".join(str(s) for s in key))
 
 
 class PythonContextBase(getMetaClassBase("Context", require_slots=True)):
@@ -591,7 +600,7 @@ class FrameDeclarationsMixin(object):
     def getFrameHandle(self):
         return self.frame_stack[-1]
 
-    def pushFrameHandle(self, code_identifier, is_light):
+    def pushFrameHandle(self, frame_code_name, is_light):
         self.frames_used += 1
 
         if is_light:
@@ -603,7 +612,7 @@ class FrameDeclarationsMixin(object):
             )
 
         else:
-            frame_handle = code_identifier.replace("code_objects_", "frame_")
+            frame_handle = "frame_" + frame_code_name
 
             if self.frames_used > 1:
                 frame_handle += "_%d" % self.frames_used
@@ -789,6 +798,8 @@ class PythonModuleContext(
         "exception_keepers",
         "preserver_variable_declaration",
         "cleanup_names",
+        # TODO: Remove when isExperimental("new-code-objects") is becoming the
+        # standard.
         # CodeObjectsMixin
         "code_objects",
         # ReturnReleaseModeMixin
@@ -1139,6 +1150,8 @@ class PythonFunctionOutlineContext(
     def popCleanupScope(self):
         self.parent.popCleanupScope()
 
+    # TODO: Remove when isExperimental("new-code-objects") is becoming the
+    # standard.
     def getCodeObjectHandle(self, code_object):
         return self.parent.getCodeObjectHandle(code_object)
 
@@ -1175,8 +1188,8 @@ class PythonFunctionOutlineContext(
     def getFrameHandle(self):
         return self.parent.getFrameHandle()
 
-    def pushFrameHandle(self, code_identifier, is_light):
-        return self.parent.pushFrameHandle(code_identifier, is_light)
+    def pushFrameHandle(self, code_object_access_code, is_light):
+        return self.parent.pushFrameHandle(code_object_access_code, is_light)
 
     def popFrameHandle(self):
         return self.parent.popFrameHandle()

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to avoid bloat at compile time.
@@ -31,6 +31,7 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
     plugin_desc = (
         "Patch stupid imports out of widely used library modules source codes."
     )
+    plugin_category = "core"
 
     @staticmethod
     def isAlwaysEnabled():

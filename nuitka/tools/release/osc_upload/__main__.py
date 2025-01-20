@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ OpenSUSE Build Service (OSC) upload release tool.
@@ -27,6 +27,7 @@ def main():
     shutil.rmtree("build", ignore_errors=True)
 
     checkReleaseDocumentation()
+    # spell-checker: ignore gztar
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     # Upload stable releases to OpenSUSE Build Service:
@@ -60,11 +61,12 @@ def main():
         style="blue",
         python=installed_python.getPythonExe(),
     ) as venv:
-        venv.runCommand("python -m pip osc")
+        venv.runCommand("python -m pip install osc")
 
-    # Stage the "osc" checkout from the ground up.
-    venv.runCommand(
-        f"""\
+        # Stage the "osc" checkout from the ground up,
+        # spell-checker: ignore kayhayen,rpmlintrc,addremove
+        venv.runCommand(
+            f"""\
 cd osc && \
 osc checkout home:kayhayen {osc_project_name} && \
 rm home:kayhayen/{osc_project_name}/* && \
@@ -78,7 +80,7 @@ osc addremove -r && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
 """
-    )
+        )
 
 
 if __name__ == "__main__":

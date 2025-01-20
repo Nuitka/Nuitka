@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Support for glfw, details in below class definitions.
@@ -31,6 +31,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
     plugin_desc = (
         "Required for 'OpenGL' (PyOpenGL) and 'glfw' package in standalone mode."
     )
+    plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():

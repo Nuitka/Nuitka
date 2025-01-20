@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -51,7 +51,7 @@ from .PluginBase import NuitkaPluginBase, control_tags
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
-plugin_options = {}
+plugin_options = OrderedDict()
 plugin_values = {}
 user_plugins = OrderedSet()
 
@@ -1680,17 +1680,37 @@ def loadPlugins():
         loadStandardPluginClasses()
 
 
-def addStandardPluginCommandLineOptions(parser):
+# TODO: Use in more places.
+def _keyPluginForSort(plugin_class):
+    return plugin_class.getCategories(), plugin_class.plugin_name
+
+
+def _keyPluginForSort2(item):
+    _plugin_name, (plugin_class, _plugin_detector) = item
+
+    return _keyPluginForSort(plugin_class)
+
+
+def addStandardPluginCommandLineOptions(parser, plugin_help_mode):
     loadPlugins()
 
     for _plugin_name, (plugin_class, _plugin_detector) in sorted(
-        plugin_name2plugin_classes.items()
+        plugin_name2plugin_classes.items(), key=_keyPluginForSort2
     ):
         if plugin_class.isAlwaysEnabled():
-            _addPluginCommandLineOptions(
-                parser=parser,
-                plugin_class=plugin_class,
-            )
+            if not plugin_help_mode or not plugin_class.hasCategory("package-support"):
+                _addPluginCommandLineOptions(
+                    parser=parser,
+                    plugin_class=plugin_class,
+                    plugin_help_mode=plugin_help_mode,
+                )
+        else:
+            if plugin_help_mode:
+                _addPluginCommandLineOptions(
+                    parser=parser,
+                    plugin_class=plugin_class,
+                    plugin_help_mode=plugin_help_mode,
+                )
 
 
 def activatePlugins():
@@ -1772,11 +1792,27 @@ def activatePlugins():
             _addActivePlugin(plugin_detector, args=False)
 
 
-def _addPluginCommandLineOptions(parser, plugin_class):
+def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name not in plugin_options:
-        option_group = OptionGroup(parser, "Plugin options of '%s'" % plugin_name)
+        plugin_display_name = repr(plugin_name)
+
+        if plugin_help_mode:
+            # Ignore duplicate per design givers.
+            if plugin_name in ("pyside2", "pyqt6", "pyqt5"):
+                return
+
+            if plugin_name == "pyside6":
+                plugin_display_name = (
+                    "'pyside6' (same for 'pyside2', 'pyqt6', 'pyqt5' plugins)"
+                )
+
+        option_group = OptionGroup(
+            parser,
+            "Plugin options of %s (categories: %s)"
+            % (plugin_display_name, ", ".join(plugin_class.getCategories())),
+        )
         try:
             plugin_class.addPluginCommandLineOptions(option_group)
         except OptionConflictError as e:
@@ -1799,7 +1835,7 @@ def _addPluginCommandLineOptions(parser, plugin_class):
             plugin_options[plugin_name] = ()
 
 
-def addPluginCommandLineOptions(parser, plugin_names):
+def addPluginCommandLineOptions(parser, plugin_names, plugin_help_mode):
     """Add option group for the plugin to the parser.
 
     Notes:
@@ -1813,12 +1849,19 @@ def addPluginCommandLineOptions(parser, plugin_names):
     """
     for plugin_name in plugin_names:
         plugin_class = getPluginClass(plugin_name)
-        _addPluginCommandLineOptions(parser=parser, plugin_class=plugin_class)
+        _addPluginCommandLineOptions(
+            parser=parser, plugin_class=plugin_class, plugin_help_mode=plugin_help_mode
+        )
 
 
 def addUserPluginCommandLineOptions(parser, filename):
     plugin_class = loadUserPlugin(filename)
-    _addPluginCommandLineOptions(parser=parser, plugin_class=plugin_class)
+    _addPluginCommandLineOptions(
+        parser=parser,
+        plugin_class=plugin_class,
+        # List those user plugins always.
+        plugin_help_mode=True,
+    )
 
     user_plugins.add(plugin_class)
 

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Specification record for future flags.
@@ -9,6 +9,8 @@ in-lining of "exec" statements with their own future imports, or in-lining of
 code from other modules.
 """
 
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
     counted_del,
@@ -32,7 +34,7 @@ class FutureSpec(object):
         "unicode_literals",
         "absolute_import",
         "future_print",
-        "barry_bdfl",
+        "barry_bdfl",  # spell-checker: ignore bdfl
         "generator_stop",
         "future_annotations",
         "use_annotations",
@@ -141,6 +143,10 @@ class FutureSpec(object):
 
         return tuple(result)
 
+    def encode(self):
+        # TODO: Maybe asFlags becomes unnecessary.
+        return _encodeFlags(self.asFlags())
+
 
 def fromFlags(flags):
     flags = flags.split(",")
@@ -173,6 +179,32 @@ def fromFlags(flags):
     # Check if we are going to give similar results than what we got.
     assert tuple(result.asFlags()) == tuple(flags), (result, result.asFlags(), flags)
 
+    return result
+
+
+# Relevance of future flags.
+_future_version_specific_flags = OrderedDict(
+    (
+        ("CO_FUTURE_DIVISION", python_version < 0x300),
+        ("CO_FUTURE_UNICODE_LITERALS", True),
+        ("CO_FUTURE_PRINT_FUNCTION", python_version < 0x300),
+        ("CO_FUTURE_ABSOLUTE_IMPORT", python_version < 0x300),
+        ("CO_FUTURE_GENERATOR_STOP", 0x350 <= python_version < 0x370),
+        ("CO_FUTURE_ANNOTATIONS", python_version >= 0x370),
+        ("CO_FUTURE_BARRY_AS_BDFL", python_version >= 0x300),
+    )
+)
+
+_future_version_specific_flags = OrderedSet(
+    key for (key, value) in _future_version_specific_flags.items() if value
+)
+
+
+def _encodeFlags(flags):
+    result = 0
+    for bit, flag in enumerate(_future_version_specific_flags):
+        if flag in flags:
+            result |= 1 << bit
     return result
 
 

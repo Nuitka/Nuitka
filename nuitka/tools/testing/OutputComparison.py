@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Tools to compare outputs of compiled and not compiled programs.
@@ -96,9 +96,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             line = line[:-1]
 
         if line.startswith("REFCOUNTS"):
-            first_value = line[line.find("[") + 1 : line.find(",")]
-            last_value = line[line.rfind(" ") + 1 : line.rfind("]")]
-            line = line.replace(first_value, "xxxxx").replace(last_value, "xxxxx")
+            if "[" in line:
+                first_value = line[line.find("[") + 1 : line.find(",")]
+                last_value = line[line.rfind(" ") + 1 : line.rfind("]")]
+                line = line.replace(first_value, "xxxxx").replace(last_value, "xxxxx")
 
         if line.startswith("[") and line.endswith("refs]"):
             continue

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for package tests of Nuitka.
@@ -30,79 +30,41 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getTempDir,
     my_print,
-    reportSkip,
+    scanDirectoryForTestCaseFolders,
     setup,
 )
-from nuitka.Version import getCommercialVersion
+from nuitka.utils.FileOperations import getSubDirectories, relpath
 
 
 def main():
-    # Complex stuff, even more should become common code though.
-    # pylint: disable=too-many-branches
-
     setup(suite="packages")
 
     search_mode = createSearchMode()
 
-    for filename in sorted(os.listdir(".")):
-        if not os.path.isdir(filename) or filename.endswith(".build"):
-            continue
-
-        extra_flags = [
-            "--module",
-            "expect_success",
-            "remove_output",
-            "two_step_execution",
-        ]
-
+    for filename, filename_main in scanDirectoryForTestCaseFolders(
+        ".", allow_none=True
+    ):
         active = search_mode.consider(dirname=None, filename=filename)
+
+        if filename_main is None:
+            filename_main = relpath(path=getSubDirectories(filename)[0], start=filename)
 
         if active:
             my_print("Consider output of compiled package:", filename)
 
-            if "embed" in filename and getCommercialVersion() is None:
-                reportSkip(
-                    "Skipped, only working with Nuitka commercial",
-                    ".",
-                    filename,
-                )
-                continue
-
-            filename_main = None
-
-            filename_main = os.path.join(
-                filename, "".join(part.title() for part in filename.split("_")) + ".py"
-            )
-            if os.path.exists(filename_main):
-                filename_main = os.path.basename(filename_main)
-            else:
-                filename_main = None
-
-            if filename_main is None:
-                for filename_main in os.listdir(filename):
-                    if filename_main == "__pycache__":
-                        continue
-
-                    if not os.path.isdir(os.path.join(filename, filename_main)):
-                        continue
-
-                    if filename_main not in ("..", "."):
-                        break
-                else:
-                    search_mode.onErrorDetected(
-                        """\
-Error, no package in test directory '%s' found, incomplete test case."""
-                        % filename
-                    )
-
-                extra_flags.append(
-                    "--include-package=%s" % os.path.basename(filename_main)
-                )
+            extra_flags = [
+                "--mode=module",
+                "expect_success",
+                "remove_output",
+                "two_step_execution",
+            ]
 
             extra_flags.append("--output-dir=%s" % getTempDir())
 
+            # TODO: This mismatches a rename and means the test is never
+            # actually ran.
             if filename == "top_level_attributes":
-                extra_flags.append("--module-entry-point=main")
+                extra_flags.append("--mode=module-entry-point=main")
 
             compareWithCPython(
                 dirname=filename,

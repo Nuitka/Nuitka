@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Python version specifics.
@@ -196,14 +196,18 @@ def needsDuplicateArgumentColOffset():
         return True
 
 
+def getRunningPythonDllHandle():
+    # We trust ctypes internals here, pylint: disable=protected-access
+    # spell-checker: ignore pythonapi
+    return ctypes.pythonapi._handle
+
+
 def getRunningPythonDLLPath():
     from nuitka.utils.SharedLibraries import (
         getWindowsRunningProcessModuleFilename,
     )
 
-    # We trust ctypes internals here, pylint: disable=protected-access
-    # spell-checker: ignore pythonapi
-    return getWindowsRunningProcessModuleFilename(ctypes.pythonapi._handle)
+    return getWindowsRunningProcessModuleFilename(getRunningPythonDllHandle())
 
 
 def getTargetPythonDLLPath():

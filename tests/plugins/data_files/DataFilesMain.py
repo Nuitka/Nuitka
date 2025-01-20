@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from __future__ import print_function
@@ -7,7 +7,7 @@ import os
 
 import data_files_package
 
-# nuitka-project: --standalone
+# nuitka-project: --mode=standalone
 # nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
 # nuitka-project-if: {Commercial} is not None:
 #   nuitka-project: --embed-data-files-runtime-pattern=lala.txt

@@ -1,11 +1,10 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_COMPILED_FUNCTION_H__
 #define __NUITKA_COMPILED_FUNCTION_H__
 
 #ifdef __IDE_ONLY__
-#include <Python.h>
-#include <frameobject.h>
+#include "nuitka/prelude.h"
 #endif
 
 // Compiled function type.

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Module/Package nodes
@@ -87,7 +87,7 @@ class PythonModuleBase(NodeBase):
                 level=0,
             )
 
-            # If we can't find the package for Python3.3 that is semi-OK, it might be in a
+            # If we can't find the package for Python3 that is semi-OK, it might be in a
             # namespace package, these have no init code.
             if python_version >= 0x300 and not package_filename:
                 return ()

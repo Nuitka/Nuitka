@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Interface to depends.exe on Windows.
@@ -55,6 +55,7 @@ Nuitka will make use of Dependency Walker (https://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules.""",
         reject="Nuitka does not work in --standalone or --onefile on Windows without.",
         assume_yes_for_downloads=assumeYesForDownloads(),
+        download_ok=True,
     )
 
 

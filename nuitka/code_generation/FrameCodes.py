@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Frame codes
@@ -11,6 +11,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import _generateStatementSequenceCode
+from .CodeObjectCodes import getCodeObjectAccessCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .ExceptionCodes import getTracebackMakingIdentifier
@@ -69,7 +70,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     guard_mode = statement_sequence.getGuardMode()
 
     code_object = statement_sequence.getCodeObject()
-    code_identifier = context.getCodeObjectHandle(code_object=code_object)
+    code_object_access_code = getCodeObjectAccessCode(
+        code_object=code_object, context=context
+    )
 
     parent_exception_exit = context.getExceptionEscape()
 
@@ -79,7 +82,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         parent_exception_exit = context.allocateLabel("nested_frame_exit")
 
     # Allow stacking of frame handles.
-    context.pushFrameHandle(code_identifier, statement_sequence.hasStructureMember())
+    context.pushFrameHandle(
+        statement_sequence.getFrameCodeName(), statement_sequence.hasStructureMember()
+    )
 
     context.setExceptionEscape(context.allocateLabel("frame_exception_exit"))
 
@@ -127,9 +132,12 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # TODO: This case should also care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.
 
+        # TODO: Rename "code_identifier" to "code_object_access_code" in these
+        # functions and make it work with function call result properly and not
+        # have to be a variable name.
         getFrameGuardGeneratorCode(
             frame_node=statement_sequence,
-            code_identifier=code_identifier,
+            code_identifier=code_object_access_code,
             codes=local_emit.codes,
             parent_exception_exit=parent_exception_exit,
             frame_exception_exit=frame_exception_exit,
@@ -141,7 +149,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     elif guard_mode in ("full", "once"):
         getFrameGuardHeavyCode(
             frame_node=statement_sequence,
-            code_identifier=code_identifier,
+            code_identifier=code_object_access_code,
             parent_exception_exit=parent_exception_exit,
             parent_return_exit=parent_return_exit,
             frame_exception_exit=frame_exception_exit,
@@ -421,22 +429,23 @@ def getFrameGuardGeneratorCode(
 
     if frame_exception_exit is not None:
         emit(
-            template_frame_guard_generator_exception_handler
-            % {
-                "context_identifier": context_identifier,
-                "frame_identifier": frame_identifier,
-                "frame_cache_identifier": frame_cache_identifier,
-                "exception_state_name": exception_state_name,
-                "exception_lineno": exception_lineno,
-                "tb_making": getTracebackMakingIdentifier(
+            renderTemplateFromString(
+                template_frame_guard_generator_exception_handler,
+                context_identifier=context_identifier,
+                frame_identifier=frame_identifier,
+                frame_cache_identifier=frame_cache_identifier,
+                exception_state_name=exception_state_name,
+                exception_lineno=exception_lineno,
+                tb_making=getTracebackMakingIdentifier(
                     context=context, lineno_name=exception_lineno
                 ),
-                "attach_locals": indented(
+                attach_locals=indented(
                     getFrameAttachLocalsCode(context, frame_identifier)
                 ),
-                "frame_exception_exit": frame_exception_exit,
-                "parent_exception_exit": parent_exception_exit,
-            }
+                frame_exception_exit=frame_exception_exit,
+                parent_exception_exit=parent_exception_exit,
+                is_python3=python_version >= 0x300,
+            )
         )
 
     getLabelCode(no_exception_exit, emit)

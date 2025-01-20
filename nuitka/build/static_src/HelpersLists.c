@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /* This helpers is used to work with lists.
 
@@ -25,6 +25,7 @@ static _PyListArray *Nuitka_AllocateListArray(size_t capacity) {
         return NULL;
     }
 
+    // TODO: API call to be removed.
     _PyListArray *list_array = PyMem_Malloc(sizeof(_PyListArray) + capacity * sizeof(PyObject *));
 
     if (unlikely(list_array == NULL)) {

@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_COMPILED_FRAME_H__
 #define __NUITKA_COMPILED_FRAME_H__
@@ -9,7 +9,7 @@
 #endif
 
 // Removed flag in 3.11, but we keep code compatible for now. We do not use old
-// value, but 0 because it might get re-used. TODO: Probably better to #ifdef
+// value, but 0 because it might get reused. TODO: Probably better to #ifdef
 // usages of it away.
 #if PYTHON_VERSION >= 0x3b0
 #define CO_NOFREE 0
@@ -87,6 +87,9 @@ NUITKA_MAY_BE_UNUSED static inline bool isFakeCodeObject(PyCodeObject *code) {
     return false;
 #endif
 }
+
+// Prepare code object for use, patching up its filename.
+extern PyCodeObject *USE_CODE_OBJECT(PyThreadState *tstate, PyObject *code_object, PyObject *module_filename_obj);
 
 extern PyTypeObject Nuitka_Frame_Type;
 
@@ -394,8 +397,6 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(PyThreadState *tstate) {
 #endif
 }
 
-// TODO: These can be moved to private code, once all C library is included by
-// compiled code helpers, but generators are currently not.
 #if PYTHON_VERSION >= 0x300
 NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame,
                                                           PyObject *generator) {
@@ -409,14 +410,6 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObj
     if (generator) {
         Nuitka_Frame_MarkAsExecuting(nuitka_frame);
     }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 0x3b0
-    return nuitka_frame->m_frame.f_gen;
-#else
-    return nuitka_frame->m_generator;
-#endif
 }
 #endif
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for program tests of Nuitka.
@@ -24,6 +24,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.tools.testing.Common import (
     checkTestRequirements,
     compareWithCPython,
@@ -164,18 +165,14 @@ def main():
             compareWithCPython(
                 dirname=filename,
                 filename=filename_main,
-                extra_flags=extra_flags,
+                extra_flags=OrderedDict(
+                    (
+                        ("", extra_flags),
+                        ("variant", extra_flags + extra_variant),
+                    )
+                ),
                 search_mode=search_mode,
             )
-
-            if extra_variant:
-                my_print("Extra variation %r." % extra_variant)
-                compareWithCPython(
-                    dirname=filename,
-                    filename=filename_main,
-                    extra_flags=extra_flags + extra_variant,
-                    search_mode=search_mode,
-                )
 
     search_mode.finish()
 

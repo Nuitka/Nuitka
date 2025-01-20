@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /**
  * This is responsible for deep copy and hashing of constants.
@@ -496,6 +496,8 @@ Py_hash_t DEEP_HASH(PyThreadState *tstate, PyObject *value) {
 
         return result;
 #endif
+    } else if (PyCode_Check(value)) {
+        return DEEP_HASH_INIT(tstate, value);
     } else {
         NUITKA_CANNOT_GET_HERE("Unknown type hashed");
 

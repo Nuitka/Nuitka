@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Test runners test
@@ -184,7 +184,7 @@ def main():
                 os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
                 "--xml=%s" % xml_filename,
                 "--quiet",
-                "--module",
+                "--mode=module",
                 "--nofollow-imports",
                 "--generate-c-only",
                 "--no-progressbar",

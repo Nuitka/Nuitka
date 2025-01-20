@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Templates for the constants handling.
@@ -8,7 +8,7 @@ spell-checker: ignore structseq
 
 template_constants_reading = r"""
 #include "nuitka/prelude.h"
-#include "structseq.h"
+#include <structseq.h>
 
 #include "build_definitions.h"
 

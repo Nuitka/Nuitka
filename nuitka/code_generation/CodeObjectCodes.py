@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Code generation for code objects.
@@ -9,11 +9,14 @@ Right now only the creation is done here. But more should be added later on.
 import os
 
 from nuitka.__past__ import unicode
-from nuitka.Options import getFileReferenceMode
+from nuitka.Options import getFileReferenceMode, isExperimental
 from nuitka.PythonVersions import python_version
 
 
 def getCodeObjectsDeclCode(context):
+    if isExperimental("new-code-objects"):
+        return ()
+
     statements = []
 
     for _code_object_key, code_identifier in context.getCodeObjects():
@@ -34,6 +37,7 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
     This is also version dependent, but we hide this behind macros
     that ignore some arguments.
     """
+    assert not isExperimental("new-code-objects")
 
     co_flags = []
 
@@ -90,6 +94,9 @@ def getCodeObjectsInitCode(context):
     # There is a bit of details to this, and we are making some optimizations as
     # well as customization to what path should be put there.
 
+    if isExperimental("new-code-objects"):
+        return ()
+
     statements = []
 
     code_objects = context.getCodeObjects()
@@ -130,6 +137,16 @@ def getCodeObjectsInitCode(context):
                 statements.append("code_objects_main = %s;" % code_identifier)
 
     return statements
+
+
+def getCodeObjectAccessCode(code_object, context):
+    if isExperimental("new-code-objects"):
+        return (
+            "USE_CODE_OBJECT(tstate, %s, module_filename_obj)"
+            % context.getConstantCode(code_object)
+        )
+    else:
+        return context.getCodeObjectHandle(code_object)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

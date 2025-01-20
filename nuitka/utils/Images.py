@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Handling of images, esp. format conversions for icons.
@@ -12,7 +12,13 @@ from .Utils import isMacOS, isWin32Windows
 def checkIconUsage(logger, icon_path):
     icon_format = getFilenameExtension(icon_path)
 
-    if icon_format != ".icns" and isMacOS():
+    if icon_format == "":
+        logger.sysexit(
+            """\
+Cannot detect the icon format from filename extension of '%s'."""
+            % (icon_path)
+        )
+    elif icon_format != ".icns" and isMacOS():
         needs_conversion = True
     elif icon_format != ".ico" and isWin32Windows():
         needs_conversion = True

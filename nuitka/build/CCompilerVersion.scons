@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """
@@ -207,6 +207,7 @@ env = checkWindowsCompilerFound(
     clang_mode=clang_mode,
     msvc_version=msvc_version,
     assume_yes_for_downloads=assume_yes_for_downloads,
+    download_ok=False,
 )
 
 env.the_compiler = env["CC"] or env["CXX"]

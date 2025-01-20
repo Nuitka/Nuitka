@@ -1,4 +1,4 @@
-#     Copyright 2024, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """ Standard plug-in to make pbr module work when compiled.
@@ -15,8 +15,8 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
     """This is to make pbr module work when compiled with Nuitka."""
 
     plugin_name = "pbr-compat"
-
     plugin_desc = "Required by the 'pbr' package in standalone mode."
+    plugin_category = "package-support"
 
     @classmethod
     def isRelevant(cls):

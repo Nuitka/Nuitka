@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Progress bar for Scons compilation part.
@@ -48,10 +48,17 @@ def updateSconsProgressBar():
     if _current == _total:
         closeSconsProgressBar()
 
-        scons_logger.info(
-            "%s linking program with %d files (no progress information available for this stage)."
-            % (_stage, _total)
-        )
+        message = "%s C linking" % _stage
+
+        if _total > 1:
+            message += (
+                " with %d files (no progress information available for this stage)"
+                % _total
+            )
+
+        message += "."
+
+        scons_logger.info(message)
 
 
 def closeSconsProgressBar():

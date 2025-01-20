@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Plugin for spacy.
@@ -19,6 +19,7 @@ class NuitkaPluginSpacy(NuitkaPluginBase):
 
     plugin_name = "spacy"
     plugin_desc = "Required by 'spacy' package."
+    plugin_category = "package-support"
 
     def __init__(self, include_language_models):
         self.include_language_models = tuple(

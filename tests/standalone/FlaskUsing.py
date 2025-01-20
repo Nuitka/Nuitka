@@ -1,9 +1,12 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 from flask import Flask
 
 # nuitka-skip-unless-imports: flask
+
+# nuitka-project: --mode=standalone
+
 
 app = Flask(__name__)
 

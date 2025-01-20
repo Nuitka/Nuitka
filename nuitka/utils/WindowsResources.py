@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Module for handling Windows resources.
@@ -59,6 +59,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     EnumResourceLanguages = ctypes.windll.kernel32.EnumResourceLanguagesA
     FreeLibrary = ctypes.windll.kernel32.FreeLibrary
 
+    # spell-checker: ignore WINFUNCTYPE
     EnumResourceNameCallback = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL,
         ctypes.wintypes.HMODULE,
@@ -335,6 +336,7 @@ def _getDefaultWindowsExecutableTrustInfo():
 
 def getDefaultWindowsExecutableManifest():
     # Note: Supported OS are lied about by CPython.
+    # spell-checker: ignore asmv3
     template = (
         """\
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Utils for file and directory operations.
@@ -555,7 +555,7 @@ def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
     # On Windows, we check exe suffixes, on other platforms we shell all filenames,
     # matching the prefix, but they have to the executable bit set.
     if not suffixes and isWin32OrPosixWindows():
-        suffixes = "exe", "bin"
+        suffixes = ("exe", "bin")
 
     if suffixes:
         pattern_list = [prefix + "*." + suffix for suffix in suffixes]
@@ -774,11 +774,29 @@ def resetDirectory(path, logger, ignore_errors, extra_recommendation):
 
 
 @contextmanager
-def withTemporaryFile(suffix="", mode="w", delete=True, temp_path=None):
+def withTemporaryFile(prefix="", suffix="", mode="w", delete=True, temp_path=None):
+    """Provide a temporary file opened and potentially deleted."""
     with tempfile.NamedTemporaryFile(
-        suffix=suffix, mode=mode, delete=delete, dir=temp_path
+        prefix=prefix, suffix=suffix, mode=mode, delete=delete, dir=temp_path
     ) as temp_file:
         yield temp_file
+
+
+@contextmanager
+def withTemporaryFilename(prefix="", suffix="", temp_path=None):
+    """Provide a temporary filename."""
+    with tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        suffix=suffix,
+        mode="wb",
+        delete=False,
+        dir=temp_path,
+    ) as temp_file:
+        filename = temp_file.name
+        temp_file.close()
+        deleteFile(filename, must_exist=True)
+
+        yield filename
 
 
 def getFileContentByLine(filename, mode="r", encoding=None, errors=None):

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Launcher for running a script inside a container.
@@ -220,6 +220,7 @@ def getCppPath():
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
+            download_ok=True,
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
@@ -327,7 +328,8 @@ def main():
 
     if not os.path.isfile(container_file_path):
         containers_logger.sysexit(
-            "Error, no container ID '%s' found" % options.container_id
+            "Error, no container ID '%s' found at '%s'."
+            % (options.container_id, container_file_path)
         )
 
     getBranchRemoteIdentifier()

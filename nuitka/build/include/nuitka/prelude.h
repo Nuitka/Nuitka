@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
@@ -18,7 +18,7 @@
 /* Include the CPython version numbers, and define our own take of what version
  * numbers should be.
  */
-#include "patchlevel.h"
+#include <patchlevel.h>
 
 /* Use a hex version of our own to compare for versions. We do not care about pre-releases */
 #if PY_MICRO_VERSION < 16
@@ -51,7 +51,7 @@
 #include <structseq.h>
 
 #if PYTHON_VERSION < 0x3a0
-#include "pydebug.h"
+#include <pydebug.h>
 #endif
 
 /* A way to not give warnings about things that are declared, but might not
@@ -94,18 +94,18 @@
 
 #if PYTHON_VERSION < 0x380
 #undef Py_ATOMIC_H
-#include "pyatomic.h"
+#include <pyatomic.h>
 #undef Py_INTERNAL_PYSTATE_H
-#include "internal/pystate.h"
+#include <internal/pystate.h>
 #undef Py_STATE_H
-#include "pystate.h"
+#include <pystate.h>
 
 extern _PyRuntimeState _PyRuntime;
 #else
 
 #if PYTHON_VERSION >= 0x3c0
-#include "internal/pycore_runtime.h"
-#include "internal/pycore_typevarobject.h"
+#include <internal/pycore_runtime.h>
+#include <internal/pycore_typevarobject.h>
 
 static inline size_t Nuitka_static_builtin_index_get(PyTypeObject *self) { return (size_t)self->tp_subclasses - 1; }
 
@@ -133,7 +133,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #define _PyStaticType_GetState(interp, self) Nuitka_PyStaticType_GetState(interp, self)
 #endif
 
-#include "internal/pycore_pystate.h"
+#include <internal/pycore_pystate.h>
 #endif
 
 #if PYTHON_VERSION >= 0x390
@@ -217,7 +217,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 /* Type bool */
 #ifndef __cplusplus
-#include "stdbool.h"
+#include <stdbool.h>
 #endif
 
 /* Include the C header files most often used. */

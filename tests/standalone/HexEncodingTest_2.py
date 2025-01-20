@@ -1,7 +1,9 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Small Python2 only test that demonstrates the hex encoding to work. """
+
+# nuitka-project: --mode=standalone
 
 print("4B4159".decode("hex"))  # Should output "KAY"
 

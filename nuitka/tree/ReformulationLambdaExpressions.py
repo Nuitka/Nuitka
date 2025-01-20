@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Reformulation of lambda expressions.
@@ -148,6 +148,7 @@ def buildLambdaNode(provider, node, source_ref):
     body = frame_class(
         statements=mergeStatements((body,)),
         code_object=code_object,
+        owner_code_name=code_body.getCodeName(),
         source_ref=body.getSourceReference(),
     )
 

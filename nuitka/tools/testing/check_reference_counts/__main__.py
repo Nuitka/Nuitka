@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Tool to compare reference counting behavior of CPython and Nuitka.
@@ -24,6 +24,7 @@ def main():
         "--checked-module",
         action="store",
         dest="checked_module",
+        default=None,
         help="""\
 Module with main() function to be checked for reference count stability.""",
     )
@@ -42,6 +43,9 @@ Try to explain the differences by comparing object counts.""",
     if positional_args and options.checked_module is None:
         options.checked_module = positional_args.pop()
 
+    if options.checked_module is None:
+        sys.exit("\nNeed to provide checked module filename.")
+
     if positional_args and options.checked_module:
         parser.print_help()
 
@@ -57,7 +61,7 @@ Try to explain the differences by comparing object counts.""",
         sys.executable,
         "-m",
         "nuitka",
-        "--module",
+        "--mode=module",
         options.checked_module,
         "--output-dir=%s" % temp_dir,
     ]

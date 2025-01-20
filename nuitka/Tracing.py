@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Outputs to the user.
@@ -491,6 +491,7 @@ tools_logger = OurLogger("Nuitka-Tools")
 wheel_logger = OurLogger("Nuitka-Wheel", base_style="blue")
 cache_logger = OurLogger("Nuitka-Cache")
 reports_logger = OurLogger("Nuitka-Reports")
+offsets_logger = OurLogger("Nuitka-Offsets")
 
 
 def queryUser(question, choices, default, default_non_interactive):

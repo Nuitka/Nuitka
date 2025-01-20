@@ -1,4 +1,4 @@
-#     Copyright 2024, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """ Details see below in class definition.
@@ -13,7 +13,7 @@ from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
-# spell-checker: ignore tkinterdnd,tkdnd,tcltk
+# spell-checker: ignore tkinterdnd,tkdnd,tcltk,tcltest
 
 
 def _isTkInterModule(module):
@@ -56,6 +56,8 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
     plugin_desc = "Required by Python's Tk modules."
+    plugin_category = "package-support"
+
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
@@ -270,6 +272,17 @@ that works, report a bug."""
             source_path=tcl_library_dir,
             ignore_dirs=(
                 ("opt0.4", "http1.0") if isMacOS() and shallCreateAppBundle() else ()
+            ),
+            # TODO: Not very version robust, may we ought to
+            # become able to ignore files by pattern.
+            ignore_filenames=(
+                "tcltest-2.3.6.tm",
+                "tcltest-2.3.8.tm",
+                "tcltest-2.4.0.tm",
+                "tcltest-2.5.0.tm",
+                "tcltest-2.5.3.tm",
+                "tcltest-2.5.5.tm",
+                "tcltest-2.5.8.tm",
             ),
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",

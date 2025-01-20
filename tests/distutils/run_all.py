@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Runner for distutils integration
@@ -261,7 +261,7 @@ def _handleCase(python_version, nuitka_dir, filename):
         exit_nuitka = process.returncode
 
         if exit_nuitka == -11:
-            command = wrapCommandForDebuggerForSubprocess(*command)
+            command = wrapCommandForDebuggerForSubprocess(command=command)
 
             test_logger.warning("Rerunning due to segfault in debugger.")
             stdout_nuitka, stderr_nuitka = process.communicate()

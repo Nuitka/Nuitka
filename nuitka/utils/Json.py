@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Utils module to provide helper for our common json operations.
@@ -21,7 +21,7 @@ def loadJsonFromFilename(filename):
 
 def writeJsonToFilename(filename, contents, indent=2):
     with openTextFile(filename, "w") as output:
-        json.dump(contents, output, indent=indent)
+        json.dump(contents, output, indent=indent, sort_keys=True)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 /** Compiled methods.
  *
@@ -404,6 +404,7 @@ static long Nuitka_Method_tp_hash(struct Nuitka_MethodObject *method) {
     return method->m_function->m_counter;
 }
 
+// Freelist setup
 #define MAX_METHOD_FREE_LIST_COUNT 100
 static struct Nuitka_MethodObject *free_list_methods = NULL;
 static int free_list_methods_count = 0;

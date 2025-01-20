@@ -35,6 +35,12 @@
     - depends:
         - 'ruamel.yaml.error'
 
+- module-name: '_soundfile_data' # checksum: be356cb6
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libsndfile'
+
 - module-name: '_yaml' # checksum: 35d3c787
   implicit-imports:
     - depends:
@@ -171,7 +177,11 @@
         '_get_win_folder_with_pywin32': 'un-callable'
       when: 'not use_pywin32 or not win32'
 
-- module-name: 'apscheduler' # checksum: 9df05a43
+- module-name: 'apscheduler' # checksum: 5005e940
+  data-files:
+    - include-metadata:
+        - 'apscheduler'
+
   implicit-imports:
     - depends:
         - 'apscheduler.triggers.*'
@@ -495,12 +505,7 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: 33fdf1ff
-  implicit-imports:
-    - depends:
-        - '30fcd23745efe32ce681__mypyc'
-
-- module-name: 'black.handle_ipynb_magics' # checksum: 7d07a2d1
+- module-name: 'black' # checksum: 7d07a2d1
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
@@ -800,6 +805,27 @@
     - from_filenames:
         prefixes:
           - 'native'
+
+- module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libsecp256k1'
+
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+
+- module-name: 'comm' # checksum: db60cdd5
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
 
 - module-name: 'connexion' # checksum: ae5ca038
   data-files:
@@ -2856,7 +2882,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: a738cd92
+- module-name: 'numpy' # checksum: 7c09160e
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -2875,7 +2901,7 @@
            for filename in os.listdir(library_path)
            if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'is_conda_package("numpy")'
+      when: 'is_conda_package("numpy") and version("numpy") < (2,)'
 
   anti-bloat:
     - description: 'avoid URLs for AV noise'
@@ -2885,7 +2911,9 @@
       no-auto-follow:
         'numpy.distutils': 'ignore'
       when: 'not use_setuptools'
-
+    - description: 'avoid pyyaml dependency'
+      no-auto-follow:
+        'yaml': 'ignore'
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -3783,6 +3811,13 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
+- module-name: 'pdbp' # checksum: ae97ca9d
+  anti-bloat:
+    - no-auto-follow:
+        '_pytest': 'ignore'
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'pdfminer' # checksum: a3629ef7
   data-files:
     - dirs:
@@ -3814,6 +3849,12 @@
   implicit-imports:
     - depends:
         - '.region_*'
+
+- module-name: 'PIL' # checksum: 52d41000
+  anti-bloat:
+    - description: 'avoid numpy dependency'
+      no-auto-follow:
+        'numpy': 'ignore'
 
 - module-name: 'PIL._imagingtk' # checksum: 52df48a8
   implicit-imports:
@@ -4460,7 +4501,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'PyQt5' # checksum: ce59d72b
+- module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
     - empty_dirs:
         - 'Qt5'
@@ -4474,9 +4515,6 @@
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
         when: 'macos and not is_conda_package("pyqt5") and use_pyqt5'
-      - description: 'PyQt5 cannot be signed unless onefile'
-        macos_bundle_as_onefile: 'yes'
-        when: 'macos and use_pyqt5'
 
   import-hacks:
     - acceptable-missing-dlls:
@@ -5364,6 +5402,33 @@
     - dirs:
         - '.'
 
+- module-name: 'seleniumbase' # checksum: bcee33b2
+  anti-bloat:
+    - description: 'remove pytest reference'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+    - description: 'Need to allow unittest usage'
+      bloat-mode-overrides:
+        'unittest': 'allow'
+
+- module-name: 'seleniumbase.core.colored_traceback' # checksum: 6e89a07b
+  anti-bloat:
+    - description: 'disable colored tracebacks for standalone'
+      replacements_plain:
+        'sys.excepthook =': '# sys.excepthook ='
+      when: 'standalone'
+
+- module-name: 'seleniumbase.drivers' # checksum: 63813ab
+  data-files:
+    - empty_dirs:
+        - '.'
+  options:
+    checks:
+      - description: "need to use cached onefile mode with 'seleniumbase.drivers' to download persistently"
+        support_info: 'warning'
+        when: 'onefile and not onefile_cached'
+
 - module-name: 'sentence_transformers.SentenceTransformer' # checksum: c6062648
   implicit-imports:
     - depends:
@@ -6093,24 +6158,6 @@
         relative_path: '_sounddevice_data/portaudio-binaries'
         prefixes:
           - 'libportaudio'
-      when: 'macos'
-
-- module-name: 'soundfile' # checksum: ea2aad42
-  dlls:
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile*64bit'
-      when: 'win32 and arch_amd64'
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile*32bit'
-      when: 'win32 and arch_x86'
-    - from_filenames:
-        relative_path: '_soundfile_data'
-        prefixes:
-          - 'libsndfile'
       when: 'macos'
 
 - module-name: 'spacy' # checksum: 4943d3fa

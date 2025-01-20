@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Support for delvewheel, details in below class definitions.
@@ -28,6 +28,7 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
     plugin_desc = (
         "Required for 'support' of delvewheel using packages in standalone mode."
     )
+    plugin_category = "core"
 
     def __init__(self):
         # Special DLL directories if detected for a module.

@@ -1,4 +1,4 @@
-#     Copyright 2024, Kevin Rodriguez <mailto:turcioskevinr@gmail.com> find license text at end of file
+#     Copyright 2025, Kevin Rodriguez <mailto:turcioskevinr@gmail.com> find license text at end of file
 
 
 """ Plugin for Playwright.
@@ -11,12 +11,16 @@ import os
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
+# We use chrom to identify either chrome or chromium
+# spell-checker: ignore chrom
+
 
 class NuitkaPluginPlaywright(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "playwright"
     plugin_desc = "Required by 'playwright' package."
+    plugin_category = "package-support"
 
     def __init__(self, include_browsers):
         self.include_browsers = list(include_browsers)
@@ -110,22 +114,10 @@ to exclude all browsers.""",
             self.installed_browsers[browser.name] = browser
 
     def considerDataFiles(self, module):
-
         if module.getFullName() != "playwright":
             return
 
-        if not self.include_browsers:
-
-            self.sysexit(
-                "No browsers included. Use the option '--playwright-include-browser=browser_name' to include one. Use 'all' to include all installed ones."  # pylint: disable=C0301
-            )
-
         self.getInstalledPlaywrightBrowsers()
-
-        if not self.installed_browsers:
-            self.sysexit(
-                "Error, no browsers found in the registry, if you're using playwright, make sure to install a browser."
-            )
 
         self.info("Including browsers: %s" % ", ".join(self.include_browsers))
         if "none" in self.include_browsers:

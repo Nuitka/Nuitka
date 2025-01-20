@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2024, Tommy Li, mailto:<tommyli3318@gmail.com> find license text at end of file
+#     Copyright 2025, Tommy Li, mailto:<tommyli3318@gmail.com> find license text at end of file
 
 
 """ Runner for PyPI Pytest comparison

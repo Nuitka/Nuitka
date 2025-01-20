@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to take advantage of pylint or PyDev annotations.
@@ -26,6 +26,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     plugin_name = "pylint-warnings"
     plugin_desc = "Support PyLint / PyDev linting source markers."
+    plugin_category = "feature"
 
     def __init__(self):
         self.line_annotations = {}

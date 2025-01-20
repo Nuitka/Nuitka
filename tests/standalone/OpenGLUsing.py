@@ -1,9 +1,11 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 import OpenGL
 
 # nuitka-skip-unless-imports: OpenGL
+
+# nuitka-project: --mode=standalone
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

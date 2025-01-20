@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ This module deals with finding and information about static libraries.
@@ -13,6 +13,7 @@ from nuitka.PythonFlavors import (
     isDebianPackagePython,
     isNuitkaPython,
     isRyePython,
+    isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -22,6 +23,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general
 
+from .Execution import executeToolChecked
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
@@ -155,6 +157,12 @@ def _getSystemStaticLibPythonPath():
     if isMacOS() and isRyePython():
         return None
 
+    if isSelfCompiledPythonUninstalled():
+        candidate = os.path.join(sys_prefix, "libpython" + python_abi_version + ".a")
+
+        if os.path.exists(candidate):
+            return candidate
+
     candidate = os.path.join(sys_prefix, "lib", "libpython" + python_abi_version + ".a")
 
     if os.path.exists(candidate):
@@ -210,6 +218,22 @@ def getSystemStaticLibPythonPath():
         _static_lib_python_path = _getSystemStaticLibPythonPath()
 
     return _static_lib_python_path
+
+
+_nm_usage = "nm is used to detect symbols of static link libraries"
+
+
+def getStaticLinkLibrarySymbols(logger, static_library_path):
+    """Get the list of symbols exported by a static link library."""
+
+    output = executeToolChecked(
+        logger=logger,
+        command=("nm", "-U", "-g", "-j", static_library_path),
+        absence_message=_nm_usage,
+        decoding=str is not bytes,
+    )
+
+    return output.splitlines()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

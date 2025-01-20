@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Standard plug-in to find data files.
@@ -23,8 +23,8 @@ from nuitka.utils.FileOperations import (
 
 class NuitkaPluginDataFileCollector(NuitkaYamlPluginBase):
     plugin_name = "data-files"
-
     plugin_desc = "Include data files specified by package configuration files."
+    plugin_category = "core"
 
     @classmethod
     def isRelevant(cls):

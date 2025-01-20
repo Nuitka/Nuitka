@@ -1,4 +1,4 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
 """ Command line options of Nuitka.
@@ -43,10 +43,33 @@ if _nuitka_binary_name == "__main__.py":
 is_nuitka_run = _nuitka_binary_name.lower().endswith("-run")
 
 if not is_nuitka_run:
-    usage_template = "usage: %s [--module] [--run] [options] main_module.py"
+    usage_template = (
+        "usage: %s [--mode=compilation_mode] [--run] [options] main_module.py"
+    )
 else:
-    usage_template = "usage: %s [options] main_module.py"
+    usage_template = "usage: %s [--mode=compilation_mode] [options] main_module.py"
 
+
+def _handleHelpModes():
+    result = False
+    for count, arg in enumerate(sys.argv[1:], start=1):
+        if arg == "--":
+            break
+        if arg in ("--help-all", "--help-plugin", "--help-plugins"):
+            result = True
+            sys.argv[count] = "--help"
+            break
+    return result
+
+
+plugin_help_mode = _handleHelpModes()
+
+
+if not plugin_help_mode:
+    usage_template += """\n
+    Note: For general plugin help (they often have their own
+    command line options too), consider the output of
+    '--help-plugins'."""
 
 parser = makeOptionsParser(usage=usage_template % _nuitka_binary_name)
 
@@ -65,6 +88,7 @@ parser.add_option(
     action="store_true",
     dest="module_mode",
     default=False,
+    github_action=False,
     help="""\
 Create an importable binary extension module executable instead of a program. Defaults to off.""",
 )
@@ -74,14 +98,17 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("app", "onefile", "standalone", "accelerated", "module"),
+    choices=("app", "onefile", "standalone", "accelerated", "module", "package"),
     default=None,
+    github_action_default="app",
     help="""\
 Mode in which to compile. Accelerated runs in your Python
 installation and depends on it. Standalone creates a folder
 with an executable contained to run it. Onefile creates a
 single executable to deploy. App is onefile except on macOS
-where it's not to be used. Default is 'accelerated'.""",
+where it's not to be used. Module makes a module, and
+package includes also all sub-modules and sub-packages.
+Default is 'accelerated'.""",
 )
 
 parser.add_option(
@@ -89,6 +116,7 @@ parser.add_option(
     action="store_true",
     dest="is_standalone",
     default=False,
+    github_action=False,
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
@@ -110,7 +138,7 @@ parser.add_option(
     action="store_true",
     dest="is_onefile",
     default=False,
-    github_action_default=True,
+    github_action=False,
     help="""\
 On top of standalone mode, enable onefile mode. This means not a folder,
 but a compressed executable is created and used. Defaults to off.""",
@@ -407,6 +435,7 @@ Default empty.""",
 
 data_group.add_option(
     "--include-data-files",
+    "--include-data-file",
     action="append",
     dest="data_files",
     metavar="DESC",
@@ -450,6 +479,7 @@ whole directory simply use 'package_name'. Default empty.""",
 
 data_group.add_option(
     "--include-onefile-external-data",
+    "--include-data-files-external",
     action="append",
     dest="data_files_external",
     metavar="PATTERN",
@@ -531,6 +561,17 @@ dll_group.add_option(
 Output the DLLs found for a given package name. Default not done.""",
 )
 
+dll_group.add_option(
+    "--list-package-exe",
+    action="store",
+    dest="list_package_exe",
+    default="",
+    require_compiling=False,
+    help="""\
+Output the EXEs found for a given package name. Default not done.""",
+)
+
+
 del dll_group
 
 warnings_group = parser.add_option_group("Control the warnings to be given by Nuitka")
@@ -603,8 +644,9 @@ execute_group.add_option(
     dest="debugger",
     default=False,
     help="""\
-Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace.
-Defaults to off.""",
+Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The
+debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE
+environment variable. Defaults to off.""",
 )
 
 del execute_group
@@ -962,6 +1004,15 @@ Create graph of optimization process internals, do not use for whole programs, b
 for small test cases. Defaults to off.""",
 )
 
+development_group.add_option(
+    "--devel-generate-ming64-header",
+    action="store_true",
+    dest="generate_mingw64_header",
+    default=False,
+    require_compiling=False,
+    github_action=False,
+    help=SUPPRESS_HELP,
+)
 
 del development_group
 
@@ -1004,7 +1055,7 @@ c_compiler_group.add_option(
     "--mingw64",
     action="store_true",
     dest="mingw64",
-    default=False,
+    default=None,
     help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW Python is used.""",
 )
@@ -1503,7 +1554,8 @@ macos_group.add_option(
     "--macos-create-app-bundle",
     action="store_true",
     dest="macos_create_bundle",
-    default=False,
+    default=None,
+    github_action=False,
     help="""\
 When compiling for macOS, create a bundle rather than a plain binary
 application. This is the only way to unlock the disabling of console,
@@ -1563,7 +1615,7 @@ macos_group.add_option(
     dest="macos_app_mode",
     metavar="APP_MODE",
     choices=("gui", "background", "ui-element"),
-    default="gui",
+    default=None,
     help="""\
 Mode of application for the application bundle. When launching a Window, and appearing
 in Docker is desired, default value "gui" is a good fit. Without a Window ever, the
@@ -1577,7 +1629,7 @@ macos_group.add_option(
     action="store",
     dest="macos_sign_identity",
     metavar="MACOS_APP_VERSION",
-    default="ad-hoc",
+    default=None,
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
 option your get to specify another identity to use. The signing of code is now
@@ -1589,7 +1641,7 @@ macos_group.add_option(
     "--macos-sign-notarization",
     action="store_true",
     dest="macos_sign_notarization",
-    default=False,
+    default=None,
     help="""\
 When signing for notarization, using a proper TeamID identity from Apple, use
 the required runtime signing option, such that it can be accepted.""",
@@ -1838,7 +1890,9 @@ def _considerPluginOptions(logger):
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandLineOptions(parser=parser)
+    addStandardPluginCommandLineOptions(
+        parser=parser, plugin_help_mode=plugin_help_mode
+    )
 
     for arg in sys.argv[1:]:
         if arg.startswith(
@@ -1854,6 +1908,7 @@ def _considerPluginOptions(logger):
             addPluginCommandLineOptions(
                 parser=parser,
                 plugin_names=plugin_names.split(","),
+                plugin_help_mode=plugin_help_mode,
             )
 
         if arg.startswith("--user-plugin="):
@@ -2160,7 +2215,7 @@ def parseOptions(logger):
         if arg.startswith(("--main=", "--script-name=")):
             filename_args.append(arg.split("=", 1)[1])
 
-        if arg == "--module":
+        if arg in ("--mode=module", "--mode=module", "--module=package"):
             module_mode = True
 
         if arg[0] != "-":
@@ -2219,6 +2274,12 @@ def runSpecialCommandsFromOptions(options):
         displayDLLs(options.list_package_dlls)
         sys.exit(0)
 
+    if options.list_package_exe:
+        from nuitka.tools.scanning.DisplayPackageDLLs import displayEXEs
+
+        displayEXEs(options.list_package_exe)
+        sys.exit(0)
+
     if options.list_package_data:
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
@@ -2244,6 +2305,14 @@ def runSpecialCommandsFromOptions(options):
             ),
             report_filename=os.path.expanduser(options.compilation_report_filename),
         )
+        sys.exit(0)
+
+    if options.generate_mingw64_header:
+        from nuitka.tools.general.generate_header.GenerateHeader import (
+            generateHeader,
+        )
+
+        generateHeader()
         sys.exit(0)
 
 

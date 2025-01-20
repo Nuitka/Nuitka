@@ -1,4 +1,9 @@
-#     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+#     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+
+# Other than "orderedset" and "zstandard", these are not nearly required
+# for installation, but nice to have updated in comparison to the inline
+# copies in Nuitka.
+# spell-checker: ignore tqdm,orderedset,pyyaml
 
 # Folders to use for cache files.
 appdirs

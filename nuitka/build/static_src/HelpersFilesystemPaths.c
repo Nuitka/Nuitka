@@ -1,4 +1,4 @@
-//     Copyright 2024, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
+//     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 // Tools for working with file, and paths cross platform
 // for use in both onefile bootstrap and python compiled
@@ -748,26 +748,11 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 
 static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_size) {
     wchar_t path_buffer[MAX_PATH];
-#if !defined(_M_ARM64)
     int res = SHGetFolderPathW(NULL, csidl_id, NULL, 0, path_buffer);
 
     if (res != S_OK) {
         return false;
     }
-#else
-    // spell-checker: ignore USERPROFILE,LOCALAPPDATA
-
-    DWORD res = 0;
-    if (csidl_id == CSIDL_PROFILE) {
-        res = GetEnvironmentVariableW(L"USERPROFILE", path_buffer, sizeof(path_buffer));
-    } else if (csidl_id == CSIDL_LOCAL_APPDATA) {
-        res = GetEnvironmentVariableW(L"LOCALAPPDATA", path_buffer, sizeof(path_buffer));
-    }
-
-    if (res == 0 || res > sizeof(path_buffer)) {
-        return false;
-    }
-#endif
     appendWStringSafeW(target, path_buffer, buffer_size);
 
     return true;

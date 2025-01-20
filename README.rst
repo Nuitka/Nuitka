@@ -421,7 +421,7 @@ this:
 
 .. code:: bash
 
-   python -m nuitka --module some_module.py
+   python -m nuitka --mode=module some_module.py
 
 The resulting file ``some_module.so`` can then be used instead of
 ``some_module.py``.
@@ -467,7 +467,7 @@ also feasible, use Nuitka like this:
 
 .. code:: bash
 
-   python -m nuitka --module some_package --include-package=some_package
+   python -m nuitka --mode=module some_package --include-package=some_package
 
 .. note::
 
@@ -577,7 +577,7 @@ the correct folder for you.
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
 issues if you encounter something in these. Even better, raise PRs with
-enhancements to the Nuitka package configuration. With want 3rd party
+enhancements to the Nuitka package configuration. We want 3rd party
 software to just work out of the box.
 
 When that is working, you can use the onefile mode if you so desire.
@@ -605,8 +605,8 @@ Finding files`_ as well.
 For the unpacking, by default a unique user temporary path one is used,
 and then deleted, however this default
 ``--onefile-tempdir-spec="{TEMP}/onefile_{PID}_{TIME}"`` can be
-overridden with a path specification that is using then using a cached
-path, avoiding repeated unpacking, e.g. with
+overridden with a path specification, then using a cached path, avoiding
+repeated unpacking, e.g. with
 ``--onefile-tempdir-spec="{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}"``
 which uses version information, and user-specific cache directory.
 
@@ -702,7 +702,7 @@ Nuitka.
             '--clang': None,
             # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': "pyside2",
-            # options with several values, e.g. avoiding including modules
+            # options with several values, e.g. avoid including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
          },
       },
@@ -727,7 +727,7 @@ Nuitka.
             '--clang': ("setup.py", None),
             # options with single values, e.g. enable a plugin of Nuitka
             '--enable-plugin': ("setup.py", "pyside2"),
-            # options with several values, e.g. avoiding including modules
+            # options with several values, e.g. avoid including modules
             '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
          }
       },
@@ -782,7 +782,7 @@ value:
    # options with single values, e.g. enable a plugin of Nuitka
    enable-plugin = "pyside2"
 
-   # options with several values, e.g. avoiding including modules, accepts
+   # options with several values, e.g. avoid including modules, accepts
    # list argument.
    nofollow-import-to = ["*.tests", "*.distutils"]
 
@@ -902,6 +902,11 @@ this should then be a bundle.
    #    nuitka-project: --macos-create-app-bundle
    #
 
+.. note::
+
+   This is best expression with ``nuitka-project: --mode=app`` which
+   encapsulates these options.
+
 ********
  Tweaks
 ********
@@ -973,8 +978,8 @@ project syntax to combine the code with the creation, compile this:
 
 .. code:: python
 
-   # nuitka-project: --onefile
-   # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
+   # nuitka-project: --mode=onefile
+   # nuitka-project: --mode=onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
 
    # Whatever this is, obviously
    print("Delaying startup by 10s...")
@@ -1505,9 +1510,9 @@ variables, this is an example:
 
    # Compilation mode, support OS-specific options
    # nuitka-project-if: {OS} in ("Windows", "Linux", "Darwin", "FreeBSD"):
-   #    nuitka-project: --onefile
+   #    nuitka-project: --mode=app
    # nuitka-project-else:
-   #    nuitka-project: --standalone
+   #    nuitka-project: --mode=standalone
 
    # The PySide2 plugin covers qt-plugins
    # nuitka-project: --enable-plugin=pyside2
@@ -1568,18 +1573,18 @@ The C compiler, when invoked with the same input files, will take a long
 time and much CPU to compile over and over. Make sure you are having
 ``ccache`` installed and configured when using gcc (even on Windows). It
 will make repeated compilations much faster, even if things are not yet
-not perfect, i.e. changes to the program can cause many C files to
-change, requiring a new compilation instead of using the cached result.
+perfect, i.e. changes to the program can cause many C files to change,
+requiring a new compilation instead of using the cached result.
 
-On Windows, with gcc Nuitka supports using ``ccache.exe`` which it will
-offer to download from an official source and it automatically. This is
-the recommended way of using it on Windows, as other versions can e.g.
-hang.
+On Windows, with gcc, Nuitka supports using ``ccache.exe``, which it
+will offer to download from an official source and install it
+automatically. This is the recommended way of using it on Windows, as
+other versions may cause issues e.g. hanging.
 
 Nuitka will pick up ``ccache`` if it's found in system ``PATH``, and it
 will also be possible to provide if by setting ``NUITKA_CCACHE_BINARY``
 to the full path of the binary, this is for use in CI systems where
-things might be non-standard.
+environments might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
@@ -1755,9 +1760,9 @@ Providing extra Options to Nuitka C compilation
 
 Nuitka will apply values from the environment variables ``CCFLAGS``,
 ``LDFLAGS`` during the compilation on top of what it determines to be
-necessary. Beware, of course, that is this is only useful if you know
-what you are doing, so should this pose issues, raise them only with
-perfect information.
+necessary. Beware, of course, that this is only useful if you know what
+you are doing, so should this pose issues, raise them only with perfect
+information.
 
 Producing a 32 bit binary on a 64 bit Windows system
 ====================================================

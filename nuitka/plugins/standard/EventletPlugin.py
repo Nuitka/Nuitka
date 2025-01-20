@@ -1,4 +1,4 @@
-#     Copyright 2024, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
+#     Copyright 2025, Jorj McKie, mailto:<jorj.x.mckie@outlook.de> find license text at end of file
 
 
 """ Details see below in class definition.
@@ -12,6 +12,7 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
 
     plugin_name = "eventlet"
     plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching."
+    plugin_category = "package-support"
 
     # TODO: Change this to Yaml configuration.
 
