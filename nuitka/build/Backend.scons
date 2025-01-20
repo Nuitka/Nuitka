@@ -683,13 +683,6 @@ if env.static_libpython and python_version >= (3, 12):
 
 if os.name == "nt":
     if env.nuitka_python:
-        env.Append(
-            LINKFLAGS=[
-                "/LTCG",
-                "/USEPROFILE:PGD=" + os.path.join(python_prefix_external, "python.pgd"),
-            ]
-        )
-
         link_data = loadJsonFromFilename(
             os.path.join(python_prefix_external, "link.json")
         )
