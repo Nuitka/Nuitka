@@ -67,7 +67,7 @@ from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
-from .ReformulationImportStatements import getFutureSpec
+from .FutureSpecState import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
