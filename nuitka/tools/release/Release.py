@@ -173,7 +173,13 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
             nuitka_version[-1],
         )
     else:
-        filename = "dist/Nuitka-%d.%d.%d.tar.gz" % nuitka_version[:3]
+        if nuitka_version[2] == 0:
+            filename = "dist/Nuitka-%d.%d.tar.gz" % (
+                nuitka_version[0],
+                nuitka_version[1],
+            )
+        else:
+            filename = "dist/Nuitka-%d.%d.%d.tar.gz" % nuitka_version[:3]
 
     assert os.path.exists(filename), filename
 
