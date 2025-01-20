@@ -127,7 +127,7 @@ def _detectBinaryDLLs(
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if isNuitkaPython():
+    if is_main_executable and isNuitkaPython():
         return OrderedSet()
     elif getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
         return detectBinaryPathDLLsPosix(
