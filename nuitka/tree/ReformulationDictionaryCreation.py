@@ -87,7 +87,7 @@ def buildDictionaryNode(provider, node, source_ref):
 
 
 @once_decorator
-def getDictUnpackingHelper():
+def _getDictUnpackingHelper():
     helper_name = "_unpack_dict"
 
     result = makeInternalHelperFunctionBody(
@@ -272,7 +272,7 @@ def buildDictionaryUnpacking(provider, keys, values, source_ref):
     result = makeExpressionFunctionCall(
         function=makeExpressionFunctionCreation(
             function_ref=ExpressionFunctionRef(
-                function_body=getDictUnpackingHelper(), source_ref=source_ref
+                function_body=_getDictUnpackingHelper(), source_ref=source_ref
             ),
             defaults=(),
             kw_defaults=None,
