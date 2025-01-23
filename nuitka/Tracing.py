@@ -322,7 +322,7 @@ class OurLogger(object):
             style=style,
         )
 
-    def _printFormatted(self, prefix, message, style, keep_format):
+    def _printFormatted(self, prefix, leader, message, style, keep_format):
         style = style or self.base_style
 
         if sys.stderr.isatty() and not keep_format:
@@ -330,19 +330,30 @@ class OurLogger(object):
         else:
             width = 10000
 
+        if leader is not None:
+            message_prefix = prefix + "  "
+        else:
+            message_prefix = prefix
+
         formatted_message = textwrap.fill(
             message,
             width=width,
-            initial_indent=prefix,
-            subsequent_indent=prefix,
+            initial_indent=message_prefix,
+            subsequent_indent=message_prefix,
             break_on_hyphens=False,
             break_long_words=False,
             expand_tabs=False,
             replace_whitespace=False,
         )
+
+        if leader is not None:
+            formatted_message = prefix + leader + "\n" + formatted_message
+
         self.my_print(formatted_message, style=style, file=sys.stderr)
 
-    def warning(self, message, style="yellow", mnemonic=None, keep_format=False):
+    def warning(
+        self, message, style="yellow", mnemonic=None, keep_format=False, leader=None
+    ):
         if mnemonic is not None:
             from .Options import shallDisplayWarningMnemonic
 
@@ -355,7 +366,11 @@ class OurLogger(object):
             prefix = "WARNING: "
 
         self._printFormatted(
-            prefix=prefix, message=message, style=style, keep_format=keep_format
+            prefix=prefix,
+            leader=leader,
+            message=message,
+            style=style,
+            keep_format=keep_format,
         )
 
         if mnemonic is not None:
@@ -402,7 +417,15 @@ class OurLogger(object):
     def isQuiet(self):
         return is_quiet or self.is_quiet
 
-    def info(self, message, style=None, mnemonic=None, prefix=None, keep_format=False):
+    def info(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        prefix=None,
+        keep_format=False,
+        leader=None,
+    ):
         if not self.isQuiet():
             self._printFormatted(
                 prefix=(
@@ -410,6 +433,7 @@ class OurLogger(object):
                     if prefix is None
                     else "%s:%s: " % (self.name, prefix)
                 ),
+                leader=leader,
                 message=message,
                 style=style,
                 keep_format=keep_format,
