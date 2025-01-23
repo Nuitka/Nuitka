@@ -450,13 +450,27 @@ Error, the Python from Windows app store is not supported.""",
         Tracing.setQuiet()
 
     def _quoteArg(arg):
-        if " " in arg:
-            if "=" in arg and arg.startswith("--"):
+        if arg.startswith("--"):
+            # Handle values too, TODO: Maybe know what arguments use paths at
+            # all and not rely on file existence checks.
+            if "=" in arg:
                 arg_name, value = arg.split("=", 1)
 
-                return '%s="%s"' % (arg_name, value)
+                if os.path.exists(value):
+                    value = getReportPath(value)
+
+                if " " in value:
+                    value = '"%s"' % value
+
+                return "%s=%s" % (arg_name, value)
             else:
-                return '"%s"' % arg
+                return arg
+        elif os.path.exists(arg):
+            arg = getReportPath(arg)
+            if " " in arg:
+                arg = '"%s"' % arg
+
+            return arg
         else:
             return arg
 
@@ -465,8 +479,8 @@ Error, the Python from Windows app store is not supported.""",
 
     if not options.version:
         Tracing.options_logger.info(
-            "Used command line options: %s"
-            % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
+            leader="Used command line options:",
+            message=" ".join(_quoteArg(arg) for arg in sys.argv[1:]),
         )
 
     if (
