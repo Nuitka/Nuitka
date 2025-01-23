@@ -1223,6 +1223,10 @@ int main(int argc, char **argv) {
     inheritAttachedConsole();
 #endif
 
+#if defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) && defined(_WIN32)
+    SetCurrentProcessExplicitAppUserModelID(L"" NUITKA_COMPANY_NAME L"." NUITKA_PRODUCT_NAME);
+#endif
+
 #ifdef _NUITKA_MACOS_BUNDLE
     {
         char *current_dir = getcwd(NULL, -1);
