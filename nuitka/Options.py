@@ -2129,6 +2129,9 @@ def _checkIconPaths(icon_paths):
 
 def getWindowsIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico``"""
+    if not isWin32Windows():
+        return ()
+
     return _checkIconPaths(options.windows_icon_path)
 
 
@@ -2162,6 +2165,9 @@ def getMacOSIconPaths():
 
 def getWindowsIconExecutablePath():
     """*str* or *None* if not given, value of ``--windows-icon-from-exe``"""
+    if not isWin32Windows():
+        return None
+
     return options.icon_exe_path
 
 
