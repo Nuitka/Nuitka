@@ -338,11 +338,11 @@ def parsePyIFile(module_name, package_name, pyi_filename):
 
             continue
 
-        if line.startswith('"""'):
+        if line.startswith('"""') and not line.endswith('"""'):
             in_quote = '"""'
             continue
 
-        if line.startswith("'''"):
+        if line.startswith("'''") and not line.endswith("'''"):
             in_quote = "'''"
             continue
 
