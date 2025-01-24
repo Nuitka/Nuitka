@@ -53,9 +53,9 @@ jobs:
           python -m nuitka --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
       - name: Archive compilation reports for empty modules
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: compilation-reports
+          name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
 
@@ -139,8 +139,15 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --mode=module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --report=compilation-report-exe.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+
+      - name: Archive compilation reports for empty modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
+          path: |
+            *.xml
 
       - name: Run Nuitka test suite
         run: |
@@ -178,8 +185,15 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --mode=module --show-scons --run --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
-          python -m nuitka --show-scons --run tests\basics\EmptyModuleTest.py
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
+          python -m nuitka --show-scons --run --report=compilation-report-exe.xml tests\basics\EmptyModuleTest.py
+
+      - name: Archive compilation reports for empty modules
+        uses: actions/upload-artifact@v4
+        with:
+          name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
+          path: |
+            *.xml
 
       - name: Run Nuitka test suite
         run: |
