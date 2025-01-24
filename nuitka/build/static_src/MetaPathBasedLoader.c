@@ -900,11 +900,11 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
         Py_DECREF(path_list);
 
-        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
-
         Nuitka_SetModule(full_name_obj, module);
         Py_DECREF(full_name_obj);
 
+#if !defined(_NUITKA_EXPERIMENTAL_NEW_EXTENSION_MODULE_LOADING)
+        SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
         res = PyModule_ExecDef(module, def);
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_False);
 
@@ -918,6 +918,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         if (isVerbose()) {
             PySys_WriteStderr("import %s # executed module def\n", full_name);
         }
+#endif
 
         CHECK_OBJECT(module);
 
@@ -1627,17 +1628,51 @@ static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    PyObject *module_name = PyObject_GetAttr(spec, const_str_plain_name);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *module_name = LOOKUP_ATTRIBUTE(tstate, spec, const_str_plain_name);
 
     if (unlikely(module_name == NULL)) {
         return NULL;
     }
 
-    if (isVerbose()) {
-        PySys_WriteStderr("import %s # created module\n", Nuitka_String_AsString(module_name));
+    // Check if module name is a proper string.
+    char const *name = Nuitka_String_AsString(module_name);
+    if (unlikely(name == NULL)) {
+        Py_DECREF(module_name);
+        return NULL;
     }
 
-    PyObject *result = PyModule_NewObject(module_name);
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # created module\n", name);
+    }
+
+    // During spec creation, we have populated the dictionary with a filename to load from
+    // for extension modules that were found installed in the system and below our package.
+#if !defined(_NUITKA_STANDALONE) && defined(_NUITKA_EXPERIMENTAL_NEW_EXTENSION_MODULE_LOADING)
+    if (installed_extension_modules != NULL) {
+        PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
+
+        if (extension_module_filename != NULL) {
+            Py_DECREF(module_name);
+            return callIntoInstalledExtensionModule(tstate, module_name, extension_module_filename);
+        }
+    }
+#endif
+
+#if defined(_NUITKA_EXPERIMENTAL_NEW_EXTENSION_MODULE_LOADING)
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(name);
+#else
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = NULL;
+#endif
+
+    PyObject *result;
+
+    if ((entry != NULL) && ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0)) {
+        result = _EXECUTE_EMBEDDED_MODULE(tstate, NULL, module_name, name);
+    } else {
+        result = PyModule_NewObject(module_name);
+    }
 
     Py_DECREF(module_name);
 
@@ -1655,18 +1690,28 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         return NULL;
     }
 
-    PyObject *module_name = PyObject_GetAttr(module, const_str_plain___name__);
-    CHECK_OBJECT(module_name);
+    PyThreadState *tstate = PyThreadState_GET();
 
-    if (isVerbose()) {
-        PySys_WriteStderr("import %s # execute module\n", Nuitka_String_AsString(module_name));
+    PyObject *module_name = LOOKUP_ATTRIBUTE(tstate, module, const_str_plain___name__);
+
+    if (unlikely(module_name == NULL)) {
+        return NULL;
     }
 
-    PyThreadState *tstate = PyThreadState_GET();
+    // Check if module name is a proper string.
+    char const *name = Nuitka_String_AsString(module_name);
+    if (unlikely(name == NULL)) {
+        Py_DECREF(module_name);
+        return NULL;
+    }
+
+    if (isVerbose()) {
+        PySys_WriteStderr("import %s # execute module\n", name);
+    }
 
     // During spec creation, we have populated the dictionary with a filename to load from
     // for extension modules that were found installed in the system and below our package.
-#ifndef _NUITKA_STANDALONE
+#if !defined(_NUITKA_STANDALONE) && !defined(_NUITKA_EXPERIMENTAL_NEW_EXTENSION_MODULE_LOADING)
     if (installed_extension_modules != NULL) {
         PyObject *extension_module_filename = DICT_GET_ITEM0(tstate, installed_extension_modules, module_name);
 
@@ -1683,6 +1728,40 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         }
     }
 #endif
+
+#if defined(_NUITKA_EXPERIMENTAL_NEW_EXTENSION_MODULE_LOADING)
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(name);
+#else
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = NULL;
+#endif
+
+    if ((entry != NULL) && ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0)) {
+        if (unlikely(!PyModule_Check(module))) {
+            return module;
+        }
+
+        PyModuleDef *def = PyModule_GetDef(module);
+        if (def == NULL) {
+            return module;
+        }
+
+        void *state = PyModule_GetState(module);
+        if (state != NULL) {
+            return module;
+        }
+
+        res = PyModule_ExecDef(module, def);
+
+        if (unlikely(res == -1)) {
+            return NULL;
+        }
+
+        CHECK_OBJECT(module);
+
+        return module;
+    }
+
+    Py_DECREF(module_name);
 
     return EXECUTE_EMBEDDED_MODULE(tstate, module);
 }
