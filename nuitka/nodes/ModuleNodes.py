@@ -1055,11 +1055,17 @@ class PythonExtensionModule(PythonModuleBase):
         """Read the .pyi file if present and scan for dependencies."""
 
         if self.used_modules is None:
+            # TODO: Make this a locatePyIFilename function instead.
             pyi_filename = self._getPyIFilename()
 
             if pyi_filename is not None:
                 pyi_deps = parsePyIFile(
                     module_name=self.getFullName(),
+                    package_name=(
+                        self.getFullName()
+                        if self.is_package
+                        else self.getFullName().getPackageName()
+                    ),
                     pyi_filename=pyi_filename,
                 )
 
