@@ -20,7 +20,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.Importing import getPackageDirFilename
+from nuitka.utils.FileOperations import switchFilenameExtension
+from nuitka.utils.Importing import (
+    getPackageDirFilename,
+    getSharedLibrarySuffixes,
+)
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ChildrenHavingMixins import (
@@ -1040,14 +1044,18 @@ class PythonExtensionModule(PythonModuleBase):
         """Get Python type description filename."""
 
         path = self.getFilename()
-        filename = os.path.basename(path)
-        dirname = os.path.dirname(path)
 
-        for suffix in (".pyi", ".py"):
-            candidate = os.path.join(dirname, filename.split(".")[0]) + suffix
+        for extension_module_suffix in getSharedLibrarySuffixes():
+            if path.endswith(extension_module_suffix):
+                for pyi_suffix in (".pyi", ".py"):
+                    candidate = switchFilenameExtension(
+                        path=path,
+                        old_extension=extension_module_suffix,
+                        new_extension=pyi_suffix,
+                    )
 
-            if os.path.exists(candidate):
-                return candidate
+                    if os.path.exists(candidate):
+                        return candidate
 
         return None
 
