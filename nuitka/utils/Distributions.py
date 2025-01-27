@@ -133,10 +133,15 @@ def _readChunks(file_handle):
 def _makeRecordData(filename):
     h = hashlib.sha256()
     length = 0
-    with open(filename, "rb") as file_handle:
-        for block in _readChunks(file_handle):
-            length += len(block)
-            h.update(block)
+
+    try:
+        with open(filename, "rb") as file_handle:
+            for block in _readChunks(file_handle):
+                length += len(block)
+                h.update(block)
+    except IOError:
+        pass
+
     digest = "sha256=" + base64.urlsafe_b64encode(h.digest()).decode("latin1").rstrip(
         "="
     )

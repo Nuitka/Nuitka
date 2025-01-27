@@ -120,8 +120,8 @@ Check if it would build, without uploading.
             os.system(
                 "twine upload --username=__token__ --password=%s %s"
                 % (
-                    dist_filenames[0],
                     options.token,
+                    dist_filenames[0],
                 )
             )
             == 0

@@ -129,6 +129,23 @@ def getBranchCategory(branch_name):
     return category
 
 
+def _makeDistFilenameBase(nuitka_version):
+    if nuitka_version[3] is False:
+        return "dist/Nuitka-%d.%drc%d" % (
+            nuitka_version[0],
+            nuitka_version[1],
+            nuitka_version[-1],
+        )
+    else:
+        if nuitka_version[2] == 0:
+            return "dist/Nuitka-%d.%d" % (
+                nuitka_version[0],
+                nuitka_version[1],
+            )
+        else:
+            return "dist/Nuitka-%d.%d.%d" % nuitka_version[:3]
+
+
 def makeNuitkaSourceDistribution(formats=None, sign=True):
     # spell-checker: ignore bztar,gztar
     if formats is None:
@@ -166,15 +183,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     nuitka_version = getNuitkaVersionTuple()
 
-    if nuitka_version[3] is False:
-        filename = "dist/Nuitka-%d.%drc%d.tar.gz" % (
-            nuitka_version[0],
-            nuitka_version[1],
-            nuitka_version[-1],
-        )
-    else:
-        filename = "dist/Nuitka-%d.%d.%d.tar.gz" % nuitka_version[:3]
-
+    filename = _makeDistFilenameBase(nuitka_version) + ".tar.gz"
     assert os.path.exists(filename), filename
 
     # Delete requires.txt as it confuses poetry and potentially other tools
@@ -191,14 +200,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
     filenames.append(filename)
 
-    if nuitka_version[3] is False:
-        filename = "dist/Nuitka-%d.%drc%d.tar.bz2" % (
-            nuitka_version[0],
-            nuitka_version[1],
-            nuitka_version[-1],
-        )
-    else:
-        filename = "dist/Nuitka-%d.%d.%d.tar.bz2" % nuitka_version[:3]
+    filename = _makeDistFilenameBase(nuitka_version) + ".tar.bz2"
 
     if os.path.exists(filename):
         # Delete requires.txt as it confuses poetry and potentially other tools,
@@ -213,14 +215,7 @@ def makeNuitkaSourceDistribution(formats=None, sign=True):
 
         filenames.append(filename)
 
-    if nuitka_version[3] is False:
-        filename = "dist/Nuitka-%d.%drc%d.zip" % (
-            nuitka_version[0],
-            nuitka_version[1],
-            nuitka_version[-1],
-        )
-    else:
-        filename = "dist/Nuitka-%d.%d.%d.zip" % nuitka_version[:3]
+    filename = _makeDistFilenameBase(nuitka_version) + ".zip"
 
     if os.path.exists(filename):
         # Delete requires.txt as it confuses poetry and potentially other tools

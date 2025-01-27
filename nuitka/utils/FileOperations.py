@@ -690,6 +690,12 @@ def changeFilenameExtension(path, extension):
     return os.path.splitext(path)[0] + extension
 
 
+def switchFilenameExtension(path, old_extension, new_extension):
+    """Switch the filename extension specified to another one."""
+    assert path.endswith(old_extension)
+    return path[: -len(old_extension)] + new_extension
+
+
 def hasFilenameExtension(path, extensions):
     """Has a filename one of the given extensions.
 

@@ -34,7 +34,7 @@ void inheritAttachedConsole(void) {
     if (needs_stdin_attaching) {
         SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
 
-        FILE_HANDLE win_handle = CreateFileW(L"CONIN$", GENERIC_WRITE, FILE_SHARE_READ, &security_attributes,
+        FILE_HANDLE win_handle = CreateFileW(L"CONIN$", GENERIC_READ, FILE_SHARE_READ, &security_attributes,
                                              CREATE_ALWAYS, FILE_FLAG_NO_BUFFERING, NULL);
 
         FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);

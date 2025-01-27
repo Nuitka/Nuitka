@@ -28,7 +28,12 @@ from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.Options import getFileReferenceMode
 from nuitka.PythonVersions import python_version
 
-from .TreeHelpers import makeStatementsSequenceFromStatement
+from .FutureSpecState import popFutureSpec, pushFutureSpec
+from .TreeHelpers import (
+    buildNode,
+    makeStatementsSequenceFromStatement,
+    parseSourceCodeToAst,
+)
 from .VariableClosure import completeVariableClosures
 
 
@@ -51,7 +56,7 @@ def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     )
 
 
-def getNameSpacePathExpression(package, source_ref):
+def _getNameSpacePathExpression(package, source_ref):
     """Create the __path__ expression for a package."""
 
     reference_mode = getFileReferenceMode()
@@ -135,12 +140,29 @@ def createPathAssignment(package, source_ref):
     return StatementAssignmentVariableName(
         provider=package,
         variable_name="__path__",
-        source=getNameSpacePathExpression(package=package, source_ref=source_ref),
+        source=_getNameSpacePathExpression(package=package, source_ref=source_ref),
         source_ref=source_ref,
     )
 
 
+def _getPathFinderFunction(package, source_ref):
+    # TODO: This could be a shared helper function, but we currently cannot do these.
+    ast_tree = parseSourceCodeToAst(
+        source_code="_path_finder = lambda *args, **kw: None",
+        module_name=package.getFullName(),
+        filename=source_ref.getFilename(),
+        line_offset=0,
+    )
+
+    pushFutureSpec(package.getFullName())
+    statement = buildNode(package, ast_tree.body[0], source_ref)
+    popFutureSpec()
+
+    return statement.subnode_source
+
+
 def createPython3NamespacePath(package, source_ref):
+
     module_name = (
         "_frozen_importlib" if python_version < 0x350 else "_frozen_importlib_external"
     )
@@ -167,8 +189,8 @@ def createPython3NamespacePath(package, source_ref):
                         user_provided=True,
                         source_ref=source_ref,
                     ),
-                    getNameSpacePathExpression(package=package, source_ref=source_ref),
-                    makeConstantRefNode(constant=None, source_ref=source_ref),
+                    _getNameSpacePathExpression(package=package, source_ref=source_ref),
+                    _getPathFinderFunction(package=package, source_ref=source_ref),
                 ),
                 user_provided=True,
                 source_ref=source_ref,

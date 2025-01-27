@@ -310,7 +310,7 @@ def writeSourceCode(filename, source_code):
     putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
 
 
-def parsePyIFile(module_name, pyi_filename):
+def parsePyIFile(module_name, package_name, pyi_filename):
     """Parse a pyi file for the given module name and extract imports made."""
 
     # Complex stuff, pylint: disable=too-many-branches,too-many-statements
@@ -338,11 +338,11 @@ def parsePyIFile(module_name, pyi_filename):
 
             continue
 
-        if line.startswith('"""'):
+        if line.startswith('"""') and not line.endswith('"""'):
             in_quote = '"""'
             continue
 
-        if line.startswith("'''"):
+        if line.startswith("'''") and not line.endswith("'''"):
             in_quote = "'''"
             continue
 
@@ -364,7 +364,7 @@ def parsePyIFile(module_name, pyi_filename):
                     continue
 
                 if origin_name == ".":
-                    origin_name = module_name
+                    origin_name = package_name
                 else:
                     dot_count = 0
                     while origin_name.startswith("."):
@@ -373,11 +373,11 @@ def parsePyIFile(module_name, pyi_filename):
 
                     if dot_count > 0:
                         if origin_name:
-                            origin_name = module_name.getRelativePackageName(
+                            origin_name = package_name.getRelativePackageName(
                                 level=dot_count - 1
                             ).getChildNamed(origin_name)
                         else:
-                            origin_name = module_name.getRelativePackageName(
+                            origin_name = package_name.getRelativePackageName(
                                 level=dot_count - 1
                             )
 

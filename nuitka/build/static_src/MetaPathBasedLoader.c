@@ -1437,14 +1437,19 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
 
     char filename_buffer[1024];
 
-    char const *basename = strrchr(entry->name, '.');
-    if (basename == NULL) {
-        basename = entry->name;
+    if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
+        copyStringSafe(filename_buffer, "__init__", sizeof(filename_buffer));
     } else {
-        basename += 1;
-    }
+        char const *basename = strrchr(entry->name, '.');
 
-    copyStringSafe(filename_buffer, basename, sizeof(filename_buffer));
+        if (basename == NULL) {
+            basename = entry->name;
+        } else {
+            basename += 1;
+        }
+
+        copyStringSafe(filename_buffer, basename, sizeof(filename_buffer));
+    }
 
     if ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0) {
 #if defined(_WIN32)
@@ -1452,9 +1457,6 @@ static PyObject *getModuleFileValue(PyThreadState *tstate, struct Nuitka_MetaPat
 #else
         appendStringSafe(filename_buffer, ".so", sizeof(filename_buffer));
 #endif
-    } else if ((entry->flags & NUITKA_PACKAGE_FLAG) != 0) {
-        appendCharSafe(filename_buffer, SEP, sizeof(filename_buffer));
-        appendStringSafe(filename_buffer, "__init__.py", sizeof(filename_buffer));
     } else {
         appendStringSafe(filename_buffer, ".py", sizeof(filename_buffer));
     }

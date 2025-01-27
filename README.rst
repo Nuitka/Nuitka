@@ -877,10 +877,10 @@ This is an example workflow that builds on all 3 OSes
             # many more Nuitka options available, see action doc, but it's best
             # to use nuitka-project: options in your code, so e.g. you can make
             # a difference for macOS and create an app bundle there.
-            onefile: true
+            mode: onefile
 
          - name: Upload Artifacts
-         uses: actions/upload-artifact@v3
+         uses: actions/upload-artifact@v4
          with:
             name: ${{ runner.os }} Build
             path: | # match what's created for the 3 OSes
