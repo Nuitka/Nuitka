@@ -148,8 +148,11 @@ def _parseOtoolListingOutput(output):
 def _getNonVersionedDllFilenames2(filename):
     yield filename
 
-    if getArchitecture() == "arm64" and filename.endswith(".dylib"):
-        yield filename[:-6] + "_arm64.dylib"
+    if filename.endswith(".dylib"):
+        if getArchitecture() == "arm64":
+            yield filename[:-6] + "_arm64.dylib"
+        else:
+            yield filename[:-6] + "_x86_64.dylib"
 
     match = re.match(r"^(.*?)(\.\d+)+\.dylib$", filename)
 
@@ -161,6 +164,8 @@ def _getNonVersionedDllFilenames2(filename):
         # examples to be sure they are covered with tests.
         if getArchitecture() == "arm64":
             yield match.group(1) + "_arm64.dylib"
+        else:
+            yield match.group(1) + "_x86_64.dylib"
 
     if filename.endswith(".so"):
         yield changeFilenameExtension(filename, ".dylib")
