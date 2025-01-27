@@ -90,6 +90,7 @@ def detectBinaryPathDLLsWin32(
     use_cache,
     update_cache,
 ):
+    # For ARM64 and on user request, we can use "pefile" for dependency detection.
     dependency_tool = (
         "pefile"
         if (getArchitecture() == "arm64" or isExperimental("force-dependencies-pefile"))

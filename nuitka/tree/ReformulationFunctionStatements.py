@@ -54,8 +54,8 @@ from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
+from .FutureSpecState import getFutureSpec
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from .ReformulationImportStatements import getFutureSpec
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
     makeTryFinallyStatement,

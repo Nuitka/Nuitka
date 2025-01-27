@@ -36,7 +36,7 @@ def createMultidistMainSourceCode():
     source_code = renderTemplateFromString(
         r"""
 import sys, re, os
-main_basename = re.sub(r'(.pyw?|\.exe|\.bin)?$', '', os.path.normcase(os.path.basename(sys.argv[0])))
+main_basename = re.sub(r'(.pyw?|\.exe|\.bin)?$', '', os.path.normcase(os.path.basename(__compiled__.original_argv0)))
 {% for main_module_name, main_basename in zip(main_module_names, main_basenames) %}
 if main_basename == "{{main_basename}}":
     __import__("{{main_module_name.asString()}}")
