@@ -512,6 +512,12 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+- module-name: 'blib2to3' # checksum: a54cab2a
+  data-files:
+    - patterns:
+        - 'Grammar.txt'
+        - 'PatternGrammar.txt'
+
 - module-name: 'bokeh' # checksum: 20c33794
   data-files:
     - dirs:

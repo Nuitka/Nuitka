@@ -12,7 +12,6 @@ source code comments with Developer Manual sections.
 
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
@@ -25,10 +24,10 @@ from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
+from .FutureSpecState import enableFutureFeature, getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
@@ -66,58 +65,12 @@ from __future__ imports must occur at the beginning of the file""",
     for import_desc in node.names:
         object_name, _local_name = import_desc.name, import_desc.asname
 
-        _enableFutureFeature(node=node, object_name=object_name, source_ref=source_ref)
+        enableFutureFeature(node=node, object_name=object_name, source_ref=source_ref)
 
     # Remember it for checks to be applied once module is complete, e.g. if
     # they are all at module start.
     node.source_ref = source_ref
     _future_import_nodes.append(node)
-
-
-_future_specs = []
-
-
-def pushFutureSpec(module_name):
-    _future_specs.append(
-        FutureSpec(use_annotations=Plugins.decideAnnotations(module_name))
-    )
-
-
-def getFutureSpec():
-    return _future_specs[-1]
-
-
-def popFutureSpec():
-    del _future_specs[-1]
-
-
-def _enableFutureFeature(node, object_name, source_ref):
-    future_spec = _future_specs[-1]
-
-    if object_name == "unicode_literals":
-        future_spec.enableUnicodeLiterals()
-    elif object_name == "absolute_import":
-        future_spec.enableAbsoluteImport()
-    elif object_name == "division":
-        future_spec.enableFutureDivision()
-    elif object_name == "print_function":
-        future_spec.enableFuturePrint()
-    elif object_name == "barry_as_FLUFL" and python_version >= 0x300:
-        future_spec.enableBarry()
-    elif object_name == "generator_stop":
-        future_spec.enableGeneratorStop()
-    elif object_name == "braces":
-        raiseSyntaxError("not a chance", source_ref.atColumnNumber(node.col_offset))
-    elif object_name in ("nested_scopes", "generators", "with_statement"):
-        # These are enabled in all cases already.
-        pass
-    elif object_name == "annotations" and python_version >= 0x370:
-        future_spec.enableFutureAnnotations()
-    else:
-        raiseSyntaxError(
-            "future feature %s is not defined" % object_name,
-            source_ref.atColumnNumber(node.col_offset),
-        )
 
 
 def _resolveImportModuleName(module_name):
@@ -142,7 +95,7 @@ def buildImportFromNode(provider, node, source_ref):
     # Use default level under some circumstances.
     if level == -1:
         level = None
-    elif level == 0 and not _future_specs[-1].isAbsoluteImport():
+    elif level == 0 and not getFutureSpec().isAbsoluteImport():
         level = None
 
     if level is not None:
@@ -311,7 +264,7 @@ def buildImportModulesNode(provider, node, source_ref):
         # imports.
         level = (
             makeConstantRefNode(0, source_ref, True)
-            if _future_specs[-1].isAbsoluteImport()
+            if getFutureSpec().isAbsoluteImport()
             else None
         )
 

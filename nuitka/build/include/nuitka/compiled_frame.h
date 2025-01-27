@@ -147,7 +147,7 @@ NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObjec
         // Still in use
         Py_REFCNT(frame_object) > 1 ||
 #if PYTHON_VERSION < 0x300
-        // Last used by another thread (TODO: Could just set it when re-using)
+        // Last used by another thread (TODO: Could just set it when reusing)
         frame_object->m_frame.f_tstate != PyThreadState_GET() ||
 #endif
         // Not currently linked.

@@ -481,7 +481,9 @@ class ImportlibMetadataDistributionCallMixin(object):
         # In module mode, we cannot predict if the distribution is the same or not
         # so lets not optimize this further and treat it as an unknown.
         if shallMakeModule():
-            return
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
 
         distribution_func = self._getImportlibMetadataModule().distribution
         PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError

@@ -1229,6 +1229,9 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
 
         values = self.subnode_values
 
+        for value in values:
+            value.onContentEscapes(trace_collection)
+
         # Ask for function for its cost.
         cost = function_body.getFunctionInlineCost(values)
 
@@ -1278,6 +1281,10 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces
+
+    def onContentEscapes(self, trace_collection):
+        for value in self.subnode_values:
+            value.onContentEscapes(trace_collection)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
