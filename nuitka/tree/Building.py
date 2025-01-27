@@ -138,6 +138,7 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import withNoSyntaxWarning
 
 from . import SyntaxErrors
+from .FutureSpecState import getFutureSpec, popFutureSpec, pushFutureSpec
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAnnAssignNode,
@@ -172,9 +173,6 @@ from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
     checkFutureImportsOnlyAtStart,
-    getFutureSpec,
-    popFutureSpec,
-    pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationMatchStatements import buildMatchNode

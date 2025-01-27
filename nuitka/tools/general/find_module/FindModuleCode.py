@@ -63,13 +63,16 @@ def editModuleCode(module_search_desc):
 
             candidate = module_search_desc
 
-            while not candidate.endswith(".dist") and candidate:
+            while not candidate.endswith((".dist", ".app")) and candidate:
                 candidate = os.path.dirname(candidate)
 
             if candidate:
                 module_name = relpath(module_search_desc, start=candidate).replace(
                     "/", "."
                 )
+
+                if module_name.startswith("Contents.MacOS."):
+                    module_name = module_name[15:]
             else:
                 module_name = None
     else:
