@@ -2819,14 +2819,27 @@
     - patterns:
         - 'usage.txt'
 
-- module-name: 'numba' # checksum: 9bea0dec
+- module-name: 'numba' # checksum: 95f3f759
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
+  variables:
+    # TODO: Limit this to the versions of numba doing it, eventually it will go
+    # away.
+    setup_code:
+      - 'from numba.core import config'
+    declarations:
+      'numba_legacy_type_system': 'str(getattr(config, "USE_LEGACY_TYPE_SYSTEM", 1) == 1)'
   anti-bloat:
     - description: 'remove numba testing reference'
       change_function:
         'test': 'un-callable'
+    - description: 'resolve numba legacy type config choice'
+      global_replacements:
+        'config.USE_LEGACY_TYPE_SYSTEM': 'get_variable("numba_legacy_type_system")'
+    - description: 'resolve numba legacy type config choice'
+      global_replacements_re:
+        '(_RedirectSubpackage\s*\(\s*.*?\s*"(numba.*?)"\s*\))': '\1; import \2'
   options:
     checks:
       - description: "Numba is not yet fully working with Nuitka standalone, try to use '--noinclude-numba-mode=nofollow', but it may fail."
