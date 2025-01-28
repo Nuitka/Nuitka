@@ -709,6 +709,22 @@ class %(class_name)s:
         ):
             self.no_follows[no_follow_pattern] = (config_of_module_name, description)
 
+    def _needsWarning(self, key):
+        if key in self.warnings_given:
+            return False
+
+        (
+            module_name,
+            using_module_name,
+            line_number,
+        ) = key
+
+        for parent_package in module_name.getParentPackageNames():
+            if (parent_package, using_module_name, line_number) in self.warnings_given:
+                return False
+
+        return True
+
     def onModuleRecursion(
         self,
         module_name,
@@ -776,7 +792,7 @@ class %(class_name)s:
                         source_ref.getLineNumber(),
                     )
 
-                    if key not in self.warnings_given:
+                    if self._needsWarning(key):
                         if handled_module_name == intended_module_name:
                             handled_module_name_desc = "'%s'" % handled_module_name
                         else:
