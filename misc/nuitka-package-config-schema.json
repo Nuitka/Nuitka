@@ -235,6 +235,24 @@
                                 "type": "string"
                             }
                         },
+                        "global_replacements_re": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
+                        "global_replacements": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
+                        "global_replacements_plain": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        },
                         "replacements_re": {
                             "type": "object",
                             "additionalProperties": {

@@ -87,7 +87,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     def _resolveImplicitImportsConfig(self, full_name, dependency):
         if "(" in dependency:
             value = self.evaluateExpression(
-                full_name=full_name,
+                config_module_name=full_name,
+                module_name=full_name,
                 expression=dependency,
                 config_name="depends value",
                 extra_context=None,
