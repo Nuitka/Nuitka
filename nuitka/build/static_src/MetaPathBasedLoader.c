@@ -2049,8 +2049,20 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader
 
                       global_loader);
 
-    // Register it as a sys.path_hook
+    // Our "sys.path_hooks" entry uses "os.path" to compare filenames, so we need
+    // to load it without.
+    PyThreadState *tstate = PyThreadState_GET();
+    IMPORT_HARD_OS_PATH(tstate);
+
+    // Register our loader as a "sys.path_hook" so it can provide for the paths.
+#if _NUITKA_STANDALONE_MODE
     LIST_INSERT_CONST(Nuitka_SysGetObject("path_hooks"), 0, PyObject_GetAttrString(global_loader, "sys_path_hook"));
+#else
+    // TODO: For accelerated mode the loader doesn't have the ability
+    // to handle "site-packages" on its own yet, and therefore we
+    // cannot have it take precedence.
+    LIST_APPEND1(Nuitka_SysGetObject("path_hooks"), PyObject_GetAttrString(global_loader, "sys_path_hook"));
+#endif
 }
 
 #if defined(_NUITKA_STANDALONE)
