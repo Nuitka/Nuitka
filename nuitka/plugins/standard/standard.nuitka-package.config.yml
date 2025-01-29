@@ -5885,6 +5885,19 @@
         'import dask.array as da': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'sklearn' # checksum: acc187b0
+  anti-bloat:
+    - description: 'pandas check should not cause usage'
+      no-auto-follow:
+        'pandas': 'ignore'
+    - description: 'matplotlib check should not cause usage'
+      no-auto-follow:
+        'matplotlib': 'ignore'
+    - description: 'remove pytest testing framework'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'sklearn._distributor_init' # checksum: 8597e1a6
   dlls:
     - from_filenames:
@@ -6067,15 +6080,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: 4aeaf812
+- module-name: 'sklearn.utils' # checksum: cecf5599
   data-files:
     - patterns:
         - '*.css'
-  anti-bloat:
-    - description: 'pandas and matplotlib checks should not cause usage'
-      no-auto-follow:
-        'pandas': 'ignore'
-        'matplotlib': 'ignore'
   implicit-imports:
     - depends:
         - 'sklearn.utils.arrayfuncs'
