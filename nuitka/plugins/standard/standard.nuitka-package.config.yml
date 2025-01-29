@@ -7924,31 +7924,29 @@
       change_function:
         'doctests': "'(lambda: None)'"
 
-- module-name: 'tqdm' # checksum: dac19097
+- module-name: 'tqdm' # checksum: f48e841d
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
         'tnrange': "'(lambda *args, **kwargs: None)'"
         'tqdm_notebook': "'(lambda *args, **kwargs: None)'"
       when: 'not use_ipython'
+    - description: 'remove matplotlib reference'
+      no-auto-follow:
+        'matplotlib': 'ignore'
+    - description: 'remove setuptools reference'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove pandas reference'
+      no-auto-follow:
+        'pandas': 'ignore'
 
 - module-name: 'tqdm.autonotebook' # checksum: 6ac095cb
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
-
-- module-name: 'tqdm.std' # checksum: 2e350129
-  anti-bloat:
-    - no-auto-follow:
-        'pandas': 'ignore'
-
-- module-name: 'tqdm.version' # checksum: 6b612ba4
-  anti-bloat:
-    - description: 'remove IPython reference'
-      no-auto-follow:
-        'setuptools_scm': 'ignore'
-      when: 'not use_setuptools'
 
 - module-name: 'tracerite' # checksum: fe3c0d7b
   data-files:
