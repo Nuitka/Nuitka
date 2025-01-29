@@ -4269,11 +4269,12 @@
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
-- module-name: 'pyarrow.dataset' # checksum: 37675d7a
+- module-name: 'pyarrow.dataset' # checksum: a16a7618
   implicit-imports:
     - depends:
         - 'pyarrow._acero'
         - 'pyarrow._json'
+        - 'pyarrow._csv'
 
 - module-name: 'pyarrow.lib' # checksum: 302be0c2
   implicit-imports:
