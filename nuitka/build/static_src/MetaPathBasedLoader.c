@@ -2050,7 +2050,7 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader
                       global_loader);
 
     // Register it as a sys.path_hook
-    LIST_APPEND1(Nuitka_SysGetObject("path_hooks"), PyObject_GetAttrString(global_loader, "sys_path_hook"));
+    LIST_INSERT_CONST(Nuitka_SysGetObject("path_hooks"), 0, PyObject_GetAttrString(global_loader, "sys_path_hook"));
 }
 
 #if defined(_NUITKA_STANDALONE)
