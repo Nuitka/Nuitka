@@ -2739,7 +2739,7 @@ def getModuleParameter(module_name, parameter_name):
 
 
 def getForcedRuntimeEnvironmentVariableValues():
-    """:returns: iterable (string, string) derived from ``----force-runtime-environment-variable``"""
+    """:returns: iterable (string, string) derived from ``--force-runtime-environment-variable``"""
 
     for forced_runtime_env_variables_spec in options.forced_runtime_env_variables:
         name, value = forced_runtime_env_variables_spec.split("=", 1)
