@@ -4,6 +4,7 @@
 """ Check and update Yaml checksum if possible."""
 
 import ast
+import re
 from posixpath import normpath
 
 from nuitka.utils.FileOperations import (
@@ -68,8 +69,17 @@ def _isNormalizedPosixPath(path):
     return path == normpath(path)
 
 
+def _checkRegexp(regexp, replacement):
+    try:
+        re.sub(regexp, replacement, "", re.S)
+    except re.error as e:
+        return False, e
+
+    return True, None
+
+
 def _checkValues(logger, filename, module_name, section, value):
-    # many checks of course, pylint: disable=too-many-branches
+    # many checks of course, pylint: disable=too-many-branches,too-many-statements
 
     result = True
 
@@ -93,7 +103,7 @@ def _checkValues(logger, filename, module_name, section, value):
                     )
                     result = False
 
-            if k == "replacements":
+            if k in ("replacements", "global_replacements"):
                 for m, d in v.items():
                     if m == "":
                         logger.info(
@@ -110,6 +120,27 @@ def _checkValues(logger, filename, module_name, section, value):
                             keep_format=True,
                         )
                         result = False
+
+            if k in ("replacements_re", "global_replacements_re"):
+                for m, d in v.items():
+                    if m == "":
+                        logger.info(
+                            """\
+%s: %s config value of %s %s cannot be empty."""
+                            % (filename, module_name, section, k)
+                        )
+                        result = False
+                    else:
+                        valid, error = _checkRegexp(m, d)
+                        if not valid:
+                            logger.info(
+                                """\
+%s: %s config value of '%s' '%s' contains invalid regexp \
+syntax in value '%s' leading to error '%s'"""
+                                % (filename, module_name, section, m, d, error),
+                                keep_format=True,
+                            )
+                            result = False
 
             if k == "replacements_plain":
                 for m, d in v.items():
