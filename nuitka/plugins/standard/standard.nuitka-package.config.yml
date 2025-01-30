@@ -3038,7 +3038,7 @@
     - depends:
         - 'secrets'
 
-- module-name: 'numpy.testing' # checksum: 4d5ed09e
+- module-name: 'numpy.testing' # checksum: 7958db4c
   anti-bloat:
     - description: 'remove numpy testing framework'
       module_code: |
@@ -3081,6 +3081,19 @@
           func = args[0]
           args = args[1:]
           with _assert_warns_context(warning_class, name=func.__name__):
+              return func(*args, **kwargs)
+
+        @contextmanager
+        def _assert_no_warnings_context(name=None):
+              yield
+
+        def assert_no_warnings(*args, **kwargs):
+          if not args:
+              return _assert_no_warnings_context()
+
+          func = args[0]
+          args = args[1:]
+          with _assert_no_warnings_context(name=func.__name__):
               return func(*args, **kwargs)
 
         def assert_(val, msg=''):
