@@ -1499,27 +1499,24 @@
     - dirs:
         - 'templates'
 
+- module-name: 'fontTools' # checksum: 5c1ede46
+  anti-bloat:
+    - description: 'remove doctest reference'
+      no-auto-follow:
+        'doctest': 'ignore'
+      when: 'not use_unittest'
+    - description: 'remove cython usage'
+      no-auto-follow:
+        'cython': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove argparse reference'
+      no-auto-follow:
+        'argparse': 'ignore'
+
 - module-name: 'fontTools.cu2qu.cu2qu' # checksum: 5673e8a6
   implicit-imports:
     - depends:
         - 'fontTools.cu2qu.errors'
-
-- module-name: 'fontTools.feaLib.lexer' # checksum: d92ed463
-  implicit-imports:
-    - depends:
-        - 'fontTools.feaLib.error'
-        - 'fontTools.feaLib.location'
-
-- module-name: 'fontTools.misc.bezierTools' # checksum: 7bee054
-  implicit-imports:
-    - depends:
-        - 'fontTools.misc.arrayTools'
-        - 'fontTools.misc.transform'
-
-- module-name: 'fontTools.qu2cu.qu2cu' # checksum: bdfe3a4f
-  implicit-imports:
-    - depends:
-        - 'fontTools.misc.bezierTools'
 
 - module-name: 'Foundation' # checksum: f269907b
   options:
