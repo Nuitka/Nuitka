@@ -648,7 +648,7 @@ NUITKA_MAY_BE_UNUSED static bool _CHECK_AND_CLEAR_EXCEPTION_OCCURRED(PyThreadSta
 
    Equivalent to if(PyErr_ExceptionMatches(PyExc_StopIteration) PyErr_Clear();
 
-   If error is raised by built-in function next() and an iterator’s __next__()
+   If error is raised by built-in function next() and an iterator's __next__()
    method to signal that there are no further items produced by the iterator then
    it resets the TSTATE to NULL and returns True else return False
 

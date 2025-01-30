@@ -1486,6 +1486,14 @@ Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PyS
         )
 
 
+class NuitkaPluginDetectorPyQt6Plugins(NuitkaPluginBase):
+    detector_for = NuitkaPluginPyQt6Plugins
+
+    def onModuleDiscovered(self, module):
+        if module.getFullName() == NuitkaPluginPyQt6Plugins.binding_name + ".QtCore":
+            self.warnUnusedPlugin("Standalone mode support and Qt plugins.")
+
+
 class NuitkaPluginNoQt(NuitkaPluginBase):
     """This is a plugins for suppression of all Qt binding plugins."""
 

@@ -320,7 +320,12 @@ def _addModulesToReport(root, report_input_data, diffable):
                     )
                 influence_xml_node.attrib["result"] = str(condition_result).lower()
             elif influence == "variable-used":
-                variable_name, condition_tags_used, variable_value = detail
+                (
+                    variable_name,
+                    condition_tags_used,
+                    variable_value,
+                    config_module_name,
+                ) = detail
 
                 influence_xml_node.attrib["variable"] = variable_name
                 if condition_tags_used:
@@ -328,6 +333,10 @@ def _addModulesToReport(root, report_input_data, diffable):
                         condition_tags_used
                     )
                 influence_xml_node.attrib["value"] = variable_value
+
+                if module_name != config_module_name:
+                    influence_xml_node.attrib["config_module"] = config_module_name
+
             elif influence == "parameter-used":
                 parameter_name, condition_tags_used, parameter_value = detail
 
