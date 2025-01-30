@@ -397,42 +397,69 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return dict(self.context_codes[context_code])
 
-    def _onModuleSourceCode(self, module_name, anti_bloat_config, source_code):
-        # Complex dealing with many cases, pylint: disable=too-many-branches
+    def _onModuleSourceCodeReplacement(
+        self,
+        config_module_name,
+        module_name,
+        source_code,
+        config_name,
+        extra_context,
+        replace_code,
+        replace_src,
+    ):
+        if replace_code:
+            replace_dst = self.evaluateExpression(
+                config_module_name=config_module_name,
+                module_name=module_name,
+                expression=replace_code,
+                config_name="module '%s' config '%s'"
+                % (config_module_name, config_name),
+                extra_context=extra_context,
+                single_value=True,
+            )
+        else:
+            replace_dst = ""
 
+        return source_code, source_code.replace(replace_src, replace_dst)
+
+    def _onModuleSourceCode(
+        self,
+        config_module_name,
+        module_name,
+        config_prefix,
+        anti_bloat_config,
+        source_code,
+    ):
+        # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals
         description = anti_bloat_config.get("description", "description not given")
 
         # To allow detection if it did anything.
         change_count = 0
 
         for replace_src, replace_code in (
-            anti_bloat_config.get("replacements") or {}
+            anti_bloat_config.get(config_prefix + "replacements") or {}
         ).items():
             # Avoid the eval, if the replace doesn't hit.
             if replace_src not in source_code:
                 continue
 
-            if replace_code:
-                replace_dst = self.evaluateExpression(
-                    full_name=module_name,
-                    expression=replace_code,
-                    config_name="module '%s' config 'replacements'" % module_name,
-                    extra_context=self._getContextCode(
-                        module_name=module_name, anti_bloat_config=anti_bloat_config
-                    ),
-                    single_value=True,
-                )
-            else:
-                replace_dst = ""
-
-            old = source_code
-            source_code = source_code.replace(replace_src, replace_dst)
+            old, source_code = self._onModuleSourceCodeReplacement(
+                config_module_name=config_module_name,
+                module_name=module_name,
+                source_code=source_code,
+                config_name=config_prefix + "replacements",
+                extra_context=self._getContextCode(
+                    module_name=module_name, anti_bloat_config=anti_bloat_config
+                ),
+                replace_src=replace_src,
+                replace_code=replace_code,
+            )
 
             if old != source_code:
                 change_count += 1
 
         for replace_src, replace_dst in (
-            anti_bloat_config.get("replacements_plain") or {}
+            anti_bloat_config.get(config_prefix + "replacements_plain") or {}
         ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
@@ -441,7 +468,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 change_count += 1
 
         for replace_src, replace_dst in (
-            anti_bloat_config.get("replacements_re") or {}
+            anti_bloat_config.get(config_prefix + "replacements_re") or {}
         ).items():
             old = source_code
             source_code = re.sub(replace_src, replace_dst, source_code, re.S)
@@ -451,31 +478,49 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             elif isExperimental("display-anti-bloat-mismatches"):
                 self.info("No match in %s no match %r" % (module_name, replace_src))
 
-        append_code = anti_bloat_config.get("append_result", "")
-        if type(append_code) in (tuple, list):
-            append_code = "\n".join(append_code)
+        # These have no global variants.
+        if config_prefix == "":
+            append_code = anti_bloat_config.get("append_result", "")
+            if type(append_code) in (tuple, list):
+                append_code = "\n".join(append_code)
 
-        if append_code:
-            append_result = self.evaluateExpression(
-                full_name=module_name,
-                expression=append_code,
-                config_name="module '%s' config 'append_code'" % module_name,
-                extra_context=self._getContextCode(
-                    module_name=module_name, anti_bloat_config=anti_bloat_config
-                ),
-                single_value=True,
-            )
+            if append_code:
+                append_result = self.evaluateExpression(
+                    config_module_name=module_name,
+                    module_name=module_name,
+                    expression=append_code,
+                    config_name="module '%s' config 'append_code'" % module_name,
+                    extra_context=self._getContextCode(
+                        module_name=module_name, anti_bloat_config=anti_bloat_config
+                    ),
+                    single_value=True,
+                )
 
-            source_code += "\n" + append_result
-            change_count += 1
+                source_code += "\n" + append_result
+                change_count += 1
 
-        append_plain = anti_bloat_config.get("append_plain", "")
-        if type(append_plain) in (tuple, list):
-            append_plain = "\n".join(append_plain)
+            append_plain = anti_bloat_config.get("append_plain", "")
+            if type(append_plain) in (tuple, list):
+                append_plain = "\n".join(append_plain)
 
-        if append_plain:
-            source_code += "\n" + append_plain
-            change_count += 1
+            if append_plain:
+                source_code += "\n" + append_plain
+                change_count += 1
+
+            module_code = anti_bloat_config.get("module_code", None)
+
+            if module_code is not None:
+                # Cannot be mixed.
+                assert not change_count
+
+                if self.show_changes:
+                    self.info(
+                        "Handling module '%s' with full replacement : %s."
+                        % (module_name.asString(), description)
+                    )
+
+                source_code = module_code
+                change_count = 1
 
         if change_count > 0 and self.show_changes:
             self.info(
@@ -483,31 +528,39 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                 % (module_name.asString(), change_count, description)
             )
 
-        module_code = anti_bloat_config.get("module_code", None)
-
-        if module_code is not None:
-            assert not change_count
-
-            if self.show_changes:
-                self.info(
-                    "Handling module '%s' with full replacement : %s."
-                    % (module_name.asString(), description)
-                )
-
-            source_code = module_code
-
         return source_code
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
-        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+        config_module_name = module_name
+        while True:
+            for anti_bloat_config in self.config.get(
+                config_module_name, section="anti-bloat"
             ):
-                source_code = self._onModuleSourceCode(
-                    module_name=module_name,
-                    anti_bloat_config=anti_bloat_config,
-                    source_code=source_code,
-                )
+                if self.evaluateCondition(
+                    full_name=config_module_name,
+                    condition=anti_bloat_config.get("when", "True"),
+                ):
+                    if config_module_name == module_name:
+                        source_code = self._onModuleSourceCode(
+                            config_module_name=config_module_name,
+                            module_name=module_name,
+                            anti_bloat_config=anti_bloat_config,
+                            config_prefix="",
+                            source_code=source_code,
+                        )
+
+                    source_code = self._onModuleSourceCode(
+                        config_module_name=config_module_name,
+                        module_name=module_name,
+                        anti_bloat_config=anti_bloat_config,
+                        config_prefix="global_",
+                        source_code=source_code,
+                    )
+
+            config_module_name = config_module_name.getPackageName()
+
+            if not config_module_name:
+                break
 
         return source_code
 
@@ -526,7 +579,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             return False
 
         replacement = self.evaluateExpression(
-            full_name=module_name,
+            config_module_name=module_name,
+            module_name=module_name,
             expression=replace_code,
             config_name="module '%s' config 'change_function' of '%s'"
             % (module_name, function_name),
@@ -594,7 +648,8 @@ class %(class_name)s:
             return False
 
         replacement = self.evaluateExpression(
-            full_name=module_name,
+            config_module_name=module_name,
+            module_name=module_name,
             expression=replace_code,
             config_name="module '%s' config 'change_class' of '%s'"
             % (module_name, class_name),
@@ -709,6 +764,22 @@ class %(class_name)s:
         ):
             self.no_follows[no_follow_pattern] = (config_of_module_name, description)
 
+    def _needsWarning(self, key):
+        if key in self.warnings_given:
+            return False
+
+        (
+            module_name,
+            using_module_name,
+            line_number,
+        ) = key
+
+        for parent_package in module_name.getParentPackageNames():
+            if (parent_package, using_module_name, line_number) in self.warnings_given:
+                return False
+
+        return True
+
     def onModuleRecursion(
         self,
         module_name,
@@ -776,7 +847,7 @@ class %(class_name)s:
                         source_ref.getLineNumber(),
                     )
 
-                    if key not in self.warnings_given:
+                    if self._needsWarning(key):
                         if handled_module_name == intended_module_name:
                             handled_module_name_desc = "'%s'" % handled_module_name
                         else:

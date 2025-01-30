@@ -312,8 +312,8 @@ def addIncludedDataFile(included_datafile):
         ) or isFilenameBelowPath(
             path=external_datafile_pattern, filename=included_datafile.dest_path
         ):
+            included_datafile.tags.clear()
             included_datafile.tags.add("inhibit")
-            included_datafile.tags.remove("copy")
 
             return
 

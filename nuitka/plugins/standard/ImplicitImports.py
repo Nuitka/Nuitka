@@ -87,7 +87,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     def _resolveImplicitImportsConfig(self, full_name, dependency):
         if "(" in dependency:
             value = self.evaluateExpression(
-                full_name=full_name,
+                config_module_name=full_name,
+                module_name=full_name,
                 expression=dependency,
                 config_name="depends value",
                 extra_context=None,
@@ -418,7 +419,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
             # Special handling for huggingface that uses the source code variant
             # of lazy module. spell-checker: ignore huggingface
             if (
-                "__getattr__, __dir__, __all__ = _attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
+                "_attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
                 in source_code
             ):
                 huggingface_hub_lazy_loader_info = self.queryRuntimeInformationSingle(

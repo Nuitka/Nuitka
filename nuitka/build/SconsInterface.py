@@ -307,7 +307,7 @@ import subprocess
 
 exit_code = subprocess.call(
     %(scons_command)r,
-    env={%(env)s}
+    env={%(env)s},
     shell=False
 )"""
         % {
@@ -339,7 +339,7 @@ cd "${0%/*}"
         contents="""\
 %(script_prelude)s
 
-'%(scons_python)s' '%(scons_debug_script_name)s'
+"%(scons_python)s" "%(scons_debug_script_name)s"
 """
         % {
             "script_prelude": script_prelude,

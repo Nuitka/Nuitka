@@ -1499,27 +1499,24 @@
     - dirs:
         - 'templates'
 
+- module-name: 'fontTools' # checksum: 5c1ede46
+  anti-bloat:
+    - description: 'remove doctest reference'
+      no-auto-follow:
+        'doctest': 'ignore'
+      when: 'not use_unittest'
+    - description: 'remove cython usage'
+      no-auto-follow:
+        'cython': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove argparse reference'
+      no-auto-follow:
+        'argparse': 'ignore'
+
 - module-name: 'fontTools.cu2qu.cu2qu' # checksum: 5673e8a6
   implicit-imports:
     - depends:
         - 'fontTools.cu2qu.errors'
-
-- module-name: 'fontTools.feaLib.lexer' # checksum: d92ed463
-  implicit-imports:
-    - depends:
-        - 'fontTools.feaLib.error'
-        - 'fontTools.feaLib.location'
-
-- module-name: 'fontTools.misc.bezierTools' # checksum: 7bee054
-  implicit-imports:
-    - depends:
-        - 'fontTools.misc.arrayTools'
-        - 'fontTools.misc.transform'
-
-- module-name: 'fontTools.qu2cu.qu2cu' # checksum: bdfe3a4f
-  implicit-imports:
-    - depends:
-        - 'fontTools.misc.bezierTools'
 
 - module-name: 'Foundation' # checksum: f269907b
   options:
@@ -2819,14 +2816,27 @@
     - patterns:
         - 'usage.txt'
 
-- module-name: 'numba' # checksum: 9bea0dec
+- module-name: 'numba' # checksum: 95f3f759
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
+  variables:
+    # TODO: Limit this to the versions of numba doing it, eventually it will go
+    # away.
+    setup_code:
+      - 'from numba.core import config'
+    declarations:
+      'numba_legacy_type_system': 'str(getattr(config, "USE_LEGACY_TYPE_SYSTEM", 1) == 1)'
   anti-bloat:
     - description: 'remove numba testing reference'
       change_function:
         'test': 'un-callable'
+    - description: 'resolve numba legacy type config choice'
+      global_replacements:
+        'config.USE_LEGACY_TYPE_SYSTEM': 'get_variable("numba_legacy_type_system")'
+    - description: 'resolve numba legacy type config choice'
+      global_replacements_re:
+        '(_RedirectSubpackage\s*\(\s*.*?\s*"(numba.*?)"\s*\))': '\1; import \2'
   options:
     checks:
       - description: "Numba is not yet fully working with Nuitka standalone, try to use '--noinclude-numba-mode=nofollow', but it may fail."
@@ -3028,7 +3038,7 @@
     - depends:
         - 'secrets'
 
-- module-name: 'numpy.testing' # checksum: 4d5ed09e
+- module-name: 'numpy.testing' # checksum: 7958db4c
   anti-bloat:
     - description: 'remove numpy testing framework'
       module_code: |
@@ -3071,6 +3081,19 @@
           func = args[0]
           args = args[1:]
           with _assert_warns_context(warning_class, name=func.__name__):
+              return func(*args, **kwargs)
+
+        @contextmanager
+        def _assert_no_warnings_context(name=None):
+              yield
+
+        def assert_no_warnings(*args, **kwargs):
+          if not args:
+              return _assert_no_warnings_context()
+
+          func = args[0]
+          args = args[1:]
+          with _assert_no_warnings_context(name=func.__name__):
               return func(*args, **kwargs)
 
         def assert_(val, msg=''):
@@ -4256,11 +4279,12 @@
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
 
-- module-name: 'pyarrow.dataset' # checksum: 37675d7a
+- module-name: 'pyarrow.dataset' # checksum: a16a7618
   implicit-imports:
     - depends:
         - 'pyarrow._acero'
         - 'pyarrow._json'
+        - 'pyarrow._csv'
 
 - module-name: 'pyarrow.lib' # checksum: 302be0c2
   implicit-imports:
@@ -4726,7 +4750,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: 27df3ea2
+- module-name: 'PySide6' # checksum: 5f18b196
   implicit-imports:
     - post-import-code:
         - |
@@ -4785,6 +4809,7 @@
         - 'libqtquickcontrols2fluentwinui3styleimplplugin'
         - 'libqtquickcontrols2fluentwinui3styleplugin'
         - 'libqtwebviewquickplugin'
+        - 'libqtquickscene3dplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -5146,7 +5171,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 5023b38
+- module-name: 'scipy' # checksum: b425d46f
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5169,6 +5194,7 @@
         'torch': 'ignore'
         'jax': 'ignore'
         'dask': 'ignore'
+        'matplotlib': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
@@ -5870,6 +5896,19 @@
         'import dask.array as da': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'sklearn' # checksum: acc187b0
+  anti-bloat:
+    - description: 'pandas check should not cause usage'
+      no-auto-follow:
+        'pandas': 'ignore'
+    - description: 'matplotlib check should not cause usage'
+      no-auto-follow:
+        'matplotlib': 'ignore'
+    - description: 'remove pytest testing framework'
+      no-auto-follow:
+        'pytest': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'sklearn._distributor_init' # checksum: 8597e1a6
   dlls:
     - from_filenames:
@@ -6052,15 +6091,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: 4aeaf812
+- module-name: 'sklearn.utils' # checksum: cecf5599
   data-files:
     - patterns:
         - '*.css'
-  anti-bloat:
-    - description: 'pandas and matplotlib checks should not cause usage'
-      no-auto-follow:
-        'pandas': 'ignore'
-        'matplotlib': 'ignore'
   implicit-imports:
     - depends:
         - 'sklearn.utils.arrayfuncs'
@@ -7911,31 +7945,29 @@
       change_function:
         'doctests': "'(lambda: None)'"
 
-- module-name: 'tqdm' # checksum: dac19097
+- module-name: 'tqdm' # checksum: f48e841d
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
         'tnrange': "'(lambda *args, **kwargs: None)'"
         'tqdm_notebook': "'(lambda *args, **kwargs: None)'"
       when: 'not use_ipython'
+    - description: 'remove matplotlib reference'
+      no-auto-follow:
+        'matplotlib': 'ignore'
+    - description: 'remove setuptools reference'
+      no-auto-follow:
+        'setuptools_scm': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove pandas reference'
+      no-auto-follow:
+        'pandas': 'ignore'
 
 - module-name: 'tqdm.autonotebook' # checksum: 6ac095cb
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
-
-- module-name: 'tqdm.std' # checksum: 2e350129
-  anti-bloat:
-    - no-auto-follow:
-        'pandas': 'ignore'
-
-- module-name: 'tqdm.version' # checksum: 6b612ba4
-  anti-bloat:
-    - description: 'remove IPython reference'
-      no-auto-follow:
-        'setuptools_scm': 'ignore'
-      when: 'not use_setuptools'
 
 - module-name: 'tracerite' # checksum: fe3c0d7b
   data-files:

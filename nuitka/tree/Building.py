@@ -1016,13 +1016,13 @@ def _loadUncompiledModuleFromCache(
 
     used_modules = OrderedSet()
 
-    used_modules = getCachedImportedModuleUsageAttempts(
+    used_modules, timing_info = getCachedImportedModuleUsageAttempts(
         module_name=module_name, source_code=source_code, source_ref=source_ref
     )
 
-    # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
-
     result.setUsedModules(used_modules)
+
+    ModuleRegistry.setModuleOptimizationTimingInfos(module_name, timing_info)
 
     return result
 

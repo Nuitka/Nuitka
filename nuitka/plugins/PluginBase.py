@@ -1435,7 +1435,8 @@ except Exception as e:
     ):
         if self.isValueForEvaluation(expression):
             return self.evaluateExpression(
-                full_name=full_name,
+                config_module_name=full_name,
+                module_name=full_name,
                 expression=expression,
                 config_name=config_name,
                 extra_context=extra_context,
@@ -1456,6 +1457,8 @@ except Exception as e:
                 if declarations and self.evaluateCondition(
                     full_name=full_name,
                     condition=constant_config.get("when", "True"),
+                    allow_constants=False,
+                    allow_variables=False,
                 ):
                     for constant_name, constant_value in declarations.items():
                         constants[constant_name] = self.evaluateExpressionOrConstant(
@@ -1492,6 +1495,8 @@ except Exception as e:
                 if self.evaluateCondition(
                     full_name=full_name,
                     condition=variable_config.get("when", "True"),
+                    allow_constants=True,
+                    allow_variables=False,
                 ):
                     setup_codes.extend(
                         "%s=%r" % (constant_name, constant_value)
@@ -1534,19 +1539,28 @@ except Exception as e:
         return _module_config_variables[full_name]
 
     def evaluateExpression(
-        self, full_name, expression, config_name, extra_context, single_value
+        self,
+        config_module_name,
+        module_name,
+        expression,
+        config_name,
+        extra_context,
+        single_value,
     ):
         context = _makeEvaluationContext(
-            logger=self, full_name=full_name, config_name=config_name
+            logger=self, full_name=config_module_name, config_name=config_name
         )
 
         def get_variable(variable_name):
             assert type(variable_name) is str, variable_name
 
-            result = self.getExpressionVariables(full_name=full_name)[variable_name]
+            result = self.getExpressionVariables(full_name=config_module_name)[
+                variable_name
+            ]
 
             addModuleInfluencingVariable(
-                module_name=full_name,
+                module_name=module_name,
+                config_module_name=config_module_name,
                 plugin_name=self.plugin_name,
                 variable_name=variable_name,
                 control_tags=context.used_tags,
@@ -1558,7 +1572,9 @@ except Exception as e:
         def get_constant(constant_name):
             assert type(constant_name) is str, constant_name
 
-            result = self.getExpressionConstants(full_name=full_name)[constant_name]
+            result = self.getExpressionConstants(full_name=config_module_name)[
+                constant_name
+            ]
 
             # TODO: Record the constant value in report.
 
@@ -1568,13 +1584,13 @@ except Exception as e:
         context["get_constant"] = get_constant
 
         def get_parameter(parameter_name, default):
-            result = Options.getModuleParameter(full_name, parameter_name)
+            result = Options.getModuleParameter(config_module_name, parameter_name)
 
             if result is None:
                 result = default
 
             self.addModuleInfluencingParameter(
-                module_name=full_name,
+                module_name=config_module_name,
                 parameter_name=parameter_name,
                 condition_tags_used=context.used_tags,
                 result=result,
@@ -1603,16 +1619,16 @@ except Exception as e:
         if type(result) not in (str, unicode):
             if single_value:
                 self._checkStrResult(
-                    value=result, expression=expression, full_name=full_name
+                    value=result, expression=expression, full_name=config_module_name
                 )
             else:
                 self._checkSequenceResult(
-                    value=result, expression=expression, full_name=full_name
+                    value=result, expression=expression, full_name=config_module_name
                 )
 
                 for v in result:
                     self._checkStrResult(
-                        value=v, expression=expression, full_name=full_name
+                        value=v, expression=expression, full_name=config_module_name
                     )
 
                 # Make it immutable in case it's a list.
@@ -1636,7 +1652,9 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
                 % (expression, full_name)
             )
 
-    def evaluateCondition(self, full_name, condition):
+    def evaluateCondition(
+        self, full_name, condition, allow_constants=True, allow_variables=True
+    ):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
@@ -1649,6 +1667,36 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         context = _makeEvaluationContext(
             logger=self, full_name=full_name, config_name="'when' configuration"
         )
+
+        def get_variable(variable_name):
+            assert type(variable_name) is str, variable_name
+
+            result = self.getExpressionVariables(full_name=full_name)[variable_name]
+
+            addModuleInfluencingVariable(
+                module_name=full_name,
+                config_module_name=full_name,
+                plugin_name=self.plugin_name,
+                variable_name=variable_name,
+                control_tags=context.used_tags,
+                result=result,
+            )
+
+            return result
+
+        def get_constant(constant_name):
+            assert type(constant_name) is str, constant_name
+
+            result = self.getExpressionConstants(full_name=full_name)[constant_name]
+
+            # TODO: Record the constant value in report.
+
+            return result
+
+        if allow_constants:
+            context["get_constant"] = get_constant
+        if allow_variables:
+            context["get_variable"] = get_variable
 
         def get_parameter(parameter_name, default):
             result = Options.getModuleParameter(full_name, parameter_name)

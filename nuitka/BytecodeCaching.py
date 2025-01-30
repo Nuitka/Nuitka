@@ -12,6 +12,7 @@ import sys
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.ModuleRegistry import getModuleOptimizationTimingInfos
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
@@ -50,7 +51,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 6
+_cache_format_version = 7
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -118,11 +119,20 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
         # something changed there.
         pass
 
-    return result
+    # The Json doesn't store integer keys.
+    for pass_timing_info in data["timing_infos"]:
+        pass_timing_info[3] = dict(
+            (int(key), value) for (key, value) in pass_timing_info[3].items()
+        )
+
+    return result, data["timing_infos"]
 
 
 def writeImportedModulesNamesToCache(
-    module_name, source_code, used_modules, distribution_names
+    module_name,
+    source_code,
+    used_modules,
+    distribution_names,
 ):
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
@@ -138,6 +148,7 @@ def writeImportedModulesNamesToCache(
         # We use a tuple, so preserve the order.
         "modules_used": used_modules,
         "distribution_names": distribution_names,
+        "timing_infos": getModuleOptimizationTimingInfos(module_name),
     }
 
     makePath(os.path.dirname(cache_filename))

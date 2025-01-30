@@ -14,6 +14,7 @@
 import collections
 import os
 
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 
@@ -234,7 +235,7 @@ def addModuleInfluencingCondition(
 
 
 def addModuleInfluencingVariable(
-    module_name, plugin_name, variable_name, control_tags, result
+    module_name, config_module_name, plugin_name, variable_name, control_tags, result
 ):
     if module_name not in module_influencing_plugins:
         module_influencing_plugins[module_name] = OrderedSet()
@@ -242,7 +243,7 @@ def addModuleInfluencingVariable(
         (
             plugin_name,
             "variable-used",
-            (variable_name, tuple(control_tags), repr(result)),
+            (variable_name, tuple(control_tags), repr(result), config_module_name),
         )
     )
 
@@ -278,7 +279,8 @@ def getModuleInfluences(module_name):
 # Information about how long the optimization took.
 module_timing_infos = {}
 
-ModuleOptimizationTimingInfo = collections.namedtuple(
+
+ModuleOptimizationTimingInfo = makeNamedtupleClass(
     "ModuleOptimizationTimingInfo",
     ("pass_number", "time_used", "micro_passes", "merge_counts"),
 )
@@ -288,6 +290,13 @@ def addModuleOptimizationTimeInformation(
     module_name, pass_number, time_used, micro_passes, merge_counts
 ):
     module_timing_info = list(module_timing_infos.get(module_name, []))
+
+    # Do not record cached bytecode loaded timing information, not useful
+    # and duplicate, we want the original values.
+    if pass_number == 1 and len(module_timing_info) == 1:
+        assert micro_passes == 0
+        return
+
     module_timing_info.append(
         ModuleOptimizationTimingInfo(
             pass_number=pass_number,
@@ -301,6 +310,12 @@ def addModuleOptimizationTimeInformation(
 
 def getModuleOptimizationTimingInfos(module_name):
     return module_timing_infos.get(module_name, ())
+
+
+def setModuleOptimizationTimingInfos(module_name, timing_infos):
+    module_timing_infos[module_name] = [
+        ModuleOptimizationTimingInfo(*timing_info) for timing_info in timing_infos
+    ]
 
 
 def getImportedModuleNames():
