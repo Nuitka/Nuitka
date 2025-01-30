@@ -20,7 +20,7 @@ from nuitka.TreeXML import fromFile
 from nuitka.utils.Execution import (
     check_call,
     executeProcess,
-    withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
     deleteFile,
@@ -194,7 +194,12 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
         if len(binaries) != 1:
             sys.exit("Error, failed to identify created binary.")
 
-        with withEnvironmentVarOverridden("NUITKA_LAUNCH_TOKEN", "1"):
+        env = {
+            "NUITKA_LAUNCH_TOKEN": "1",
+            "NUITKA_TEST_INTERACTIVE": "0",
+        }
+
+        with withEnvironmentVarsOverridden(env):
             stdout, stderr, exit_nuitka = executeProcess([binaries[0]], timeout=5 * 60)
 
         with open("compiled-stdout.txt", "wb") as output:
