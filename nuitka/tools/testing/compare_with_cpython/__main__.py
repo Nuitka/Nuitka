@@ -36,7 +36,7 @@ from nuitka.utils.Execution import (
     wrapCommandForDebuggerForSubprocess,
 )
 from nuitka.utils.FileOperations import deleteFile
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.Timing import StopWatch
 from nuitka.utils.Utils import isMacOS
 
@@ -900,7 +900,7 @@ Stderr was:
                 else:
                     os.unlink(nuitka_cmd2[0])
         else:
-            module_filename = os.path.basename(filename) + getSharedLibrarySuffix(
+            module_filename = os.path.basename(filename) + getExtensionModuleSuffix(
                 preferred=True
             )
 

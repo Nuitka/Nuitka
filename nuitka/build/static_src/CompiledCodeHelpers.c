@@ -1595,7 +1595,7 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     return result;
 }
 
-#if defined(_NUITKA_EXE)
+#if defined(_NUITKA_EXE) || defined(_NUITKA_DLL)
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
@@ -1703,7 +1703,7 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#ifdef _NUITKA_EXE
+#if defined(_NUITKA_EXE)
 PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
@@ -1788,58 +1788,9 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
 
     return *binary_object_target;
 }
-
-#ifdef _NUITKA_STANDALONE
-// Helper function to create path.
-PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-    PyObject *dir_name = getBinaryDirectoryObject(false);
-    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
-
-    return sys_executable;
-}
 #endif
 
-#else
-
-#if defined(_WIN32)
-// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
-static HMODULE getDllModuleHandle(void) {
-    static HMODULE hm = NULL;
-
-    if (hm == NULL) {
-        int res =
-            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                               (LPCSTR)&getDllModuleHandle, &hm);
-        assert(res != 0);
-    }
-
-    assert(hm != NULL);
-    return hm;
-}
-#endif
-
-filename_char_t const *getDllDirectory(void) {
-#if defined(_WIN32)
-    static WCHAR path[MAXPATHLEN + 1];
-    path[0] = 0;
-
-    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
-    assert(res != 0);
-
-    stripFilenameW(path);
-
-    return path;
-#else
-    Dl_info where;
-
-    {
-        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-        assert(res != 0);
-    }
-
-    return dirname((char *)where.dli_fname);
-#endif
-}
+#if !defined(_NUITKA_EXE)
 static PyObject *getDllDirectoryObject(void) {
     static PyObject *dll_directory = NULL;
 
@@ -1866,9 +1817,7 @@ static PyObject *getDllDirectoryObject(void) {
 
     return dll_directory;
 }
-#endif
 
-#if defined(_NUITKA_MODULE)
 static filename_char_t const *getDllFilename(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1];
@@ -1938,6 +1887,20 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #endif
 }
 
+#if defined(_NUITKA_STANDALONE)
+// Helper function to create path.
+PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
+#if defined(_NUITKA_EXE)
+    PyObject *dir_name = getBinaryDirectoryObject(false);
+#else
+    PyObject *dir_name = getDllDirectoryObject();
+#endif
+    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
+
+    return sys_executable;
+}
+#endif
+
 static void _initDeepCopy(void);
 
 void _initBuiltinModule(void) {
@@ -1965,11 +1928,21 @@ void _initBuiltinModule(void) {
 
 #ifdef _NUITKA_STANDALONE
     {
+#ifdef _NUITKA_EXE
+        PyObject *nuitka_binary_dir = getBinaryDirectoryObject(true);
+#else
+        PyObject *nuitka_binary_dir = getDllDirectoryObject();
+#endif
         NUITKA_MAY_BE_UNUSED int res =
-            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
+            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
         assert(res == 0);
+
+        // For actual DLL mode, we don't have this, but the form used in onefile
+        // will providing our own executable that knows what to do.
+#if defined(_NUITKA_ONEFILE_MODE) || defined(_NUITKA_EXE)
         PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
         assert(res == 0);
+#endif
     }
 #endif
 
@@ -2014,7 +1987,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     return JOIN_PATH2(our_path_object, relative);
 }
 
-#ifdef _NUITKA_EXE
+#ifndef _NUITKA_MODULE
 
 NUITKA_DEFINE_BUILTIN(type)
 NUITKA_DEFINE_BUILTIN(len)

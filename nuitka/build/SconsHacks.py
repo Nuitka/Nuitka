@@ -188,7 +188,7 @@ def makeGccUseLinkerFile(env, source_files):
     with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + (
-                ".os" if env.module_mode and os.name != "nt" else ".o"
+                ".o" if env.exe_mode or os.name == "nt" else ".os"
             )
 
             if os.name == "nt":

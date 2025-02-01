@@ -22,8 +22,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
+    getExtensionModuleSuffixes,
     getPackageDirFilename,
-    getSharedLibrarySuffixes,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -353,7 +353,7 @@ def _addIncludedModule(module, package_only):
                         package_only=False,
                     )
                 else:
-                    for suffix in getSharedLibrarySuffixes():
+                    for suffix in getExtensionModuleSuffixes():
                         if (
                             sub_filename.endswith(suffix)
                             and "." not in sub_filename[: -len(suffix)]
@@ -457,7 +457,7 @@ def scanPluginPath(plugin_filename, module_package):
                 )
                 continue
 
-            for suffix in getSharedLibrarySuffixes():
+            for suffix in getExtensionModuleSuffixes():
                 if sub_path.endswith(suffix):
                     scanPluginSinglePath(
                         sub_path,

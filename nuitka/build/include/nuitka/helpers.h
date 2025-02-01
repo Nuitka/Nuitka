@@ -265,13 +265,13 @@ extern void createGlobalConstants(PyThreadState *tstate);
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
-#ifdef _NUITKA_EXE
+#ifndef _NUITKA_MODULE
 extern void checkModuleConstants___main__(PyThreadState *tstate);
 #endif
 #endif
 
 // Call this to initialize "__main__" constants in non-standard processes.
-#ifdef _NUITKA_EXE
+#ifndef _NUITKA_MODULE
 extern void createMainModuleConstants(PyThreadState *tstate);
 #endif
 

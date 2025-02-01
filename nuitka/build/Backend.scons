@@ -120,6 +120,12 @@ full_names = getArgumentBool("full_names", False)
 # Module mode: Create a Python extension module, create an executable otherwise.
 module_mode = getArgumentBool("module_mode", False)
 
+# DLL mode: Create a DLL using Python
+dll_mode = getArgumentBool("dll_mode", False)
+
+# EXE mode: Create an EXE (using Python for this config)
+exe_mode = getArgumentBool("exe_mode", False)
+
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
 
@@ -365,6 +371,8 @@ env = checkWindowsCompilerFound(
 env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.module_mode = module_mode
+env.dll_mode = dll_mode
+env.exe_mode = exe_mode
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
@@ -457,7 +465,7 @@ if env.msvc_mode:
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
-    if env.module_mode:
+    if env.module_mode or env.dll_mode:
         # Make sure we handle import library on our own and put it into the
         # build directory, spell-checker: ignore IMPLIB
 
@@ -469,7 +477,7 @@ if env.msvc_mode:
             ]
         )
 
-if not env.module_mode:
+if env.exe_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
 
 if env.debug_mode:
@@ -730,7 +738,7 @@ if os.name == "nt":
 
         if not env.msys2_mingw_python:
             addWinLib()
-elif not env.module_mode:
+elif env.exe_mode:
     # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = python_prefix_external
@@ -806,7 +814,7 @@ elif not env.module_mode:
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
 
 if isMacOS():
-    if env.module_mode:
+    if env.module_mode or env.dll_mode:
         # Dynamic lookup needed for extension modules.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     else:
@@ -836,7 +844,12 @@ env.Append(
 )
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not isMacOS() and not os.name == "nt" and not env.module_mode:
+if (
+    env.gcc_mode
+    and not isMacOS()
+    and not os.name == "nt"
+    and (env.exe_mode or env.dll_mode)
+):
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -862,16 +875,7 @@ addConstantBlobFile(
 env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
-if env.module_mode:
-    if isGccName(env.the_cc_name):
-        env.Append(CCFLAGS=["-shared"])
-    elif env.clang_mode:
-        pass
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
-    else:
-        assert False, env.the_cc_name
-else:
+if env.exe_mode:
     if env.msvc_mode:
         # For complete outputs, we have to match the C runtime of the Python DLL, if any,
         # for Nuitka-Python there is of course none.
@@ -882,11 +886,23 @@ else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
         else:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
-
-if env.module_mode:
-    env.Append(CPPDEFINES=["_NUITKA_MODULE"])
 else:
+    if isGccName(env.the_cc_name):
+        env.Append(CCFLAGS=["-shared"])
+    elif env.clang_mode:
+        pass
+    elif env.msvc_mode:
+        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
+    else:
+        assert False, env.the_cc_name
+
+
+if env.exe_mode:
     env.Append(CPPDEFINES=["_NUITKA_EXE"])
+elif env.module_mode:
+    env.Append(CPPDEFINES=["_NUITKA_MODULE"])
+elif env.dll_mode:
+    env.Append(CPPDEFINES=["_NUITKA_DLL"])
 
 
 def discoverSourceFiles():
@@ -905,7 +921,12 @@ def discoverSourceFiles():
     static_src_filenames = []
 
     # Main program, unless of course it's a Python module/package we build.
-    if not env.module_mode:
+    if env.exe_mode:
+        static_src_filenames.append("MainProgram.c")
+
+    # TODO: Should have its dedicated file rather, since DLLs must not do
+    # a lot of things.
+    if env.dll_mode:
         static_src_filenames.append("MainProgram.c")
 
     # Compiled types.
@@ -944,6 +965,14 @@ if env.module_mode:
 
     assert getFilenameExtension(result_base_path) == "", result_base_path
 
+    env["SHLIBSUFFIX"] = module_suffix
+
+    target = env.SharedLibrary(
+        result_base_path, source_files, no_import_lib=no_import_lib
+    )
+elif env.dll_mode:
+    module_suffix = getFilenameExtension(result_exe)
+    result_base_path = changeFilenameExtension(result_exe, "")
     env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
