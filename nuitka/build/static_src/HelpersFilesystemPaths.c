@@ -4,12 +4,6 @@
 // for use in both onefile bootstrap and python compiled
 // program.
 
-#if defined(__APPLE__)
-#include <dlfcn.h>
-#include <libgen.h>
-#include <mach-o/dyld.h>
-#endif
-
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
 #endif
@@ -26,6 +20,10 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>
+#endif
+
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
 #endif
 
 // We are using in onefile bootstrap as well, so copy it.
@@ -92,7 +90,7 @@ void _getBinaryPath2(char *binary_filename) {
 }
 #endif
 
-filename_char_t *getBinaryPath(void) {
+filename_char_t const *getBinaryPath(void) {
     static filename_char_t binary_filename[MAXPATHLEN];
 
 #if defined(_WIN32)
@@ -1073,6 +1071,47 @@ filename_char_t *stripBaseFilename(filename_char_t const *filename) {
 }
 #endif
 
+#if !defined(_NUITKA_EXE)
+#if defined(_WIN32)
+// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
+static HMODULE getDllModuleHandle(void) {
+    static HMODULE hm = NULL;
+
+    if (hm == NULL) {
+        int res =
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCSTR)&getDllModuleHandle, &hm);
+        assert(res != 0);
+    }
+
+    assert(hm != NULL);
+    return hm;
+}
+#endif
+
+filename_char_t const *getDllDirectory(void) {
+#if defined(_WIN32)
+    static WCHAR path[MAXPATHLEN + 1];
+    path[0] = 0;
+
+    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
+    assert(res != 0);
+
+    stripFilenameW(path);
+
+    return path;
+#else
+    Dl_info where;
+
+    {
+        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+        assert(res != 0);
+    }
+
+    return dirname((char *)where.dli_fname);
+#endif
+}
+#endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

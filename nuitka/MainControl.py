@@ -96,10 +96,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     resetDirectory,
 )
-from nuitka.utils.Importing import (
-    getPackageDirFilename,
-    getSharedLibrarySuffix,
-)
+from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -593,6 +590,8 @@ def runSconsBackend():
     scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(Options.shallUsePythonDebug())
     scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
+    scons_options["dll_mode"] = asBoolStr(Options.shallMakeDll())
+    scons_options["exe_mode"] = asBoolStr(Options.shallMakeExe())
     scons_options["full_compat"] = asBoolStr(Options.is_full_compat)
     scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
@@ -602,9 +601,9 @@ def runSconsBackend():
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
 
-    if not Options.shallMakeModule():
-        scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
+    if not Options.shallMakeModule():
         main_module = ModuleRegistry.getRootTopModule()
         assert main_module.isMainModule()
 
@@ -712,11 +711,6 @@ def runSconsBackend():
     if abiflags:
         scons_options["abiflags"] = abiflags
 
-    if Options.shallMakeModule():
-        scons_options["result_exe"] = OutputDirectories.getResultBasePath(
-            onefile=False
-        ) + getSharedLibrarySuffix(preferred=True)
-
     link_module_libs = getModuleLinkerLibs()
     if link_module_libs:
         scons_options["link_module_libs"] = ",".join(link_module_libs)
@@ -737,7 +731,7 @@ def runSconsBackend():
             return result, scons_options
 
         # Need to make it usable before executing it.
-        executePostProcessing()
+        executePostProcessing(scons_options["result_exe"])
         _runPythonPgoBinary()
 
         return True, scons_options
@@ -760,7 +754,7 @@ def runSconsBackend():
                 return result, scons_options
 
             # Need to make it usable before executing it.
-            executePostProcessing()
+            executePostProcessing(scons_options["result_exe"])
             _runCPgoBinary()
             scons_options["pgo_mode"] = "use"
 
@@ -1030,7 +1024,7 @@ def _main():
 
         sys.exit(0)
 
-    executePostProcessing()
+    executePostProcessing(scons_options["result_exe"])
 
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]

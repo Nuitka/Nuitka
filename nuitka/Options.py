@@ -556,6 +556,12 @@ Error, the Python from Windows app store is not supported.""",
                 options.macos_create_bundle = True
             else:
                 options.is_onefile = True
+        elif options.compilation_mode == "dll":
+            options.is_standalone = True
+        elif options.compilation_mode == "accelerated":
+            pass
+        else:
+            assert False, options.compilation_mode
 
     # Onefile implies standalone build.
     if options.is_onefile:
@@ -1429,6 +1435,16 @@ def shallMakeModule():
 def shallMakePackage():
     """:returns: bool derived from ``--mode=package``."""
     return options is not None and options.compilation_mode == "package"
+
+
+def shallMakeDll():
+    """:returns: bool derived from ``--mode=dll``."""
+    return options is not None and options.compilation_mode == "dll"
+
+
+def shallMakeExe():
+    """:returns: bool derived from not using ``--mode=dll|module|package`` ."""
+    return not shallMakeModule() and not shallMakeDll()
 
 
 def shallCreatePyiFile():
@@ -2775,6 +2791,7 @@ def getForcedRuntimeEnvironmentVariableValues():
 
 def getCompilationMode():
     """For reporting only, use shorter specific tests."""
+    # return driven, pylint: disable=too-many-return-statements
 
     if isAcceleratedMode():
         return "accelerated"
@@ -2788,6 +2805,8 @@ def getCompilationMode():
         return "onefile"
     elif isStandaloneMode():
         return "standalone"
+    elif shallMakeDll():
+        return "DLL"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

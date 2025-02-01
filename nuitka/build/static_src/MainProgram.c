@@ -137,7 +137,11 @@ static void prepareStandaloneEnvironment(void) {
 #endif
 
 #if defined(_WIN32)
+#if defined(_NUITKA_EXE)
     SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+#else
+    SetDllDirectoryW(getDllDirectory());
+#endif
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -192,8 +196,10 @@ extern void _initCompiledFrameType();
 
 #ifdef _WIN32
 #define _NUITKA_NATIVE_WCHAR_ARGV 1
+#define native_command_line_argument_t wchar_t
 #else
 #define _NUITKA_NATIVE_WCHAR_ARGV 0
+#define native_command_line_argument_t char
 #endif
 
 // Types of command line arguments are different between Python2/3.
@@ -1187,20 +1193,9 @@ PyObject *getOriginalArgv0Object(void) {
     return Nuitka_String_FromFilename(original_argv0);
 }
 
-#ifdef _NUITKA_WINMAIN_ENTRY_POINT
-int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
-    /* MSVC, MINGW64 */
-    int argc = __argc;
-    wchar_t **argv = __wargv;
-#else
-#if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) {
+static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
-#endif
-#else
-int main(int argc, char **argv) {
-#endif
 #endif
 
     // Installer a segfault handler that outputs a helpful message.
@@ -1383,7 +1378,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling getCommandLineToArgvA.");
     orig_argv = getCommandLineToArgvA(GetCommandLineA());
 #else
-orig_argv = argv;
+    orig_argv = argv;
 #endif
 
 // Make sure, we use the absolute program path for argv[0]
@@ -1859,6 +1854,40 @@ orig_argv = argv;
     // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
+
+#ifdef _NUITKA_WINMAIN_ENTRY_POINT
+int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
+    /* MSVC, MINGW64 */
+    int argc = __argc;
+    wchar_t **argv = __wargv;
+
+    return Nuitka_Main(argc, argv);
+}
+#else
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
+#else
+int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
+#endif
+#endif
+
+#if defined(_NUITKA_DLL)
+
+#if defined(_WIN32)
+#define NUITKA_DLL_FUNCTION __declspec(dllexport)
+#else
+#define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))
+#endif
+
+NUITKA_DLL_FUNCTION int run_code(void) {
+    // TODO: Have these passed from the outside.
+
+    native_command_line_argument_t *argv[] = {NULL};
+    Nuitka_Main(0, argv);
+
+    return 27;
+}
+#endif
 
 /* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.

@@ -21,8 +21,8 @@ from nuitka.utils.FileOperations import (
     relpath,
 )
 from nuitka.utils.Importing import (
+    getExtensionModuleSuffixes,
     getPackageDirFilename,
-    getSharedLibrarySuffixes,
 )
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import getDllExportedSymbols
@@ -39,7 +39,7 @@ def getPythonEntryPointExportedSymbolName(module_name):
 
 
 def isFileExtensionModule(module_filename):
-    for suffix in getSharedLibrarySuffixes():
+    for suffix in getExtensionModuleSuffixes():
         if module_filename.endswith(suffix):
             module_name = ModuleName(os.path.basename(module_filename)[: -len(suffix)])
 

@@ -44,9 +44,9 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
     builtin_module_names,
+    getExtensionModuleSuffixes,
     getModuleFilenameSuffixes,
     getPackageDirFilename,
-    getSharedLibrarySuffixes,
     isBuiltinModuleName,
 )
 from nuitka.utils.ModuleNames import ModuleName
@@ -229,7 +229,7 @@ def getModuleNameAndKindFromFilename(module_filename):
     if module_filename.endswith(".pyc"):
         return ModuleName(os.path.basename(module_filename)[:-4]), "pyc"
 
-    for suffix in getSharedLibrarySuffixes():
+    for suffix in getExtensionModuleSuffixes():
         if module_filename.endswith(suffix):
             return (
                 ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
@@ -240,7 +240,7 @@ def getModuleNameAndKindFromFilename(module_filename):
         package_filename = getPackageDirFilename(module_filename)
 
         if package_filename is not None:
-            for suffix in getSharedLibrarySuffixes():
+            for suffix in getExtensionModuleSuffixes():
                 if package_filename.endswith(suffix):
                     return (
                         ModuleName(os.path.basename(module_filename)),

@@ -44,7 +44,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     removeDirectory,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.Version import getCommercialVersion
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
@@ -370,7 +370,7 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 for preferred in (True, False):
                     target_filename = filename.replace(
-                        ".py", getSharedLibrarySuffix(preferred=preferred)
+                        ".py", getExtensionModuleSuffix(preferred=preferred)
                     )
 
                     deleteFile(
@@ -478,7 +478,7 @@ def executePASS5():
         sys.exit(result)
 
     for preferred in True, False:
-        candidate = "nuitka" + getSharedLibrarySuffix(preferred=preferred)
+        candidate = "nuitka" + getExtensionModuleSuffix(preferred=preferred)
 
         deleteFile(candidate, must_exist=False)
 
