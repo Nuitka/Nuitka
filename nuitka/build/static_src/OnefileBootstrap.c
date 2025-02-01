@@ -986,7 +986,9 @@ int main(int argc, char **argv) {
 
     input.src = payload_current;
     input.pos = 0;
-    input.size = payload_size;
+
+    // TODO: Ought to assert that this doesn't truncate anything.
+    input.size = (size_t)payload_size;
 
     assert(payload_size > 0);
 #else
