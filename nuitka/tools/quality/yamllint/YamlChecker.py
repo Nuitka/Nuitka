@@ -79,7 +79,7 @@ def _checkRegexp(regexp, replacement):
 
 
 def _checkValues(logger, filename, module_name, section, value):
-    # many checks of course, pylint: disable=too-many-branches
+    # many checks of course, pylint: disable=too-many-branches,too-many-statements
 
     result = True
 
@@ -135,7 +135,8 @@ def _checkValues(logger, filename, module_name, section, value):
                         if not valid:
                             logger.info(
                                 """\
-    %s: %s config value of '%s' '%s' contains invalid regexp syntax in value '%s'"""
+%s: %s config value of '%s' '%s' contains invalid regexp \
+syntax in value '%s' leading to error '%s'"""
                                 % (filename, module_name, section, m, d, error),
                                 keep_format=True,
                             )
