@@ -94,9 +94,11 @@ void inheritAttachedConsole(void) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
 void hideConsoleIfSpawned(void) {
     HWND hWnd = GetConsoleWindow();
+
     DWORD consoleProcesses[2];
     // detect if we were spawned from an existing cmdline window
     DWORD numProcesses = GetConsoleProcessList(consoleProcesses, 2);
+
     // if we have just one process that's us alone
     if (hWnd && numProcesses <= 1) {
         // then let's hide the console

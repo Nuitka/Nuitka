@@ -45,7 +45,7 @@ from nuitka.utils.FileOperations import (
     relpath,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isMacOS
 
@@ -214,7 +214,7 @@ default_ignored_suffixes = (
     ".bin",
 )
 
-default_ignored_suffixes += getSharedLibrarySuffixes()
+default_ignored_suffixes += getExtensionModuleSuffixes()
 
 default_ignored_dirs = (
     "__pycache__",

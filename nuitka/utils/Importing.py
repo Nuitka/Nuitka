@@ -67,44 +67,44 @@ def importFileAsModule(filename):
         return _importFilePy3NewWay(filename)
 
 
-_shared_library_suffixes = None
+_extension_module_suffixes = None
 
 
-def getSharedLibrarySuffixes():
+def getExtensionModuleSuffixes():
     # Using global here, as this is for caching only
     # pylint: disable=global-statement
-    global _shared_library_suffixes
+    global _extension_module_suffixes
 
-    if _shared_library_suffixes is None:
+    if _extension_module_suffixes is None:
         if python_version < 0x300:
             import imp  # Python2 only, pylint: disable=I0021,import-error
 
-            _shared_library_suffixes = []
+            _extension_module_suffixes = []
 
             for suffix, _mode, module_type in imp.get_suffixes():
                 if module_type == imp.C_EXTENSION:
-                    _shared_library_suffixes.append(suffix)
+                    _extension_module_suffixes.append(suffix)
         else:
             import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
 
-            _shared_library_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
+            _extension_module_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
 
         # Nuitka-Python on Windows has that
-        if "" in _shared_library_suffixes:
-            _shared_library_suffixes.remove("")
+        if "" in _extension_module_suffixes:
+            _extension_module_suffixes.remove("")
 
-        _shared_library_suffixes = tuple(_shared_library_suffixes)
+        _extension_module_suffixes = tuple(_extension_module_suffixes)
 
-    return _shared_library_suffixes
+    return _extension_module_suffixes
 
 
-def getSharedLibrarySuffix(preferred):
+def getExtensionModuleSuffix(preferred):
     if preferred and python_version >= 0x300:
-        return getSharedLibrarySuffixes()[0]
+        return getExtensionModuleSuffixes()[0]
 
     result = None
 
-    for suffix in getSharedLibrarySuffixes():
+    for suffix in getExtensionModuleSuffixes():
         if result is None or len(suffix) < len(result):
             result = suffix
 
@@ -285,7 +285,7 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
     if module_filename.endswith(".pyc"):
         return ModuleName(os.path.basename(module_filename)[:-4]), "pyc"
 
-    for suffix in getSharedLibrarySuffixes():
+    for suffix in getExtensionModuleSuffixes():
         if module_filename.endswith(suffix):
             return (
                 ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
@@ -298,7 +298,7 @@ def getModuleNameAndKindFromFilenameSuffix(module_filename):
 def hasPackageDirFilename(path):
     path = os.path.basename(path)
 
-    for suffix in (".py",) + getSharedLibrarySuffixes():
+    for suffix in (".py",) + getExtensionModuleSuffixes():
         candidate = "__init__" + suffix
 
         if candidate == path:
@@ -310,7 +310,7 @@ def hasPackageDirFilename(path):
 def getPackageDirFilename(path):
     assert os.path.isdir(path)
 
-    for suffix in getSharedLibrarySuffixes() + (".py",):
+    for suffix in getExtensionModuleSuffixes() + (".py",):
         candidate = os.path.join(path, "__init__" + suffix)
 
         if os.path.isfile(candidate):

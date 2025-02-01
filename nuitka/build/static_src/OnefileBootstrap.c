@@ -839,7 +839,9 @@ static wchar_t *getCommandLineForChildProcess(void) {
     static wchar_t result[32768];
     result[0] = 0;
 
-    argv[0] = getBinaryPath();
+    // Assigning constant value to there, strongly hoping nothing ever modifies
+    // the contents.
+    argv[0] = (wchar_t *)getBinaryPath();
 
     for (int i = 0; i < argc; i++) {
         if (i >= 1) {
@@ -1243,7 +1245,7 @@ int main(int argc, char **argv) {
         // Child process
 
         // Make sure, we use the absolute program path for argv[0]
-        argv[0] = getBinaryPath();
+        argv[0] = (char *)getBinaryPath();
 
         execv(first_filename, argv);
 

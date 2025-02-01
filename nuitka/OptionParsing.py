@@ -98,7 +98,7 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("app", "onefile", "standalone", "accelerated", "module", "package"),
+    choices=("app", "onefile", "standalone", "accelerated", "module", "package", "dll"),
     default=None,
     github_action_default="app",
     help="""\
@@ -107,7 +107,8 @@ installation and depends on it. Standalone creates a folder
 with an executable contained to run it. Onefile creates a
 single executable to deploy. App is onefile except on macOS
 where it's not to be used. Module makes a module, and
-package includes also all sub-modules and sub-packages.
+package includes also all sub-modules and sub-packages. Dll
+is currently under development and not for users yet.
 Default is 'accelerated'.""",
 )
 
