@@ -936,6 +936,15 @@ def getDllExportedSymbols(logger, filename):
         return result
 
 
+def getDllSuffix():
+    if isWin32Windows():
+        return ".dll"
+    elif isMacOS():
+        return ".dylib"
+    else:
+        return ".so"
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #

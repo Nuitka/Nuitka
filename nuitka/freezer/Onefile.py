@@ -219,7 +219,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     )
 
     if isWin32Windows():
-        executePostProcessingResources(manifest=None, onefile=True)
+        executePostProcessingResources(
+            result_filename=onefile_output_filename, manifest=None, onefile=True
+        )
 
     if isAndroidBasedLinux():
         cleanupHeaderForAndroid(onefile_output_filename)

@@ -277,13 +277,11 @@ export PYTHONPATH
         addFileExecutablePermission(script_filename)
 
 
-def executePostProcessingResources(manifest, onefile):
+def executePostProcessingResources(result_filename, manifest, onefile):
     """Adding Windows resources to the binary.
 
     Used for both onefile and not onefile binary, potentially two times.
     """
-    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
-
     if manifest is None:
         manifest = getDefaultWindowsExecutableManifest()
 
@@ -345,7 +343,7 @@ def executePostProcessingResources(manifest, onefile):
         )
 
 
-def executePostProcessing():
+def executePostProcessing(result_filename):
     """Postprocessing of the resulting binary.
 
     These are in part required steps, not usable after failure.
@@ -353,8 +351,6 @@ def executePostProcessing():
 
     # Lots of cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
-
-    result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
     if isWin32Windows():
         if not Options.shallMakeModule():
@@ -366,7 +362,9 @@ def executePostProcessing():
             else:
                 manifest = None
 
-            executePostProcessingResources(manifest=manifest, onefile=False)
+            executePostProcessingResources(
+                result_filename=result_filename, manifest=manifest, onefile=False
+            )
 
         source_dir = OutputDirectories.getSourceDirectoryPath()
 

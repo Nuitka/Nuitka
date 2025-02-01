@@ -23,7 +23,7 @@ from nuitka.utils.FileOperations import (
     haveSameFileContents,
     isRelativePath,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.SharedLibraries import getDLLVersion
 
@@ -321,7 +321,7 @@ def addExtensionModuleEntryPoint(module):
     if module.isExtensionModulePackage():
         dest_path = os.path.join(dest_path, "__init__")
 
-    dest_path += getSharedLibrarySuffix(preferred=False)
+    dest_path += getExtensionModuleSuffix(preferred=False)
 
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(

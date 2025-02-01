@@ -77,18 +77,18 @@ def _runProcessMonitored(env, cmdline, os_env):
     return thread.getProcessResult()
 
 
-def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
+def _filterMsvcLinkOutput(env, data, exit_code):
     # Training newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
-    if module_mode:
-        data = b"\r\n".join(
-            line
-            for line in data.split(b"\r\n")
-            if b"   Creating library" not in line
-            # On localized compilers, the message to ignore is not as clear.
-            if not (module_mode and b".exp" in line)
-        )
+    # It might be saying it's creating a link library.
+    data = b"\r\n".join(
+        line
+        for line in data.split(b"\r\n")
+        if b"   Creating library" not in line
+        # On localized compilers, the message to ignore is not as clear.
+        if not (b".exp" in line and b".lib" in line)
+    )
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
@@ -164,9 +164,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             closeSconsProgressBar()
 
         if cmd == "link":
-            data = _filterMsvcLinkOutput(
-                env=env, module_mode=module_mode, data=data, exit_code=rv
-            )
+            data = _filterMsvcLinkOutput(env=env, data=data, exit_code=rv)
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]

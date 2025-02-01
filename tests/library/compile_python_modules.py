@@ -35,7 +35,7 @@ from nuitka.tools.testing.Common import (
     my_print,
     setup,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
 
 python_version = setup(suite="python_modules", needs_io_encoding=True)
 python_vendor = getPythonVendor()
@@ -89,7 +89,7 @@ def action(stage_dir, _root, path):
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-    suffix = getSharedLibrarySuffix(preferred=True)
+    suffix = getExtensionModuleSuffix(preferred=True)
 
     if os.path.basename(path) == "__init__.py":
         source_filename = os.path.dirname(path)

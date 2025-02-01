@@ -273,6 +273,8 @@ env = checkWindowsCompilerFound(
 env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.module_mode = False  # We are only used in this case.
+env.dll_mode = False
+env.exe_mode = True
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
@@ -435,6 +437,9 @@ if isMacOS():
         resource_desc=("mac_section", "default on macOS"),
         target_arch=target_arch,
     )
+
+# Indicate, that the common code is used to build an executable.
+env.Append(CPPDEFINES=["_NUITKA_EXE"])
 
 
 def discoverSourceFiles():
