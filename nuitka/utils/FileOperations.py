@@ -1272,6 +1272,15 @@ def getReportPath(filename, prefixes=()):
     return _report_path_cache[key]
 
 
+def isNonLocalPath(path):
+    """Tell if a path is potentially outside of current directory.
+
+    This is not reliable and mainly for reporting purposes to identify paths
+    work looking to abbreviate.
+    """
+    return path.startswith("..") or os.path.isabs(path)
+
+
 def _getReportPath(filename, prefixes):
     if os.path.isabs(os.path.expanduser(filename)):
         prefixes = list(prefixes)

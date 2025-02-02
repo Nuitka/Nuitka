@@ -14,6 +14,7 @@ to "print for_debug" without much hassle (braces).
 
 from __future__ import print_function
 
+import inspect
 import os
 import struct
 import sys
@@ -346,6 +347,8 @@ class OurLogger(object):
             replace_whitespace=False,
         )
 
+        formatted_message = _removeNotBreakingSpaces(formatted_message)
+
         if leader is not None:
             formatted_message = prefix + leader + "\n" + formatted_message
 
@@ -543,6 +546,21 @@ def queryUser(question, choices, default, default_non_interactive):
         reply = "yes"
 
     return reply.lower()
+
+
+_non_breaking_space = chr(1)
+
+
+def doNotBreakSpaces(*args):
+    if len(args) == 1 and inspect.isgenerator(args[0]):
+        return doNotBreakSpaces(*tuple(args[0]))
+
+    return tuple(element.replace(" ", _non_breaking_space) for element in args)
+
+
+def _removeNotBreakingSpaces(message):
+    #    return message
+    return message.replace(_non_breaking_space, " ")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
