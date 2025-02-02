@@ -863,7 +863,7 @@ slow down compilation."""
                             % (
                                 handled_module_name_desc,
                                 using_module_name,
-                                source_ref.getAsString(),
+                                self.getReportSourceReference(source_ref),
                             ),
                             mnemonic="unwanted-module",
                         )
