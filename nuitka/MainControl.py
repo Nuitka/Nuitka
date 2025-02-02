@@ -77,7 +77,12 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
-from nuitka.Tracing import general, inclusion_logger, pgo_logger
+from nuitka.Tracing import (
+    doNotBreakSpaces,
+    general,
+    inclusion_logger,
+    pgo_logger,
+)
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
@@ -962,13 +967,13 @@ def _main():
         readPGOInputFile(pgo_filename)
 
     general.info(
-        "Starting Python compilation with Nuitka %r on Python (flavor %s), %r commercial grade %r."
-        % (
-            getNuitkaVersion(),
-            getPythonFlavorName(),
-            python_version_str,
-            getCommercialVersion() or "not installed",
-        )
+        leader="Starting Python compilation with:",
+        message="%s %s %s."
+        % doNotBreakSpaces(
+            "Version '%s'" % getNuitkaVersion(),
+            "on Python %s (flavor '%s')" % (python_version_str, getPythonFlavorName()),
+            "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
+        ),
     )
 
     reportMemoryUsage(
