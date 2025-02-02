@@ -61,6 +61,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     getReportPath,
     isLegalPath,
+    isNonLocalPath,
     isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
@@ -457,7 +458,7 @@ Error, the Python from Windows app store is not supported.""",
             if "=" in arg:
                 arg_name, value = arg.split("=", 1)
 
-                if os.path.exists(value):
+                if os.path.exists(value) and isNonLocalPath(arg):
                     value = getReportPath(value)
 
                 if " " in value:
@@ -466,7 +467,7 @@ Error, the Python from Windows app store is not supported.""",
                 return "%s=%s" % (arg_name, value)
             else:
                 return arg
-        elif os.path.exists(arg):
+        elif os.path.exists(arg) and isNonLocalPath(arg):
             arg = getReportPath(arg)
             if " " in arg:
                 arg = '"%s"' % arg
@@ -481,7 +482,9 @@ Error, the Python from Windows app store is not supported.""",
     if not options.version:
         Tracing.options_logger.info(
             leader="Used command line options:",
-            message=" ".join(_quoteArg(arg) for arg in sys.argv[1:]),
+            message=" ".join(
+                Tracing.doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])
+            ),
         )
 
     if (
