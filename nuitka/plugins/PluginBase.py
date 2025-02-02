@@ -83,6 +83,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
+    getReportSourceReference,
 )
 from nuitka.utils.Importing import (
     getExtensionModuleSuffix,
@@ -1191,6 +1192,11 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
                 filename,
             )
         )
+
+    @staticmethod
+    def getReportSourceReference(source_ref):
+        """Format a source reference suitable for user output."""
+        return getReportSourceReference(source_ref)
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.
