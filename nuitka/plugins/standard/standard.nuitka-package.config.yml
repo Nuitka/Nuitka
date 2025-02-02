@@ -2036,6 +2036,17 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jaxlib.version' # checksum: cd20d237
+  anti-bloat:
+    - description: 'remove git call'
+      change_function:
+        # No git version after compilation of course.
+        '_version_from_git_tree': "'None'"
+    - description: 'remove setuptools reference'
+      change_function:
+        '_get_cmdclass': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'jaxtyping' # checksum: 809b3e69
   data-files:
     - include-metadata:
