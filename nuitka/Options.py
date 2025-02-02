@@ -2114,6 +2114,8 @@ def shallOnefileAsArchive():
 
 
 def _checkIconPaths(icon_paths):
+    icon_paths = tuple(icon_paths)
+
     for icon_path in icon_paths:
         if not os.path.exists(icon_path):
             Tracing.options_logger.sysexit(
@@ -2153,10 +2155,8 @@ def getLinuxIconPaths():
 
 def getMacOSIconPaths():
     """*list of str*, values of ``--macos-app-icon``"""
-    return tuple(
-        _checkIconPaths(
-            icon_path for icon_path in options.macos_icon_path if icon_path != "none"
-        )
+    return _checkIconPaths(
+        icon_path for icon_path in options.macos_icon_path if icon_path != "none"
     )
 
 
