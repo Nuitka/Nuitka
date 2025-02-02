@@ -97,7 +97,7 @@ def scanModule(module_name, scan_function):
             if isFileExtensionModule(package_dll_filename):
                 continue
 
-            yield package_dll_filename, package_dll_dir
+            yield package_directory, package_dll_filename, package_dll_dir
 
 
 def displayDLLs(module_name):
@@ -105,12 +105,11 @@ def displayDLLs(module_name):
 
     count = 0
 
-    for package_dll_filename, package_dll_dir in scanModule(
+    for package_directory, package_dll_filename, _package_dll_dir in scanModule(
         module_name=module_name, scan_function=listDllFilesFromDirectory
     ):
-
         tools_logger.my_print(
-            "  %s" % relpath(package_dll_filename, start=package_dll_dir),
+            "  %s" % relpath(package_dll_filename, start=package_directory),
         )
 
         count += 1
@@ -123,12 +122,12 @@ def displayEXEs(module_name):
 
     count = 0
 
-    for package_dll_filename, package_dll_dir in scanModule(
+    for package_directory, package_dll_filename, _package_dll_dir in scanModule(
         module_name=module_name, scan_function=listExeFilesFromDirectory
     ):
 
         tools_logger.my_print(
-            "  %s" % relpath(package_dll_filename, start=package_dll_dir),
+            "  %s" % relpath(package_dll_filename, start=package_directory),
         )
 
         count += 1
