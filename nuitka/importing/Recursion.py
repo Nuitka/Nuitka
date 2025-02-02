@@ -320,8 +320,8 @@ def _addIncludedModule(module, package_only):
 
             package_dir = package_filename
 
-            # Only include it, if it contains actual modules, which will
-            # recurse to this one and find it again.
+            # Only include it, if it contains actual modules, they will recurse
+            # to this one as a parent and find it again.
         else:
             package_dir = os.path.dirname(package_filename)
 
@@ -432,7 +432,7 @@ the compiled result, and therefore asking to include them makes no sense.
 def scanPluginPath(plugin_filename, module_package):
     if Options.isShowInclusion():
         recursion_logger.info(
-            "Checking top level inclusion path '%s' '%s'."
+            "Checking top level inclusion path '%s' for package '%s'."
             % (plugin_filename, module_package)
         )
 
