@@ -203,8 +203,8 @@ def isPackageDir(dirname):
         and os.path.isdir(dirname)
         and (
             python_version >= 0x300
-            or os.path.isfile(os.path.join(dirname, "__init__.py"))
             or isPreloadedPackagePath(dirname)
+            or getPackageDirFilename(dirname) is not None
         )
     )
 
