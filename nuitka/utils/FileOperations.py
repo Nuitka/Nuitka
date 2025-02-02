@@ -1262,6 +1262,14 @@ def getExternalUsePath(filename, only_dirname=False):
 _report_path_cache = {}
 
 
+def getReportSourceReference(source_ref):
+    """Convert a source ref into a path suitable for user output."""
+    return "%s:%s" % (
+        getReportPath(source_ref.getFilename()),
+        source_ref.getLineNumber(),
+    )
+
+
 def getReportPath(filename, prefixes=()):
     """Convert filename into a path suitable for reporting, avoiding home directory paths."""
     key = filename, tuple(prefixes)
