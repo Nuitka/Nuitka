@@ -1005,6 +1005,17 @@ def copyTree(source_path, dest_path):
         return copy_tree(source_path, dest_path)
 
 
+def resolveSymlink(path):
+    """Resolve a symlink, to a relative path."""
+    link_source_abs = os.path.abspath(path)
+    link_target_abs = os.path.abspath(
+        os.path.join(os.path.dirname(path), os.readlink(path))
+    )
+    link_target_rel = relpath(link_target_abs, os.path.dirname(link_source_abs))
+
+    return link_target_rel
+
+
 def copyFileWithPermissions(source_path, dest_path, dist_dir):
     """Improved version of shutil.copy2 for putting things to dist folder
 
@@ -1013,12 +1024,7 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
     """
 
     if os.path.islink(source_path) and not isWin32Windows():
-        link_source_abs = os.path.abspath(source_path)
-        link_target_abs = os.path.abspath(
-            os.path.join(os.path.dirname(source_path), os.readlink(source_path))
-        )
-
-        link_target_rel = relpath(link_target_abs, os.path.dirname(link_source_abs))
+        link_target_rel = resolveSymlink(source_path)
 
         if isFilenameBelowPath(
             path=dist_dir,

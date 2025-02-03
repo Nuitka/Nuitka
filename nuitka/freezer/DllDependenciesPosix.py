@@ -12,6 +12,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
+from nuitka.utils.FileOperations import resolveSymlink
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
 from nuitka.utils.Utils import (
     isAlpineLinux,
@@ -30,7 +31,7 @@ ldd_result_cache = {}
 
 def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
 
     if ldd_result_cache.get(dll_filename):
         return ldd_result_cache[dll_filename]
@@ -46,13 +47,31 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
         if _detected_python_rpath:
+            # Need to resolve a potential symlink.
+            if os.path.islink(sys.executable):
+                sys_executable = os.readlink(sys.executable)
+            else:
+                sys_executable = sys.executable
+
             _detected_python_rpath = _detected_python_rpath.replace(
-                "$ORIGIN", os.path.dirname(sys.executable)
+                "$ORIGIN", os.path.dirname(sys_executable)
+            )
+
+            _detected_python_rpath = os.path.normpath(
+                os.path.join(os.path.dirname(sys.executable), _detected_python_rpath)
             )
 
     # Single one, might be wrong for Anaconda, which uses multiple ones on at least
     # macOS.
-    python_rpaths = (_detected_python_rpath,) if _detected_python_rpath else ()
+    python_rpaths = []
+    if _detected_python_rpath:
+        python_rpaths.append(_detected_python_rpath)
+
+    if os.path.islink(dll_filename):
+        link_target_path = os.path.dirname(
+            os.path.abspath(resolveSymlink(dll_filename))
+        )
+        python_rpaths.append(link_target_path)
 
     # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
