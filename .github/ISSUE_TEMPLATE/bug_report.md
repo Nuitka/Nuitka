@@ -49,7 +49,7 @@ you have provided at least the information below, and discard up to here:
   for you. You ought to also read the User Manual and check that your setup is actually supported
   already.
 
-- Also supply a Short, Self Contained, Correct, Example
+- Also supply a Short, Self Contained, Correct, Eligible Example
 
   That demonstrates the issue i.e a small piece of code which reproduces the issue and can be run
   with out any other (or as few as possible) external dependencies. Issues without this may will
