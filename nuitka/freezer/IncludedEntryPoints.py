@@ -352,6 +352,14 @@ def getStandaloneEntryPoints():
     return tuple(standalone_entry_points)
 
 
+def getStandaloneEntryPointForSourceFile(source_path, package_name):
+    for standalone_entry_point in standalone_entry_points:
+        if standalone_entry_point.package_name == package_name and areSamePaths(
+            standalone_entry_point.source_path, source_path
+        ):
+            return standalone_entry_point
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
