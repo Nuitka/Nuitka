@@ -3218,12 +3218,17 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnx' # checksum: 5eb1b195
-  options:
-    checks:
-      - description: "onnx is is not supported with Python3.12 unless '--static-libpython' is used"
-        support_info: 'error'
-        when: 'python312_or_higher and not static_libpython'
+- module-name: 'onnx.onnx_cpp2py_export' # checksum: 6d25b34c
+  implicit-imports:
+    - post-import-code:
+        - |
+          import sys
+          onnx_cpp2py_export = sys.modules["onnx.onnx_cpp2py_export"]
+          onnx_cpp2py_export.__path__ = []
+
+          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("onnx_cpp2py_export.")]:
+            sys.modules["onnx."+sub_module_name] = sys.modules.pop(sub_module_name)
+      when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'onnxruntime' # checksum: 37a94e21
   dlls:
