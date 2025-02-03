@@ -118,8 +118,9 @@ is typically caused by corruption of its installation."""
 def _getDistributionMetadataRecordData(distribution):
     record_data = _getDistributionMetadataFileContents(distribution, "RECORD")
 
-    for line in record_data.splitlines():
-        yield line.split(",")
+    if record_data is not None:
+        for line in record_data.splitlines():
+            yield line.split(",")
 
 
 def _readChunks(file_handle):
