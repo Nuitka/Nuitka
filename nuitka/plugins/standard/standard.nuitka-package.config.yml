@@ -5713,7 +5713,15 @@
       replacements_plain:
         "os.getenv('CONDA_PREFIX', '')": "''"
 
-- module-name: 'shiboken6' # checksum: 9f9886af
+- module-name: 'shiboken6' # checksum: ccdf53fe
+  dlls:
+    # Do not put these top level, some packages are really incompatible with
+    # this library potentially
+    - from_filenames:
+        prefixes:
+          - 'msvcp'
+      when: 'win32'
+
   implicit-imports:
     - depends:
         - 'argparse'
