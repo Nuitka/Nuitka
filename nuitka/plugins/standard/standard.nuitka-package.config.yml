@@ -2603,6 +2603,17 @@
         'uninstall_repl_displayhook': "'(lambda: None)'"
       when: 'not use_ipython'
 
+- module-name: 'mediapipe.python._framework_bindings' # checksum: 7ab15297
+  implicit-imports:
+    - post-import-code:
+        - |
+          import sys
+          _framework_bindings = sys.modules["mediapipe.python._framework_bindings"]
+          _framework_bindings.__path__ = []
+          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("_framework_bindings.")]:
+            sys.modules["mediapipe.python."+sub_module_name] = sys.modules.pop(sub_module_name)
+      when: 'python312_or_higher and not static_libpython'
+
 - module-name: 'mercurial.encoding' # checksum: de4741d0
   implicit-imports:
     - depends:
