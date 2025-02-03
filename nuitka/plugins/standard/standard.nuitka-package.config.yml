@@ -2036,6 +2036,17 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jaxlib.version' # checksum: cd20d237
+  anti-bloat:
+    - description: 'remove git call'
+      change_function:
+        # No git version after compilation of course.
+        '_version_from_git_tree': "'None'"
+    - description: 'remove setuptools reference'
+      change_function:
+        '_get_cmdclass': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'jaxtyping' # checksum: 809b3e69
   data-files:
     - include-metadata:
@@ -2591,6 +2602,17 @@
         'install_repl_displayhook': "'(lambda: None)'"
         'uninstall_repl_displayhook': "'(lambda: None)'"
       when: 'not use_ipython'
+
+- module-name: 'mediapipe.python._framework_bindings' # checksum: 7ab15297
+  implicit-imports:
+    - post-import-code:
+        - |
+          import sys
+          _framework_bindings = sys.modules["mediapipe.python._framework_bindings"]
+          _framework_bindings.__path__ = []
+          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("_framework_bindings.")]:
+            sys.modules["mediapipe.python."+sub_module_name] = sys.modules.pop(sub_module_name)
+      when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'mercurial.encoding' # checksum: de4741d0
   implicit-imports:
@@ -3207,12 +3229,17 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnx' # checksum: 5eb1b195
-  options:
-    checks:
-      - description: "onnx is is not supported with Python3.12 unless '--static-libpython' is used"
-        support_info: 'error'
-        when: 'python312_or_higher and not static_libpython'
+- module-name: 'onnx.onnx_cpp2py_export' # checksum: 6d25b34c
+  implicit-imports:
+    - post-import-code:
+        - |
+          import sys
+          onnx_cpp2py_export = sys.modules["onnx.onnx_cpp2py_export"]
+          onnx_cpp2py_export.__path__ = []
+
+          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("onnx_cpp2py_export.")]:
+            sys.modules["onnx."+sub_module_name] = sys.modules.pop(sub_module_name)
+      when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'onnxruntime' # checksum: 37a94e21
   dlls:
@@ -4750,7 +4777,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: 5f18b196
+- module-name: 'PySide6' # checksum: 1d5fdbbd
   implicit-imports:
     - post-import-code:
         - |
@@ -4810,6 +4837,7 @@
         - 'libqtquickcontrols2fluentwinui3styleplugin'
         - 'libqtwebviewquickplugin'
         - 'libqtquickscene3dplugin'
+        - 'libqsqlmimer'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -5171,7 +5199,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: b425d46f
+- module-name: 'scipy' # checksum: afa677c9
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5195,6 +5223,8 @@
         'jax': 'ignore'
         'dask': 'ignore'
         'matplotlib': 'ignore'
+        'sparse': 'ignore'
+        'ndonnx': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
@@ -5685,7 +5715,15 @@
       replacements_plain:
         "os.getenv('CONDA_PREFIX', '')": "''"
 
-- module-name: 'shiboken6' # checksum: 9f9886af
+- module-name: 'shiboken6' # checksum: ccdf53fe
+  dlls:
+    # Do not put these top level, some packages are really incompatible with
+    # this library potentially
+    - from_filenames:
+        prefixes:
+          - 'msvcp'
+      when: 'win32'
+
   implicit-imports:
     - depends:
         - 'argparse'
