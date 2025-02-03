@@ -58,6 +58,7 @@ from .DllDependenciesWin32 import detectBinaryPathDLLsWin32
 from .IncludedEntryPoints import (
     addIncludedEntryPoint,
     getIncludedExtensionModule,
+    getStandaloneEntryPointForSourceFile,
     makeDllEntryPoint,
 )
 
@@ -384,7 +385,15 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                     )
                 )
             else:
-                dest_path = os.path.basename(used_dll_path)
+                existing_entry_point = getStandaloneEntryPointForSourceFile(
+                    source_path=used_dll_path,
+                    package_name=standalone_entry_point.package_name,
+                )
+
+                if existing_entry_point is None:
+                    dest_path = os.path.basename(used_dll_path)
+                else:
+                    dest_path = existing_entry_point.dest_path
 
             dll_entry_point = makeDllEntryPoint(
                 logger=inclusion_logger,

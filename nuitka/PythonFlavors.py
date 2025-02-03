@@ -143,6 +143,16 @@ def isRyePython():
     return False
 
 
+def isUvPython():
+    if isWin32Windows():
+        return r"AppData\Roaming\uv" in getSystemPrefixPath()
+    else:
+        if getSystemPrefixPath().startswith(os.path.expanduser("~/.local/share/uv")):
+            return True
+
+    return False
+
+
 def isPyenvPython():
     if isWin32Windows():
         return False
@@ -181,6 +191,9 @@ def isUninstalledPython():
         return False
 
     if isSelfCompiledPythonUninstalled():
+        return True
+
+    if isUvPython():
         return True
 
     if isStaticallyLinkedPython():
@@ -376,6 +389,8 @@ def getPythonFlavorName():
         return "Homebrew Python"
     elif isRyePython():
         return "Rye Python"
+    elif isUvPython():
+        return "UV-Python"
     elif isApplePython():
         return "Apple Python"
     elif isPyenvPython():

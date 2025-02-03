@@ -439,7 +439,8 @@ ImportScanFinding = collections.namedtuple(
 # We put here things that are not worth it (Cython is not really used by
 # anything really, or where it's know to not have a big # impact, e.g. lxml.
 
-unworthy_namespaces = ("Cython", "lxml")
+# TODO: Do we really want this warning to persist?
+unworthy_namespaces = ("Cython", "lxml", "black", "tomli")
 
 
 def _reportCandidates(package_name, module_name, candidate, candidates):

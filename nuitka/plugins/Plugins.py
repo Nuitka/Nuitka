@@ -414,7 +414,7 @@ class Plugins(object):
                 if not checkModuleName(v):
                     plugin.sysexit(
                         "Plugin '%s' returned an invalid module name, not %r (for module '%s')"
-                        % (plugin, v, module.getFullName())
+                        % (plugin.plugin_name, v, module.getFullName())
                     )
 
                 yield ModuleName(v)

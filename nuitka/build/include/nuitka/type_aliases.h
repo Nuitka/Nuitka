@@ -9,7 +9,7 @@
 #endif
 
 // Helpers for type aliases, type variables, and generic base classes.
-extern PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value);
+extern PyObject *MAKE_TYPE_ALIAS(PyObject *name, PyObject *type_params, PyObject *compute_value, PyObject *module_name);
 extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params);
 

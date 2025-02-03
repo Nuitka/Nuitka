@@ -16,8 +16,9 @@ from nuitka.__past__ import unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
-from nuitka.Tracing import general, my_print
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.Tracing import general, inclusion_logger, my_print
+from nuitka.utils.FileOperations import getReportPath, putTextFileContents
+from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
@@ -310,6 +311,22 @@ def writeSourceCode(filename, source_code):
     putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
 
 
+def _checkAndAddModuleName(pyi_deps, pyi_filename, line_number, candidate):
+    if type(candidate) is not ModuleName:
+        if (
+            not checkModuleName(candidate)
+            or candidate.startswith(" ")
+            or candidate.endswith(" ")
+        ):
+            inclusion_logger.warning(
+                "Encountered wrong '.pyi' parsing result in '%s:%d' giving illegal module name '%s'."
+                % (getReportPath(pyi_filename), line_number, candidate)
+            )
+            return None
+
+    pyi_deps.add(ModuleName(candidate))
+
+
 def parsePyIFile(module_name, package_name, pyi_filename):
     """Parse a pyi file for the given module name and extract imports made."""
 
@@ -329,7 +346,7 @@ def parsePyIFile(module_name, package_name, pyi_filename):
         source_filename=pyi_filename,
     )
 
-    for line in pyi_contents.splitlines():
+    for line_number, line in enumerate(pyi_contents.splitlines(), start=1):
         line = line.strip()
 
         if in_quote:
@@ -348,9 +365,12 @@ def parsePyIFile(module_name, package_name, pyi_filename):
 
         if not in_import:
             if line.startswith("import "):
-                imported = line[7:]
-
-                pyi_deps.add(imported)
+                _checkAndAddModuleName(
+                    pyi_deps=pyi_deps,
+                    pyi_filename=pyi_filename,
+                    line_number=line_number,
+                    candidate=line[7:].split("#", 1)[0].strip(),
+                )
             elif line.startswith("from "):
                 parts = line.split(None, 3)
                 assert parts[0] == "from"
@@ -382,9 +402,14 @@ def parsePyIFile(module_name, package_name, pyi_filename):
                             )
 
                 if origin_name != module_name:
-                    pyi_deps.add(origin_name)
+                    _checkAndAddModuleName(
+                        pyi_deps=pyi_deps,
+                        pyi_filename=pyi_filename,
+                        line_number=line_number,
+                        candidate=origin_name,
+                    )
 
-                imported = parts[3]
+                imported = parts[3].split("#", 1)[0].strip()
                 if imported.startswith("("):
                     # Handle multiline imports
                     if not imported.endswith(")"):
@@ -405,7 +430,12 @@ def parsePyIFile(module_name, package_name, pyi_filename):
                 for name in imported.split(","):
                     if name:
                         name = name.strip()
-                        pyi_deps.add(origin_name + "." + name)
+                        _checkAndAddModuleName(
+                            pyi_deps=pyi_deps,
+                            pyi_filename=pyi_filename,
+                            line_number=line_number,
+                            candidate=origin_name + "." + name,
+                        )
 
         else:  # In import
             imported = line
@@ -416,7 +446,16 @@ def parsePyIFile(module_name, package_name, pyi_filename):
             for name in imported.split(","):
                 name = name.strip()
                 if name:
-                    pyi_deps.add(in_import_part + "." + name)
+                    _checkAndAddModuleName(
+                        pyi_deps=pyi_deps,
+                        pyi_filename=pyi_filename,
+                        line_number=line_number,
+                        candidate=in_import_part + "." + name,
+                    )
+
+    # Rejected module names have become None.
+    if None in pyi_deps:
+        pyi_deps.remove(None)
 
     return pyi_deps
 

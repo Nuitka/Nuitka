@@ -35,12 +35,13 @@ def generateTypeAliasCode(to_name, expression, emit, context):
         to_name, "type_alias_value", expression, emit, context
     ) as value_name:
         emit(
-            "%s = MAKE_TYPE_ALIAS(%s, %s, %s);"
+            "%s = MAKE_TYPE_ALIAS(%s, %s, %s, %s);"
             % (
                 value_name,
                 context.getConstantCode(constant=type_alias_name),
                 type_params_name,
                 compute_value_name,
+                context.getConstantCode(constant=context.getModuleName().asString()),
             )
         )
 
