@@ -58,6 +58,26 @@
 #include "HelpersConsole.c"
 #endif
 
+// We are open to having this defined otherwise, this is a default only.
+#if defined(_WIN32) && defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) &&                                 \
+    !defined(NUITKA_APP_MODEL_USER_ID)
+#define NUITKA_APP_MODEL_USER_ID L"" NUITKA_COMPANY_NAME L"." NUITKA_PRODUCT_NAME
+#endif
+
+#if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
+typedef HRESULT(WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
+
+static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_model_id) {
+    pfnSetCurrentProcessExplicitAppUserModelID fnSetCurrentProcessExplicitAppUserModelID =
+        (pfnSetCurrentProcessExplicitAppUserModelID)GetProcAddress(GetModuleHandleA("Shell32.dll"),
+                                                                   "SetCurrentProcessExplicitAppUserModelID");
+
+    if (fnSetCurrentProcessExplicitAppUserModelID != NULL) {
+        fnSetCurrentProcessExplicitAppUserModelID(app_user_model_id);
+    }
+}
+#endif
+
 extern PyCodeObject *code_objects_main;
 
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
@@ -1218,8 +1238,8 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     inheritAttachedConsole();
 #endif
 
-#if defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) && defined(_WIN32)
-    SetCurrentProcessExplicitAppUserModelID(L"" NUITKA_COMPANY_NAME L"." NUITKA_PRODUCT_NAME);
+#if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
+    setCurrentProcessExplicitAppUserModelID(NUITKA_APP_MODEL_USER_ID);
 #endif
 
 #ifdef _NUITKA_MACOS_BUNDLE
