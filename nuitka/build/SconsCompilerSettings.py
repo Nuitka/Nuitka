@@ -16,6 +16,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
 )
 from nuitka.utils.Utils import (
+    isAIX,
     isFedoraBasedLinux,
     isMacOS,
     isPosixWindows,
@@ -459,6 +460,9 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif env.gcc_mode and not env.clang_mode and env.gcc_version >= (15,):
         resource_mode = "c23_embed"
         reason = "default for newer gcc"
+    elif isAIX():
+        resource_mode = "code"
+        reason = "AIX is not compatible with incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
