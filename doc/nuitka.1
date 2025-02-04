@@ -401,6 +401,12 @@ Python3.12+ do not check known immortal object
 assumptions. Some C libraries corrupt them. Defaults
 to check being made if "\-\-debug" is on.
 .TP
+\fB\-\-no\-debug\-c\-warnings\fR
+Disable check normally done with "\-\-debug". The C
+compilation may produce warnings, which it often does
+for some packages without these being issues, esp. for
+unused values.
+.TP
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for
 better debugger interaction. Defaults to off.
@@ -1465,6 +1471,12 @@ Disable check normally done with "\-\-debug". With
 Python3.12+ do not check known immortal object
 assumptions. Some C libraries corrupt them. Defaults
 to check being made if "\-\-debug" is on.
+.TP
+\fB\-\-no\-debug\-c\-warnings\fR
+Disable check normally done with "\-\-debug". The C
+compilation may produce warnings, which it often does
+for some packages without these being issues, esp. for
+unused values.
 .TP
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for

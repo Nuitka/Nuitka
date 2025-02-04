@@ -2038,7 +2038,8 @@ def getExperimentalIndications():
 def getDebugModeIndications():
     result = []
 
-    for debug_option_value_name in ("debug_immortal",):
+    for debug_option_value_name in ("debug_immortal", "debug_c_warnings"):
+        # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
             continue
 
@@ -2775,7 +2776,15 @@ def getModuleParameter(module_name, parameter_name):
         option_name = module_name_prefix + "-" + parameter_name
 
     for module_option in options.module_parameters:
-        module_option_name, module_option_value = module_option.split("=", 1)
+        try:
+            module_option_name, module_option_value = module_option.split("=", 1)
+        except ValueError:
+            Tracing.optimization_logger.sysexit(
+                """\
+Error, must specify module parameter name and value with a separating \
+'=' and not '%s"."""
+                % module_option
+            )
 
         if option_name == module_option_name:
             return module_option_value

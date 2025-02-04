@@ -324,19 +324,6 @@ if env.msvc_mode:
 
 if env.debug_mode:
     if env.gcc_mode:
-        # Allow gcc/clang to point out all kinds of inconsistency to us by
-        # raising an error.
-
-        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
-            env.Append(
-                CCFLAGS=[
-                    "-Wall",
-                    "-Werror",
-                ]
-            )
-        else:
-            env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
-
         env.Append(
             CCFLAGS=[
                 # Unfortunately Py_INCREF(Py_False) triggers aliasing warnings,
@@ -351,9 +338,6 @@ if env.debug_mode:
         )
 
     elif env.msvc_mode:
-        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
-            env.Append(CCFLAGS=["/WX"])
-
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
