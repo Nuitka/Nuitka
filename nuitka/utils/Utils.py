@@ -237,6 +237,11 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def isAIX():
+    """The AIX platform."""
+    return getOS() == "AIX"
+
+
 def hasMacOSIntelSupport():
     """macOS with either Intel hardware or Rosetta being installed."""
     return isMacOS() and (
