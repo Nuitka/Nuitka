@@ -1301,7 +1301,8 @@ import sys
 
 try:
 %(setup_codes)s
-except ImportError:
+except ImportError as e:
+    sys.stderr.write("\n%%s" %% repr(e))
     sys.exit(38)
 try:
 %(query_codes)s
@@ -1323,6 +1324,11 @@ except Exception as e:
             feedback = check_output([sys.executable, "-c", cmd], env=env)
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
+                self.warning(
+                    "Import error (not installed?) during compile time command execution: %s"
+                    % e.stderr.splitlines()[-1]
+                )
+
                 return None
 
             if Options.is_debug:
