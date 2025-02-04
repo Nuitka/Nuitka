@@ -857,6 +857,25 @@ debug_group.add_option(
 )
 
 debug_group.add_option(
+    "--no-debug-c-warnings",
+    action="store_false",
+    dest="debug_c_warnings",
+    default=None,
+    help="""\
+Disable check normally done with "--debug". The C compilation may produce
+warnings, which it often does for some packages without these being issues,
+esp. for unused values.""",
+)
+
+debug_group.add_option(
+    "--debug-c-warnings",
+    action="store_true",
+    dest="debug_c_warnings",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
     "--unstripped",
     "--unstriped",
     action="store_true",

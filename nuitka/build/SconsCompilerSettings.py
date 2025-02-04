@@ -661,6 +661,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # gcc compiler cf_protection option
         if env.cf_protection != "auto":
             env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
+
     # Support for clang.
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-w"])
@@ -669,8 +670,30 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Don't export anything by default, this should create smaller executables.
         env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
-        if env.debug_mode and "allow-c-warnings" not in env.experimental_flags:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+    if (
+        env.debug_mode
+        and "debug_c_warnings" in env.debug_modes_flags
+        and not env.debugger_mode
+    ):
+        # Allow gcc/clang/MSVC to point out all kinds of inconsistency to us by
+        # raising an error.
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "-Wall",
+                    "-Werror",
+                ]
+            )
+
+            if env.clang_mode or env.gcc_version >= (4, 6):
+                env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+        if env.msvc_mode:
+            env.Append(CCFLAGS=["/WX"])
+    else:
+        if env.gcc_mode:
+            if env.clang_mode or env.gcc_version >= (4, 6):
+                env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
     if isMacOS():
@@ -701,12 +724,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 5):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
-    # For gcc 4.6 or higher, there are some new interesting functions.
+    # For gcc 4.6 or higher, there this new interesting function.
     if env.gcc_mode and not env.clang_mode and env.gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-fpartial-inlining"])
-
-        if env.debug_mode:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
     if (
