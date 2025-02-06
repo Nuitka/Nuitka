@@ -961,7 +961,7 @@ void PRINT_CURRENT_EXCEPTION(void) {
 #if PYTHON_VERSION < 0x3c0
     PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
 #else
-    _PRINT_EXCEPTION1(tstate->exc_info->exc_value);
+    _PRINT_EXCEPTION1(tstate->current_exception);
 #endif
 }
 
