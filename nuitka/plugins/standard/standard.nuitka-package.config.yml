@@ -2920,7 +2920,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: 7c09160e
+- module-name: 'numpy' # checksum: 10720e3
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -2949,9 +2949,12 @@
       no-auto-follow:
         'numpy.distutils': 'ignore'
       when: 'not use_setuptools'
-    - description: 'avoid pyyaml dependency'
+    - description: 'avoid PyYAML dependency'
       no-auto-follow:
         'yaml': 'ignore'
+    - description: 'avoid charset_normalizer dependency'
+      no-auto-follow:
+        'charset_normalizer': 'ignore'
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
