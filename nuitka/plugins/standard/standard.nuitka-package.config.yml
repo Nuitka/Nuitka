@@ -5984,6 +5984,12 @@
         - 'sklearn.datasets.data'
         - 'sklearn.datasets.descr'
 
+- module-name: 'sklearn.datasets._base' # checksum: 521f4991
+  anti-bloat:
+    - description: 'avoid PIL dependency for sample image testing'
+      change_function:
+        'load_sample_images': 'un-callable'
+
 - module-name: 'sklearn.decomposition' # checksum: 61c8cb5d
   implicit-imports:
     - depends:
