@@ -3510,7 +3510,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 158bd2af
+- module-name: 'pandas' # checksum: b4c6897a
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3521,6 +3521,7 @@
     - description: 'avoid numba in pandas'
       no-auto-follow:
         'pandas.core._numba.extensions': 'no numba acceleration'
+        'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
 
 - module-name: 'pandas._libs' # checksum: 582d52b9
