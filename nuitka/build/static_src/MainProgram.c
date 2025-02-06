@@ -40,6 +40,9 @@
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
+#if defined(__APPLE__)
+#define _NUITKA_MACOS_BUNDLE 1
+#endif
 #endif
 
 // It doesn't work for MinGW64 to update the standard output handles early on,
@@ -1213,6 +1216,78 @@ PyObject *getOriginalArgv0Object(void) {
     return Nuitka_String_FromFilename(original_argv0);
 }
 
+#ifdef _NUITKA_MACOS_BUNDLE
+#include <CoreFoundation/CoreFoundation.h>
+
+bool _setLANGSystemLocaleMacOS(void) {
+    // 1. Get preferred languages
+    CFArrayRef preferred_languages = CFLocaleCopyPreferredLanguages();
+    if (unlikely(!preferred_languages)) {
+        return false;
+    }
+
+    // 2. Pick the first one.
+    CFStringRef preferred_language = (CFStringRef)CFArrayGetValueAtIndex(preferred_languages, 0);
+    if (unlikely(!preferred_language)) {
+        return false;
+    }
+
+    // 3. Create canonical Locale Identifier
+    CFStringRef canonical_locale_id =
+        CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, preferred_language);
+    if (unlikely(!canonical_locale_id)) {
+        return false;
+    }
+
+    // 3. Get C String from Canonical Identifier (Robustly)
+    char locale_buffer[256];
+    const char *locale_c_string = CFStringGetCStringPtr(canonical_locale_id, kCFStringEncodingUTF8);
+
+    if (unlikely(!locale_c_string)) {
+        if (unlikely(!CFStringGetCString(canonical_locale_id, locale_buffer, sizeof(locale_buffer),
+                                         kCFStringEncodingUTF8))) {
+            return false;
+        }
+
+        locale_c_string = locale_buffer;
+    }
+
+    CFRelease(canonical_locale_id);
+    CFRelease(preferred_languages);
+
+    // 4. Attempt to set the locale created naively.
+    if (setlocale(LC_ALL, locale_c_string) == NULL) {
+        // Replace hyphens with underscores and append ".UTF-8" if that failed.
+        char fallback_locale[256];
+
+        copyStringSafe(fallback_locale, locale_c_string, sizeof(fallback_locale));
+        for (char *p = fallback_locale; *p; p++) {
+            if (*p == '-') {
+                *p = '_';
+            }
+        }
+        appendStringSafe(fallback_locale, ".UTF-8", sizeof(fallback_locale));
+
+        if (setlocale(LC_ALL, fallback_locale) == NULL) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void setLANGSystemLocaleMacOS(void) {
+    bool success = _setLANGSystemLocaleMacOS();
+
+    if (success == false) {
+        setlocale(LC_ALL, "en_US.UTF-8");
+    }
+
+    char const *current_lang = setlocale(LC_ALL, NULL);
+    setEnvironmentVariable("LANG", current_lang);
+}
+#endif
+
 static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
@@ -1243,10 +1318,16 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 
 #ifdef _NUITKA_MACOS_BUNDLE
+    // TODO: This is only derived from start directory, checking the parent
+    // to be finder or launchctl might be more reliable.
+    bool terminal_launch = true;
+
     {
         char *current_dir = getcwd(NULL, -1);
 
         if (strcmp(current_dir, "/") == 0) {
+            terminal_launch = false;
+
             chdir(getBinaryDirectoryHostEncoded(false));
             chdir("../../../");
         }
@@ -1434,6 +1515,12 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     environment_char_t const *old_env_hash_seed = getEnvironmentVariable("PYTHONHASHSEED");
     setEnvironmentVariable("PYTHONHASHSEED", makeEnvironmentLiteral("0"));
+#endif
+
+#ifdef _NUITKA_MACOS_BUNDLE
+    if (terminal_launch == false) {
+        setLANGSystemLocaleMacOS();
+    }
 #endif
 
     /* Disable CPython warnings if requested to. */

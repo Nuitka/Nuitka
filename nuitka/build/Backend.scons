@@ -542,6 +542,7 @@ if env.standalone_mode:
 
 if macos_bundle_mode:
     env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE"])
+    env.Append(LINKFLAGS=["-framework", "CoreFoundation"])
 
 if onefile_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
