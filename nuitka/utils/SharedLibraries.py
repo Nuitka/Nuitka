@@ -227,7 +227,8 @@ def _getDLLVersionWindows(filename):
 _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."
 
 
-def _getSharedLibraryRPATHElf(filename):
+def _getSharedLibraryRPATHSElf(filename):
+    rpaths = []
     output = executeToolChecked(
         logger=postprocessing_logger,
         command=("readelf", "-d", filename),
@@ -242,9 +243,24 @@ def _getSharedLibraryRPATHElf(filename):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            return result
+            rpaths.append(result)
+        elif b"NEEDED" in line:
+            # If the Python binary has a library dependency like
+            # $ORIGIN/../lib/libpython.so, then treat it like it has an
+            # rpath of $ORIGIN/../lib. This is needed for
+            # python-build-standalone (used by uv).
+            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
+            directory, slash, filename = result.rpartition(b"/")
 
-    return None
+            if slash:
+                if str is not bytes:
+                    directory = directory.decode("utf8")
+                if directory == "":
+                    directory = "/"
+
+                rpaths.append(directory)
+
+    return rpaths
 
 
 _otool_output_cache = {}
@@ -352,7 +368,8 @@ def _getDLLVersionMacOS(filename):
     return None
 
 
-def _getSharedLibraryRPATHDarwin(filename):
+def _getSharedLibraryRPATHSDarwin(filename):
+    rpaths = []
     output = getOtoolListing(filename)
 
     cmd = b""
@@ -368,21 +385,21 @@ def _getSharedLibraryRPATHDarwin(filename):
                 if str is not bytes:
                     result = result.decode("utf8")
 
-                return result
+                rpaths.append(result)
 
         if last_was_load_command and line.startswith(b"cmd "):
             cmd = line.split()[1]
 
         last_was_load_command = line.startswith(b"Load command")
 
-    return None
+    return rpaths
 
 
-def getSharedLibraryRPATH(filename):
+def getSharedLibraryRPATHS(filename):
     if isMacOS():
-        return _getSharedLibraryRPATHDarwin(filename)
+        return _getSharedLibraryRPATHSDarwin(filename)
     else:
-        return _getSharedLibraryRPATHElf(filename)
+        return _getSharedLibraryRPATHSElf(filename)
 
 
 def _filterPatchelfErrorOutput(stderr):
