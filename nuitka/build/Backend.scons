@@ -45,10 +45,11 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.Utils import (
+    isAIX,
     isDebianBasedLinux,
     isFedoraBasedLinux,
+    isFreeBSD,
     isMacOS,
-    isNetBSD,
 )
 
 from .DataComposerInterface import getConstantBlobFilename
@@ -800,9 +801,12 @@ elif env.exe_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
-    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-    if isNetBSD():
-        env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
+    # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
+    # and AIX don't have it, but some Python flavors like Standalone Python
+    # won't find it unless provided like this, so lets try to add this by
+    # default and remove OSes that give errors one by one.
+    if not isFreeBSD() and not isMacOS() and not isAIX():
+        env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
     if env.module_mode or env.dll_mode:
