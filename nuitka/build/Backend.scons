@@ -812,6 +812,8 @@ elif env.exe_mode:
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if isNetBSD():
         env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
+    elif env.relocatable:
+        env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
     if env.module_mode or env.dll_mode:
