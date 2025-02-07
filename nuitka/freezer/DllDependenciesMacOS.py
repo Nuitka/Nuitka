@@ -359,7 +359,7 @@ def _resolveBinaryPathDLLsMacOS(
 
 
 def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    stdout = getOtoolListing(binary_filename)
+    stdout = getOtoolListing(filename=binary_filename, cached=True)
 
     lines = stdout.split(b"\n")
 
