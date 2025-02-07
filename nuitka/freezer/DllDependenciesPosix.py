@@ -12,8 +12,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import resolveSymlink
-from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
+from nuitka.utils.SharedLibraries import getSharedLibraryRPATHS
 from nuitka.utils.Utils import (
     isAlpineLinux,
     isAndroidBasedLinux,
@@ -44,7 +43,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpath
     if _detected_python_rpath is None and not isPosixWindows():
-        _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
+        _detected_python_rpath = getSharedLibraryRPATHS(sys.executable) or []
 
         if _detected_python_rpath:
             # Need to resolve a potential symlink.
@@ -53,23 +52,26 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             else:
                 sys_executable = sys.executable
 
-            _detected_python_rpath = _detected_python_rpath.replace(
-                "$ORIGIN", os.path.dirname(sys_executable)
-            )
+            for i, rpath in enumerate(_detected_python_rpath):
+                rpath = rpath.replace(
+                    "$ORIGIN", os.path.dirname(sys_executable)
+                )
 
-            _detected_python_rpath = os.path.normpath(
-                os.path.join(os.path.dirname(sys.executable), _detected_python_rpath)
-            )
+                rpath = os.path.normpath(
+                    os.path.join(os.path.dirname(sys.executable), rpath)
+                )
+
+                _detected_python_rpath[i] = rpath
 
     # Single one, might be wrong for Anaconda, which uses multiple ones on at least
     # macOS.
     python_rpaths = []
     if _detected_python_rpath:
-        python_rpaths.append(_detected_python_rpath)
+        python_rpaths.extend(_detected_python_rpath)
 
     if os.path.islink(dll_filename):
         link_target_path = os.path.dirname(
-            os.path.abspath(resolveSymlink(dll_filename))
+            os.path.realpath(dll_filename)
         )
         python_rpaths.append(link_target_path)
 
