@@ -135,6 +135,7 @@
         "argmap",
         "Asend",
         "asyncgen",
+        "asyncgens",
         "backslashreplace",
         "basenames",
         "basestring",
