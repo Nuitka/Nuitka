@@ -239,14 +239,16 @@ slower without it.
 
     if env.gcc_mode and lto_mode:
         if env.clang_mode:
-            env.Append(CCFLAGS=["-flto"])
-            env.Append(LINKFLAGS=["-flto"])
+            env.Append(CCFLAGS=["-flto=thin"])
+            env.Append(LINKFLAGS=["-flto=thin"])
         else:
-            env.Append(CCFLAGS=["-flto=%d" % job_count])
-            env.Append(LINKFLAGS=["-flto=%d" % job_count])
+            env.Append(CCFLAGS=["-flto=thin"])
+            env.Append(LINKFLAGS=["-flto=thin"])
 
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
             env.Append(LINKFLAGS=["-fuse-linker-plugin"])
+
+            env.Append(LINKFLAGS=["-Wl,-plugin-opt,thinlto-jobs=%d" % job_count])
 
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
