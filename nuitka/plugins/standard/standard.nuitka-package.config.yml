@@ -6339,6 +6339,12 @@
     - depends:
         - 'sqlalchemy.dialects.mssql.pyodbc'
 
+- module-name: 'sqlalchemy.orm' # checksum: 807b0764
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.orm.*'
+        - 'sqlalchemy.ext.*'
+
 - module-name: 'sqlalchemy.orm.util' # checksum: 629852fa
   anti-bloat:
     - description: 'remove pytest reference'
