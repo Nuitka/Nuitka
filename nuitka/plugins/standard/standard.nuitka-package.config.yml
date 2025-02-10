@@ -197,10 +197,10 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: d7d0718b
+- module-name: 'arcade' # checksum: 25cf95c9
   data-files:
     - dirs:
-        - 'resources/system'
+        - 'resources'
     - patterns:
         - 'VERSION'
   anti-bloat:
