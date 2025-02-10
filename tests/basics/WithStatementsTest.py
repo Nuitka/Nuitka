@@ -34,13 +34,18 @@ print("Use context manager and raise no exception in the body:")
 with MyContextManager() as x:
     print("x has become", x)
 
+
+class _CVar:
+    def __getattr__(self, key):
+        raise AttributeError("object has no attribute %s" % key)
+
+
 print("Use context manager and raise an exception in the body:")
 try:
     with MyContextManager() as x:
         print("x has become", x)
 
-        raise Exception("Lalala")
-        print(x)
+        getattr(_CVar(), "Lalala")
 except Exception as e:
     print("Caught raised exception", repr(e))
 
