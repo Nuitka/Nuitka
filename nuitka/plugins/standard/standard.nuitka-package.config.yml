@@ -6389,6 +6389,11 @@
         - 'sqlfluff.core.plugin.*'
         - 'sqlfluff.rules.*'
 
+- module-name: 'sqlglot.dialects' # checksum: b0ad4de6
+  implicit-imports:
+    - depends:
+        - 'sqlglot.dialects.*'
+
 - module-name: 'srsly.msgpack._packer' # checksum: ef9e3a96
   implicit-imports:
     - depends:
