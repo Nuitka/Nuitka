@@ -200,6 +200,9 @@ def getModuleFromCodeName(code_name):
 
 
 def getOwnerFromCodeName(code_name):
+    # TODO: For AIX, etc. we need to know this separator, maybe should be part
+    # of the way write the XML that we use "$" or "_" as a separator, or we will
+    # need to use both, for now this is not used anyway.
     if "$$$" in code_name:
         module_code_name, _function_code_name = code_name.split("$$$", 1)
 
