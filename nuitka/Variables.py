@@ -14,7 +14,7 @@ from abc import abstractmethod
 from nuitka.__past__ import iterItems
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
-from nuitka.utils import Utils
+from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -89,12 +89,8 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
     def getEntryPoint(self):
         return self.owner.getEntryPoint()
 
-    def getCodeName(self):
-        var_name = self.variable_name
-        var_name = var_name.replace(".", "$")
-        var_name = Utils.encodeNonAscii(var_name)
-
-        return var_name
+    def getVariableCodeName(self):
+        return encodePythonIdentifierToC(self.variable_name)
 
     def allocateTargetNumber(self):
         self.version_number += 1

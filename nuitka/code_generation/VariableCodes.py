@@ -10,6 +10,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int_or_long,
 )
 from nuitka.PythonVersions import python_version
+from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPointers import (
@@ -90,11 +91,9 @@ def generateDelVariableCode(statement, emit, context):
 
 
 def getModuleVariableAccessorCodeName(module_identifier, variable_name):
-    # For non-ascii names use encoding.
-    if str is not bytes:
-        variable_name = variable_name.encode("ascii", "c_identifier").decode()
-
-    return "module_var_accessor_%s_$$_%s" % (module_identifier, variable_name)
+    return "module_var_accessor_" + encodePythonIdentifierToC(
+        "%s.%s" % (module_identifier, variable_name)
+    )
 
 
 def getModuleVariableReferenceCode(
@@ -240,13 +239,13 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
 def _getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
-        return "closure_" + variable.getCodeName()
+        return "closure_" + variable.getVariableCodeName()
     elif variable.isParameterVariable():
-        return "par_" + variable.getCodeName()
+        return "par_" + variable.getVariableCodeName()
     elif variable.isTempVariable():
-        return "tmp_" + variable.getCodeName()
+        return "tmp_" + variable.getVariableCodeName()
     else:
-        return "var_" + variable.getCodeName()
+        return "var_" + variable.getVariableCodeName()
 
 
 def getPickedCType(variable, context):

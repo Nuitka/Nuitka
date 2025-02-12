@@ -12,6 +12,8 @@ import re
 
 from nuitka.__past__ import to_byte, unicode
 
+from .Utils import isAIX
+
 
 def _identifierEncode(c):
     """Nuitka handler to encode unicode to ASCII identifiers for C compiler."""
@@ -134,14 +136,20 @@ def decodeCStringToPython(value):
     return result
 
 
-def encodePythonIdentifierToC(value):
-    """Encode an identifier from a given Python string."""
+def _decodePythonIdentifierMatch(match):
+    c = match.group()[2:-1]
 
-    # Python identifiers allow almost of characters except a very
-    # few, much more than C identifiers support. This attempts to
-    # be bi-directional, so we can reverse it.
+    return chr(c)
 
-    def r(match):
+
+# TODO: These may actually be more platforms that are affected.
+_target_allows_dollar_character = not isAIX()
+
+# Duplicated code, because this is called a lot. The encoding that is fully
+# C standards compliant is so much harder to read, we don't want to use that.
+if _target_allows_dollar_character:
+
+    def _encodePythonIdentifierMatch(match):
         c = match.group()
 
         if c == ".":
@@ -149,7 +157,39 @@ def encodePythonIdentifierToC(value):
         else:
             return "$$%d$" % ord(c)
 
-    return re.sub("[^a-zA-Z0-9_]", r, value)
+    def encodePythonIdentifierToC(value):
+        """Encode an identifier from a given Python string."""
+
+        # Python identifiers allow almost of characters except a very
+        # few, much more than C identifiers support. This attempts to
+        # be bi-directional, so we can reverse it.
+        return re.sub("[^a-zA-Z0-9_]", _encodePythonIdentifierMatch, value)
+
+    def decodePythonIdentifierFromC(value):
+        return re.sub(r"\$\$\d+\$", _decodePythonIdentifierMatch, value)
+
+else:
+
+    def _encodePythonIdentifierMatch(match):
+        c = match.group()
+
+        if c == ".":
+            return "_"
+        else:
+            return "__%d_" % ord(c)
+
+    def encodePythonIdentifierToC(value):
+        """Encode an identifier from a given Python string."""
+
+        # Python identifiers allow almost of characters except a very
+        # few, much more than C identifiers support. This attempts to
+        # be bi-directional, so we can reverse it. In order to escape,
+        # remove the "_" character, that on allowing platforms we can
+        # use "$" instead for.
+        return re.sub("[^a-zA-Z0-9]", _encodePythonIdentifierMatch, value)
+
+    def decodePythonIdentifierFromC(value):
+        return re.sub(r"__\d+_", _decodePythonIdentifierMatch, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
