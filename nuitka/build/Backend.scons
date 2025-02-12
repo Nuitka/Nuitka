@@ -91,7 +91,8 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,
+# spell-checker: ignore linkflags,libpath,libflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -626,6 +627,7 @@ not satisfied!"""
             )
 
     if python_version >= (3, 13):
+        # spell-checker: ignore mimalloc
         yield os.path.join(candidate, "internal", "mimalloc")
 
     if env.self_compiled_python_uninstalled:
