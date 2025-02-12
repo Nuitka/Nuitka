@@ -973,7 +973,9 @@ void PRINT_PUBLISHED_EXCEPTION(void) {
     PRINT_EXCEPTION(EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate));
 #else
     PyObject *exc_value = EXC_VALUE(tstate);
+#if PYTHON_VERSION < 0x3c0
     PyTracebackObject *exc_tb = (exc_value != NULL && exc_value != Py_None) ? GET_EXCEPTION_TRACEBACK(exc_value) : NULL;
+#endif
     PRINT_EXCEPTION(EXC_TYPE(tstate), exc_value, exc_tb);
 #endif
 }
