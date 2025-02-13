@@ -1100,7 +1100,6 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
         // the need to do it. It may also be a lot of work to do that though
         // and maybe having weakrefs is uncommon.
         PyObject_ClearWeakRefs((PyObject *)coroutine);
-        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
 
         Nuitka_GC_Track(coroutine);
     }
@@ -1114,12 +1113,6 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack(coroutine);
 
-    PyThreadState *tstate = PyThreadState_GET();
-
-    // Save the current exception, if any, we must preserve it.
-    struct Nuitka_ExceptionPreservationItem saved_exception_state;
-    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
-
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
     PRINT_NEW_LINE();
@@ -1127,14 +1120,15 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
 
     Nuitka_Coroutine_release_closure(coroutine);
 
+#if PYTHON_VERSION >= 0x370
+    Py_XDECREF(coroutine->m_origin);
+    coroutine->m_origin = NULL;
+#endif
+
     if (coroutine->m_frame) {
         Nuitka_SetFrameGenerator(coroutine->m_frame, NULL);
         Py_DECREF(coroutine->m_frame);
     }
-
-#if PYTHON_VERSION >= 0x370
-    Py_XDECREF(coroutine->m_origin);
-#endif
 
     Py_DECREF(coroutine->m_name);
     Py_DECREF(coroutine->m_qualname);
@@ -1145,8 +1139,6 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutines, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
-
-    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 // TODO: Set "__doc__" automatically for method clones of compiled types from
