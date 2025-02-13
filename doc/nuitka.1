@@ -155,6 +155,14 @@ Use e.g. a string like
 \&'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a
 good static cache path, this will then not be removed.
 .TP
+\fB\-\-onefile\-cache\-mode\fR=\fI\,ONEFILE_CACHED_MODE\/\fR
+This mode is inferred from your use of the spec. If it
+contains runtime dependent paths, "auto" resolves to
+"temporary" which will make sure to remove the
+unpacked binaries after execution, and cached will not
+remove it and see to reuse its contents during next
+execution for faster startup times.
+.TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
 When stopping the child, e.g. due to CTRL\-C or
 shutdown, etc. the Python code gets a
@@ -1225,6 +1233,14 @@ temporary directory and being non\-static it's removed.
 Use e.g. a string like
 \&'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a
 good static cache path, this will then not be removed.
+.TP
+\fB\-\-onefile\-cache\-mode\fR=\fI\,ONEFILE_CACHED_MODE\/\fR
+This mode is inferred from your use of the spec. If it
+contains runtime dependent paths, "auto" resolves to
+"temporary" which will make sure to remove the
+unpacked binaries after execution, and cached will not
+remove it and see to reuse its contents during next
+execution for faster startup times.
 .TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
 When stopping the child, e.g. due to CTRL\-C or

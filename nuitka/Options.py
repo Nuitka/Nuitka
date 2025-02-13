@@ -219,6 +219,7 @@ definitely not do what you want it to do."""
     for candidate in (
         "{PROGRAM}",
         "{PROGRAM_BASE}",
+        "{PROGRAM_DIR}",
         "{CACHE_DIR}",
         "{HOME}",
         "{TEMP}",
@@ -233,7 +234,7 @@ Absolute run time paths of '%s' can only be at the start of \
 
         if candidate == value:
             Tracing.options_logger.sysexit(
-                """Cannot use folder %s, may only be the \
+                """Cannot use folder '%s', may only be the \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
@@ -288,11 +289,11 @@ very well known environment: anchoring it with e.g. '{TEMP}', \
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
-        ("{TEMP}", "{HOME}", "{CACHE_DIR}")
+        ("{TEMP}", "{HOME}", "{CACHE_DIR}", "{PROGRAM_DIR}")
     ):
         Tracing.options_logger.warning(
             """\
-Using a relative to the onefile executable should be avoided \
+Using a path relative to the onefile executable should be avoided \
 unless you are targeting a very well known environment, anchoring \
 it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
             % options.onefile_tempdir_spec
@@ -2080,27 +2081,33 @@ def isAcceleratedMode():
 
 
 def isOnefileTempDirMode():
-    """:returns: bool derived from ``--onefile-tempdir-spec``
+    """:returns: bool derived from ``--onefile-tempdir-spec`` and ``--onefile-cache-mode``
 
     Notes:
         Using cached onefile execution when the spec doesn't contain
-        volatile things.
+        volatile things or forced by the user.
     """
     if shallCreatePythonPgoInput():
         return False
 
-    spec = getOnefileTempDirSpec()
+    if options.onefile_cached_mode == "auto":
+        spec = getOnefileTempDirSpec()
 
-    for candidate in (
-        "{PID}",
-        "{TIME}",
-        "{PROGRAM}",
-        "{PROGRAM_BASE}",
-    ):
-        if candidate in spec:
-            return True
-
-    return False
+        for candidate in (
+            "{PID}",
+            "{TIME}",
+            "{PROGRAM}",
+            "{PROGRAM_BASE}",
+            "{PROGRAM_DIR}",
+        ):
+            if candidate in spec:
+                return True
+    elif options.onefile_cached_mode == "temporary":
+        return True
+    elif options.onefile_cached_mode == "cached":
+        return False
+    else:
+        assert False, options.onefile_cached_mode
 
 
 def isCPgoMode():

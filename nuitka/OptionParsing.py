@@ -377,6 +377,22 @@ static cache path, this will then not be removed.""",
 )
 
 onefile_group.add_option(
+    "--onefile-cache-mode",
+    action="store",
+    dest="onefile_cached_mode",
+    metavar="ONEFILE_CACHED_MODE",
+    choices=("auto", "cached", "temporary"),
+    default="auto",
+    help="""\
+This mode is inferred from your use of the spec. If it contains
+runtime dependent paths, "auto" resolves to "temporary" which
+will make sure to remove the unpacked binaries after execution,
+and cached will not remove it and see to reuse its contents
+during next execution for faster startup times.""",
+)
+
+
+onefile_group.add_option(
     "--onefile-child-grace-time",
     action="store",
     dest="onefile_child_grace_time",
@@ -1948,6 +1964,7 @@ run_time_variable_names = (
     "TIME",
     "PROGRAM",
     "PROGRAM_BASE",
+    "PROGRAM_DIR",
     "CACHE_DIR",
     "COMPANY",
     "PRODUCT",

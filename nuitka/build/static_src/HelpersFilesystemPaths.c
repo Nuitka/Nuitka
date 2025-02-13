@@ -727,6 +727,41 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
 #endif
 
 #if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static wchar_t result[MAXPATHLEN + 1];
+
+    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
+    stripFilenameW(result);
+
+    return result;
+}
+#else
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static char result[MAXPATHLEN + 1];
+    copyStringSafe(result, filename, sizeof(result));
+
+    return dirname(result);
+}
+#endif
+
+#if defined(_WIN32)
 
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
@@ -804,6 +839,12 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 if ((length >= 4) && (wcsicmp(target + length - 4, L".exe") == 0)) {
                     target[length - 4] = 0;
                 }
+            } else if (wcsicmp(var_name, L"PROGRAM_DIR") == 0) {
+                if (expandTemplatePathW(target, L"{PROGRAM}", buffer_size - wcslen(target)) == false) {
+                    return false;
+                }
+
+                stripFilenameW(target);
             } else if (wcsicmp(var_name, L"PID") == 0) {
                 char pid_buffer[128];
                 snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
@@ -936,6 +977,29 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
                     target[length - 4] = 0;
                 }
+            } else if (strcasecmp(var_name, "PROGRAM_DIR") == 0) {
+                if (expandTemplatePath(target, "{PROGRAM}", buffer_size - strlen(target)) == false) {
+                    return false;
+                }
+
+                size_t length = strlen(target);
+
+                // TODO: We should have an inplace strip dirname function, like for
+                // Win32 stripFilenameW, but that then knows the length and check
+                // if that empties the string, but this works for now.
+                while (true) {
+                    if (length == 0) {
+                        return false;
+                    }
+
+                    if (target[length] == '/') {
+                        break;
+                    }
+
+                    target[length] = 0;
+                }
+
+                is_path = true;
             } else if (strcasecmp(var_name, "PID") == 0) {
                 char pid_buffer[128];
 
@@ -1034,41 +1098,6 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
     return true;
 }
 
-#endif
-
-#if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
-static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
-
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static wchar_t result[MAXPATHLEN + 1];
-
-    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
-    stripFilenameW(result);
-
-    return result;
-}
-#else
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static char result[MAXPATHLEN + 1];
-    copyStringSafe(result, filename, sizeof(result));
-
-    return dirname(result);
-}
 #endif
 
 #if !defined(_NUITKA_EXE)
