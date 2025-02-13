@@ -56,6 +56,7 @@ from nuitka.utils.Distributions import (
     getDistributionName,
     getDistributionsFromModuleName,
     getDistributionVersion,
+    isDistributionVendored,
 )
 from nuitka.utils.FileOperations import (
     getReportPath,
@@ -157,6 +158,14 @@ def _getReportInputData(aborted):
         (
             getDistributionName(dist),
             getDistributionInstallerName(getDistributionName(dist)),
+        )
+        for dist in all_distributions
+    )
+
+    module_distribution_vendored = dict(
+        (
+            getDistributionName(dist),
+            isDistributionVendored(getDistributionName(dist)),
         )
         for dist in all_distributions
     )
@@ -720,7 +729,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
     )
 
     for distribution in report_input_data["all_distributions"]:
-        TreeXML.appendTreeElement(
+        distribution_node = TreeXML.appendTreeElement(
             distributions_xml_node,
             "distribution",
             name=getDistributionName(distribution),
@@ -729,6 +738,11 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
                 getDistributionName(distribution)
             ],
         )
+
+        if report_input_data["module_distribution_vendored"][
+            getDistributionName(distribution)
+        ]:
+            distribution_node.attrib["vendored"] = "yes"
 
     python_xml_node = TreeXML.appendTreeElement(
         root,

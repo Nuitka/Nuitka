@@ -1231,7 +1231,7 @@ def buildTypeAliasNode(provider, node, source_ref):
     assert not node.type_params, node.type_params
     type_alias_node = ExpressionTypeAlias(
         type_params=buildNodeTuple(provider, node.type_params, source_ref),
-        compute_value=buildNode(provider, node.value, source_ref),
+        value=buildNode(provider, node.value, source_ref),
         source_ref=source_ref,
     )
 

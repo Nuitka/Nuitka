@@ -197,10 +197,10 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: d7d0718b
+- module-name: 'arcade' # checksum: 25cf95c9
   data-files:
     - dirs:
-        - 'resources/system'
+        - 'resources'
     - patterns:
         - 'VERSION'
   anti-bloat:
@@ -2920,7 +2920,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: 7c09160e
+- module-name: 'numpy' # checksum: 10720e3
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -2949,9 +2949,12 @@
       no-auto-follow:
         'numpy.distutils': 'ignore'
       when: 'not use_setuptools'
-    - description: 'avoid pyyaml dependency'
+    - description: 'avoid PyYAML dependency'
       no-auto-follow:
         'yaml': 'ignore'
+    - description: 'avoid charset_normalizer dependency'
+      no-auto-follow:
+        'charset_normalizer': 'ignore'
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -3510,7 +3513,7 @@
           - 'libpandaegg'
       dest_path: '.'
 
-- module-name: 'pandas' # checksum: 158bd2af
+- module-name: 'pandas' # checksum: b4c6897a
   anti-bloat:
     - description: 'remove pandas testing framework'
       replacements_plain:
@@ -3521,6 +3524,7 @@
     - description: 'avoid numba in pandas'
       no-auto-follow:
         'pandas.core._numba.extensions': 'no numba acceleration'
+        'lxml': 'no stylesheet support in pandas.io.formats.xml without including lxml'
       when: 'not use_numba'
 
 - module-name: 'pandas._libs' # checksum: 582d52b9
@@ -5984,6 +5988,12 @@
         - 'sklearn.datasets.data'
         - 'sklearn.datasets.descr'
 
+- module-name: 'sklearn.datasets._base' # checksum: 521f4991
+  anti-bloat:
+    - description: 'avoid PIL dependency for sample image testing'
+      change_function:
+        'load_sample_images': 'un-callable'
+
 - module-name: 'sklearn.decomposition' # checksum: 61c8cb5d
   implicit-imports:
     - depends:
@@ -6329,6 +6339,12 @@
     - depends:
         - 'sqlalchemy.dialects.mssql.pyodbc'
 
+- module-name: 'sqlalchemy.orm' # checksum: 807b0764
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.orm.*'
+        - 'sqlalchemy.ext.*'
+
 - module-name: 'sqlalchemy.orm.util' # checksum: 629852fa
   anti-bloat:
     - description: 'remove pytest reference'
@@ -6372,6 +6388,11 @@
     - depends:
         - 'sqlfluff.core.plugin.*'
         - 'sqlfluff.rules.*'
+
+- module-name: 'sqlglot.dialects' # checksum: b0ad4de6
+  implicit-imports:
+    - depends:
+        - 'sqlglot.dialects.*'
 
 - module-name: 'srsly.msgpack._packer' # checksum: ef9e3a96
   implicit-imports:

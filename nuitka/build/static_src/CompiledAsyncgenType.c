@@ -973,7 +973,6 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
         // the need to do it. It may also be a lot of work to do that though
         // and maybe having weakrefs is uncommon.
         PyObject_ClearWeakRefs((PyObject *)asyncgen);
-        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
 
         Nuitka_GC_Track(asyncgen);
     }
@@ -984,16 +983,10 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     Nuitka_GC_UnTrack(asyncgen);
 
-    PyThreadState *tstate = PyThreadState_GET();
-
-    // Save the current exception, if any, we must preserve it.
-    struct Nuitka_ExceptionPreservationItem saved_exception_state;
-
-    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
+    Py_XDECREF(asyncgen->m_finalizer);
+    asyncgen->m_finalizer = NULL;
 
     Nuitka_Asyncgen_release_closure(asyncgen);
-
-    Py_XDECREF(asyncgen->m_finalizer);
 
     if (asyncgen->m_frame) {
         Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
@@ -1010,8 +1003,6 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgens, asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT);
-
-    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 static PyObject *Nuitka_Asyncgen_tp_repr(struct Nuitka_AsyncgenObject *asyncgen) {

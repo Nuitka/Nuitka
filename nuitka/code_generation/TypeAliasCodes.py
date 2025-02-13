@@ -23,7 +23,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
     )
 
     compute_value_name = generateChildExpressionCode(
-        expression=expression.subnode_compute_value, emit=emit, context=context
+        expression=expression.subnode_value, emit=emit, context=context
     )
 
     assert (
