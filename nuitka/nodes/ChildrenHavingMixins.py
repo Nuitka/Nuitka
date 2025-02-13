@@ -20544,7 +20544,7 @@ class ChildHavingTypeParamsMixin(object):
 ChildrenExpressionTypeMakeGenericMixin = ChildHavingTypeParamsMixin
 
 
-class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
+class ChildrenHavingTypeParamsTupleValueMixin(object):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -20554,7 +20554,7 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
     def __init__(
         self,
         type_params,
-        compute_value,
+        value,
     ):
         assert type(type_params) is tuple
 
@@ -20563,16 +20563,16 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
 
         self.subnode_type_params = type_params
 
-        compute_value.parent = self
+        value.parent = self
 
-        self.subnode_compute_value = compute_value
+        self.subnode_value = value
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 
         result = []
         result.extend(self.subnode_type_params)
-        result.append(self.subnode_compute_value)
+        result.append(self.subnode_value)
         return tuple(result)
 
     def getVisitableNodesNamed(self):
@@ -20583,7 +20583,7 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
 
         return (
             ("type_params", self.subnode_type_params),
-            ("compute_value", self.subnode_compute_value),
+            ("value", self.subnode_value),
         )
 
     def replaceChild(self, old_node, new_node):
@@ -20602,11 +20602,11 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
 
             return
 
-        value = self.subnode_compute_value
+        value = self.subnode_value
         if old_node is value:
             new_node.parent = self
 
-            self.subnode_compute_value = new_node
+            self.subnode_value = new_node
 
             return
 
@@ -20620,7 +20620,7 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
 
         values = {
             "type_params": tuple(v.makeClone() for v in self.subnode_type_params),
-            "compute_value": self.subnode_compute_value.makeClone(),
+            "value": self.subnode_value.makeClone(),
         }
 
         values.update(self.getDetails())
@@ -20633,8 +20633,8 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
         for c in self.subnode_type_params:
             c.finalize()
         del self.subnode_type_params
-        self.subnode_compute_value.finalize()
-        del self.subnode_compute_value
+        self.subnode_value.finalize()
+        del self.subnode_value
 
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -20673,11 +20673,11 @@ class ChildrenHavingTypeParamsTupleComputeValueMixin(object):
 
         for element in self.subnode_type_params:
             element.collectVariableAccesses(emit_read, emit_write)
-        self.subnode_compute_value.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionTypeAliasMixin = ChildrenHavingTypeParamsTupleComputeValueMixin
+ChildrenExpressionTypeAliasMixin = ChildrenHavingTypeParamsTupleValueMixin
 
 
 class ChildHavingValueMixin(object):
