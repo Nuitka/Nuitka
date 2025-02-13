@@ -220,6 +220,19 @@ def isUninstalledPython():
     return isAnacondaPython() or "WinPython" in sys.version
 
 
+def isRelocatable():
+    """Is libpython not in the system global library directory."""
+    import sysconfig
+
+    if sysconfig.get_config_var("PYTHON_BUILD_STANDALONE") == 1:
+        return True
+
+    if isSelfCompiledPythonUninstalled():
+        return True
+
+    return False
+
+
 _is_win_python = None
 
 
