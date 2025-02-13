@@ -25,7 +25,7 @@ def getPackageData(package_name, resource):
         if os.path.exists(resource_filename):
             return getFileContents(resource_filename, mode="rb")
 
-    return pkgutil.get_data(package_name, resource)
+    return pkgutil.get_data(package_name.asString(), resource)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
