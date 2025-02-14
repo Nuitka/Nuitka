@@ -900,7 +900,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 61e3c28c
+- module-name: 'cv2' # checksum: 3a4aa553
   variables:
     setup_code:
       - 'import cv2'
@@ -929,7 +929,7 @@
         ? "load_first_config([\n"
         : 'if False: (['
       replacements:
-        "load_first_config(['config.py'], True)": "textwrap.indent(get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        "load_first_config(['config.py'], True)": "''.join(textwrap.indent(get_data('cv2', m, b'').decode('utf8'), '    ') for m in ('config.py', 'config-3.py', 'config-%s.py' % python_version_str))"
     - description: 'workaround for colliding native module import'
       replacements:
         # Before OpenCV 4.6
@@ -944,12 +944,13 @@
     - description: 'remove error hiding code'
       replacements_plain:
         "print('OpenCV bindings requires \"numpy\" package.')": 'raise'
-    - description: 'submodules'
+    - description: 'workaround for cv2 submodules'
       replacements:
         '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
       change_function:
         '__collect_extra_submodules': 'un-callable'
-      when: 'standalone'
+      when: 'standalone and not is_conda_package("cv2")'
+
   implicit-imports:
     - depends:
         - 'cv2.cv2'
