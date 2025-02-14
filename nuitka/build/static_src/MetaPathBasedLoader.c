@@ -817,6 +817,21 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
     char const *old_context = NuitkaImport_SwapPackageContext(package);
 
+#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+    char const *base_name = strrchr(full_name, '.');
+    PyObject *base_name_obj = NULL;
+    PyObject *prefix_name_obj = NULL;
+    PyObject *preserved_basename_module = NULL;
+
+    if (base_name != NULL) {
+        base_name_obj = Nuitka_String_FromString(base_name + 1);
+        preserved_basename_module = Nuitka_GetModule(tstate, base_name_obj);
+        Py_XINCREF(preserved_basename_module);
+
+        prefix_name_obj = Nuitka_String_FromStringAndSize(full_name, base_name - full_name + 1);
+    }
+#endif
+
     // Finally call into the DLL.
     PGO_onModuleEntered(full_name);
 
@@ -992,6 +1007,56 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     PyObject *filename_obj = Nuitka_String_FromFilename(filename);
 
     CHECK_OBJECT(filename_obj);
+
+// See above, we need to correct modules imported if we don't successfully swap
+// the package context.
+#if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
+    if (preserved_basename_module != NULL) {
+        Nuitka_SetModule(base_name_obj, preserved_basename_module);
+        Py_DECREF(preserved_basename_module);
+    }
+
+    if (base_name_obj != NULL) {
+        PyObject *need_correction = MAKE_LIST_EMPTY(tstate, 0);
+
+        {
+            PyObject *modules_dict = Nuitka_GetSysModules();
+
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            PyObject *base_name_prefix = BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(base_name_obj, const_str_dot);
+
+            while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
+                // TODO: Should have nuitka_bool return values for these as well maybe.
+                PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
+
+                if (CHECK_IF_TRUE(starts_with_result) == 1) {
+                    LIST_APPEND0(need_correction, key);
+                }
+
+                Py_DECREF(starts_with_result);
+            }
+        }
+
+        Py_ssize_t n = PyList_GET_SIZE(need_correction);
+
+        for (Py_ssize_t i = 0; i < n; i++) {
+            PyObject *module_to_correct_name = PyList_GET_ITEM(need_correction, i);
+
+            PyObject *correct_module_name =
+                BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(prefix_name_obj, module_to_correct_name);
+
+            PyObject *module_to_correct = Nuitka_GetModule(tstate, module_to_correct_name);
+            Nuitka_SetModule(correct_module_name, module_to_correct);
+
+            Nuitka_DelModule(tstate, module_to_correct_name);
+        }
+
+        Py_DECREF(base_name_obj);
+        Py_DECREF(prefix_name_obj);
+    }
+#endif
 
 #if PYTHON_VERSION < 0x3d0
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
