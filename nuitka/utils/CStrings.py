@@ -136,12 +136,18 @@ def decodeCStringToPython(value):
     return result
 
 
+def _decodePythonIdentifierMatch(match):
+    c = match.group()[2:-1]
+
+    return chr(c)
+
+
 # TODO: These may actually be more platforms that are affected.
-_target_allows_dollar = not isAIX()
+_target_allows_dollar_character = not isAIX()
 
 # Duplicated code, because this is called a lot. The encoding that is fully
 # C standards compliant is so much harder to read, we don't want to use that.
-if _target_allows_dollar:
+if _target_allows_dollar_character:
 
     def _encodePythonIdentifierMatch(match):
         c = match.group()
@@ -158,6 +164,9 @@ if _target_allows_dollar:
         # few, much more than C identifiers support. This attempts to
         # be bi-directional, so we can reverse it.
         return re.sub("[^a-zA-Z0-9_]", _encodePythonIdentifierMatch, value)
+
+    def decodePythonIdentifierFromC(value):
+        return re.sub(r"\$\$\d+\$", _decodePythonIdentifierMatch, value)
 
 else:
 
@@ -178,6 +187,9 @@ else:
         # remove the "_" character, that on allowing platforms we can
         # use "$" instead for.
         return re.sub("[^a-zA-Z0-9]", _encodePythonIdentifierMatch, value)
+
+    def decodePythonIdentifierFromC(value):
+        return re.sub(r"__\d+_", _decodePythonIdentifierMatch, value)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

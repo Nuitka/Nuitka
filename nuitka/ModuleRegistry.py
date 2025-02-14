@@ -17,6 +17,7 @@ import os
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.utils.CStrings import decodePythonIdentifierFromC
 
 # One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()
@@ -191,18 +192,19 @@ def getModuleInclusionInfoByName(module_name):
 
 
 def getModuleFromCodeName(code_name):
+    module_name = decodePythonIdentifierFromC(code_name)
+
     # TODO: We need something to just load modules.
     for module in root_modules:
-        if module.getCodeName() == code_name:
+        if module.getCodeName() == module_name:
             return module
 
     assert False, code_name
 
 
 def getOwnerFromCodeName(code_name):
-    # TODO: For AIX, etc. we need to know this separator, maybe should be part
-    # of the way write the XML that we use "$" or "_" as a separator, or we will
-    # need to use both, for now this is not used anyway.
+    code_name = decodePythonIdentifierFromC(code_name)
+
     if "$$$" in code_name:
         module_code_name, _function_code_name = code_name.split("$$$", 1)
 
