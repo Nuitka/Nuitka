@@ -225,7 +225,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__wasi__)
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(_AIX) || defined(__wasi__)
 static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
