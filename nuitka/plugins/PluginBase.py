@@ -346,10 +346,17 @@ def _hasModule(module_name):
     return finding != "not-found"
 
 
-def _getPackageData(package_name, resource):
+def _getPackageData(package_name, resource, default=None):
+
     from nuitka.utils.PackageResources import getPackageData
 
-    return getPackageData(package_name=ModuleName(package_name), resource=resource)
+    try:
+        return getPackageData(package_name=ModuleName(package_name), resource=resource)
+    except FileNotFoundError:
+        if default is not None:
+            return default
+
+        raise
 
 
 def _iterate_module_names(package_name):
