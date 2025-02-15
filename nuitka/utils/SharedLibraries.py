@@ -471,21 +471,21 @@ def _filterInstallNameToolErrorOutput(stderr):
 _install_name_tool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
 
 
-def _removeSharedLibraryRPATHDarwin(filename, rpath):
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("install_name_tool", "-delete_rpath", rpath, filename),
-        absence_message=_install_name_tool_usage,
-        stderr_filter=_filterInstallNameToolErrorOutput,
-    )
+def _removeSharedLibraryRPATHDarwin(filename, rpaths):
+    for rpath in rpaths:
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("install_name_tool", "-delete_rpath", rpath, filename),
+            absence_message=_install_name_tool_usage,
+            stderr_filter=_filterInstallNameToolErrorOutput,
+        )
 
 
 def _setSharedLibraryRPATHDarwin(filename, rpath):
-    old_rpath = getSharedLibraryRPATH(filename)
+    old_rpaths = getSharedLibraryRPATHs(filename)
 
     with withMadeWritableFileMode(filename):
-        if old_rpath is not None:
-            _removeSharedLibraryRPATHDarwin(filename=filename, rpath=old_rpath)
+        _removeSharedLibraryRPATHDarwin(filename=filename, rpath=old_rpaths)
 
         executeToolChecked(
             logger=postprocessing_logger,
