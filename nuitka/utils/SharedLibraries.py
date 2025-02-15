@@ -481,7 +481,7 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
     old_rpaths = getSharedLibraryRPATHs(filename)
 
     with withMadeWritableFileMode(filename):
-        _removeSharedLibraryRPATHDarwin(filename=filename, rpath=old_rpaths)
+        _removeSharedLibraryRPATHDarwin(filename=filename, rpaths=old_rpaths)
 
         executeToolChecked(
             logger=postprocessing_logger,
