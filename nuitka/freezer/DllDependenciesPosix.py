@@ -22,10 +22,17 @@ from nuitka.utils.Utils import (
 from .DllDependenciesCommon import getLdLibraryPath
 
 # Detected Python rpath is cached.
-_detected_python_rpath = None
+_detected_python_rpaths = None
 
 # Cached ldd results.
 ldd_result_cache = {}
+
+
+def _resolveOriginValue(rpath, origin):
+    rpath = rpath.replace("$ORIGIN", origin)
+    rpath = os.path.normpath(os.path.join(origin, rpath))
+
+    return rpath
 
 
 def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
@@ -41,38 +48,26 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # This is the rpath of the Python binary, which will be effective when
     # loading the other DLLs too. This happens at least for Python installs
     # on Travis. pylint: disable=global-statement
-    global _detected_python_rpath
-    if _detected_python_rpath is None and not isPosixWindows():
-        _detected_python_rpath = getSharedLibraryRPATHs(sys.executable) or []
+    global _detected_python_rpaths
+    if _detected_python_rpaths is None and not isPosixWindows():
+        _detected_python_rpaths = getSharedLibraryRPATHs(sys.executable)
 
-        if _detected_python_rpath:
-            # Need to resolve a potential symlink.
-            if os.path.islink(sys.executable):
-                sys_executable = os.readlink(sys.executable)
-            else:
-                sys_executable = sys.executable
+        if os.path.islink(sys.executable):
+            sys_executable = os.readlink(sys.executable)
+        else:
+            sys_executable = sys.executable
 
-            for i, rpath in enumerate(_detected_python_rpath):
-                rpath = rpath.replace(
-                    "$ORIGIN", os.path.dirname(sys_executable)
-                )
+        sys_executable_dir = os.path.dirname(sys_executable)
 
-                rpath = os.path.normpath(
-                    os.path.join(os.path.dirname(sys.executable), rpath)
-                )
+        _detected_python_rpaths = [
+            _resolveOriginValue(rpath=detected_python_rpath, origin=sys_executable_dir)
+            for detected_python_rpath in _detected_python_rpaths
+        ]
 
-                _detected_python_rpath[i] = rpath
-
-    # Single one, might be wrong for Anaconda, which uses multiple ones on at least
-    # macOS.
-    python_rpaths = []
-    if _detected_python_rpath:
-        python_rpaths.extend(_detected_python_rpath)
+    python_rpaths = _detected_python_rpaths[:]
 
     if os.path.islink(dll_filename):
-        link_target_path = os.path.dirname(
-            os.path.realpath(dll_filename)
-        )
+        link_target_path = os.path.dirname(os.path.realpath(dll_filename))
         python_rpaths.append(link_target_path)
 
     # TODO: Actually would be better to pass it as env to the created process instead.
