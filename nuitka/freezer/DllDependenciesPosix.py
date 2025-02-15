@@ -12,7 +12,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
-from nuitka.utils.SharedLibraries import getSharedLibraryRPATHS
+from nuitka.utils.SharedLibraries import getSharedLibraryRPATHs
 from nuitka.utils.Utils import (
     isAlpineLinux,
     isAndroidBasedLinux,
@@ -43,7 +43,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpath
     if _detected_python_rpath is None and not isPosixWindows():
-        _detected_python_rpath = getSharedLibraryRPATHS(sys.executable) or []
+        _detected_python_rpath = getSharedLibraryRPATHs(sys.executable) or []
 
         if _detected_python_rpath:
             # Need to resolve a potential symlink.

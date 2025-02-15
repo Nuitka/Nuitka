@@ -227,7 +227,7 @@ def _getDLLVersionWindows(filename):
 _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."
 
 
-def _getSharedLibraryRPATHSElf(filename):
+def _getSharedLibraryRPATHsElf(filename):
     rpaths = []
     output = executeToolChecked(
         logger=postprocessing_logger,
@@ -368,7 +368,7 @@ def _getDLLVersionMacOS(filename):
     return None
 
 
-def _getSharedLibraryRPATHSDarwin(filename):
+def _getSharedLibraryRPATHsDarwin(filename):
     rpaths = []
     output = getOtoolListing(filename)
 
@@ -395,11 +395,11 @@ def _getSharedLibraryRPATHSDarwin(filename):
     return rpaths
 
 
-def getSharedLibraryRPATHS(filename):
+def getSharedLibraryRPATHs(filename):
     if isMacOS():
-        return _getSharedLibraryRPATHSDarwin(filename)
+        return _getSharedLibraryRPATHsDarwin(filename)
     else:
-        return _getSharedLibraryRPATHSElf(filename)
+        return _getSharedLibraryRPATHsElf(filename)
 
 
 def _filterPatchelfErrorOutput(stderr):
