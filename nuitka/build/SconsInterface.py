@@ -34,7 +34,6 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isMSYS2MingwPython,
     isNuitkaPython,
-    isRelocatable,
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
@@ -545,9 +544,6 @@ def getCommonSconsOptions():
 
     if isSelfCompiledPythonUninstalled():
         scons_options["self_compiled_python_uninstalled"] = asBoolStr(True)
-
-    if isRelocatable():
-        scons_options["relocatable"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:

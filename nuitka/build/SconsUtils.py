@@ -250,7 +250,6 @@ def createEnvironment(
     env.self_compiled_python_uninstalled = getArgumentBool(
         "self_compiled_python_uninstalled", False
     )
-    env.relocatable = getArgumentBool("relocatable", False)
 
     # Non-elf binary, important for linker settings.
     env.noelf_mode = getArgumentBool("noelf_mode", False)
