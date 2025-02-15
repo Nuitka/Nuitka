@@ -246,19 +246,15 @@ def _getSharedLibraryRPATHsElf(filename):
             rpaths.append(result)
         elif b"NEEDED" in line:
             # If the Python binary has a library dependency like
-            # $ORIGIN/../lib/libpython.so, then treat it like it has an
-            # rpath of $ORIGIN/../lib. This is needed for
-            # python-build-standalone (used by uv).
+            # $ORIGIN/../lib/libpython.so, then treat it like it has an rpath of
+            # $ORIGIN/../lib. This is needed for python-build-standalone (used
+            # by UV-Python).
             result = line[line.find(b"[") + 1 : line.rfind(b"]")]
-            directory, slash, filename = result.rpartition(b"/")
 
-            if slash:
-                if str is not bytes:
-                    directory = directory.decode("utf8")
-                if directory == "":
-                    directory = "/"
+            if str is not bytes:
+                result = result.decode("utf8")
 
-                rpaths.append(directory)
+            rpaths.append(os.path.dirname(result))
 
     return rpaths
 
