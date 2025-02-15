@@ -900,7 +900,7 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 61e3c28c
+- module-name: 'cv2' # checksum: 3a4aa553
   variables:
     setup_code:
       - 'import cv2'
@@ -929,7 +929,7 @@
         ? "load_first_config([\n"
         : 'if False: (['
       replacements:
-        "load_first_config(['config.py'], True)": "textwrap.indent(get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        "load_first_config(['config.py'], True)": "''.join(textwrap.indent(get_data('cv2', m, b'').decode('utf8'), '    ') for m in ('config.py', 'config-3.py', 'config-%s.py' % python_version_str))"
     - description: 'workaround for colliding native module import'
       replacements:
         # Before OpenCV 4.6
@@ -944,12 +944,13 @@
     - description: 'remove error hiding code'
       replacements_plain:
         "print('OpenCV bindings requires \"numpy\" package.')": 'raise'
-    - description: 'submodules'
+    - description: 'workaround for cv2 submodules'
       replacements:
         '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
       change_function:
         '__collect_extra_submodules': 'un-callable'
-      when: 'standalone'
+      when: 'standalone and not is_conda_package("cv2")'
+
   implicit-imports:
     - depends:
         - 'cv2.cv2'
@@ -2603,17 +2604,6 @@
         'uninstall_repl_displayhook': "'(lambda: None)'"
       when: 'not use_ipython'
 
-- module-name: 'mediapipe.python._framework_bindings' # checksum: 7ab15297
-  implicit-imports:
-    - post-import-code:
-        - |
-          import sys
-          _framework_bindings = sys.modules["mediapipe.python._framework_bindings"]
-          _framework_bindings.__path__ = []
-          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("_framework_bindings.")]:
-            sys.modules["mediapipe.python."+sub_module_name] = sys.modules.pop(sub_module_name)
-      when: 'python312_or_higher and not static_libpython'
-
 - module-name: 'mercurial.encoding' # checksum: de4741d0
   implicit-imports:
     - depends:
@@ -3232,18 +3222,6 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnx.onnx_cpp2py_export' # checksum: 6d25b34c
-  implicit-imports:
-    - post-import-code:
-        - |
-          import sys
-          onnx_cpp2py_export = sys.modules["onnx.onnx_cpp2py_export"]
-          onnx_cpp2py_export.__path__ = []
-
-          for sub_module_name in [key for key in sys.modules.keys() if key.startswith("onnx_cpp2py_export.")]:
-            sys.modules["onnx."+sub_module_name] = sys.modules.pop(sub_module_name)
-      when: 'python312_or_higher and not static_libpython'
-
 - module-name: 'onnxruntime' # checksum: 37a94e21
   dlls:
     - from_filenames:
@@ -3413,7 +3391,7 @@
       change_function:
         '_overrides': "'(lambda method, *args, **kwargs: method)'"
 
-- module-name: 'paddle' # checksum: 27d0c647
+- module-name: 'paddle' # checksum: 11103e47
   dlls:
     - from_filenames:
         relative_path: 'libs'
@@ -3422,11 +3400,6 @@
           - 'mkl'
           - 'war'
           - 'common'
-  options:
-    checks:
-      - description: "paddle is is not supported with Python3.12 unless '--static-libpython' is used"
-        support_info: 'error'
-        when: 'python312_or_higher and not static_libpython'
 
 - module-name: 'paddle.base.core' # checksum: a81e13c9
   anti-bloat:
@@ -4853,6 +4826,15 @@
     - depends:
         - 'PySide6.QtConcurrent'
         - 'PySide6.QtWebSockets'
+
+- module-name: 'PySide6QtAds' # checksum: 6d4dfaff
+  implicit-imports:
+    - depends:
+        - 'PySide6.QtWidgets'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'shiboken'
+        - 'PySide6'
 
 - module-name: 'pysnmp.smi' # checksum: 6af35c04
   data-files:
