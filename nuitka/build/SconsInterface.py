@@ -66,6 +66,7 @@ from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
+    isAIX,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
@@ -530,7 +531,7 @@ def getCommonSconsOptions():
     if Options.getLtoMode() != "auto":
         scons_options["lto_mode"] = Options.getLtoMode()
 
-    if isWin32OrPosixWindows() or isMacOS():
+    if isWin32OrPosixWindows() or isMacOS() or isAIX():
         scons_options["noelf_mode"] = asBoolStr(True)
 
     if Options.isUnstripped():
