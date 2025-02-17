@@ -254,7 +254,9 @@ def _getSharedLibraryRPATHsElf(filename):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            rpaths.append(os.path.dirname(result))
+            path_part = os.path.dirname(result)
+            if path_part:
+                rpaths.append(path_part)
 
     return rpaths
 
