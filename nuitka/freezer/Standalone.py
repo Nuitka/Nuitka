@@ -185,8 +185,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             standalone_entry_points=standalone_entry_points,
         )
 
-        # After dependency detection, we can change the RPATH for macOS main
-        # binary.
+    # After dependency detection, we can change the RPATH for main binary.
+    if not isWin32Windows():
         setSharedLibraryRPATH(
             os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
         )
