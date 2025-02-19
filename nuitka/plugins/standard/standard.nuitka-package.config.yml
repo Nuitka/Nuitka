@@ -6184,6 +6184,12 @@
         - 'sklearn.utils.sparsetools._graph_validation'
         - 'sklearn.utils.sparsetools._graph_tools'
 
+- module-name: 'smt' # checksum: dd3b5473
+  anti-bloat:
+    - no-auto-follow:
+        'numba': 'ignore'
+      when: 'not use_numba'
+
 - module-name: 'sound_lib' # checksum: f8f59602
   dlls:
     - from_filenames:
