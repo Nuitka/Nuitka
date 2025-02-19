@@ -1034,6 +1034,28 @@ PyObject *GET_STDERR(void) {
     return result;
 }
 
+void FLUSH_STDOUT(void) {
+    PyObject *stdout_handle = GET_STDOUT();
+
+    PyObject *method = PyObject_GetAttrString(stdout_handle, "flush");
+
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, method);
+
+    Py_XDECREF(result);
+}
+
+void FLUSH_STDERR(void) {
+    PyObject *stderr_handle = GET_STDERR();
+
+    PyObject *method = PyObject_GetAttrString(stderr_handle, "flush");
+
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, method);
+
+    Py_XDECREF(result);
+}
+
 bool PRINT_NEW_LINE(void) { return PRINT_NEW_LINE_TO(NULL); }
 
 bool PRINT_ITEM(PyObject *object) {
