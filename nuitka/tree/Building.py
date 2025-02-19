@@ -74,10 +74,7 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode,
 )
-from nuitka.nodes.ExceptionNodes import (
-    StatementRaiseException,
-    StatementReraiseException,
-)
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import (
     StatementGeneratorReturn,
@@ -212,6 +209,7 @@ from .TreeHelpers import (
     getBuildContext,
     getKind,
     makeModuleFrame,
+    makeReraiseExceptionStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
@@ -371,7 +369,7 @@ def buildRaiseNode(provider, node, source_ref):
         assert exception_trace is None
         assert exception_cause is None
 
-        result = StatementReraiseException(source_ref=source_ref)
+        result = makeReraiseExceptionStatement(source_ref=source_ref)
     else:
         result = StatementRaiseException(
             exception_type=exception_type,
