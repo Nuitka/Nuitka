@@ -360,7 +360,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
-        # TODO: Move the ones that would be possible to yaml config,
+        # TODO: Move the ones that would be possible to yaml config, or a
+        # separate plugin for lazy loaders. pylint: disable=too-many-branches
 
         if module_name == "site":
             if source_code.startswith("def ") or source_code.startswith("class "):
@@ -417,7 +418,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
         if module_name == "huggingface_hub":
             # Special handling for huggingface that uses the source code variant
-            # of lazy module. spell-checker: ignore huggingface
+            # of lazy module. spell-checker: ignore huggingface,submod
             if (
                 "_attach(__name__, submodules=[], submod_attrs=_SUBMOD_ATTRS)"
                 in source_code
@@ -463,6 +464,21 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     module_name=module_name,
                     submodules=(),
                     submodule_attrs=pydantic_lazy_loader_info,
+                )
+
+        if module_name == "scipy":
+            # Scipy has its own lazy loading, spell-checker: ignore scipy
+            if "def __getattr__(" in source_code:
+                scipy_info = self.queryRuntimeInformationSingle(
+                    setup_codes="import scipy",
+                    value="scipy.submodules",
+                    info_name="scipy_lazy_loader",
+                )
+
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=scipy_info,
+                    submodule_attrs={},
                 )
 
         return source_code
