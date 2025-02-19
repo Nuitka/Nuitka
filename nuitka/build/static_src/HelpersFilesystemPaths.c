@@ -34,8 +34,16 @@
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
-#if defined(__OpenBSD__)
-void _getBinaryPath2(char *binary_filename) {
+#if !defined(_WIN32)
+void _getBinaryPath2(char *binary_filename, size_t buffer_size) {
+#if defined(__APPLE__)
+    uint32_t bufsize = buffer_size;
+    int res = _NSGetExecutablePath(binary_filename, &bufsize);
+
+    if (unlikely(res != 0)) {
+        abort();
+    }
+#elif defined(__OpenBSD__)
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC_ARGS;
@@ -87,26 +95,6 @@ void _getBinaryPath2(char *binary_filename) {
     }
 
     free(argv);
-}
-#endif
-
-filename_char_t const *getBinaryPath(void) {
-    static filename_char_t binary_filename[MAXPATHLEN];
-
-#if defined(_WIN32)
-    DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
-    if (res == 0) {
-        abort();
-    }
-#elif defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_filename);
-    int res = _NSGetExecutablePath(binary_filename, &bufsize);
-
-    if (res != 0) {
-        abort();
-    }
-#elif defined(__OpenBSD__)
-    _getBinaryPath2(binary_filename);
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
@@ -116,10 +104,23 @@ filename_char_t const *getBinaryPath(void) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_filename);
+    size_t cb = buffer_size;
     int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
+        abort();
+    }
+#elif defined(__wasi__)
+    const char *wasi_filename = "program.wasm";
+    copyStringSafe(binary_filename, wasi_filename, buffer_size);
+#elif defined(_AIX)
+    char proc_link_path[64];
+    snprintf(proc_link_path, sizeof(proc_link_path), "/proc/%d/object/a.out", (int)getpid());
+
+    memset(binary_filename, 0, sizeof(binary_filename));
+    ssize_t res = readlink(proc_link_path, binary_filename, buffer_size - 1);
+
+    if (unlikely(res == -1)) {
         abort();
     }
 #else
@@ -127,12 +128,26 @@ filename_char_t const *getBinaryPath(void) {
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
+    memset(binary_filename, 0, buffer_size);
+    ssize_t res = readlink("/proc/self/exe", binary_filename, buffer_size - 1);
 
-    if (res == -1) {
+    if (unlikely(res == -1)) {
         abort();
     }
+#endif
+}
+#endif
+
+filename_char_t const *getBinaryPath(void) {
+    static filename_char_t binary_filename[MAXPATHLEN];
+
+#if defined(_WIN32)
+    DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+    if (unlikely(res == 0)) {
+        abort();
+    }
+#else
+    _getBinaryPath2(binary_filename, sizeof(binary_filename));
 #endif
 
     return binary_filename;
@@ -205,7 +220,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #else
     int res = fseek(file_handle, 0, SEEK_END);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
         return -1;
     }
 
@@ -213,7 +228,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 
     res = fseek(file_handle, 0, SEEK_SET);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
         return -1;
     }
 #endif
@@ -672,55 +687,8 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
         return binary_filename_target;
     }
 
-#if defined(__APPLE__)
-    uint32_t bufsize = buffer_size;
-    int res = _NSGetExecutablePath(binary_filename_target, &bufsize);
-
-    if (unlikely(res != 0)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
+    _getBinaryPath2(binary_filename_target, buffer_size);
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#elif defined(__wasi__)
-    const char *wasi_filename = "program.wasm";
-    strncpy(binary_filename_resolved, wasi_filename, MAXPATHLEN);
-#elif defined(__OpenBSD__)
-    _getBinaryPath2(binary_filename_target);
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#elif defined(__FreeBSD__)
-    /* Not all of FreeBSD has /proc file system, so use the appropriate
-     * "sysctl" instead.
-     */
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    size_t cb = buffer_size;
-    int res = sysctl(mib, 4, binary_filename_target, &cb, NULL, 0);
-
-    if (unlikely(res != 0)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#else
-    /* The remaining platforms, mostly Linux or compatible. */
-
-    /* The "readlink" call does not terminate result, so fill zeros there, then
-     * it is a proper C string right away. */
-    memset(binary_filename_target, 0, buffer_size);
-    ssize_t res = readlink("/proc/self/exe", binary_filename_target, buffer_size - 1);
-
-    if (unlikely(res == -1)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#endif
 
     return binary_filename_target;
 }
