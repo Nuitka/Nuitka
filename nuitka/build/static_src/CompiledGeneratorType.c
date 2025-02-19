@@ -147,6 +147,65 @@ static void Nuitka_Generator_release_closure(struct Nuitka_GeneratorObject *gene
     generator->m_closure_given = 0;
 }
 
+static PyObject *_Nuitka_CallGeneratorCodeC(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator,
+                                            PyObject *send_value) {
+
+#if PYTHON_VERSION < 0x300
+    return ((generator_code)generator->m_code)(tstate, generator, send_value);
+#else
+    struct Nuitka_ExceptionStackItem enter_exception = GET_CURRENT_EXCEPTION(tstate);
+
+#if PYTHON_VERSION < 0x3b0
+    if (generator->m_resume_exception.exception_type != NULL) {
+        SET_CURRENT_EXCEPTION(tstate, &generator->m_resume_exception);
+    }
+#else
+    if (generator->m_resume_exception.exception_value != NULL) {
+        SET_CURRENT_EXCEPTION(tstate, &generator->m_resume_exception);
+    }
+#endif
+
+    PyObject *result = ((generator_code)generator->m_code)(tstate, generator, send_value);
+
+#if PYTHON_VERSION < 0x3b0
+    if (enter_exception.exception_type != NULL) {
+        if (enter_exception.exception_type != Py_None) {
+            if (EXC_TYPE(tstate) != enter_exception.exception_type ||
+                EXC_VALUE(tstate) != enter_exception.exception_value) {
+                generator->m_resume_exception = GET_CURRENT_EXCEPTION(tstate);
+
+                SET_CURRENT_EXCEPTION(tstate, &enter_exception);
+            } else {
+                Py_DECREF(enter_exception.exception_type);
+                Py_XDECREF(enter_exception.exception_value);
+                Py_XDECREF(enter_exception.exception_tb);
+            }
+        } else {
+            Py_DECREF(enter_exception.exception_type);
+            Py_XDECREF(enter_exception.exception_value);
+            Py_XDECREF(enter_exception.exception_tb);
+        }
+    }
+#else
+    if (enter_exception.exception_value != NULL) {
+        if (enter_exception.exception_value != Py_None) {
+            if (EXC_VALUE(tstate) != enter_exception.exception_value) {
+                generator->m_resume_exception = GET_CURRENT_EXCEPTION(tstate);
+
+                SET_CURRENT_EXCEPTION(tstate, &enter_exception);
+            } else {
+                Py_DECREF(enter_exception.exception_value);
+            }
+        } else {
+            Py_DECREF_IMMORTAL(Py_None);
+        }
+    }
+#endif
+
+    return result;
+#endif
+}
+
 #if PYTHON_VERSION >= 0x300
 
 // Note: Shared with coroutines and asyncgen code.
@@ -403,10 +462,10 @@ static PyObject *Nuitka_YieldFromGeneratorCore(PyThreadState *tstate, struct Nui
             PyObject *yield_from_result = generator->m_returned;
             generator->m_returned = NULL;
 
-            yielded = ((generator_code)generator->m_code)(tstate, generator, yield_from_result);
+            yielded = _Nuitka_CallGeneratorCodeC(tstate, generator, yield_from_result);
         } else {
             assert(HAS_ERROR_OCCURRED(tstate));
-            yielded = ((generator_code)generator->m_code)(tstate, generator, NULL);
+            yielded = _Nuitka_CallGeneratorCodeC(tstate, generator, NULL);
         }
 
     } else {
@@ -569,14 +628,14 @@ static PyObject *_Nuitka_Generator_send(PyThreadState *tstate, struct Nuitka_Gen
 
 #if PYTHON_VERSION >= 0x300
         if (generator->m_yield_from == NULL) {
-            yielded = ((generator_code)generator->m_code)(tstate, generator, value);
+            yielded = _Nuitka_CallGeneratorCodeC(tstate, generator, value);
         } else {
             // This does not release the value if any, so we need to do it afterwards.
             yielded = Nuitka_YieldFromGeneratorInitial(tstate, generator, value);
             Py_XDECREF(value);
         }
 #else
-        yielded = ((generator_code)generator->m_code)(tstate, generator, value);
+        yielded = _Nuitka_CallGeneratorCodeC(tstate, generator, value);
 #endif
 
 #if PYTHON_VERSION >= 0x300
@@ -1826,6 +1885,10 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
 
 #if PYTHON_VERSION >= 0x370
     result->m_exc_state = Nuitka_ExceptionStackItem_Empty;
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    result->m_resume_exception = Nuitka_ExceptionStackItem_Empty;
 #endif
 
     static long Nuitka_Generator_counter = 0;

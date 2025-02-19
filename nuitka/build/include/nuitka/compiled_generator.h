@@ -72,6 +72,10 @@ struct Nuitka_GeneratorObject {
     struct Nuitka_ExceptionStackItem m_exc_state;
 #endif
 
+#if PYTHON_VERSION >= 0x300
+    struct Nuitka_ExceptionStackItem m_resume_exception;
+#endif
+
     // The label index to resume after yield.
     int m_yield_return_index;
 
@@ -131,6 +135,11 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
      * which has a new "m_exc_state" structure just for that.
      */
 
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("SAVE_GENERATOR_EXCEPTION: Saving: ");
+    PRINT_PUBLISHED_EXCEPTION();
+#endif
+
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -154,7 +163,7 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
 #endif
 
 #if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD exit:\n");
+    PRINT_STRING("SAVE_GENERATOR_EXCEPTION: Restored: ");
     PRINT_PUBLISHED_EXCEPTION();
 #endif
 
@@ -176,6 +185,12 @@ static inline void SAVE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka
 static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nuitka_GeneratorObject *generator) {
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("RESTORE_GENERATOR_EXCEPTION: Replacing :");
+    PRINT_PUBLISHED_EXCEPTION();
+#endif
+
 #if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(tstate);
 #endif
@@ -208,6 +223,11 @@ static inline void RESTORE_GENERATOR_EXCEPTION(PyThreadState *tstate, struct Nui
 #if PYTHON_VERSION < 0x3b0
     generator->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
 #endif
+#endif
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("RESTORE_GENERATOR_EXCEPTION: Restored:");
+    PRINT_PUBLISHED_EXCEPTION();
 #endif
 }
 
