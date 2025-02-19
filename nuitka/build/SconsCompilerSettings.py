@@ -250,10 +250,9 @@ slower without it.
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
+        env.Append(LINKFLAGS=["/LTCG"])
 
         if not env.clangcl_mode:
-            env.Append(LINKFLAGS=["/LTCG"])
-
             if getMsvcVersion(env) >= (14, 3):
                 env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
 
