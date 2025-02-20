@@ -381,6 +381,37 @@ def _isPluginActive(plugin_name):
     return plugin_name in getUserActivatedPluginNames()
 
 
+# Workaround for "ast.literal_eval" not working properly for set literals
+# before Python3.9, spell-checker: ignore elts
+if python_version >= 0x390:
+    _literal_eval = ast.literal_eval
+else:
+
+    class RewriteName(ast.NodeTransformer):
+        @staticmethod
+        def visit_Call(node):
+            if node.func.id == "set" and node.args == node.keywords == []:
+                if python_version >= 0x380:
+                    return ast.Constant(
+                        value=set(),
+                    )
+                else:
+                    # TODO: For Python2 it doesn't work to parse sets literals,
+                    # if we ever find we need them, we need to workaround that
+                    # by maybe implementing it entirely.
+                    return ast.Set(
+                        # spell-checker: ignore elts
+                        elts=[],
+                    )
+
+    def _literal_eval(value):
+        if "set()" in value:
+            value = ast.parse(value, mode="eval")
+            RewriteName().visit(value)
+
+        return ast.literal_eval(value)
+
+
 class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     """Nuitka base class for all plugins.
 
@@ -1280,6 +1311,8 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        # Rather complicated error handling, pylint: disable=too-many-branches
+
         info_name = self.plugin_name + "_" + info_name
         info_name = info_name.replace("-", "_").replace(".", "_")
 
@@ -1371,9 +1404,15 @@ except Exception as e:
 
         NamedtupleResultClass = makeNamedtupleClass(info_name, keys)
 
-        self._runtime_information_cache[info_name] = NamedtupleResultClass(
-            *(ast.literal_eval(value) for value in feedback)
-        )
+        try:
+            self._runtime_information_cache[info_name] = NamedtupleResultClass(
+                *(_literal_eval(value) for value in feedback)
+            )
+        except ValueError:
+            self.sysexit(
+                "Error, non-constant values in output retrieving %r information."
+                % info_name
+            )
 
         return self._runtime_information_cache[info_name]
 
