@@ -730,12 +730,9 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
 
         # TODO: This ought to depend on actual presence of used DLLs with middle
         # paths and not just do it, but maybe there is not much harm in it.
-        if count > 0:
-            rpath = ":".join(
-                os.path.join("$ORIGIN", *([".."] * c)) for c in range(count, 0, -1)
-            )
-        else:
-            rpath = "$ORIGIN"
+        rpath = ":".join(
+            os.path.join("$ORIGIN", *([".."] * c)) for c in range(count, -1, -1)
+        )
 
         setSharedLibraryRPATH(target_filename, rpath)
 
