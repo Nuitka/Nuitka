@@ -227,7 +227,8 @@ def _getDLLVersionWindows(filename):
 _readelf_usage = "The 'readelf' is used to analyse dependencies on ELF using systems and required to be found."
 
 
-def _getSharedLibraryRPATHElf(filename):
+def _getSharedLibraryRPATHsElf(filename):
+    rpaths = []
     output = executeToolChecked(
         logger=postprocessing_logger,
         command=("readelf", "-d", filename),
@@ -242,9 +243,22 @@ def _getSharedLibraryRPATHElf(filename):
             if str is not bytes:
                 result = result.decode("utf8")
 
-            return result
+            rpaths.append(result)
+        elif b"NEEDED" in line:
+            # If the Python binary has a library dependency like
+            # $ORIGIN/../lib/libpython.so, then treat it like it has an rpath of
+            # $ORIGIN/../lib. This is needed for python-build-standalone (used
+            # by UV-Python).
+            result = line[line.find(b"[") + 1 : line.rfind(b"]")]
 
-    return None
+            if str is not bytes:
+                result = result.decode("utf8")
+
+            path_part = os.path.dirname(result)
+            if path_part:
+                rpaths.append(path_part)
+
+    return rpaths
 
 
 _otool_output_cache = {}
@@ -352,7 +366,8 @@ def _getDLLVersionMacOS(filename):
     return None
 
 
-def _getSharedLibraryRPATHDarwin(filename):
+def _getSharedLibraryRPATHsDarwin(filename):
+    rpaths = []
     output = getOtoolListing(filename)
 
     cmd = b""
@@ -368,21 +383,21 @@ def _getSharedLibraryRPATHDarwin(filename):
                 if str is not bytes:
                     result = result.decode("utf8")
 
-                return result
+                rpaths.append(result)
 
         if last_was_load_command and line.startswith(b"cmd "):
             cmd = line.split()[1]
 
         last_was_load_command = line.startswith(b"Load command")
 
-    return None
+    return rpaths
 
 
-def getSharedLibraryRPATH(filename):
+def getSharedLibraryRPATHs(filename):
     if isMacOS():
-        return _getSharedLibraryRPATHDarwin(filename)
+        return _getSharedLibraryRPATHsDarwin(filename)
     else:
-        return _getSharedLibraryRPATHElf(filename)
+        return _getSharedLibraryRPATHsElf(filename)
 
 
 def _filterPatchelfErrorOutput(stderr):
@@ -454,21 +469,21 @@ def _filterInstallNameToolErrorOutput(stderr):
 _install_name_tool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
 
 
-def _removeSharedLibraryRPATHDarwin(filename, rpath):
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("install_name_tool", "-delete_rpath", rpath, filename),
-        absence_message=_install_name_tool_usage,
-        stderr_filter=_filterInstallNameToolErrorOutput,
-    )
+def _removeSharedLibraryRPATHDarwin(filename, rpaths):
+    for rpath in rpaths:
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("install_name_tool", "-delete_rpath", rpath, filename),
+            absence_message=_install_name_tool_usage,
+            stderr_filter=_filterInstallNameToolErrorOutput,
+        )
 
 
 def _setSharedLibraryRPATHDarwin(filename, rpath):
-    old_rpath = getSharedLibraryRPATH(filename)
+    old_rpaths = getSharedLibraryRPATHs(filename)
 
     with withMadeWritableFileMode(filename):
-        if old_rpath is not None:
-            _removeSharedLibraryRPATHDarwin(filename=filename, rpath=old_rpath)
+        _removeSharedLibraryRPATHDarwin(filename=filename, rpaths=old_rpaths)
 
         executeToolChecked(
             logger=postprocessing_logger,
