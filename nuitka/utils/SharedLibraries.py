@@ -447,7 +447,7 @@ installed. Use 'apt/dnf/yum install patchelf' first.""",
 def _setSharedLibraryRPATHElf(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--set-rpath", rpath, filename),
+        command=("patchelf", "--remove-rpath", "--set-rpath", rpath, filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
