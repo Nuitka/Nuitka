@@ -887,6 +887,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
             env.Append(LIBS="z")
 
+    print(env.Dictionary())
+
 def _enablePgoSettings(env):
     if env.pgo_mode == "no":
         env.progressbar_name = "Backend"
