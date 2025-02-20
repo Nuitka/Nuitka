@@ -1056,6 +1056,28 @@ class Plugins(object):
 
         cls.module_usage_looked_ahead_cache.add(module_name)
 
+        # Do parent package look ahead first.
+        parent_package_name = module_name.getPackageName()
+        if parent_package_name is not None:
+            from nuitka.importing.Importing import locateModule
+
+            (
+                _parent_package_name,
+                parent_module_filename,
+                parent_module_kind,
+                _parent_module_finding,
+            ) = locateModule(
+                module_name=parent_package_name,
+                parent_package=None,
+                level=0,
+            )
+
+            cls.onModuleUsageLookAhead(
+                module_name=parent_package_name,
+                module_filename=parent_module_filename,
+                module_kind=parent_module_kind,
+            )
+
         # Lazy load the source code if a plugin wants it, the pre_load caches
         # the result for later usage.
         def getModuleSourceCode():
