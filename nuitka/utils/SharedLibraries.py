@@ -504,7 +504,7 @@ def setSharedLibraryRPATH(filename, rpath):
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
 
-    assert getSharedLibraryRPATHs(filename) == [rpath]
+    assert getSharedLibraryRPATHs(filename) == [rpath], (filename, getSharedLibraryRPATHs(filename), "!=", [rpath])
 
 
 def callInstallNameTool(filename, mapping, id_path, rpath):
