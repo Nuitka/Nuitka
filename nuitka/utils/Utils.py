@@ -237,6 +237,11 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def isAIX():
+    """The AIX platform."""
+    return getOS() == "AIX"
+
+
 def hasMacOSIntelSupport():
     """macOS with either Intel hardware or Rosetta being installed."""
     return isMacOS() and (
@@ -311,26 +316,6 @@ def getCPUCoreCount():
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
-
-
-def encodeNonAscii(var_name):
-    """Encode variable name that is potentially not ASCII to ASCII only.
-
-    For Python3, unicode identifiers can be used, but these are not
-    possible in C, so we need to replace them.
-    """
-    if str is bytes:
-        return var_name
-    else:
-        # Using a escaping here, because that makes it safe in terms of not
-        # to occur in the encoding escape sequence for unicode use.
-        # spell-checker: ignore xmlcharrefreplace
-        var_name = var_name.replace("$$", "$_$")
-
-        var_name = var_name.encode("ascii", "xmlcharrefreplace")
-        var_name = var_name.decode("ascii")
-
-        return var_name.replace("&#", "$$").replace(";", "")
 
 
 def hasOnefileSupportedOS():

@@ -49,7 +49,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         if _detected_python_rpath:
             # Need to resolve a potential symlink.
             if os.path.islink(sys.executable):
-                sys_executable = resolveSymlink(sys.executable)
+                sys_executable = os.readlink(sys.executable)
             else:
                 sys_executable = sys.executable
 

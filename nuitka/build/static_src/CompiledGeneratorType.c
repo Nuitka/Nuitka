@@ -1459,7 +1459,6 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
         // the need to do it. It may also be a lot of work to do that though
         // and maybe having weakrefs is uncommon.
         PyObject_ClearWeakRefs((PyObject *)generator);
-        assert(!HAS_ERROR_OCCURRED(PyThreadState_GET()));
 
         Nuitka_GC_Track(generator);
     }
@@ -1500,13 +1499,6 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack(generator);
 
-#if PYTHON_VERSION >= 0x300
-    PyThreadState *tstate = PyThreadState_GET();
-    // Save the current exception, if any, we must preserve it.
-    struct Nuitka_ExceptionPreservationItem saved_exception_state;
-    FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
-#endif
-
     Nuitka_Generator_release_closure(generator);
 
     if (generator->m_frame != NULL) {
@@ -1530,8 +1522,6 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_generators, generator, MAX_GENERATOR_FREE_LIST_COUNT);
-
-    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
 
 static long Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }

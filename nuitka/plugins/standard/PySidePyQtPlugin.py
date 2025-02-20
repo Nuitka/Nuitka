@@ -827,6 +827,11 @@ Prefix = .
         if self.binding_name in ("PySide6", "PyQt6"):
             used_frameworks += ["QtOpenGL", "QtDBus"]
 
+        # Newer PySide6 needs even more.
+        if self.binding_name == "PySide6" and self._getBindingVersion() >= (6, 8, 0):
+            used_frameworks.append("QtQmlMeta")
+            used_frameworks.append("QtQmlWorkerScript")
+
         for used_framework in used_frameworks:
             yield self.makeIncludedAppBundleFramework(
                 source_path=os.path.join(self._getQtInformation().data_path, "lib"),

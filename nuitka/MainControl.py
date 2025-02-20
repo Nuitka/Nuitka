@@ -183,23 +183,23 @@ def _createMainModule():
     if not Options.shallOnlyExecCCompilerCall():
         cleanSconsDirectory(source_dir)
 
-    # Prepare the ".dist" directory, throwing away what was there before.
-    if Options.isStandaloneMode():
-        standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        resetDirectory(
-            path=standalone_dir,
-            logger=general,
-            ignore_errors=True,
-            extra_recommendation="Stop previous binary.",
-        )
-
-        if Options.shallCreateAppBundle():
+        # Prepare the ".dist" directory, throwing away what was there before.
+        if Options.isStandaloneMode():
+            standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
             resetDirectory(
-                path=changeFilenameExtension(standalone_dir, ".app"),
+                path=standalone_dir,
                 logger=general,
                 ignore_errors=True,
-                extra_recommendation=None,
+                extra_recommendation="Stop previous binary.",
             )
+
+            if Options.shallCreateAppBundle():
+                resetDirectory(
+                    path=changeFilenameExtension(standalone_dir, ".app"),
+                    logger=general,
+                    ignore_errors=True,
+                    extra_recommendation=None,
+                )
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
@@ -1046,12 +1046,14 @@ def _main():
 
         dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
-        copyDllsUsed(
-            dist_dir=dist_dir,
-            standalone_entry_points=getStandaloneEntryPoints(),
-        )
+        if not Options.shallOnlyExecCCompilerCall():
+            copyDllsUsed(
+                dist_dir=dist_dir,
+                standalone_entry_points=getStandaloneEntryPoints(),
+            )
 
-    copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
+    if not Options.shallOnlyExecCCompilerCall():
+        copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
 
     if Options.isStandaloneMode():
         Plugins.onStandaloneDistributionFinished(dist_dir)

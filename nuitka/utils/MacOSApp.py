@@ -36,7 +36,6 @@ def createPlistInfoFile(logger, onefile):
     signed_app_name = Options.getMacOSSignedAppName() or app_name
     app_version = Options.getMacOSAppVersion() or "1.0"
 
-    # TODO: We want an OrderedDict probably for stability.
     infos = OrderedDict(
         [
             ("CFBundleDisplayName", app_name),

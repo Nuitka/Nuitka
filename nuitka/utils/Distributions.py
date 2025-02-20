@@ -468,6 +468,20 @@ def isDistributionCondaPackage(distribution_name):
     return getDistributionInstallerName(distribution_name) == "conda"
 
 
+def isDistributionVendored(distribution_name):
+    # Only observed case with setuptools so far.
+    if getDistributionInstallerName(distribution_name) == "uv":
+        path = _getDistributionPath(getDistribution(distribution_name))
+
+        if path is not None:
+            if os.path.dirname(path).endswith(
+                (r"setuptools\_vendor", "setuptools/vendor")
+            ):
+                return True
+
+    return False
+
+
 def isDistributionMsys2Package(distribution_name):
     if not isAnacondaPython():
         return False

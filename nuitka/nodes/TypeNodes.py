@@ -334,11 +334,11 @@ class ExpressionSubtypeCheck(
 class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
     kind = "EXPRESSION_TYPE_ALIAS"
 
-    named_children = ("type_params|tuple", "compute_value")
+    named_children = ("type_params|tuple", "value")
 
-    def __init__(self, type_params, compute_value, source_ref):
+    def __init__(self, type_params, value, source_ref):
         ChildrenExpressionTypeAliasMixin.__init__(
-            self, type_params=type_params, compute_value=compute_value
+            self, type_params=type_params, value=value
         )
 
         ExpressionBase.__init__(self, source_ref)

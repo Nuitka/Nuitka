@@ -83,7 +83,7 @@ def main():
         if filename == "BuiltinOverloadTest.py":
             extra_flags.append("ignore_warnings")
 
-        if python_version == (3, 13, 1):
+        if python_version >= (3, 13, 1):
             if filename in ("GeneratorExpressionsTest.py", "ImportingTest.py"):
                 reportSkip("Regression of CPython 3.13.1 not followed", ".", filename)
                 continue

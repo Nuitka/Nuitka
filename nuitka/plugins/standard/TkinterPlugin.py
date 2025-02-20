@@ -77,8 +77,14 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
         if self.tk_inter_version is None:
             self.sysexit("Error, it seems 'tk-inter' is not installed.")
 
-        # Only ever saw these 2 in use.
-        assert self.tk_inter_version in ("8.5", "8.6"), self.tk_inter_version
+        # Only ever saw these in use, report if there are more.
+        if self.tk_inter_version not in ("8.5", "8.6", "9.0"):
+            self.sysexit(
+                """\
+Error, it seems 'tk-inter' has an unsupported version '%s'. \
+Please report as a issue."""
+                % self.tk_inter_version
+            )
 
         return None
 
@@ -203,15 +209,16 @@ The Tcl library dir. See comments for Tk library dir.""",
                 )
             )
 
-            # Homebrew is compiled to think it's 8.6, but it might actually
-            # be the version 9.
-            yield os.path.normpath(
-                os.path.join(
-                    _getHomebrewPrefix(self),
-                    "lib",
-                    "tk9.0",
+            if self.tk_inter_version == "8.6":
+                # Homebrew is compiled to think it's 8.6, but it might actually
+                # be the version 9.
+                yield os.path.normpath(
+                    os.path.join(
+                        _getHomebrewPrefix(self),
+                        "lib",
+                        "tk9.0",
+                    )
                 )
-            )
 
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.

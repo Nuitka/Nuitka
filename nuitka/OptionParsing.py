@@ -377,6 +377,22 @@ static cache path, this will then not be removed.""",
 )
 
 onefile_group.add_option(
+    "--onefile-cache-mode",
+    action="store",
+    dest="onefile_cached_mode",
+    metavar="ONEFILE_CACHED_MODE",
+    choices=("auto", "cached", "temporary"),
+    default="auto",
+    help="""\
+This mode is inferred from your use of the spec. If it contains
+runtime dependent paths, "auto" resolves to "temporary" which
+will make sure to remove the unpacked binaries after execution,
+and cached will not remove it and see to reuse its contents
+during next execution for faster startup times.""",
+)
+
+
+onefile_group.add_option(
     "--onefile-child-grace-time",
     action="store",
     dest="onefile_child_grace_time",
@@ -852,6 +868,25 @@ debug_group.add_option(
     "--debug-immortal-assumptions",
     action="store_true",
     dest="debug_immortal",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
+    "--no-debug-c-warnings",
+    action="store_false",
+    dest="debug_c_warnings",
+    default=None,
+    help="""\
+Disable check normally done with "--debug". The C compilation may produce
+warnings, which it often does for some packages without these being issues,
+esp. for unused values.""",
+)
+
+debug_group.add_option(
+    "--debug-c-warnings",
+    action="store_true",
+    dest="debug_c_warnings",
     default=None,
     help=SUPPRESS_HELP,
 )
@@ -1929,6 +1964,7 @@ run_time_variable_names = (
     "TIME",
     "PROGRAM",
     "PROGRAM_BASE",
+    "PROGRAM_DIR",
     "CACHE_DIR",
     "COMPANY",
     "PRODUCT",

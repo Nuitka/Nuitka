@@ -374,6 +374,9 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 #endif
 
     CHECK_OBJECT(frame);
+    if (lineno == 0) {
+        lineno = frame->m_frame.f_lineno;
+    }
     assert(lineno != 0);
 
     PyTracebackObject *result;
