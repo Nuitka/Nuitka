@@ -445,10 +445,9 @@ installed. Use 'apt/dnf/yum install patchelf' first.""",
 
 
 def _setSharedLibraryRPATHElf(filename, rpath):
-    # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--set-rpath", rpath, filename),
+        command=("patchelf", "--remove-rpath", "--set-rpath", rpath, filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
@@ -504,6 +503,8 @@ def setSharedLibraryRPATH(filename, rpath):
             _setSharedLibraryRPATHDarwin(filename, rpath)
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
+
+    assert getSharedLibraryRPATHs(filename) == [rpath], (filename, getSharedLibraryRPATHs(filename), "!=", [rpath])
 
 
 def callInstallNameTool(filename, mapping, id_path, rpath):

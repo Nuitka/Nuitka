@@ -142,15 +142,14 @@ def isRyePython():
 
     return False
 
+def isPythonBuildStandalonePython():
+    try:
+        import sysconfig
 
-def isUvPython():
-    if isWin32Windows():
-        return r"AppData\Roaming\uv" in getSystemPrefixPath()
-    else:
-        if getSystemPrefixPath().startswith(os.path.expanduser("~/.local/share/uv")):
-            return True
+        return sysconfig.get_config_var("PYTHON_BUILD_STANDALONE") == 1
+    except ImportError:
+        return False
 
-    return False
 
 
 def isPyenvPython():
@@ -193,7 +192,7 @@ def isUninstalledPython():
     if isSelfCompiledPythonUninstalled():
         return True
 
-    if isUvPython():
+    if isPythonBuildStandalonePython():
         return True
 
     if isStaticallyLinkedPython():
@@ -389,8 +388,8 @@ def getPythonFlavorName():
         return "Homebrew Python"
     elif isRyePython():
         return "Rye Python"
-    elif isUvPython():
-        return "UV-Python"
+    elif isPythonBuildStandalonePython():
+        return "Python Build Standalone"
     elif isApplePython():
         return "Apple Python"
     elif isPyenvPython():

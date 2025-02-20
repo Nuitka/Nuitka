@@ -48,7 +48,7 @@ from nuitka.utils.Utils import (
     isDebianBasedLinux,
     isFedoraBasedLinux,
     isMacOS,
-    isNetBSD,
+    isFreeBSD,
 )
 
 from .DataComposerInterface import getConstantBlobFilename
@@ -799,9 +799,11 @@ elif env.exe_mode:
             else:
                 env.Append(LINKFLAGS=["-export-dynamic"])
 
-    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-    if isNetBSD():
-        env.Append(LINKFLAGS=["-rpath=" + python_lib_path])
+    # For NetBSD the rpath is required, on FreeBSD it's warned as unused, macOS
+    # doesn't have it, but some Python flavors like Standalone Python won't find
+    # it unless provided like this.
+    if not isFreeBSD() and not isMacOS():
+        env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
     if env.module_mode or env.dll_mode:
