@@ -35,6 +35,7 @@ from nuitka.HardImportRegistry import (
 from nuitka.importing.Importing import (
     isNonRaisingBuiltinModule,
     isPackageDir,
+    isPackageModuleName,
     locateModule,
     makeModuleUsageAttempt,
     makeParentModuleUsagesAttempts,
@@ -393,7 +394,13 @@ class ExpressionImportModuleHard(
             self.is_package = hasattr(self.module, "__path__")
         else:
             self.module = None
-            self.is_package = None
+
+            # TODO: This is actually wrong for many packages, but for scipy, we
+            # use it to make it work for a hotfix, before taking the resolution
+            # to a new code base.
+            self.is_package = self.module_name.hasNamespace(
+                "scipy"
+            ) and isPackageModuleName(self.module_name)
 
         self.guaranteed = self.allowed and (
             not shallMakeModule() or self.module_name not in hard_modules_non_stdlib
