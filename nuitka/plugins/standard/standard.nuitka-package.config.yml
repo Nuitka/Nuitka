@@ -2067,6 +2067,11 @@
       bloat-mode-overrides:
         'pydoc': 'allow'
 
+- module-name: 'jenn.core' # checksum: bddd1843
+  data-files:
+    - patterns:
+        - 'schema.json'
+
 - module-name: 'jinja2.environment' # checksum: c71498fb
   anti-bloat:
     - description: 'remove Python3.5 only code'
