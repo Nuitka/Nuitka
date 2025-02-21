@@ -91,7 +91,8 @@
         "exception": "c",
         "stop_token": "c",
         "thread": "c",
-        "xstring": "c"
+        "xstring": "c",
+        "cstdint": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [

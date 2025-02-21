@@ -14,10 +14,12 @@
 // variables.
 #if defined(_WIN32)
 #define environment_char_t wchar_t
+#define native_command_line_argument_t wchar_t
 #define compareEnvironmentString(a, b) wcscmp(a, b)
 #define makeEnvironmentLiteral(x) L##x
 #else
 #define environment_char_t char
+#define native_command_line_argument_t char
 #define compareEnvironmentString(a, b) strcmp(a, b)
 #define makeEnvironmentLiteral(x) x
 #endif
@@ -27,6 +29,9 @@ extern void setEnvironmentVariable(char const *name, environment_char_t const *v
 extern void setEnvironmentVariableFromLong(char const *name, long value);
 extern void setEnvironmentVariableFromFilename(char const *name, filename_char_t const *value);
 extern void unsetEnvironmentVariable(char const *name);
+
+// Get the original argv0 value.
+extern filename_char_t const *getOriginalArgv0(void);
 
 #endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
