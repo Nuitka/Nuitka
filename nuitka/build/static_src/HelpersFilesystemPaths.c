@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 #endif
@@ -34,8 +35,43 @@
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
+void normalizePath(filename_char_t *filename) {
+    filename_char_t *w = filename;
+
+    while (*w != 0) {
+        // Eliminate duplicate slashes.
+        if (*w == FILENAME_SEP_CHAR) {
+            while (*(w + 1) == FILENAME_SEP_CHAR) {
+                filename_char_t *f = w;
+
+                for (;;) {
+                    *f = *(f + 1);
+
+                    if (*f == 0) {
+                        break;
+                    }
+
+                    f++;
+                }
+            }
+        }
+
+        w++;
+    }
+
+    // TODO: Need to also remove "./" and resolve "/../" sequences for best
+    // results.
+}
+
 #if !defined(_WIN32)
-void _getBinaryPath2(char *binary_filename, size_t buffer_size) {
+filename_char_t *_getBinaryPath2(void) {
+    static filename_char_t binary_filename[MAXPATHLEN] = {0};
+    const size_t buffer_size = sizeof(binary_filename);
+
+    if (binary_filename[0] != 0) {
+        return binary_filename;
+    }
+
 #if defined(__APPLE__)
     uint32_t bufsize = buffer_size;
     int res = _NSGetExecutablePath(binary_filename, &bufsize);
@@ -43,58 +79,69 @@ void _getBinaryPath2(char *binary_filename, size_t buffer_size) {
     if (unlikely(res != 0)) {
         abort();
     }
-#elif defined(__OpenBSD__)
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC_ARGS;
-    mib[2] = getpid();
-    mib[3] = KERN_PROC_ARGV;
+#elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+    const char *comm = getOriginalArgv0();
 
-    size_t len;
+    bool success = false;
 
-    if (sysctl(mib, 4, NULL, &len, NULL, 0) < 0) {
-        abort();
-    }
-
-    char **argv = argv = malloc(len);
-    if (argv == NULL) {
-        abort();
-    }
-
-    if (sysctl(mib, 4, argv, &len, NULL, 0) < 0) {
-        abort();
-    }
-
-    const char *comm = argv[0];
-
-    if (*comm == '/' || *comm == '.') {
-        if (realpath(comm, binary_filename) == NULL) {
-            abort();
-        }
+    if (*comm == '/') {
+        copyStringSafe(binary_filename, comm, buffer_size);
+        success = true;
     } else {
-        char *sp;
-        char *xpath = strdup(getenv("PATH"));
-        char *path = strtok_r(xpath, ":", &sp);
-        struct stat st;
-
-        if (xpath == NULL) {
+        if (getcwd(binary_filename, buffer_size) == NULL) {
             abort();
         }
+        // Add a separator either way, later removed.
+        appendCharSafe(binary_filename, '/', buffer_size);
+        appendStringSafe(binary_filename, comm, buffer_size);
 
-        while (path) {
-            snprintf(binary_filename, PATH_MAX, "%s/%s", path, comm);
+        if (isExecutableFile(binary_filename)) {
+            success = true;
+        } else {
+            char *path_environment_value = strdup(getenv("PATH"));
 
-            if (!stat(binary_filename, &st) && (st.st_mode & S_IXUSR)) {
-                break;
+            if (path_environment_value != NULL) {
+                char *sp;
+                char *path = strtok_r(path_environment_value, ":", &sp);
+
+                while (path != NULL) {
+                    if (*path != '/') {
+                        if (getcwd(binary_filename, buffer_size) == NULL) {
+                            abort();
+                        }
+
+                        appendCharSafe(binary_filename, '/', buffer_size);
+                    } else {
+                        binary_filename[0] = 0;
+                    }
+                    appendStringSafe(binary_filename, path, buffer_size);
+                    appendCharSafe(binary_filename, '/', buffer_size);
+                    appendStringSafe(binary_filename, comm, buffer_size);
+
+                    if (isExecutableFile(binary_filename)) {
+                        success = true;
+                        break;
+                    }
+
+                    path = strtok_r(NULL, ":", &sp);
+                }
+
+                free(path_environment_value);
             }
-
-            path = strtok_r(NULL, ":", &sp);
         }
-
-        free(xpath);
     }
 
-    free(argv);
+    if (success == true) {
+        // fprintf(stderr, "Did resolve binary path %s from PATH %s.\n", comm, binary_filename);
+
+        // TODO: Once it's fully capable, we ought to use this for all methods
+        // for consistency.
+        normalizePath(binary_filename);
+        fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
+    } else {
+        fprintf(stderr, "Error, cannot resolve binary path %s from PATH or current directory.\n", comm);
+        abort();
+    }
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
@@ -135,22 +182,27 @@ void _getBinaryPath2(char *binary_filename, size_t buffer_size) {
         abort();
     }
 #endif
+    return binary_filename;
 }
 #endif
 
 filename_char_t const *getBinaryPath(void) {
-    static filename_char_t binary_filename[MAXPATHLEN];
-
 #if defined(_WIN32)
+    static filename_char_t binary_filename[MAXPATHLEN] = {0};
+
+    if (binary_filename[0] != 0) {
+        return binary_filename;
+    }
+
     DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
     if (unlikely(res == 0)) {
         abort();
     }
-#else
-    _getBinaryPath2(binary_filename, sizeof(binary_filename));
-#endif
 
     return binary_filename;
+#else
+    return _getBinaryPath2();
+#endif
 }
 
 bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
@@ -270,6 +322,17 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
 #include <sys/sendfile.h>
 #endif
 #endif
+#endif
+
+#if !defined(_WIN32)
+bool isExecutableFile(filename_char_t const *filename) {
+    int mode = getFileMode(filename);
+
+    if (mode == -1) {
+        return false;
+    }
+    return mode & S_IXUSR;
+}
 #endif
 
 int getFileMode(filename_char_t const *filename) {
@@ -687,7 +750,7 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
         return binary_filename_target;
     }
 
-    _getBinaryPath2(binary_filename_target, buffer_size);
+    copyStringSafe(binary_filename_target, _getBinaryPath2(), buffer_size);
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 
     return binary_filename_target;

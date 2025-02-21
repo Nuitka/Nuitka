@@ -217,14 +217,6 @@ extern void _initCompiledFrameType();
 
 #include <locale.h>
 
-#ifdef _WIN32
-#define _NUITKA_NATIVE_WCHAR_ARGV 1
-#define native_command_line_argument_t wchar_t
-#else
-#define _NUITKA_NATIVE_WCHAR_ARGV 0
-#define native_command_line_argument_t char
-#endif
-
 // Types of command line arguments are different between Python2/3.
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
 static wchar_t **convertCommandLineParameters(int argc, char **argv) {
@@ -1209,11 +1201,16 @@ PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
-static environment_char_t const *original_argv0 = NULL;
+static native_command_line_argument_t const *original_argv0 = NULL;
 
 PyObject *getOriginalArgv0Object(void) {
     assert(original_argv0 != NULL);
     return Nuitka_String_FromFilename(original_argv0);
+}
+
+filename_char_t const *getOriginalArgv0(void) {
+    assert(original_argv0 != NULL);
+    return original_argv0;
 }
 
 #ifdef _NUITKA_MACOS_BUNDLE
@@ -1315,6 +1312,14 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
     setCurrentProcessExplicitAppUserModelID(NUITKA_APP_MODEL_USER_ID);
+#endif
+
+// Make sure, we use the absolute program path for argv[0] for standalone mode
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+    original_argv0 = argv[0];
+#if !defined(_NUITKA_ONEFILE_MODE)
+    argv[0] = (char *)getBinaryFilenameHostEncoded(false);
+#endif
 #endif
 
 #ifdef _NUITKA_MACOS_BUNDLE
@@ -1450,14 +1455,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initial command line handling only. */
 
-// Make sure, we use the absolute program path for argv[0]
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-    original_argv0 = argv[0];
-#if !defined(_NUITKA_ONEFILE_MODE)
-    argv[0] = (char *)getBinaryFilenameHostEncoded(false);
-#endif
-#endif
-
 #if defined(_NUITKA_ONEFILE_MODE)
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
@@ -1482,7 +1479,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     orig_argv = argv;
 #endif
 
-// Make sure, we use the absolute program path for argv[0]
+// Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 1
     original_argv0 = argv[0];
 #if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_ONEFILE_MODE)
