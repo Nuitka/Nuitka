@@ -20,7 +20,7 @@ from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
-from nuitka.Tracing import OurLogger, my_print
+from nuitka.Tracing import OurLogger, flushStandardOutputs, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import (
@@ -585,9 +585,11 @@ def displayRuntimeTraces(logger, path):
         # Run with traces to help debugging, specifically in CI environment.
         if isMacOS() or isFreeBSD():
             test_logger.info("dtruss:")
+            flushStandardOutputs()
             os.system("sudo dtruss %s" % path)
         else:
             test_logger.info("strace:")
+            flushStandardOutputs()
             os.system("strace -s4096 -e file %s" % path)
 
 
@@ -1399,6 +1401,7 @@ def setupCacheHashSalt(test_code_path):
 
 def displayFolderContents(name, path):
     test_logger.info("Listing of %s '%s':" % (name, path))
+    flushStandardOutputs()
 
     if os.path.exists(path):
         if isWin32Windows():
@@ -1419,6 +1422,8 @@ def displayFileContents(name, path):
             my_print(line)
     else:
         test_logger.info("Does not exist.")
+
+    flushStandardOutputs()
 
 
 def someGenerator():
