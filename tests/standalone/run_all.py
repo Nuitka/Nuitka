@@ -59,6 +59,10 @@ def displayError(dirname, filename):
     dist_path = filename[:-3] + ".dist"
     displayFolderContents("dist folder", dist_path)
 
+    if isLinux():
+        test_logger.info("ELF listing of main binary:")
+        os.system("readelf -d " + filename[:-3] + ".dist/" + filename[:-3] + ".bin")
+
     inclusion_log_path = filename[:-3] + ".py.inclusion.log"
     displayFileContents("inclusion log", inclusion_log_path)
 
