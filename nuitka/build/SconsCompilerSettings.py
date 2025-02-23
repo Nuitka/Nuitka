@@ -230,14 +230,16 @@ slower without it.
 
     if env.gcc_mode and lto_mode:
         if env.clang_mode:
-            env.Append(CCFLAGS=["-flto"])
-            env.Append(LINKFLAGS=["-flto"])
+            env.Append(CCFLAGS=["-flto=thin"])
+            env.Append(LINKFLAGS=["-flto=thin"])
         else:
-            env.Append(CCFLAGS=["-flto=%d" % job_count])
-            env.Append(LINKFLAGS=["-flto=%d" % job_count])
+            env.Append(CCFLAGS=["-flto=thin"])
+            env.Append(LINKFLAGS=["-flto=thin"])
 
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
             env.Append(LINKFLAGS=["-fuse-linker-plugin"])
+
+            env.Append(LINKFLAGS=["-Wl,-plugin-opt,thinlto-jobs=%d" % job_count])
 
             # Need to tell the linker these things are OK.
             env.Append(LINKFLAGS=["-fpartial-inlining", "-freorder-functions"])
@@ -248,10 +250,9 @@ slower without it.
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
         env.Append(CCFLAGS=["/GL"])
+        env.Append(LINKFLAGS=["/LTCG"])
 
         if not env.clangcl_mode:
-            env.Append(LINKFLAGS=["/LTCG"])
-
             if getMsvcVersion(env) >= (14, 3):
                 env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
 
@@ -886,6 +887,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
             env.Append(LIBS="z")
 
+    print(env.Dictionary())
 
 def _enablePgoSettings(env):
     if env.pgo_mode == "no":
