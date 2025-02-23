@@ -42,9 +42,9 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
+    isPythonBuildStandalonePython,
     isTermuxPython,
     isUninstalledPython,
-    isUvPython,
 )
 from nuitka.PythonVersions import (
     getLaunchingSystemPrefixPath,
@@ -1767,13 +1767,14 @@ Nuitka on Anaconda needs package for static libpython installed. \
 Execute 'conda install libpython-static'.""",
             )
 
-    if isUvPython():
+    if isPythonBuildStandalonePython():
         return (
             False,
             """\
-Static link library of UV-Python is currently using dependent libraries \
+Static link library of '%s' is currently using dependent on libraries \
 such as tcl that are not included, but would be needed. Please help them \
-improve it for best performance of the result.""",
+improve it for best performance of the result."""
+            % getPythonFlavorName(),
         )
 
     if isPyenvPython():

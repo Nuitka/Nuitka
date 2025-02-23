@@ -12,9 +12,9 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
     isRyePython,
     isSelfCompiledPythonUninstalled,
-    isUvPython,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -158,7 +158,7 @@ def _getSystemStaticLibPythonPath():
     if isMacOS() and isRyePython():
         return None
 
-    if isUvPython():
+    if isPythonBuildStandalonePython():
         return None
 
     if isSelfCompiledPythonUninstalled():

@@ -659,24 +659,25 @@ if env.static_libpython and (
 ):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
-if env.static_libpython and python_version >= (3, 12):
-    env.Append(
-        CPPPATH=[
-            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
-            os.path.join(
-                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
-            ),
-        ]
-    )
+if python_version >= (3, 12):
+    if env.static_libpython:
+        env.Append(
+            CPPPATH=[
+                os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
+                os.path.join(
+                    env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
+                ),
+            ]
+        )
 
-    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
+        env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
 
     # Remove it from static link libraries as well, if present, so far they are
     # bugs and do not exist.
     link_module_libs = [
         link_module_lib
         for link_module_lib in link_module_libs
-        if "libHacl_Hash_SHA2" not in link_module_libs
+        if "libHacl_Hash_SHA2" not in link_module_lib
     ]
 
 if os.name == "nt":
@@ -811,6 +812,13 @@ if isMacOS():
         # For macOS we need to make sure install_name_tool can do its work
         # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
+
+if env.android_termux_python:
+    # For Android Termux Python we need modules to link against the
+    # shared library of Python, different from all other ones.
+
+    if env.module_mode:
+        env.Append(_LIBFLAGS=["-lpython%s" % python_version_str])
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
