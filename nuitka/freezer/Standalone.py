@@ -34,6 +34,7 @@ from nuitka.PythonFlavors import (
     isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isTermuxPython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
@@ -185,6 +186,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             standalone_entry_points=standalone_entry_points,
         )
 
+    if isMacOS() or isTermuxPython():
         # After dependency detection, we can change the RPATH for macOS main
         # binary.
         setSharedLibraryRPATH(
