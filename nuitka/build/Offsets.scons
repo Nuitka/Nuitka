@@ -478,7 +478,7 @@ if env.static_libpython and python_version >= (3, 12):
     link_module_libs = [
         link_module_lib
         for link_module_lib in link_module_libs
-        if "libHacl_Hash_SHA2" not in link_module_libs
+        if "libHacl_Hash_SHA2" not in link_module_lib
     ]
 
 # TODO: Make backend libpython handling reusable.

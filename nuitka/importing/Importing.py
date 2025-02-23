@@ -209,6 +209,40 @@ def isPackageDir(dirname):
     )
 
 
+_package_module_name_cache = {}
+
+
+def isPackageModuleName(module_name):
+    """Decide if the give n module name is a package or not.
+
+    module, Cached as it involves disk access."""
+
+    if module_name not in _package_module_name_cache:
+        _module_name, module_filename, _module_kind, _finding = locateModule(
+            module_name=module_name,
+            parent_package=None,
+            level=0,
+        )
+
+        (
+            _main_added,
+            is_package,
+            _is_namespace,
+            _source_ref,
+            _source_filename,
+        ) = decideModuleSourceRef(
+            filename=module_filename,
+            module_name=module_name,
+            is_main=False,
+            is_fake=False,
+            logger=None,
+        )
+
+        _package_module_name_cache[module_name] = is_package
+
+    return _package_module_name_cache[module_name]
+
+
 def getModuleNameAndKindFromFilename(module_filename):
     """Given a filename, decide the module name and kind.
 

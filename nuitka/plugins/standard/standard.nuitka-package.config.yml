@@ -1210,7 +1210,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: cb686c29
+- module-name: 'django.core.management' # checksum: 5f852018
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1220,6 +1220,7 @@
       - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE")) if os.getenv("PARAMETER_SETTINGS_MODULE") else None'
     declarations:
       'django_installed_apps': 'settings.INSTALLED_APPS if settings else ()'
+      'django_database_engines': 'tuple(db_conf["ENGINE"]+".base" for (name, db_conf) in sorted(settings.DATABASES.items())) if settings else ()'
     environment:
       'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", "")'
   anti-bloat:
@@ -1234,6 +1235,7 @@
         - 'get_parameter("settings-module", ())'
         - '["%s.management.commands.*" % x for x in get_variable("django_installed_apps")]'
         - 'get_variable("django_installed_apps")'
+        - 'get_variable("django_database_engines")'
 
   options:
     checks:
@@ -2064,6 +2066,11 @@
     - description: 'allow pydoc inside jedi, too dependent to remove'
       bloat-mode-overrides:
         'pydoc': 'allow'
+
+- module-name: 'jenn.core' # checksum: bddd1843
+  data-files:
+    - patterns:
+        - 'schema.json'
 
 - module-name: 'jinja2.environment' # checksum: c71498fb
   anti-bloat:
@@ -6181,6 +6188,12 @@
     - depends:
         - 'sklearn.utils.sparsetools._graph_validation'
         - 'sklearn.utils.sparsetools._graph_tools'
+
+- module-name: 'smt' # checksum: dd3b5473
+  anti-bloat:
+    - no-auto-follow:
+        'numba': 'ignore'
+      when: 'not use_numba'
 
 - module-name: 'sound_lib' # checksum: f8f59602
   dlls:

@@ -16,6 +16,7 @@ import sys
 from nuitka.__past__ import basestring, unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Progress import enableThreading
+from nuitka.PythonFlavors import isTermuxPython
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
@@ -250,6 +251,10 @@ def createEnvironment(
     env.self_compiled_python_uninstalled = getArgumentBool(
         "self_compiled_python_uninstalled", False
     )
+
+    # No need to pass it from the outside, this cannot use other
+    # Pythons for scons.
+    env.android_termux_python = isTermuxPython()
 
     # Non-elf binary, important for linker settings.
     env.noelf_mode = getArgumentBool("noelf_mode", False)

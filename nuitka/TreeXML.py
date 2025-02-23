@@ -122,6 +122,7 @@ def dumpTreeXMLToFile(tree, output_file):
 
     value = toBytes(tree).rstrip()
     output_file.write(value)
+    output_file.write(b"\n")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
