@@ -25,6 +25,7 @@
 #endif
 
 extern environment_char_t const *getEnvironmentVariable(char const *name);
+extern environment_char_t const *getEnvironmentVariableW(wchar_t const *name);
 extern void setEnvironmentVariable(char const *name, environment_char_t const *value);
 extern void setEnvironmentVariableFromLong(char const *name, long value);
 extern void setEnvironmentVariableFromFilename(char const *name, filename_char_t const *value);

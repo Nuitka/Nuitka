@@ -23,6 +23,11 @@ extern void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size);
 extern void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size);
 extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 
+// Check that a string value is actually a number, used to prevent path
+// injections with inherited environment variables.
+void checkWStringNumber(wchar_t const *value);
+void checkStringNumber(char const *value);
+
 /* Get OS error code and print it to stderr. */
 #ifdef _WIN32
 typedef DWORD error_code_t;

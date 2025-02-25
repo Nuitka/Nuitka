@@ -128,7 +128,7 @@ def getResultFullpath(onefile):
 
     if shallMakeModule():
         result += getExtensionModuleSuffix(preferred=True)
-    elif shallMakeDll():
+    elif shallMakeDll() and not onefile:
         # TODO: Could actually respect getOutputFilename() for DLLs, these don't
         # need to be named in a specific way.
         result += getDllSuffix()

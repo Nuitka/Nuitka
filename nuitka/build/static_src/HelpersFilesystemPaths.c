@@ -32,6 +32,7 @@
 #define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
 #endif
 
+#include "nuitka/environment_variables_system.h"
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
@@ -877,10 +878,21 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
                 stripFilenameW(target);
             } else if (wcsicmp(var_name, L"PID") == 0) {
-                char pid_buffer[128];
-                snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
+                // Python binaries from onefile use onefile parent pid
+                environment_char_t const *environment_value = NULL;
 
-                appendStringSafeW(target, pid_buffer, buffer_size);
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+#endif
+                if (environment_value != NULL) {
+                    checkWStringNumber(environment_value);
+
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_PARENT"), buffer_size);
+                } else {
+                    char pid_buffer[128];
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
+                    appendStringSafeW(target, pid_buffer, buffer_size);
+                }
             } else if (wcsicmp(var_name, L"HOME") == 0) {
                 if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
                     return false;
@@ -904,16 +916,30 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
 #endif
             } else if (wcsicmp(var_name, L"TIME") == 0) {
-                char time_buffer[1024];
+                environment_char_t const *environment_value = NULL;
 
-                // spell-checker: ignore LPFILETIME
-                __int64 time = 0;
-                assert(sizeof(time) == sizeof(FILETIME));
-                GetSystemTimeAsFileTime((LPFILETIME)&time);
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_START");
+#endif
 
-                snprintf(time_buffer, sizeof(time_buffer), "%lld", time);
+                if (environment_value != NULL) {
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_START"), buffer_size);
+                } else {
+                    wchar_t time_buffer[1024];
 
-                appendStringSafeW(target, time_buffer, buffer_size);
+                    // spell-checker: ignore LPFILETIME
+                    __int64 time = 0;
+                    assert(sizeof(time) == sizeof(FILETIME));
+                    GetSystemTimeAsFileTime((LPFILETIME)&time);
+
+                    swprintf(time_buffer, sizeof(time_buffer), L"%lld", time);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_START", time_buffer);
+#endif
+                    appendWStringSafeW(target, time_buffer, buffer_size);
+                }
+
             } else {
                 return false;
             }
@@ -1032,11 +1058,23 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                 is_path = true;
             } else if (strcasecmp(var_name, "PID") == 0) {
-                char pid_buffer[128];
+                // Python binaries from onefile use onefile parent pid
+                environment_char_t const *environment_value = NULL;
 
-                snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+#endif
+                if (environment_value != NULL) {
+                    checkStringNumber(environment_value);
 
-                appendStringSafe(target, pid_buffer, buffer_size);
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_PARENT"), buffer_size);
+                } else {
+                    char pid_buffer[128];
+
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+
+                    appendStringSafe(target, pid_buffer, buffer_size);
+                }
             } else if (strcasecmp(var_name, "HOME") == 0) {
                 char const *home_path = getenv("HOME");
                 if (home_path == NULL) {
@@ -1079,13 +1117,28 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
 #endif
             } else if (strcasecmp(var_name, "TIME") == 0) {
-                char time_buffer[1024];
+                environment_char_t const *environment_value = NULL;
 
-                struct timeval current_time;
-                gettimeofday(&current_time, NULL);
-                snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec, (long)current_time.tv_usec);
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_START");
+#endif
 
-                appendStringSafe(target, time_buffer, buffer_size);
+                if (environment_value != NULL) {
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_START"), buffer_size);
+                } else {
+                    char time_buffer[1024];
+
+                    struct timeval current_time;
+                    gettimeofday(&current_time, NULL);
+                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec,
+                             (long)current_time.tv_usec);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_START", time_buffer);
+#endif
+
+                    appendStringSafe(target, time_buffer, buffer_size);
+                }
             } else {
                 return false;
             }

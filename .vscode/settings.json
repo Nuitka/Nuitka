@@ -330,6 +330,7 @@
         "POSIX",
         "psapi",
         "punycode",
+        "putws",
         "Py_DECREF",
         "Py_INCREF",
         "Py_REFCNT",

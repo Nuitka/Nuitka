@@ -1443,7 +1443,11 @@ def shallMakePackage():
 
 def shallMakeDll():
     """:returns: bool derived from ``--mode=dll``."""
-    return options is not None and options.compilation_mode == "dll"
+    return options is not None and (
+        options.compilation_mode == "dll"
+        or isOnefileMode()
+        and isExperimental("onefile-dll")
+    )
 
 
 def shallMakeExe():
@@ -2826,7 +2830,7 @@ def getCompilationMode():
     elif isStandaloneMode():
         return "standalone"
     elif shallMakeDll():
-        return "DLL"
+        return "dll"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
