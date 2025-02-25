@@ -9,23 +9,27 @@
 
 #if defined(_WIN32)
 
-environment_char_t const *getEnvironmentVariable(char const *name) {
+environment_char_t const *getEnvironmentVariableW(wchar_t const *name) {
     // Max size for environment variables according to docs.
     wchar_t buffer[32768];
     buffer[0] = 0;
 
-    wchar_t name_wide[40];
-    name_wide[0] = 0;
-    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
-
     // Size must be in bytes apparently, not in characters. Cannot be larger anyway.
-    DWORD res = GetEnvironmentVariableW(name_wide, buffer, 65536);
+    DWORD res = GetEnvironmentVariableW(name, buffer, 65536);
 
     if (res == 0 || res > sizeof(buffer)) {
         return NULL;
     }
 
     return wcsdup(buffer);
+}
+
+environment_char_t const *getEnvironmentVariable(char const *name) {
+    wchar_t name_wide[40];
+    name_wide[0] = 0;
+    appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
+
+    return getEnvironmentVariableW(name_wide);
 }
 
 void setEnvironmentVariable(char const *name, environment_char_t const *value) {

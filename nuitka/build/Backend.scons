@@ -730,7 +730,7 @@ if os.name == "nt":
 
         if not env.msys2_mingw_python:
             addWinLib()
-elif env.exe_mode:
+elif env.exe_mode or env.dll_mode:
     # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = python_prefix_external
