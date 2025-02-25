@@ -71,7 +71,7 @@
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-// Header of zstd goes first
+// Header of zstd goes first, spellchecker: ignore ZSTDERRORLIB,ZSTDLIB
 #define ZSTDERRORLIB_VISIBILITY
 #define ZSTDLIB_VISIBILITY
 #include "zstd.h"
@@ -171,7 +171,7 @@ static unsigned long long payload_size = 0;
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
-static void initPayloadData(void) {
+static void initPayloadData2(void) {
     const struct mach_header *header = &_mh_execute_header;
 
     unsigned long section_size;
@@ -185,7 +185,7 @@ static void closePayloadData(void) {}
 
 #elif defined(_WIN32)
 
-static void initPayloadData(void) {
+static void initPayloadData2(void) {
     HRSRC windows_resource = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
 
     payload_data = (const unsigned char *)LockResource(LoadResource(NULL, windows_resource));
@@ -208,7 +208,7 @@ static void fatalErrorFindAttachedData(char const *erroring_function, error_code
 
 static struct MapFileToMemoryInfo exe_file_mapped;
 
-static void initPayloadData(void) {
+static void initPayloadData2(void) {
     exe_file_mapped = mapFileToMemory(getBinaryPath());
 
     if (exe_file_mapped.error) {
@@ -222,6 +222,24 @@ static void initPayloadData(void) {
 static void closePayloadData(void) { unmapFileFromMemory(&exe_file_mapped); }
 
 #endif
+
+static void initPayloadData(void) {
+    initPayloadData2();
+
+#if !defined(__APPLE__) && !defined(_WIN32)
+    const off_t size_end_offset = exe_file_mapped.file_size;
+
+    NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
+
+    assert(sizeof(payload_size) == sizeof(unsigned long long));
+    memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
+
+    unsigned long long start_pos = size_end_offset - sizeof(payload_size) - payload_size;
+
+    payload_current += start_pos;
+    payload_data += start_pos;
+#endif
+}
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 
@@ -902,6 +920,56 @@ static wchar_t *getCommandLineForChildProcess(void) {
 }
 #endif
 
+#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, native_command_line_argument_t **argv) {
+
+#if defined(_WIN32)
+    DLL_DIRECTORY_COOKIE dll_dir_cookie = AddDllDirectory(payload_path);
+    assert(dll_dir_cookie != 0);
+
+    HINSTANCE hGetProcIDDLL = LoadLibraryExW(dll_filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+
+    if (!hGetProcIDDLL) {
+        fatalIOError("Error, load DLL.", getLastErrorCode());
+
+        return EXIT_FAILURE;
+    }
+
+    typedef int(__stdcall * nuitka_dll_function_ptr)(int, wchar_t **);
+
+    nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)GetProcAddress(hGetProcIDDLL, "run_code");
+
+    if (nuitka_dll_function == NULL) {
+        fatalError("Error, DLL entry point not found.");
+
+        return EXIT_FAILURE;
+    }
+
+    return (*nuitka_dll_function)(argc, argv);
+#else
+    typedef int (*nuitka_dll_function_ptr)(int, wchar_t **);
+
+    void *handle = dlopen(dll_filename, RTLD_LOCAL | RTLD_NOW);
+
+    if (unlikely(handle == NULL)) {
+        const char *error = dlerror();
+
+        if (unlikely(error == NULL)) {
+            error = "unknown dlopen() error";
+        }
+
+        fatalError(error);
+        return EXIT_FAILURE;
+    }
+
+    nuitka_dll_function_ptr nuitka_dll_function = (nuitka_dll_function_ptr)dlsym(handle, "run_code");
+    assert(nuitka_dll_function);
+
+    return (*nuitka_dll_function)(argc, argv);
+#endif
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -927,6 +995,24 @@ int main(int argc, char **argv) {
     filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
     bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
 
+    // _putws(payload_path);
+
+#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+    environment_char_t const *process_role = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+#else
+    environment_char_t const *process_role = NULL;
+#endif
+
+    // IF we are the bootstrasp binary, show the splash screen.
+#if defined(_NUITKA_ONEFILE_SPLASH_SCREEN) && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+    initSplashScreen();
+#endif
+
+    NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
+    initPayloadData();
+
+    static filename_char_t first_filename[1024] = {0};
+
     if (unlikely(bool_res == false)) {
         fatalErrorSpec(pattern);
     }
@@ -948,24 +1034,6 @@ int main(int argc, char **argv) {
 
 #if _NUITKA_AUTO_UPDATE_BOOL
     checkAutoUpdates();
-#endif
-
-    NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
-
-    initPayloadData();
-
-#if !defined(__APPLE__) && !defined(_WIN32)
-    const off_t size_end_offset = exe_file_mapped.file_size;
-
-    NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
-
-    assert(sizeof(payload_size) == sizeof(unsigned long long));
-    memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
-
-    unsigned long long start_pos = size_end_offset - sizeof(payload_size) - payload_size;
-
-    payload_current += start_pos;
-    payload_data += start_pos;
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
@@ -999,12 +1067,6 @@ int main(int argc, char **argv) {
     }
 #endif
 
-    static filename_char_t first_filename[1024] = {0};
-
-#if _NUITKA_ONEFILE_SPLASH_SCREEN
-    initSplashScreen();
-#endif
-
     NUITKA_PRINT_TIMING("ONEFILE: Entering decompression.");
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1
@@ -1030,6 +1092,13 @@ int main(int argc, char **argv) {
 
         if (first_filename[0] == 0) {
             appendStringSafeFilename(first_filename, target_path, sizeof(target_path) / sizeof(filename_char_t));
+
+            // Run the Python code DLL if it's already unpacked.
+#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+            if (process_role != NULL) {
+                return runPythonCodeDLL(first_filename, argc, argv);
+            }
+#endif
         }
 
 #if !defined(_WIN32) && !defined(__MSYS__)
@@ -1150,11 +1219,13 @@ int main(int argc, char **argv) {
 
     // Pass our pid by value to the child. If we exit for some reason, re-parenting
     // might change it by the time the child looks at its parent.
+    if (process_role == NULL) {
 #if defined(_WIN32)
-    setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
+        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
 #else
-    setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", (long)getpid());
+        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", (long)getpid());
 #endif
+    }
 
 #if defined(_WIN32)
     filename_char_t const *binary_filename = getBinaryFilenameWideChars(false);
@@ -1167,8 +1238,15 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Preparing forking of slave process.");
 
+#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+    filename_char_t const *fork_binary = getBinaryPath();
+#else
+    filename_char_t const *fork_binary = first_filename;
+#endif
+
 #if defined(_WIN32)
 
+    // spell-checker: ignore STARTUPINFOW, STARTF_USESTDHANDLES
     STARTUPINFOW si;
     memset(&si, 0, sizeof(si));
     si.dwFlags = STARTF_USESTDHANDLES;
@@ -1179,7 +1257,7 @@ int main(int argc, char **argv) {
 
     PROCESS_INFORMATION pi;
 
-    bool_res = CreateProcessW(first_filename,                  // application name
+    bool_res = CreateProcessW(fork_binary,
                               getCommandLineForChildProcess(), // command line
                               NULL,                            // process attributes
                               NULL,                            // thread attributes
@@ -1247,7 +1325,7 @@ int main(int argc, char **argv) {
         // Make sure, we use the absolute program path for argv[0]
         argv[0] = (char *)getBinaryPath();
 
-        execv(first_filename, argv);
+        execv(fork_binary, argv);
 
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
         exit_code = 2;

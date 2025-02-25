@@ -1965,7 +1965,7 @@ void _initBuiltinModule(void) {
 
         // For actual DLL mode, we don't have this, but the form used in onefile
         // will providing our own executable that knows what to do.
-#if defined(_NUITKA_ONEFILE_MODE) || defined(_NUITKA_EXE)
+#if defined(_NUITKA_EXE)
         PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
         assert(res == 0);
 #endif

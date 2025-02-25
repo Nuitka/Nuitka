@@ -19,6 +19,9 @@
 
 #include "nuitka/safe_string_ops.h"
 
+#include <ctype.h>
+#include <wctype.h>
+
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) >= buffer_size) {
         abort();
@@ -64,13 +67,17 @@ void appendCharSafe(char *target, char c, size_t buffer_size) {
 }
 
 void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
+    if (unlikely(source == NULL)) {
+        abort();
+    }
+
     while (*target != 0) {
         target++;
         buffer_size -= 1;
     }
 
     while (*source != 0) {
-        if (buffer_size < 1) {
+        if (unlikely(buffer_size < 1)) {
             abort();
         }
 
@@ -118,6 +125,34 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
         target++;
         source++;
         buffer_size -= 1;
+    }
+}
+
+void checkWStringNumber(wchar_t const *value) {
+    if (unlikely(value == NULL || *value == 0)) {
+        abort();
+    }
+
+    while (*value) {
+        if (!iswdigit(*value)) {
+            abort();
+        }
+
+        value++;
+    }
+}
+
+void checkStringNumber(char const *value) {
+    if (unlikely(value == NULL || *value == 0)) {
+        abort();
+    }
+
+    while (*value) {
+        if (!isdigit(*value)) {
+            abort();
+        }
+
+        value++;
     }
 }
 
