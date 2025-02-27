@@ -9005,12 +9005,13 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'xgboost.core' # checksum: a8cb2e6d
+- module-name: 'xgboost.core' # checksum: 2dcd7df3
   dlls:
     - from_filenames:
         relative_path: 'lib'
         prefixes:
           - 'xgboost'
+          - 'libxgboost'
 
 - module-name: 'xgboost.sklearn' # checksum: d0a963f4
   anti-bloat:
