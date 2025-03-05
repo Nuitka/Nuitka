@@ -2313,7 +2313,10 @@ def getProductName():
 
 def getMacOSTargetArch():
     """:returns: str enum ("universal", "arm64", "x86_64") derived from ``--macos-target-arch`` value"""
-    macos_target_arch = options.macos_target_arch or "native"
+    if options is None:
+        macos_target_arch = "native"
+    else:
+        macos_target_arch = options.macos_target_arch or "native"
 
     if macos_target_arch == "native":
         macos_target_arch = getArchitecture()
