@@ -5083,6 +5083,17 @@
     - depends:
         - 'reportlab.rl_settings'
 
+- module-name: 'requests' # checksum: 3760c9db
+  implicit-imports:
+    - depends:
+        - 'urllib3'
+        - 'idna'
+        - 'chardet'
+    - depends:
+      # In case chardet is not there, another package is used.
+        - 'charset_normalizer'
+      when: 'not has_module("chardet")'
+
 - module-name: 'requests_toolbelt._compat' # checksum: aed85e8e
   implicit-imports:
     - depends:
