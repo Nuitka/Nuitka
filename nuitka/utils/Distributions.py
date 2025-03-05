@@ -666,7 +666,10 @@ def _getEntryPointGroup(group_name):
 
         entry_points = pkg_resources.entry_points
 
-    return entry_points(group=group_name)
+    try:
+        return entry_points(group=group_name)
+    except TypeError:
+        return entry_points().get(group_name, ())
 
 
 EntryPointDescription = makeNamedtupleClass(
