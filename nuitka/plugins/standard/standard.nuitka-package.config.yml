@@ -4399,7 +4399,7 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 245d8530
+- module-name: 'pygame' # checksum: 64efeec5
   data-files:
     - patterns:
         - 'freesansbold.ttf'
@@ -4416,6 +4416,8 @@
       when: 'not use_unittest'
     - no-auto-follow:
         'cv2': 'camera functionality via OpenCV-Python (cv2)'
+    - change_function:
+        'packager_imports': 'un-callable'
   implicit-imports:
     - depends:
         - 'pygame.*'
