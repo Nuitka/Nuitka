@@ -49,8 +49,13 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
+          set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
+          ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -58,6 +63,8 @@ jobs:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
+            standalone-binary-readelf.txt
+            standalone-binary-ldd.txt
 
       # This can be used to ssh into GitHub actions if debugging is needed.
       # - uses: actions/checkout@v4
@@ -139,8 +146,11 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
+          set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -185,8 +195,11 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml tests\basics\EmptyModuleTest.py
+          set -x
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
