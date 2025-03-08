@@ -289,10 +289,23 @@ def checkOrUpdateChecksum(filename, update, logger):
 
     for line in yaml_file_text.splitlines():
         if line.startswith("- module-name:"):
-            parts = line.split("'", 2)
-            module_name = parts[1]
+            parts = line.split(":", 2)
+            try:
+                module_name = parts[1]
+                module_name = module_name.split("#", 2)[0]
+                module_name = module_name.strip()
+                module_name = module_name.strip("'")
+            except IndexError:
+                logger.sysexit("Malformed line: %s" % line)
 
-            checksum = getYamlDataHash(yaml_data.data.get(module_name))
+            yaml_module_data = yaml_data.data.get(module_name)
+            try:
+                checksum = getYamlDataHash(yaml_module_data)
+            except BaseException:
+                logger.sysexit(
+                    "Problem hashing module %s data %s"
+                    % (module_name, yaml_module_data)
+                )
 
             line = "- module-name: '%s' # checksum: %s" % (module_name, checksum)
 
