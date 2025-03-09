@@ -1509,19 +1509,6 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
     setCommandLineParameters(argc, argv);
 
-    /* For Python installations that need the home set, we inject it back here. */
-#if defined(PYTHON_HOME_PATH)
-#if PYTHON_VERSION < 0x300
-    NUITKA_PRINT_TRACE("main(): Prepare run environment '" PYTHON_HOME_PATH "'.");
-    Py_SetPythonHome(PYTHON_HOME_PATH);
-#else
-    NUITKA_PRINTF_TRACE("main(): Prepare run environment '%S'.\n", L"" PYTHON_HOME_PATH);
-    Py_SetPythonHome(L"" PYTHON_HOME_PATH);
-    // Make sure the above Py_SetPythonHome call has effect already.
-    Py_GetPath();
-#endif
-#endif
-
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     environment_char_t const *old_env_hash_seed = getEnvironmentVariable("PYTHONHASHSEED");
     setEnvironmentVariable("PYTHONHASHSEED", makeEnvironmentLiteral("0"));
