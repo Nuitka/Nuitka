@@ -15,14 +15,24 @@ class MainBlockRemover(ast.NodeTransformer):
         if (
             isinstance(node.test, ast.Compare)
             and isinstance(node.test.left, ast.Name)
-            and (node.test.left.id == "__name__")
-            and (len(node.test.ops) == 1)
-            and isinstance(node.test.ops[0], ast.Eq)
-            and (len(node.test.comparators) == 1)
-            and isinstance(node.test.comparators[0], ast.Constant)
-            and (node.test.comparators[0].value == "__main__")
+            and node.test.left.id == "__name__"
         ):
-            return None
+            if (
+                len(node.test.ops) == 1
+                and isinstance(node.test.ops[0], ast.Eq)
+                and len(node.test.comparators) == 1
+            ):
+                comparator = node.test.comparators[0]
+                if (
+                    sys.version_info >= (3, 8)
+                    and isinstance(comparator, ast.Constant)
+                    and comparator.value == "__main__"
+                ) or (
+                    sys.version_info < (3, 8)
+                    and isinstance(comparator, ast.Str)
+                    and comparator.s == "__main__"
+                ):
+                    return None
         return self.generic_visit(node)
 
 
@@ -431,7 +441,8 @@ def generate_stub_from_source(source_code, output_file_path, text_only=False):
 
         def generate_imports(self):
             imports = []
-            imports.append("from __future__ import annotations\n")
+            if sys.version_info >= (3, 7):
+                imports.append("from __future__ import annotations\n")
             sorted_items = sorted(self.imports_helper_dict.items())
             for module, names in sorted_items:
                 if names:
