@@ -4399,7 +4399,7 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 245d8530
+- module-name: 'pygame' # checksum: 64efeec5
   data-files:
     - patterns:
         - 'freesansbold.ttf'
@@ -4416,6 +4416,8 @@
       when: 'not use_unittest'
     - no-auto-follow:
         'cv2': 'camera functionality via OpenCV-Python (cv2)'
+    - change_function:
+        'packager_imports': 'un-callable'
   implicit-imports:
     - depends:
         - 'pygame.*'
@@ -4862,7 +4864,7 @@
       when: 'not use_ipython'
 
 - module-name: 'pythonnet' # checksum: e461ee8
-  # These is a dotnet assembly, not a platform DLL, esp. not on Linux, macOS,
+  # This is a dotnet assembly, not a platform DLL, esp. not on Linux, macOS,
   # etc.
   data-files:
     - patterns:
@@ -5080,6 +5082,17 @@
   implicit-imports:
     - depends:
         - 'reportlab.rl_settings'
+
+- module-name: 'requests' # checksum: 3760c9db
+  implicit-imports:
+    - depends:
+        - 'urllib3'
+        - 'idna'
+        - 'chardet'
+    - depends:
+      # In case chardet is not there, another package is used.
+        - 'charset_normalizer'
+      when: 'not has_module("chardet")'
 
 - module-name: 'requests_toolbelt._compat' # checksum: aed85e8e
   implicit-imports:
@@ -5303,27 +5316,25 @@
         - 'scipy.linalg.cython_blas'
         - 'scipy.linalg.cython_lapack'
 
-- module-name: 'scipy.optimize._cobyla_py' # checksum: 62fa2e97
-  anti-bloat:
-    - replacements_plain:
-        '    info = np.zeros(4, np.float64)': |
-          #
-              info = np.zeros(4, np.float64)
-              def calcfc2(x, con):
-                  f = fun(np.copy(x), *args)
-                  i = 0
-                  for size, c in izip(cons_lengths, constraints):
-                      con[i: i + size] = c['fun'](x, *c['args'])
-                      i += size
-                  return f
+- module-name: 'scipy.optimize._cobyla_py' # checksum: 3ea0b5b1
+  implicit-imports:
+    - post-import-code:
+        - |
+          import scipy.optimize._cobyla
+          orig_minimize=scipy.optimize._cobyla.minimize
 
-              calcfc = eval("lambda x, con: calcfc2(x,con)", locals())
-
-              def wrapped_callback2(x):
-                  if callback is not None:
-                      callback(np.copy(x))
-
-              wrapped_callback = eval("lambda x: wrapped_callback2(x)", locals())
+          def nuitka_compatible_minimize(*args, **kwargs):
+            if len(args) > 0:
+              arg0 = args[0]
+              wrapper = eval("""lambda x, con: arg0(x, con)""", locals())
+              args = list(args)
+              args[0] = wrapper
+            if "callback" in kwargs:
+              kw_callback = kwargs["callback"]
+              callback_wrapper = eval("""lambda x: kw_callback(x)""", locals())
+              kwargs["callback"] = callback_wrapper
+            return orig_minimize(*args, **kwargs)
+          scipy.optimize._cobyla.minimize=nuitka_compatible_minimize
 
 - module-name: 'scipy.optimize._shgo_lib.triangulation' # checksum: 7547ad25
   anti-bloat:
