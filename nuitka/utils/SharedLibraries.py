@@ -296,7 +296,7 @@ def _filterOtoolErrorOutput(stderr):
     return _filterOutputByLine(stderr, isNonErrorExit)
 
 
-def _getOToolCommandOutput(otool_option, filename):
+def _getOToolCommandOutput(otool_option, filename, cached):
     filename = os.path.abspath(filename)
 
     command = ("otool",) + _getMacOSArchOption() + (otool_option, filename)
@@ -306,7 +306,7 @@ def _getOToolCommandOutput(otool_option, filename):
     else:
         cache_key = command
 
-    if cache_key not in _otool_output_cache:
+    if not cached or cache_key not in _otool_output_cache:
         _otool_output_cache[cache_key] = executeToolChecked(
             logger=postprocessing_logger,
             command=command,
@@ -317,13 +317,13 @@ def _getOToolCommandOutput(otool_option, filename):
     return _otool_output_cache[cache_key]
 
 
-def getOtoolListing(filename):
-    return _getOToolCommandOutput("-l", filename)
+def getOtoolListing(filename, cached):
+    return _getOToolCommandOutput("-l", filename, cached=cached)
 
 
 def getOtoolDependencyOutput(filename, package_specific_dirs):
     with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
-        return _getOToolCommandOutput("-L", filename)
+        return _getOToolCommandOutput("-L", filename, cached=True)
 
 
 def parseOtoolListingOutput(output):
@@ -344,7 +344,7 @@ def parseOtoolListingOutput(output):
 
 
 def _getDLLVersionMacOS(filename):
-    output = _getOToolCommandOutput("-D", filename).splitlines()
+    output = _getOToolCommandOutput("-D", filename, cached=True).splitlines()
 
     if len(output) < 2:
         return None
@@ -354,7 +354,7 @@ def _getDLLVersionMacOS(filename):
     if str is not bytes:
         dll_id = dll_id.decode("utf8")
 
-    output = _getOToolCommandOutput("-L", filename).splitlines()
+    output = _getOToolCommandOutput("-L", filename, cached=True).splitlines()
     for line in output:
         if str is not bytes:
             line = line.decode("utf8")
@@ -366,9 +366,9 @@ def _getDLLVersionMacOS(filename):
     return None
 
 
-def _getSharedLibraryRPATHsDarwin(filename):
+def _getSharedLibraryRPATHsDarwin(filename, cached):
     rpaths = []
-    output = getOtoolListing(filename)
+    output = getOtoolListing(filename, cached=cached)
 
     cmd = b""
     last_was_load_command = False
@@ -393,11 +393,11 @@ def _getSharedLibraryRPATHsDarwin(filename):
     return rpaths
 
 
-def getSharedLibraryRPATHs(filename):
+def getSharedLibraryRPATHs(filename, cached=True):
     if isMacOS():
-        return _getSharedLibraryRPATHsDarwin(filename)
+        return _getSharedLibraryRPATHsDarwin(filename=filename, cached=cached)
     else:
-        return _getSharedLibraryRPATHsElf(filename)
+        return _getSharedLibraryRPATHsElf(filename=filename)
 
 
 def _filterPatchelfErrorOutput(stderr):
@@ -445,10 +445,19 @@ installed. Use 'apt/dnf/yum install patchelf' first.""",
 
 
 def _setSharedLibraryRPATHElf(filename, rpath):
-    # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
+    old_rpaths = getSharedLibraryRPATHs(filename)
+
+    if old_rpaths:
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("patchelf", "--remove-rpath", filename),
+            stderr_filter=_filterPatchelfErrorOutput,
+            absence_message=_patchelf_usage,
+        )
+
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--set-rpath", rpath, filename),
+        command=("patchelf", "--force-rpath", "--add-rpath", rpath, filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )
@@ -469,8 +478,8 @@ def _filterInstallNameToolErrorOutput(stderr):
 _install_name_tool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
 
 
-def _removeSharedLibraryRPATHDarwin(filename, rpaths):
-    for rpath in rpaths:
+def _removeSharedLibraryRPATHDarwin(filename):
+    for rpath in getSharedLibraryRPATHs(filename):
         executeToolChecked(
             logger=postprocessing_logger,
             command=("install_name_tool", "-delete_rpath", rpath, filename),
@@ -480,17 +489,14 @@ def _removeSharedLibraryRPATHDarwin(filename, rpaths):
 
 
 def _setSharedLibraryRPATHDarwin(filename, rpath):
-    old_rpaths = getSharedLibraryRPATHs(filename)
+    _removeSharedLibraryRPATHDarwin(filename)
 
-    with withMadeWritableFileMode(filename):
-        _removeSharedLibraryRPATHDarwin(filename=filename, rpaths=old_rpaths)
-
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=("install_name_tool", "-add_rpath", rpath, filename),
-            absence_message=_install_name_tool_usage,
-            stderr_filter=_filterInstallNameToolErrorOutput,
-        )
+    executeToolChecked(
+        logger=postprocessing_logger,
+        command=("install_name_tool", "-add_rpath", rpath, filename),
+        absence_message=_install_name_tool_usage,
+        stderr_filter=_filterInstallNameToolErrorOutput,
+    )
 
 
 def setSharedLibraryRPATH(filename, rpath):
@@ -504,6 +510,11 @@ def setSharedLibraryRPATH(filename, rpath):
             _setSharedLibraryRPATHDarwin(filename, rpath)
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
+
+    if getSharedLibraryRPATHs(filename, cached=False) != [rpath]:
+        postprocessing_logger.sysexit(
+            "Error, failed to update rpath for '%s'." % filename
+        )
 
 
 def callInstallNameTool(filename, mapping, id_path, rpath):
@@ -591,7 +602,7 @@ def detectBinaryMinMacOS(binary_filename):
     minos_version = None
 
     # This is cached, so we don't have to care about that.
-    stdout = getOtoolListing(binary_filename)
+    stdout = getOtoolListing(binary_filename, cached=True)
 
     lines = stdout.split(b"\n")
 

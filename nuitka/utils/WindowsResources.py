@@ -337,6 +337,8 @@ def _getDefaultWindowsExecutableTrustInfo():
 def getDefaultWindowsExecutableManifest():
     # Note: Supported OS are lied about by CPython.
     # spell-checker: ignore asmv3
+
+    # pylint: disable=line-too-long
     template = (
         """\
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
@@ -355,6 +357,11 @@ def getDefaultWindowsExecutableManifest():
       <ws2:longPathAware>true</ws2:longPathAware>
     </asmv3:windowsSettings>
   </asmv3:application>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
+    </dependentAssembly>
+  </dependency>
   %s
 </assembly>
 """
