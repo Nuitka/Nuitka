@@ -301,10 +301,10 @@ def checkOrUpdateChecksum(filename, update, logger):
             yaml_module_data = yaml_data.data.get(module_name)
             try:
                 checksum = getYamlDataHash(yaml_module_data)
-            except BaseException:
+            except BaseException as e:  # pylint: disable=broad-exception-caught
                 logger.sysexit(
-                    "Problem hashing module %s data %s"
-                    % (module_name, yaml_module_data)
+                    "Problem hashing module %s data %s gives %s"
+                    % (module_name, yaml_module_data, e)
                 )
 
             line = "- module-name: '%s' # checksum: %s" % (module_name, checksum)
