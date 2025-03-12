@@ -236,6 +236,20 @@
     - dirs:
       - 'templates'
 
+- module-name: "mitmproxy"
+  implicit-imports:
+    - depends:
+        - "mitmproxy_macos"
+        - "passlib.handlers.sha1_crypt"
+
+
+- module-name: 'mitmproxy_macos'
+  data-files:
+    - patterns:
+        - 'Mitmproxy Redirector.app.tar'
+    - dirs:
+        - 'macos-certificate-truster.app'
+
 - module-name: 'mne.html_templates'
   data-files:
     - patterns:
