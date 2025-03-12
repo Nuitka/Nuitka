@@ -231,6 +231,10 @@
     - dirs:
       - 'data'
 
+- module-name: 'docx'
+  data-files:
+    - dirs:
+      - 'templates'
 
 - module-name: 'mne.html_templates'
   data-files:
