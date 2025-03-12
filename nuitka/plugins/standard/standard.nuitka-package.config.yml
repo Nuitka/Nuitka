@@ -219,6 +219,44 @@
     - no-follow:
         'aspose.*': 'workaround for aspose needing to load its submodules'
 
+- module-name: 'mne.channels'
+  data-files:
+    - patterns:
+        - 'data/layouts/**.*'
+        - 'data/montages/**.*'
+        - 'data/neighbors/**.*'
+
+- module-name: 'mne'
+  data-files:
+    - dirs:
+      - 'data'
+
+
+- module-name: 'mne.html_templates'
+  data-files:
+    - patterns:
+        - '**/*.jinja'
+        - '**/*.css'
+        - '**/*.js'
+
+- module-name: 'mne.icons'
+  data-files:
+    - patterns:
+        - '**/*.png'
+        - '**/*.ico'
+        - '**/*.svg'
+
+- module-name: 'mne.io.artemis123.resources'
+  data-files:
+    - patterns:
+        - '*.csv'
+
+- module-name: 'mne.report.js_and_css'
+  data-files:
+    - patterns:
+        - '*.js'
+        - '*.css'
+
 - module-name: 'astor' # checksum: 49521496
   data-files:
     - patterns:
