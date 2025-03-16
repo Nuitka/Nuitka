@@ -56,6 +56,7 @@ jobs:
           readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
           ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
           python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -151,6 +152,7 @@ jobs:
           python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -200,6 +202,7 @@ jobs:
           python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
           python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
           python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests\basics\EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
