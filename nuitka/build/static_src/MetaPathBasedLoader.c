@@ -20,14 +20,6 @@
 #include "nuitka/unfreezing.h"
 
 #ifdef _WIN32
-#undef SEP
-#define SEP '\\'
-#define SEP_L L'\\'
-#else
-#define SEP_L SEP
-#endif
-
-#ifdef _WIN32
 #include <windows.h>
 #endif
 
@@ -103,7 +95,7 @@ static void appendModuleNameAsPathW(wchar_t *buffer, PyObject *module_name, size
         size -= 1;
 
         if (c == L'.') {
-            c = SEP_L;
+            c = FILENAME_SEP_CHAR;
         }
 
         appendWCharSafeW(buffer, c, buffer_size);
@@ -654,19 +646,19 @@ static void _makeModuleCFilenameValue(filename_char_t *filename, size_t filename
                                       PyObject *module_name, bool is_package) {
 #ifdef _WIN32
     appendWStringSafeW(filename, getBinaryDirectoryWideChars(true), filename_size);
-    appendWCharSafeW(filename, SEP_L, filename_size);
+    appendWCharSafeW(filename, FILENAME_SEP_CHAR, filename_size);
     appendModuleNameAsPathW(filename, module_name, filename_size);
     if (is_package) {
-        appendWCharSafeW(filename, SEP_L, filename_size);
+        appendWCharSafeW(filename, FILENAME_SEP_CHAR, filename_size);
         appendStringSafeW(filename, "__init__", filename_size);
     }
     appendStringSafeW(filename, ".pyd", filename_size);
 #else
     appendStringSafe(filename, getBinaryDirectoryHostEncoded(true), filename_size);
-    appendCharSafe(filename, SEP, filename_size);
+    appendCharSafe(filename, FILENAME_SEP_CHAR, filename_size);
     appendModuleNameAsPath(filename, module_name_cstr, filename_size);
     if (is_package) {
-        appendCharSafe(filename, SEP, filename_size);
+        appendCharSafe(filename, FILENAME_SEP_CHAR, filename_size);
         appendStringSafe(filename, "__init__", filename_size);
     }
     appendStringSafe(filename, ".so", filename_size);

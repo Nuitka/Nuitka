@@ -1635,25 +1635,7 @@ wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
                         sizeof(binary_directory) / sizeof(wchar_t));
 
         stripFilenameW(binary_directory);
-
-#ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
-        // Query length of result first.
-        DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
-        assert(length != 0);
-
-        wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-        DWORD res = GetShortPathNameW(binary_directory, short_binary_directory, length);
-        assert(res != 0);
-
-        if (unlikely(res > length)) {
-            abort();
-        }
-
-        binary_directory[0] = 0;
-        appendWStringSafeW(binary_directory, short_binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
-
-        free(short_binary_directory);
-#endif
+        makeShortFilename(binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
 #else
         appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(true),
                           sizeof(binary_directory) / sizeof(wchar_t));

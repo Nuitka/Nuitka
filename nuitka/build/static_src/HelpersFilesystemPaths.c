@@ -64,6 +64,66 @@ void normalizePath(filename_char_t *filename) {
     // results.
 }
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+static wchar_t *stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+
+    return last_slash;
+}
+
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static wchar_t result[MAXPATHLEN + 1];
+
+    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
+    stripFilenameW(result);
+
+    return result;
+}
+#else
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static char result[MAXPATHLEN + 1];
+    copyStringSafe(result, filename, sizeof(result));
+
+    return dirname(result);
+}
+#endif
+
+#if defined(_WIN32)
+static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
+#ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
+    // Query length of result first.
+    DWORD length = GetShortPathNameW(filename, NULL, 0);
+    assert(length != 0);
+
+    wchar_t *short_filename = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+    DWORD res = GetShortPathNameW(filename, short_filename, length);
+    assert(res != 0);
+
+    if (unlikely(res > length)) {
+        abort();
+    }
+
+    filename[0] = 0;
+    appendWStringSafeW(filename, short_filename, buffer_size);
+
+    free(short_filename);
+#endif
+}
+#endif
+
 #if !defined(_WIN32)
 filename_char_t *_getBinaryPath2(void) {
     static filename_char_t binary_filename[MAXPATHLEN] = {0};
@@ -690,6 +750,21 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
 
         // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
+
+        wchar_t *changed = stripFilenameW(buffer);
+        if (changed != NULL) {
+            changed = wcsdup(changed + 1);
+        }
+
+        // Shorten only the directory name.
+        makeShortFilename(buffer, sizeof(binary_filename) / sizeof(wchar_t));
+
+        if (changed != NULL) {
+            appendWCharSafeW(buffer, FILENAME_SEP_CHAR, sizeof(binary_filename) / sizeof(wchar_t));
+            appendWStringSafeW(buffer, changed, sizeof(binary_filename) / sizeof(wchar_t));
+
+            free(changed);
+        }
     }
 
     return buffer;
@@ -755,41 +830,6 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 
     return binary_filename_target;
-}
-#endif
-
-#if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
-static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
-
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static wchar_t result[MAXPATHLEN + 1];
-
-    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
-    stripFilenameW(result);
-
-    return result;
-}
-#else
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static char result[MAXPATHLEN + 1];
-    copyStringSafe(result, filename, sizeof(result));
-
-    return dirname(result);
 }
 #endif
 
