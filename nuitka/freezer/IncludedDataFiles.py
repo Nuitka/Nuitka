@@ -69,6 +69,14 @@ def getDataFileTags(dest_path):
     return result
 
 
+def hasDataFileTag(tag):
+    for value in data_file_tags:
+        _pattern, tags = value.rsplit(":", 1)
+
+        if tag in tags:
+            return True
+
+
 def decodeDataFileTags(tags):
     """In many places, strings are accepted for tags, convert to OrderedSet for internal use."""
 
