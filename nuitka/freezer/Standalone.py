@@ -164,7 +164,7 @@ def _detectBinaryDLLs(
         assert False, getOS()
 
 
-def copyDllsUsed(dist_dir, standalone_entry_points):
+def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
     # This is complex, because we also need to handle OS specifics.
 
     # Only do ones not ignored
@@ -219,6 +219,11 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
+    Plugins.onCopiedDLLs(
+        dist_dir=dist_dir,
+        standalone_entry_points=copy_standalone_entry_points,
+    )
+
     # Add macOS code signature
     if isMacOS():
         addMacOSCodeSignature(
@@ -227,11 +232,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
                 for standalone_entry_point in [main_standalone_entry_point]
                 + copy_standalone_entry_points
             ]
+            + data_file_paths
         )
-
-    Plugins.onCopiedDLLs(
-        dist_dir=dist_dir, standalone_entry_points=copy_standalone_entry_points
-    )
 
 
 _excluded_system_dlls = set()
