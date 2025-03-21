@@ -617,9 +617,11 @@ def _handleDataFile(included_datafile, standalone_entry_points):
 
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)
+        external = True
     else:
         _checkPathConflict(included_datafile.dest_path, standalone_entry_points)
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
+        external = False
 
     if included_datafile.kind == "data_blob":
         makePath(os.path.dirname(dest_path))
@@ -637,6 +639,8 @@ def _handleDataFile(included_datafile, standalone_entry_points):
     else:
         assert False, included_datafile
 
+    return external, dest_path
+
 
 def copyDataFiles(standalone_entry_points):
     """Copy the data files needed for standalone distribution.
@@ -646,6 +650,8 @@ def copyDataFiles(standalone_entry_points):
         those must be registered as entry points, and would not go through
         necessary handling if provided like this.
     """
+
+    data_file_paths = []
 
     for included_datafile in getIncludedDataFiles():
         # TODO: directories should be resolved to files.
@@ -665,12 +671,17 @@ plugins '--embed-*' options. Not done for '%s'."""
                     % included_datafile.dest_path
                 )
 
-            _handleDataFile(
+            external, data_file_path = _handleDataFile(
                 included_datafile=included_datafile,
                 standalone_entry_points=standalone_entry_points,
             )
 
+            if not external:
+                data_file_paths.append(data_file_path)
+
     _reportDataFiles()
+
+    return data_file_paths
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

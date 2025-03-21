@@ -1031,6 +1031,11 @@ def _main():
 
     executePostProcessing(scons_options["result_exe"])
 
+    if not Options.shallOnlyExecCCompilerCall():
+        data_file_paths = copyDataFiles(
+            standalone_entry_points=getStandaloneEntryPoints()
+        )
+
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]
 
@@ -1050,10 +1055,8 @@ def _main():
             copyDllsUsed(
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
+                data_file_paths=data_file_paths,
             )
-
-    if not Options.shallOnlyExecCCompilerCall():
-        copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
 
     if Options.isStandaloneMode():
         Plugins.onStandaloneDistributionFinished(dist_dir)
