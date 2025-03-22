@@ -249,7 +249,10 @@ def _executePylint(filenames, pylint_options, extra_options):
         + filenames
     )
 
-    stdout, stderr, exit_code = executeProcess(command)
+    stdout, stderr, exit_code = executeProcess(
+        command,
+        env={"PYTHONWARNINGS": "ignore"},
+    )
 
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
