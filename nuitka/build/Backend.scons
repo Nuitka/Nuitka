@@ -474,7 +474,6 @@ if env.msvc_mode:
         no_import_lib = True
         env.Append(
             LINKFLAGS=[
-                "/INCREMENTAL:NO",
                 "/IMPLIB:%s" % os.path.join(source_dir, "import.lib"),
             ]
         )
