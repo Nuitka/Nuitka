@@ -65,6 +65,10 @@ class CodeTooComplexCode(Exception):
     """
 
 
+class NuitkaNotYetSupported(Exception):
+    """A feature is not yet supported, please help adding it."""
+
+
 class NuitkaForbiddenDLLEncounter(Exception):
     """This DLL is not allowed to be included."""
 
