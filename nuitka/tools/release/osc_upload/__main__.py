@@ -47,10 +47,6 @@ def main():
     else:
         sys.exit("Skipping OSC for branch '%s'" % branch_name)
 
-    # Cleanup the osc directory.
-    shutil.rmtree("osc", ignore_errors=True)
-    os.makedirs("osc")
-
     installed_python = findInstalledPython(
         python_versions=("3.10",), module_name=None, module_version=None
     )
@@ -67,7 +63,7 @@ def main():
         # spell-checker: ignore kayhayen,rpmlintrc,addremove
         venv.runCommand(
             f"""\
-cd osc && \
+rm -rf osc && mkdir osc && cd osc && \
 osc checkout home:kayhayen {osc_project_name} && \
 rm home:kayhayen/{osc_project_name}/* && \
 cp ../dist/Nuitka-*.tar.gz home:kayhayen/{osc_project_name}/ && \
