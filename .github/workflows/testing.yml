@@ -125,9 +125,12 @@ jobs:
             - '3.13'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
@@ -181,14 +184,17 @@ jobs:
             - '3.13'
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+
+      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
