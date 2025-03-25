@@ -803,24 +803,18 @@ class Configuration(object):
 
     def __init__(self, configurationFile):
         self._configurationFile = configurationFile
-        self._cfg = None
+        self._cfg = dict(self._defaultValues)
 
     def __enter__(self):
-        self._cfg = PersistentJSONDict(self._configurationFile)
-        for setting, defaultValue in self._defaultValues.items():
-            if setting not in self._cfg:
-                self._cfg[setting] = defaultValue
         return self
 
     def __exit__(self, typ, value, traceback):
         # Does not write to disc when unchanged
-        self._cfg.save()
+        pass
 
     def maximumCacheSize(self):
         return self._cfg["MaximumCacheSize"]
 
-    def setMaximumCacheSize(self, size):
-        self._cfg["MaximumCacheSize"] = size
 
 stats = None
 
