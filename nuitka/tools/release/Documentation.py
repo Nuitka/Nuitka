@@ -108,6 +108,59 @@ def checkRstLint(document):
     my_print("OK.", style="blue")
 
 
+def _fixupManPageContents(manpage_filename):
+    manpage_contents = getFileContents(manpage_filename).splitlines()
+
+    for month in (
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ):
+        manpage_contents[1] = manpage_contents[1].replace(month + " ", "")
+    manpage_contents[1] = manpage_contents[1].replace("rc0", "")
+
+    new_contents = []
+    mark = False
+
+    for count, line in enumerate(manpage_contents):
+        if line.startswith(
+            (
+                "Python:",
+                "Commercial:",
+                "Flavor:",
+                "Executable:",
+                "OS:",
+                "Arch:",
+                "Distribution:",
+                "Version C compiler:",
+            )
+        ):
+            continue
+
+        if mark:
+            line = ".SS " + line + ".BR\n"
+            mark = False
+        elif line == ".IP\n" and manpage_contents[count + 1].endswith(":\n"):
+            mark = True
+            continue
+
+        if line == r"\fB\-\-g\fR++\-only" + "\n":
+            line = r"\fB\-\-g\++\-only\fR" + "\n"
+
+        new_contents.append(line)
+
+    putTextFileContents(manpage_filename, contents=new_contents)
+
+
 def updateManPages():
     if not os.path.exists("man"):
         os.mkdir("man")
@@ -125,64 +178,14 @@ def updateManPages():
 
     with openTextFile("doc/nuitka.1.tmp", "wb") as output:
         check_call(cmd, stdout=output)
+    _fixupManPageContents("doc/nuitka.1.tmp")
     replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
 
     cmd[-1] += "-run"
     with openTextFile("doc/nuitka-run.1.tmp", "wb") as output:
         check_call(cmd, stdout=output)
+    _fixupManPageContents("doc/nuitka-run.1.tmp")
     replaceFileAtomic("doc/nuitka-run.1.tmp", "doc/nuitka-run.1")
-
-    for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
-        manpage_contents = getFileContents(manpage).splitlines()
-
-        for month in (
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ):
-            manpage_contents[1] = manpage_contents[1].replace(month + " ", "")
-        manpage_contents[1] = manpage_contents[1].replace("rc0", "")
-
-        new_contents = []
-        mark = False
-
-        for count, line in enumerate(manpage_contents):
-            if line.startswith(
-                (
-                    "Python:",
-                    "Commercial:",
-                    "Flavor:",
-                    "Executable:",
-                    "OS:",
-                    "Arch:",
-                    "Distribution:",
-                    "Version C compiler:",
-                )
-            ):
-                continue
-
-            if mark:
-                line = ".SS " + line + ".BR\n"
-                mark = False
-            elif line == ".IP\n" and manpage_contents[count + 1].endswith(":\n"):
-                mark = True
-                continue
-
-            if line == r"\fB\-\-g\fR++\-only" + "\n":
-                line = r"\fB\-\-g\++\-only\fR" + "\n"
-
-            new_contents.append(line)
-
-        putTextFileContents(manpage, contents=new_contents)
 
 
 def checkReleaseDocumentation():
