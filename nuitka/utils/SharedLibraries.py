@@ -445,19 +445,9 @@ installed. Use 'apt/dnf/yum install patchelf' first.""",
 
 
 def _setSharedLibraryRPATHElf(filename, rpath):
-    old_rpaths = getSharedLibraryRPATHs(filename)
-
-    if old_rpaths:
-        executeToolChecked(
-            logger=postprocessing_logger,
-            command=("patchelf", "--remove-rpath", filename),
-            stderr_filter=_filterPatchelfErrorOutput,
-            absence_message=_patchelf_usage,
-        )
-
     executeToolChecked(
         logger=postprocessing_logger,
-        command=("patchelf", "--force-rpath", "--add-rpath", rpath, filename),
+        command=("patchelf", "--force-rpath", "--set-rpath", rpath, filename),
         stderr_filter=_filterPatchelfErrorOutput,
         absence_message=_patchelf_usage,
     )

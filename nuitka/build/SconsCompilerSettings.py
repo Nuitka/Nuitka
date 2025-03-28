@@ -836,9 +836,17 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if env.mingw_mode and env.target_arch == "x86_64" and env.python_version < (3, 12):
         env.Append(CPPDEFINES=["MS_WIN64"])
 
-    # For shell API usage to lookup app folders we need this.
     if env.msvc_mode:
+        # For shell API usage to lookup app folders we need this.
         env.Append(LIBS=["Shell32"])
+
+        # Make sure to find MSVC "link" in the right spot and to not use the
+        # "link" of e.g. Git.
+        addToPATH(
+            env=env,
+            dirname=os.path.dirname(getExecutablePath(env.the_compiler, env=env)),
+            prefix=True,
+        )
 
     # Since Fedora 36, the system Python will not link otherwise.
     if isFedoraBasedLinux():
