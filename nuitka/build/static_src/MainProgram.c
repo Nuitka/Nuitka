@@ -1996,8 +1996,7 @@ extern "C" {
 
 #if PYTHON_VERSION >= 0x300
 #if defined(__GNUC__)
-__attribute__((weak))
-__attribute__((visibility("default")))
+__attribute__((weak)) __attribute__((visibility("default")))
 #endif
 void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
     *argc = orig_argc;
@@ -2006,8 +2005,7 @@ void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
 }
 #else
 #if defined(__GNUC__)
-__attribute__((weak))
-__attribute__((visibility("default")))
+__attribute__((weak)) __attribute__((visibility("default")))
 #endif
 void Py_GetArgcArgv(int *argc, char ***argv) {
     *argc = orig_argc;
@@ -2016,8 +2014,7 @@ void Py_GetArgcArgv(int *argc, char ***argv) {
 #endif
 
 #if defined(__linux__)
-__attribute__((weak))
-__attribute__((visibility("default")))
+__attribute__((weak)) __attribute__((visibility("default")))
 #endif
 #if PYTHON_VERSION >= 0x300
 int Py_Main(int argc, wchar_t **argv) {
