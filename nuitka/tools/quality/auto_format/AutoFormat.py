@@ -439,7 +439,7 @@ def _getClangFormatPath(trace):
         return _clang_format_path
 
     # Search Visual Code C++ extension for LLVM path.
-    for candidate in ".vscode", ".vscode-server":
+    for candidate in (".vscode", ".vscode-server"):
         vs_code_extension_path = os.path.expanduser("~/%s/extensions" % candidate)
 
         if not _clang_format_path and os.path.exists(vs_code_extension_path):
