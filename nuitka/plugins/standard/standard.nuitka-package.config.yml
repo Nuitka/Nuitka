@@ -8809,6 +8809,7 @@
         relative_path: 'lib'
         prefixes:
           - 'xgboost'
+          - 'libxgboost'
 
 - module-name: 'xgboost.sklearn' # checksum: d0a963f4
   anti-bloat:
