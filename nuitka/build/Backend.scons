@@ -848,9 +848,13 @@ env.Append(
 if (
     env.gcc_mode
     and not isMacOS()
+    and not isAIX()
     and not os.name == "nt"
     and (env.exe_mode or env.dll_mode)
 ):
+    # TODO: It would appear that this should be merged with above code that does
+    # env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path]) relatively
+    # unconditionally already.
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
