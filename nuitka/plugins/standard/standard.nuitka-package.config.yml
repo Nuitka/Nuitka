@@ -1210,7 +1210,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 5f852018
+- module-name: 'django.core.management' # checksum: 5ac4f83f
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1220,7 +1220,15 @@
       - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE")) if os.getenv("PARAMETER_SETTINGS_MODULE") else None'
     declarations:
       'django_installed_apps': 'settings.INSTALLED_APPS if settings else ()'
+      'django_middleware': 'tuple(v.rsplit(".",1)[0] for v in (getattr(settings, "MIDDLEWARE", ()) if settings else ()))'
       'django_database_engines': 'tuple(db_conf["ENGINE"]+".base" for (name, db_conf) in sorted(settings.DATABASES.items())) if settings else ()'
+      'django_url_module': 'getattr(settings, "ROOT_URLCONF", ()) if settings else ()'
+      'django_session_serializer': 'getattr(settings, "SESSION_SERIALIZER", "django.contrib.sessions.serializers") if settings else "django.contrib.sessions.serializers"'
+      'django_csrf_failure_view': 'getattr(settings, "CSRF_FAILURE_VIEW", "django.views.csrf.csrf_failure").rsplit(".", 1)[0] if settings else "django.views.csrf"'
+      'django_caches': 'sum((tuple(v.rsplit(".",1)[0] for v in value.values()) for value in getattr(settings, "CACHES", {"": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}).values()), ())'
+      'django_wsgi': 'getattr(settings, "WSGI_APPLICATION", "django.core.handlers.wsgi.dummy").rsplit(".",1)[0] if settings else "django.core.handlers.wsgi"'
+      'django_storage': 'getattr(settings, "MESSAGE_STORAGE", "django.contrib.messages.storage.fallback.dummy").rsplit(".",1)[0] if settings else "django.contrib.messages.storage.fallback"'
+
     environment:
       'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", "")'
   anti-bloat:
@@ -1235,7 +1243,20 @@
         - 'get_parameter("settings-module", ())'
         - '["%s.management.commands.*" % x for x in get_variable("django_installed_apps")]'
         - 'get_variable("django_installed_apps")'
+        - '["%s.apps" % x for x in get_variable("django_installed_apps")]'
+        - '["%s.models" % x for x in get_variable("django_installed_apps")]'
+        - 'get_variable("django_middleware")'
         - 'get_variable("django_database_engines")'
+        - 'get_variable("django_url_module")'
+        - 'get_variable("django_csrf_failure_view")'
+        - 'get_variable("django_caches")'
+        - 'get_variable("django_wsgi")'
+        - 'get_variable("django_session_serializer")'
+        - 'get_variable("django_storage")'
+        - 'django.template.loaders.*'
+        - 'django.contrib.auth.middleware'
+        - 'django.contrib.messages.middleware'
+        - 'django.contrib.sessions.middleware'
 
   options:
     checks:
@@ -1243,12 +1264,15 @@
         support_info: 'parameter'
         when: 'get_parameter("settings-module", None) is None'
 
-- module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
+- module-name: 'django.core.management.commands.shell' # checksum: 271ed2ec
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+    - description: 'remove bpython reference'
+      no-auto-follow:
+        'bpython': 'ignore'
 
 - module-name: 'django.db.backends' # checksum: 5a0c4e00
   implicit-imports:
@@ -1271,6 +1295,18 @@
   implicit-imports:
     - depends:
         - 'django.template.loader_tags'
+
+- module-name: 'django.utils.autoreload' # checksum: dd39f804
+  anti-bloat:
+    - description: 'workaround for django self forking'
+      change_function:
+        'get_child_arguments': "'lambda : [__nuitka_binary_exe]+sys.argv[1:]'"
+      when: 'standalone'
+
+- module-name: 'django.views' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
 
 - module-name: 'django.views.debug' # checksum: 466f47d3
   anti-bloat:
