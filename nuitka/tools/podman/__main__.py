@@ -181,6 +181,7 @@ def updateContainer(podman_path, container_tag_name, container_file_path, quiet)
             container_tag_name,
             "-f",
             container_file_path,
+            "--network=host",
         ]
 
         if quiet:
