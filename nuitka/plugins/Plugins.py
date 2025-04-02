@@ -18,7 +18,7 @@ import os
 import sys
 import traceback
 from contextlib import contextmanager
-from optparse import OptionConflictError, OptionGroup
+from optparse import OptionConflictError
 
 from nuitka import Options, OutputDirectories
 from nuitka.__past__ import basestring, iter_modules
@@ -31,6 +31,7 @@ from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import plugins_logger, printLine
+from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
     getNormalizedPath,
@@ -1830,7 +1831,7 @@ def _addPluginCommandLineOptions(parser, plugin_class, plugin_help_mode):
                     "'pyside6' (same for 'pyside2', 'pyqt6', 'pyqt5' plugins)"
                 )
 
-        option_group = OptionGroup(
+        option_group = OurOptionGroup(
             parser,
             "Plugin options of %s (categories: %s)"
             % (plugin_display_name, ", ".join(plugin_class.getCategories())),

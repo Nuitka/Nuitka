@@ -271,6 +271,7 @@ form 'module_name:[%s]'."""
             action="store_true",
             dest="show_changes",
             default=False,
+            github_action=False,
             help="""\
 Annotate what changes are done by the plugin.""",
         )
