@@ -1499,8 +1499,7 @@ console window unless the program was started from one. With 'disable'
 it doesn't create or use a console at all. With 'attach' an existing
 console will be used for outputs. With 'hide' a newly spawned console
 will be hidden and an already existing console will behave like
-'force'. Default is 'force'.
-""",
+'force'. Default is 'force'.""",
 )
 
 windows_group.add_option(
