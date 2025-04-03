@@ -50,7 +50,10 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpaths
     if _detected_python_rpaths is None and not isPosixWindows():
-        _detected_python_rpaths = getSharedLibraryRPATHs(sys.executable)
+        _detected_python_rpaths = getSharedLibraryRPATHs(
+            sys.executable,
+            elements=True,
+        )
 
         if os.path.islink(sys.executable):
             sys_executable = os.readlink(sys.executable)
