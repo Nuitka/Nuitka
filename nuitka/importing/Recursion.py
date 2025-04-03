@@ -230,6 +230,10 @@ def _decideRecursion(
     if plugin_decision is not None:
         return plugin_decision
 
+    if Options.shallMakePackage():
+        if module_name.hasNamespace(getRootTopModule().getFullName()):
+            return True, "Submodule of compiled package."
+
     if extra_recursion:
         return True, "Lives in user provided directory."
 
