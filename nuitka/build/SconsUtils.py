@@ -272,7 +272,7 @@ def createEnvironment(
         env.python_version = None
 
     # Modules count, determines if this is a large compilation.
-    env.module_count = getArgumentInt("module_count", 0)
+    env.compiled_module_count = getArgumentInt("compiled_module_count", 0)
 
     # Target arch for some decisions
     env.target_arch = target_arch

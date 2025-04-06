@@ -188,17 +188,20 @@ def _enableLtoSettings(
         reason = "not known to be supported"
 
     # Do not default to LTO for large compilations, unless asked for it.
-    module_count_threshold = 250
+    compiled_module_count_threshold = 250
     if (
         orig_lto_mode == "auto"
         and lto_mode
-        and env.module_count > module_count_threshold
+        and env.compiled_module_count > compiled_module_count_threshold
         and not env.nuitka_python
     ):
         lto_mode = False
-        reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
-            env.module_count,
-            module_count_threshold,
+        reason = (
+            "might to be too slow %s (>= %d threshold), force it with '--lto=yes'"
+            % (
+                env.compiled_module_count,
+                compiled_module_count_threshold,
+            )
         )
 
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
