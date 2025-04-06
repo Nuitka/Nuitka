@@ -1621,7 +1621,7 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     return result;
 }
 
-#if defined(_NUITKA_EXE) || defined(_NUITKA_DLL)
+#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
@@ -1711,7 +1711,7 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
 PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
@@ -1798,7 +1798,7 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
 }
 #endif
 
-#if !defined(_NUITKA_EXE)
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
 static PyObject *getDllDirectoryObject(void) {
     static PyObject *dll_directory = NULL;
 
@@ -1876,7 +1876,7 @@ PyObject *getDllFilenameObject(void) {
 #endif
 
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
 #if defined(_NUITKA_ONEFILE_MODE)
     environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
     if (onefile_directory != NULL) {
@@ -1895,10 +1895,10 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #endif
 }
 
-#if defined(_NUITKA_STANDALONE)
+#if _NUITKA_STANDALONE_MODE
 // Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
     PyObject *dir_name = getBinaryDirectoryObject(false);
 #else
     PyObject *dir_name = getDllDirectoryObject();
@@ -1917,7 +1917,7 @@ void _initBuiltinModule(void) {
     NUITKA_PRINT_TRACE("main(): Calling _initDeepCopy().");
     _initDeepCopy();
 
-#if _NUITKA_MODULE
+#if _NUITKA_MODULE_MODE
     if (builtin_module != NULL) {
         return;
     }
@@ -1934,9 +1934,9 @@ void _initBuiltinModule(void) {
     dict_builtin = (PyDictObject *)builtin_module->md_dict;
     assert(PyDict_Check(dict_builtin));
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     {
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE
         PyObject *nuitka_binary_dir = getBinaryDirectoryObject(true);
 #else
         PyObject *nuitka_binary_dir = getDllDirectoryObject();
@@ -1947,7 +1947,7 @@ void _initBuiltinModule(void) {
 
         // For actual DLL mode, we don't have this, but the form used in onefile
         // will providing our own executable that knows what to do.
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
         PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
         assert(res == 0);
 #endif
@@ -1995,7 +1995,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     return JOIN_PATH2(our_path_object, relative);
 }
 
-#ifndef _NUITKA_MODULE
+#if !_NUITKA_MODULE_MODE
 
 NUITKA_DEFINE_BUILTIN(type)
 NUITKA_DEFINE_BUILTIN(len)
