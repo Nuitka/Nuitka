@@ -84,6 +84,16 @@ def getUncompiledModules():
     return tuple(sorted(result, key=lambda module: module.getFullName()))
 
 
+def getCompiledModules():
+    result = set()
+
+    for module in getDoneModules():
+        if module.isCompiledPythonModule():
+            result.add(module)
+
+    return tuple(sorted(result, key=lambda module: module.getFullName()))
+
+
 def getUncompiledTechnicalModules():
     result = set()
 

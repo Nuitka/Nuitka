@@ -601,7 +601,9 @@ def runSconsBackend():
     scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
     scons_options["file_reference_mode"] = Options.getFileReferenceMode()
-    scons_options["module_count"] = "%d" % len(ModuleRegistry.getDoneModules())
+    scons_options["compiled_module_count"] = "%d" % len(
+        ModuleRegistry.getCompiledModules()
+    )
 
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
