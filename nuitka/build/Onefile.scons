@@ -272,10 +272,6 @@ env = checkWindowsCompilerFound(
 
 env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
-env.module_mode = False  # We are only used in this case.
-env.dll_mode = False
-env.exe_mode = True
-env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
@@ -402,8 +398,6 @@ if trace_mode:
 if deployment_mode:
     env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
 
-env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
-
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
 nuitka_include = os.path.join(nuitka_src, "include")
@@ -439,7 +433,7 @@ if isMacOS():
     )
 
 # Indicate, that the common code is used to build an executable.
-env.Append(CPPDEFINES=["_NUITKA_EXE"])
+env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
 
 
 def discoverSourceFiles():
@@ -536,6 +530,9 @@ def createBuildDefinitionsFile():
 
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
+    if env.onefile_dll_mode:
+        env.Append(LIBS=["PsApi"])
 
     createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 

@@ -54,7 +54,7 @@ extern void _initBuiltinModule(void);
 #define NUITKA_UPDATE_BUILTIN(name, value) _python_original_builtin_value_##name = value;
 #define NUITKA_ACCESS_BUILTIN(name) (_python_original_builtin_value_##name)
 
-#ifndef _NUITKA_MODULE
+#if !_NUITKA_MODULE_MODE
 // Original builtin values, currently only used for assertions.
 NUITKA_DECLARE_BUILTIN(type);
 NUITKA_DECLARE_BUILTIN(len);

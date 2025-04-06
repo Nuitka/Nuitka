@@ -23,7 +23,7 @@ PyObject *Nuitka_sentinel_value = NULL;
 PyObject *Nuitka_dunder_compiled_value = NULL;
 
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 
 NUITKA_MAY_BE_UNUSED static PyObject *STRIP_DIRNAME(PyObject *path) {
@@ -62,7 +62,7 @@ extern void setDistributionsMetadata(PyThreadState *tstate, PyObject *metadata_i
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
-#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3c0
 static void _createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name) {
 #else
 static void _createGlobalConstants(PyThreadState *tstate) {
@@ -73,19 +73,19 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     // The empty name means global.
     loadConstantsBlob(tstate, &global_constants[0], "");
 
-#if _NUITKA_EXE
+#if _NUITKA_EXE_MODE
     /* Set the "sys.executable" path to the original CPython executable or point to inside the
        distribution for standalone. */
     Nuitka_SysSetObject(
         "executable",
-#ifndef _NUITKA_STANDALONE
+#if !_NUITKA_STANDALONE_MODE
         %(sys_executable)s
 #else
         getStandaloneSysExecutablePath(%(sys_executable)s)
 #endif
     );
 
-#ifndef _NUITKA_STANDALONE
+#if !_NUITKA_STANDALONE_MODE
     /* Set the "sys.prefix" path to the original one. */
     Nuitka_SysSetObject(
         "prefix",
@@ -157,12 +157,12 @@ static void _createGlobalConstants(PyThreadState *tstate) {
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
     PyObject *binary_directory = getContainingDirectoryObject(false);
-#ifdef _NUITKA_STANDALONE
-#ifndef _NUITKA_ONEFILE_MODE
+#if _NUITKA_STANDALONE_MODE
+#if !_NUITKA_ONEFILE_MODE
     binary_directory = STRIP_DIRNAME(binary_directory);
 #endif
 
-#ifdef _NUITKA_MACOS_BUNDLE
+#if _NUITKA_MACOS_BUNDLE_MODE
     binary_directory = STRIP_DIRNAME(binary_directory);
     binary_directory = STRIP_DIRNAME(binary_directory);
 #endif
@@ -170,7 +170,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, binary_directory);
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     PyObject *is_standalone_mode = Py_True;
 #else
     PyObject *is_standalone_mode = Py_False;
@@ -183,7 +183,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 6, is_onefile_mode);
 
-#ifdef _NUITKA_MACOS_BUNDLE
+#if _NUITKA_MACOS_BUNDLE_MODE
     PyObject *is_macos_bundle_mode = Py_True;
 #else
     PyObject *is_macos_bundle_mode = Py_False;
@@ -211,14 +211,14 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 10, is_no_annotations);
 
-#ifdef _NUITKA_MODULE
+#if _NUITKA_MODULE_MODE
     PyObject *is_module_mode = Py_True;
 #else
     PyObject *is_module_mode = Py_False;
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 11, is_module_mode);
 
-#ifdef _NUITKA_MODULE
+#if _NUITKA_MODULE_MODE
     PyObject *main_name;
 
 #if PYTHON_VERSION < 0x3c0
@@ -235,7 +235,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
 
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
     PyObject *original_argv0 = getOriginalArgv0Object();
 #else
     PyObject *original_argv0 = Py_None;
@@ -260,7 +260,7 @@ void checkGlobalConstants(void) {
 }
 #endif
 
-#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3c0
 void createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name) {
 #else
 void createGlobalConstants(PyThreadState *tstate) {
@@ -276,7 +276,7 @@ void createGlobalConstants(PyThreadState *tstate) {
 
         Py_SET_REFCNT_IMMORTAL(Nuitka_sentinel_value);
 
-#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3c0
         _createGlobalConstants(tstate, real_module_name);
 #else
         _createGlobalConstants(tstate);

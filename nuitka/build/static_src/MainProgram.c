@@ -41,7 +41,7 @@
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #if defined(__APPLE__)
-#define _NUITKA_MACOS_BUNDLE 1
+#define _NUITKA_MACOS_BUNDLE_MODE 1
 #endif
 #endif
 
@@ -136,7 +136,7 @@ static void prepareFrozenModules(void) {
 
 #include "nuitka/environment_variables.h"
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 
 #include "pythonrun.h"
 
@@ -160,7 +160,7 @@ static void prepareStandaloneEnvironment(void) {
 #endif
 
 #if defined(_WIN32)
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
     SetDllDirectoryW(getBinaryDirectoryWideChars(true));
 #else
     SetDllDirectoryW(getDllDirectory());
@@ -1012,7 +1012,7 @@ static void Nuitka_Py_Initialize(void) {
         Py_ExitStatusException(status);
     }
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars(true);
 
     PyConfig_SetString(&config, &config.executable, orig_argv[0]);
@@ -1031,7 +1031,7 @@ static void Nuitka_Py_Initialize(void) {
 
     // Need to disable frozen modules, Nuitka can handle them better itself.
 #if PYTHON_VERSION >= 0x3b0
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     config.use_frozen_modules = 0;
 #else
 // Emulate PYTHON_FROZEN_MODULES for accelerated mode, it is only added in 3.13,
@@ -1057,7 +1057,7 @@ static void Nuitka_Py_Initialize(void) {
         Py_ExitStatusException(status);
     }
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     assert(wcscmp(config.exec_prefix, binary_directory) == 0);
 
 // Empty "sys.path" first time, will be revived, but keep it
@@ -1213,7 +1213,7 @@ filename_char_t const *getOriginalArgv0(void) {
     return original_argv0;
 }
 
-#ifdef _NUITKA_MACOS_BUNDLE
+#if _NUITKA_MACOS_BUNDLE_MODE
 #include <CoreFoundation/CoreFoundation.h>
 
 bool _setLANGSystemLocaleMacOS(void) {
@@ -1322,7 +1322,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
 #endif
 
-#ifdef _NUITKA_MACOS_BUNDLE
+#if _NUITKA_MACOS_BUNDLE_MODE
     // TODO: This is only derived from start directory, checking the parent
     // to be finder or launchctl might be more reliable.
     bool terminal_launch = true;
@@ -1392,7 +1392,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     fpsetmask(m & ~FP_X_OFL);
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     NUITKA_PRINT_TIMING("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
 #endif
@@ -1514,7 +1514,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     setEnvironmentVariable("PYTHONHASHSEED", makeEnvironmentLiteral("0"));
 #endif
 
-#ifdef _NUITKA_MACOS_BUNDLE
+#if _NUITKA_MACOS_BUNDLE_MODE
     if (terminal_launch == false) {
         setLANGSystemLocaleMacOS();
     }
@@ -1559,7 +1559,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     PyThreadState *tstate = PyThreadState_GET();
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
 #else
@@ -1711,7 +1711,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
     setInputOutputHandles(tstate);
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 
 #if PYTHON_VERSION >= 0x300
     // Make sure the importlib fully bootstraps as we couldn't load it with the
@@ -1779,7 +1779,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
     undoEnvironmentVariable(tstate, "PYTHONUNBUFFERED", old_env_unbuffered);
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     // Restore the PATH, so the program can use it.
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
     undoEnvironmentVariable(tstate, "PATH", old_env_path);
@@ -1975,7 +1975,7 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 #endif
 #endif
 
-#if defined(_NUITKA_DLL)
+#if _NUITKA_DLL_MODE
 
 #if defined(_WIN32)
 #define NUITKA_DLL_FUNCTION __declspec(dllexport)

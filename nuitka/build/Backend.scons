@@ -119,15 +119,6 @@ main_module_name = getArgumentDefaulted("main_module_name", "__main__")
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
 
-# Module mode: Create a Python extension module, create an executable otherwise.
-module_mode = getArgumentBool("module_mode", False)
-
-# DLL mode: Create a DLL using Python
-dll_mode = getArgumentBool("dll_mode", False)
-
-# EXE mode: Create an EXE (using Python for this config)
-exe_mode = getArgumentBool("exe_mode", False)
-
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
 
@@ -211,18 +202,6 @@ if os.name == "nt" and not mingw_mode and clang_mode:
 # Frozen modules count, determines the need for the bytecode frozen
 # modules loader.
 frozen_modules = getArgumentInt("frozen_modules", 0)
-
-# Standalone mode
-standalone_mode = getArgumentBool("standalone_mode", False)
-
-# Onefile mode
-onefile_mode = getArgumentBool("onefile_mode", False)
-
-# MacOS bundle
-macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
-
-# Onefile temp mode
-onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
 
 forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
 forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
@@ -372,10 +351,6 @@ env = checkWindowsCompilerFound(
 
 env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
-env.module_mode = module_mode
-env.dll_mode = dll_mode
-env.exe_mode = exe_mode
-env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
@@ -537,19 +512,6 @@ if profile_mode:
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
-
-if env.standalone_mode:
-    env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
-
-if macos_bundle_mode:
-    env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE"])
-    env.Append(LINKFLAGS=["-framework", "CoreFoundation"])
-
-if onefile_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
-
-if onefile_temp_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
 
 if deployment_mode:
     env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
@@ -872,7 +834,7 @@ if (
 
 addConstantBlobFile(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(env=env, module_mode=module_mode),
+    resource_desc=decideConstantsBlobResourceMode(env=env),
     blob_filename=getConstantBlobFilename(env.source_dir),
     target_arch=target_arch,
 )
@@ -900,14 +862,6 @@ else:
         env.Append(CCFLAGS=["/LD"])  # Create a DLL.
     else:
         assert False, env.the_cc_name
-
-
-if env.exe_mode:
-    env.Append(CPPDEFINES=["_NUITKA_EXE"])
-elif env.module_mode:
-    env.Append(CPPDEFINES=["_NUITKA_MODULE"])
-elif env.dll_mode:
-    env.Append(CPPDEFINES=["_NUITKA_DLL"])
 
 
 def discoverSourceFiles():
