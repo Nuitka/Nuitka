@@ -27,6 +27,10 @@
 #if defined(_WIN32)
 // Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
+
+// Other windows header files.
+#include <psapi.h>
+
 #endif
 
 #include <assert.h>
@@ -472,7 +476,7 @@ pid_t handle_process = 0;
 
 static filename_char_t payload_path[4096] = {0};
 
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
 static bool payload_created = false;
 #endif
 
@@ -561,7 +565,7 @@ static bool createContainingDirectory(filename_char_t const *path) {
     return true;
 }
 
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
 #if defined(_WIN32)
 
 static bool isDirectory(wchar_t const *path) {
@@ -733,7 +737,7 @@ static void cleanupChildProcess(bool send_sigint) {
         // TODO: We ought to only need to wait if there is a need to cleanup
         // files when we are on Windows, on Linux maybe exec can be used so
         // this process to exist anymore if there is nothing to do.
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1 || 1
+#if _NUITKA_ONEFILE_TEMP_BOOL || 1
         NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
 #if defined(_WIN32)
         if (WaitForSingleObject(handle_process, _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT) != 0) {
@@ -749,7 +753,7 @@ static void cleanupChildProcess(bool send_sigint) {
 #endif
     }
 
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
     if (payload_created) {
 #if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         wprintf(L"Removing payload path '%lS'\n", payload_path);
@@ -920,7 +924,7 @@ static wchar_t *getCommandLineForChildProcess(void) {
 }
 #endif
 
-#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+#if _NUITKA_ONEFILE_DLL_MODE
 static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, native_command_line_argument_t **argv) {
 
 #if defined(_WIN32)
@@ -947,7 +951,7 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 
     return (*nuitka_dll_function)(argc, argv);
 #else
-    typedef int (*nuitka_dll_function_ptr)(int, wchar_t **);
+    typedef int (*nuitka_dll_function_ptr)(int, native_command_line_argument_t **);
 
     void *handle = dlopen(dll_filename, RTLD_LOCAL | RTLD_NOW);
 
@@ -997,8 +1001,51 @@ int main(int argc, char **argv) {
 
     // _putws(payload_path);
 
-#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+#if _NUITKA_ONEFILE_DLL_MODE
     environment_char_t const *process_role = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+
+    // Empty strings do not count.
+    if (process_role != NULL && *process_role == 0) {
+        process_role = NULL;
+    }
+
+#if defined(_WIN32)
+    if (process_role != NULL) {
+        errno = 0;
+        wchar_t *endptr = NULL;
+        unsigned long onefile_parent_pid = wcstoul(process_role, &endptr, 10);
+
+        if (errno == 0 && *endptr == 0) {
+            HANDLE parent_process = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, onefile_parent_pid);
+
+            if (parent_process != NULL) {
+                filename_char_t onefile_parent_path[2048];
+
+                DWORD len = GetModuleFileNameExW(parent_process, NULL, onefile_parent_path,
+                                                 sizeof(onefile_parent_path) / sizeof(onefile_parent_path[0]));
+
+                if (len == 0) {
+                    process_role = NULL;
+                } else {
+                    resolveFileSymbolicLink(onefile_parent_path, onefile_parent_path,
+                                            sizeof(onefile_parent_path) / sizeof(wchar_t), true);
+                    makeShortDirFilename(onefile_parent_path, sizeof(onefile_parent_path) / sizeof(wchar_t));
+                }
+
+                if (strcmpFilename(onefile_parent_path, getBinaryFilenameWideChars(true)) != 0) {
+                    process_role = NULL;
+                }
+            } else {
+                process_role = NULL;
+            }
+
+            CloseHandle(parent_process);
+        } else {
+            process_role = NULL;
+        }
+    }
+#endif
+
 #else
     environment_char_t const *process_role = NULL;
 #endif
@@ -1069,7 +1116,7 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Entering decompression.");
 
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
     payload_created = true;
 #endif
 
@@ -1094,7 +1141,7 @@ int main(int argc, char **argv) {
             appendStringSafeFilename(first_filename, target_path, sizeof(target_path) / sizeof(filename_char_t));
 
             // Run the Python code DLL if it's already unpacked.
-#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+#if _NUITKA_ONEFILE_DLL_MODE
             if (process_role != NULL) {
                 return runPythonCodeDLL(first_filename, argc, argv);
             }
@@ -1238,7 +1285,7 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Preparing forking of slave process.");
 
-#if defined(_NUITKA_EXPERIMENTAL_ONEFILE_DLL)
+#if _NUITKA_ONEFILE_DLL_MODE
     filename_char_t const *fork_binary = getBinaryPath();
 #else
     filename_char_t const *fork_binary = first_filename;

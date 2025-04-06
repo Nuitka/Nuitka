@@ -594,9 +594,6 @@ def runSconsBackend():
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
     scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(Options.shallUsePythonDebug())
-    scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
-    scons_options["dll_mode"] = asBoolStr(Options.shallMakeDll())
-    scons_options["exe_mode"] = asBoolStr(Options.shallMakeExe())
     scons_options["full_compat"] = asBoolStr(Options.is_full_compat)
     scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
@@ -631,20 +628,6 @@ def runSconsBackend():
         scons_options["apple_python"] = asBoolStr(True)
     if isPyenvPython():
         scons_options["pyenv_python"] = asBoolStr(True)
-
-    if Options.isStandaloneMode():
-        scons_options["standalone_mode"] = asBoolStr(True)
-
-    if Options.isOnefileMode():
-        scons_options["onefile_mode"] = asBoolStr(True)
-
-        if Options.isOnefileTempDirMode():
-            scons_options["onefile_temp_mode"] = asBoolStr(True)
-
-    # TODO: Some things are going to hate that, we might need to bundle
-    # for accelerated mode still.
-    if Options.shallCreateAppBundle():
-        scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     if Options.getForcedStdoutPath():
         scons_options["forced_stdout_path"] = Options.getForcedStdoutPath()

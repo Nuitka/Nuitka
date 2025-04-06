@@ -4,6 +4,12 @@
 // for use in both onefile bootstrap and python compiled
 // program.
 
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/sysctl.h>
 #endif
@@ -106,7 +112,9 @@ static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
 #ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
     // Query length of result first.
     DWORD length = GetShortPathNameW(filename, NULL, 0);
-    assert(length != 0);
+    if (length == 0) {
+        return;
+    }
 
     wchar_t *short_filename = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
     DWORD res = GetShortPathNameW(filename, short_filename, length);
@@ -122,6 +130,24 @@ static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
     free(short_filename);
 #endif
 }
+
+static void makeShortDirFilename(wchar_t *filename, size_t buffer_size) {
+    wchar_t *changed = stripFilenameW(filename);
+    if (changed != NULL) {
+        changed = wcsdup(changed + 1);
+    }
+
+    // Shorten only the directory name.
+    makeShortFilename(filename, buffer_size);
+
+    if (changed != NULL) {
+        appendWCharSafeW(filename, FILENAME_SEP_CHAR, buffer_size);
+        appendWStringSafeW(filename, changed, buffer_size);
+
+        free(changed);
+    }
+}
+
 #endif
 
 #if !defined(_WIN32)
@@ -750,21 +776,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
 
         // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
-
-        wchar_t *changed = stripFilenameW(buffer);
-        if (changed != NULL) {
-            changed = wcsdup(changed + 1);
-        }
-
-        // Shorten only the directory name.
-        makeShortFilename(buffer, sizeof(binary_filename) / sizeof(wchar_t));
-
-        if (changed != NULL) {
-            appendWCharSafeW(buffer, FILENAME_SEP_CHAR, sizeof(binary_filename) / sizeof(wchar_t));
-            appendWStringSafeW(buffer, changed, sizeof(binary_filename) / sizeof(wchar_t));
-
-            free(changed);
-        }
+        makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
     }
 
     return buffer;
@@ -894,7 +906,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 GetTempPathW((DWORD)buffer_size, target);
                 is_path = true;
             } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
                 appendWStringSafeW(target, __wargv[0], buffer_size);
 #else
                 if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
@@ -1224,7 +1236,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
 #endif
 
-#if !defined(_NUITKA_EXE)
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
 #if defined(_WIN32)
 // Small helper function to get current DLL handle, spell-checker: ignore lpcstr
 static HMODULE getDllModuleHandle(void) {
@@ -1254,14 +1266,21 @@ filename_char_t const *getDllDirectory(void) {
 
     return path;
 #else
-    Dl_info where;
+    // Need to cache it, as dirname modifies stuff.
+    static char const *result = NULL;
 
-    {
-        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-        assert(res != 0);
+    if (result == NULL) {
+        Dl_info where;
+
+        {
+            NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+            assert(res != 0);
+        }
+
+        result = dirname((char *)strdup(where.dli_fname));
     }
 
-    return dirname((char *)where.dli_fname);
+    return result;
 #endif
 }
 #endif
