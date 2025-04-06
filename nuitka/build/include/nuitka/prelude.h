@@ -388,7 +388,7 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK
 #undef _PyObject_GC_UNTRACK
-#elif defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK

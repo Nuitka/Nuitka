@@ -6,7 +6,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 
 static char const *uncompiled_sources_dict_attribute_name = "_uncompiled_function_sources_dict";
 

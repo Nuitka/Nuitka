@@ -444,7 +444,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     return env
 
 
-def decideConstantsBlobResourceMode(env, module_mode):
+def decideConstantsBlobResourceMode(env):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
@@ -467,12 +467,12 @@ def decideConstantsBlobResourceMode(env, module_mode):
         resource_mode = "code"
         reason = "AIX is not compatible with incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
-        if module_mode:
+        if env.module_mode:
             resource_mode = "code"
         else:
             resource_mode = "linker"
 
-        reason = "default for lto gcc with --lto bugs for incbin"
+        reason = "default for lto gcc with '--lto' and bugs for incbin"
     else:
         # All is done already, this is for most platforms.
         resource_mode = "incbin"

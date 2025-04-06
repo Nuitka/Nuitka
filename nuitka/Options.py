@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Options module
+"""Options module
 
 This exposes the choices made by the user. Defaults will be applied here, and
 some handling of defaults.
@@ -1441,12 +1441,27 @@ def shallMakePackage():
     return options is not None and options.compilation_mode == "package"
 
 
+def isMakeOnefileDllMode():
+    if not isOnefileMode():
+        return False
+
+    if isExperimental("onefile-dll"):
+        return True
+    if isExperimental("onefile-no-dll"):
+        return False
+
+    if isWin32Windows():
+        return True
+
+    # Static libpython is problematic on Linux still and macOS too seems to need
+    # work, but there the DLL mode is not as useful yet anyway.
+    return False
+
+
 def shallMakeDll():
     """:returns: bool derived from ``--mode=dll``."""
     return options is not None and (
-        options.compilation_mode == "dll"
-        or isOnefileMode()
-        and isExperimental("onefile-dll")
+        options.compilation_mode == "dll" or isMakeOnefileDllMode()
     )
 
 
@@ -2092,6 +2107,9 @@ def isOnefileTempDirMode():
         Using cached onefile execution when the spec doesn't contain
         volatile things or forced by the user.
     """
+    if not isOnefileMode():
+        return False
+
     if shallCreatePythonPgoInput():
         return False
 

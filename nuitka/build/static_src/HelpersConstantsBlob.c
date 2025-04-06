@@ -476,7 +476,7 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
 }
 
 // TODO: We might have a need for this to be usable more globally.
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
 #define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (PYTHON_VERSION >= 0x3c7)
 #else
 #define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (Py_Version >= 0x30c0700)
@@ -1331,7 +1331,7 @@ static void unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsign
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
-#ifndef _NUITKA_EXE
+#if !_NUITKA_EXE_MODE
 static int findMacOSDllImageId(void) {
     Dl_info where;
     int res = dladdr((void *)findMacOSDllImageId, &where);
@@ -1358,7 +1358,7 @@ static int findMacOSDllImageId(void) {
 #endif
 
 unsigned char *findMacOSBinarySection(void) {
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE
     const struct mach_header *header = &_mh_execute_header;
 #else
     int image_id = findMacOSDllImageId();
@@ -1386,7 +1386,7 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
         constant_bin = getConstantsBlobData();
 #elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE
         // Using NULL as this indicates running program.
         HMODULE handle = NULL;
 #else

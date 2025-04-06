@@ -284,7 +284,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Actual name might be different when loaded as a package.
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
 static char const *module_full_name = %(module_name_cstr)s;
 #endif
 
@@ -302,7 +302,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     static bool init_done = false;
 
     if (init_done == false) {
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
         // In case of an extension module loaded into a process, we need to call
         // initialization here because that's the first and potentially only time
         // we are going called.
@@ -366,7 +366,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         init_done = true;
     }
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad");
     if (pre_load == NULL) {
         return NULL;
@@ -452,7 +452,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if defined(_NUITKA_MODULE) || !%(is_dunder_main)s
+#if _NUITKA_MODULE_MODE || !%(is_dunder_main)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -491,7 +491,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
 
-#if defined(_NUITKA_MODULE) && %(is_top)d && %(module_def_size)s >= 0
+#if _NUITKA_MODULE_MODE && %(is_top)d && %(module_def_size)s >= 0
         // Set our loader object in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);
 #endif
@@ -513,7 +513,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     // Report to PGO about leaving the module without error.
     PGO_onModuleExit("%(module_identifier)s", false);
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     {
         PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
         if (post_load == NULL) {
@@ -722,7 +722,7 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
 template_module_exception_exit = """\
     module_exception_exit:
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     {
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 
