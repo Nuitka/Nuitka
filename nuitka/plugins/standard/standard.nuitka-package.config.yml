@@ -8268,7 +8268,11 @@
         # TODO: Forcing inline of this will be better solution.
         'require_version_core': "'(lambda requirement: None)'"
 
-- module-name: 'travertino' # checksum: 9da51f71
+- module-name: 'travertino' # checksum: 4e5a6f7
+  data-files:
+    - include-metadata:
+        - 'travertino'
+
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
