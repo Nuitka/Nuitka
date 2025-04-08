@@ -529,8 +529,9 @@ class CodeNodeMixin(object):
                 else:
                     name = uid
 
-            self.code_name = encodePythonIdentifierToC(
-                "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
+            self.code_name = "%s$$$%s" % (
+                parent_name,
+                encodePythonIdentifierToC("%s_%s" % (self.code_prefix, name)),
             )
 
         return self.code_name
