@@ -505,12 +505,17 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: 7d07a2d1
+- module-name: 'black' # checksum: db60cdd5
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+  # TODO: This ought to be determined at run-time.
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
 
 - module-name: 'blib2to3' # checksum: a54cab2a
   data-files:
@@ -829,6 +834,8 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+  # TODO: This is probably untrue, maybe IPython used to pull in black, and this
+  # could well be removed.
   implicit-imports:
     - depends:
         - '30fcd23745efe32ce681__mypyc'
