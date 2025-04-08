@@ -173,6 +173,11 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     if jobs is not None:
         extra_options.append("--jobs=%s" % jobs)
 
+    nuitka_extra_options = os.getenv("NUITKA_EXTRA_OPTIONS")
+
+    if nuitka_extra_options:
+        extra_options.extend(nuitka_extra_options.split())
+
     check_call(
         run_command
         + [
