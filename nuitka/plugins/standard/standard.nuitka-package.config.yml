@@ -3103,7 +3103,7 @@
     - depends:
         - 'secrets'
 
-- module-name: 'numpy.testing' # checksum: 7958db4c
+- module-name: 'numpy.testing' # checksum: 4ad25b36
   anti-bloat:
     - description: 'remove numpy testing framework'
       module_code: |
@@ -3186,6 +3186,19 @@
 
         def assert_array_almost_equal(*args, **kwargs):
           pass
+
+        def assert_raises(*args, **kwargs):
+          exception_class=args[0]
+          callable=args[1]
+          args=args[2:]
+          try:
+              callable(*args, **kwargs)
+          except exception_class:
+            return True
+          except BaseException:
+            return False
+          else:
+            return False
 
 - module-name: 'numpy.testing._private.pytesttester' # checksum: 5e3b539b
   anti-bloat:
