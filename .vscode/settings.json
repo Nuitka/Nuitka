@@ -92,7 +92,9 @@
         "stop_token": "c",
         "thread": "c",
         "xstring": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "hash_map": "c",
+        "list": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
