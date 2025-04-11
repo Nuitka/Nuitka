@@ -468,6 +468,33 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
 
+// For pre-3.13, lets allow ourselves to use them as well, these do play
+// nice with no-GIL Python.
+#if PYTHON_VERSION < 0x3d0
+#define FT_ATOMIC_LOAD_PTR(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_SSIZE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_PTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_UINTPTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_PTR_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT8(value) value
+#define FT_ATOMIC_STORE_UINT8(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_UINT8_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT16_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT32_RELAXED(value) value
+#define FT_ATOMIC_LOAD_ULONG_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_PTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINTPTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_SSIZE_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT8_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT16_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT32_RELAXED(value, new_value) value = new_value
+#endif
+
 // Our replacement for "PyType_IsSubtype"
 extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
 
