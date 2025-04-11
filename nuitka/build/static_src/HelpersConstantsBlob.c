@@ -98,7 +98,7 @@ static Py_hash_t our_list_hash(PyListObject *list) {
     return Nuitka_FastHashBytes(&list->ob_item[0], Py_SIZE(list) * sizeof(PyObject *));
 }
 
-static PyObject *our_list_richcompare(PyListObject *list1, PyListObject *list2, int op) {
+static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -121,7 +121,7 @@ static Py_hash_t our_tuple_hash(PyTupleObject *tuple) {
     return Nuitka_FastHashBytes(&tuple->ob_item[0], Py_SIZE(tuple) * sizeof(PyObject *));
 }
 
-static PyObject *our_tuple_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
+static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -164,7 +164,7 @@ static Py_hash_t our_set_hash(PyObject *set) {
     return result;
 }
 
-static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
+static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -214,7 +214,7 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
     return result;
 }
 
-static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
+static PyObject *our_float_tp_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -246,7 +246,7 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
     return result;
 }
 
-static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
+static PyObject *our_dict_tp_richcompare(PyObject *a, PyObject *b, int op) {
     PyObject *result;
 
     if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -349,7 +349,7 @@ static void insertToDictCache(PyObject *dict, PyObject **value) {
 static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfunc tp_hash,
                                         richcmpfunc tp_richcompare) {
     hashfunc old_hash = Py_TYPE(*value)->tp_hash;
-    richcmpfunc old_richcmp = Py_TYPE(*value)->tp_richcompare;
+    richcmpfunc old_richcmpfunc = Py_TYPE(*value)->tp_richcompare;
 
     // Hash is optional, e.g. for floats we can spare us doing our own hash,
     // but we do equality
@@ -361,7 +361,7 @@ static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfu
     insertToDictCache(dict, value);
 
     Py_TYPE(*value)->tp_hash = old_hash;
-    Py_TYPE(*value)->tp_richcompare = old_richcmp;
+    Py_TYPE(*value)->tp_richcompare = old_richcmpfunc;
 }
 
 static uint16_t unpackValueUint16(unsigned char const **data) {
@@ -492,6 +492,7 @@ static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, 
     if (size == 1) {
         u = PyUnicode_FromStringAndSize(data, size);
     } else {
+        // spell-checker: ignore surrogatepass
         u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
     }
 #endif
@@ -548,7 +549,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
         }
 
-        insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
+        insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_tp_richcompare);
 
         *output = t;
         is_object = true;
@@ -564,7 +565,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
         }
 
-        insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
+        insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_tp_richcompare);
 
         *output = l;
         is_object = true;
@@ -588,7 +589,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             }
         }
 
-        insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
+        insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
 
         *output = d;
         is_object = true;
@@ -632,9 +633,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 
         // sets are cached globally too.
         if (c == 'S') {
-            insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
+            insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_tp_richcompare);
         } else {
-            insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
+            insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash,
+                                        (richcmpfunc)our_set_tp_richcompare);
         }
 
         *output = s;
@@ -718,7 +720,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         PyObject *f = PyFloat_FromDouble(value);
 
         // Floats are cached globally too.
-        insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_richcompare);
+        insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_tp_richcompare);
 
         *output = f;
         is_object = true;
@@ -1058,7 +1060,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         }
 
         // Floats are cached globally too.
-        insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_richcompare);
+        insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_tp_richcompare);
 
         *output = z;
         is_object = true;
