@@ -1054,15 +1054,6 @@ static inline Py_ssize_t Nuitka_Py_dictkeys_get_index(const PyDictKeysObject *ke
     return ix;
 }
 
-static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
-#if PYTHON_VERSION < 0x3d0
-    return _PyASCIIObject_CAST(o)->hash;
-#else
-    assert(PyUnicode_CheckExact(o));
-    return FT_ATOMIC_LOAD_SSIZE_RELAXED(_PyASCIIObject_CAST(o)->hash);
-#endif
-}
-
 // From CPython
 #define PERTURB_SHIFT 5
 
@@ -1191,7 +1182,8 @@ static Py_ssize_t Nuitka_Py_dictkeys_generic_lookup(PyDictObject *mp, PyDictKeys
                 Py_INCREF(startkey);
                 nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
                 Py_DECREF(startkey);
-                if (cmp == NUITKA_BOOL_EXCEPTION) {
+
+                if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
                     return DKIX_ERROR;
                 }
                 if (dk == mp->ma_keys && ep->me_key == startkey) {
