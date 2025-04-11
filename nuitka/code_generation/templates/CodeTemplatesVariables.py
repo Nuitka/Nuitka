@@ -323,7 +323,7 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
 
         if (current_dk_version != dict_keys_version) {
             dict_keys_version = current_dk_version;
-            Py_hash_t hash = ((Nuitka_StringObject *)%(var_name)s)->_base._base.hash;
+            Py_hash_t hash = Nuitka_Py_unicode_get_hash(%(var_name)s);
             assert(hash != -1);
 
             cache_dk_index = Nuitka_Py_unicodekeys_lookup_unicode(dk, %(var_name)s, hash);
@@ -337,7 +337,7 @@ static PyObject *%(accessor_function_name)s(PyThreadState *tstate) {
             result = entries[cache_dk_index].me_value;
 
             if (unlikely(result == NULL)) {
-                Py_hash_t hash = ((Nuitka_StringObject *)%(var_name)s)->_base._base.hash;
+                Py_hash_t hash = Nuitka_Py_unicode_get_hash(%(var_name)s);
                 assert(hash != -1);
 
                 cache_dk_index = Nuitka_Py_unicodekeys_lookup_unicode(dk, %(var_name)s, hash);
