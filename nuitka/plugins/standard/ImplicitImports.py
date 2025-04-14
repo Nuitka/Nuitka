@@ -361,7 +361,8 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         # TODO: Move the ones that would be possible to yaml config, or a
-        # separate plugin for lazy loaders. pylint: disable=too-many-branches
+        # separate plugin for lazy loaders.
+        # pylint: disable=too-many-branches,too-many-locals
 
         if module_name == "site":
             if source_code.startswith("def ") or source_code.startswith("class "):
@@ -479,6 +480,29 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     module_name=module_name,
                     submodules=scipy_info,
                     submodule_attrs={},
+                )
+
+        if module_name == "toga":
+            # Toga has lazy loading in some versions.
+
+            if "def __getattr__(" in source_code:
+                toga_info = self.queryRuntimeInformationSingle(
+                    setup_codes="import toga",
+                    value="toga.toga_core_imports",
+                    info_name="toga_lazy_loader",
+                )
+
+                toga_submodule_attrs = {}
+
+                for attribute_name, sub_module_name in toga_info.items():
+                    if sub_module_name not in toga_submodule_attrs:
+                        toga_submodule_attrs[sub_module_name] = []
+                    toga_submodule_attrs[sub_module_name].append(attribute_name)
+
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=(),
+                    submodule_attrs=toga_submodule_attrs,
                 )
 
         return source_code
