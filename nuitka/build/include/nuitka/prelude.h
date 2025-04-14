@@ -191,6 +191,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_critical_section.h>
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>
 #include <internal/pycore_modsupport.h>
@@ -493,6 +494,18 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define FT_ATOMIC_STORE_UINT8_RELAXED(value, new_value) value = new_value
 #define FT_ATOMIC_STORE_UINT16_RELAXED(value, new_value) value = new_value
 #define FT_ATOMIC_STORE_UINT32_RELAXED(value, new_value) value = new_value
+
+#define Py_BEGIN_CRITICAL_SECTION(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2(m1, m2) {
+#define Py_BEGIN_CRITICAL_SECTION_MUT(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2_MUT(m1, m2) {
+#define Py_END_CRITICAL_SECTION() }
+
+#define Py_BEGIN_CRITICAL_SECTION_SEQUENCE_FAST(original) {
+#define Py_END_CRITICAL_SECTION_SEQUENCE_FAST() }
+#define _Py_CRITICAL_SECTION_ASSERT_MUTEX_LOCKED(mutex)
+#define _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op)
+
 #endif
 
 // Our replacement for "PyType_IsSubtype"
