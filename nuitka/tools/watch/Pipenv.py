@@ -31,7 +31,10 @@ def _execPipenvCommand(logger, installed_python, command, retry=False):
                 logger=logger, installed_python=installed_python, command="--rm"
             )
             _execPipenvCommand(
-                logger=logger, installed_python=installed_python, command=command
+                logger=logger,
+                installed_python=installed_python,
+                command=command,
+                retry=True,
             )
         elif command == "--rm":
             # Can fail if it doesn't exist.
