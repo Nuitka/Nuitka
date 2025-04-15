@@ -854,9 +854,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 #endif
     case 'u': { // Python2 unicode, Python3 str, zero terminated.
         size_t size = strlen((const char *)data);
-
-        // TODO: Empty string ought to have its own thing.
-        // assert(size != 0);
+        assert(size != 0);
 
         PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
         data += size + 1;
@@ -880,6 +878,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'n': {
         *output = Py_None;
+        is_object = true;
+
+        break;
+    }
+    case 's': {
+        *output = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, 0, true);
         is_object = true;
 
         break;
