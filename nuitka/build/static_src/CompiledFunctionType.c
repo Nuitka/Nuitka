@@ -1204,6 +1204,9 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
         closure_cells[i] = Nuitka_Cell_New0(PyTuple_GET_ITEM(closure, i));
     }
 
+    // Function creation takes no reference to these.
+    Py_INCREF(defaults);
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(offset >= 0 ? function_table[offset] : NULL, code_object->co_name,
 #if PYTHON_VERSION >= 0x300
