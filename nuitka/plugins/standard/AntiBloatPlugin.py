@@ -21,6 +21,7 @@ from nuitka.utils.ModuleNames import ModuleName
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
+_other_choices = ("bytecode",)
 
 
 class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
@@ -207,14 +208,14 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
             if custom_choice.count(":") != 1:
                 self.sysexit(
                     """\
-Error, malformed value '%s' for '--noinclude-custom-mode' used. It has to be of \
+Error, argument value '%s' for '--noinclude-custom-mode' used. It has to be of \
 form 'module_name:[%s]'."""
-                    % (custom_choice, "|".join(_mode_choices))
+                    % (custom_choice, "|".join(_mode_choices + _other_choices))
                 )
 
             module_name, mode = custom_choice.rsplit(":", 1)
 
-            if mode not in _mode_choices and mode != "bytecode":
+            if mode not in _mode_choices and mode not in _other_choices:
                 self.sysexit(
                     "Error, illegal mode given '%s' in '--noinclude-custom-mode=%s'"
                     % (mode, custom_choice)
