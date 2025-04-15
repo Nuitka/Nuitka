@@ -625,6 +625,7 @@ import %(binding_name)s.QtCore
 
             # spell-checker: ignore Pixmap
             code = """\
+import sys
 import %(binding_name)s.QtWidgets
 orig_QApplication = %(binding_name)s.QtWidgets.QApplication
 
