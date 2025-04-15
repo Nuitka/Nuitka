@@ -232,7 +232,12 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
             else:
                 template = template_read_locals_mapping_with_fallback_no_ref
 
-            fallback_codes = indented(fallback_emit.codes, 2)
+            fallback_codes = indented(fallback_emit.codes, 8)
+
+            (
+                exception_state_name,
+                _exception_lineno,
+            ) = context.variable_storage.getExceptionVariableDescriptions()
 
             emit(
                 template
@@ -241,6 +246,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
                     "locals_dict": locals_declaration,
                     "fallback": fallback_codes,
                     "var_name": context.getConstantCode(constant=variable_name),
+                    "exception_state_name": exception_state_name,
                     "exception_exit": context.getExceptionEscape(),
                 }
             )

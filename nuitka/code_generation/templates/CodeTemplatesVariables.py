@@ -179,6 +179,7 @@ if (%(to_name)s == NULL) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
     } else {
+        FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
         goto %(exception_exit)s;
     }
 }
@@ -191,6 +192,7 @@ if (%(to_name)s == NULL) {
     if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(tstate)) {
 %(fallback)s
     } else {
+        FETCH_ERROR_OCCURRED_STATE(tstate, &%(exception_state_name)s);
         goto %(exception_exit)s;
     }
 }
