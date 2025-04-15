@@ -482,8 +482,8 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
 #define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (Py_Version >= 0x30c0700)
 #endif
 
-static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
-                                                         bool is_ascii) {
+static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
+                                                           bool is_ascii) {
 #if PYTHON_VERSION < 0x300
     PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
@@ -502,10 +502,11 @@ static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, 
 #elif PYTHON_VERSION >= 0x3c0
     if (is_ascii) {
         PyUnicode_InternInPlace(&u);
+    }
 
-        if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
-            _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
-        }
+    if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
+        _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
+        _PyUnicode_STATE(u).statically_allocated = 1;
     }
 #elif PYTHON_VERSION >= 0x300
     if (is_ascii) {
@@ -513,6 +514,14 @@ static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, 
     }
 #else
     insertToDictCache(unicode_cache, &u);
+#endif
+
+    // Make sure our strings are consistent.
+#if PYTHON_VERSION >= 0x3c0 && !defined(__NUITKA_NO_ASSERT__)
+    // Note: Setting to immortal happens last, but we want to check now.
+    Py_SET_REFCNT_IMMORTAL(u);
+
+    _PyUnicode_CheckConsistency(u, 1);
 #endif
 
     return u;
@@ -530,7 +539,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     char c = *((char const *)data++);
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     unsigned char const *data_old = data;
-    printf("Type %c for %d of %d:\n", c, _i, count);
+    printf("Type %c:\n", c);
 #endif
     switch (c) {
 
@@ -807,7 +816,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'w': {
         // Python2 unicode, Python3 str length 1, potentially attribute in Python3
-        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, 1, true);
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, 1, true);
         data += 1;
 
         *output = u;
@@ -852,7 +861,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     case 'u': { // Python2 unicode, Python3 str, zero terminated.
         size_t size = strlen((const char *)data);
 
-        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
+        // TODO: Empty string ought to have its own thing.
+        // assert(size != 0);
+
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
         data += size + 1;
 
         *output = u;
