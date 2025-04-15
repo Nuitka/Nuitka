@@ -1114,9 +1114,9 @@ def _main():
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
-not use compiled code while it exists."""
+not use compiled code while it exists because it has precedence while both \
+exist, out e.g. '--output-dir=output' to sure is importable."""
                 % base_path,
-                mnemonic="compiled-package-hidden-by-package",
             )
 
     general.info("Successfully created '%s'." % getReportPath(final_filename))
