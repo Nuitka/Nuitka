@@ -487,14 +487,8 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
 #if PYTHON_VERSION < 0x300
     PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
-    PyObject *u;
-
-    if (size == 1) {
-        u = PyUnicode_FromStringAndSize(data, size);
-    } else {
-        // spell-checker: ignore surrogatepass
-        u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
-    }
+    // spell-checker: ignore surrogatepass
+    PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
@@ -872,17 +866,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'v': {
         int size = (int)_unpackVariableLength(&data);
+        assert(size != 0);
 
-#if PYTHON_VERSION < 0x300
-        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
-#else
-        PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
-#endif
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, false);
         data += size;
-
-#if PYTHON_VERSION < 0x300
-        insertToDictCache(unicode_cache, &u);
-#endif
 
         *output = u;
         is_object = true;
