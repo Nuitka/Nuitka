@@ -47,7 +47,7 @@ def save_compiled_method(pickler, obj):
 
 if str is bytes:
 
-    def _create_compiled_function2(module_name, func_values, func_dict, func_defaults):
+    def _create_compiled_function2(module_name, func_values, func_dict):
         if module_name not in compiled_function_tables:
             __import__(module_name)
 
@@ -57,15 +57,15 @@ if str is bytes:
             for key, value in func_dict.items():
                 func[key] = value
 
-        func.__defaults__ = func_defaults
-
         return func
 
 
 if str is not bytes:
 
     def _create_compiled_function3(
-        module_name, func_values, func_dict, func_defaults, func_kwdefaults
+        module_name,
+        func_values,
+        func_dict,
     ):
         if module_name not in compiled_function_tables:
             __import__(module_name)
@@ -74,9 +74,6 @@ if str is not bytes:
         if func_dict:
             for key, value in func_dict.items():
                 func[key] = value
-
-        func.__defaults__ = func_defaults
-        func.__kwdefaults__ = func_kwdefaults
 
         return func
 
@@ -170,8 +167,6 @@ def save_compiled_function(pickler, obj):
                     # This gets the "_reduce_compiled_function" of the module and calls it.
                     compiled_function_tables[obj.__module__][0](obj),
                     obj.__dict__,
-                    obj.__defaults__,
-                    obj.__kwdefaults__,
                 ),
             )
         else:
@@ -224,7 +219,6 @@ def save_compiled_function(pickler, obj):
                         obj.__module__,
                         compiled_function_tables[obj.__module__][0](obj),
                         obj.__dict__,
-                        obj.__defaults__,
                     ),
                 )
 
