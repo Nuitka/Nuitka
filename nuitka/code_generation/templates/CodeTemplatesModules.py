@@ -183,7 +183,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
 
-    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 9);
     PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);
@@ -228,6 +228,12 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     PyTuple_SET_ITEM(result, 7, closure);
 
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 8, function->m_annotations ? function->m_annotations : Py_None);
+#else
+    PyTuple_SET_ITEM_IMMORTAL(result, 8, Py_None);
+#endif
+
     CHECK_OBJECT_DEEP(result);
 
     return result;
@@ -248,16 +254,11 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *constant_return_value;
     PyObject *function_qualname;
     PyObject *closure;
+    PyObject *annotations;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, NULL)) {
+    if (!PyArg_ParseTuple(args, "OOOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, &annotations, NULL)) {
         return NULL;
     }
-
-#if PYTHON_VERSION >= 0x300
-    if (kw_defaults == Py_None) {
-        kw_defaults = NULL;
-    }
-#endif
 
     return (PyObject *)Nuitka_Function_CreateFunctionViaCodeIndex(
         module_%(module_identifier)s,
@@ -269,6 +270,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
         kw_defaults,
         doc,
         closure,
+        annotations,
         function_table_%(module_identifier)s,
         sizeof(function_table_%(module_identifier)s) / sizeof(function_impl_code)
     );
