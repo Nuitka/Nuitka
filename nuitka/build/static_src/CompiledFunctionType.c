@@ -1145,11 +1145,10 @@ int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
     return offset;
 }
 
-struct Nuitka_FunctionObject *
-Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
-                                           PyObject *code_object_desc, PyObject *constant_return_value,
-                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
-                                           function_impl_code const *function_table, int function_table_size) {
+struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
+    PyObject *module, PyObject *function_qualname, PyObject *function_index, PyObject *code_object_desc,
+    PyObject *constant_return_value, PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
+    PyObject *annotations, function_impl_code const *function_table, int function_table_size) {
     int offset = PyLong_AsLong(function_index);
 
     if (offset > function_table_size || offset < -5 || offset == -1) {
@@ -1207,15 +1206,26 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
     // Function creation takes no reference to these.
     Py_INCREF(defaults);
 
+    if (kw_defaults == Py_None) {
+        kw_defaults = NULL;
+    } else {
+        Py_INCREF(kw_defaults);
+    }
+
+    if (annotations == Py_None) {
+        annotations = NULL;
+    } else {
+        Py_INCREF(annotations);
+    }
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(offset >= 0 ? function_table[offset] : NULL, code_object->co_name,
 #if PYTHON_VERSION >= 0x300
-                            NULL, // TODO: Not transferring qualname yet
+                            function_qualname,
 #endif
                             code_object, defaults,
 #if PYTHON_VERSION >= 0x300
-                            kw_defaults,
-                            NULL, // TODO: Not transferring annotations
+                            kw_defaults, annotations,
 #endif
                             module, doc, closure_cells, closure_size);
 
@@ -1223,19 +1233,20 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
 
     if (offset == -2) {
         Nuitka_Function_EnableConstReturnTrue(result);
-    }
-    if (offset == -3) {
+    } else if (offset == -3) {
         Nuitka_Function_EnableConstReturnFalse(result);
-    }
-    if (offset == -4) {
+    } else if (offset == -4) {
         result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
-    }
-    if (offset == -5) {
+    } else if (offset == -5) {
         CHECK_OBJECT(constant_return_value);
 
         Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
 
         Py_INCREF_IMMORTAL(constant_return_value);
+    } else if (offset < 0) {
+        // Try to catch if we are missing values for the specialized shared
+        // bodies.
+        NUITKA_CANNOT_GET_HERE("Compiled function unpickle problem");
     }
 
     assert(result->m_c_code != NULL);
