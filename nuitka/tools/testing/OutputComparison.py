@@ -253,6 +253,9 @@ exceeded while calling a Python object' in \
         if "XType: Using static font registry" in line:
             continue
 
+        if re.search(r"Gtk-WARNING.*cannot open display", line):
+            continue
+
         result.append(line)
 
     return result
