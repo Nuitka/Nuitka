@@ -8,9 +8,14 @@
 
 import cairo
 import gi
+import sys
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
+try:
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+except ValueError:
+    print("GTK or GDK not OK")
+    sys.exit(0)
 
 from gi.repository import Gdk, Gtk
 
