@@ -426,6 +426,18 @@ with "nuitka-onefile-unpack" rather than a stream that only the onefile
 program itself unpacks. Default is off.""",
 )
 
+onefile_group.add_option(
+    "--onefile-no-dll",
+    action="store_true",
+    dest="onefile_no_dll",
+    default=False,
+    help="""\
+When creating the onefile, some platforms (Windows currently, if not
+using a cached location) default to using DLL rather than an executable
+for the Python code. This makes it use an executable in the unpacked
+files as well. Default is off.""",
+)
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")
