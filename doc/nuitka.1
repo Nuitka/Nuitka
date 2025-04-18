@@ -181,6 +181,13 @@ When creating the onefile, use an archive format, that
 can be unpacked with "nuitka\-onefile\-unpack" rather
 than a stream that only the onefile program itself
 unpacks. Default is off.
+.TP
+\fB\-\-onefile\-no\-dll\fR
+When creating the onefile, some platforms (Windows
+currently, if not using a cached location) default to
+using DLL rather than an executable for the Python
+code. This makes it use an executable in the unpacked
+files as well. Default is off.
 .IP
 Data files:
 .TP
@@ -1260,6 +1267,13 @@ When creating the onefile, use an archive format, that
 can be unpacked with "nuitka\-onefile\-unpack" rather
 than a stream that only the onefile program itself
 unpacks. Default is off.
+.TP
+\fB\-\-onefile\-no\-dll\fR
+When creating the onefile, some platforms (Windows
+currently, if not using a cached location) default to
+using DLL rather than an executable for the Python
+code. This makes it use an executable in the unpacked
+files as well. Default is off.
 .IP
 Data files:
 .TP

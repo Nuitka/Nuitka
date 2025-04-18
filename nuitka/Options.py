@@ -1450,7 +1450,10 @@ def isMakeOnefileDllMode():
     if isExperimental("onefile-no-dll"):
         return False
 
-    if isWin32Windows():
+    if options is not None and options.onefile_no_dll:
+        return False
+
+    if isWin32Windows() and isOnefileTempDirMode():
         return True
 
     # Static libpython is problematic on Linux still and macOS too seems to need
