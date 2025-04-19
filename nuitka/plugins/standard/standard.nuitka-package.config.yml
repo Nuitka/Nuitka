@@ -4119,6 +4119,20 @@
         'display': 'un-callable'
       when: 'not use_ipython'
 
+- module-name: 'pip._vendor.rich.live' # checksum: f0442975
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'self.console.is_jupyter': 'False'
+      when: 'not use_ipython'
+
+- module-name: 'pip._vendor.rich.pretty' # checksum: bdd67adb
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'ip = get_ipython()': 'raise NameError'
+      when: 'not use_ipython'
+
 - module-name: 'pkg_resources' # checksum: d0674fc2
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
