@@ -415,17 +415,23 @@ def executePASS3():
 
     _traceCompilation(path=path, pass_number=3)
 
-    command = [
-        os.environ["PYTHON"],
-        nuitka_main_path,
-        path,
-        "--output-dir=%s" % tmp_dir,
-        "--python-flag=-S",
-        "--follow-imports",
-    ]
+    with withPythonPathChange(os.path.join("..", "..")):
+        command = [
+            os.environ["PYTHON"],
+            nuitka_main_path,
+            path,
+            "--output-dir=%s" % tmp_dir,
+            "--python-flag=-S",
+            "--follow-imports",
+            "--include-package=nuitka.plugins.standard",
+            "--nofollow-import-to=*-postLoad",
+            "--nofollow-import-to=SCons",
+            "--nofollow-import-to=pip",
+            "--report=compilation-report-pass3.xml",
+        ]
 
-    my_print("Command: ", " ".join(command))
-    result = subprocess.call(command)
+        my_print("Command: ", " ".join(command))
+        result = subprocess.call(command)
 
     if result != 0:
         sys.exit(result)
@@ -440,13 +446,14 @@ def executePASS4():
 
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
-    with withPythonPathChange(getPythonSysPath()):
-        # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
-        # have to add it.
-        if os.name == "nt":
-            addPYTHONPATH(PACKAGE_LIST)
+    with withPythonPathChange(os.path.join("..", "..")):
+        with withPythonPathChange(getPythonSysPath()):
+            # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
+            # have to add it.
+            if os.name == "nt":
+                addPYTHONPATH(PACKAGE_LIST)
 
-        compileAndCompareWith(exe_path, pass_number=4)
+            compileAndCompareWith(exe_path, pass_number=4)
 
     test_logger.info("OK.")
 
