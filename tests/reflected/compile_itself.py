@@ -422,6 +422,7 @@ def executePASS3():
             path,
             "--output-dir=%s" % tmp_dir,
             "--python-flag=-S",
+            "--python-flag=-P",
             "--follow-imports",
             "--include-package=nuitka.plugins.standard",
             "--nofollow-import-to=*-postLoad",
@@ -447,13 +448,7 @@ def executePASS4():
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
     with withPythonPathChange(os.path.join("..", "..")):
-        with withPythonPathChange(getPythonSysPath()):
-            # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
-            # have to add it.
-            if os.name == "nt":
-                addPYTHONPATH(PACKAGE_LIST)
-
-            compileAndCompareWith(exe_path, pass_number=4)
+        compileAndCompareWith(exe_path, pass_number=4)
 
     test_logger.info("OK.")
 
@@ -484,7 +479,7 @@ def executePASS5():
     if result != 0:
         sys.exit(result)
 
-    for preferred in True, False:
+    for preferred in (True, False):
         candidate = "nuitka" + getExtensionModuleSuffix(preferred=preferred)
 
         deleteFile(candidate, must_exist=False)
