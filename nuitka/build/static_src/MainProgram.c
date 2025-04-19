@@ -1050,6 +1050,10 @@ static void Nuitka_Py_Initialize(void) {
 
     config.install_signal_handlers = 1;
 
+#if PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
+    config.safe_path = 1;
+#endif
+
     NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling Py_InitializeFromConfig.");
 
     status = Py_InitializeFromConfig(&config);
@@ -1575,7 +1579,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #endif
             Py_DECREF(python_path_str);
 
-            PySys_SetObject("path", python_path_list);
+            Nuitka_SysSetObject("path", python_path_list);
 
             unsetEnvironmentVariable("NUITKA_PYTHONPATH");
         }
@@ -1589,9 +1593,12 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Set the command line parameters for run time usage. */
     PySys_SetArgv(argc, orig_argv);
-// Empty "sys.path" again, the above adds program directory to it.
+
+    // Empty or reduce "sys.path" again, the above adds program directory to it.
 #if SYSFLAG_ISOLATED
     Nuitka_SysSetObject("path", PyList_New(0));
+#elif PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
+    PyList_SetSlice(Nuitka_SysGetObject("path"), 0, 1, PyTuple_New(0));
 #endif
 
     /* Initialize the built-in module tricks used and builtin-type methods */

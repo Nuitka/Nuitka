@@ -246,10 +246,6 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
-# python_sysflag_dontwritebytecode
-python_sysflag_dontwritebytecode = getArgumentBool(
-    "python_sysflag_dontwritebytecode", False
-)
 # python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
 # python_flag_no_docstrings
@@ -261,8 +257,16 @@ python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
 
-# python_sysflag_unbuffered
+# python_sysflag_unbuffered (--python-flag=-U)
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
+
+# python_sysflag_dontwritebytecode (--python-flag=-B)
+python_sysflag_dontwritebytecode = getArgumentBool(
+    "python_sysflag_dontwritebytecode", False
+)
+
+# python_sysflag_safe_path (--python-flag=-P)
+python_sysflag_safe_path = getArgumentBool("python_sysflag_safe_path", False)
 
 # python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
@@ -995,6 +999,12 @@ def createBuildDefinitionsFile():
     )
 
     build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+
+    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+        1 if python_sysflag_dontwritebytecode else 0
+    )
+
+    build_definitions["SYSFLAG_SAFE_PATH"] = 1 if python_sysflag_safe_path else 0
 
     build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
