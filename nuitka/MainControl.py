@@ -48,6 +48,7 @@ from nuitka.Options import (
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoBytecodeRuntimeCache,
+    hasPythonFlagNoCurrentDirectoryInPath,
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
@@ -689,7 +690,10 @@ def runSconsBackend():
         scons_options["python_sysflag_utf8"] = asBoolStr(True)
 
     if hasPythonFlagNoBytecodeRuntimeCache():
-        scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
+        scons_options["python_sysflag_dontwritebytecode"] = asBoolStr(True)
+
+    if hasPythonFlagNoCurrentDirectoryInPath():
+        scons_options["python_sysflag_safe_path"] = asBoolStr(True)
 
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)

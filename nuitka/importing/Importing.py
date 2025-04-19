@@ -69,6 +69,9 @@ _debug_module_finding = None
 # Preference as expressed via --prefer-source-code
 _prefer_source_code_over_extension_modules = None
 
+# Do not add current directory to search path.
+_safe_path = None
+
 
 def setupImportingFromOptions():
     """Set up the importing layer from giving options."""
@@ -84,6 +87,9 @@ def setupImportingFromOptions():
     _prefer_source_code_over_extension_modules = (
         Options.shallPreferSourceCodeOverExtensionModules()
     )
+
+    global _safe_path
+    _safe_path = Options.hasPythonFlagNoCurrentDirectoryInPath()
 
     # Lets try and have this complete, please report failures.
     if Options.is_debug and not isNuitkaPython():
@@ -712,12 +718,12 @@ def getPackageSearchPath(package_name):
         return None
 
     if package_name is None:
-        result = (
-            [os.getcwd()]
-            + list(_main_paths)
-            + getPythonUnpackedSearchPath()
-            + list(_extra_paths)
-        )
+        result = []
+
+        if not _safe_path:
+            result.append(os.getcwd())
+
+        result += list(_main_paths) + getPythonUnpackedSearchPath() + list(_extra_paths)
     elif "." in package_name:
         parent_package_name, child_package_name = package_name.splitModuleBasename()
 

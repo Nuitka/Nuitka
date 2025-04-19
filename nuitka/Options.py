@@ -2505,6 +2505,8 @@ def _getPythonFlags():
                     _python_flags.add("isolated")
                 elif part in ("-B", "dontwritebytecode"):
                     _python_flags.add("dontwritebytecode")
+                elif part in ("-P", "safe_path"):
+                    _python_flags.add("safe_path")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -2562,9 +2564,15 @@ def hasPythonFlagNoRandomization():
 
 
 def hasPythonFlagNoBytecodeRuntimeCache():
-    """*bool* = "dontwritebytecode", "-u" in python flags given"""
+    """*bool* = "dontwritebytecode", "-B" in python flags given"""
 
     return "dontwritebytecode" in _getPythonFlags()
+
+
+def hasPythonFlagNoCurrentDirectoryInPath():
+    """*bool* = "safe_path", "-P" in python flags given"""
+
+    return "safe_path" in _getPythonFlags()
 
 
 def hasPythonFlagUnbuffered():
