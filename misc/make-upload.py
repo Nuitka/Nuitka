@@ -45,7 +45,6 @@ assert (
     == 0
 )
 
-# Upload only stable and develop releases to OpenSUSE Build Service:
 if branch_name.startswith("release") or branch_name == "main":
     pass
 elif branch_name == "develop":
