@@ -57,7 +57,7 @@ def main():
         style="blue",
         python=installed_python.getPythonExe(),
     ) as venv:
-        venv.runCommand("python -m pip install osc")
+        venv.runCommand("python -m pip install osc 'setuptools<68'")
 
         # Stage the "osc" checkout from the ground up,
         # spell-checker: ignore kayhayen,rpmlintrc,addremove
@@ -75,7 +75,8 @@ cd home:kayhayen/{osc_project_name}/ && \
 osc addremove -r && \
 echo 'New release' >ci_message && \
 osc ci --file ci_message
-"""
+""",
+            keep_cwd=True,
         )
 
 
