@@ -1374,6 +1374,21 @@ provide either '--product-version' or '--file-version' as these can
 not have good defaults, but are forced to be present by the OS."""
         )
 
+    if (
+        options.macos_target_arch not in ("native", "universal", None)
+        and getArchitecture() != options.macos_target_arch
+    ):
+        Tracing.options_logger.warning(
+            """\
+Do not cross compile using '--macos-target-arch=%s, instead execute with '%s'."""
+            % (
+                Tracing.doNotBreakSpaces(
+                    options.macos_target_arch,
+                    "arch -%s %s" % (options.macos_target_arch, sys.executable),
+                )
+            )
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
