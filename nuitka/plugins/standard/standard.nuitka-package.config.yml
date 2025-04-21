@@ -1333,6 +1333,11 @@
     - include-metadata:
         - 'docling-core'
 
+- module-name: 'docx' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
 - module-name: 'dotenv' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2660,6 +2665,19 @@
         - 'mercurial.charencode'
         - 'mercurial.cext.parsers'
 
+- module-name: 'mitmproxy' # checksum: 4eec16b2
+  implicit-imports:
+    - depends:
+        - 'mitmproxy_macos'
+        - 'passlib.handlers.sha1_crypt'
+
+- module-name: 'mitmproxy_macos' # checksum: a855017f
+  data-files:
+    - patterns:
+        - 'Mitmproxy Redirector.app.tar'
+    - dirs:
+        - 'macos-certificate-truster.app'
+
 - module-name: 'mkl._mklinit' # checksum: f45333f2
   dlls:
     - by_code:
@@ -2699,17 +2717,48 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'mne' # checksum: 6aaa99cc
+  data-files:
+    - dirs:
+        - 'data'
+
+- module-name: 'mne.channels' # checksum: f40fc664
+  data-files:
+    - patterns:
+        - 'data/layouts/**.*'
+        - 'data/montages/**.*'
+        - 'data/neighbors/**.*'
+
 - module-name: 'mne.fixes' # checksum: dd3b5473
   anti-bloat:
     - no-auto-follow:
         'numba': 'ignore'
       when: 'not use_numba'
 
+- module-name: 'mne.html_templates' # checksum: d0ca6c4a
+  data-files:
+    - patterns:
+        - '**/*.jinja'
+        - '**/*.css'
+        - '**/*.js'
+
+- module-name: 'mne.icons' # checksum: d7996667
+  data-files:
+    - patterns:
+        - '**/*.png'
+        - '**/*.ico'
+        - '**/*.svg'
+
 - module-name: 'mne.io.array.array' # checksum: 6051d6a
   anti-bloat:
     - description: 'workaround frame dictionary not being populated'
       replacements_plain:
         'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.artemis123.resources' # checksum: 8e56f9f4
+  data-files:
+    - patterns:
+        - '*.csv'
 
 - module-name: 'mne.io.curry.curry' # checksum: 6051d6a
   anti-bloat:
@@ -2746,6 +2795,12 @@
     - description: 'workaround frame dictionary not being populated'
       replacements_plain:
         'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.report.js_and_css' # checksum: dbad8298
+  data-files:
+    - patterns:
+        - '*.js'
+        - '*.css'
 
 - module-name: 'mne.utils._testing' # checksum: 76efa1b7
   anti-bloat:
