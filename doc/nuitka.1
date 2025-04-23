@@ -898,6 +898,16 @@ is module name, which can and should be a top level
 package and then one choice, "error", "warning",
 "nofollow", e.g. PyQt5:error.
 .IP
+Plugin options of 'dill\-compat' (categories: package\-support):
+.TP
+\fB\-\-include\-pickle\-support\-module\fR=\fI\,PICKLE_SUPPORTED_MODULES\/\fR
+Include support for these modules to pickle nested
+compiled functions. You can use "all" which is the
+default, but esp. in module mode, just might want to
+limit yourself to not create unnecessary run\-time
+usages. For standalone mode, you can leave it at the
+default, at it will detect the usage.
+.IP
 Plugin options of 'pmw\-freezer' (categories: package\-support):
 .TP
 \fB\-\-include\-pmw\-blt\fR
@@ -1985,6 +1995,16 @@ What to do if a specific import is encountered. Format
 is module name, which can and should be a top level
 package and then one choice, "error", "warning",
 "nofollow", e.g. PyQt5:error.
+.IP
+Plugin options of 'dill\-compat' (categories: package\-support):
+.TP
+\fB\-\-include\-pickle\-support\-module\fR=\fI\,PICKLE_SUPPORTED_MODULES\/\fR
+Include support for these modules to pickle nested
+compiled functions. You can use "all" which is the
+default, but esp. in module mode, just might want to
+limit yourself to not create unnecessary run\-time
+usages. For standalone mode, you can leave it at the
+default, at it will detect the usage.
 .IP
 Plugin options of 'pmw\-freezer' (categories: package\-support):
 .TP
