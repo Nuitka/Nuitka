@@ -160,83 +160,16 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyThreadState *tstate = PyThreadState_GET();
-
     if (Nuitka_Function_Check(func) == false) {
+        PyThreadState *tstate = PyThreadState_GET();
+
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
-    int offset = Nuitka_Function_GetFunctionCodeIndex(function, function_table_%(module_identifier)s);
-
-    if (unlikely(offset == -1)) {
-#if 0
-        PRINT_STRING("Looking for:");
-        PRINT_ITEM(func);
-        PRINT_NEW_LINE();
-#endif
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
-        return NULL;
-    }
-
-    PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
-
-    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 9);
-    PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
-    PyTuple_SET_ITEM(result, 1, code_object_desc);
-    PyTuple_SET_ITEM0(result, 2, function->m_defaults);
-#if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
-#else
-    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
-#endif
-    PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
-
-    if (offset == -5) {
-        CHECK_OBJECT(function->m_constant_return_value);
-        PyTuple_SET_ITEM_IMMORTAL(result, 5, function->m_constant_return_value);
-    } else {
-        PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
-    }
-
-#if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 6, function->m_qualname);
-#else
-    PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
-#endif
-
-    PyObject *closure = PyObject_GetAttr(
-        (PyObject *)function,
-        const_str_plain___closure__
-    );
-
-    if (closure != Py_None) {
-        for (Py_ssize_t i=0; i < PyTuple_GET_SIZE(closure); i++) {
-            struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)PyTuple_GET_ITEM(closure, i);
-
-            assert(Nuitka_Cell_Check((PyObject *)cell));
-
-            PyTuple_SET_ITEM0(
-                closure,
-                i,
-                cell->ob_ref
-            );
-        }
-    }
-
-    PyTuple_SET_ITEM(result, 7, closure);
-
-#if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 8, function->m_annotations ? function->m_annotations : Py_None);
-#else
-    PyTuple_SET_ITEM_IMMORTAL(result, 8, Py_None);
-#endif
-
-    CHECK_OBJECT_DEEP(result);
-
-    return result;
+    return Nuitka_Function_GetFunctionState(function, function_table_%(module_identifier)s);
 }
 
 static PyMethodDef _method_def_reduce_compiled_function = {"reduce_compiled_function", (PyCFunction)_reduce_compiled_function,
@@ -255,8 +188,9 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *function_qualname;
     PyObject *closure;
     PyObject *annotations;
+    PyObject *func_dict;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, &annotations, NULL)) {
+    if (!PyArg_ParseTuple(args, "OOOOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, &annotations, &func_dict, NULL)) {
         return NULL;
     }
 
@@ -271,6 +205,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
         doc,
         closure,
         annotations,
+        func_dict,
         function_table_%(module_identifier)s,
         sizeof(function_table_%(module_identifier)s) / sizeof(function_impl_code)
     );

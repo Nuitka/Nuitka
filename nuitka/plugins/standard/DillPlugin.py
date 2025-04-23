@@ -13,43 +13,98 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     """This is to make dill module work with compiled methods."""
 
     plugin_name = "dill-compat"
-    plugin_desc = "Required for 'dill' package compatibility."
+    plugin_desc = "Required for 'dill' package and 'cloudpickle' compatibility."
     plugin_category = "package-support"
 
     @staticmethod
     def isAlwaysEnabled():
         return False
 
+    def __init__(self, pickle_supported_modules):
+        self.pickle_supported_modules = pickle_supported_modules or ["all"]
+
+    def shallIncludePickleSupportModule(self, name):
+        return (
+            name in self.pickle_supported_modules
+            or "all" in self.pickle_supported_modules
+        )
+
+    @classmethod
+    def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--include-pickle-support-module",
+            action="append",
+            dest="pickle_supported_modules",
+            choices=("all", "cloudpickle", "dill"),
+            default=[],
+            help="""\
+Include support for these modules to pickle nested compiled functions. You
+can use "all" which is the default, but esp. in module mode, just might
+want to limit yourself to not create unnecessary run-time usages. For
+standalone mode, you can leave it at the default, at it will detect
+the usage.""",
+        )
+
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        if full_name == "dill" and not shallMakeModule():
+        if (
+            full_name == "dill"
+            and not shallMakeModule()
+            and self.shallIncludePickleSupportModule("dill")
+        ):
             return (
                 self.getPluginDataFileContents("dill-postLoad.py"),
                 """\
 Extending "dill" for compiled types to be pickle-able as well.""",
+            )
+
+        if (
+            full_name == "cloudpickle"
+            and not shallMakeModule()
+            and self.shallIncludePickleSupportModule("cloudpickle")
+        ):
+            return (
+                self.getPluginDataFileContents("cloudpickle-postLoad.py"),
+                """\
+Extending "cloudpickle" for compiled types to be pickle-able as well.""",
             )
 
         if shallMakeModule() and module.isTopModule():
             return (
                 """\
 import sys
-sys.modules[__compiled__.main]._create_compiled_function%(version)s = \
-    sys.modules["%(module_name)s-preLoad"]._create_compiled_function%(version)s
-sys.modules[__compiled__.main]._create_compiled_function%(version)s.__module__ = \
+sys.modules[__compiled__.main]._create_compiled_function = \
+    sys.modules["%(module_name)s-preLoad"]._create_compiled_function
+sys.modules[__compiled__.main]._create_compiled_function.__module__ = \
     __compiled__.main
 """
-                % {"module_name": full_name, "version": "2" if str is bytes else "3"},
+                % {"module_name": full_name},
                 """
-Extending "dill" for compiled types to be pickle-able as well.""",
+Extending for compiled types to be pickle-able as well.""",
             )
 
     def createPreModuleLoadCode(self, module):
-        if shallMakeModule() and module.isTopModule():
-            return (
+        if (
+            shallMakeModule()
+            and module.isTopModule()
+            and self.shallIncludePickleSupportModule("dill")
+        ):
+            yield (
                 self.getPluginDataFileContents("dill-postLoad.py"),
                 """\
 Extending "dill" for compiled types to be pickle-able as well.""",
+            )
+
+        if (
+            shallMakeModule()
+            and module.isTopModule()
+            and self.shallIncludePickleSupportModule("cloudpickle")
+        ):
+            yield (
+                self.getPluginDataFileContents("cloudpickle-postLoad.py"),
+                """\
+Extending "cloudpickle" for compiled types to be pickle-able as well.""",
             )
 
     @staticmethod
