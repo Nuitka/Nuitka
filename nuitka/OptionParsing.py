@@ -563,6 +563,17 @@ not always happening. This of course only makes sense for packages that are
 included in the compilation. Default empty.""",
 )
 
+metadata_group.add_option(
+    "--list-distribution-metadata",
+    action="store_true",
+    dest="list_distribution_metadata",
+    default=False,
+    require_compiling=False,
+    help="""\
+Output the list of distributions and their details for all packages. Default not done.""",
+)
+
+
 del metadata_group
 
 dll_group = parser.add_option_group("DLL files")
@@ -2333,6 +2344,14 @@ def runSpecialCommandsFromOptions(options):
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
         displayPackageData(options.list_package_data)
+        sys.exit(0)
+
+    if options.list_distribution_metadata:
+        from nuitka.tools.scanning.DisplayDistributions import (
+            displayDistributions,
+        )
+
+        displayDistributions()
         sys.exit(0)
 
     if options.edit_module_code:
