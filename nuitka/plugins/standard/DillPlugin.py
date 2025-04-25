@@ -16,6 +16,8 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     plugin_desc = "Required for 'dill' package and 'cloudpickle' compatibility."
     plugin_category = "package-support"
 
+    pickle_package_names = ("dill", "cloudpickle", "ray")
+
     @staticmethod
     def isAlwaysEnabled():
         return False
@@ -23,11 +25,36 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     def __init__(self, pickle_supported_modules):
         self.pickle_supported_modules = pickle_supported_modules or ["all"]
 
+        self.pickle_selected_packages = [
+            self._getPickleSupportPackageName(pickle_package_name)
+            for pickle_package_name in self.pickle_package_names
+            if self.shallIncludePickleSupportModule(pickle_package_name)
+        ]
+
     def shallIncludePickleSupportModule(self, name):
         return (
             name in self.pickle_supported_modules
             or "all" in self.pickle_supported_modules
         )
+
+    @staticmethod
+    def _getPickleSupportPackageName(name):
+        if name == "ray":
+            return "ray.cloudpickle"
+
+        return name
+
+    def _getPostLoadCode(self, name):
+        if name == "ray.cloudpickle":
+            result = self._getPostLoadCode("cloudpickle")
+
+            assert "import cloudpickle" in result
+            result = result.replace(
+                "import cloudpickle", "import ray.cloudpickle as cloudpickle"
+            )
+            return result
+
+        return self.getPluginDataFileContents("%s-postLoad.py" % name)
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -35,7 +62,7 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
             "--include-pickle-support-module",
             action="append",
             dest="pickle_supported_modules",
-            choices=("all", "cloudpickle", "dill"),
+            choices=("all",) + cls.pickle_package_names,
             default=[],
             help="""\
 Include support for these modules to pickle nested compiled functions. You
@@ -48,29 +75,16 @@ the usage.""",
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        if (
-            full_name == "dill"
-            and not shallMakeModule()
-            and self.shallIncludePickleSupportModule("dill")
-        ):
-            return (
-                self.getPluginDataFileContents("dill-postLoad.py"),
-                """\
-Extending "dill" for compiled types to be pickle-able as well.""",
-            )
-
-        if (
-            full_name == "cloudpickle"
-            and not shallMakeModule()
-            and self.shallIncludePickleSupportModule("cloudpickle")
-        ):
-            return (
-                self.getPluginDataFileContents("cloudpickle-postLoad.py"),
-                """\
-Extending "cloudpickle" for compiled types to be pickle-able as well.""",
-            )
-
-        if shallMakeModule() and module.isTopModule():
+        if not shallMakeModule():
+            for candidate in self.pickle_selected_packages:
+                if full_name == candidate:
+                    return (
+                        self._getPostLoadCode(candidate),
+                        """\
+Extending "%s" for compiled types to be pickle-able as well."""
+                        % candidate,
+                    )
+        elif module.isTopModule():
             return (
                 """\
 import sys
@@ -85,27 +99,20 @@ Extending for compiled types to be pickle-able as well.""",
             )
 
     def createPreModuleLoadCode(self, module):
-        if (
-            shallMakeModule()
-            and module.isTopModule()
-            and self.shallIncludePickleSupportModule("dill")
-        ):
-            yield (
-                self.getPluginDataFileContents("dill-postLoad.py"),
-                """\
-Extending "dill" for compiled types to be pickle-able as well.""",
-            )
+        if shallMakeModule() and module.isTopModule():
+            for candidate in self.pickle_selected_packages:
+                if self.shallIncludePickleSupportModule(candidate):
+                    yield (
+                        self._getPostLoadCode(candidate),
+                        """\
+Extending "%s" for compiled types to be pickle-able as well.""",
+                    )
 
-        if (
-            shallMakeModule()
-            and module.isTopModule()
-            and self.shallIncludePickleSupportModule("cloudpickle")
-        ):
-            yield (
-                self.getPluginDataFileContents("cloudpickle-postLoad.py"),
-                """\
-Extending "cloudpickle" for compiled types to be pickle-able as well.""",
-            )
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
+        if module_name.hasOneOfNamespaces(*self.pickle_selected_packages):
+            return True, "Needed to handle %s" % module_name.getTopLevelPackageName()
 
     @staticmethod
     def getPreprocessorSymbols():
