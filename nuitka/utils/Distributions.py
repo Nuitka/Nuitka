@@ -492,7 +492,7 @@ def isDistributionPipPackage(distribution_name):
 
 
 def isDistributionPoetryPackage(distribution_name):
-    return getDistributionInstallerName(distribution_name).startswith("poetry")
+    return getDistributionInstallerName(distribution_name).lower().startswith("poetry")
 
 
 def isDistributionSystemPackage(distribution_name):
