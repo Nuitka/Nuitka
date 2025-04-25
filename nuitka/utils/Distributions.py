@@ -578,7 +578,7 @@ or poetry virtualenv."""
                         "dist-packages" in distribution_path_parts
                         and "local" not in distribution_path_parts
                     ):
-                        _distribution_to_installer[distribution_name] = "Debian"
+                        _distribution_to_installer[distribution_name] = "debian"
                     else:
                         _distribution_to_installer[distribution_name] = "Unknown"
                 else:
