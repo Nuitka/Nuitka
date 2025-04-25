@@ -2071,6 +2071,18 @@
       replacements_plain:
         '_file_reader(self.spec)': '_native_reader(self.spec) or _file_reader(self.spec)'
 
+- module-name: 'incremental' # checksum: c94164bb
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove toml file usage'
+      change_function:
+        '_load_pyproject_toml': 'un-callable'
+        '_load_toml': 'un-callable'
+      when: 'standalone'
+
 - module-name: 'ipcqueue' # checksum: ff2e6560
   implicit-imports:
     - depends:
