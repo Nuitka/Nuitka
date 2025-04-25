@@ -2699,6 +2699,21 @@
     - dirs:
         - 'macos-certificate-truster.app'
 
+- module-name: 'mkl' # checksum: 9a8684da
+  dlls:
+    - by_code:
+        setup_code: |
+          import os, sys
+          library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
+          library_path = os.path.join(sys.prefix, library_path)
+          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+        filename_code: |
+          [os.path.join(library_path, filename)
+           for filename in os.listdir(library_path)
+           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
+      dest_path: '.'
+      when: 'is_conda_package("mkl")'
+
 - module-name: 'mkl._mklinit' # checksum: f45333f2
   dlls:
     - by_code:
