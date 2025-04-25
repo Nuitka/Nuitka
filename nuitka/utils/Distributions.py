@@ -279,7 +279,13 @@ def _get_pkg_resource_distributions():
     return lambda: pkg_resources.working_set
 
 
-def _initPackageToDistributionName():
+def getDistributions():
+    # Cached result, pylint: disable=global-statement
+    global _package_to_distribution
+
+    if _package_to_distribution is not None:
+        return _package_to_distribution
+
     try:
         if isExperimental("force-pkg-resources-metadata"):
             raise ImportError
@@ -296,8 +302,7 @@ def _initPackageToDistributionName():
             # No pip installed, not very many distributions in that case.
             distributions = lambda: ()
 
-    # Cyclic dependency
-    result = {}
+    _package_to_distribution = {}
 
     for distribution in distributions():
         distribution_name = getDistributionName(distribution)
@@ -324,19 +329,19 @@ is typically caused by corruption of its installation."""
 
             package_name = ModuleName(package_name)
 
-            if package_name not in result:
-                result[package_name] = set()
+            if package_name not in _package_to_distribution:
+                _package_to_distribution[package_name] = OrderedSet()
 
             # Skip duplicates, e.g. user package vs. site package installation.
             if any(
                 distribution_name == getDistributionName(dist)
-                for dist in result[package_name]
+                for dist in _package_to_distribution[package_name]
             ):
                 continue
 
-            result[package_name].add(distribution)
+            _package_to_distribution[package_name].add(distribution)
 
-    return result
+    return _package_to_distribution
 
 
 def getDistributionsFromModuleName(module_name):
@@ -345,24 +350,17 @@ def getDistributionsFromModuleName(module_name):
     This can be more than one in case of namespace modules.
     """
 
-    # Cached result, pylint: disable=global-statement
-    global _package_to_distribution
-
-    if _package_to_distribution is None:
-        _package_to_distribution = _initPackageToDistributionName()
+    distributions = getDistributions()
 
     module_name = ModuleName(module_name)
     # Go upwards until we find something, such that contained module names are
     # usable too.
-    while (
-        module_name not in _package_to_distribution
-        and module_name.getPackageName() is not None
-    ):
+    while module_name not in distributions and module_name.getPackageName() is not None:
         module_name = module_name.getPackageName()
 
     return tuple(
         sorted(
-            _package_to_distribution.get(module_name, ()),
+            distributions.get(module_name, ()),
             key=getDistributionName,
         )
     )
@@ -539,8 +537,8 @@ def getDistributionInstallerName(distribution_name):
     We might care of pip, anaconda, Debian, or whatever installed a
     package.
     """
-
     # many cases due to fallback variants, pylint: disable=too-many-branches
+    assert isValidDistributionName(distribution_name), repr(distribution_name)
 
     if distribution_name not in _distribution_to_installer:
         distribution = getDistribution(distribution_name)
