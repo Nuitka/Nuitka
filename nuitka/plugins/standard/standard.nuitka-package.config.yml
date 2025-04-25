@@ -70,6 +70,11 @@
         'if PY2:': '"if %s:" % before_python3'
         'if PY3:': '"if %s:" % python3_or_higher'
 
+- module-name: 'aiohttp' # checksum: b22e1449
+  anti-bloat:
+    - description: 'requires annotations'
+      annotations: 'yes'
+
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
