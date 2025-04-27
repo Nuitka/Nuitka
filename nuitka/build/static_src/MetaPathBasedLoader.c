@@ -980,9 +980,6 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         def->m_base.m_init = entrypoint;
     }
 
-#if PYTHON_VERSION >= 0x3d0
-    Nuitka_SetModuleString(full_name, module);
-#endif
 #else
     PyModuleDef *def = PyModule_GetDef(module);
 
@@ -1021,7 +1018,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
     if (preserved_basename_module != NULL) {
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
-        PRINT_STRING("Restoring preserved module:");
+        PRINT_STRING("Restoring preserved module: ");
         PRINT_ITEM(base_name_obj);
         if (Nuitka_HasModule(tstate, base_name_obj)) {
             PRINT_STRING(" changes ");
@@ -1044,7 +1041,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
             PyObject *key, *value;
 
             PyObject *base_name_prefix = BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(base_name_obj, const_str_dot);
-
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_STRING("Scanning for modules needing correction: ");
+            PRINT_ITEM_LINE(base_name_prefix);
+#endif
             while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
                 // TODO: Should have nuitka_bool return values for these as well maybe.
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
@@ -1071,6 +1071,14 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
                 BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(prefix_name_obj, module_to_correct_name);
 
             PyObject *module_to_correct = Nuitka_GetModule(tstate, module_to_correct_name);
+
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_ITEM(module_to_correct_name);
+            PRINT_STRING(" -> ");
+            PRINT_ITEM(correct_module_name);
+            PRINT_STRING(" changes ");
+            PRINT_ITEM_LINE(module_to_correct);
+#endif
             Nuitka_SetModule(correct_module_name, module_to_correct);
 
             Nuitka_DelModule(tstate, module_to_correct_name);
@@ -1088,6 +1096,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
                                              Nuitka_GetSysModules()
 #endif
     );
+#endif
+
+#if PYTHON_VERSION >= 0x3d0
+    Nuitka_SetModuleString(full_name, module);
 #endif
 
     Py_DECREF(full_name_obj);
