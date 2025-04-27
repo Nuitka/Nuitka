@@ -33,6 +33,7 @@ from nuitka.tools.environments.Virtualenv import (
 )
 from nuitka.tools.testing.Common import (
     createSearchMode,
+    getPythonBinary,
     my_print,
     reportSkip,
     scanDirectoryForTestCaseFolders,
@@ -49,20 +50,44 @@ from nuitka.utils.FileOperations import (
 )
 
 
-def _adaptPyProjectFile(case_dir, source_filename):
+def _adaptPyProjectFile(case_dir, variant):
+    assert variant in ("cpython", "nuitka"), variant
+
+    source_filename = "pyproject.%s.toml" % variant
+
     pyproject_filename = os.path.join(case_dir, "pyproject.toml")
+
+    contents = getFileContents(os.path.join(case_dir, source_filename)).replace(
+        "file:../../..",
+        "file:%s"
+        % (
+            os.path.abspath(os.path.join(case_dir, "..", "..", "..")).replace("\\", "/")
+        ),
+    )
+
+    extra_options = []
+    nuitka_extra_options = os.getenv("NUITKA_EXTRA_OPTIONS")
+
+    if nuitka_extra_options and variant == "nuitka":
+        extra_options.extend(nuitka_extra_options.split())
+
+    if extra_options:
+        # May need to add it.
+        assert "[tool.nuitka]" in contents
+
+        contents += "\n"
+
+        for extra_option in extra_options:
+            assert extra_option.startswith("--"), extra_option
+
+            if "=" not in extra_option:
+                extra_option += "=true"
+
+            contents += "%s\n" % extra_option
 
     putTextFileContents(
         filename=pyproject_filename,
-        contents=getFileContents(os.path.join(case_dir, source_filename)).replace(
-            "file:../../..",
-            "file:%s"
-            % (
-                os.path.abspath(os.path.join(case_dir, "..", "..", "..")).replace(
-                    "\\", "/"
-                )
-            ),
-        ),
+        contents=contents,
     )
 
     return pyproject_filename
@@ -106,12 +131,14 @@ def _handleCase(python_version, nuitka_dir, filename):
         extra_recommendation=None,
     )
 
-    with withVirtualenv("venv_cpython", logger=test_logger) as venv:
+    with withVirtualenv(
+        "venv_cpython", python=getPythonBinary(), logger=test_logger
+    ) as venv:
         if is_pyproject:
             venv.runCommand("pip install build")
 
             pyproject_filename = _adaptPyProjectFile(
-                case_dir=case_dir, source_filename="pyproject.cpython.toml"
+                case_dir=case_dir, variant="cpython"
             )
 
             venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
@@ -189,13 +216,15 @@ def _handleCase(python_version, nuitka_dir, filename):
         extra_recommendation=None,
     )
 
-    with withVirtualenv("venv_nuitka", logger=test_logger) as venv:
+    with withVirtualenv(
+        "venv_nuitka", python=getPythonBinary(), logger=test_logger
+    ) as venv:
         # Create the wheel with Nuitka compilation.
         if is_pyproject:
             venv.runCommand("pip install build")
 
             pyproject_filename = _adaptPyProjectFile(
-                case_dir=case_dir, source_filename="pyproject.nuitka.toml"
+                case_dir=case_dir, variant="nuitka"
             )
 
             venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build -w"])
@@ -280,6 +309,7 @@ def _handleCase(python_version, nuitka_dir, filename):
         my_print(stderr_nuitka)
 
         if exit_nuitka == -11:
+            my_print("EXIT was segfault.")
             os._exit(2)
 
         assert exit_nuitka == 0, exit_nuitka
