@@ -988,6 +988,11 @@
       replacements_plain:
         'key[i].step': '(key[i].step if key[i].step is not None else 1)'
 
+- module-name: 'cyclonedx' # checksum: f0f71611
+  data-files:
+    - dirs:
+        - 'schema/_res'
+
 - module-name: 'cytoolz.functoolz' # checksum: e6faf7b7
   implicit-imports:
     - depends:
