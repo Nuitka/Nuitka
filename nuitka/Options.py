@@ -1193,7 +1193,8 @@ to work. You need to instead selectively add them with \
 
     if (
         not shallCreatePythonPgoInput()
-        and not standalone_mode
+        and not isStandaloneMode()
+        and not shallMakePackage()
         and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
