@@ -2512,7 +2512,7 @@ def _getPythonFlags():
                     _python_flags.add("package_mode")
                 elif part in ("-I", "isolated"):
                     _python_flags.add("isolated")
-                elif part in ("-B", "dontwritebytecode"):
+                elif part in ("-B", "dont_write_bytecode", "dontwritebytecode"):
                     _python_flags.add("dontwritebytecode")
                 elif part in ("-P", "safe_path"):
                     _python_flags.add("safe_path")
