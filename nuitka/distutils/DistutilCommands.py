@@ -276,6 +276,15 @@ class build(distutils.command.build.build):
 
             if package_name is not None:
                 output_dir = os.path.join(build_lib, package_name.asPath())
+
+                # Make sure it's found for compilation which doesn't use the
+                # package location, but pretends its a top level thing, that at
+                # runtime is then loaded more locally.
+                package_part, _include_package_name = module_name.splitModuleBasename()
+
+                addToPythonPath(
+                    os.path.join(main_package_dir, package_part.asPath()), in_front=True
+                )
             else:
                 output_dir = build_lib
 
@@ -283,7 +292,7 @@ class build(distutils.command.build.build):
                 sys.executable,
                 "-m",
                 "nuitka",
-                "--mode=module",
+                "--mode=%s" % ("package" if is_package else "module"),
                 "--enable-plugin=pylint-warnings",
                 "--output-dir=%s" % output_dir,
                 "--nofollow-import-to=*.tests",
@@ -294,20 +303,6 @@ class build(distutils.command.build.build):
                 # "--trace",
                 # "--python-flag=-v"
             ]
-
-            if package_name is not None:
-                package_part, include_package_name = module_name.splitModuleBasename()
-
-                addToPythonPath(
-                    os.path.join(main_package_dir, package_part.asPath()), in_front=True
-                )
-            else:
-                include_package_name = module_name
-
-            if is_package:
-                command.append("--include-package=%s" % include_package_name)
-            else:
-                command.append("--include-module=%s" % include_package_name)
 
             toml_filename = os.getenv("NUITKA_TOML_FILE")
             if toml_filename:
