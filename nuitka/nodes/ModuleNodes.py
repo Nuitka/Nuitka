@@ -747,6 +747,11 @@ class CompiledPythonNamespacePackage(CompiledPythonPackage):
     def isCompiledPythonNamespacePackage():
         return True
 
+    # These have no source code obviously.
+    @staticmethod
+    def getSourceCode():
+        return None
+
 
 def makeUncompiledPythonModule(
     module_name, reason, filename, bytecode, is_package, technical
