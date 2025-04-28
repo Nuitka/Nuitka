@@ -1,0 +1,103 @@
+name: Bug report
+description: Create a report to help us improve
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting an Issue, please review the
+        [Issue Guidelines](https://github.com/Nuitka/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue).
+
+        - Please check whether the bug was already reported or fixed.
+
+        - Please check whether the issue appears when you run the code with Python, if it does, it's not a
+          Nuitka issue.
+
+        - Please check out if the develop version of Nuitka works better for you.
+
+          Download source, packages [from here](https://nuitka.net/doc/download.html) where you will also
+          find instructions how to do it via pip or git.
+
+  - type: textarea
+    attributes:
+      label: Nuitka version, full Python version, flavor, OS, etc
+      description: |
+        Provide the output of this exact command.
+        If you are not providing the full output. The issue cannot be solved and will be considered
+        `invalid`.
+      value: |
+        ```
+        python -m nuitka --version
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How did you install Nuitka and Python
+      description: |
+        Did you use pip, anaconda, deb, rpm, from source, git clone, then install into a virtualenv or
+        not?  This is very important usually.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: The specific PyPI names and versions
+      description: |
+        Provide the output, shortened to the relevant packages.
+      value: |
+        ```
+        python -m pip list -v
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Minimal Reproducible Example
+      description: |
+        Provide a Short, Self Contained, Correct, Eligible Example that demonstrates the issue.  This should be a small piece of code that can be run without any other (or as few as possible) external dependencies. Issues without this will likely be rejected. Often this can be as simple as importing a package. Pointers to repositories with usage of `pipenv` are very welcome, archives with examples are too. This must be only source code. But beware, that e.g. we cannot click around and stuff. Make the usage obvious. Having a compile script in the repo is perfect. This cannot be much code for non-commercial users.
+      placeholder: |
+        ```python
+        # Put your minimal example here
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Nuitka options used
+      description: |
+        Provide the Nuitka options used.  Ideally use the `# nuitka-project:` options feature in the code. Alternatively state the command line.
+        [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
+        Do not use `--deployment`.
+        Do not use `--onefile` if the issue also happens with `--standalone`.
+        Do not disable outputs with `--quiet` and do not disable warnings.
+      placeholder: |
+        ```python
+        # nuitka-project: --standalone
+        # nuitka-project: --enable-plugin=pyside6
+        ```
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Note if this is a regression
+      description: If it used to work in an earlier version of Nuitka, please note what you know about that.
+      options:
+        - "Yes"
+        - "No"
+        - "I don't know"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Anything else
+      description: |
+          Do *not* post screenshots unless absolutely necessary. Capture the output of programs instead.
+    validations:
+      required: true
