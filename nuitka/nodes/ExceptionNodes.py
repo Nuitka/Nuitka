@@ -57,6 +57,36 @@ class StatementRaiseException(
         # TODO: Limit by known type.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        exception_type = self.subnode_exception_type
+        if exception_type.isCompileTimeConstant():
+            exception_type_value = exception_type.getCompileTimeConstant()
+
+            if not isinstance(exception_type_value, type) or (
+                not isinstance(exception_type_value, BaseException)
+                and not issubclass(exception_type_value, BaseException)
+            ):
+                try:
+                    raise exception_type_value
+                except TypeError as exc:
+                    from .NodeMakingHelpers import (
+                        makeRaiseExceptionStatementFromInstance,
+                    )
+
+                    return (
+                        makeRaiseExceptionStatementFromInstance(
+                            source_ref=self.source_ref, exception=exc
+                        ),
+                        "new_raise",
+                        "Compile time constant is known to not be an exception.",
+                    )
+
+                else:
+                    # Really expecting a "TypeError" to be raised and not say
+                    # an "AssertionError".
+                    assert False, exception_type_value
+
+                return
+
         return self, None, None
 
     @staticmethod
