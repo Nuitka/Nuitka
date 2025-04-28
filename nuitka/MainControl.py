@@ -230,7 +230,7 @@ def _createMainModule():
         scanIncludedPackage(package_name)
 
     for module_name in Options.getMustIncludeModules():
-        module_name, module_filename, _module_kind, finding = locateModule(
+        module_name, module_filename, module_kind, finding = locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
@@ -238,15 +238,22 @@ def _createMainModule():
 
         if finding != "absolute":
             inclusion_logger.sysexit(
-                "Error, failed to locate module '%s' you asked to include."
+                "Error, failed to locate module '%s' that you asked to include."
                 % module_name.asString()
             )
 
-        scanPluginSinglePath(
-            plugin_filename=module_filename,
-            module_package=module_name.getPackageName(),
-            package_only=True,
-        )
+        if module_kind == "built-in":
+            # TODO:
+            inclusion_logger.warning(
+                "Note, module '%s' that you asked to include is built-in."
+                % module_name.asString()
+            )
+        else:
+            scanPluginSinglePath(
+                plugin_filename=module_filename,
+                module_package=module_name.getPackageName(),
+                package_only=True,
+            )
 
     # Allow plugins to add more modules based on the initial set being complete.
     Plugins.onModuleInitialSet()
