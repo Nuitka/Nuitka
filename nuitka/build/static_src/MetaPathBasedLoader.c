@@ -1836,6 +1836,8 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
 #endif
 
     if ((entry != NULL) && ((entry->flags & NUITKA_EXTENSION_MODULE_FLAG) != 0)) {
+        Py_INCREF(module);
+
         if (unlikely(!PyModule_Check(module))) {
             return module;
         }
@@ -1853,6 +1855,8 @@ static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyOb
         res = PyModule_ExecDef(module, def);
 
         if (unlikely(res == -1)) {
+            Py_DECREF(module);
+
             return NULL;
         }
 
