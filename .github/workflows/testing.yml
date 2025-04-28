@@ -49,8 +49,14 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
+          set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          readelf -d EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-readelf.txt
+          ldd EmptyModuleTest.dist/EmptyModuleTest.bin | tee standalone-binary-ldd.txt
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -58,6 +64,8 @@ jobs:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
+            standalone-binary-readelf.txt
+            standalone-binary-ldd.txt
 
       # This can be used to ssh into GitHub actions if debugging is needed.
       # - uses: actions/checkout@v4
@@ -117,9 +125,12 @@ jobs:
             - '3.13'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
@@ -139,8 +150,12 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
+          set -x
           python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4
@@ -169,14 +184,17 @@ jobs:
             - '3.13'
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+
+      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: 🧳 Install Nuitka and dependencies
         run: |
@@ -185,8 +203,12 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
-          python -m nuitka --show-scons --run --report=compilation-report-exe.xml tests\basics\EmptyModuleTest.py
+          set -x
+          python -m nuitka --mode=module --show-scons --run --report=compilation-report-module.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --assume-yes-for-downloads --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Archive compilation reports for empty modules
         uses: actions/upload-artifact@v4

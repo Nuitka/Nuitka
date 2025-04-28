@@ -72,7 +72,7 @@ Error, empty (or malformed?) user package configuration '%s' used."""
                 )
 
             if module_name in self.data:
-                general.sysexit("Duplicate module-name '%s' encountered." % module_name)
+                general.sysexit("Duplicate module name '%s' encountered." % module_name)
 
             self.data[module_name] = item
 

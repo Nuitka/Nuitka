@@ -26,14 +26,19 @@ def _execPipenvCommand(logger, installed_python, command, retry=False):
             logger=logger,
         )
     except subprocess.CalledProcessError:
-        if command in ("install", "update") and not retry:
+        if command in ("install", "update", "sync") and not retry:
             _execPipenvCommand(
                 logger=logger, installed_python=installed_python, command="--rm"
             )
             _execPipenvCommand(
-                logger=logger, installed_python=installed_python, command=command
+                logger=logger,
+                installed_python=installed_python,
+                command=command,
+                retry=True,
             )
-
+        elif command == "--rm":
+            # Can fail if it doesn't exist.
+            pass
         else:
             raise
 
@@ -95,7 +100,7 @@ def updatePipenvLockFile(
             )
 
             _execPipenvCommand(
-                logger=logger, installed_python=installed_python, command="install"
+                logger=logger, installed_python=installed_python, command="sync"
             )
 
         else:
@@ -113,18 +118,15 @@ def updatePipenvLockFile(
             % pipenv_filename_full
         )
 
-        check_call(
-            [
-                installed_python.getPythonExe(),
-                "-m",
-                "pipenv",
-                "install",
-                "--python",
-                installed_python.getPythonExe(),
-            ]
+        _execPipenvCommand(
+            logger=logger, installed_python=installed_python, command="install"
         )
 
     return "Pipfile.lock"
+
+
+def deletePipenvEnvironment(logger, installed_python):
+    _execPipenvCommand(logger=logger, installed_python=installed_python, command="--rm")
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

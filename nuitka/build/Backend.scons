@@ -92,7 +92,8 @@ from .SconsUtils import (
     writeSconsReport,
 )
 
-# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,linkflags,libpath
+# spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,
+# spell-checker: ignore linkflags,libpath,libflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -117,9 +118,6 @@ main_module_name = getArgumentDefaulted("main_module_name", "__main__")
 
 # Full names shall be used, no remapping for cacheable filenames.
 full_names = getArgumentBool("full_names", False)
-
-# Module mode: Create a Python extension module, create an executable otherwise.
-module_mode = getArgumentBool("module_mode", False)
 
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
@@ -205,18 +203,6 @@ if os.name == "nt" and not mingw_mode and clang_mode:
 # modules loader.
 frozen_modules = getArgumentInt("frozen_modules", 0)
 
-# Standalone mode
-standalone_mode = getArgumentBool("standalone_mode", False)
-
-# Onefile mode
-onefile_mode = getArgumentBool("onefile_mode", False)
-
-# MacOS bundle
-macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
-
-# Onefile temp mode
-onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
-
 forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
 forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
 
@@ -260,10 +246,6 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
 python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
-# python_sysflag_dontwritebytecode
-python_sysflag_dontwritebytecode = getArgumentBool(
-    "python_sysflag_dontwritebytecode", False
-)
 # python_flag_no_asserts
 python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
 # python_flag_no_docstrings
@@ -275,8 +257,16 @@ python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
 )
 
-# python_sysflag_unbuffered
+# python_sysflag_unbuffered (--python-flag=-U)
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
+
+# python_sysflag_dontwritebytecode (--python-flag=-B)
+python_sysflag_dontwritebytecode = getArgumentBool(
+    "python_sysflag_dontwritebytecode", False
+)
+
+# python_sysflag_safe_path (--python-flag=-P)
+python_sysflag_safe_path = getArgumentBool("python_sysflag_safe_path", False)
 
 # python_sysflag_isolated
 python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
@@ -365,8 +355,6 @@ env = checkWindowsCompilerFound(
 
 env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
-env.module_mode = module_mode
-env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.debugger_mode = debugger_mode
 env.unstripped_mode = unstripped_mode
@@ -458,35 +446,24 @@ if env.msvc_mode:
     # No incremental linking.
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
-    if env.module_mode:
+    if env.module_mode or env.dll_mode:
         # Make sure we handle import library on our own and put it into the
         # build directory, spell-checker: ignore IMPLIB
 
         no_import_lib = True
         env.Append(
             LINKFLAGS=[
-                "/INCREMENTAL:NO",
                 "/IMPLIB:%s" % os.path.join(source_dir, "import.lib"),
             ]
         )
 
-if not env.module_mode:
+if env.exe_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
 
 if env.debug_mode:
     if env.gcc_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
-
-        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
-            env.Append(
-                CCFLAGS=[
-                    "-Wall",
-                    "-Werror",
-                ]
-            )
-        else:
-            env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
         env.Append(
             CCFLAGS=[
@@ -502,9 +479,6 @@ if env.debug_mode:
         )
 
     elif env.msvc_mode:
-        if "allow-c-warnings" not in env.experimental_flags and not env.debugger_mode:
-            env.Append(CCFLAGS=["/WX"])
-
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -542,18 +516,6 @@ if profile_mode:
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
-
-if env.standalone_mode:
-    env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
-
-if macos_bundle_mode:
-    env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE"])
-
-if onefile_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
-
-if onefile_temp_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
 
 if deployment_mode:
     env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
@@ -631,6 +593,7 @@ not satisfied!"""
             )
 
     if python_version >= (3, 13):
+        # spell-checker: ignore mimalloc
         yield os.path.join(candidate, "internal", "mimalloc")
 
     if env.self_compiled_python_uninstalled:
@@ -732,7 +695,7 @@ if os.name == "nt":
 
         if not env.msys2_mingw_python:
             addWinLib()
-elif not env.module_mode:
+elif env.exe_mode or env.dll_mode:
     # Add the python library path to the library path
     if env.self_compiled_python_uninstalled:
         python_lib_path = python_prefix_external
@@ -811,7 +774,7 @@ elif not env.module_mode:
         env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path])
 
 if isMacOS():
-    if env.module_mode:
+    if env.module_mode or env.dll_mode:
         # Dynamic lookup needed for extension modules.
         env.Append(LINKFLAGS=["-undefined", "dynamic_lookup"])
     else:
@@ -848,7 +811,16 @@ env.Append(
 )
 
 # Set load libpython from binary directory default
-if env.gcc_mode and not isMacOS() and not os.name == "nt" and not env.module_mode:
+if (
+    env.gcc_mode
+    and not isMacOS()
+    and not isAIX()
+    and not os.name == "nt"
+    and (env.exe_mode or env.dll_mode)
+):
+    # TODO: It would appear that this should be merged with above code that does
+    # env.Append(LINKFLAGS=["-Wl,-rpath=" + python_lib_path]) relatively
+    # unconditionally already.
     if env.standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -866,7 +838,7 @@ if env.gcc_mode and not isMacOS() and not os.name == "nt" and not env.module_mod
 
 addConstantBlobFile(
     env=env,
-    resource_desc=decideConstantsBlobResourceMode(env=env, module_mode=module_mode),
+    resource_desc=decideConstantsBlobResourceMode(env=env),
     blob_filename=getConstantBlobFilename(env.source_dir),
     target_arch=target_arch,
 )
@@ -874,16 +846,7 @@ addConstantBlobFile(
 env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
 # Tell compiler to create a shared library or program.
-if env.module_mode:
-    if isGccName(env.the_cc_name):
-        env.Append(CCFLAGS=["-shared"])
-    elif env.clang_mode:
-        pass
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
-    else:
-        assert False, env.the_cc_name
-else:
+if env.exe_mode:
     if env.msvc_mode:
         # For complete outputs, we have to match the C runtime of the Python DLL, if any,
         # for Nuitka-Python there is of course none.
@@ -894,11 +857,15 @@ else:
             env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
         else:
             env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
-
-if env.module_mode:
-    env.Append(CPPDEFINES=["_NUITKA_MODULE"])
 else:
-    env.Append(CPPDEFINES=["_NUITKA_EXE"])
+    if isGccName(env.the_cc_name):
+        env.Append(CCFLAGS=["-shared"])
+    elif env.clang_mode:
+        pass
+    elif env.msvc_mode:
+        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
+    else:
+        assert False, env.the_cc_name
 
 
 def discoverSourceFiles():
@@ -917,7 +884,12 @@ def discoverSourceFiles():
     static_src_filenames = []
 
     # Main program, unless of course it's a Python module/package we build.
-    if not env.module_mode:
+    if env.exe_mode:
+        static_src_filenames.append("MainProgram.c")
+
+    # TODO: Should have its dedicated file rather, since DLLs must not do
+    # a lot of things.
+    if env.dll_mode:
         static_src_filenames.append("MainProgram.c")
 
     # Compiled types.
@@ -956,6 +928,14 @@ if env.module_mode:
 
     assert getFilenameExtension(result_base_path) == "", result_base_path
 
+    env["SHLIBSUFFIX"] = module_suffix
+
+    target = env.SharedLibrary(
+        result_base_path, source_files, no_import_lib=no_import_lib
+    )
+elif env.dll_mode:
+    module_suffix = getFilenameExtension(result_exe)
+    result_base_path = changeFilenameExtension(result_exe, "")
     env["SHLIBSUFFIX"] = module_suffix
 
     target = env.SharedLibrary(
@@ -1019,6 +999,12 @@ def createBuildDefinitionsFile():
     )
 
     build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+
+    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+        1 if python_sysflag_dontwritebytecode else 0
+    )
+
+    build_definitions["SYSFLAG_SAFE_PATH"] = 1 if python_sysflag_safe_path else 0
 
     build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 

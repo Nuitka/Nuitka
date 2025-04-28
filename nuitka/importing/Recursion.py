@@ -22,8 +22,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import (
+    getExtensionModuleSuffixes,
     getPackageDirFilename,
-    getSharedLibrarySuffixes,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -230,6 +230,10 @@ def _decideRecursion(
     if plugin_decision is not None:
         return plugin_decision
 
+    if Options.shallMakePackage():
+        if module_name.hasNamespace(getRootTopModule().getFullName()):
+            return True, "Submodule of compiled package."
+
     if extra_recursion:
         return True, "Lives in user provided directory."
 
@@ -320,8 +324,8 @@ def _addIncludedModule(module, package_only):
 
             package_dir = package_filename
 
-            # Only include it, if it contains actual modules, which will
-            # recurse to this one and find it again.
+            # Only include it, if it contains actual modules, they will recurse
+            # to this one as a parent and find it again.
         else:
             package_dir = os.path.dirname(package_filename)
 
@@ -353,7 +357,7 @@ def _addIncludedModule(module, package_only):
                         package_only=False,
                     )
                 else:
-                    for suffix in getSharedLibrarySuffixes():
+                    for suffix in getExtensionModuleSuffixes():
                         if (
                             sub_filename.endswith(suffix)
                             and "." not in sub_filename[: -len(suffix)]
@@ -432,7 +436,7 @@ the compiled result, and therefore asking to include them makes no sense.
 def scanPluginPath(plugin_filename, module_package):
     if Options.isShowInclusion():
         recursion_logger.info(
-            "Checking top level inclusion path '%s' '%s'."
+            "Checking top level inclusion path '%s' for package '%s'."
             % (plugin_filename, module_package)
         )
 
@@ -457,7 +461,7 @@ def scanPluginPath(plugin_filename, module_package):
                 )
                 continue
 
-            for suffix in getSharedLibrarySuffixes():
+            for suffix in getExtensionModuleSuffixes():
                 if sub_path.endswith(suffix):
                     scanPluginSinglePath(
                         sub_path,

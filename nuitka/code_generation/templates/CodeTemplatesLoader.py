@@ -135,7 +135,7 @@ void copyFrozenModulesTo(struct _frozen *destination) {
     };
 }
 
-#ifdef _NUITKA_MODULE
+#if _NUITKA_MODULE_MODE
 
 struct Nuitka_MetaPathBasedLoaderEntry const *getLoaderEntry(char const *name) {
     struct Nuitka_MetaPathBasedLoaderEntry *current = meta_path_loader_entries;

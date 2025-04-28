@@ -1262,6 +1262,14 @@ def getExternalUsePath(filename, only_dirname=False):
 _report_path_cache = {}
 
 
+def getReportSourceReference(source_ref):
+    """Convert a source ref into a path suitable for user output."""
+    return "%s:%s" % (
+        getReportPath(source_ref.getFilename()),
+        source_ref.getLineNumber(),
+    )
+
+
 def getReportPath(filename, prefixes=()):
     """Convert filename into a path suitable for reporting, avoiding home directory paths."""
     key = filename, tuple(prefixes)
@@ -1270,6 +1278,15 @@ def getReportPath(filename, prefixes=()):
         _report_path_cache[key] = _getReportPath(filename, prefixes)
 
     return _report_path_cache[key]
+
+
+def isNonLocalPath(path):
+    """Tell if a path is potentially outside of current directory.
+
+    This is not reliable and mainly for reporting purposes to identify paths
+    work looking to abbreviate.
+    """
+    return path.startswith("..") or os.path.isabs(path)
 
 
 def _getReportPath(filename, prefixes):

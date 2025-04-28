@@ -1100,7 +1100,7 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
 }
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
+int Nuitka_Function_GetFunctionCodeIndex(PyThreadState *tstate, struct Nuitka_FunctionObject *function,
                                          function_impl_code const *function_table) {
 
     if (function->m_c_code == _Nuitka_FunctionEmptyCodeTrueImpl) {
@@ -1132,7 +1132,6 @@ int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
     }
 
     if (*current == NULL) {
-        PyThreadState *tstate = PyThreadState_GET();
 #if 0
         PRINT_STRING("Looking for:");
         PRINT_ITEM((PyObject *)function);
@@ -1145,11 +1144,78 @@ int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
     return offset;
 }
 
-struct Nuitka_FunctionObject *
-Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
-                                           PyObject *code_object_desc, PyObject *constant_return_value,
-                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
-                                           function_impl_code const *function_table, int function_table_size) {
+PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *function,
+                                           function_impl_code const *function_table) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    int offset = Nuitka_Function_GetFunctionCodeIndex(tstate, function, function_table);
+
+    if (unlikely(offset == -1)) {
+#if 0
+    PRINT_STRING("Looking for:");
+    PRINT_ITEM(func);
+    PRINT_NEW_LINE();
+#endif
+        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
+        return NULL;
+    }
+
+    PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
+
+    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 10);
+    PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
+    PyTuple_SET_ITEM(result, 1, code_object_desc);
+    PyTuple_SET_ITEM0(result, 2, function->m_defaults);
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
+#else
+    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
+#endif
+    PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
+
+    if (offset == -5) {
+        CHECK_OBJECT(function->m_constant_return_value);
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, function->m_constant_return_value);
+    } else {
+        PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
+    }
+
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 6, function->m_qualname);
+#else
+    PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
+#endif
+
+    PyObject *closure = PyObject_GetAttr((PyObject *)function, const_str_plain___closure__);
+
+    if (closure != Py_None) {
+        for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(closure); i++) {
+            struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)PyTuple_GET_ITEM(closure, i);
+
+            assert(Nuitka_Cell_Check((PyObject *)cell));
+
+            PyTuple_SET_ITEM0(closure, i, cell->ob_ref);
+        }
+    }
+
+    PyTuple_SET_ITEM(result, 7, closure);
+
+#if PYTHON_VERSION >= 0x300
+    PyTuple_SET_ITEM0(result, 8, function->m_annotations ? function->m_annotations : Py_None);
+#else
+    PyTuple_SET_ITEM_IMMORTAL(result, 8, Py_None);
+#endif
+
+    PyTuple_SET_ITEM0(result, 9, function->m_dict ? function->m_dict : Py_None);
+    CHECK_OBJECT_DEEP(result);
+
+    return result;
+}
+
+struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
+    PyObject *module, PyObject *function_qualname, PyObject *function_index, PyObject *code_object_desc,
+    PyObject *constant_return_value, PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
+    PyObject *annotations, PyObject *func_dict, function_impl_code const *function_table, int function_table_size) {
     int offset = PyLong_AsLong(function_index);
 
     if (offset > function_table_size || offset < -5 || offset == -1) {
@@ -1204,15 +1270,29 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
         closure_cells[i] = Nuitka_Cell_New0(PyTuple_GET_ITEM(closure, i));
     }
 
+    // Function creation takes no reference to these.
+    Py_INCREF(defaults);
+
+    if (kw_defaults == Py_None) {
+        kw_defaults = NULL;
+    } else {
+        Py_INCREF(kw_defaults);
+    }
+
+    if (annotations == Py_None) {
+        annotations = NULL;
+    } else {
+        Py_INCREF(annotations);
+    }
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(offset >= 0 ? function_table[offset] : NULL, code_object->co_name,
 #if PYTHON_VERSION >= 0x300
-                            NULL, // TODO: Not transferring qualname yet
+                            function_qualname,
 #endif
                             code_object, defaults,
 #if PYTHON_VERSION >= 0x300
-                            kw_defaults,
-                            NULL, // TODO: Not transferring annotations
+                            kw_defaults, annotations,
 #endif
                             module, doc, closure_cells, closure_size);
 
@@ -1220,19 +1300,26 @@ Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_
 
     if (offset == -2) {
         Nuitka_Function_EnableConstReturnTrue(result);
-    }
-    if (offset == -3) {
+    } else if (offset == -3) {
         Nuitka_Function_EnableConstReturnFalse(result);
-    }
-    if (offset == -4) {
+    } else if (offset == -4) {
         result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
-    }
-    if (offset == -5) {
+    } else if (offset == -5) {
         CHECK_OBJECT(constant_return_value);
 
         Nuitka_Function_EnableConstReturnGeneric(result, constant_return_value);
 
         Py_INCREF_IMMORTAL(constant_return_value);
+    } else if (offset < 0) {
+        // Try to catch if we are missing values for the specialized shared
+        // bodies.
+        NUITKA_CANNOT_GET_HERE("Compiled function unpickle problem");
+    }
+
+    assert(result->m_dict == NULL);
+    if (func_dict != Py_None) {
+        Py_INCREF(func_dict);
+        result->m_dict = func_dict;
     }
 
     assert(result->m_c_code != NULL);

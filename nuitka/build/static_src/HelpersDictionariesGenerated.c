@@ -7,33 +7,6 @@
 
 /* WARNING, this code is GENERATED. Modify the template HelperDictionaryCopy.c.j2 instead! */
 
-// More than 2/3 of the keys are used, i.e. no space is wasted.
-#if PYTHON_VERSION < 0x360
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_size * 2) / 3)
-#else
-#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)
-#endif
-
-static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
-    Py_ssize_t values_size = sizeof(PyObject *) * size;
-
-#if PYTHON_VERSION < 0x3b0
-    return (PyDictValues *)NuitkaMem_Malloc(values_size);
-#else
-    // With Python3.11 or higher a prefix is allocated too.
-    size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
-    size_t n = prefix_size + values_size;
-    uint8_t *mem = (uint8_t *)NuitkaMem_Malloc(n);
-
-    assert(mem != NULL);
-
-    assert(prefix_size % sizeof(PyObject *) == 0);
-    mem[prefix_size - 1] = (uint8_t)prefix_size;
-
-    return (PyDictValues *)(mem + prefix_size);
-#endif
-}
-
 PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
     CHECK_OBJECT(dict_value);
@@ -42,6 +15,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
     return PyDict_Copy(dict_value);
 #else
     PyObject *result;
+    Py_BEGIN_CRITICAL_SECTION(dict_value);
 
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
@@ -81,6 +55,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             Py_ssize_t size = dict_mp->ma_keys->dk_nentries + dict_mp->ma_keys->dk_usable;
 #endif
 
+#if PYTHON_VERSION < 0x3d0
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
@@ -88,6 +63,9 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
             memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
+#endif
+#else
+            PyDictValues *new_values = _Nuitka_PyDict_copy_values(dict_mp->ma_values);
 #endif
 
             result_mp->ma_values = new_values;
@@ -234,6 +212,7 @@ PyObject *DICT_COPY(PyThreadState *tstate, PyObject *dict_value) {
 #endif
     }
 
+    Py_END_CRITICAL_SECTION();
     return result;
 #endif
 }
@@ -258,6 +237,8 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
         }
     }
 #else
+    Py_BEGIN_CRITICAL_SECTION(dict_value);
+
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
@@ -299,6 +280,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             Py_ssize_t size = dict_mp->ma_keys->dk_nentries + dict_mp->ma_keys->dk_usable;
 #endif
 
+#if PYTHON_VERSION < 0x3d0
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
@@ -306,6 +288,9 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
             memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
+#endif
+#else
+            PyDictValues *new_values = _Nuitka_PyDict_copy_values(dict_mp->ma_values);
 #endif
 
             result_mp->ma_values = new_values;
@@ -462,6 +447,7 @@ PyObject *DEEP_COPY_DICT(PyThreadState *tstate, PyObject *dict_value) {
 #endif
     }
 
+    Py_END_CRITICAL_SECTION();
 #endif
 
     return result;
@@ -487,6 +473,8 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
         }
     }
 #else
+    Py_BEGIN_CRITICAL_SECTION(dict_value);
+
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
@@ -551,6 +539,7 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
 #endif
             }
 
+#if PYTHON_VERSION < 0x3d0
             PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
@@ -558,6 +547,9 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
             // Need to preserve values prefix.
             size_t prefix_size = ((uint8_t *)new_values)[-1];
             memcpy((char *)new_values - prefix_size, (char *)dict_mp->ma_values - prefix_size, prefix_size - 1);
+#endif
+#else
+            PyDictValues *new_values = _Nuitka_PyDict_copy_values(dict_mp->ma_values);
 #endif
 
             result_mp->ma_values = new_values;
@@ -719,6 +711,7 @@ static PyObject *COPY_DICT_KW(PyThreadState *tstate, PyObject *dict_value) {
 #endif
     }
 
+    Py_END_CRITICAL_SECTION();
 #endif
 
     if (unlikely(had_kw_error)) {

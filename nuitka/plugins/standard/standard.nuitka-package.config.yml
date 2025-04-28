@@ -70,6 +70,11 @@
         'if PY2:': '"if %s:" % before_python3'
         'if PY3:': '"if %s:" % python3_or_higher'
 
+- module-name: 'aiohttp' # checksum: b22e1449
+  anti-bloat:
+    - description: 'requires annotations'
+      annotations: 'yes'
+
 - module-name: 'altair' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
@@ -505,12 +510,17 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: 7d07a2d1
+- module-name: 'black' # checksum: db60cdd5
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+  # TODO: This ought to be determined at run-time.
+  implicit-imports:
+    - depends:
+        - '30fcd23745efe32ce681__mypyc'
 
 - module-name: 'blib2to3' # checksum: a54cab2a
   data-files:
@@ -829,6 +839,8 @@
         'IPython': 'ignore'
       when: 'not use_ipython'
 
+  # TODO: This is probably untrue, maybe IPython used to pull in black, and this
+  # could well be removed.
   implicit-imports:
     - depends:
         - '30fcd23745efe32ce681__mypyc'
@@ -838,14 +850,13 @@
     - dirs:
         - 'resources'
 
-- module-name: 'cpuinfo.cpuinfo' # checksum: fc219e6
+- module-name: 'cpuinfo.cpuinfo' # checksum: 3ad7b267
   anti-bloat:
     - description: 'workaround for forking itself'
       replacements_plain:
         "getattr(sys, 'frozen', False)": 'True'
         'getattr(sys, "frozen", False)': 'True'
         'CAN_CALL_CPUID_IN_SUBPROCESS = True': 'CAN_CALL_CPUID_IN_SUBPROCESS = False'
-      when: 'win32'
 
 - module-name: 'Crypto.Util._raw_api' # checksum: ceb2cd86
   data-files:
@@ -976,6 +987,11 @@
     - description: 'workaround for disallowed slice optimization'
       replacements_plain:
         'key[i].step': '(key[i].step if key[i].step is not None else 1)'
+
+- module-name: 'cyclonedx' # checksum: f0f71611
+  data-files:
+    - dirs:
+        - 'schema/_res'
 
 - module-name: 'cytoolz.functoolz' # checksum: e6faf7b7
   implicit-imports:
@@ -1210,7 +1226,7 @@
     - dirs:
         - 'locale/en'
 
-- module-name: 'django.core.management' # checksum: 5f852018
+- module-name: 'django.core.management' # checksum: 5ac4f83f
   parameters:
     - 'name': 'settings-module'
       'values': 'checkModuleName(value)'
@@ -1220,7 +1236,15 @@
       - 'settings = importlib.import_module(os.getenv("PARAMETER_SETTINGS_MODULE")) if os.getenv("PARAMETER_SETTINGS_MODULE") else None'
     declarations:
       'django_installed_apps': 'settings.INSTALLED_APPS if settings else ()'
+      'django_middleware': 'tuple(v.rsplit(".",1)[0] for v in (getattr(settings, "MIDDLEWARE", ()) if settings else ()))'
       'django_database_engines': 'tuple(db_conf["ENGINE"]+".base" for (name, db_conf) in sorted(settings.DATABASES.items())) if settings else ()'
+      'django_url_module': 'getattr(settings, "ROOT_URLCONF", ()) if settings else ()'
+      'django_session_serializer': 'getattr(settings, "SESSION_SERIALIZER", "django.contrib.sessions.serializers") if settings else "django.contrib.sessions.serializers"'
+      'django_csrf_failure_view': 'getattr(settings, "CSRF_FAILURE_VIEW", "django.views.csrf.csrf_failure").rsplit(".", 1)[0] if settings else "django.views.csrf"'
+      'django_caches': 'sum((tuple(v.rsplit(".",1)[0] for v in value.values()) for value in getattr(settings, "CACHES", {"": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}).values()), ())'
+      'django_wsgi': 'getattr(settings, "WSGI_APPLICATION", "django.core.handlers.wsgi.dummy").rsplit(".",1)[0] if settings else "django.core.handlers.wsgi"'
+      'django_storage': 'getattr(settings, "MESSAGE_STORAGE", "django.contrib.messages.storage.fallback.dummy").rsplit(".",1)[0] if settings else "django.contrib.messages.storage.fallback"'
+
     environment:
       'PARAMETER_SETTINGS_MODULE': 'get_parameter("settings-module", "")'
   anti-bloat:
@@ -1235,7 +1259,20 @@
         - 'get_parameter("settings-module", ())'
         - '["%s.management.commands.*" % x for x in get_variable("django_installed_apps")]'
         - 'get_variable("django_installed_apps")'
+        - '["%s.apps" % x for x in get_variable("django_installed_apps")]'
+        - '["%s.models" % x for x in get_variable("django_installed_apps")]'
+        - 'get_variable("django_middleware")'
         - 'get_variable("django_database_engines")'
+        - 'get_variable("django_url_module")'
+        - 'get_variable("django_csrf_failure_view")'
+        - 'get_variable("django_caches")'
+        - 'get_variable("django_wsgi")'
+        - 'get_variable("django_session_serializer")'
+        - 'get_variable("django_storage")'
+        - 'django.template.loaders.*'
+        - 'django.contrib.auth.middleware'
+        - 'django.contrib.messages.middleware'
+        - 'django.contrib.sessions.middleware'
 
   options:
     checks:
@@ -1243,12 +1280,15 @@
         support_info: 'parameter'
         when: 'get_parameter("settings-module", None) is None'
 
-- module-name: 'django.core.management.commands.shell' # checksum: 7d07a2d1
+- module-name: 'django.core.management.commands.shell' # checksum: 271ed2ec
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+    - description: 'remove bpython reference'
+      no-auto-follow:
+        'bpython': 'ignore'
 
 - module-name: 'django.db.backends' # checksum: 5a0c4e00
   implicit-imports:
@@ -1272,6 +1312,18 @@
     - depends:
         - 'django.template.loader_tags'
 
+- module-name: 'django.utils.autoreload' # checksum: dd39f804
+  anti-bloat:
+    - description: 'workaround for django self forking'
+      change_function:
+        'get_child_arguments': "'lambda : [__nuitka_binary_exe]+sys.argv[1:]'"
+      when: 'standalone'
+
+- module-name: 'django.views' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
 - module-name: 'django.views.debug' # checksum: 466f47d3
   anti-bloat:
     - description: 'workaround columns not available from compiled frame execution'
@@ -1290,6 +1342,11 @@
     - include-metadata:
         - 'docling-core'
 
+- module-name: 'docx' # checksum: 2e123618
+  data-files:
+    - dirs:
+        - 'templates'
+
 - module-name: 'dotenv' # checksum: c120bb25
   anti-bloat:
     - description: 'remove IPython reference'
@@ -1306,6 +1363,12 @@
       replacements_plain:
         'while frame.f_code.co_filename == current_file': 'if False'
         'frame_filename = frame.f_code.co_filename': 'frame_filename = os.path.dirname(__file__)'
+
+- module-name: 'duckdb' # checksum: 8daca454
+  implicit-imports:
+    - depends:
+      # The anti-bloat avoids this one, but we need to force it.
+        - '_datetime'
 
 - module-name: 'easyocr' # checksum: 58ad3ee8
   data-files:
@@ -2019,6 +2082,18 @@
       replacements_plain:
         '_file_reader(self.spec)': '_native_reader(self.spec) or _file_reader(self.spec)'
 
+- module-name: 'incremental' # checksum: c94164bb
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove toml file usage'
+      change_function:
+        '_load_pyproject_toml': 'un-callable'
+        '_load_toml': 'un-callable'
+      when: 'standalone'
+
 - module-name: 'ipcqueue' # checksum: ff2e6560
   implicit-imports:
     - depends:
@@ -2617,6 +2692,34 @@
         - 'mercurial.charencode'
         - 'mercurial.cext.parsers'
 
+- module-name: 'mitmproxy' # checksum: 4eec16b2
+  implicit-imports:
+    - depends:
+        - 'mitmproxy_macos'
+        - 'passlib.handlers.sha1_crypt'
+
+- module-name: 'mitmproxy_macos' # checksum: a855017f
+  data-files:
+    - patterns:
+        - 'Mitmproxy Redirector.app.tar'
+    - dirs:
+        - 'macos-certificate-truster.app'
+
+- module-name: 'mkl' # checksum: 9a8684da
+  dlls:
+    - by_code:
+        setup_code: |
+          import os, sys
+          library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
+          library_path = os.path.join(sys.prefix, library_path)
+          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+        filename_code: |
+          [os.path.join(library_path, filename)
+           for filename in os.listdir(library_path)
+           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
+      dest_path: '.'
+      when: 'is_conda_package("mkl")'
+
 - module-name: 'mkl._mklinit' # checksum: f45333f2
   dlls:
     - by_code:
@@ -2656,17 +2759,48 @@
         '_get_cuda_home': 'un-callable'
       when: 'not use_setuptools'
 
+- module-name: 'mne' # checksum: 6aaa99cc
+  data-files:
+    - dirs:
+        - 'data'
+
+- module-name: 'mne.channels' # checksum: f40fc664
+  data-files:
+    - patterns:
+        - 'data/layouts/**.*'
+        - 'data/montages/**.*'
+        - 'data/neighbors/**.*'
+
 - module-name: 'mne.fixes' # checksum: dd3b5473
   anti-bloat:
     - no-auto-follow:
         'numba': 'ignore'
       when: 'not use_numba'
 
+- module-name: 'mne.html_templates' # checksum: d0ca6c4a
+  data-files:
+    - patterns:
+        - '**/*.jinja'
+        - '**/*.css'
+        - '**/*.js'
+
+- module-name: 'mne.icons' # checksum: d7996667
+  data-files:
+    - patterns:
+        - '**/*.png'
+        - '**/*.ico'
+        - '**/*.svg'
+
 - module-name: 'mne.io.array.array' # checksum: 6051d6a
   anti-bloat:
     - description: 'workaround frame dictionary not being populated'
       replacements_plain:
         'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.io.artemis123.resources' # checksum: 8e56f9f4
+  data-files:
+    - patterns:
+        - '*.csv'
 
 - module-name: 'mne.io.curry.curry' # checksum: 6051d6a
   anti-bloat:
@@ -2703,6 +2837,12 @@
     - description: 'workaround frame dictionary not being populated'
       replacements_plain:
         'super().__init__(': '__import__("inspect").currentframe().f_locals.update(locals());super().__init__('
+
+- module-name: 'mne.report.js_and_css' # checksum: dbad8298
+  data-files:
+    - patterns:
+        - '*.js'
+        - '*.css'
 
 - module-name: 'mne.utils._testing' # checksum: 76efa1b7
   anti-bloat:
@@ -3060,7 +3200,7 @@
     - depends:
         - 'secrets'
 
-- module-name: 'numpy.testing' # checksum: 7958db4c
+- module-name: 'numpy.testing' # checksum: 4ad25b36
   anti-bloat:
     - description: 'remove numpy testing framework'
       module_code: |
@@ -3143,6 +3283,19 @@
 
         def assert_array_almost_equal(*args, **kwargs):
           pass
+
+        def assert_raises(*args, **kwargs):
+          exception_class=args[0]
+          callable=args[1]
+          args=args[2:]
+          try:
+              callable(*args, **kwargs)
+          except exception_class:
+            return True
+          except BaseException:
+            return False
+          else:
+            return False
 
 - module-name: 'numpy.testing._private.pytesttester' # checksum: 5e3b539b
   anti-bloat:
@@ -4006,6 +4159,20 @@
     - description: 'remove IPython reference'
       change_function:
         'display': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'pip._vendor.rich.live' # checksum: f0442975
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'self.console.is_jupyter': 'False'
+      when: 'not use_ipython'
+
+- module-name: 'pip._vendor.rich.pretty' # checksum: bdd67adb
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
 - module-name: 'pkg_resources' # checksum: d0674fc2
@@ -8232,7 +8399,11 @@
         # TODO: Forcing inline of this will be better solution.
         'require_version_core': "'(lambda requirement: None)'"
 
-- module-name: 'travertino' # checksum: 9da51f71
+- module-name: 'travertino' # checksum: 4e5a6f7
+  data-files:
+    - include-metadata:
+        - 'travertino'
+
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:

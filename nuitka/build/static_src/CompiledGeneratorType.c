@@ -1416,6 +1416,68 @@ static PyObject *Nuitka_Generator_throw(struct Nuitka_GeneratorObject *generator
 }
 
 #if PYTHON_VERSION >= 0x300
+
+// Need to integrate with garbage collector to undo finalization.
+#if PYTHON_VERSION >= 0x300
+
+#if PYTHON_VERSION < 0x380
+#define _PyGC_CLEAR_FINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
+#elif PYTHON_VERSION < 0x3d0
+#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
+#define _PyGC_CLEAR_FINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
+#endif
+#endif
+
+#if !defined(_PyGC_FINALIZED) && PYTHON_VERSION < 0x3d0
+#define _PyGC_FINALIZED(o) _PyGCHead_FINALIZED(_Py_AS_GC(o))
+#endif
+#if !defined(_PyType_IS_GC) && PYTHON_VERSION < 0x3d0
+#define _PyType_IS_GC(t) PyType_HasFeature((t), Py_TPFLAGS_HAVE_GC)
+#endif
+
+// Replacement for PyObject_CallFinalizer
+static void Nuitka_CallFinalizer(PyObject *self) {
+    PyTypeObject *type = Py_TYPE(self);
+
+    // Do not call this otherwise.
+    assert(type->tp_finalize != NULL);
+
+    assert(_PyType_IS_GC(type));
+    if (_PyGC_FINALIZED(self)) {
+        return;
+    }
+
+    type->tp_finalize(self);
+
+#if PYTHON_VERSION >= 0x380
+    _PyGC_SET_FINALIZED(self);
+#else
+    _PyGC_SET_FINALIZED(self, 1);
+#endif
+}
+
+// Replacement for PyObject_CallFinalizerFromDealloc
+static bool Nuitka_CallFinalizerFromDealloc(PyObject *self) {
+    assert(Py_REFCNT(self) == 0);
+
+    // Temporarily resurrect the object, so it can be worked with.
+    Py_SET_REFCNT(self, 1);
+
+    Nuitka_CallFinalizer(self);
+
+    assert(Py_REFCNT(self) > 0);
+
+    // Undo the temporary resurrection
+    Py_SET_REFCNT(self, Py_REFCNT(self) - 1);
+    if (Py_REFCNT(self) == 0) {
+        return true;
+    } else {
+        assert((!_PyType_IS_GC(Py_TYPE(self)) || _PyObject_GC_IS_TRACKED(self)));
+
+        return false;
+    }
+}
+
 static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generator) {
     if (generator->m_status != status_Running) {
         return;
@@ -1435,16 +1497,6 @@ static void Nuitka_Generator_tp_finalizer(struct Nuitka_GeneratorObject *generat
     // Restore the saved exception if any.
     RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
 }
-#endif
-
-// Need to integrate with garbage collector to undo finalization.
-#if PYTHON_VERSION >= 0x300
-#if PYTHON_VERSION < 0x380
-#define _PyGC_SET_UNFINALIZED(o) _PyGC_SET_FINALIZED(o, 0)
-#else
-#define _PyGCHead_SET_UNFINALIZED(g) ((g)->_gc_prev &= (~_PyGC_PREV_MASK_FINALIZED))
-#define _PyGC_SET_UNFINALIZED(o) _PyGCHead_SET_UNFINALIZED(_Py_AS_GC(o))
-#endif
 #endif
 
 // Freelist setup
@@ -1471,9 +1523,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     }
 
 #if PYTHON_VERSION >= 0x300
-    // TODO: Avoid this API call, it's bound to be slow on some platforms and
-    // does more checks than necessary for us.
-    if (PyObject_CallFinalizerFromDealloc((PyObject *)generator)) {
+    if (Nuitka_CallFinalizerFromDealloc((PyObject *)generator) == false) {
         return;
     }
 #else
@@ -1526,7 +1576,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 #if PYTHON_VERSION >= 0x300
     // TODO: Maybe push this into the freelist code and do
     // it on allocation.
-    _PyGC_SET_UNFINALIZED((PyObject *)generator);
+    _PyGC_CLEAR_FINALIZED((PyObject *)generator);
 #endif
 
     /* Put the object into free list or release to GC */

@@ -1,7 +1,7 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Options module
+"""Options module
 
 This exposes the choices made by the user. Defaults will be applied here, and
 some handling of defaults.
@@ -61,6 +61,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     getReportPath,
     isLegalPath,
+    isNonLocalPath,
     isPathExecutable,
     openTextFile,
     resolveShellPatternToFilenames,
@@ -218,6 +219,7 @@ definitely not do what you want it to do."""
     for candidate in (
         "{PROGRAM}",
         "{PROGRAM_BASE}",
+        "{PROGRAM_DIR}",
         "{CACHE_DIR}",
         "{HOME}",
         "{TEMP}",
@@ -232,7 +234,7 @@ Absolute run time paths of '%s' can only be at the start of \
 
         if candidate == value:
             Tracing.options_logger.sysexit(
-                """Cannot use folder %s, may only be the \
+                """Cannot use folder '%s', may only be the \
 start of '%s=%s', using that alone is not allowed."""
                 % (candidate, arg_name, value)
             )
@@ -287,11 +289,11 @@ very well known environment: anchoring it with e.g. '{TEMP}', \
             % options.onefile_tempdir_spec
         )
     elif not options.onefile_tempdir_spec.startswith(
-        ("{TEMP}", "{HOME}", "{CACHE_DIR}")
+        ("{TEMP}", "{HOME}", "{CACHE_DIR}", "{PROGRAM_DIR}")
     ):
         Tracing.options_logger.warning(
             """\
-Using a relative to the onefile executable should be avoided \
+Using a path relative to the onefile executable should be avoided \
 unless you are targeting a very well known environment, anchoring \
 it with e.g. '{TEMP}', '{CACHE_DIR}' is recommended: '%s'"""
             % options.onefile_tempdir_spec
@@ -451,13 +453,27 @@ Error, the Python from Windows app store is not supported.""",
         Tracing.setQuiet()
 
     def _quoteArg(arg):
-        if " " in arg:
-            if "=" in arg and arg.startswith("--"):
+        if arg.startswith("--"):
+            # Handle values too, TODO: Maybe know what arguments use paths at
+            # all and not rely on file existence checks.
+            if "=" in arg:
                 arg_name, value = arg.split("=", 1)
 
-                return '%s="%s"' % (arg_name, value)
+                if os.path.exists(value) and isNonLocalPath(arg):
+                    value = getReportPath(value)
+
+                if " " in value:
+                    value = '"%s"' % value
+
+                return "%s=%s" % (arg_name, value)
             else:
-                return '"%s"' % arg
+                return arg
+        elif os.path.exists(arg) and isNonLocalPath(arg):
+            arg = getReportPath(arg)
+            if " " in arg:
+                arg = '"%s"' % arg
+
+            return arg
         else:
             return arg
 
@@ -466,8 +482,10 @@ Error, the Python from Windows app store is not supported.""",
 
     if not options.version:
         Tracing.options_logger.info(
-            "Used command line options: %s"
-            % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
+            leader="Used command line options:",
+            message=" ".join(
+                Tracing.doNotBreakSpaces(_quoteArg(arg) for arg in sys.argv[1:])
+            ),
         )
 
     if (
@@ -542,6 +560,12 @@ Error, the Python from Windows app store is not supported.""",
                 options.macos_create_bundle = True
             else:
                 options.is_onefile = True
+        elif options.compilation_mode == "dll":
+            options.is_standalone = True
+        elif options.compilation_mode == "accelerated":
+            pass
+        else:
+            assert False, options.compilation_mode
 
     # Onefile implies standalone build.
     if options.is_onefile:
@@ -1169,7 +1193,8 @@ to work. You need to instead selectively add them with \
 
     if (
         not shallCreatePythonPgoInput()
-        and not standalone_mode
+        and not isStandaloneMode()
+        and not shallMakePackage()
         and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
@@ -1350,6 +1375,21 @@ provide either '--product-version' or '--file-version' as these can
 not have good defaults, but are forced to be present by the OS."""
         )
 
+    if (
+        options.macos_target_arch not in ("native", "universal", None)
+        and getArchitecture() != options.macos_target_arch
+    ):
+        Tracing.options_logger.warning(
+            """\
+Do not cross compile using '--macos-target-arch=%s, instead execute with '%s'."""
+            % (
+                Tracing.doNotBreakSpaces(
+                    options.macos_target_arch,
+                    "arch -%s %s" % (options.macos_target_arch, sys.executable),
+                )
+            )
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
@@ -1415,6 +1455,38 @@ def shallMakeModule():
 def shallMakePackage():
     """:returns: bool derived from ``--mode=package``."""
     return options is not None and options.compilation_mode == "package"
+
+
+def isMakeOnefileDllMode():
+    if not isOnefileMode():
+        return False
+
+    if isExperimental("onefile-dll"):
+        return True
+    if isExperimental("onefile-no-dll"):
+        return False
+
+    if options is not None and options.onefile_no_dll:
+        return False
+
+    if isWin32Windows() and isOnefileTempDirMode():
+        return True
+
+    # Static libpython is problematic on Linux still and macOS too seems to need
+    # work, but there the DLL mode is not as useful yet anyway.
+    return False
+
+
+def shallMakeDll():
+    """:returns: bool derived from ``--mode=dll``."""
+    return options is not None and (
+        options.compilation_mode == "dll" or isMakeOnefileDllMode()
+    )
+
+
+def shallMakeExe():
+    """:returns: bool derived from not using ``--mode=dll|module|package`` ."""
+    return not shallMakeModule() and not shallMakeDll()
 
 
 def shallCreatePyiFile():
@@ -2006,7 +2078,8 @@ def getExperimentalIndications():
 def getDebugModeIndications():
     result = []
 
-    for debug_option_value_name in ("debug_immortal",):
+    for debug_option_value_name in ("debug_immortal", "debug_c_warnings"):
+        # Makes no sense prior Python3.12
         if debug_option_value_name == "debug_immortal" and python_version < 0x3C0:
             continue
 
@@ -2047,27 +2120,36 @@ def isAcceleratedMode():
 
 
 def isOnefileTempDirMode():
-    """:returns: bool derived from ``--onefile-tempdir-spec``
+    """:returns: bool derived from ``--onefile-tempdir-spec`` and ``--onefile-cache-mode``
 
     Notes:
         Using cached onefile execution when the spec doesn't contain
-        volatile things.
+        volatile things or forced by the user.
     """
+    if not isOnefileMode():
+        return False
+
     if shallCreatePythonPgoInput():
         return False
 
-    spec = getOnefileTempDirSpec()
+    if options.onefile_cached_mode == "auto":
+        spec = getOnefileTempDirSpec()
 
-    for candidate in (
-        "{PID}",
-        "{TIME}",
-        "{PROGRAM}",
-        "{PROGRAM_BASE}",
-    ):
-        if candidate in spec:
-            return True
-
-    return False
+        for candidate in (
+            "{PID}",
+            "{TIME}",
+            "{PROGRAM}",
+            "{PROGRAM_BASE}",
+            "{PROGRAM_DIR}",
+        ):
+            if candidate in spec:
+                return True
+    elif options.onefile_cached_mode == "temporary":
+        return True
+    elif options.onefile_cached_mode == "cached":
+        return False
+    else:
+        assert False, options.onefile_cached_mode
 
 
 def isCPgoMode():
@@ -2431,8 +2513,10 @@ def _getPythonFlags():
                     _python_flags.add("package_mode")
                 elif part in ("-I", "isolated"):
                     _python_flags.add("isolated")
-                elif part in ("-B", "dontwritebytecode"):
+                elif part in ("-B", "dont_write_bytecode", "dontwritebytecode"):
                     _python_flags.add("dontwritebytecode")
+                elif part in ("-P", "safe_path"):
+                    _python_flags.add("safe_path")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -2490,9 +2574,15 @@ def hasPythonFlagNoRandomization():
 
 
 def hasPythonFlagNoBytecodeRuntimeCache():
-    """*bool* = "dontwritebytecode", "-u" in python flags given"""
+    """*bool* = "dontwritebytecode", "-B" in python flags given"""
 
     return "dontwritebytecode" in _getPythonFlags()
+
+
+def hasPythonFlagNoCurrentDirectoryInPath():
+    """*bool* = "safe_path", "-P" in python flags given"""
+
+    return "safe_path" in _getPythonFlags()
 
 
 def hasPythonFlagUnbuffered():
@@ -2746,7 +2836,15 @@ def getModuleParameter(module_name, parameter_name):
         option_name = module_name_prefix + "-" + parameter_name
 
     for module_option in options.module_parameters:
-        module_option_name, module_option_value = module_option.split("=", 1)
+        try:
+            module_option_name, module_option_value = module_option.split("=", 1)
+        except ValueError:
+            Tracing.optimization_logger.sysexit(
+                """\
+Error, must specify module parameter name and value with a separating \
+'=' and not '%s"."""
+                % module_option
+            )
 
         if option_name == module_option_name:
             return module_option_value
@@ -2755,7 +2853,7 @@ def getModuleParameter(module_name, parameter_name):
 
 
 def getForcedRuntimeEnvironmentVariableValues():
-    """:returns: iterable (string, string) derived from ``----force-runtime-environment-variable``"""
+    """:returns: iterable (string, string) derived from ``--force-runtime-environment-variable``"""
 
     for forced_runtime_env_variables_spec in options.forced_runtime_env_variables:
         name, value = forced_runtime_env_variables_spec.split("=", 1)
@@ -2765,6 +2863,7 @@ def getForcedRuntimeEnvironmentVariableValues():
 
 def getCompilationMode():
     """For reporting only, use shorter specific tests."""
+    # return driven, pylint: disable=too-many-return-statements
 
     if isAcceleratedMode():
         return "accelerated"
@@ -2778,6 +2877,8 @@ def getCompilationMode():
         return "onefile"
     elif isStandaloneMode():
         return "standalone"
+    elif shallMakeDll():
+        return "dll"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

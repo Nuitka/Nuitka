@@ -191,6 +191,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
+#include <internal/pycore_critical_section.h>
 #include <internal/pycore_freelist.h>
 #include <internal/pycore_intrinsics.h>
 #include <internal/pycore_modsupport.h>
@@ -388,7 +389,7 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK
 #undef _PyObject_GC_UNTRACK
-#elif defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
+#elif _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #undef _PyObject_GC_TRACK
@@ -466,6 +467,45 @@ static inline PyObject *_Py_XNewRef(PyObject *obj) {
 #define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
 #else
 #define NuitkaType_HasFeatureClass(descr) (1)
+#endif
+
+// For pre-3.13, lets allow ourselves to use them as well, these do play
+// nice with no-GIL Python.
+#if PYTHON_VERSION < 0x3d0
+#define FT_ATOMIC_LOAD_PTR(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_SSIZE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_SSIZE_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_PTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_UINTPTR_ACQUIRE(value) value
+#define FT_ATOMIC_LOAD_PTR_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT8(value) value
+#define FT_ATOMIC_STORE_UINT8(value, new_value) value = new_value
+#define FT_ATOMIC_LOAD_UINT8_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT16_RELAXED(value) value
+#define FT_ATOMIC_LOAD_UINT32_RELAXED(value) value
+#define FT_ATOMIC_LOAD_ULONG_RELAXED(value) value
+#define FT_ATOMIC_STORE_PTR_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_PTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINTPTR_RELEASE(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_SSIZE_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT8_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT16_RELAXED(value, new_value) value = new_value
+#define FT_ATOMIC_STORE_UINT32_RELAXED(value, new_value) value = new_value
+
+#define Py_BEGIN_CRITICAL_SECTION(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2(m1, m2) {
+#define Py_BEGIN_CRITICAL_SECTION_MUT(mut) {
+#define Py_BEGIN_CRITICAL_SECTION2_MUT(m1, m2) {
+#define Py_END_CRITICAL_SECTION() }
+
+#define Py_BEGIN_CRITICAL_SECTION_SEQUENCE_FAST(original) {
+#define Py_END_CRITICAL_SECTION_SEQUENCE_FAST() }
+#define _Py_CRITICAL_SECTION_ASSERT_MUTEX_LOCKED(mutex)
+#define _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(op)
+
 #endif
 
 // Our replacement for "PyType_IsSubtype"

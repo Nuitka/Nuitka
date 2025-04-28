@@ -46,7 +46,11 @@ from .Conda import (
 )
 from .GitHub import createNuitkaWatchPR
 from .Pacman import updatePacmanFile, updatePacmanLockFile
-from .Pipenv import updatePipenvFile, updatePipenvLockFile
+from .Pipenv import (
+    deletePipenvEnvironment,
+    updatePipenvFile,
+    updatePipenvLockFile,
+)
 
 watch_logger = OurLogger("", base_style="blue")
 
@@ -169,6 +173,11 @@ def _compileCase(case_data, case_dir, installed_python, lock_filename, jobs):
     if jobs is not None:
         extra_options.append("--jobs=%s" % jobs)
 
+    nuitka_extra_options = os.getenv("NUITKA_EXTRA_OPTIONS")
+
+    if nuitka_extra_options:
+        extra_options.extend(nuitka_extra_options.split())
+
     check_call(
         run_command
         + [
@@ -225,6 +234,7 @@ def _updateCaseLock(
     installed_python,
     case_data,
     case_dir,
+    reset_pipenv,
     no_pipenv_update,
     result_path,
 ):
@@ -236,6 +246,11 @@ def _updateCaseLock(
     makePath(result_path)
 
     with withDirectoryChange(result_path):
+        if reset_pipenv:
+            deletePipenvEnvironment(
+                logger=watch_logger, installed_python=installed_python
+            )
+
         if preferred_package_type == "pip":
             pipenv_filename = updatePipenvFile(
                 installed_python=installed_python,
@@ -280,6 +295,7 @@ def _updateCaseLock(
 def _updateCase(
     case_dir,
     case_data,
+    reset_pipenv,
     no_pipenv_update,
     nuitka_update_mode,
     installed_python,
@@ -293,6 +309,7 @@ def _updateCase(
         installed_python=installed_python,
         case_data=case_data,
         case_dir=case_dir,
+        reset_pipenv=reset_pipenv,
         no_pipenv_update=no_pipenv_update,
         result_path=result_path,
     )
@@ -367,7 +384,9 @@ def _updateCase(
             )
 
 
-def updateCase(case_dir, case_data, no_pipenv_update, nuitka_update_mode, jobs):
+def updateCase(
+    case_dir, case_data, reset_pipenv, no_pipenv_update, nuitka_update_mode, jobs
+):
     case_name = case_data["case"]
 
     watch_logger.info("Consider '%s' ... " % case_name)
@@ -419,6 +438,7 @@ def updateCase(case_dir, case_data, no_pipenv_update, nuitka_update_mode, jobs):
         _updateCase(
             case_dir=case_dir,
             case_data=case_data,
+            reset_pipenv=reset_pipenv,
             no_pipenv_update=no_pipenv_update,
             nuitka_update_mode=nuitka_update_mode,
             installed_python=installed_python,
@@ -427,11 +447,12 @@ def updateCase(case_dir, case_data, no_pipenv_update, nuitka_update_mode, jobs):
         )
 
 
-def updateCases(case_dir, no_pipenv_update, nuitka_update_mode, jobs):
+def updateCases(case_dir, reset_pipenv, no_pipenv_update, nuitka_update_mode, jobs):
     for case_data in parseYaml(getFileContents("case.yml", mode="rb")):
         updateCase(
             case_dir=case_dir,
             case_data=case_data,
+            reset_pipenv=reset_pipenv,
             no_pipenv_update=no_pipenv_update,
             nuitka_update_mode=nuitka_update_mode,
             jobs=jobs,
@@ -468,6 +489,15 @@ Python versions to consider, by default all supported versions in descending ord
         default=nuitka_binary,
         help="""\
 Nuitka binary to compile with. Defaults to one near the nuitka-watch usage.""",
+    )
+
+    parser.add_option(
+        "--reset-pipenv",
+        action="store_true",
+        dest="reset_pipenv",
+        default=False,
+        help="""\
+Remove existing virtualenv and make sure to start from scratch.Default %default.""",
     )
 
     parser.add_option(
@@ -556,6 +586,7 @@ to reserve cores.""",
             with withDirectoryChange(os.path.dirname(case_filename)):
                 updateCases(
                     case_dir=os.path.dirname(case_filename),
+                    reset_pipenv=options.reset_pipenv,
                     no_pipenv_update=options.no_pipenv_update,
                     nuitka_update_mode=options.nuitka_update_mode,
                     jobs=options.jobs,

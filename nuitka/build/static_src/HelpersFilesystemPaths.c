@@ -4,10 +4,10 @@
 // for use in both onefile bootstrap and python compiled
 // program.
 
-#if defined(__APPLE__)
-#include <dlfcn.h>
-#include <libgen.h>
-#include <mach-o/dyld.h>
+// This file is included from another C file, help IDEs to still parse it on
+// its own.
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
 #endif
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
@@ -24,8 +24,13 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#endif
+
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
 #endif
 
 // We are using in onefile bootstrap as well, so copy it.
@@ -33,82 +38,197 @@
 #define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
 #endif
 
+#include "nuitka/environment_variables_system.h"
 #include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
-#if defined(__OpenBSD__)
-void _getBinaryPath2(char *binary_filename) {
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC_ARGS;
-    mib[2] = getpid();
-    mib[3] = KERN_PROC_ARGV;
+void normalizePath(filename_char_t *filename) {
+    filename_char_t *w = filename;
 
-    size_t len;
+    while (*w != 0) {
+        // Eliminate duplicate slashes.
+        if (*w == FILENAME_SEP_CHAR) {
+            while (*(w + 1) == FILENAME_SEP_CHAR) {
+                filename_char_t *f = w;
 
-    if (sysctl(mib, 4, NULL, &len, NULL, 0) < 0) {
-        abort();
-    }
+                for (;;) {
+                    *f = *(f + 1);
 
-    char **argv = argv = malloc(len);
-    if (argv == NULL) {
-        abort();
-    }
+                    if (*f == 0) {
+                        break;
+                    }
 
-    if (sysctl(mib, 4, argv, &len, NULL, 0) < 0) {
-        abort();
-    }
-
-    const char *comm = argv[0];
-
-    if (*comm == '/' || *comm == '.') {
-        if (realpath(comm, binary_filename) == NULL) {
-            abort();
-        }
-    } else {
-        char *sp;
-        char *xpath = strdup(getenv("PATH"));
-        char *path = strtok_r(xpath, ":", &sp);
-        struct stat st;
-
-        if (xpath == NULL) {
-            abort();
-        }
-
-        while (path) {
-            snprintf(binary_filename, PATH_MAX, "%s/%s", path, comm);
-
-            if (!stat(binary_filename, &st) && (st.st_mode & S_IXUSR)) {
-                break;
+                    f++;
+                }
             }
-
-            path = strtok_r(NULL, ":", &sp);
         }
 
-        free(xpath);
+        w++;
     }
 
-    free(argv);
+    // TODO: Need to also remove "./" and resolve "/../" sequences for best
+    // results.
+}
+
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+static wchar_t *stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+
+    return last_slash;
+}
+
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static wchar_t result[MAXPATHLEN + 1];
+
+    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
+    stripFilenameW(result);
+
+    return result;
+}
+#else
+filename_char_t *stripBaseFilename(filename_char_t const *filename) {
+    static char result[MAXPATHLEN + 1];
+    copyStringSafe(result, filename, sizeof(result));
+
+    return dirname(result);
 }
 #endif
 
-filename_char_t *getBinaryPath(void) {
-    static filename_char_t binary_filename[MAXPATHLEN];
-
 #if defined(_WIN32)
-    DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
-    if (res == 0) {
+static void makeShortFilename(wchar_t *filename, size_t buffer_size) {
+#ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
+    // Query length of result first.
+    DWORD length = GetShortPathNameW(filename, NULL, 0);
+    if (length == 0) {
+        return;
+    }
+
+    wchar_t *short_filename = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
+    DWORD res = GetShortPathNameW(filename, short_filename, length);
+    assert(res != 0);
+
+    if (unlikely(res > length)) {
         abort();
     }
-#elif defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_filename);
+
+    filename[0] = 0;
+    appendWStringSafeW(filename, short_filename, buffer_size);
+
+    free(short_filename);
+#endif
+}
+
+static void makeShortDirFilename(wchar_t *filename, size_t buffer_size) {
+    wchar_t *changed = stripFilenameW(filename);
+    if (changed != NULL) {
+        changed = wcsdup(changed + 1);
+    }
+
+    // Shorten only the directory name.
+    makeShortFilename(filename, buffer_size);
+
+    if (changed != NULL) {
+        appendWCharSafeW(filename, FILENAME_SEP_CHAR, buffer_size);
+        appendWStringSafeW(filename, changed, buffer_size);
+
+        free(changed);
+    }
+}
+
+#endif
+
+#if !defined(_WIN32)
+filename_char_t *_getBinaryPath2(void) {
+    static filename_char_t binary_filename[MAXPATHLEN] = {0};
+    const size_t buffer_size = sizeof(binary_filename);
+
+    if (binary_filename[0] != 0) {
+        return binary_filename;
+    }
+
+#if defined(__APPLE__)
+    uint32_t bufsize = buffer_size;
     int res = _NSGetExecutablePath(binary_filename, &bufsize);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
         abort();
     }
-#elif defined(__OpenBSD__)
-    _getBinaryPath2(binary_filename);
+#elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+    const char *comm = getOriginalArgv0();
+
+    bool success = false;
+
+    if (*comm == '/') {
+        copyStringSafe(binary_filename, comm, buffer_size);
+        success = true;
+    } else {
+        if (getcwd(binary_filename, buffer_size) == NULL) {
+            abort();
+        }
+        // Add a separator either way, later removed.
+        appendCharSafe(binary_filename, '/', buffer_size);
+        appendStringSafe(binary_filename, comm, buffer_size);
+
+        if (isExecutableFile(binary_filename)) {
+            success = true;
+        } else {
+            char *path_environment_value = strdup(getenv("PATH"));
+
+            if (path_environment_value != NULL) {
+                char *sp;
+                char *path = strtok_r(path_environment_value, ":", &sp);
+
+                while (path != NULL) {
+                    if (*path != '/') {
+                        if (getcwd(binary_filename, buffer_size) == NULL) {
+                            abort();
+                        }
+
+                        appendCharSafe(binary_filename, '/', buffer_size);
+                    } else {
+                        binary_filename[0] = 0;
+                    }
+                    appendStringSafe(binary_filename, path, buffer_size);
+                    appendCharSafe(binary_filename, '/', buffer_size);
+                    appendStringSafe(binary_filename, comm, buffer_size);
+
+                    if (isExecutableFile(binary_filename)) {
+                        success = true;
+                        break;
+                    }
+
+                    path = strtok_r(NULL, ":", &sp);
+                }
+
+                free(path_environment_value);
+            }
+        }
+    }
+
+    if (success == true) {
+        // fprintf(stderr, "Did resolve binary path %s from PATH %s.\n", comm, binary_filename);
+
+        // TODO: Once it's fully capable, we ought to use this for all methods
+        // for consistency.
+        normalizePath(binary_filename);
+        fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
+    } else {
+        fprintf(stderr, "Error, cannot resolve binary path %s from PATH or current directory.\n", comm);
+        abort();
+    }
 #elif defined(__FreeBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
      * "sysctl" instead.
@@ -118,10 +238,23 @@ filename_char_t *getBinaryPath(void) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_filename);
+    size_t cb = buffer_size;
     int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
+        abort();
+    }
+#elif defined(__wasi__)
+    const char *wasi_filename = "program.wasm";
+    copyStringSafe(binary_filename, wasi_filename, buffer_size);
+#elif defined(_AIX)
+    char proc_link_path[64];
+    snprintf(proc_link_path, sizeof(proc_link_path), "/proc/%d/object/a.out", (int)getpid());
+
+    memset(binary_filename, 0, sizeof(binary_filename));
+    ssize_t res = readlink(proc_link_path, binary_filename, buffer_size - 1);
+
+    if (unlikely(res == -1)) {
         abort();
     }
 #else
@@ -129,15 +262,34 @@ filename_char_t *getBinaryPath(void) {
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
+    memset(binary_filename, 0, buffer_size);
+    ssize_t res = readlink("/proc/self/exe", binary_filename, buffer_size - 1);
 
-    if (res == -1) {
+    if (unlikely(res == -1)) {
         abort();
     }
 #endif
+    return binary_filename;
+}
+#endif
+
+filename_char_t const *getBinaryPath(void) {
+#if defined(_WIN32)
+    static filename_char_t binary_filename[MAXPATHLEN] = {0};
+
+    if (binary_filename[0] != 0) {
+        return binary_filename;
+    }
+
+    DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+    if (unlikely(res == 0)) {
+        abort();
+    }
 
     return binary_filename;
+#else
+    return _getBinaryPath2();
+#endif
 }
 
 bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
@@ -207,7 +359,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #else
     int res = fseek(file_handle, 0, SEEK_END);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
         return -1;
     }
 
@@ -215,7 +367,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 
     res = fseek(file_handle, 0, SEEK_SET);
 
-    if (res != 0) {
+    if (unlikely(res != 0)) {
         return -1;
     }
 #endif
@@ -227,7 +379,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__)
 #include <copyfile.h>
 #else
-#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(__wasi__)
+#if defined(__MSYS__) || defined(__HAIKU__) || defined(__OpenBSD__) || defined(_AIX) || defined(__wasi__)
 static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
     char buffer[32768];
 
@@ -257,6 +409,17 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
 #include <sys/sendfile.h>
 #endif
 #endif
+#endif
+
+#if !defined(_WIN32)
+bool isExecutableFile(filename_char_t const *filename) {
+    int mode = getFileMode(filename);
+
+    if (mode == -1) {
+        return false;
+    }
+    return mode & S_IXUSR;
+}
 #endif
 
 int getFileMode(filename_char_t const *filename) {
@@ -613,6 +776,7 @@ wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
 
         // Resolve any symlinks we were invoked via
         resolveFileSymbolicLink(buffer, buffer, sizeof(binary_filename) / sizeof(wchar_t), resolve_symlinks);
+        makeShortDirFilename(binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
     }
 
     return buffer;
@@ -674,55 +838,8 @@ char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
         return binary_filename_target;
     }
 
-#if defined(__APPLE__)
-    uint32_t bufsize = buffer_size;
-    int res = _NSGetExecutablePath(binary_filename_target, &bufsize);
-
-    if (unlikely(res != 0)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
+    copyStringSafe(binary_filename_target, _getBinaryPath2(), buffer_size);
     resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#elif defined(__wasi__)
-    const char *wasi_filename = "program.wasm";
-    strncpy(binary_filename_resolved, wasi_filename, MAXPATHLEN);
-#elif defined(__OpenBSD__)
-    _getBinaryPath2(binary_filename_target);
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#elif defined(__FreeBSD__)
-    /* Not all of FreeBSD has /proc file system, so use the appropriate
-     * "sysctl" instead.
-     */
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    size_t cb = buffer_size;
-    int res = sysctl(mib, 4, binary_filename_target, &cb, NULL, 0);
-
-    if (unlikely(res != 0)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#else
-    /* The remaining platforms, mostly Linux or compatible. */
-
-    /* The "readlink" call does not terminate result, so fill zeros there, then
-     * it is a proper C string right away. */
-    memset(binary_filename_target, 0, buffer_size);
-    ssize_t res = readlink("/proc/self/exe", binary_filename_target, buffer_size - 1);
-
-    if (unlikely(res == -1)) {
-        abort();
-    }
-
-    // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
-#endif
 
     return binary_filename_target;
 }
@@ -789,7 +906,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 GetTempPathW((DWORD)buffer_size, target);
                 is_path = true;
             } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
-#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL
                 appendWStringSafeW(target, __wargv[0], buffer_size);
 #else
                 if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
@@ -806,11 +923,28 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 if ((length >= 4) && (wcsicmp(target + length - 4, L".exe") == 0)) {
                     target[length - 4] = 0;
                 }
-            } else if (wcsicmp(var_name, L"PID") == 0) {
-                char pid_buffer[128];
-                snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
+            } else if (wcsicmp(var_name, L"PROGRAM_DIR") == 0) {
+                if (expandTemplatePathW(target, L"{PROGRAM}", buffer_size - wcslen(target)) == false) {
+                    return false;
+                }
 
-                appendStringSafeW(target, pid_buffer, buffer_size);
+                stripFilenameW(target);
+            } else if (wcsicmp(var_name, L"PID") == 0) {
+                // Python binaries from onefile use onefile parent pid
+                environment_char_t const *environment_value = NULL;
+
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+#endif
+                if (environment_value != NULL) {
+                    checkWStringNumber(environment_value);
+
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_PARENT"), buffer_size);
+                } else {
+                    char pid_buffer[128];
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%ld", GetCurrentProcessId());
+                    appendStringSafeW(target, pid_buffer, buffer_size);
+                }
             } else if (wcsicmp(var_name, L"HOME") == 0) {
                 if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
                     return false;
@@ -834,16 +968,30 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
 #endif
             } else if (wcsicmp(var_name, L"TIME") == 0) {
-                char time_buffer[1024];
+                environment_char_t const *environment_value = NULL;
 
-                // spell-checker: ignore LPFILETIME
-                __int64 time = 0;
-                assert(sizeof(time) == sizeof(FILETIME));
-                GetSystemTimeAsFileTime((LPFILETIME)&time);
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_START");
+#endif
 
-                snprintf(time_buffer, sizeof(time_buffer), "%lld", time);
+                if (environment_value != NULL) {
+                    appendWStringSafeW(target, getEnvironmentVariable("NUITKA_ONEFILE_START"), buffer_size);
+                } else {
+                    wchar_t time_buffer[1024];
 
-                appendStringSafeW(target, time_buffer, buffer_size);
+                    // spell-checker: ignore LPFILETIME
+                    __int64 time = 0;
+                    assert(sizeof(time) == sizeof(FILETIME));
+                    GetSystemTimeAsFileTime((LPFILETIME)&time);
+
+                    swprintf(time_buffer, sizeof(time_buffer), L"%lld", time);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_START", time_buffer);
+#endif
+                    appendWStringSafeW(target, time_buffer, buffer_size);
+                }
+
             } else {
                 return false;
             }
@@ -938,12 +1086,47 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 if ((length >= 4) && (strcasecmp(target + length - 4, ".bin") == 0)) {
                     target[length - 4] = 0;
                 }
+            } else if (strcasecmp(var_name, "PROGRAM_DIR") == 0) {
+                if (expandTemplatePath(target, "{PROGRAM}", buffer_size - strlen(target)) == false) {
+                    return false;
+                }
+
+                size_t length = strlen(target);
+
+                // TODO: We should have an inplace strip dirname function, like for
+                // Win32 stripFilenameW, but that then knows the length and check
+                // if that empties the string, but this works for now.
+                while (true) {
+                    if (length == 0) {
+                        return false;
+                    }
+
+                    if (target[length] == '/') {
+                        break;
+                    }
+
+                    target[length] = 0;
+                }
+
+                is_path = true;
             } else if (strcasecmp(var_name, "PID") == 0) {
-                char pid_buffer[128];
+                // Python binaries from onefile use onefile parent pid
+                environment_char_t const *environment_value = NULL;
 
-                snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+#endif
+                if (environment_value != NULL) {
+                    checkStringNumber(environment_value);
 
-                appendStringSafe(target, pid_buffer, buffer_size);
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_PARENT"), buffer_size);
+                } else {
+                    char pid_buffer[128];
+
+                    snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
+
+                    appendStringSafe(target, pid_buffer, buffer_size);
+                }
             } else if (strcasecmp(var_name, "HOME") == 0) {
                 char const *home_path = getenv("HOME");
                 if (home_path == NULL) {
@@ -986,13 +1169,28 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
 #endif
             } else if (strcasecmp(var_name, "TIME") == 0) {
-                char time_buffer[1024];
+                environment_char_t const *environment_value = NULL;
 
-                struct timeval current_time;
-                gettimeofday(&current_time, NULL);
-                snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec, (long)current_time.tv_usec);
+#if _NUITKA_ONEFILE_MODE
+                environment_value = getEnvironmentVariable("NUITKA_ONEFILE_START");
+#endif
 
-                appendStringSafe(target, time_buffer, buffer_size);
+                if (environment_value != NULL) {
+                    appendStringSafe(target, getEnvironmentVariable("NUITKA_ONEFILE_START"), buffer_size);
+                } else {
+                    char time_buffer[1024];
+
+                    struct timeval current_time;
+                    gettimeofday(&current_time, NULL);
+                    snprintf(time_buffer, sizeof(time_buffer), "%ld_%ld", current_time.tv_sec,
+                             (long)current_time.tv_usec);
+
+#if _NUITKA_ONEFILE_MODE
+                    setEnvironmentVariable("NUITKA_ONEFILE_START", time_buffer);
+#endif
+
+                    appendStringSafe(target, time_buffer, buffer_size);
+                }
             } else {
                 return false;
             }
@@ -1038,41 +1236,54 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
 #endif
 
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
 #if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
-static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
+// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
+static HMODULE getDllModuleHandle(void) {
+    static HMODULE hm = NULL;
 
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
+    if (hm == NULL) {
+        int res =
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCSTR)&getDllModuleHandle, &hm);
+        assert(res != 0);
     }
 
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static wchar_t result[MAXPATHLEN + 1];
-
-    copyStringSafeW(result, filename, sizeof(result) / sizeof(wchar_t));
-    stripFilenameW(result);
-
-    return result;
-}
-#else
-filename_char_t *stripBaseFilename(filename_char_t const *filename) {
-    static char result[MAXPATHLEN + 1];
-    copyStringSafe(result, filename, sizeof(result));
-
-    return dirname(result);
+    assert(hm != NULL);
+    return hm;
 }
 #endif
 
+filename_char_t const *getDllDirectory(void) {
+#if defined(_WIN32)
+    static WCHAR path[MAXPATHLEN + 1];
+    path[0] = 0;
+
+    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
+    assert(res != 0);
+
+    stripFilenameW(path);
+
+    return path;
+#else
+    // Need to cache it, as dirname modifies stuff.
+    static char const *result = NULL;
+
+    if (result == NULL) {
+        Dl_info where;
+
+        {
+            NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+            assert(res != 0);
+        }
+
+        result = dirname((char *)strdup(where.dli_fname));
+    }
+
+    return result;
+#endif
+}
+#endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -108,13 +108,12 @@ extern void Nuitka_Function_EnableConstReturnFalse(struct Nuitka_FunctionObject 
 extern void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *function, PyObject *value);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-extern int Nuitka_Function_GetFunctionCodeIndex(struct Nuitka_FunctionObject *function,
-                                                function_impl_code const *function_table);
-extern struct Nuitka_FunctionObject *
-Nuitka_Function_CreateFunctionViaCodeIndex(PyObject *module, PyObject *function_qualname, PyObject *function_index,
-                                           PyObject *code_object_desc, PyObject *constant_return_value,
-                                           PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
-                                           function_impl_code const *function_table, int function_table_size);
+extern PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *function,
+                                                  function_impl_code const *function_table);
+extern struct Nuitka_FunctionObject *Nuitka_Function_CreateFunctionViaCodeIndex(
+    PyObject *module, PyObject *function_qualname, PyObject *function_index, PyObject *code_object_desc,
+    PyObject *constant_return_value, PyObject *defaults, PyObject *kw_defaults, PyObject *doc, PyObject *closure,
+    PyObject *annotations, PyObject *func_dict, function_impl_code const *function_table, int function_table_size);
 extern PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate,
                                                               struct Nuitka_FunctionObject *function);
 #endif

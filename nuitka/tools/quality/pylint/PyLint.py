@@ -13,6 +13,7 @@ import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
 from nuitka.utils.Execution import check_output, executeProcess, getNullOutput
+from nuitka.utils.FileOperations import getNormalizedPath
 
 _pylint_version = None
 
@@ -287,7 +288,7 @@ def _executePylint(filenames, pylint_options, extra_options):
 def hasPyLintBugTrigger(filename):
     """Decide if a filename should be skipped."""
     # Currently everything is good, but it's a useful hook, pylint_: disable=unused-argument
-    if os.path.normpath(filename) == os.path.normpath("nuitka/distutils/Build.py"):
+    if getNormalizedPath(filename) == getNormalizedPath("nuitka/distutils/Build.py"):
         return True
 
     return False

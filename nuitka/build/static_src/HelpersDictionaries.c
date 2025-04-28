@@ -10,8 +10,47 @@
 #include "nuitka/prelude.h"
 #endif
 
-// spell-checker: ignore ob_shash dictiterobject dictiteritems_type dictiterkeys_type
-// spell-checker: ignore dictitervalues_type dictviewobject dictvaluesview_type dictkeysview_type
+// spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
+// spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
+
+#ifdef Py_GIL_DISABLED
+
+#define IS_DICT_SHARED(mp) _PyObject_GC_IS_SHARED(mp)
+#define SET_DICT_SHARED(mp) _PyObject_GC_SET_SHARED(mp)
+#define LOAD_INDEX(keys, size, idx)                                                                                    \
+    _Py_atomic_load_int##size##_relaxed(&((const int##size##_t *)keys->dk_indices)[idx]);
+#define STORE_INDEX(keys, size, idx, value)                                                                            \
+    _Py_atomic_store_int##size##_relaxed(&((int##size##_t *)keys->dk_indices)[idx], (int##size##_t)value);
+
+#define LOCK_KEYS(keys) PyMutex_LockFlags(&keys->dk_mutex, _Py_LOCK_DONT_DETACH)
+#define UNLOCK_KEYS(keys) PyMutex_Unlock(&keys->dk_mutex)
+
+#define INCREF_KEYS_FT(dk) Nuitka_Py_dictkeys_incref(dk)
+#define DECREF_KEYS_FT(dk, shared) Nuitka_Py_dictkeys_decref(_PyInterpreterState_GET(), dk, shared)
+
+#define LOCK_KEYS_IF_SPLIT(keys, kind)                                                                                 \
+    if (kind == DICT_KEYS_SPLIT) {                                                                                     \
+        LOCK_KEYS(keys);                                                                                               \
+    }
+
+#define UNLOCK_KEYS_IF_SPLIT(keys, kind)                                                                               \
+    if (kind == DICT_KEYS_SPLIT) {                                                                                     \
+        UNLOCK_KEYS(keys);                                                                                             \
+    }
+
+#else
+
+#define LOAD_INDEX(keys, size, idx) ((const int##size##_t *)(keys->dk_indices))[idx]
+#define STORE_INDEX(keys, size, idx, value) ((int##size##_t *)(keys->dk_indices))[idx] = (int##size##_t)value
+
+#define LOCK_KEYS(keys)
+#define UNLOCK_KEYS(keys)
+#define INCREF_KEYS_FT(dk)
+#define DECREF_KEYS_FT(dk, shared)
+#define LOCK_KEYS_IF_SPLIT(keys, kind)
+#define UNLOCK_KEYS_IF_SPLIT(keys, kind)
+
+#endif
 
 PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
@@ -1001,6 +1040,70 @@ typedef PyObject *PyDictValues;
 #define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
 #endif
 
+// More than 2/3 of the keys are used, i.e. no space is wasted.
+#if PYTHON_VERSION < 0x360
+#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_size * 2) / 3)
+#else
+#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)
+#endif
+
+static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
+#if PYTHON_VERSION < 0x3b0
+    Py_ssize_t values_size = sizeof(PyObject *) * size;
+
+    return (PyDictValues *)NuitkaMem_Malloc(values_size);
+#elif PYTHON_VERSION < 0x3d0
+    Py_ssize_t values_size = sizeof(PyObject *) * size;
+
+    // With Python3.11-3.12 a prefix is allocated too.
+    size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
+    size_t n = prefix_size + values_size;
+    uint8_t *mem = (uint8_t *)NuitkaMem_Malloc(n);
+    assert(mem != NULL);
+
+    assert(prefix_size % sizeof(PyObject *) == 0);
+    mem[prefix_size - 1] = (uint8_t)prefix_size;
+
+    return (PyDictValues *)(mem + prefix_size);
+#else
+    assert(size >= 1);
+    size_t suffix_size = _Py_SIZE_ROUND_UP(size, sizeof(PyObject *));
+    assert(suffix_size < 128);
+    assert(suffix_size % sizeof(PyObject *) == 0);
+    size_t n = (size + 1) * sizeof(PyObject *) + suffix_size;
+    PyDictValues *result = (PyDictValues *)NuitkaMem_Malloc(n);
+
+    result->embedded = 0;
+    result->size = 0;
+    assert(size < 256);
+    result->capacity = (uint8_t)size;
+    return result;
+#endif
+}
+
+#if PYTHON_VERSION >= 0x3d0
+
+static PyDictValues *_Nuitka_PyDict_copy_values(PyDictValues *values) {
+    PyDictValues *new_values = _Nuitka_PyDict_new_values(values->capacity);
+    if (unlikely(new_values == NULL)) {
+        return NULL;
+    }
+
+    new_values->size = values->size;
+
+    uint8_t *values_order = get_insertion_order_array(values);
+    uint8_t *new_values_order = get_insertion_order_array(new_values);
+
+    memcpy(new_values_order, values_order, values->capacity);
+
+    for (int i = 0; i < values->capacity; i++) {
+        new_values->values[i] = values->values[i];
+    }
+    assert(new_values->embedded == 0);
+    return new_values;
+}
+#endif
+
 #include "HelpersDictionariesGenerated.c"
 
 void DICT_CLEAR(PyObject *dict) {
@@ -1033,34 +1136,22 @@ static inline Py_ssize_t Nuitka_Py_dictkeys_get_index(const PyDictKeysObject *ke
     Py_ssize_t ix;
 
     if (log2size < 8) {
-        const int8_t *indices = (const int8_t *)(keys->dk_indices);
-        ix = indices[i];
+        ix = LOAD_INDEX(keys, 8, i);
+
     } else if (log2size < 16) {
-        const int16_t *indices = (const int16_t *)(keys->dk_indices);
-        ix = indices[i];
+        ix = LOAD_INDEX(keys, 16, i);
     }
 #if SIZEOF_VOID_P > 4
     else if (log2size >= 32) {
-        const int64_t *indices = (const int64_t *)(keys->dk_indices);
-        ix = indices[i];
+        ix = LOAD_INDEX(keys, 64, i);
     }
 #endif
     else {
-        const int32_t *indices = (const int32_t *)(keys->dk_indices);
-        ix = indices[i];
+        ix = LOAD_INDEX(keys, 32, i);
     }
 
     assert(ix >= DKIX_DUMMY);
     return ix;
-}
-
-static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
-#if PYTHON_VERSION < 0x3d0
-    return _PyASCIIObject_CAST(o)->hash;
-#else
-    assert(PyUnicode_CheckExact(o));
-    return FT_ATOMIC_LOAD_SSIZE_RELAXED(_PyASCIIObject_CAST(o)->hash);
-#endif
 }
 
 // From CPython
@@ -1191,7 +1282,8 @@ static Py_ssize_t Nuitka_Py_dictkeys_generic_lookup(PyDictObject *mp, PyDictKeys
                 Py_INCREF(startkey);
                 nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
                 Py_DECREF(startkey);
-                if (cmp == NUITKA_BOOL_EXCEPTION) {
+
+                if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
                     return DKIX_ERROR;
                 }
                 if (dk == mp->ma_keys && ep->me_key == startkey) {
@@ -1216,15 +1308,35 @@ Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, 
     DictKeysKind kind;
     Py_ssize_t ix;
 
+    _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(mp);
 restart:
     dk = mp->ma_keys;
     kind = (DictKeysKind)dk->dk_kind;
 
     if (kind != DICT_KEYS_GENERAL) {
         if (PyUnicode_CheckExact(key)) {
-            ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+#ifdef Py_GIL_DISABLED
+            if (kind == DICT_KEYS_SPLIT) {
+                ix = Nuitka_Py_unicodekeys_lookup_unicode_threadsafe(dk, key, hash);
+
+                if (ix == DKIX_KEY_CHANGED) {
+                    LOCK_KEYS(dk);
+                    ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+                    UNLOCK_KEYS(dk);
+                }
+            } else
+#endif
+            {
+                ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+            }
         } else {
+            INCREF_KEYS_FT(dk);
+            LOCK_KEYS_IF_SPLIT(dk, kind);
+
             ix = Nuitka_Py_unicodekeys_lookup_generic(mp, dk, key, hash);
+
+            UNLOCK_KEYS_IF_SPLIT(dk, kind);
+            DECREF_KEYS_FT(dk, IS_DICT_SHARED(mp));
 
             // Dictionary lookup changed the dictionary, retry.
             if (ix == DKIX_KEY_CHANGED) {

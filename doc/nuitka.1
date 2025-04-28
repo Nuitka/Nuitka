@@ -25,16 +25,17 @@ creates a folder with an executable contained to run
 it. Onefile creates a single executable to deploy. App
 is onefile except on macOS where it's not to be used.
 Module makes a module, and package includes also all
-sub\-modules and sub\-packages. Default is
+sub\-modules and sub\-packages. Dll is currently under
+development and not for users yet. Default is
 \&'accelerated'.
 .TP
 \fB\-\-standalone\fR
 Enable standalone mode for output. This allows you to
 transfer the created binary to other machines without
 it using an existing Python installation. This also
-means it will become big. It implies these option: "\-\-
-follow\-imports" and "\-\-python\-flag=no_site". Defaults
-to off.
+means it will become big. It implies these options: "
+\fB\-\-follow\-imports\fR" and "\-\-python\-flag=no_site".
+Defaults to off.
 .TP
 \fB\-\-onefile\fR
 On top of standalone mode, enable onefile mode. This
@@ -50,8 +51,10 @@ Currently supported: "\-S" (alias "no_site"),
 "no_warnings" (do not give Python run time warnings),
 "\-O" (alias "no_asserts"), "no_docstrings" (do not use
 doc strings), "\-u" (alias "unbuffered"), "isolated"
-(do not load outside code) and "\-m" (package mode,
-compile as "package.__main__"). Default empty.
+(do not load outside code), "\-P" (alias "safe_path",
+do not used current directory in module search) and
+"\-m" (package mode, compile as "package.__main__").
+Default empty.
 .TP
 \fB\-\-python\-debug\fR
 Use debug version or not. Default uses what you are
@@ -154,6 +157,14 @@ Use e.g. a string like
 \&'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a
 good static cache path, this will then not be removed.
 .TP
+\fB\-\-onefile\-cache\-mode\fR=\fI\,ONEFILE_CACHED_MODE\/\fR
+This mode is inferred from your use of the spec. If it
+contains runtime dependent paths, "auto" resolves to
+"temporary" which will make sure to remove the
+unpacked binaries after execution, and cached will not
+remove it and see to reuse its contents during next
+execution for faster startup times.
+.TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
 When stopping the child, e.g. due to CTRL\-C or
 shutdown, etc. the Python code gets a
@@ -172,6 +183,13 @@ When creating the onefile, use an archive format, that
 can be unpacked with "nuitka\-onefile\-unpack" rather
 than a stream that only the onefile program itself
 unpacks. Default is off.
+.TP
+\fB\-\-onefile\-no\-dll\fR
+When creating the onefile, some platforms (Windows
+currently, if not using a cached location) default to
+using DLL rather than an executable for the Python
+code. This makes it use an executable in the unpacked
+files as well. Default is off.
 .IP
 Data files:
 .TP
@@ -239,6 +257,10 @@ option given, it only works when it's recognized at
 compile time which is not always happening. This of
 course only makes sense for packages that are included
 in the compilation. Default empty.
+.TP
+\fB\-\-list\-distribution\-metadata\fR
+Output the list of distributions and their details for
+all packages. Default not done.
 .IP
 DLL files:
 .TP
@@ -399,6 +421,12 @@ Disable check normally done with "\-\-debug". With
 Python3.12+ do not check known immortal object
 assumptions. Some C libraries corrupt them. Defaults
 to check being made if "\-\-debug" is on.
+.TP
+\fB\-\-no\-debug\-c\-warnings\fR
+Disable check normally done with "\-\-debug". The C
+compilation may produce warnings, which it often does
+for some packages without these being issues, esp. for
+unused values.
 .TP
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for
@@ -874,6 +902,16 @@ is module name, which can and should be a top level
 package and then one choice, "error", "warning",
 "nofollow", e.g. PyQt5:error.
 .IP
+Plugin options of 'dill\-compat' (categories: package\-support):
+.TP
+\fB\-\-include\-pickle\-support\-module\fR=\fI\,PICKLE_SUPPORTED_MODULES\/\fR
+Include support for these modules to pickle nested
+compiled functions. You can use "all" which is the
+default, but esp. in module mode, just might want to
+limit yourself to not create unnecessary run\-time
+usages. For standalone mode, you can leave it at the
+default, at it will detect the usage.
+.IP
 Plugin options of 'pmw\-freezer' (categories: package\-support):
 .TP
 \fB\-\-include\-pmw\-blt\fR
@@ -965,8 +1003,8 @@ resources not found.
 Plugin options of 'pelock' (categories: commercial, integration):
 .TP
 \fB\-\-pelock\-path\fR=\fI\,PELOCK_PATH\/\fR
-The location of the PELock or WinLicense software, by
-default it's searched in PATH and home directories.
+The location of the PELock software, by default it's
+searched in PATH and home directories.
 .TP
 \fB\-\-pelock\-unbundled\-files\fR=\fI\,PELOCK_UNBUNDLED\/\fR
 Patterns of files to not be bundled inside the binary,
@@ -1026,7 +1064,7 @@ debugging.
 Plugin options of 'traceback\-encryption' (categories: commercial, protection):
 .TP
 \fB\-\-encryption\-key\fR=\fI\,KEY\/\fR
-The key to use.
+The encryption key to use.
 .TP
 \fB\-\-encrypt\-stdout\fR
 Apply encryption to standard output.
@@ -1089,16 +1127,17 @@ creates a folder with an executable contained to run
 it. Onefile creates a single executable to deploy. App
 is onefile except on macOS where it's not to be used.
 Module makes a module, and package includes also all
-sub\-modules and sub\-packages. Default is
+sub\-modules and sub\-packages. Dll is currently under
+development and not for users yet. Default is
 \&'accelerated'.
 .TP
 \fB\-\-standalone\fR
 Enable standalone mode for output. This allows you to
 transfer the created binary to other machines without
 it using an existing Python installation. This also
-means it will become big. It implies these option: "\-\-
-follow\-imports" and "\-\-python\-flag=no_site". Defaults
-to off.
+means it will become big. It implies these options: "
+\fB\-\-follow\-imports\fR" and "\-\-python\-flag=no_site".
+Defaults to off.
 .TP
 \fB\-\-onefile\fR
 On top of standalone mode, enable onefile mode. This
@@ -1114,8 +1153,10 @@ Currently supported: "\-S" (alias "no_site"),
 "no_warnings" (do not give Python run time warnings),
 "\-O" (alias "no_asserts"), "no_docstrings" (do not use
 doc strings), "\-u" (alias "unbuffered"), "isolated"
-(do not load outside code) and "\-m" (package mode,
-compile as "package.__main__"). Default empty.
+(do not load outside code), "\-P" (alias "safe_path",
+do not used current directory in module search) and
+"\-m" (package mode, compile as "package.__main__").
+Default empty.
 .TP
 \fB\-\-python\-debug\fR
 Use debug version or not. Default uses what you are
@@ -1218,6 +1259,14 @@ Use e.g. a string like
 \&'{CACHE_DIR}/{COMPANY}/{PRODUCT}/{VERSION}' which is a
 good static cache path, this will then not be removed.
 .TP
+\fB\-\-onefile\-cache\-mode\fR=\fI\,ONEFILE_CACHED_MODE\/\fR
+This mode is inferred from your use of the spec. If it
+contains runtime dependent paths, "auto" resolves to
+"temporary" which will make sure to remove the
+unpacked binaries after execution, and cached will not
+remove it and see to reuse its contents during next
+execution for faster startup times.
+.TP
 \fB\-\-onefile\-child\-grace\-time\fR=\fI\,GRACE_TIME_MS\/\fR
 When stopping the child, e.g. due to CTRL\-C or
 shutdown, etc. the Python code gets a
@@ -1236,6 +1285,13 @@ When creating the onefile, use an archive format, that
 can be unpacked with "nuitka\-onefile\-unpack" rather
 than a stream that only the onefile program itself
 unpacks. Default is off.
+.TP
+\fB\-\-onefile\-no\-dll\fR
+When creating the onefile, some platforms (Windows
+currently, if not using a cached location) default to
+using DLL rather than an executable for the Python
+code. This makes it use an executable in the unpacked
+files as well. Default is off.
 .IP
 Data files:
 .TP
@@ -1303,6 +1359,10 @@ option given, it only works when it's recognized at
 compile time which is not always happening. This of
 course only makes sense for packages that are included
 in the compilation. Default empty.
+.TP
+\fB\-\-list\-distribution\-metadata\fR
+Output the list of distributions and their details for
+all packages. Default not done.
 .IP
 DLL files:
 .TP
@@ -1463,6 +1523,12 @@ Disable check normally done with "\-\-debug". With
 Python3.12+ do not check known immortal object
 assumptions. Some C libraries corrupt them. Defaults
 to check being made if "\-\-debug" is on.
+.TP
+\fB\-\-no\-debug\-c\-warnings\fR
+Disable check normally done with "\-\-debug". The C
+compilation may produce warnings, which it often does
+for some packages without these being issues, esp. for
+unused values.
 .TP
 \fB\-\-unstripped\fR
 Keep debug info in the resulting object file for
@@ -1938,6 +2004,16 @@ is module name, which can and should be a top level
 package and then one choice, "error", "warning",
 "nofollow", e.g. PyQt5:error.
 .IP
+Plugin options of 'dill\-compat' (categories: package\-support):
+.TP
+\fB\-\-include\-pickle\-support\-module\fR=\fI\,PICKLE_SUPPORTED_MODULES\/\fR
+Include support for these modules to pickle nested
+compiled functions. You can use "all" which is the
+default, but esp. in module mode, just might want to
+limit yourself to not create unnecessary run\-time
+usages. For standalone mode, you can leave it at the
+default, at it will detect the usage.
+.IP
 Plugin options of 'pmw\-freezer' (categories: package\-support):
 .TP
 \fB\-\-include\-pmw\-blt\fR
@@ -2029,8 +2105,8 @@ resources not found.
 Plugin options of 'pelock' (categories: commercial, integration):
 .TP
 \fB\-\-pelock\-path\fR=\fI\,PELOCK_PATH\/\fR
-The location of the PELock or WinLicense software, by
-default it's searched in PATH and home directories.
+The location of the PELock software, by default it's
+searched in PATH and home directories.
 .TP
 \fB\-\-pelock\-unbundled\-files\fR=\fI\,PELOCK_UNBUNDLED\/\fR
 Patterns of files to not be bundled inside the binary,
@@ -2090,7 +2166,7 @@ debugging.
 Plugin options of 'traceback\-encryption' (categories: commercial, protection):
 .TP
 \fB\-\-encryption\-key\fR=\fI\,KEY\/\fR
-The key to use.
+The encryption key to use.
 .TP
 \fB\-\-encrypt\-stdout\fR
 Apply encryption to standard output.

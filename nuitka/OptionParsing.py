@@ -98,7 +98,7 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("app", "onefile", "standalone", "accelerated", "module", "package"),
+    choices=("app", "onefile", "standalone", "accelerated", "module", "package", "dll"),
     default=None,
     github_action_default="app",
     help="""\
@@ -107,7 +107,8 @@ installation and depends on it. Standalone creates a folder
 with an executable contained to run it. Onefile creates a
 single executable to deploy. App is onefile except on macOS
 where it's not to be used. Module makes a module, and
-package includes also all sub-modules and sub-packages.
+package includes also all sub-modules and sub-packages. Dll
+is currently under development and not for users yet.
 Default is 'accelerated'.""",
 )
 
@@ -120,7 +121,7 @@ parser.add_option(
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
-means it will become big. It implies these option: "--follow-imports" and
+means it will become big. It implies these options: "--follow-imports" and
 "--python-flag=no_site". Defaults to off.""",
 )
 
@@ -165,7 +166,8 @@ Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python run time warnings), "-O" (alias "no_asserts"), "no_docstrings"
 (do not use doc strings), "-u" (alias "unbuffered"), "isolated" (do not
-load outside code) and "-m" (package mode, compile as "package.__main__").
+load outside code), "-P" (alias "safe_path", do not used current directory
+in module search) and "-m" (package mode, compile as "package.__main__").
 Default empty.""",
 )
 
@@ -376,6 +378,22 @@ static cache path, this will then not be removed.""",
 )
 
 onefile_group.add_option(
+    "--onefile-cache-mode",
+    action="store",
+    dest="onefile_cached_mode",
+    metavar="ONEFILE_CACHED_MODE",
+    choices=("auto", "cached", "temporary"),
+    default="auto",
+    help="""\
+This mode is inferred from your use of the spec. If it contains
+runtime dependent paths, "auto" resolves to "temporary" which
+will make sure to remove the unpacked binaries after execution,
+and cached will not remove it and see to reuse its contents
+during next execution for faster startup times.""",
+)
+
+
+onefile_group.add_option(
     "--onefile-child-grace-time",
     action="store",
     dest="onefile_child_grace_time",
@@ -407,6 +425,18 @@ onefile_group.add_option(
 When creating the onefile, use an archive format, that can be unpacked
 with "nuitka-onefile-unpack" rather than a stream that only the onefile
 program itself unpacks. Default is off.""",
+)
+
+onefile_group.add_option(
+    "--onefile-no-dll",
+    action="store_true",
+    dest="onefile_no_dll",
+    default=False,
+    help="""\
+When creating the onefile, some platforms (Windows currently, if not
+using a cached location) default to using DLL rather than an executable
+for the Python code. This makes it use an executable in the unpacked
+files as well. Default is off.""",
 )
 
 del onefile_group
@@ -532,6 +562,17 @@ option given, it only works when it's recognized at compile time which is
 not always happening. This of course only makes sense for packages that are
 included in the compilation. Default empty.""",
 )
+
+metadata_group.add_option(
+    "--list-distribution-metadata",
+    action="store_true",
+    dest="list_distribution_metadata",
+    default=False,
+    require_compiling=False,
+    help="""\
+Output the list of distributions and their details for all packages. Default not done.""",
+)
+
 
 del metadata_group
 
@@ -851,6 +892,25 @@ debug_group.add_option(
     "--debug-immortal-assumptions",
     action="store_true",
     dest="debug_immortal",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
+    "--no-debug-c-warnings",
+    action="store_false",
+    dest="debug_c_warnings",
+    default=None,
+    help="""\
+Disable check normally done with "--debug". The C compilation may produce
+warnings, which it often does for some packages without these being issues,
+esp. for unused values.""",
+)
+
+debug_group.add_option(
+    "--debug-c-warnings",
+    action="store_true",
+    dest="debug_c_warnings",
     default=None,
     help=SUPPRESS_HELP,
 )
@@ -1463,8 +1523,7 @@ console window unless the program was started from one. With 'disable'
 it doesn't create or use a console at all. With 'attach' an existing
 console will be used for outputs. With 'hide' a newly spawned console
 will be hidden and an already existing console will behave like
-'force'. Default is 'force'.
-""",
+'force'. Default is 'force'.""",
 )
 
 windows_group.add_option(
@@ -1928,6 +1987,7 @@ run_time_variable_names = (
     "TIME",
     "PROGRAM",
     "PROGRAM_BASE",
+    "PROGRAM_DIR",
     "CACHE_DIR",
     "COMPANY",
     "PRODUCT",
@@ -2284,6 +2344,14 @@ def runSpecialCommandsFromOptions(options):
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
         displayPackageData(options.list_package_data)
+        sys.exit(0)
+
+    if options.list_distribution_metadata:
+        from nuitka.tools.scanning.DisplayDistributions import (
+            displayDistributions,
+        )
+
+        displayDistributions()
         sys.exit(0)
 
     if options.edit_module_code:

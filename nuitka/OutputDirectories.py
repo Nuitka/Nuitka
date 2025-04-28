@@ -12,14 +12,25 @@ this.
 
 import os
 
-from nuitka import Options
+from nuitka.Options import (
+    getOutputFilename,
+    getOutputPath,
+    getPgoExecutable,
+    isOnefileMode,
+    isStandaloneMode,
+    shallCreateAppBundle,
+    shallCreateScriptFileForExecution,
+    shallMakeDll,
+    shallMakeModule,
+)
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
     getNormalizedPath,
     makePath,
     putTextFileContents,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
+from nuitka.utils.SharedLibraries import getDllSuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
 _main_module = None
@@ -53,7 +64,7 @@ def getSourceDirectoryPath(onefile=False):
     else:
         suffix = ".build"
 
-    result = Options.getOutputPath(
+    result = getOutputPath(
         path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
     )
 
@@ -70,42 +81,42 @@ def getSourceDirectoryPath(onefile=False):
 def _getStandaloneDistSuffix(bundle):
     """Suffix to use for standalone distribution folder."""
 
-    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
+    if bundle and shallCreateAppBundle() and not isOnefileMode():
         return ".app"
     else:
         return ".dist"
 
 
 def getStandaloneDirectoryPath(bundle=True):
-    assert Options.isStandaloneMode()
+    assert isStandaloneMode()
 
-    result = Options.getOutputPath(
+    result = getOutputPath(
         path=os.path.basename(
             getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
         )
     )
 
-    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
+    if bundle and shallCreateAppBundle() and not isOnefileMode():
         result = os.path.join(result, "Contents", "MacOS")
 
     return result
 
 
 def getResultBasePath(onefile=False):
-    if Options.isOnefileMode() and onefile:
+    if isOnefileMode() and onefile:
         file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
 
-        if Options.shallCreateAppBundle():
+        if shallCreateAppBundle():
             file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
 
-        return Options.getOutputPath(path=file_path)
-    elif Options.isStandaloneMode() and not onefile:
+        return getOutputPath(path=file_path)
+    elif isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
         )
     else:
-        return Options.getOutputPath(
+        return getOutputPath(
             path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
         )
 
@@ -115,33 +126,37 @@ def getResultFullpath(onefile):
 
     result = getResultBasePath(onefile=onefile)
 
-    if Options.shallMakeModule():
-        result += getSharedLibrarySuffix(preferred=True)
+    if shallMakeModule():
+        result += getExtensionModuleSuffix(preferred=True)
+    elif shallMakeDll() and not onefile:
+        # TODO: Could actually respect getOutputFilename() for DLLs, these don't
+        # need to be named in a specific way.
+        result += getDllSuffix()
     else:
-        output_filename = Options.getOutputFilename()
+        output_filename = getOutputFilename()
 
-        if Options.isOnefileMode() and output_filename is not None:
+        if isOnefileMode() and output_filename is not None:
             if onefile:
-                result = Options.getOutputPath(output_filename)
+                result = getOutputPath(output_filename)
             else:
                 result = os.path.join(
                     getStandaloneDirectoryPath(),
                     os.path.basename(output_filename),
                 )
-        elif Options.isStandaloneMode() and output_filename is not None:
+        elif isStandaloneMode() and output_filename is not None:
             result = os.path.join(
                 getStandaloneDirectoryPath(),
                 os.path.basename(output_filename),
             )
         elif output_filename is not None:
             result = output_filename
-        elif not isWin32OrPosixWindows() and not Options.shallCreateAppBundle():
+        elif not isWin32OrPosixWindows() and not shallCreateAppBundle():
             result = addFilenameExtension(result, ".bin")
 
         if isWin32OrPosixWindows():
             result = addFilenameExtension(result, ".exe")
 
-        if not isWin32OrPosixWindows() and Options.isOnefileMode() and not onefile:
+        if not isWin32OrPosixWindows() and isOnefileMode() and not onefile:
             result = addFilenameExtension(result, ".bin")
 
     return getNormalizedPath(result)
@@ -150,7 +165,7 @@ def getResultFullpath(onefile):
 def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile)
 
-    if Options.shallCreateScriptFileForExecution():
+    if shallCreateScriptFileForExecution():
         result = getResultBasePath(onefile=onefile) + (
             ".cmd" if isWin32Windows() else ".sh"
         )
@@ -163,7 +178,7 @@ def getTreeFilenameWithSuffix(module, suffix):
 
 
 def getPgoRunExecutable():
-    return Options.getPgoExecutable() or getResultRunFilename(onefile=False)
+    return getPgoExecutable() or getResultRunFilename(onefile=False)
 
 
 def getPgoRunInputFilename():

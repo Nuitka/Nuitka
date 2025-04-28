@@ -182,7 +182,7 @@ void patchInspectModule(PyThreadState *tstate) {
     CHECK_OBJECT(dict_builtin);
 
 #if PYTHON_VERSION >= 0x300
-#if defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
+#if _NUITKA_EXE_MODE && !_NUITKA_STANDALONE_MODE
     // May need to import the "site" module, because otherwise the patching can
     // fail with it being unable to load it (yet)
     if (Py_NoSiteFlag == 0) {
@@ -374,6 +374,9 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
 #endif
 
     CHECK_OBJECT(frame);
+    if (lineno == 0) {
+        lineno = frame->m_frame.f_lineno;
+    }
     assert(lineno != 0);
 
     PyTracebackObject *result;

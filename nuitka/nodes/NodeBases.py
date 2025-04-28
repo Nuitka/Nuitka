@@ -19,6 +19,7 @@ from nuitka.__past__ import iterItems
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -528,10 +529,10 @@ class CodeNodeMixin(object):
                 else:
                     name = uid
 
-                if str is not bytes:
-                    name = name.encode("ascii", "c_identifier").decode()
-
-            self.code_name = "%s$$$%s_%s" % (parent_name, self.code_prefix, name)
+            self.code_name = "%s$$$%s" % (
+                parent_name,
+                encodePythonIdentifierToC("%s_%s" % (self.code_prefix, name)),
+            )
 
         return self.code_name
 

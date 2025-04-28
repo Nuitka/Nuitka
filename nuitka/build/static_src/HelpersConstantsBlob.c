@@ -98,7 +98,7 @@ static Py_hash_t our_list_hash(PyListObject *list) {
     return Nuitka_FastHashBytes(&list->ob_item[0], Py_SIZE(list) * sizeof(PyObject *));
 }
 
-static PyObject *our_list_richcompare(PyListObject *list1, PyListObject *list2, int op) {
+static PyObject *our_list_tp_richcompare(PyListObject *list1, PyListObject *list2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -121,7 +121,7 @@ static Py_hash_t our_tuple_hash(PyTupleObject *tuple) {
     return Nuitka_FastHashBytes(&tuple->ob_item[0], Py_SIZE(tuple) * sizeof(PyObject *));
 }
 
-static PyObject *our_tuple_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
+static PyObject *our_tuple_tp_richcompare(PyTupleObject *tuple1, PyTupleObject *tuple2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -164,7 +164,7 @@ static Py_hash_t our_set_hash(PyObject *set) {
     return result;
 }
 
-static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
+static PyObject *our_set_tp_richcompare(PyObject *set1, PyObject *set2, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -214,7 +214,7 @@ static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
     return result;
 }
 
-static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
+static PyObject *our_float_tp_richcompare(PyFloatObject *a, PyFloatObject *b, int op) {
     assert(op == Py_EQ);
 
     PyObject *result;
@@ -246,7 +246,7 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
     return result;
 }
 
-static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
+static PyObject *our_dict_tp_richcompare(PyObject *a, PyObject *b, int op) {
     PyObject *result;
 
     if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -349,7 +349,7 @@ static void insertToDictCache(PyObject *dict, PyObject **value) {
 static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfunc tp_hash,
                                         richcmpfunc tp_richcompare) {
     hashfunc old_hash = Py_TYPE(*value)->tp_hash;
-    richcmpfunc old_richcmp = Py_TYPE(*value)->tp_richcompare;
+    richcmpfunc old_richcmpfunc = Py_TYPE(*value)->tp_richcompare;
 
     // Hash is optional, e.g. for floats we can spare us doing our own hash,
     // but we do equality
@@ -361,7 +361,7 @@ static void insertToDictCacheForcedHash(PyObject *dict, PyObject **value, hashfu
     insertToDictCache(dict, value);
 
     Py_TYPE(*value)->tp_hash = old_hash;
-    Py_TYPE(*value)->tp_richcompare = old_richcmp;
+    Py_TYPE(*value)->tp_richcompare = old_richcmpfunc;
 }
 
 static uint16_t unpackValueUint16(unsigned char const **data) {
@@ -476,24 +476,19 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
 }
 
 // TODO: We might have a need for this to be usable more globally.
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
 #define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (PYTHON_VERSION >= 0x3c7)
 #else
 #define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (Py_Version >= 0x30c0700)
 #endif
 
-static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
-                                                         bool is_ascii) {
+static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
+                                                           bool is_ascii) {
 #if PYTHON_VERSION < 0x300
     PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
 #else
-    PyObject *u;
-
-    if (size == 1) {
-        u = PyUnicode_FromStringAndSize(data, size);
-    } else {
-        u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
-    }
+    // spell-checker: ignore surrogatepass
+    PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
 #endif
 
 #if PYTHON_VERSION >= 0x3d0
@@ -501,10 +496,11 @@ static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, 
 #elif PYTHON_VERSION >= 0x3c0
     if (is_ascii) {
         PyUnicode_InternInPlace(&u);
+    }
 
-        if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
-            _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
-        }
+    if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
+        _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
+        _PyUnicode_STATE(u).statically_allocated = 1;
     }
 #elif PYTHON_VERSION >= 0x300
     if (is_ascii) {
@@ -512,6 +508,14 @@ static PyObject *NuitkaUnicode_ImmortalFromStringAndSize(PyThreadState *tstate, 
     }
 #else
     insertToDictCache(unicode_cache, &u);
+#endif
+
+    // Make sure our strings are consistent.
+#if PYTHON_VERSION >= 0x3c0 && !defined(__NUITKA_NO_ASSERT__)
+    // Note: Setting to immortal happens last, but we want to check now.
+    Py_SET_REFCNT_IMMORTAL(u);
+
+    _PyUnicode_CheckConsistency(u, 1);
 #endif
 
     return u;
@@ -529,7 +533,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     char c = *((char const *)data++);
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
     unsigned char const *data_old = data;
-    printf("Type %c for %d of %d:\n", c, _i, count);
+    printf("Type %c:\n", c);
 #endif
     switch (c) {
 
@@ -548,7 +552,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             data = _unpackBlobConstants(tstate, &PyTuple_GET_ITEM(t, 0), data, size);
         }
 
-        insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_richcompare);
+        insertToDictCacheForcedHash(tuple_cache, &t, (hashfunc)our_tuple_hash, (richcmpfunc)our_tuple_tp_richcompare);
 
         *output = t;
         is_object = true;
@@ -564,7 +568,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             data = _unpackBlobConstants(tstate, &PyList_GET_ITEM(l, 0), data, size);
         }
 
-        insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_richcompare);
+        insertToDictCacheForcedHash(list_cache, &l, (hashfunc)our_list_hash, (richcmpfunc)our_list_tp_richcompare);
 
         *output = l;
         is_object = true;
@@ -588,7 +592,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
             }
         }
 
-        insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_richcompare);
+        insertToDictCacheForcedHash(dict_cache, &d, (hashfunc)our_dict_hash, (richcmpfunc)our_dict_tp_richcompare);
 
         *output = d;
         is_object = true;
@@ -632,9 +636,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 
         // sets are cached globally too.
         if (c == 'S') {
-            insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
+            insertToDictCacheForcedHash(set_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_tp_richcompare);
         } else {
-            insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash, (richcmpfunc)our_set_richcompare);
+            insertToDictCacheForcedHash(frozenset_cache, &s, (hashfunc)our_set_hash,
+                                        (richcmpfunc)our_set_tp_richcompare);
         }
 
         *output = s;
@@ -718,7 +723,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         PyObject *f = PyFloat_FromDouble(value);
 
         // Floats are cached globally too.
-        insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_richcompare);
+        insertToDictCacheForcedHash(float_cache, &f, NULL, (richcmpfunc)our_float_tp_richcompare);
 
         *output = f;
         is_object = true;
@@ -805,7 +810,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'w': {
         // Python2 unicode, Python3 str length 1, potentially attribute in Python3
-        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, 1, true);
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, 1, true);
         data += 1;
 
         *output = u;
@@ -849,8 +854,9 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
 #endif
     case 'u': { // Python2 unicode, Python3 str, zero terminated.
         size_t size = strlen((const char *)data);
+        assert(size != 0);
 
-        PyObject *u = NuitkaUnicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, c == 'a');
         data += size + 1;
 
         *output = u;
@@ -860,17 +866,10 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'v': {
         int size = (int)_unpackVariableLength(&data);
+        assert(size != 0);
 
-#if PYTHON_VERSION < 0x300
-        PyObject *u = PyUnicode_FromStringAndSize((const char *)data, size);
-#else
-        PyObject *u = PyUnicode_DecodeUTF8((const char *)data, size, "surrogatepass");
-#endif
+        PyObject *u = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, size, false);
         data += size;
-
-#if PYTHON_VERSION < 0x300
-        insertToDictCache(unicode_cache, &u);
-#endif
 
         *output = u;
         is_object = true;
@@ -879,6 +878,12 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
     }
     case 'n': {
         *output = Py_None;
+        is_object = true;
+
+        break;
+    }
+    case 's': {
+        *output = _Nuitka_Unicode_ImmortalFromStringAndSize(tstate, (const char *)data, 0, true);
         is_object = true;
 
         break;
@@ -1058,7 +1063,7 @@ static unsigned char const *_unpackBlobConstant(PyThreadState *tstate, PyObject 
         }
 
         // Floats are cached globally too.
-        insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_richcompare);
+        insertToDictCacheForcedHash(float_cache, &z, NULL, (richcmpfunc)our_float_tp_richcompare);
 
         *output = z;
         is_object = true;
@@ -1331,7 +1336,7 @@ static void unpackBlobConstants(PyThreadState *tstate, PyObject **output, unsign
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
-#ifndef _NUITKA_EXE
+#if !_NUITKA_EXE_MODE
 static int findMacOSDllImageId(void) {
     Dl_info where;
     int res = dladdr((void *)findMacOSDllImageId, &where);
@@ -1358,7 +1363,7 @@ static int findMacOSDllImageId(void) {
 #endif
 
 unsigned char *findMacOSBinarySection(void) {
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE
     const struct mach_header *header = &_mh_execute_header;
 #else
     int image_id = findMacOSDllImageId();
@@ -1386,7 +1391,7 @@ void loadConstantsBlob(PyThreadState *tstate, PyObject **output, char const *nam
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
         constant_bin = getConstantsBlobData();
 #elif defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE
         // Using NULL as this indicates running program.
         HMODULE handle = NULL;
 #else
