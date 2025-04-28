@@ -1364,6 +1364,12 @@
         'while frame.f_code.co_filename == current_file': 'if False'
         'frame_filename = frame.f_code.co_filename': 'frame_filename = os.path.dirname(__file__)'
 
+- module-name: 'duckdb' # checksum: 8daca454
+  implicit-imports:
+    - depends:
+      # The anti-bloat avoids this one, but we need to force it.
+        - '_datetime'
+
 - module-name: 'easyocr' # checksum: 58ad3ee8
   data-files:
     - patterns:
