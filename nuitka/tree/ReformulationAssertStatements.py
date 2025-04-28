@@ -37,6 +37,8 @@ def buildAssertNode(provider, node, source_ref):
     # static raise contained.
     #
 
+    asserted_value_expression = buildNode(provider, node.test, source_ref)
+
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
     if hasPythonFlagNoAsserts():
@@ -71,9 +73,17 @@ def buildAssertNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
+    # May not need a condition.
+    if asserted_value_expression.isCompileTimeConstant():
+        asserted_value = asserted_value_expression.getCompileTimeConstant()
+
+        if not asserted_value:
+            return raise_statement
+
     return makeStatementConditional(
         condition=ExpressionOperationNot(
-            operand=buildNode(provider, node.test, source_ref), source_ref=source_ref
+            operand=asserted_value_expression,
+            source_ref=source_ref,
         ),
         yes_branch=raise_statement,
         no_branch=None,
