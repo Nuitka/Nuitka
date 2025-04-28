@@ -176,9 +176,6 @@ pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 # Console mode specified
 console_mode = getArgumentDefaulted("console_mode", "attach")
 
-# Windows might be running a Python whose DLL we have to use.
-uninstalled_python = getArgumentBool("uninstalled_python", False)
-
 # Unstripped mode: Do not remove debug symbols.
 unstripped_mode = getArgumentBool("unstripped_mode", False)
 
@@ -954,10 +951,6 @@ if job_count:
 
 def createBuildDefinitionsFile():
     build_definitions = {}
-
-    if uninstalled_python and not env.static_libpython:
-        # Use the non-external one, so it's not a short path.
-        build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
     build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0
 
