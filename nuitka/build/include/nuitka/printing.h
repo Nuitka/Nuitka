@@ -18,6 +18,10 @@ extern bool PRINT_NEW_LINE_TO(PyObject *file);
 extern PyObject *GET_STDOUT(void);
 extern PyObject *GET_STDERR(void);
 
+// For flushing stdout and stderr.
+extern void FLUSH_STDOUT(void);
+extern void FLUSH_STDERR(void);
+
 // -----------------------------------------------------------------------
 // Helper functions to debug the run time operation of the compiled binary
 // manually or in debug modes.

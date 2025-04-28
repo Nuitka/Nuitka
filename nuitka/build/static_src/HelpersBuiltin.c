@@ -719,6 +719,8 @@ PyObject *BUILTIN_GETATTR(PyThreadState *tstate, PyObject *object, PyObject *att
     }
 #endif
 
+    // TODO: Once we can easily generate a variant that avoids the creation of
+    // the exception as best as it can, we can switch to our own code helper.
     PyObject *result = PyObject_GetAttr(object, attribute);
 
     if (result == NULL) {

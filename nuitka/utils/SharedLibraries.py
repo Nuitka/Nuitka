@@ -393,11 +393,16 @@ def _getSharedLibraryRPATHsDarwin(filename, cached):
     return rpaths
 
 
-def getSharedLibraryRPATHs(filename, cached=True):
+def getSharedLibraryRPATHs(filename, elements=False, cached=True):
     if isMacOS():
         return _getSharedLibraryRPATHsDarwin(filename=filename, cached=cached)
     else:
-        return _getSharedLibraryRPATHsElf(filename=filename)
+        result = _getSharedLibraryRPATHsElf(filename=filename)
+
+        if elements:
+            result = sum([r.split(":") for r in result], [])
+
+        return result
 
 
 def _filterPatchelfErrorOutput(stderr):
@@ -501,7 +506,7 @@ def setSharedLibraryRPATH(filename, rpath):
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
 
-    if getSharedLibraryRPATHs(filename, cached=False) != [rpath]:
+    if getSharedLibraryRPATHs(filename, elements=False, cached=False) != [rpath]:
         postprocessing_logger.sysexit(
             "Error, failed to update rpath for '%s'." % filename
         )
@@ -731,11 +736,24 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
 
         # TODO: This ought to depend on actual presence of used DLLs with middle
         # paths and not just do it, but maybe there is not much harm in it.
-        rpath = ":".join(
+        rpaths = OrderedSet(
             os.path.join("$ORIGIN", *([".."] * c)) for c in range(count, -1, -1)
         )
 
-        setSharedLibraryRPATH(target_filename, rpath)
+        # Make sure, sub-folders use by the original DLL are actually still
+        # included.
+        #
+        # TODO: Actually it would be nice if these were trimmed to what actually
+        # exists and is used, but that's pretty complex and maybe not worth the
+        # effort. This would look like "fixupBinaryDLLPathsMacOS" somewhat, and
+        # actually this code is indeed kind of misplaced here.
+        rpaths.update(
+            rpath
+            for rpath in getSharedLibraryRPATHs(source_path, elements=True)
+            if rpath.startswith("$ORIGIN")
+        )
+
+        setSharedLibraryRPATH(target_filename, ":".join(rpaths))
 
     if isWin32Windows() and isUnstripped():
         pdb_filename = changeFilenameExtension(path=source_path, extension=".pdb")
@@ -947,6 +965,15 @@ def getDllExportedSymbols(logger, filename):
                 result.add(symbol_name.decode("utf8"))
 
         return result
+
+
+def getDllSuffix():
+    if isWin32Windows():
+        return ".dll"
+    elif isMacOS():
+        return ".dylib"
+    else:
+        return ".so"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

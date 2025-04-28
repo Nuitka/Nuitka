@@ -150,17 +150,22 @@ extern Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t
 extern Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 #endif
 
+static inline Py_hash_t Nuitka_Py_unicode_get_hash(PyObject *o) {
+    assert(PyUnicode_CheckExact(o));
+
+    return FT_ATOMIC_LOAD_SSIZE_RELAXED(((PyUnicodeObject *)o)->_base._base.hash);
+}
+
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
     assert(PyDict_CheckExact(dict));
     assert(Nuitka_String_CheckExact(key));
 
-    Py_hash_t hash = key->_base._base.hash;
+    Py_hash_t hash = Nuitka_Py_unicode_get_hash((PyObject *)key);
 
     // Only improvement would be to identify how to ensure that the hash is computed
     // already. Calling hash early on could do that potentially.
     if (hash == -1) {
         hash = PyUnicode_Type.tp_hash((PyObject *)key);
-        key->_base._base.hash = hash;
     }
 
 #if PYTHON_VERSION < 0x360

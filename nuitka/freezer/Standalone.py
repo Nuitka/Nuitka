@@ -11,7 +11,7 @@ help.
 import os
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Errors import NuitkaForbiddenDLLEncounter
+from nuitka.Errors import NuitkaForbiddenDLLEncounter, NuitkaNotYetSupported
 from nuitka.importing.Importing import (
     getPythonUnpackedSearchPath,
     locateModule,
@@ -130,7 +130,9 @@ def _detectBinaryDLLs(
 
     if is_main_executable and isNuitkaPython():
         return OrderedSet()
-    elif getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
+    elif (
+        getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD", "AIX") or isPosixWindows()
+    ):
         return detectBinaryPathDLLsPosix(
             dll_filename=original_filename,
             package_name=package_name,
@@ -160,11 +162,15 @@ def _detectBinaryDLLs(
             recursive=True,
         )
     else:
-        # Support your platform above.
-        assert False, getOS()
+        # Support your platform above, for many platforms the POSIX branch will
+        # be working and its parser for "ldd" just need fixes for specialties
+        # maybe.
+        raise NuitkaNotYetSupported(
+            "DLL dependency detection for '%s', please help adding it." % getOS()
+        )
 
 
-def copyDllsUsed(dist_dir, standalone_entry_points):
+def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
     # This is complex, because we also need to handle OS specifics.
 
     # Only do ones not ignored
@@ -219,6 +225,11 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
+    Plugins.onCopiedDLLs(
+        dist_dir=dist_dir,
+        standalone_entry_points=copy_standalone_entry_points,
+    )
+
     # Add macOS code signature
     if isMacOS():
         addMacOSCodeSignature(
@@ -227,11 +238,8 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
                 for standalone_entry_point in [main_standalone_entry_point]
                 + copy_standalone_entry_points
             ]
+            + data_file_paths
         )
-
-    Plugins.onCopiedDLLs(
-        dist_dir=dist_dir, standalone_entry_points=copy_standalone_entry_points
-    )
 
 
 _excluded_system_dlls = set()

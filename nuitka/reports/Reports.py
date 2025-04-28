@@ -34,7 +34,9 @@ from nuitka.Options import (
     getCompilationReportFilename,
     getCompilationReportTemplates,
     getCompilationReportUserData,
+    getOnefileTempDirSpec,
     isOnefileMode,
+    isOnefileTempDirMode,
     shallCreateDiffableCompilationReport,
 )
 from nuitka.OutputDirectories import (
@@ -721,6 +723,14 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "plugin",
             name=plugin.plugin_name,
             user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
+        )
+
+    if isOnefileMode():
+        _onefile_xml_node = TreeXML.appendTreeElement(
+            root,
+            "onefile",
+            cache_mode="temporary" if isOnefileTempDirMode() else "cached",
+            unpack_dir=getOnefileTempDirSpec(),
         )
 
     distributions_xml_node = TreeXML.appendTreeElement(

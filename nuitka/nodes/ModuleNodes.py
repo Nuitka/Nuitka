@@ -22,8 +22,8 @@ from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import switchFilenameExtension
 from nuitka.utils.Importing import (
+    getExtensionModuleSuffixes,
     getPackageDirFilename,
-    getSharedLibrarySuffixes,
 )
 from nuitka.utils.ModuleNames import ModuleName
 
@@ -747,6 +747,11 @@ class CompiledPythonNamespacePackage(CompiledPythonPackage):
     def isCompiledPythonNamespacePackage():
         return True
 
+    # These have no source code obviously.
+    @staticmethod
+    def getSourceCode():
+        return None
+
 
 def makeUncompiledPythonModule(
     module_name, reason, filename, bytecode, is_package, technical
@@ -1045,7 +1050,7 @@ class PythonExtensionModule(PythonModuleBase):
 
         path = self.getFilename()
 
-        for extension_module_suffix in getSharedLibrarySuffixes():
+        for extension_module_suffix in getExtensionModuleSuffixes():
             if path.endswith(extension_module_suffix):
                 for pyi_suffix in (".pyi", ".py"):
                     candidate = switchFilenameExtension(

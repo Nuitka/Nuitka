@@ -780,6 +780,15 @@ def autoFormatFile(
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 
         elif is_c or is_cpp:
+            if check_only:
+                try:
+                    getFileContents(tmp_filename, encoding="ascii")
+                except UnicodeDecodeError:
+                    tools_logger.warning(
+                        "All C files must be pure ASCII, need to convert it manually."
+                    )
+                    return True
+
             if not _shouldNotFormatCode(effective_filename):
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupClangFormat(tmp_filename, trace=trace)

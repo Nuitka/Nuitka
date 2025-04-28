@@ -16,6 +16,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
 )
 from nuitka.utils.Utils import (
+    isAIX,
     isFedoraBasedLinux,
     isMacOS,
     isPosixWindows,
@@ -187,17 +188,20 @@ def _enableLtoSettings(
         reason = "not known to be supported"
 
     # Do not default to LTO for large compilations, unless asked for it.
-    module_count_threshold = 250
+    compiled_module_count_threshold = 250
     if (
         orig_lto_mode == "auto"
         and lto_mode
-        and env.module_count > module_count_threshold
+        and env.compiled_module_count > compiled_module_count_threshold
         and not env.nuitka_python
     ):
         lto_mode = False
-        reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
-            env.module_count,
-            module_count_threshold,
+        reason = (
+            "might to be too slow %s (>= %d threshold), force it with '--lto=yes'"
+            % (
+                env.compiled_module_count,
+                compiled_module_count_threshold,
+            )
         )
 
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
@@ -440,7 +444,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
     return env
 
 
-def decideConstantsBlobResourceMode(env, module_mode):
+def decideConstantsBlobResourceMode(env):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
@@ -459,13 +463,16 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif env.gcc_mode and not env.clang_mode and env.gcc_version >= (15,):
         resource_mode = "c23_embed"
         reason = "default for newer gcc"
+    elif isAIX():
+        resource_mode = "code"
+        reason = "AIX is not compatible with incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
-        if module_mode:
+        if env.module_mode:
             resource_mode = "code"
         else:
             resource_mode = "linker"
 
-        reason = "default for lto gcc with --lto bugs for incbin"
+        reason = "default for lto gcc with '--lto' and bugs for incbin"
     else:
         # All is done already, this is for most platforms.
         resource_mode = "incbin"
@@ -661,6 +668,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # gcc compiler cf_protection option
         if env.cf_protection != "auto":
             env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
+
     # Support for clang.
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-w"])
@@ -669,8 +677,30 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Don't export anything by default, this should create smaller executables.
         env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
-        if env.debug_mode and "allow-c-warnings" not in env.experimental_flags:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+    if (
+        env.debug_mode
+        and "debug_c_warnings" in env.debug_modes_flags
+        and not env.debugger_mode
+    ):
+        # Allow gcc/clang/MSVC to point out all kinds of inconsistency to us by
+        # raising an error.
+        if env.gcc_mode:
+            env.Append(
+                CCFLAGS=[
+                    "-Wall",
+                    "-Werror",
+                ]
+            )
+
+            if env.clang_mode or env.gcc_version >= (4, 6):
+                env.Append(CCFLAGS=["-Wunused-but-set-variable"])
+
+        if env.msvc_mode:
+            env.Append(CCFLAGS=["/WX"])
+    else:
+        if env.gcc_mode:
+            if env.clang_mode or env.gcc_version >= (4, 6):
+                env.Append(CCFLAGS=["-Wno-unused-but-set-variable"])
 
     # Support for macOS standalone to run on older OS versions.
     if isMacOS():
@@ -701,12 +731,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 5):
         env.Append(CCFLAGS=["-fno-strict-aliasing"])
 
-    # For gcc 4.6 or higher, there are some new interesting functions.
+    # For gcc 4.6 or higher, there this new interesting function.
     if env.gcc_mode and not env.clang_mode and env.gcc_version >= (4, 6):
         env.Append(CCFLAGS=["-fpartial-inlining"])
-
-        if env.debug_mode:
-            env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
     # Save some memory for gcc by not tracing macro code locations at all.
     if (

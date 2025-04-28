@@ -44,7 +44,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     removeDirectory,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.Version import getCommercialVersion
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
@@ -370,7 +370,7 @@ def compileAndCompareWith(nuitka, pass_number):
 
                 for preferred in (True, False):
                     target_filename = filename.replace(
-                        ".py", getSharedLibrarySuffix(preferred=preferred)
+                        ".py", getExtensionModuleSuffix(preferred=preferred)
                     )
 
                     deleteFile(
@@ -415,17 +415,24 @@ def executePASS3():
 
     _traceCompilation(path=path, pass_number=3)
 
-    command = [
-        os.environ["PYTHON"],
-        nuitka_main_path,
-        path,
-        "--output-dir=%s" % tmp_dir,
-        "--python-flag=-S",
-        "--follow-imports",
-    ]
+    with withPythonPathChange(os.path.join("..", "..")):
+        command = [
+            os.environ["PYTHON"],
+            nuitka_main_path,
+            path,
+            "--output-dir=%s" % tmp_dir,
+            "--python-flag=-S",
+            "--python-flag=-P",
+            "--follow-imports",
+            "--include-package=nuitka.plugins.standard",
+            "--nofollow-import-to=*-postLoad",
+            "--nofollow-import-to=SCons",
+            "--nofollow-import-to=pip",
+            "--report=compilation-report-pass3.xml",
+        ]
 
-    my_print("Command: ", " ".join(command))
-    result = subprocess.call(command)
+        my_print("Command: ", " ".join(command))
+        result = subprocess.call(command)
 
     if result != 0:
         sys.exit(result)
@@ -440,12 +447,7 @@ def executePASS4():
 
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
-    with withPythonPathChange(getPythonSysPath()):
-        # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
-        # have to add it.
-        if os.name == "nt":
-            addPYTHONPATH(PACKAGE_LIST)
-
+    with withPythonPathChange(os.path.join("..", "..")):
         compileAndCompareWith(exe_path, pass_number=4)
 
     test_logger.info("OK.")
@@ -477,8 +479,8 @@ def executePASS5():
     if result != 0:
         sys.exit(result)
 
-    for preferred in True, False:
-        candidate = "nuitka" + getSharedLibrarySuffix(preferred=preferred)
+    for preferred in (True, False):
+        candidate = "nuitka" + getExtensionModuleSuffix(preferred=preferred)
 
         deleteFile(candidate, must_exist=False)
 

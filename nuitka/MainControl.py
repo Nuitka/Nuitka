@@ -48,6 +48,7 @@ from nuitka.Options import (
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoBytecodeRuntimeCache,
+    hasPythonFlagNoCurrentDirectoryInPath,
     hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
@@ -77,7 +78,12 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Serialization import ConstantAccessor
-from nuitka.Tracing import general, inclusion_logger, pgo_logger
+from nuitka.Tracing import (
+    doNotBreakSpaces,
+    general,
+    inclusion_logger,
+    pgo_logger,
+)
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
@@ -96,10 +102,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
     resetDirectory,
 )
-from nuitka.utils.Importing import (
-    getPackageDirFilename,
-    getSharedLibrarySuffix,
-)
+from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
@@ -181,23 +184,23 @@ def _createMainModule():
     if not Options.shallOnlyExecCCompilerCall():
         cleanSconsDirectory(source_dir)
 
-    # Prepare the ".dist" directory, throwing away what was there before.
-    if Options.isStandaloneMode():
-        standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        resetDirectory(
-            path=standalone_dir,
-            logger=general,
-            ignore_errors=True,
-            extra_recommendation="Stop previous binary.",
-        )
-
-        if Options.shallCreateAppBundle():
+        # Prepare the ".dist" directory, throwing away what was there before.
+        if Options.isStandaloneMode():
+            standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
             resetDirectory(
-                path=changeFilenameExtension(standalone_dir, ".app"),
+                path=standalone_dir,
                 logger=general,
                 ignore_errors=True,
-                extra_recommendation=None,
+                extra_recommendation="Stop previous binary.",
             )
+
+            if Options.shallCreateAppBundle():
+                resetDirectory(
+                    path=changeFilenameExtension(standalone_dir, ".app"),
+                    logger=general,
+                    ignore_errors=True,
+                    extra_recommendation=None,
+                )
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
@@ -592,19 +595,20 @@ def runSconsBackend():
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
     scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
     scons_options["python_debug"] = asBoolStr(Options.shallUsePythonDebug())
-    scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
     scons_options["full_compat"] = asBoolStr(Options.is_full_compat)
     scons_options["experimental"] = ",".join(Options.getExperimentalIndications())
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
     scons_options["file_reference_mode"] = Options.getFileReferenceMode()
-    scons_options["module_count"] = "%d" % len(ModuleRegistry.getDoneModules())
+    scons_options["compiled_module_count"] = "%d" % len(
+        ModuleRegistry.getCompiledModules()
+    )
 
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
 
-    if not Options.shallMakeModule():
-        scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
 
+    if not Options.shallMakeModule():
         main_module = ModuleRegistry.getRootTopModule()
         assert main_module.isMainModule()
 
@@ -625,20 +629,6 @@ def runSconsBackend():
         scons_options["apple_python"] = asBoolStr(True)
     if isPyenvPython():
         scons_options["pyenv_python"] = asBoolStr(True)
-
-    if Options.isStandaloneMode():
-        scons_options["standalone_mode"] = asBoolStr(True)
-
-    if Options.isOnefileMode():
-        scons_options["onefile_mode"] = asBoolStr(True)
-
-        if Options.isOnefileTempDirMode():
-            scons_options["onefile_temp_mode"] = asBoolStr(True)
-
-    # TODO: Some things are going to hate that, we might need to bundle
-    # for accelerated mode still.
-    if Options.shallCreateAppBundle():
-        scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     if Options.getForcedStdoutPath():
         scons_options["forced_stdout_path"] = Options.getForcedStdoutPath()
@@ -700,7 +690,10 @@ def runSconsBackend():
         scons_options["python_sysflag_utf8"] = asBoolStr(True)
 
     if hasPythonFlagNoBytecodeRuntimeCache():
-        scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
+        scons_options["python_sysflag_dontwritebytecode"] = asBoolStr(True)
+
+    if hasPythonFlagNoCurrentDirectoryInPath():
+        scons_options["python_sysflag_safe_path"] = asBoolStr(True)
 
     if hasPythonFlagUnbuffered():
         scons_options["python_sysflag_unbuffered"] = asBoolStr(True)
@@ -711,11 +704,6 @@ def runSconsBackend():
     abiflags = getPythonABI()
     if abiflags:
         scons_options["abiflags"] = abiflags
-
-    if Options.shallMakeModule():
-        scons_options["result_exe"] = OutputDirectories.getResultBasePath(
-            onefile=False
-        ) + getSharedLibrarySuffix(preferred=True)
 
     link_module_libs = getModuleLinkerLibs()
     if link_module_libs:
@@ -737,7 +725,7 @@ def runSconsBackend():
             return result, scons_options
 
         # Need to make it usable before executing it.
-        executePostProcessing()
+        executePostProcessing(scons_options["result_exe"])
         _runPythonPgoBinary()
 
         return True, scons_options
@@ -760,7 +748,7 @@ def runSconsBackend():
                 return result, scons_options
 
             # Need to make it usable before executing it.
-            executePostProcessing()
+            executePostProcessing(scons_options["result_exe"])
             _runCPgoBinary()
             scons_options["pgo_mode"] = "use"
 
@@ -968,13 +956,13 @@ def _main():
         readPGOInputFile(pgo_filename)
 
     general.info(
-        "Starting Python compilation with Nuitka %r on Python (flavor %s), %r commercial grade %r."
-        % (
-            getNuitkaVersion(),
-            getPythonFlavorName(),
-            python_version_str,
-            getCommercialVersion() or "not installed",
-        )
+        leader="Starting Python compilation with:",
+        message="%s %s %s."
+        % doNotBreakSpaces(
+            "Version '%s'" % getNuitkaVersion(),
+            "on Python %s (flavor '%s')" % (python_version_str, getPythonFlavorName()),
+            "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
+        ),
     )
 
     reportMemoryUsage(
@@ -1030,7 +1018,12 @@ def _main():
 
         sys.exit(0)
 
-    executePostProcessing()
+    executePostProcessing(scons_options["result_exe"])
+
+    if not Options.shallOnlyExecCCompilerCall():
+        data_file_paths = copyDataFiles(
+            standalone_entry_points=getStandaloneEntryPoints()
+        )
 
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]
@@ -1047,12 +1040,12 @@ def _main():
 
         dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
-        copyDllsUsed(
-            dist_dir=dist_dir,
-            standalone_entry_points=getStandaloneEntryPoints(),
-        )
-
-    copyDataFiles(standalone_entry_points=getStandaloneEntryPoints())
+        if not Options.shallOnlyExecCCompilerCall():
+            copyDllsUsed(
+                dist_dir=dist_dir,
+                standalone_entry_points=getStandaloneEntryPoints(),
+                data_file_paths=data_file_paths,
+            )
 
     if Options.isStandaloneMode():
         Plugins.onStandaloneDistributionFinished(dist_dir)
@@ -1125,7 +1118,8 @@ def _main():
             general.warning(
                 """\
 The compilation result is hidden by package directory '%s'. Importing will \
-not use compiled code while it exists."""
+not use compiled code while it exists because it has precedence while both \
+exist, out e.g. '--output-dir=output' to sure is importable."""
                 % base_path,
                 mnemonic="compiled-package-hidden-by-package",
             )

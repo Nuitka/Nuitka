@@ -20,7 +20,7 @@ from nuitka.__past__ import md5, subprocess
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getCommercialVersion
 from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
-from nuitka.Tracing import OurLogger, my_print
+from nuitka.Tracing import OurLogger, flushStandardOutputs, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import (
@@ -94,6 +94,7 @@ _python_version = None
 _python_arch = None
 _python_executable = None
 _python_vendor = None
+_python_debug = None
 
 
 def _parsePythonVersionOutput(python_binary):
@@ -106,28 +107,28 @@ import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
 print(sys.executable);\
-print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown")\
+print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown");\
+print(hasattr(sys, "gettotalrefcount"))\
 """,
         ),
         stderr=subprocess.STDOUT,
     )
 
-    python_version_str = version_output.split(b"\n")[0].strip()
-    python_arch = version_output.split(b"\n")[1].strip()
-    python_executable = version_output.split(b"\n")[2].strip()
-    python_vendor = version_output.split(b"\n")[3].strip()
-
     if str is not bytes:
-        python_version_str = python_version_str.decode("utf8")
-        python_arch = python_arch.decode("utf8")
-        python_executable = python_executable.decode("utf8")
-        python_vendor = python_vendor.decode("utf8")
+        version_output = version_output.decode("utf8")
+
+    python_version_str = version_output.split("\n")[0].strip()
+    python_arch = version_output.split("\n")[1].strip()
+    python_executable = version_output.split("\n")[2].strip()
+    python_vendor = version_output.split("\n")[3].strip()
+    python_debug = version_output.split("\n")[4].strip()
 
     assert type(python_version_str) is str, repr(python_version_str)
     assert type(python_arch) is str, repr(python_arch)
     assert type(python_executable) is str, repr(_python_executable)
 
     python_version = tuple(int(d) for d in python_version_str.split("."))
+    python_debug = python_debug == "True"
 
     return (
         python_version,
@@ -135,6 +136,7 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
         python_arch,
         python_executable,
         python_vendor,
+        python_debug,
     )
 
 
@@ -162,7 +164,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
-    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
+    global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor, _python_debug  # singleton, pylint: disable=global-statement
 
     (
         _python_version,
@@ -170,6 +172,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         _python_arch,
         _python_executable,
         _python_vendor,
+        _python_debug,
     ) = _parsePythonVersionOutput(python_binary=os.environ["PYTHON"])
 
     if not silent:
@@ -183,12 +186,20 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     return _python_version
 
 
+def getPythonBinary():
+    return _python_executable
+
+
 def getPythonArch():
     return _python_arch
 
 
 def getPythonVendor():
     return _python_vendor
+
+
+def getPythonDebug():
+    return _python_debug
 
 
 def getPythonVersionString():
@@ -585,9 +596,11 @@ def displayRuntimeTraces(logger, path):
         # Run with traces to help debugging, specifically in CI environment.
         if isMacOS() or isFreeBSD():
             test_logger.info("dtruss:")
+            flushStandardOutputs()
             os.system("sudo dtruss %s" % path)
         else:
             test_logger.info("strace:")
+            flushStandardOutputs()
             os.system("strace -s4096 -e file %s" % path)
 
 
@@ -1399,6 +1412,7 @@ def setupCacheHashSalt(test_code_path):
 
 def displayFolderContents(name, path):
     test_logger.info("Listing of %s '%s':" % (name, path))
+    flushStandardOutputs()
 
     if os.path.exists(path):
         if isWin32Windows():
@@ -1419,6 +1433,8 @@ def displayFileContents(name, path):
             my_print(line)
     else:
         test_logger.info("Does not exist.")
+
+    flushStandardOutputs()
 
 
 def someGenerator():

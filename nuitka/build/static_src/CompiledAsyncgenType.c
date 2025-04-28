@@ -977,16 +977,9 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
         Nuitka_GC_Track(asyncgen);
     }
 
-    // TODO: Avoid this API call, it's bound to be slow on some platforms and
-    // does more checks than necessary for us.
-    if (PyObject_CallFinalizerFromDealloc((PyObject *)asyncgen)) {
+    if (Nuitka_CallFinalizerFromDealloc((PyObject *)asyncgen) == false) {
         return;
     }
-    // if (!_PyGC_FINALIZED(asyncgen)) {
-    //     Nuitka_Asyncgen_tp_finalize(asyncgen);
-
-    //     _PyGC_SET_FINALIZED(asyncgen);
-    // }
 
     Nuitka_GC_UnTrack(asyncgen);
 
@@ -1006,7 +999,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     // TODO: Maybe push this into the freelist code and do
     // it on allocation.
-    _PyGC_SET_UNFINALIZED((PyObject *)asyncgen);
+    _PyGC_CLEAR_FINALIZED((PyObject *)asyncgen);
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgens, asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT);

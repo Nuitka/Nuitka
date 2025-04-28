@@ -160,77 +160,16 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyThreadState *tstate = PyThreadState_GET();
-
     if (Nuitka_Function_Check(func) == false) {
+        PyThreadState *tstate = PyThreadState_GET();
+
         SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "not a compiled function");
         return NULL;
     }
 
     struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
-    int offset = Nuitka_Function_GetFunctionCodeIndex(function, function_table_%(module_identifier)s);
-
-    if (unlikely(offset == -1)) {
-#if 0
-        PRINT_STRING("Looking for:");
-        PRINT_ITEM(func);
-        PRINT_NEW_LINE();
-#endif
-        SET_CURRENT_EXCEPTION_TYPE0_STR(tstate, PyExc_TypeError, "Cannot find compiled function in module.");
-        return NULL;
-    }
-
-    PyObject *code_object_desc = Nuitka_Function_ExtractCodeObjectDescription(tstate, function);
-
-    PyObject *result = MAKE_TUPLE_EMPTY(tstate, 8);
-    PyTuple_SET_ITEM(result, 0, Nuitka_PyLong_FromLong(offset));
-    PyTuple_SET_ITEM(result, 1, code_object_desc);
-    PyTuple_SET_ITEM0(result, 2, function->m_defaults);
-#if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 3, function->m_kwdefaults ? function->m_kwdefaults : Py_None);
-#else
-    PyTuple_SET_ITEM_IMMORTAL(result, 3, Py_None);
-#endif
-    PyTuple_SET_ITEM0(result, 4, function->m_doc != NULL ? function->m_doc : Py_None);
-
-    if (offset == -5) {
-        CHECK_OBJECT(function->m_constant_return_value);
-        PyTuple_SET_ITEM_IMMORTAL(result, 5, function->m_constant_return_value);
-    } else {
-        PyTuple_SET_ITEM_IMMORTAL(result, 5, Py_None);
-    }
-
-#if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 6, function->m_qualname);
-#else
-    PyTuple_SET_ITEM_IMMORTAL(result, 6, Py_None);
-#endif
-
-    PyObject *closure = PyObject_GetAttr(
-        (PyObject *)function,
-        const_str_plain___closure__
-    );
-
-    if (closure != Py_None) {
-        for (Py_ssize_t i=0; i < PyTuple_GET_SIZE(closure); i++) {
-            struct Nuitka_CellObject *cell = (struct Nuitka_CellObject *)PyTuple_GET_ITEM(closure, i);
-
-            assert(Nuitka_Cell_Check((PyObject *)cell));
-
-            PyTuple_SET_ITEM0(
-                closure,
-                i,
-                cell->ob_ref
-            );
-        }
-    }
-
-    PyTuple_SET_ITEM(result, 7, closure);
-
-    CHECK_OBJECT_DEEP(result);
-
-    return result;
+    return Nuitka_Function_GetFunctionState(function, function_table_%(module_identifier)s);
 }
 
 static PyMethodDef _method_def_reduce_compiled_function = {"reduce_compiled_function", (PyCFunction)_reduce_compiled_function,
@@ -248,16 +187,12 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     PyObject *constant_return_value;
     PyObject *function_qualname;
     PyObject *closure;
+    PyObject *annotations;
+    PyObject *func_dict;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, NULL)) {
+    if (!PyArg_ParseTuple(args, "OOOOOOOOOO:create_compiled_function", &function_index, &code_object_desc, &defaults, &kw_defaults, &doc, &constant_return_value, &function_qualname, &closure, &annotations, &func_dict, NULL)) {
         return NULL;
     }
-
-#if PYTHON_VERSION >= 0x300
-    if (kw_defaults == Py_None) {
-        kw_defaults = NULL;
-    }
-#endif
 
     return (PyObject *)Nuitka_Function_CreateFunctionViaCodeIndex(
         module_%(module_identifier)s,
@@ -269,6 +204,8 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
         kw_defaults,
         doc,
         closure,
+        annotations,
+        func_dict,
         function_table_%(module_identifier)s,
         sizeof(function_table_%(module_identifier)s) / sizeof(function_impl_code)
     );
@@ -284,7 +221,7 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Actual name might be different when loaded as a package.
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
 static char const *module_full_name = %(module_name_cstr)s;
 #endif
 
@@ -302,7 +239,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     static bool init_done = false;
 
     if (init_done == false) {
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
         // In case of an extension module loaded into a process, we need to call
         // initialization here because that's the first and potentially only time
         // we are going called.
@@ -366,7 +303,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         init_done = true;
     }
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     PyObject *pre_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-preLoad");
     if (pre_load == NULL) {
         return NULL;
@@ -452,7 +389,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if defined(_NUITKA_MODULE) || !%(is_dunder_main)s
+#if _NUITKA_MODULE_MODE || !%(is_dunder_main)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -491,7 +428,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         // Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain__initializing, Py_True);
 
-#if defined(_NUITKA_MODULE) && %(is_top)d && %(module_def_size)s >= 0
+#if _NUITKA_MODULE_MODE && %(is_top)d && %(module_def_size)s >= 0
         // Set our loader object in the "__spec__" value.
         SET_ATTRIBUTE(tstate, spec_value, const_str_plain_loader, module_loader);
 #endif
@@ -513,7 +450,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
     // Report to PGO about leaving the module without error.
     PGO_onModuleExit("%(module_identifier)s", false);
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     {
         PyObject *post_load = IMPORT_EMBEDDED_MODULE(tstate, %(module_name_cstr)s "-postLoad");
         if (post_load == NULL) {
@@ -722,7 +659,7 @@ NUITKA_MODULE_INIT_FUNCTION (%(module_dll_entry_point)s)(void) {
 template_module_exception_exit = """\
     module_exception_exit:
 
-#if defined(_NUITKA_MODULE) && %(is_top)d
+#if _NUITKA_MODULE_MODE && %(is_top)d
     {
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
 

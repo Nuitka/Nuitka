@@ -17,6 +17,7 @@ import os
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.utils.CStrings import decodePythonIdentifierFromC
 
 # One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()
@@ -78,6 +79,16 @@ def getUncompiledModules():
 
     for module in getDoneModules():
         if module.isUncompiledPythonModule():
+            result.add(module)
+
+    return tuple(sorted(result, key=lambda module: module.getFullName()))
+
+
+def getCompiledModules():
+    result = set()
+
+    for module in getDoneModules():
+        if module.isCompiledPythonModule():
             result.add(module)
 
     return tuple(sorted(result, key=lambda module: module.getFullName()))
@@ -191,15 +202,19 @@ def getModuleInclusionInfoByName(module_name):
 
 
 def getModuleFromCodeName(code_name):
+    module_name = decodePythonIdentifierFromC(code_name)
+
     # TODO: We need something to just load modules.
     for module in root_modules:
-        if module.getCodeName() == code_name:
+        if module.getCodeName() == module_name:
             return module
 
     assert False, code_name
 
 
 def getOwnerFromCodeName(code_name):
+    code_name = decodePythonIdentifierFromC(code_name)
+
     if "$$$" in code_name:
         module_code_name, _function_code_name = code_name.split("$$$", 1)
 

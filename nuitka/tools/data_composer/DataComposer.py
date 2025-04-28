@@ -75,7 +75,8 @@ _last_written = None
 
 
 def _writeConstantValue(output, constant_value):
-    # Massively many details per value, pylint: disable=too-many-branches,too-many-statements
+    # Massively many details per value,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # We are a singleton, pylint: disable=global-statement
     global _last_written
@@ -186,11 +187,14 @@ def _writeConstantValue(output, constant_value):
         else:
             encoded = constant_value.encode("utf8")
 
-        if len(encoded) == 1:
+        encoded_len = len(encoded)
+        if not encoded_len:
+            output.write(b"s")
+        elif encoded_len == 1:
             output.write(b"w" + encoded)
         # Zero termination if possible.
         elif b"\0" in encoded:
-            output.write(b"v" + _encodeVariableLength(len(encoded)))
+            output.write(b"v" + _encodeVariableLength(encoded_len))
             output.write(encoded)
         else:
             if str is not bytes and _isAttributeName(constant_value):

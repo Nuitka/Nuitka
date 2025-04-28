@@ -91,7 +91,10 @@
         "exception": "c",
         "stop_token": "c",
         "thread": "c",
-        "xstring": "c"
+        "xstring": "c",
+        "cstdint": "c",
+        "hash_map": "c",
+        "list": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
@@ -329,6 +332,7 @@
         "POSIX",
         "psapi",
         "punycode",
+        "putws",
         "Py_DECREF",
         "Py_INCREF",
         "Py_REFCNT",

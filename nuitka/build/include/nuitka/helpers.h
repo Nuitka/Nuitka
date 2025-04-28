@@ -256,7 +256,7 @@ extern PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject 
 // For the constant loading:
 
 // Call this to initialize all common constants pre-main.
-#if defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x3c0
+#if _NUITKA_MODULE_MODE && PYTHON_VERSION >= 0x3c0
 extern void createGlobalConstants(PyThreadState *tstate, PyObject *real_module_name);
 #else
 extern void createGlobalConstants(PyThreadState *tstate);
@@ -265,13 +265,13 @@ extern void createGlobalConstants(PyThreadState *tstate);
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
-#ifdef _NUITKA_EXE
+#if !_NUITKA_MODULE_MODE
 extern void checkModuleConstants___main__(PyThreadState *tstate);
 #endif
 #endif
 
 // Call this to initialize "__main__" constants in non-standard processes.
-#ifdef _NUITKA_EXE
+#if !_NUITKA_MODULE_MODE
 extern void createMainModuleConstants(PyThreadState *tstate);
 #endif
 
@@ -338,11 +338,11 @@ extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
 // Get the original argv[0] as recorded by the bootstrap stage. Returns
 // None, if not available, in module mode.
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
 extern PyObject *getOriginalArgv0Object(void);
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 extern void setEarlyFrozenModulesFileAttribute(PyThreadState *tstate);
 #endif
 

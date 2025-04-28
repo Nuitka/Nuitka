@@ -183,6 +183,9 @@ def prepareEnvironment(mingw_mode):
 def createEnvironment(
     mingw_mode, msvc_version, target_arch, experimental, no_deployment, debug_modes
 ):
+    # Many settings are directly handled here, getting us a lot of code in here.
+    # pylint: disable=too-many-branches,too-many-statements
+
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
     args = {}
@@ -272,7 +275,7 @@ def createEnvironment(
         env.python_version = None
 
     # Modules count, determines if this is a large compilation.
-    env.module_count = getArgumentInt("module_count", 0)
+    env.compiled_module_count = getArgumentInt("compiled_module_count", 0)
 
     # Target arch for some decisions
     env.target_arch = target_arch
@@ -285,6 +288,48 @@ def createEnvironment(
 
     _enableFlagSettings(env, "debug", debug_modes)
     env.debug_modes_flags = debug_modes
+
+    # Standalone mode
+    env.standalone_mode = getArgumentBool("standalone_mode", False)
+    if env.standalone_mode:
+        env.Append(CPPDEFINES=["_NUITKA_STANDALONE_MODE"])
+
+    # Onefile mode: Create suitable for use in a bootstrap with either dll or
+    # exe mode.
+    env.onefile_mode = getArgumentBool("onefile_mode", False)
+    if env.onefile_mode:
+        env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
+
+    # Onefile temporary mode: The files are cleaned up after program exit.
+    env.onefile_temp_mode = getArgumentBool("onefile_temp_mode", False)
+    if env.onefile_temp_mode:
+        env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
+
+    # Module (or package) mode: Create a Python extension module
+    env.module_mode = getArgumentBool("module_mode", False)
+    if env.module_mode:
+        env.Append(CPPDEFINES=["_NUITKA_MODULE_MODE"])
+
+    # DLL mode: Create a DLL using Python
+    env.dll_mode = getArgumentBool("dll_mode", False)
+    if env.dll_mode:
+        env.Append(CPPDEFINES=["_NUITKA_DLL_MODE"])
+
+    # EXE mode: Create an EXE (using Python for this config)
+    env.exe_mode = getArgumentBool("exe_mode", False)
+    if env.exe_mode:
+        env.Append(CPPDEFINES=["_NUITKA_EXE_MODE"])
+
+    # MacOS bundle: Create an .app on macOS
+    env.macos_bundle_mode = getArgumentBool("macos_bundle_mode", False)
+    if env.macos_bundle_mode:
+        env.Append(CPPDEFINES=["_NUITKA_MACOS_BUNDLE_MODE"])
+        env.Append(LINKFLAGS=["-framework", "CoreFoundation"])
+
+    # Announce combination of DLL mode and onefile mode.
+    env.onefile_dll_mode = env.onefile_mode and env.dll_mode
+    if env.onefile_dll_mode:
+        env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
 
     return env
 

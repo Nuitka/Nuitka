@@ -53,6 +53,7 @@ from nuitka.Options import (
     isOnefileTempDirMode,
     isStandaloneMode,
     shallCreateAppBundle,
+    shallMakeDll,
     shallMakeModule,
     shallShowExecutedCommands,
 )
@@ -82,8 +83,12 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileContents,
+    getReportSourceReference,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix, isBuiltinModuleName
+from nuitka.utils.Importing import (
+    getExtensionModuleSuffix,
+    isBuiltinModuleName,
+)
 from nuitka.utils.ModuleNames import (
     ModuleName,
     makeTriggerModuleName,
@@ -157,6 +162,7 @@ def _getEvaluationContext():
             "onefile": isOnefileMode(),
             "onefile_cached": not isOnefileTempDirMode(),
             "module_mode": shallMakeModule(),
+            "dll_mode": shallMakeDll(),
             "deployment": isDeploymentMode(),
             # Version information
             "company": getCompanyName(),
@@ -229,10 +235,12 @@ def _getEvaluationContext():
         _context_dict["python3_or_higher"] = python_version >= 0x300
 
         if not isNuitkaPython():
-            _context_dict["extension_std_suffix"] = getSharedLibrarySuffix(
+            _context_dict["extension_std_suffix"] = getExtensionModuleSuffix(
                 preferred=True
             )
-            _context_dict["extension_suffix"] = getSharedLibrarySuffix(preferred=False)
+            _context_dict["extension_suffix"] = getExtensionModuleSuffix(
+                preferred=False
+            )
 
     return _context_dict
 
@@ -1222,6 +1230,11 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
                 filename,
             )
         )
+
+    @staticmethod
+    def getReportSourceReference(source_ref):
+        """Format a source reference suitable for user output."""
+        return getReportSourceReference(source_ref)
 
     def getExtraCodeFiles(self):
         """Add extra code files to the compilation.

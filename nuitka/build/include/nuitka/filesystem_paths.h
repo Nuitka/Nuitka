@@ -7,11 +7,13 @@
 
 // Have a type for filename type different on Linux and Win32.
 #if defined(_WIN32)
+#define _NUITKA_NATIVE_WCHAR_ARGV 1
 #define filename_char_t wchar_t
 #define FILENAME_EMPTY_STR L""
 #define FILENAME_SEP_STR L"\\"
 #define FILENAME_SEP_CHAR L'\\'
 #define FILENAME_FORMAT_STR "%ls"
+#define copyStringSafeFilename copyWStringSafeW
 #define appendStringSafeFilename appendWStringSafeW
 #define appendCharSafeFilename appendWCharSafeW
 #define FILENAME_TMP_STR L".tmp"
@@ -23,11 +25,13 @@
 #define scanFilename swscanf
 #define Nuitka_String_FromFilename(filename) NuitkaUnicode_FromWideChar(filename, -1)
 #else
+#define _NUITKA_NATIVE_WCHAR_ARGV 0
 #define filename_char_t char
 #define FILENAME_EMPTY_STR ""
 #define FILENAME_SEP_STR "/"
 #define FILENAME_SEP_CHAR '/'
 #define FILENAME_FORMAT_STR "%s"
+#define copyStringSafeFilename copyStringSafe
 #define appendStringSafeFilename appendStringSafe
 #define appendCharSafeFilename appendCharSafe
 #define FILENAME_TMP_STR ".tmp"
@@ -64,7 +68,10 @@
 #endif
 
 // Get path of the running binary.
-extern filename_char_t *getBinaryPath(void);
+extern filename_char_t const *getBinaryPath(void);
+
+// Get the DLL directory as wide characters.
+extern filename_char_t const *getDllDirectory(void);
 
 extern FILE_HANDLE openFileForReading(filename_char_t const *filename);
 extern FILE_HANDLE createFileForWriting(filename_char_t const *filename);
@@ -74,6 +81,7 @@ extern bool writeFileChunk(FILE_HANDLE file_handle, void const *buffer, size_t s
 extern bool closeFile(FILE_HANDLE target_file);
 extern error_code_t getLastErrorCode(void);
 
+extern bool isExecutableFile(filename_char_t const *filename);
 extern int getFileMode(filename_char_t const *filename);
 extern bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mode);
 extern bool deleteFile(filename_char_t const *filename);
@@ -87,6 +95,10 @@ extern bool expandTemplatePath(char *target, char const *source, size_t buffer_s
 
 // Strip the last part of a filename, giving the directory name.
 extern filename_char_t *stripBaseFilename(filename_char_t const *filename);
+
+// Normalize a given path, removing duplicate separators and ".." and "." usages
+// with separators.
+extern void normalizePath(filename_char_t *filename);
 
 #endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

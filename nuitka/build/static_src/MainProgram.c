@@ -40,6 +40,9 @@
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #define NUITKA_MAIN_IS_PACKAGE_BOOL false
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
+#if defined(__APPLE__)
+#define _NUITKA_MACOS_BUNDLE_MODE 1
+#endif
 #endif
 
 // It doesn't work for MinGW64 to update the standard output handles early on,
@@ -133,7 +136,7 @@ static void prepareFrozenModules(void) {
 
 #include "nuitka/environment_variables.h"
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 
 #include "pythonrun.h"
 
@@ -157,7 +160,11 @@ static void prepareStandaloneEnvironment(void) {
 #endif
 
 #if defined(_WIN32)
+#if _NUITKA_EXE_MODE
     SetDllDirectoryW(getBinaryDirectoryWideChars(true));
+#else
+    SetDllDirectoryW(getDllDirectory());
+#endif
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -209,12 +216,6 @@ extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
 
 #include <locale.h>
-
-#ifdef _WIN32
-#define _NUITKA_NATIVE_WCHAR_ARGV 1
-#else
-#define _NUITKA_NATIVE_WCHAR_ARGV 0
-#endif
 
 // Types of command line arguments are different between Python2/3.
 #if PYTHON_VERSION >= 0x300 && _NUITKA_NATIVE_WCHAR_ARGV == 0
@@ -1011,7 +1012,7 @@ static void Nuitka_Py_Initialize(void) {
         Py_ExitStatusException(status);
     }
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars(true);
 
     PyConfig_SetString(&config, &config.executable, orig_argv[0]);
@@ -1030,7 +1031,7 @@ static void Nuitka_Py_Initialize(void) {
 
     // Need to disable frozen modules, Nuitka can handle them better itself.
 #if PYTHON_VERSION >= 0x3b0
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     config.use_frozen_modules = 0;
 #else
 // Emulate PYTHON_FROZEN_MODULES for accelerated mode, it is only added in 3.13,
@@ -1049,6 +1050,10 @@ static void Nuitka_Py_Initialize(void) {
 
     config.install_signal_handlers = 1;
 
+#if PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
+    config.safe_path = 1;
+#endif
+
     NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling Py_InitializeFromConfig.");
 
     status = Py_InitializeFromConfig(&config);
@@ -1056,7 +1061,7 @@ static void Nuitka_Py_Initialize(void) {
         Py_ExitStatusException(status);
     }
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     assert(wcscmp(config.exec_prefix, binary_directory) == 0);
 
 // Empty "sys.path" first time, will be revived, but keep it
@@ -1200,27 +1205,93 @@ PyAPI_FUNC(void) PySys_AddWarnOption(const wchar_t *s);
 #endif
 
 // Preserve and provide the original argv[0] as recorded by the bootstrap stage.
-static environment_char_t const *original_argv0 = NULL;
+static native_command_line_argument_t const *original_argv0 = NULL;
 
 PyObject *getOriginalArgv0Object(void) {
     assert(original_argv0 != NULL);
     return Nuitka_String_FromFilename(original_argv0);
 }
 
-#ifdef _NUITKA_WINMAIN_ENTRY_POINT
-int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
-    /* MSVC, MINGW64 */
-    int argc = __argc;
-    wchar_t **argv = __wargv;
-#else
-#if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) {
+filename_char_t const *getOriginalArgv0(void) {
+    assert(original_argv0 != NULL);
+    return original_argv0;
+}
+
+#if _NUITKA_MACOS_BUNDLE_MODE
+#include <CoreFoundation/CoreFoundation.h>
+
+bool _setLANGSystemLocaleMacOS(void) {
+    // 1. Get preferred languages
+    CFArrayRef preferred_languages = CFLocaleCopyPreferredLanguages();
+    if (unlikely(!preferred_languages)) {
+        return false;
+    }
+
+    // 2. Pick the first one.
+    CFStringRef preferred_language = (CFStringRef)CFArrayGetValueAtIndex(preferred_languages, 0);
+    if (unlikely(!preferred_language)) {
+        return false;
+    }
+
+    // 3. Create canonical Locale Identifier
+    CFStringRef canonical_locale_id =
+        CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, preferred_language);
+    if (unlikely(!canonical_locale_id)) {
+        return false;
+    }
+
+    // 3. Get C String from Canonical Identifier (Robustly)
+    char locale_buffer[256];
+    const char *locale_c_string = CFStringGetCStringPtr(canonical_locale_id, kCFStringEncodingUTF8);
+
+    if (unlikely(!locale_c_string)) {
+        if (unlikely(!CFStringGetCString(canonical_locale_id, locale_buffer, sizeof(locale_buffer),
+                                         kCFStringEncodingUTF8))) {
+            return false;
+        }
+
+        locale_c_string = locale_buffer;
+    }
+
+    CFRelease(canonical_locale_id);
+    CFRelease(preferred_languages);
+
+    // 4. Attempt to set the locale created naively.
+    if (setlocale(LC_ALL, locale_c_string) == NULL) {
+        // Replace hyphens with underscores and append ".UTF-8" if that failed.
+        char fallback_locale[256];
+
+        copyStringSafe(fallback_locale, locale_c_string, sizeof(fallback_locale));
+        for (char *p = fallback_locale; *p; p++) {
+            if (*p == '-') {
+                *p = '_';
+            }
+        }
+        appendStringSafe(fallback_locale, ".UTF-8", sizeof(fallback_locale));
+
+        if (setlocale(LC_ALL, fallback_locale) == NULL) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void setLANGSystemLocaleMacOS(void) {
+    bool success = _setLANGSystemLocaleMacOS();
+
+    if (success == false) {
+        setlocale(LC_ALL, "en_US.UTF-8");
+    }
+
+    char const *current_lang = setlocale(LC_ALL, NULL);
+    setEnvironmentVariable("LANG", current_lang);
+}
+#endif
+
+static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
     hideConsoleIfSpawned();
-#endif
-#else
-int main(int argc, char **argv) {
-#endif
 #endif
 
     // Installer a segfault handler that outputs a helpful message.
@@ -1247,11 +1318,25 @@ int main(int argc, char **argv) {
     setCurrentProcessExplicitAppUserModelID(NUITKA_APP_MODEL_USER_ID);
 #endif
 
-#ifdef _NUITKA_MACOS_BUNDLE
+// Make sure, we use the absolute program path for argv[0] for standalone mode
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+    original_argv0 = argv[0];
+#if !defined(_NUITKA_ONEFILE_MODE)
+    argv[0] = (char *)getBinaryFilenameHostEncoded(false);
+#endif
+#endif
+
+#if _NUITKA_MACOS_BUNDLE_MODE
+    // TODO: This is only derived from start directory, checking the parent
+    // to be finder or launchctl might be more reliable.
+    bool terminal_launch = true;
+
     {
         char *current_dir = getcwd(NULL, -1);
 
         if (strcmp(current_dir, "/") == 0) {
+            terminal_launch = false;
+
             chdir(getBinaryDirectoryHostEncoded(false));
             chdir("../../../");
         }
@@ -1311,7 +1396,7 @@ int main(int argc, char **argv) {
     fpsetmask(m & ~FP_X_OFL);
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     NUITKA_PRINT_TIMING("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
 #endif
@@ -1374,14 +1459,6 @@ int main(int argc, char **argv) {
 
     /* Initial command line handling only. */
 
-// Make sure, we use the absolute program path for argv[0]
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-    original_argv0 = argv[0];
-#if !defined(_NUITKA_ONEFILE_MODE)
-    argv[0] = (char *)getBinaryFilenameHostEncoded(false);
-#endif
-#endif
-
 #if defined(_NUITKA_ONEFILE_MODE)
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
@@ -1403,10 +1480,10 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TRACE("main(): Calling getCommandLineToArgvA.");
     orig_argv = getCommandLineToArgvA(GetCommandLineA());
 #else
-orig_argv = argv;
+    orig_argv = argv;
 #endif
 
-// Make sure, we use the absolute program path for argv[0]
+// Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 1
     original_argv0 = argv[0];
 #if PYTHON_VERSION >= 0x300 && !defined(_NUITKA_ONEFILE_MODE)
@@ -1439,6 +1516,12 @@ orig_argv = argv;
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
     environment_char_t const *old_env_hash_seed = getEnvironmentVariable("PYTHONHASHSEED");
     setEnvironmentVariable("PYTHONHASHSEED", makeEnvironmentLiteral("0"));
+#endif
+
+#if _NUITKA_MACOS_BUNDLE_MODE
+    if (terminal_launch == false) {
+        setLANGSystemLocaleMacOS();
+    }
 #endif
 
     /* Disable CPython warnings if requested to. */
@@ -1480,7 +1563,7 @@ orig_argv = argv;
 
     PyThreadState *tstate = PyThreadState_GET();
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
 #else
@@ -1496,7 +1579,7 @@ orig_argv = argv;
 #endif
             Py_DECREF(python_path_str);
 
-            PySys_SetObject("path", python_path_list);
+            Nuitka_SysSetObject("path", python_path_list);
 
             unsetEnvironmentVariable("NUITKA_PYTHONPATH");
         }
@@ -1510,9 +1593,12 @@ orig_argv = argv;
 
     /* Set the command line parameters for run time usage. */
     PySys_SetArgv(argc, orig_argv);
-// Empty "sys.path" again, the above adds program directory to it.
+
+    // Empty or reduce "sys.path" again, the above adds program directory to it.
 #if SYSFLAG_ISOLATED
     Nuitka_SysSetObject("path", PyList_New(0));
+#elif PYTHON_VERSION >= 0x3b0 && SYSFLAG_SAFE_PATH == 1
+    PyList_SetSlice(Nuitka_SysGetObject("path"), 0, 1, PyTuple_New(0));
 #endif
 
     /* Initialize the built-in module tricks used and builtin-type methods */
@@ -1632,7 +1718,7 @@ orig_argv = argv;
     NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
     setInputOutputHandles(tstate);
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
 
 #if PYTHON_VERSION >= 0x300
     // Make sure the importlib fully bootstraps as we couldn't load it with the
@@ -1700,7 +1786,7 @@ orig_argv = argv;
     undoEnvironmentVariable(tstate, "PYTHONUNBUFFERED", old_env_unbuffered);
 #endif
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     // Restore the PATH, so the program can use it.
     NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
     undoEnvironmentVariable(tstate, "PATH", old_env_path);
@@ -1879,6 +1965,33 @@ orig_argv = argv;
     // The "Py_Exit()" calls is not supposed to return.
     NUITKA_CANNOT_GET_HERE("Py_Exit does not return");
 }
+
+#ifdef _NUITKA_WINMAIN_ENTRY_POINT
+int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
+    /* MSVC, MINGW64 */
+    int argc = __argc;
+    wchar_t **argv = __wargv;
+
+    return Nuitka_Main(argc, argv);
+}
+#else
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
+#else
+int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
+#endif
+#endif
+
+#if _NUITKA_DLL_MODE
+
+#if defined(_WIN32)
+#define NUITKA_DLL_FUNCTION __declspec(dllexport)
+#else
+#define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))
+#endif
+
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) { return Nuitka_Main(argc, argv); }
+#endif
 
 /* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.

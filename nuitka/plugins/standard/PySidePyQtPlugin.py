@@ -11,6 +11,8 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
+    getWindowsIconExecutablePath,
+    getWindowsIconPaths,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
@@ -605,15 +607,67 @@ import %(binding_name)s.QtCore
         For Qt we need to set the library path to the distribution folder
         we are running from. The code is immediately run after the code
         and therefore makes sure it's updated properly.
-        """
 
-        # Only in standalone mode, this will be needed.
-        if not isStandaloneMode():
-            return
+        Also, for QApplication we try and load icons automatically.
+        TODO: Currently only for Windows, but we could add icons from macOS too
+        """
 
         full_name = module.getFullName()
 
-        if full_name == "%s.QtCore" % self.binding_name:
+        # We do this for PySide6 only.
+        if (
+            full_name == "%s" % self.binding_name
+            and self.binding_name == "PySide6"
+            and (getWindowsIconPaths() or getWindowsIconExecutablePath())
+        ):
+            # TODO: Ideally we would know the icons count and not be confused by
+            # resources the user may have added themselves.
+
+            # spell-checker: ignore Pixmap
+            code = """\
+import sys
+import %(binding_name)s.QtWidgets
+orig_QApplication = %(binding_name)s.QtWidgets.QApplication
+
+from %(binding_name)s.QtGui import QIcon, QPixmap, QImage
+
+class OurQApplication(orig_QApplication):
+    def __init__(self, *args, **kwargs):
+        orig_QApplication.__init__(self, *args, **kwargs)
+        main_filename = sys.argv[0]
+
+        import ctypes
+        ctypes.windll.shell32.ExtractIconExW.restype = ctypes.wintypes.HICON
+        ctypes.windll.shell32.ExtractIconExW.argtypes = (ctypes.wintypes.LPCWSTR, ctypes.c_int, ctypes.POINTER(ctypes.wintypes.HICON), ctypes.POINTER(ctypes.wintypes.HICON), ctypes.c_uint)
+        icon_count = ctypes.windll.shell32.ExtractIconExW(main_filename, -1, None, None, 0)
+
+        assert icon_count > 0
+
+        small_icon = ctypes.wintypes.HICON()
+        large_icon = ctypes.wintypes.HICON()
+
+        icons = []
+        for icon_index in range(icon_count):
+            res = ctypes.windll.shell32.ExtractIconExW(main_filename, icon_index, ctypes.byref(small_icon), ctypes.byref(large_icon), 1)
+
+            icons.append(small_icon.value)
+            icons.append(large_icon.value)
+
+        icon = QIcon()
+        for icon_handle in icons:
+            icon.addPixmap(QPixmap.fromImage(QImage.fromHICON(icon_handle)))
+
+        self.setWindowIcon(icon)
+
+%(binding_name)s.QtWidgets.QApplication = OurQApplication
+""" % {
+                "binding_name": self.binding_name
+            }
+
+            yield (code, "Loading Qt application icon from Windows resources.")
+
+        # Only in standalone mode, this will be needed.
+        if full_name == "%s.QtCore" % self.binding_name and isStandaloneMode():
             code = """\
 from __future__ import absolute_import
 
@@ -1477,6 +1531,7 @@ it for full compatible behavior with the uncompiled code to debug it."""
             return (False, "Not included due to all Qt bindings disallowed.")
 
     def getEvaluationConditionControlTags(self):
+        # spell-checker: ignore noqt
         return {"use_noqt": True}
 
 

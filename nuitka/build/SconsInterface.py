@@ -25,7 +25,6 @@ from nuitka.Options import (
     getPythonPathForScons,
     isDeploymentMode,
     isExperimental,
-    isOnefileMode,
     isShowScons,
     shallCompileWithoutBuildDirectory,
 )
@@ -66,6 +65,7 @@ from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
+    isAIX,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
@@ -530,7 +530,7 @@ def getCommonSconsOptions():
     if Options.getLtoMode() != "auto":
         scons_options["lto_mode"] = Options.getLtoMode()
 
-    if isWin32OrPosixWindows() or isMacOS():
+    if isWin32OrPosixWindows() or isMacOS() or isAIX():
         scons_options["noelf_mode"] = asBoolStr(True)
 
     if Options.isUnstripped():
@@ -617,12 +617,29 @@ def getCommonSconsOptions():
         env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
         env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
-    # Onefile grace time is shared, because client will also suicide based on
-    # it.
-    if isOnefileMode():
+    scons_options["module_mode"] = asBoolStr(Options.shallMakeModule())
+    scons_options["dll_mode"] = asBoolStr(Options.shallMakeDll())
+    scons_options["exe_mode"] = asBoolStr(Options.shallMakeExe())
+
+    if Options.isStandaloneMode():
+        scons_options["standalone_mode"] = asBoolStr(True)
+
+    if Options.isOnefileMode():
+        scons_options["onefile_mode"] = asBoolStr(True)
+
+        # Onefile grace time is shared, because client will also suicide based
+        # on it.
         env_values["_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT"] = str(
             getOnefileChildGraceTime()
         )
+
+        if Options.isOnefileTempDirMode():
+            scons_options["onefile_temp_mode"] = asBoolStr(True)
+
+    # TODO: Some things are going to hate that, we might need to bundle
+    # for accelerated mode still.
+    if Options.shallCreateAppBundle():
+        scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     return scons_options, env_values
 

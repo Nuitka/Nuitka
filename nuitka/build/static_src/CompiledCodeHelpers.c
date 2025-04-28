@@ -1034,6 +1034,28 @@ PyObject *GET_STDERR(void) {
     return result;
 }
 
+void FLUSH_STDOUT(void) {
+    PyObject *stdout_handle = GET_STDOUT();
+
+    PyObject *method = PyObject_GetAttrString(stdout_handle, "flush");
+
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, method);
+
+    Py_XDECREF(result);
+}
+
+void FLUSH_STDERR(void) {
+    PyObject *stderr_handle = GET_STDERR();
+
+    PyObject *method = PyObject_GetAttrString(stderr_handle, "flush");
+
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject *result = CALL_FUNCTION_NO_ARGS(tstate, method);
+
+    Py_XDECREF(result);
+}
+
 bool PRINT_NEW_LINE(void) { return PRINT_NEW_LINE_TO(NULL); }
 
 bool PRINT_ITEM(PyObject *object) {
@@ -1599,7 +1621,7 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     return result;
 }
 
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 
 wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
@@ -1613,25 +1635,7 @@ wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
                         sizeof(binary_directory) / sizeof(wchar_t));
 
         stripFilenameW(binary_directory);
-
-#ifndef _NUITKA_EXPERIMENTAL_AVOID_SHORT_PATH
-        // Query length of result first.
-        DWORD length = GetShortPathNameW(binary_directory, NULL, 0);
-        assert(length != 0);
-
-        wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-        DWORD res = GetShortPathNameW(binary_directory, short_binary_directory, length);
-        assert(res != 0);
-
-        if (unlikely(res > length)) {
-            abort();
-        }
-
-        binary_directory[0] = 0;
-        appendWStringSafeW(binary_directory, short_binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
-
-        free(short_binary_directory);
-#endif
+        makeShortFilename(binary_directory, sizeof(binary_directory) / sizeof(wchar_t));
 #else
         appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(true),
                           sizeof(binary_directory) / sizeof(wchar_t));
@@ -1707,7 +1711,7 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
 
 #endif
 
-#ifdef _NUITKA_EXE
+#if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
 PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
     static PyObject *binary_filename = NULL;
     static PyObject *binary_filename_resolved = NULL;
@@ -1792,58 +1796,9 @@ PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
 
     return *binary_object_target;
 }
-
-#ifdef _NUITKA_STANDALONE
-// Helper function to create path.
-PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-    PyObject *dir_name = getBinaryDirectoryObject(false);
-    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
-
-    return sys_executable;
-}
 #endif
 
-#else
-
-#if defined(_WIN32)
-// Small helper function to get current DLL handle, spell-checker: ignore lpcstr
-static HMODULE getDllModuleHandle(void) {
-    static HMODULE hm = NULL;
-
-    if (hm == NULL) {
-        int res =
-            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                               (LPCSTR)&getDllModuleHandle, &hm);
-        assert(res != 0);
-    }
-
-    assert(hm != NULL);
-    return hm;
-}
-#endif
-
-filename_char_t const *getDllDirectory(void) {
-#if defined(_WIN32)
-    static WCHAR path[MAXPATHLEN + 1];
-    path[0] = 0;
-
-    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
-    assert(res != 0);
-
-    stripFilenameW(path);
-
-    return path;
-#else
-    Dl_info where;
-
-    {
-        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-        assert(res != 0);
-    }
-
-    return dirname((char *)where.dli_fname);
-#endif
-}
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
 static PyObject *getDllDirectoryObject(void) {
     static PyObject *dll_directory = NULL;
 
@@ -1870,9 +1825,7 @@ static PyObject *getDllDirectoryObject(void) {
 
     return dll_directory;
 }
-#endif
 
-#if defined(_NUITKA_MODULE)
 static filename_char_t const *getDllFilename(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1];
@@ -1923,7 +1876,7 @@ PyObject *getDllFilenameObject(void) {
 #endif
 
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
-#if defined(_NUITKA_EXE)
+#if _NUITKA_EXE_MODE
 #if defined(_NUITKA_ONEFILE_MODE)
     environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
     if (onefile_directory != NULL) {
@@ -1942,6 +1895,20 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #endif
 }
 
+#if _NUITKA_STANDALONE_MODE
+// Helper function to create path.
+PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
+#if _NUITKA_EXE_MODE
+    PyObject *dir_name = getBinaryDirectoryObject(false);
+#else
+    PyObject *dir_name = getDllDirectoryObject();
+#endif
+    PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
+
+    return sys_executable;
+}
+#endif
+
 static void _initDeepCopy(void);
 
 void _initBuiltinModule(void) {
@@ -1950,7 +1917,7 @@ void _initBuiltinModule(void) {
     NUITKA_PRINT_TRACE("main(): Calling _initDeepCopy().");
     _initDeepCopy();
 
-#if _NUITKA_MODULE
+#if _NUITKA_MODULE_MODE
     if (builtin_module != NULL) {
         return;
     }
@@ -1967,13 +1934,23 @@ void _initBuiltinModule(void) {
     dict_builtin = (PyDictObject *)builtin_module->md_dict;
     assert(PyDict_Check(dict_builtin));
 
-#ifdef _NUITKA_STANDALONE
+#if _NUITKA_STANDALONE_MODE
     {
+#if _NUITKA_EXE_MODE
+        PyObject *nuitka_binary_dir = getBinaryDirectoryObject(true);
+#else
+        PyObject *nuitka_binary_dir = getDllDirectoryObject();
+#endif
         NUITKA_MAY_BE_UNUSED int res =
-            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
+            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", nuitka_binary_dir);
         assert(res == 0);
+
+        // For actual DLL mode, we don't have this, but the form used in onefile
+        // will providing our own executable that knows what to do.
+#if _NUITKA_EXE_MODE || _NUITKA_ONEFILE_DLL_MODE
         PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
         assert(res == 0);
+#endif
     }
 #endif
 
@@ -2018,7 +1995,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     return JOIN_PATH2(our_path_object, relative);
 }
 
-#ifdef _NUITKA_EXE
+#if !_NUITKA_MODULE_MODE
 
 NUITKA_DEFINE_BUILTIN(type)
 NUITKA_DEFINE_BUILTIN(len)
