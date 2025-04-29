@@ -5,7 +5,7 @@
 
 """
 
-from nuitka.Options import shallMakeModule
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -84,7 +84,7 @@ the usage.""",
 Extending "%s" for compiled types to be pickle-able as well."""
                         % candidate,
                     )
-        elif module.isTopModule():
+        elif module.isTopModule() and isStandaloneMode():
             return (
                 """\
 import sys
