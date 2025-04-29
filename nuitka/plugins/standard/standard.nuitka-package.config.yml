@@ -4766,6 +4766,17 @@
     - dirs:
         - 'data'
 
+- module-name: 'pymediainfo' # checksum: 70f7a032
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'MediaInfo'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'libmediainfo'
+      when: 'linux'
+
 - module-name: 'pymoo.cython' # checksum: 158685c1
   implicit-imports:
     - depends:
