@@ -32,7 +32,11 @@ extern CONST_CONSTANT unsigned char constant_bin_data[0];
 unsigned char const *constant_bin = &constant_bin_data[0];
 
 #elif defined(_NUITKA_CONSTANTS_FROM_CODE)
+#ifdef __cplusplus
+extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
+#else
 extern CONST_CONSTANT unsigned char constant_bin_data[];
+#endif
 
 unsigned char const *constant_bin = &constant_bin_data[0];
 #else
