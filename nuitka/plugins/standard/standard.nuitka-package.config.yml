@@ -2548,6 +2548,13 @@
     - depends:
         - 'markdown.extensions.*'
 
+- module-name: 'markdown2' # checksum: 6d68c5cf
+  anti-bloat:
+    - description: 'remove docutils usage'
+      change_function:
+        '_test': 'un-callable'
+        'main': 'un-callable'
+
 - module-name: 'matplotlib' # checksum: d5e66e6c
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
