@@ -24,7 +24,6 @@ from nuitka.__past__ import iter_modules, unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
-    decodeDataFileTags,
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectory,
@@ -52,7 +51,6 @@ from nuitka.Options import (
     isOnefileMode,
     isOnefileTempDirMode,
     isStandaloneMode,
-    shallCreateAppBundle,
     shallMakeDll,
     shallMakeModule,
     shallShowExecutedCommands,
@@ -977,24 +975,6 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             dest_path=dest_path,
             reason=reason,
             tracer=self,
-            tags=tags,
-        )
-
-    def makeIncludedAppBundleResourceFile(
-        self, source_path, dest_path, reason, tags=""
-    ):
-        tags = decodeDataFileTags(tags)
-        tags.add("framework_resource")
-
-        assert isMacOS() and shallCreateAppBundle()
-
-        # The default dest path root is the "Contents" folder
-        dest_path = os.path.join("..", "Resources", dest_path)
-
-        return self.makeIncludedDataFile(
-            source_path=source_path,
-            dest_path=dest_path,
-            reason=reason,
             tags=tags,
         )
 
