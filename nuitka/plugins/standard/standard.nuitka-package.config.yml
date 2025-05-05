@@ -2979,6 +2979,21 @@
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
 
+- module-name: 'nicegui' # checksum: 438c71c
+  data-files:
+    - dirs:
+        - 'static'
+
+- module-name: 'nicegui.elements' # checksum: 27cd20b7
+  data-files:
+    - dirs:
+        - 'lib'
+
+- module-name: 'nicegui.elements.code' # checksum: 5a37c3b1
+  implicit-imports:
+    - depends:
+        - 'pygments.formatters.html'
+
 - module-name: 'nose.core' # checksum: 9c7fc85a
   data-files:
     - patterns:
