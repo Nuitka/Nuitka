@@ -5,7 +5,7 @@
 
 """
 
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.Options import shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -22,8 +22,9 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
     def isAlwaysEnabled():
         return False
 
-    def __init__(self, pickle_supported_modules):
+    def __init__(self, pickle_supported_modules, skip_top_module_patch):
         self.pickle_supported_modules = pickle_supported_modules or ["all"]
+        self.skip_top_module_patch = skip_top_module_patch
 
         self.pickle_selected_packages = [
             self._getPickleSupportPackageName(pickle_package_name)
@@ -71,6 +72,15 @@ want to limit yourself to not create unnecessary run-time usages. For
 standalone mode, you can leave it at the default, at it will detect
 the usage.""",
         )
+        group.add_option(
+            "--skip-top-module-patch",
+            action="store_true",
+            dest="skip_top_module_patch",
+            default=False,
+            help="""\
+Skip overriding compiled function creation for the top-level module. Useful for
+namespace style package structures.""",
+        )
 
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
@@ -84,7 +94,7 @@ the usage.""",
 Extending "%s" for compiled types to be pickle-able as well."""
                         % candidate,
                     )
-        elif module.isTopModule() and isStandaloneMode():
+        elif module.isTopModule() and not self.skip_top_module_patch:
             return (
                 """\
 import sys
