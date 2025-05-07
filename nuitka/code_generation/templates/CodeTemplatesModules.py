@@ -249,17 +249,12 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         // Initialize the constant values used.
         _initBuiltinModule();
 
-#if PYTHON_VERSION >= 0x3c0
         PyObject *real_module_name = PyObject_GetAttrString(module, "__name__");
         CHECK_OBJECT(real_module_name);
         module_full_name = strdup(Nuitka_String_AsString(real_module_name));
-#endif
 
-#if PYTHON_VERSION >= 0x3c0
         createGlobalConstants(tstate, real_module_name);
-#else
-        createGlobalConstants(tstate);
-#endif
+
         /* Initialize the compiled types of Nuitka. */
         _initCompiledCellType();
         _initCompiledGeneratorType();
