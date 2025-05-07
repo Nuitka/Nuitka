@@ -341,9 +341,11 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
             )
 
             # Make sure we are not surprised here.
-            assert (
-                module_name == standalone_entry_point.module_name
-            ), standalone_entry_point.module_name
+            assert module_name == standalone_entry_point.module_name, (
+                module_name,
+                "!=",
+                standalone_entry_point.module_name,
+            )
             assert finding == "absolute", standalone_entry_point.module_name
 
             if not allow_outside_dependencies:
