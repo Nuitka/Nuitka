@@ -27,7 +27,17 @@
 #  endif /* !DYNAMIC_CRC_TABLE */
 #endif /* MAKECRCH */
 
-#include "zutil.h"      /* for Z_U4, Z_U8, z_crc_t, and FAR definitions */
+// #include "zutil.h"      /* for Z_U4, Z_U8, z_crc_t, and FAR definitions */
+#include "zconf.h"
+
+#ifndef local
+#  define local static
+#endif
+
+#define Z_NULL  0
+
+ZEXTERN uLong ZEXPORT crc32(uLong crc, const Bytef *buf, uInt len);
+
 
  /*
   A CRC of a message is computed on N braids of words in the message, where
@@ -148,43 +158,6 @@ local z_word_t byte_swap(z_word_t word) {
 /* CRC polynomial. */
 #define POLY 0xedb88320         /* p(x) reflected, with x^32 implied */
 
-/*
-  Return a(x) multiplied by b(x) modulo p(x), where p(x) is the CRC polynomial,
-  reflected. For speed, this requires that a not be zero.
- */
-local z_crc_t multmodp(z_crc_t a, z_crc_t b) {
-    z_crc_t m, p;
-
-    m = (z_crc_t)1 << 31;
-    p = 0;
-    for (;;) {
-        if (a & m) {
-            p ^= b;
-            if ((a & (m - 1)) == 0)
-                break;
-        }
-        m >>= 1;
-        b = b & 1 ? (b >> 1) ^ POLY : b >> 1;
-    }
-    return p;
-}
-
-/*
-  Return x^(n * 2^k) modulo p(x). Requires that x2n_table[] has been
-  initialized.
- */
-local z_crc_t x2nmodp(z_off64_t n, unsigned k) {
-    z_crc_t p;
-
-    p = (z_crc_t)1 << 31;           /* x^0 == 1 */
-    while (n) {
-        if (n & 1)
-            p = multmodp(x2n_table[k & 31], p);
-        n >>= 1;
-        k++;
-    }
-    return p;
-}
 
 #ifdef DYNAMIC_CRC_TABLE
 /* =========================================================================
@@ -1015,35 +988,4 @@ unsigned long ZEXPORT crc32_z(unsigned long crc, const unsigned char FAR *buf,
 unsigned long ZEXPORT crc32(unsigned long crc, const unsigned char FAR *buf,
                             uInt len) {
     return crc32_z(crc, buf, len);
-}
-
-/* ========================================================================= */
-uLong ZEXPORT crc32_combine64(uLong crc1, uLong crc2, z_off64_t len2) {
-#ifdef DYNAMIC_CRC_TABLE
-    once(&made, make_crc_table);
-#endif /* DYNAMIC_CRC_TABLE */
-    return multmodp(x2nmodp(len2, 3), crc1) ^ (crc2 & 0xffffffff);
-}
-
-/* ========================================================================= */
-uLong ZEXPORT crc32_combine(uLong crc1, uLong crc2, z_off_t len2) {
-    return crc32_combine64(crc1, crc2, (z_off64_t)len2);
-}
-
-/* ========================================================================= */
-uLong ZEXPORT crc32_combine_gen64(z_off64_t len2) {
-#ifdef DYNAMIC_CRC_TABLE
-    once(&made, make_crc_table);
-#endif /* DYNAMIC_CRC_TABLE */
-    return x2nmodp(len2, 3);
-}
-
-/* ========================================================================= */
-uLong ZEXPORT crc32_combine_gen(z_off_t len2) {
-    return crc32_combine_gen64((z_off64_t)len2);
-}
-
-/* ========================================================================= */
-uLong ZEXPORT crc32_combine_op(uLong crc1, uLong crc2, uLong op) {
-    return multmodp(op, crc1) ^ (crc2 & 0xffffffff);
 }
