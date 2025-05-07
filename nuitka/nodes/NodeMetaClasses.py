@@ -41,9 +41,11 @@ def returnTrueShared():
     return True
 
 
-@staticmethod
-def returnFalseShared():
+def returnFalseSharedFunction():
     return False
+
+
+returnFalseShared = staticmethod(returnFalseSharedFunction)
 
 
 class NodeCheckMetaClass(ABCMeta):
@@ -138,7 +140,7 @@ class NodeCheckMetaClass(ABCMeta):
                 cls.isExpressionBuiltin = returnTrueShared
 
             # Add automatic checker "True" to the node class.
-            if getattr(cls, checker_method_name) is returnFalseShared.__func__:
+            if getattr(cls, checker_method_name) is returnFalseSharedFunction:
 
                 def checkKind(self):
                     return self.kind == kind
