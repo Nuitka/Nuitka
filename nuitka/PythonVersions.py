@@ -104,6 +104,8 @@ python_version = _getPythonVersion()
 python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
 
+python_release_level = sys.version_info[3]
+
 
 # TODO: Move error construction helpers to separate node making helpers module.
 def getErrorMessageExecWithNestedFunction():

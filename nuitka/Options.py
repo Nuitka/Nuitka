@@ -53,6 +53,7 @@ from nuitka.PythonVersions import (
     isDebugPython,
     isPythonWithGil,
     isStaticallyLinkedPython,
+    python_release_level,
     python_version,
     python_version_str,
 )
@@ -1020,25 +1021,24 @@ version '%s' instead or newer Nuitka."""
                 )
             )
 
-    # spell-checker: ignore releaselevel
-    if sys.version_info.releaselevel not in ("final", "candidate"):
+    if python_release_level not in ("final", "candidate"):
         if python_version_str not in getNotYetSupportedPythonVersions():
             Tracing.general.sysexit(
                 """\
 Non-final versions '%s' '%s' are not supported by Nuitka, use the \
 final version instead."""
-                % (python_version_str, sys.version_info.releaselevel)
+                % (python_version_str, python_release_level)
             )
 
     if python_version_str in getNotYetSupportedPythonVersions():
-        if sys.version_info.releaselevel != "final" and not isExperimental(
+        if python_release_level != "final" and not isExperimental(
             "python" + python_version_str
         ):
             Tracing.general.warning(
                 """\
 The Python version '%s' '%s' is only experimentally supported by \
 and recommended only for use in Nuitka development and testing."""
-                % (python_version_str, sys.version_info.releaselevel)
+                % (python_version_str, python_release_level)
             )
 
         elif not isExperimental("python" + python_version_str):
