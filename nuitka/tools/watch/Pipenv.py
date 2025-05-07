@@ -129,6 +129,10 @@ def deletePipenvEnvironment(logger, installed_python):
     _execPipenvCommand(logger=logger, installed_python=installed_python, command="--rm")
 
 
+# TODO: For running in containers, this might be easier for caching.
+# os.environ["PIPENV_VENV_IN_PROJECT"] = "1"
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
