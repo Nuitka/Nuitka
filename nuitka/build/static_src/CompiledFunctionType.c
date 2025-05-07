@@ -1201,7 +1201,9 @@ PyObject *Nuitka_Function_GetFunctionState(struct Nuitka_FunctionObject *functio
     PyTuple_SET_ITEM(result, 7, closure);
 
 #if PYTHON_VERSION >= 0x300
-    PyTuple_SET_ITEM0(result, 8, function->m_annotations ? function->m_annotations : Py_None);
+    PyTuple_SET_ITEM0(result, 8,
+                      (function->m_annotations && DICT_SIZE(function->m_annotations) > 0) ? function->m_annotations
+                                                                                          : Py_None);
 #else
     PyTuple_SET_ITEM_IMMORTAL(result, 8, Py_None);
 #endif
