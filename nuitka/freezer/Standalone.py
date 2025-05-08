@@ -19,6 +19,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.Options import (
     isShowProgress,
+    shallCreateAppBundle,
     shallNotStoreDependsExeCachedResults,
     shallNotUseDependsExeCachedResults,
 )
@@ -37,7 +38,13 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
-from nuitka.utils.FileOperations import areInSamePaths, isFilenameBelowPath
+from nuitka.utils.FileOperations import (
+    areInSamePaths,
+    getNormalizedPath,
+    isFilenameBelowPath,
+    listDir,
+    makePath,
+)
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
@@ -225,6 +232,21 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
 
     closeProgressBar()
 
+    # Make all top level directories symlinks for signing issues with MacOS
+    # bundles.
+    if shallCreateAppBundle():
+        resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
+        makePath(resources_dir)
+
+        for fullpath, filename in listDir(dist_dir):
+            if os.path.isdir(fullpath) and not os.path.islink(fullpath):
+                makePath(resources_dir)
+
+                resources_path = os.path.join(resources_dir, filename)
+
+                os.rename(fullpath, resources_path)
+                os.symlink(os.path.join("..", "Resources", filename), fullpath)
+
     Plugins.onCopiedDLLs(
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
@@ -341,9 +363,11 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
             )
 
             # Make sure we are not surprised here.
-            assert (
-                module_name == standalone_entry_point.module_name
-            ), standalone_entry_point.module_name
+            assert module_name == standalone_entry_point.module_name, (
+                module_name,
+                "!=",
+                standalone_entry_point.module_name,
+            )
             assert finding == "absolute", standalone_entry_point.module_name
 
             if not allow_outside_dependencies:

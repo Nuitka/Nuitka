@@ -150,7 +150,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     sub_result = OrderedSet(result)
 
     for sub_dll_filename in result:
-        sub_result = sub_result.union(
+        sub_result.update(
             detectBinaryPathDLLsPosix(
                 dll_filename=sub_dll_filename,
                 package_name=package_name,
