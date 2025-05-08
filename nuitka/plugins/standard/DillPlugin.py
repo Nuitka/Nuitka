@@ -89,11 +89,10 @@ Extending "%s" for compiled types to be pickle-able as well."""
                 """\
 import sys
 sys.modules[__compiled__.main]._create_compiled_function = \
-    sys.modules["%(module_name)s-preLoad"]._create_compiled_function
+    sys.modules[__name__.replace("-postLoad", "-preLoad")]._create_compiled_function
 sys.modules[__compiled__.main]._create_compiled_function.__module__ = \
     __compiled__.main
-"""
-                % {"module_name": full_name},
+""",
                 """
 Extending for compiled types to be pickle-able as well.""",
             )

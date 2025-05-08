@@ -229,7 +229,7 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'astropy' # checksum: 4d10fd3b
+- module-name: 'astropy' # checksum: 7c319dbe
   data-files:
     - patterns:
         - 'CITATION'
@@ -240,6 +240,14 @@
         'from .tests.runner import TestRunner': ''
         'test = TestRunner.make_test_runner_in(__path__[0])': 'test = None'
       when: 'not use_pytest'
+    - description: 'remove pydoc usage'
+      global_replacements_plain:
+        'import pydoc': ''
+      when: 'not use_pydoc'
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
 
 - module-name: 'astropy.constants.config' # checksum: 71da0564
   implicit-imports:
@@ -252,6 +260,7 @@
   anti-bloat:
     - description: 'remove IPython reference'
       change_function:
+        # This pulls in pandas potentially too.
         'show_in_notebook': 'un-callable'
       when: 'not use_ipython'
 
@@ -2539,6 +2548,13 @@
     - depends:
         - 'markdown.extensions.*'
 
+- module-name: 'markdown2' # checksum: 6d68c5cf
+  anti-bloat:
+    - description: 'remove docutils usage'
+      change_function:
+        '_test': 'un-callable'
+        'main': 'un-callable'
+
 - module-name: 'matplotlib' # checksum: d5e66e6c
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
@@ -2969,6 +2985,21 @@
       replacements_plain:
         'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
       when: 'not use_pytest'
+
+- module-name: 'nicegui' # checksum: 438c71c
+  data-files:
+    - dirs:
+        - 'static'
+
+- module-name: 'nicegui.elements' # checksum: 27cd20b7
+  data-files:
+    - dirs:
+        - 'lib'
+
+- module-name: 'nicegui.elements.code' # checksum: 5a37c3b1
+  implicit-imports:
+    - depends:
+        - 'pygments.formatters.html'
 
 - module-name: 'nose.core' # checksum: 9c7fc85a
   data-files:
@@ -8569,6 +8600,11 @@
     - depends:
         - 'queue'
 
+- module-name: 'ursina' # checksum: e8b5dd34
+  data-files:
+    - dirs:
+        - 'models_compressed'
+
 - module-name: 'usb1' # checksum: 5cbb45ba
   dlls:
     - from_filenames:
@@ -8974,12 +9010,13 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'xgboost.core' # checksum: a8cb2e6d
+- module-name: 'xgboost.core' # checksum: 2dcd7df3
   dlls:
     - from_filenames:
         relative_path: 'lib'
         prefixes:
           - 'xgboost'
+          - 'libxgboost'
 
 - module-name: 'xgboost.sklearn' # checksum: d0a963f4
   anti-bloat:

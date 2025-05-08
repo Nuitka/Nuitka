@@ -32,7 +32,11 @@ extern CONST_CONSTANT unsigned char constant_bin_data[0];
 unsigned char const *constant_bin = &constant_bin_data[0];
 
 #elif defined(_NUITKA_CONSTANTS_FROM_CODE)
+#ifdef __cplusplus
+extern "C" CONST_CONSTANT unsigned char constant_bin_data[];
+#else
 extern CONST_CONSTANT unsigned char constant_bin_data[];
+#endif
 
 unsigned char const *constant_bin = &constant_bin_data[0];
 #else
@@ -475,13 +479,6 @@ PyObject *_unpackSpecialValue(unsigned char special_index) {
     }
 }
 
-// TODO: We might have a need for this to be usable more globally.
-#if _NUITKA_EXE_MODE
-#define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (PYTHON_VERSION >= 0x3c7)
-#else
-#define IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER (Py_Version >= 0x30c0700)
-#endif
-
 static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate, const char *data, Py_ssize_t size,
                                                            bool is_ascii) {
 #if PYTHON_VERSION < 0x300
@@ -498,10 +495,16 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
         PyUnicode_InternInPlace(&u);
     }
 
-    if (IS_PYTHON_VERSION_RUNTIME_3C7_OR_LATER) {
-        _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
+#if PYTHON_VERSION >= 0x3c7
+    _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
+
+#if !_NUITKA_EXE_MODE
+    if (Py_Version >= 0x30c0700) {
         _PyUnicode_STATE(u).statically_allocated = 1;
     }
+#endif
+#endif
+
 #elif PYTHON_VERSION >= 0x300
     if (is_ascii) {
         PyUnicode_InternInPlace(&u);

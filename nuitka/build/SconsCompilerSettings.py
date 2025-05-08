@@ -573,6 +573,9 @@ unsigned char const *getConstantsBlobData(void) {
                 output.write(
                     """
 // Constant data for the program.
+#ifdef __cplusplus
+extern "C"
+#endif
 #if !defined(_NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS)
 const
 #endif
