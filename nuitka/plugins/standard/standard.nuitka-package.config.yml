@@ -8600,6 +8600,11 @@
     - depends:
         - 'queue'
 
+- module-name: 'ursina' # checksum: e8b5dd34
+  data-files:
+    - dirs:
+        - 'models_compressed'
+
 - module-name: 'usb1' # checksum: 5cbb45ba
   dlls:
     - from_filenames:
