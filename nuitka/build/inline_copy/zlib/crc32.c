@@ -545,7 +545,7 @@ const z_crc_t FAR * ZEXPORT get_crc_table(void) {
 #define Z_BATCH_ZEROS 0xa10d3d0c    /* computed from Z_BATCH = 3990 */
 #define Z_BATCH_MIN 800             /* fewest words in a final batch */
 
-unsigned long ZEXPORT crc32_z(unsigned long crc, const unsigned char FAR *buf,
+static unsigned long ZEXPORT crc32_zlib(unsigned long crc, const unsigned char FAR *buf,
                               z_size_t len) {
     z_crc_t val;
     z_word_t crc1, crc2;
@@ -664,7 +664,7 @@ local z_word_t crc_word_big(z_word_t data) {
 #endif
 
 /* ========================================================================= */
-unsigned long ZEXPORT crc32_z(unsigned long crc, const unsigned char FAR *buf,
+static unsigned long ZEXPORT crc32_zlib(unsigned long crc, const unsigned char FAR *buf,
                               z_size_t len) {
     /* Return initial CRC, if requested. */
     if (buf == Z_NULL) return 0;
@@ -987,5 +987,5 @@ unsigned long ZEXPORT crc32_z(unsigned long crc, const unsigned char FAR *buf,
 /* ========================================================================= */
 unsigned long ZEXPORT crc32(unsigned long crc, const unsigned char FAR *buf,
                             uInt len) {
-    return crc32_z(crc, buf, len);
+    return crc32_zlib(crc, buf, len);
 }
