@@ -18,7 +18,6 @@ static void FORMAT_TYPE_ERROR1(PyThreadState *tstate, struct Nuitka_ExceptionPre
     SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_TypeError, exception_value);
 }
 
-#if PYTHON_VERSION >= 0x270
 static void FORMAT_TYPE_ERROR2(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
                                char const *format, char const *arg1, char const *arg2) {
     PyObject *exception_value = Nuitka_String_FromFormat(format, arg1, arg2);
@@ -26,7 +25,6 @@ static void FORMAT_TYPE_ERROR2(PyThreadState *tstate, struct Nuitka_ExceptionPre
 
     SET_EXCEPTION_PRESERVATION_STATE_FROM_TYPE0_VALUE1(tstate, exception_state, PyExc_TypeError, exception_value);
 }
-#endif
 
 #if PYTHON_VERSION < 0x266
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be classes or instances, not %s"

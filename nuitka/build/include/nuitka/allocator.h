@@ -9,7 +9,7 @@
 #endif
 
 // For Python2.6, these assertions cannot be done easily, just disable them with dummy code.
-#if PYTHON_VERSION < 0x270 && !defined(__NUITKA_NO_ASSERT__)
+#if PYTHON_VERSION < 0x270 && !defined(_PyObject_GC_IS_TRACKED)
 #define _PyObject_GC_IS_TRACKED(obj) (1)
 #endif
 
