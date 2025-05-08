@@ -26,7 +26,9 @@ void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyObject *name, PyObject *source) {
     }
 
     bool res = DICT_SET_ITEM(uncompiled_function_sources_dict, name, source);
-    assert(res == false);
+    if (unlikely(res == false)) {
+        NUITKA_CANNOT_GET_HERE("Failed to update uncompiled function sources");
+    }
 }
 
 #endif

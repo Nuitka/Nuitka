@@ -33,7 +33,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, recursion_logger
+from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
@@ -269,7 +269,10 @@ def getModuleNameAndKindFromFilename(module_filename):
     if module_filename.endswith(".pyc"):
         return ModuleName(os.path.basename(module_filename)[:-4]), "pyc"
 
-    for suffix in getExtensionModuleSuffixes():
+    # TODO: This sorting is necessary for at least Python2, but probably
+    # elsewhere too, need to be sure we follow the scan order of core Python
+    # here.
+    for suffix in sorted(getExtensionModuleSuffixes(), key=lambda suffix: -len(suffix)):
         if module_filename.endswith(suffix):
             return (
                 ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
@@ -358,7 +361,7 @@ def normalizePackageName(module_name):
     return module_name
 
 
-def findModule(module_name, parent_package, level):
+def findModule(module_name, parent_package, level, logger):
     """Find a module with given package name as parent.
 
     The package name can be None of course. Level is the same
@@ -374,8 +377,8 @@ def findModule(module_name, parent_package, level):
 
     assert type(module_name) is ModuleName, module_name
 
-    if _debug_module_finding:
-        my_print(
+    if logger is not None:
+        logger.info(
             "findModule: Enter to search %r in package %r level %s."
             % (module_name, parent_package, level)
         )
@@ -422,13 +425,16 @@ def findModule(module_name, parent_package, level):
             return full_name.getPackageName(), module_filename, "py", "pth"
 
         try:
-            module_filename, module_kind = _findModule(module_name=full_name)
+            module_filename, module_kind = _findModule(
+                module_name=full_name,
+                logger=logger,
+            )
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            if _debug_module_finding:
-                my_print(
+            if logger is not None:
+                logger.info(
                     "findModule: Relative imported module '%s' as '%s' in filename '%s':"
                     % (module_name, full_name, module_filename)
                 )
@@ -452,13 +458,16 @@ def findModule(module_name, parent_package, level):
             return package_name, module_filename, "py", "pth"
 
         try:
-            module_filename, module_kind = _findModule(module_name=module_name)
+            module_filename, module_kind = _findModule(
+                module_name=module_name,
+                logger=logger,
+            )
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            if _debug_module_finding:
-                my_print(
+            if logger is not None:
+                logger.info(
                     "findModule: Found absolute imported module '%s' in filename '%s':"
                     % (module_name, module_filename)
                 )
@@ -529,7 +538,7 @@ def flushImportCache():
     module_search_cache.clear()
 
 
-def _findModuleInPath2(package_name, module_name, search_path):
+def _findModuleInPath2(package_name, module_name, search_path, logger):
     """This is out own module finding low level implementation.
 
     Just the full module name and search path are given. This is then
@@ -615,8 +624,8 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 )
                 last_module_type = module_type
 
-    if _debug_module_finding:
-        my_print("Candidates:", candidates)
+    if logger is not None:
+        logger.info("Candidates: %r" % candidates)
 
     found_candidate = None
 
@@ -764,11 +773,13 @@ def getPackageSearchPath(package_name):
     )
 
 
-def _findModuleInPath(module_name):
+def _findModuleInPath(module_name, logger):
     package_name, module_name = module_name.splitModuleBasename()
 
-    if _debug_module_finding:
-        my_print("_findModuleInPath: Enter", module_name, "in", package_name)
+    if logger is not None:
+        logger.info(
+            "_findModuleInPath: Enter for %s in %s" % (module_name, package_name)
+        )
 
     # The "site" module must be located based on PYTHONPATH before it was
     # executed, while we normally search in PYTHONPATH after it was executed,
@@ -785,14 +796,18 @@ def _findModuleInPath(module_name):
 
     search_path = getPackageSearchPath(package_name)
 
-    if _debug_module_finding:
-        my_print(
-            "_findModuleInPath: Using search path", search_path, "for", package_name
+    if logger is not None:
+        logger.info(
+            "_findModuleInPath: Using search path %s for %s"
+            % (search_path, package_name)
         )
 
     try:
         module_filename, module_kind = _findModuleInPath2(
-            package_name=package_name, module_name=module_name, search_path=search_path
+            package_name=package_name,
+            module_name=module_name,
+            search_path=search_path,
+            logger=logger,
         )
     except SyntaxError:
         # Warn user, as this is kind of unusual.
@@ -803,8 +818,11 @@ def _findModuleInPath(module_name):
 
         return None, None
 
-    if _debug_module_finding:
-        my_print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
+    if logger is not None:
+        logger.info(
+            "_findModuleInPath: _findModuleInPath2 gave %s %s"
+            % (module_filename, module_kind)
+        )
 
     return module_filename, module_kind
 
@@ -812,12 +830,12 @@ def _findModuleInPath(module_name):
 module_search_cache = {}
 
 
-def _findModule(module_name):
+def _findModule(module_name, logger):
     # Not a good module name. TODO: Push this to ModuleName() creation maybe.
     assert module_name != ""
 
-    if _debug_module_finding:
-        my_print("_findModule: Enter to search '%s'." % (module_name,))
+    if logger is not None:
+        logger.info("_findModule: Enter to search '%s'." % module_name)
 
     assert module_name.getBasename(), module_name
 
@@ -826,8 +844,8 @@ def _findModule(module_name):
     if key in module_search_cache:
         result = module_search_cache[key]
 
-        if _debug_module_finding:
-            my_print("_findModule: Cached result (see previous call).")
+        if logger is not None:
+            logger.info("_findModule: Cached result (see previous call).")
 
         if result is ImportError:
             raise ImportError
@@ -835,7 +853,10 @@ def _findModule(module_name):
         return result
 
     try:
-        module_search_cache[key] = _findModuleInPath(module_name)
+        module_search_cache[key] = _findModuleInPath(
+            module_name=module_name,
+            logger=logger,
+        )
     except ImportError:
         module_search_cache[key] = ImportError
         raise
@@ -845,7 +866,7 @@ def _findModule(module_name):
     return module_search_cache[key]
 
 
-def locateModule(module_name, parent_package, level):
+def locateModule(module_name, parent_package, level, logger=None):
     """Locate a module with given package name as parent.
 
     The package name can be None of course. Level is the same
@@ -861,10 +882,14 @@ def locateModule(module_name, parent_package, level):
     if module_name.isMultidistModuleName():
         return locateMultidistModule(module_name)
 
+    if _debug_module_finding and logger is None:
+        logger = recursion_logger
+
     module_package, module_filename, module_kind, finding = findModule(
         module_name=module_name,
         parent_package=parent_package,
         level=level,
+        logger=logger,
     )
 
     # Allowing ourselves to be lazy.
