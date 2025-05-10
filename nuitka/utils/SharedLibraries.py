@@ -29,6 +29,7 @@ from .FileOperations import (
 from .Importing import importFromInlineCopy
 from .Utils import (
     isAlpineLinux,
+    isBSD,
     isLinux,
     isMacOS,
     isWin32Windows,
@@ -506,9 +507,13 @@ def setSharedLibraryRPATH(filename, rpath):
         else:
             _setSharedLibraryRPATHElf(filename, rpath)
 
-    if getSharedLibraryRPATHs(filename, elements=False, cached=False) != [rpath]:
+    updated_rpaths = getSharedLibraryRPATHs(filename, elements=False, cached=False)
+    expected_rpaths = [rpath]
+
+    if updated_rpaths != expected_rpaths and isStaticallyLinked(filename) is not True:
         postprocessing_logger.sysexit(
-            "Error, failed to update rpath for '%s'." % filename
+            "Error, failed to update rpath for '%s' (%r != %r). Please report the bug."
+            % (filename, updated_rpaths, expected_rpaths)
         )
 
 
@@ -670,6 +675,23 @@ def _getFileCommandOutput(filename):
         _file_output_cache[filename] = file_output
 
     return _file_output_cache[filename]
+
+
+def isStaticallyLinked(filename):
+    if isLinux() or isBSD():
+        file_output = _getFileCommandOutput(filename)
+
+        return "statically linked" in file_output
+
+    if isMacOS():
+        # Telling statically linked as easy for macOS, but this will be good
+        # enough for some things.
+        if "dynamically linked" in file_output:
+            return False
+
+    # Don't know is currently an option too, this one will be hard to get right
+    # on all platforms.
+    return None
 
 
 def hasUniversalOrMatchingMacOSArchitecture(filename):
