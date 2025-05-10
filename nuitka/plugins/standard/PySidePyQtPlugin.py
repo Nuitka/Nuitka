@@ -13,7 +13,6 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
-    isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
 )
@@ -886,12 +885,6 @@ Prefix = .
         for filename in getFileList(resources_dir):
             filename_relative = os.path.relpath(filename, resources_dir)
 
-            if not isOnefileMode():
-                yield self.makeIncludedAppBundleResourceFile(
-                    source_path=filename,
-                    dest_path=filename_relative,
-                    reason="Qt WebEngine resources",
-                )
             yield self.makeIncludedDataFile(
                 source_path=filename,
                 dest_path=filename_relative,
