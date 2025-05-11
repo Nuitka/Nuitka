@@ -2452,6 +2452,13 @@ def getMacOSAppProtectedResourcesAccesses():
     result = []
 
     for macos_protected_resource in options.macos_protected_resources:
+        if ":" not in macos_protected_resource:
+            Tracing.options_logger.sysexit(
+                """\
+Wrong format for '--macos-app-protected-resource' value '%s', it \
+needs to contain separator ':' with a description."""
+                % macos_protected_resource
+            )
         result.append(macos_protected_resource.split(":", 1))
 
     return result
