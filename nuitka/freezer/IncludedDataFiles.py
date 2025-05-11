@@ -22,7 +22,6 @@ from nuitka.Options import (
     getShallIncludeRawDirs,
     getShallNotIncludeDataFilePatterns,
     isAcceleratedMode,
-    isOnefileMode,
     isStandaloneMode,
     shallMakeModule,
 )
@@ -163,9 +162,6 @@ def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     tags = decodeDataFileTags(tags)
 
-    if "framework_resource" in tags and not isMacOS():
-        tracer.sysexit("Using resource files on non-MacOS")
-
     # Refuse directories, these must be kept distinct.
     if os.path.isdir(source_path):
         tracer.sysexit(
@@ -183,14 +179,7 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
                     % (source_path, dest_path)
                 )
     else:
-        inside = True
         if not isRelativePath(dest_path):
-            if "framework_resource" in tags and not isOnefileMode():
-                inside = isRelativePath(os.path.join("Resources", dest_path))
-            else:
-                inside = False
-
-        if not inside:
             tracer.sysexit(
                 "Error, cannot use dest path '%s' outside of distribution." % dest_path
             )

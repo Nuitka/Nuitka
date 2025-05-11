@@ -1345,13 +1345,13 @@ PyObject *Nuitka_Function_ExtractCodeObjectDescription(PyThreadState *tstate, st
     PyTuple_SET_ITEM(code_object_desc, 5, Nuitka_PyLong_FromLong(function->m_code_object->co_flags));
 
 #if PYTHON_VERSION < 0x380
-    PyTuple_SET_ITEM(code_object_desc, 6, const_int_0);
+    PyTuple_SET_ITEM0(code_object_desc, 6, const_int_0);
 #else
     PyTuple_SET_ITEM(code_object_desc, 6, Nuitka_PyLong_FromLong(function->m_code_object->co_posonlyargcount));
 #endif
 
 #if PYTHON_VERSION < 0x3b0
-    PyTuple_SET_ITEM(code_object_desc, 7, const_int_0);
+    PyTuple_SET_ITEM0(code_object_desc, 7, const_int_0);
 #else
     PyTuple_SET_ITEM(code_object_desc, 7, Nuitka_PyLong_FromLong(function->m_code_object->co_kwonlyargcount));
 #endif

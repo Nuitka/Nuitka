@@ -1018,6 +1018,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #if PYTHON_VERSION >= 0x3c0 && !defined(_NUITKA_USE_UNEXPOSED_API)
     if (preserved_basename_module != NULL) {
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+        PRINT_STRING("Handling for preservation: ");
+        PRINT_ITEM_LINE(full_name_obj);
         PRINT_STRING("Restoring preserved module: ");
         PRINT_ITEM(base_name_obj);
         if (Nuitka_HasModule(tstate, base_name_obj)) {
@@ -2207,14 +2209,6 @@ void registerMetaPathBasedLoader(struct Nuitka_MetaPathBasedLoaderEntry *_loader
 #endif
 
     Nuitka_PyType_Ready(&Nuitka_Loader_Type, NULL, true, false, false, false, false);
-
-#if _NUITKA_EXE_MODE
-    {
-        NUITKA_MAY_BE_UNUSED int res =
-            PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_loader_type", (PyObject *)&Nuitka_Loader_Type);
-        assert(res == 0);
-    }
-#endif
 
 #if PYTHON_VERSION >= 0x370
     Nuitka_PyType_Ready(&Nuitka_ResourceReader_Type, NULL, true, false, false, false, false);

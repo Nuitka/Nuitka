@@ -224,7 +224,7 @@ filename_char_t *_getBinaryPath2(void) {
         // TODO: Once it's fully capable, we ought to use this for all methods
         // for consistency.
         normalizePath(binary_filename);
-        fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
+        // fprintf(stderr, "Did normalize binary path %s from PATH %s.\n", comm, binary_filename);
     } else {
         fprintf(stderr, "Error, cannot resolve binary path %s from PATH or current directory.\n", comm);
         abort();
