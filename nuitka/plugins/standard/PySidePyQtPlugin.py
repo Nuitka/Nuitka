@@ -13,7 +13,6 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
-    isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
 )
@@ -28,7 +27,7 @@ from nuitka.plugins.Plugins import (
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
-from nuitka.utils.FileOperations import getFileList, listDir
+from nuitka.utils.FileOperations import getFileList, getNormalizedPath, listDir
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
@@ -239,10 +238,21 @@ of files that you may not want to be included.""",
 
         return "all" in selected or plugin_name in selected
 
+    def _applyBindingCondaLibraryPath(self, sub_path):
+        return self._applyBindingName(
+            "os.path.join(os.path.dirname(%(binding_name)s.__file__), '..', '..', '..', 'Library', "
+            + sub_path
+            + ")"
+        )
+
+    def _applyBindingName(self, template):
+        return template % {
+            "binding_name": self.binding_name,
+            "qt_major_version": self.binding_name[-1],
+        }
+
     def _getQtInformation(self):
         # This is generic, and therefore needs to apply this to a lot of strings.
-        def applyBindingName(template):
-            return template % {"binding_name": self.binding_name}
 
         def getLocationQueryCode(path_name):
             if self.binding_name == "PyQt6":
@@ -257,7 +267,7 @@ of files that you may not want to be included.""",
                 "path_name": path_name,
             }
 
-        setup_codes = applyBindingName(
+        setup_codes = self._applyBindingName(
             r"""
 import os
 import %(binding_name)s.QtCore
@@ -265,30 +275,34 @@ import %(binding_name)s.QtCore
         )
 
         info = self.queryRuntimeInformationMultiple(
-            info_name=applyBindingName("%(binding_name)s_info"),
+            info_name=self._applyBindingName("%(binding_name)s_info"),
             setup_codes=setup_codes,
             values=(
                 (
                     "library_paths",
-                    applyBindingName(
+                    self._applyBindingName(
                         "%(binding_name)s.QtCore.QCoreApplication.libraryPaths()"
                     ),
                 ),
                 (
                     "guess_path1",
-                    applyBindingName(
+                    self._applyBindingName(
                         "os.path.join(os.path.dirname(%(binding_name)s.__file__), 'plugins')"
                     ),
                 ),
                 (
                     "guess_path2",
-                    applyBindingName(
-                        "os.path.join(os.path.dirname(%(binding_name)s.__file__), '..', '..', '..', 'Library', 'plugins')"
+                    self._applyBindingCondaLibraryPath("'plugins'"),
+                ),
+                (
+                    "guess_path3",
+                    self._applyBindingCondaLibraryPath(
+                        "'lib', 'qt%(qt_major_version)s', 'plugins'"
                     ),
                 ),
                 (
                     "version",
-                    applyBindingName(
+                    self._applyBindingName(
                         "%(binding_name)s.__version_info__"
                         if "PySide" in self.binding_name
                         else "%(binding_name)s.QtCore.PYQT_VERSION_STR"
@@ -296,16 +310,40 @@ import %(binding_name)s.QtCore
                 ),
                 (
                     "nuitka_patch_level",
-                    applyBindingName(
+                    self._applyBindingName(
                         "getattr(%(binding_name)s, '_nuitka_patch_level', 0)"
                     ),
                 ),
-                ("translations_path", getLocationQueryCode("TranslationsPath")),
+                (
+                    "translations_path",
+                    getLocationQueryCode("TranslationsPath"),
+                ),
+                (
+                    "translations_path_guess",
+                    self._applyBindingCondaLibraryPath(
+                        "'share', 'qt%(qt_major_version)s', 'translations'"
+                    ),
+                ),
                 (
                     "library_executables_path",
                     getLocationQueryCode("LibraryExecutablesPath"),
                 ),
-                ("data_path", getLocationQueryCode("DataPath")),
+                (
+                    "library_executables_path_guess",
+                    self._applyBindingCondaLibraryPath(
+                        "'lib', 'qt%(qt_major_version)s'"
+                    ),
+                ),
+                (
+                    "data_path",
+                    getLocationQueryCode("DataPath"),
+                ),
+                (
+                    "qt_resources_path_guess",
+                    self._applyBindingCondaLibraryPath(
+                        "'share', 'qt%(qt_major_version)s', 'resources'"
+                    ),
+                ),
             ),
         )
 
@@ -326,7 +364,15 @@ import %(binding_name)s.QtCore
 
     def _getTranslationsPath(self):
         """Get the path to the Qt translations."""
-        return self._getQtInformation().translations_path
+        translation_path = self._getQtInformation().translations_path
+
+        if not os.path.exists(translation_path):
+            translation_path = self._getQtInformation().translations_path_guess
+
+        if not os.path.exists(translation_path):
+            self.sysexit("Error, failed to detect QtWebEngine translation path")
+
+        return translation_path
 
     def _getWebEngineResourcesPath(self):
         """Get the path to the Qt web engine resources."""
@@ -336,11 +382,31 @@ import %(binding_name)s.QtCore
                 "lib/QtWebEngineCore.framework/Resources",
             )
         else:
-            return os.path.join(self._getQtInformation().data_path, "resources")
+            resources_path = os.path.join(
+                self._getQtInformation().data_path, "resources"
+            )
+
+            if not os.path.exists(resources_path):
+                resources_path = self._getQtInformation().qt_resources_path_guess
+
+            if not os.path.exists(resources_path):
+                self.sysexit("Error, failed to detect QtWebEngine resources path")
+
+            return resources_path
 
     def _getWebEngineExecutablePath(self):
         """Get the path to QtWebEngine binary."""
-        return os.path.normpath(self._getQtInformation().library_executables_path)
+        library_executables_path = self._getQtInformation().library_executables_path
+
+        if not os.path.exists(library_executables_path):
+            library_executables_path = (
+                self._getQtInformation().library_executables_path_guess
+            )
+
+        if not os.path.exists(library_executables_path):
+            self.sysexit("Error, failed to detect QtWebEngine library path")
+
+        return getNormalizedPath(library_executables_path)
 
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
@@ -352,13 +418,14 @@ import %(binding_name)s.QtCore
 
         if not self.qt_plugins_dirs and os.path.exists(qt_info.guess_path1):
             self.qt_plugins_dirs.append(qt_info.guess_path1)
-
         if not self.qt_plugins_dirs and os.path.exists(qt_info.guess_path2):
             self.qt_plugins_dirs.append(qt_info.guess_path2)
+        if not self.qt_plugins_dirs and os.path.exists(qt_info.guess_path3):
+            self.qt_plugins_dirs.append(qt_info.guess_path3)
 
         # Avoid duplicates.
         self.qt_plugins_dirs = [
-            os.path.normpath(dirname) for dirname in self.qt_plugins_dirs
+            getNormalizedPath(dirname) for dirname in self.qt_plugins_dirs
         ]
         self.qt_plugins_dirs = tuple(sorted(set(self.qt_plugins_dirs)))
 
@@ -370,12 +437,12 @@ import %(binding_name)s.QtCore
     def _getQtBinDirs(self):
         for plugin_dir in self.getQtPluginDirs():
             if "PyQt" in self.binding_name:
-                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "bin"))
+                qt_bin_dir = getNormalizedPath(os.path.join(plugin_dir, "..", "bin"))
 
                 if os.path.isdir(qt_bin_dir):
                     yield qt_bin_dir
             else:
-                qt_bin_dir = os.path.normpath(os.path.join(plugin_dir, ".."))
+                qt_bin_dir = getNormalizedPath(os.path.join(plugin_dir, ".."))
 
                 yield qt_bin_dir
 
@@ -387,7 +454,7 @@ import %(binding_name)s.QtCore
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
-            qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
+            qml_plugin_dir = getNormalizedPath(os.path.join(plugin_dir, "..", "qml"))
 
             if os.path.exists(qml_plugin_dir):
                 return qml_plugin_dir
@@ -747,12 +814,28 @@ if not path.startswith(__nuitka_binary_dir):
         # We need to set these variables, to force the layout
         # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
 
-        if self.isQtWebEngineModule(full_name) and self._isUsingMacOSFrameworks():
+        if self.isQtWebEngineModule(full_name):
             code = r"""
 import os
+os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
+    __nuitka_binary_dir,
+    %(web_engine_locales_path)r,
+    "qtwebengine_locales"
+)
+""" % {
+                "web_engine_locales_path": self._getTranslationsTargetDir()
+            }
+
+            yield (
+                code,
+                "Setting WebEngine translations path'.",
+            )
+
+            if self._isUsingMacOSFrameworks():
+                code = r"""
 os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.join(
     __nuitka_binary_dir,
-    "%(web_engine_process_path)s"
+    %(web_engine_process_path)r
 )
 os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
     __nuitka_binary_dir,
@@ -760,15 +843,15 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
 )
 os.environ["QTWEBENGINE_DISABLE_SANDBOX"]="1"
 """ % {
-                "web_engine_process_path": """\
+                    "web_engine_process_path": """\
 %s/Qt/lib/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"""
-                % self.binding_name
-            }
+                    % self.binding_name
+                }
 
-            yield (
-                code,
-                "Setting WebEngine binary and translation path'.",
-            )
+                yield (
+                    code,
+                    "Setting Qt WebEngine binary path'.",
+                )
 
     def _handleWebEngineDataFiles(self):
         # Do it only once
@@ -802,12 +885,6 @@ Prefix = .
         for filename in getFileList(resources_dir):
             filename_relative = os.path.relpath(filename, resources_dir)
 
-            if not isOnefileMode():
-                yield self.makeIncludedAppBundleResourceFile(
-                    source_path=filename,
-                    dest_path=filename_relative,
-                    reason="Qt WebEngine resources",
-                )
             yield self.makeIncludedDataFile(
                 source_path=filename,
                 dest_path=filename_relative,
@@ -924,11 +1001,14 @@ Prefix = .
 
         qt_web_engine_dir = self._getWebEngineExecutablePath()
 
+        if not os.path.isdir(qt_web_engine_dir):
+            assert False, qt_web_engine_dir
+
         for filename, filename_relative in listDir(qt_web_engine_dir):
             if filename_relative.startswith("QtWebEngineProcess"):
                 yield self.makeExeEntryPoint(
                     source_path=filename,
-                    dest_path=os.path.normpath(
+                    dest_path=getNormalizedPath(
                         os.path.join(self._getWebEngineTargetDir(), filename_relative)
                     ),
                     module_name=full_name,
@@ -1226,7 +1306,7 @@ to compiled functions, etc. may not be working.""",
 
                     # That is how it is built for Anaconda.
                     if "_h_env" in path_parts:
-                        return os.path.normpath(
+                        return getNormalizedPath(
                             os.path.join(
                                 conda_prefix,
                                 *path_parts[path_parts.index("_h_env") + 1 :]

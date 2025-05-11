@@ -10,7 +10,7 @@ that need special case, e.g. the registration of the loader class.
 
 import re
 
-from nuitka.__past__ import PermissionError
+from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import withNoDeprecationWarning
@@ -107,10 +107,8 @@ sys.exit(%(module_name)s.%(main_name)s)
 
         For pkg_resources we need to register a provider.
         """
-        if module.getFullName() != "pkg_resources":
-            return
-
-        code = """\
+        if module.getFullName() == "pkg_resources":
+            code = """\
 from __future__ import absolute_import
 
 import os
@@ -133,13 +131,19 @@ class NuitkaProvider(EggProvider):
         with open(path, 'rb') as stream:
             return stream.read()
 
-register_loader_type(__nuitka_loader_type, NuitkaProvider)
+assert __loader__.__class__.__name__ == "nuitka_module_loader", __loader__
+
+register_loader_type(__loader__.__class__, NuitkaProvider)
 """
 
-        yield (
-            code,
-            """Registering Nuitka loader with "pkg_resources".""",
-        )
+            yield (
+                code,
+                """Registering Nuitka loader with "pkg_resources".""",
+            )
+
+    def decideCompilation(self, module_name):
+        if module_name == "pkg_resources-postLoad":
+            return "compiled"
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
