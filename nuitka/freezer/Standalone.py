@@ -32,6 +32,7 @@ from nuitka.Progress import (
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     isAnacondaPython,
+    isCPythonOfficialPackage,
     isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
@@ -317,6 +318,9 @@ def _reduceToPythonPath(used_dll_paths):
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
 
+    if isMacOS() and isCPythonOfficialPackage():
+        inside_paths.insert(0, getSystemPrefixPath())
+
     if isHomebrewPython():
         inside_paths.insert(0, getHomebrewInstallPath())
 
@@ -358,12 +362,12 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
     # pylint: disable=too-many-branches,too-many-locals
 
     if standalone_entry_point.module_name is not None:
-        module_name, module_filename, _kind, finding = locateModule(
-            standalone_entry_point.module_name, parent_package=None, level=0
-        )
-
-        # TODO: How can this be None at all.
-        if module_filename is not None and isStandardLibraryPath(module_filename):
+        # For Linux Pythons, there can be DLLs to pick up from the system.
+        if (
+            not isWin32Windows()
+            and not isMacOS()
+            and isStandardLibraryPath(standalone_entry_point.source_path)
+        ):
             allow_outside_dependencies = True
         else:
             allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
@@ -401,7 +405,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
         # based on the package name.
 
         if standalone_entry_point.module_name is not None and used_dll_paths:
-            module_name, module_filename, _kind, finding = locateModule(
+            module_name, _module_filename, _kind, finding = locateModule(
                 standalone_entry_point.module_name, parent_package=None, level=0
             )
 
@@ -453,7 +457,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                 # where required that way (openvino) or known to be good only (av),
                 # because it broke other things. spell-checker: ignore openvino
 
-                dest_path = os.path.normpath(
+                dest_path = getNormalizedPath(
                     os.path.join(
                         os.path.dirname(standalone_entry_point.dest_path),
                         os.path.basename(used_dll_path),
