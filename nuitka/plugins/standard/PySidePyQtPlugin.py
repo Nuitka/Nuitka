@@ -24,7 +24,7 @@ from nuitka.plugins.Plugins import (
     getQtPluginNames,
     hasActiveGuiPluginForBinding,
 )
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isHomebrewPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Distributions import getDistributionFromModuleName
 from nuitka.utils.FileOperations import getFileList, getNormalizedPath, listDir
@@ -49,14 +49,17 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         # TODO: Find a more dedicated slot, where the module path will be fully
         # setup to do this. Plugins should be called before compilation for a
         # chance to error out like this.
-        self.distribution = getDistributionFromModuleName(
+        distribution = getDistributionFromModuleName(
             self.binding_package_name, prefer_shorter_distribution_name=True
         )
 
-        if self.distribution is None:
-            self.sysexit(
-                "Error, failed to locate the %s installation." % self.binding_name
-            )
+        if distribution is None:
+            # TODO: They are doing very strange things here, but metadata is not
+            # found for them currently.
+            if not isHomebrewPython():
+                self.sysexit(
+                    "Error, failed to locate the '%s' installation." % self.binding_name
+                )
 
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
