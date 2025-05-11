@@ -985,6 +985,8 @@ def _main():
     # options, etc.
     setupImportingFromOptions()
 
+    Plugins.onCompilationStartChecks()
+
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
