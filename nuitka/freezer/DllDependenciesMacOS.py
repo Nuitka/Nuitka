@@ -11,12 +11,20 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
+from nuitka.PythonFlavors import (
+    getHomebrewInstallPath,
+    getSystemPrefixPath,
+    isAnacondaPython,
+    isCPythonOfficialPackage,
+    isHomebrewPython,
+    isNuitkaPython,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
     changeFilenameExtension,
+    getNormalizedPath,
     getReportPath,
     isFilenameBelowPath,
 )
@@ -40,20 +48,28 @@ def _detectPythonRpaths():
     result = []
 
     if isAnacondaPython() and "CONDA_PREFIX" in os.environ:
-        candidate = os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib"))
-
-        if os.path.isdir(candidate):
-            result.append(candidate)
+        result.append(os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib")))
 
     if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
-        candidate = os.path.normpath(
-            os.path.join(os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib")
+        result.append(
+            os.path.normpath(
+                os.path.join(
+                    os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib"
+                )
+            )
         )
 
-        if os.path.isdir(candidate):
-            result.append(candidate)
+    if isCPythonOfficialPackage():
+        result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
-    return tuple(set(result))
+    if isHomebrewPython():
+        result.append(os.path.join(getHomebrewInstallPath(), "lib"))
+
+    return tuple(
+        getNormalizedPath(candidate)
+        for candidate in set(result)
+        if os.path.isdir(candidate)
+    )
 
 
 def detectBinaryPathDLLsMacOS(
@@ -413,7 +429,7 @@ def fixupBinaryDLLPathsMacOS(
             if dist_path is None:
                 inclusion_logger.sysexit(
                     """\
-    Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+Error, problem with dependency scan of '%s' with '%s' please report the bug."""
                     % (getReportPath(original_location), rpath_filename)
                 )
 
