@@ -208,7 +208,7 @@ of files that you may not want to be included.""",
 
     @staticmethod
     def _getWebEngineTargetDir():
-        """Where does the Qt bindings package expect the web process executable."""
+        """Where to put the web process executable."""
         return "."
 
     def _getSensiblePlugins(self):
@@ -821,7 +821,8 @@ if not path.startswith(__nuitka_binary_dir):
             )
 
         # We need to set these variables, to force the layout
-        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
+        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX,
+        # spell-checker: ignore QTWEBENGINE_RESOURCES_PATH
 
         if self.isQtWebEngineModule(full_name):
             code = r"""
@@ -839,6 +840,33 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
                 code,
                 "Setting WebEngine translations path'.",
             )
+
+            if isWin32Windows():
+                # TODO: Need to do it for DLL mode for sure, but we should do it
+                # for all platforms.
+                code = r"""
+os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.normpath(
+    os.path.join(
+        __nuitka_binary_dir,
+        %(web_engine_process_path)r
+    )
+)
+os.environ["QTWEBENGINE_RESOURCES_PATH"] = os.path.normpath(
+    os.path.join(
+        __nuitka_binary_dir,
+        %(web_engine_resources_path)r
+    )
+)
+
+                """ % {
+                    "web_engine_process_path": "QtWebEngineProcess.exe",
+                    "web_engine_resources_path": self._getWebEngineResourcesTargetDir(),
+                }
+
+                yield (
+                    code,
+                    "Setting Qt WebEngine binary path'.",
+                )
 
             if self._isUsingMacOSFrameworks():
                 code = r"""
