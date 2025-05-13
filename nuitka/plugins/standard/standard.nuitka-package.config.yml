@@ -7899,7 +7899,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 9ff3b94c
+- module-name: 'torch' # checksum: 9b1bc67d
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -7943,6 +7943,8 @@
     - force-environment-variables:
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
+    - find-dlls-near-module:
+        - 'nvidia'
 
 - module-name: 'torch._dynamo.polyfills.loader' # checksum: e5019356
   implicit-imports:
