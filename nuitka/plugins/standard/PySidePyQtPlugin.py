@@ -979,7 +979,7 @@ Prefix = .
     def _handleWebEngineDataFilesGeneric(self):
         resources_dir = self._getWebEngineResourcesPath()
 
-        for filename in getFileList(resources_dir):
+        for filename in getFileList(resources_dir, ignore_suffixes=(".debug.bin",)):
             filename_relative = os.path.relpath(filename, resources_dir)
 
             yield self.makeIncludedDataFile(
