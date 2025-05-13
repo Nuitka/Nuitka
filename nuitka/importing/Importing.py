@@ -30,6 +30,7 @@ from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
@@ -878,6 +879,11 @@ def locateModule(module_name, parent_package, level, logger=None):
         directory for packages, the module kind, and the finding
         kind.
     """
+
+    if not _main_paths:
+        raise NuitkaCodeDeficit(
+            "Error, cannot locate modules before import mechanism is setup."
+        )
 
     if module_name.isMultidistModuleName():
         return locateMultidistModule(module_name)
