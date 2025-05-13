@@ -742,6 +742,16 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
             None
         """
 
+    def onCompilationStartChecks(self):
+        """The compilation is setup, locating modules if expected to work.
+
+        Args:
+            None
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use
+
     def onModuleInitialSet(self):
         """Provide extra modules to the initial root module set.
 
@@ -799,8 +809,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
                     }
                 )
 
-    @staticmethod
-    def locateModule(module_name):
+    def locateModule(self, module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:

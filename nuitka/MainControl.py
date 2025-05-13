@@ -988,6 +988,8 @@ def _main():
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
+    Plugins.onCompilationStartChecks()
+
     # Turn that source code into a node tree structure.
     try:
         main_module = _createMainModule()
