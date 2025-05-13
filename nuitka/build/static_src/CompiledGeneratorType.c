@@ -1581,6 +1581,10 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
     /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_generators, generator, MAX_GENERATOR_FREE_LIST_COUNT);
+
+#if PYTHON_VERSION < 0x300
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &saved_exception_state);
+#endif
 }
 
 static long Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
@@ -1976,6 +1980,7 @@ PyObject *Nuitka_Generator_NewEmpty(PyObject *module, PyObject *name,
 // Chain frames to generator and asyncgen code, as they need to close them with access
 // to best functions.
 #include "CompiledFrameType.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
