@@ -985,10 +985,10 @@ def _main():
     # options, etc.
     setupImportingFromOptions()
 
+    Plugins.onCompilationStartChecks()
+
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
-
-    Plugins.onCompilationStartChecks()
 
     # Turn that source code into a node tree structure.
     try:
