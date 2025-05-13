@@ -498,7 +498,9 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
 #if PYTHON_VERSION >= 0x3c7
     _PyUnicode_STATE(u).interned = SSTATE_INTERNED_IMMORTAL_STATIC;
 
-#if !_NUITKA_EXE_MODE
+#if _NUITKA_EXE_MODE
+    _PyUnicode_STATE(u).statically_allocated = 1;
+#else
     if (Py_Version >= 0x30c0700) {
         _PyUnicode_STATE(u).statically_allocated = 1;
     }
