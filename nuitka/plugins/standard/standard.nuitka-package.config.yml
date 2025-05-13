@@ -4742,6 +4742,32 @@
     - dirs:
         - 'proj_dir'
 
+- module-name: 'pypylon' # checksum: 333ba80f
+  data-files:
+    - patterns:
+        - '**/*.sig'
+        - '**/*.info'
+        - '**/*.lic'
+        - '**/*.pcal'
+        - '**/*.pdf'
+        - '**/*.omc'
+        - '**/*.hotc'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '*Basler'
+          - 'Pylon'
+          - 'gxapi'
+          - 'uxapi'
+    - from_filenames:
+        relative_path: 'pylonDataProcessingPlugins'
+        prefixes:
+          - 'Pylon'
+    - from_filenames:
+        relative_path: 'DataProcessingPluginsB'
+        prefixes:
+          - 'Pylon'
+
 - module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
     - empty_dirs:
