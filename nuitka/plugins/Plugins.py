@@ -1131,6 +1131,14 @@ class Plugins(object):
             )
 
     @staticmethod
+    def onCompilationStartChecks():
+        """The compilation is setup, locating modules if expected to work."""
+
+        for plugin in getActivePlugins():
+            with withPluginProblemReporting(plugin, "plugin startup checks", ()):
+                plugin.onCompilationStartChecks()
+
+    @staticmethod
     def onModuleInitialSet():
         """The initial set of root modules is complete, plugins may add more."""
 
