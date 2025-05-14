@@ -12,6 +12,7 @@ from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,
     isNuitkaPython,
+    isPyenvPython,
     isPythonBuildStandalonePython,
     isRyePython,
     isSelfCompiledPythonUninstalled,
@@ -156,6 +157,9 @@ def _getSystemStaticLibPythonPath():
         return None
 
     if isMacOS() and isRyePython():
+        return None
+
+    if isMacOS() and isPyenvPython():
         return None
 
     if isPythonBuildStandalonePython():
