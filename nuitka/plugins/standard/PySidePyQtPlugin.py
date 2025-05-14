@@ -33,6 +33,9 @@ from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
+    # Plenty of attributes, because it's storing many states.
+    # pylint: disable=too-many-instance-attributes
+
     plugin_category = "package-support,qt-binding"
 
     # Automatically suppress detectors for any other toolkit
@@ -46,32 +49,51 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
         self.binding_package_name = ModuleName(self.binding_name)
 
-        # TODO: Find a more dedicated slot, where the module path will be fully
-        # setup to do this. Plugins should be called before compilation for a
-        # chance to error out like this.
-        self.distribution = getDistributionFromModuleName(
-            self.binding_package_name, prefer_shorter_distribution_name=True
-        )
-
-        if self.distribution is None:
-            self.sysexit(
-                "Error, failed to locate the %s installation." % self.binding_name
-            )
+        self.include_qt_plugins = include_qt_plugins
+        self.noinclude_qt_plugins = noinclude_qt_plugins
+        self.no_qt_translations = no_qt_translations
 
         # Qt plugin directories found.
         self.qt_plugins_dirs = None
 
+        # Selected Qt plugins.
+        self.qt_plugins = None
+
+        active_qt_plugin_name = getActiveQtPlugin()
+
+        if active_qt_plugin_name is not None:
+            self.sysexit(
+                "Error, conflicting plugin '%s', you can only have one enabled."
+                % active_qt_plugin_name
+            )
+
+        self.web_engine_done_binaries = False
+        self.web_engine_done_data = False
+
+    def onCompilationStartChecks(self):
+        # Make sure, distribution location for this uses shortest name approach,
+        # we do not need to use the value, just want to make sure it is resolved
+        # properly and quickly.
+        _distribution = getDistributionFromModuleName(
+            self.binding_package_name, prefer_shorter_distribution_name=True
+        )
+
+        if self.locateModule(self.binding_package_name) is None:
+            self.sysexit(
+                "Error, failed to locate the '%s' installation." % self.binding_name
+            )
+
         sensible_qt_plugins = self._getSensiblePlugins()
 
-        include_qt_plugins = OrderedSet(
-            sum([value.split(",") for value in include_qt_plugins], [])
+        self.include_qt_plugins = OrderedSet(
+            sum([value.split(",") for value in self.include_qt_plugins], [])
         )
 
         # Useless, but nice for old option usage, where expanding it meant to repeat it.
-        if "sensible" in include_qt_plugins:
-            include_qt_plugins.remove("sensible")
+        if "sensible" in self.include_qt_plugins:
+            self.include_qt_plugins.remove("sensible")
 
-        for include_qt_plugin in include_qt_plugins:
+        for include_qt_plugin in self.include_qt_plugins:
             if include_qt_plugin not in ("qml", "all") and not self.hasPluginFamily(
                 include_qt_plugin
             ):
@@ -80,15 +102,10 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 )
 
         self.qt_plugins = sensible_qt_plugins
-        self.qt_plugins.update(include_qt_plugins)
+        self.qt_plugins.update(self.include_qt_plugins)
 
-        for noinclude_qt_plugin in noinclude_qt_plugins:
+        for noinclude_qt_plugin in self.noinclude_qt_plugins:
             self.qt_plugins.discard(noinclude_qt_plugin)
-
-        self.no_qt_translations = no_qt_translations
-
-        self.web_engine_done_binaries = False
-        self.web_engine_done_data = False
 
         # Allow to specify none.
         if self.qt_plugins == set(["none"]):
@@ -99,14 +116,6 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         # Also lets have consistency in naming.
         assert self.plugin_name in getQtPluginNames()
-
-        active_qt_plugin_name = getActiveQtPlugin()
-
-        if active_qt_plugin_name is not None:
-            self.sysexit(
-                "Error, conflicting plugin '%s', you can only have one enabled."
-                % active_qt_plugin_name
-            )
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -199,7 +208,7 @@ of files that you may not want to be included.""",
 
     @staticmethod
     def _getWebEngineTargetDir():
-        """Where does the Qt bindings package expect the web process executable."""
+        """Where to put the web process executable."""
         return "."
 
     def _getSensiblePlugins(self):
@@ -812,7 +821,8 @@ if not path.startswith(__nuitka_binary_dir):
             )
 
         # We need to set these variables, to force the layout
-        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX
+        # spell-checker: ignore QTWEBENGINEPROCESS_PATH,QTWEBENGINE_DISABLE_SANDBOX,
+        # spell-checker: ignore QTWEBENGINE_RESOURCES_PATH
 
         if self.isQtWebEngineModule(full_name):
             code = r"""
@@ -830,6 +840,33 @@ os.environ["QTWEBENGINE_LOCALES_PATH"] = os.path.join(
                 code,
                 "Setting WebEngine translations path'.",
             )
+
+            if isWin32Windows():
+                # TODO: Need to do it for DLL mode for sure, but we should do it
+                # for all platforms.
+                code = r"""
+os.environ["QTWEBENGINEPROCESS_PATH"] = os.path.normpath(
+    os.path.join(
+        __nuitka_binary_dir,
+        %(web_engine_process_path)r
+    )
+)
+os.environ["QTWEBENGINE_RESOURCES_PATH"] = os.path.normpath(
+    os.path.join(
+        __nuitka_binary_dir,
+        %(web_engine_resources_path)r
+    )
+)
+
+                """ % {
+                    "web_engine_process_path": "QtWebEngineProcess.exe",
+                    "web_engine_resources_path": self._getWebEngineResourcesTargetDir(),
+                }
+
+                yield (
+                    code,
+                    "Setting Qt WebEngine binary path'.",
+                )
 
             if self._isUsingMacOSFrameworks():
                 code = r"""
@@ -1517,13 +1554,8 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
 
     binding_name = "PySide6"
 
-    def __init__(self, include_qt_plugins, noinclude_qt_plugins, no_qt_translations):
-        NuitkaPluginQtBindingsPluginBase.__init__(
-            self,
-            include_qt_plugins=include_qt_plugins,
-            noinclude_qt_plugins=noinclude_qt_plugins,
-            no_qt_translations=no_qt_translations,
-        )
+    def onCompilationStartChecks(self):
+        NuitkaPluginQtBindingsPluginBase.onCompilationStartChecks(self)
 
         if self._getBindingVersion() < (6, 5, 0):
             self.warning(
