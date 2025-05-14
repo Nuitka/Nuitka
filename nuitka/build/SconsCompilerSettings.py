@@ -700,7 +700,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(
                 CCFLAGS=[
                     "-Wall",
-                    "-Werror",
+                    "-Werror",  # spell-checker: ignore Werror
                 ]
             )
 
@@ -718,7 +718,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if isMacOS():
         setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-        target_flag = "--target=%s-macos%s" % (
+        target_flag = "--target=%s-apple-macos%s" % (
             env.macos_target_arch,
             env.macos_min_version,
         )

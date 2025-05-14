@@ -4742,6 +4742,32 @@
     - dirs:
         - 'proj_dir'
 
+- module-name: 'pypylon' # checksum: 333ba80f
+  data-files:
+    - patterns:
+        - '**/*.sig'
+        - '**/*.info'
+        - '**/*.lic'
+        - '**/*.pcal'
+        - '**/*.pdf'
+        - '**/*.omc'
+        - '**/*.hotc'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '*Basler'
+          - 'Pylon'
+          - 'gxapi'
+          - 'uxapi'
+    - from_filenames:
+        relative_path: 'pylonDataProcessingPlugins'
+        prefixes:
+          - 'Pylon'
+    - from_filenames:
+        relative_path: 'DataProcessingPluginsB'
+        prefixes:
+          - 'Pylon'
+
 - module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
     - empty_dirs:
@@ -4961,7 +4987,7 @@
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: 1d5fdbbd
+- module-name: 'PySide6' # checksum: f4fffb09
   implicit-imports:
     - post-import-code:
         - |
@@ -4983,10 +5009,10 @@
                       if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
                         slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
 
-                        try:
-                          setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
-                        except Exception:
-                          pass
+                      try:
+                        setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
+                      except Exception:
+                        pass
 
               return orig_connect(self, slot, type)
 
@@ -7873,7 +7899,7 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 9ff3b94c
+- module-name: 'torch' # checksum: 9b1bc67d
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -7917,6 +7943,8 @@
     - force-environment-variables:
         'PYTORCH_JIT': '0'
       when: 'get_parameter("disable-jit", "yes" if standalone else "no") == "yes"'
+    - find-dlls-near-module:
+        - 'nvidia'
 
 - module-name: 'torch._dynamo.polyfills.loader' # checksum: e5019356
   implicit-imports:
