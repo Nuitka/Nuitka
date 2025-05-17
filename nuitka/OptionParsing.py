@@ -89,8 +89,7 @@ parser.add_option(
     dest="module_mode",
     default=False,
     github_action=False,
-    help="""\
-Create an importable binary extension module executable instead of a program. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 parser.add_option(
@@ -102,13 +101,13 @@ parser.add_option(
     default=None,
     github_action_default="app",
     help="""\
-Mode in which to compile. Accelerated runs in your Python
-installation and depends on it. Standalone creates a folder
-with an executable contained to run it. Onefile creates a
-single executable to deploy. App is onefile except on macOS
-where it's not to be used. Module makes a module, and
-package includes also all sub-modules and sub-packages. Dll
-is currently under development and not for users yet.
+Mode in which to compile. "accelerated" runs in your Python
+installation and depends on it. "standalone" creates a folder
+with an executable contained to run it. "onefile" creates a
+single self extracting executable to deploy. "app" is "onefile"
+except on macOS. "module" makes a module from a single module
+and "package" includes also all sub-modules and sub-packages.
+"dll" is currently under development and not for users yet.
 Default is 'accelerated'.""",
 )
 
@@ -118,21 +117,8 @@ parser.add_option(
     dest="is_standalone",
     default=False,
     github_action=False,
-    help="""\
-Enable standalone mode for output. This allows you to transfer the created binary
-to other machines without it using an existing Python installation. This also
-means it will become big. It implies these options: "--follow-imports" and
-"--python-flag=no_site". Defaults to off.""",
-)
-
-parser.add_option(
-    "--no-standalone",
-    action="store_false",
-    dest="is_standalone",
-    default=False,
     help=SUPPRESS_HELP,
 )
-
 
 parser.add_option(
     "--onefile",
@@ -140,16 +126,6 @@ parser.add_option(
     dest="is_onefile",
     default=False,
     github_action=False,
-    help="""\
-On top of standalone mode, enable onefile mode. This means not a folder,
-but a compressed executable is created and used. Defaults to off.""",
-)
-
-parser.add_option(
-    "--no-onefile",
-    action="store_false",
-    dest="is_onefile",
-    default=False,
     help=SUPPRESS_HELP,
 )
 
