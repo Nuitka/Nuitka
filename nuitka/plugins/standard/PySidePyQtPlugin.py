@@ -70,6 +70,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         self.web_engine_done_binaries = False
         self.web_engine_done_data = False
 
+        self.plugin_families = None
+
     def onCompilationStartChecks(self):
         # Make sure, distribution location for this uses shortest name approach,
         # we do not need to use the value, just want to make sure it is resolved
@@ -98,7 +100,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 include_qt_plugin
             ):
                 self.sysexit(
-                    "Error, there is no Qt plugin family '%s'." % include_qt_plugin
+                    "Error, there is no Qt plugin family '%s' (only %s)."
+                    % (include_qt_plugin, self.getAvailablePluginFamilies())
                 )
 
         self.qt_plugins = sensible_qt_plugins
@@ -455,11 +458,19 @@ import %(binding_name)s.QtCore
 
                 yield qt_bin_dir
 
+    def getAvailablePluginFamilies(self):
+        if self.plugin_families is None:
+            self.plugin_families = OrderedSet()
+
+            for plugin_dir in self.getQtPluginDirs():
+                for filename, filename_relative in listDir(plugin_dir):
+                    if os.path.isdir(filename):
+                        self.plugin_families.add(filename_relative)
+
+        return self.plugin_families
+
     def hasPluginFamily(self, family):
-        return any(
-            os.path.isdir(os.path.join(plugin_dir, family))
-            for plugin_dir in self.getQtPluginDirs()
-        )
+        return family in self.getAvailablePluginFamilies()
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
