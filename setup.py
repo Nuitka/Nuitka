@@ -155,6 +155,7 @@ package_data = {
         "static_src/*.cpp",
         "static_src/*/*.c",
         "static_src/*/*.h",
+        "inline_copy/aix_dl/AixDllAddr.c",
         "inline_copy/zstd/LICENSE.txt",
         "inline_copy/zstd/*.h",
         "inline_copy/zstd/*/*.h",

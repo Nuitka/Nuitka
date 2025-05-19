@@ -1826,6 +1826,10 @@ static PyObject *getDllDirectoryObject(void) {
     return dll_directory;
 }
 
+#if defined(_AIX)
+#include "AixDllAddr.c"
+#endif
+
 static filename_char_t const *getDllFilename(void) {
 #if defined(_WIN32)
     static WCHAR path[MAXPATHLEN + 1];
