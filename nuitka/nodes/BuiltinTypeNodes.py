@@ -75,6 +75,8 @@ class ExpressionBuiltinContainerBase(
                     trace_collection=trace_collection, given_values=(value,)
                 )
             else:
+                trace_collection.onExceptionRaiseExit(MemoryError)
+
                 return self, None, None
         else:
             # They take over the variable content, exposing it to currently untraced usages.
