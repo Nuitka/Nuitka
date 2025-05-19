@@ -1254,6 +1254,10 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
+#if defined(_AIX)
+#include "AixDllAddr.c"
+#endif
+
 static filename_char_t const *getDllFilename(void) {
 #if defined(_WIN32)
     static WCHAR dll_filename[MAXPATHLEN + 1] = {0};

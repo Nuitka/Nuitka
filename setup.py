@@ -155,6 +155,7 @@ package_data = {
         "static_src/*.cpp",
         "static_src/*/*.c",
         "static_src/*/*.h",
+        "inline_copy/aix_dl/AixDllAddr.c",
         "inline_copy/zstd/LICENSE.txt",
         "inline_copy/zstd/*.h",
         "inline_copy/zstd/*/*.h",
@@ -287,20 +288,6 @@ def get_args(cls, dist, header=None):
             args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
                 yield res
-
-        for ep in dist.entry_points:
-            if ep.group == group:
-                name = ep.name
-                package_name, function_name = ep.value.split(":", 1)
-
-                script_text = runner_script_template % {
-                    "package_name": package_name,
-                    "function_name": function_name,
-                }
-
-                args = cls._get_script_args(type_, name, header, script_text)
-                for res in args:
-                    yield res
 
 
 try:

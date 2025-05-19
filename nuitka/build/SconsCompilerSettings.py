@@ -909,6 +909,16 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
             env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
             env.Append(LIBS="z")
 
+    if isAIX():
+        aix_dll_addr_inline_copy_dir = os.path.join(
+            env.nuitka_src, "inline_copy", "aix_dll_addr"
+        )
+        env.Append(
+            CPPPATH=[
+                aix_dll_addr_inline_copy_dir,
+            ],
+        )
+
 
 def _enablePgoSettings(env):
     if env.pgo_mode == "no":
