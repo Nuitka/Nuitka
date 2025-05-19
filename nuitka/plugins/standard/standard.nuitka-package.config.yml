@@ -202,20 +202,20 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: 25cf95c9
+- module-name: 'arcade' # checksum: f1b138c
   data-files:
     - dirs:
         - 'resources'
     - patterns:
         - 'VERSION'
-  implicit-imports:
-    - depends:
-        - 'arcade.gl.backends'
   anti-bloat:
     - no-auto-follow:
         'examples': 'Arcade examples are not available unless you do "--include-module=arcade.examples"'
         'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=arcade.experimental"'
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
+  implicit-imports:
+    - depends:
+        - 'arcade.gl.backends'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
@@ -3660,7 +3660,7 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
-- module-name: 'panda3d' # checksum: 7d7076a9
+- module-name: 'panda3d' # checksum: 14f69755
   data-files:
     - dest_path: '.'
       dirs:
@@ -8631,7 +8631,7 @@
     - depends:
         - 'queue'
 
-- module-name: 'ursina' # checksum: 3605583f
+- module-name: 'ursina' # checksum: e8b5dd34
   data-files:
     - dirs:
         - 'models_compressed'
