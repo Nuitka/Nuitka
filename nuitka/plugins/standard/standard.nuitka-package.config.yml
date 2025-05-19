@@ -3657,11 +3657,12 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
-- module-name: 'panda3d' # checksum: 14f69755
+- module-name: 'panda3d' # checksum: 7d7076a9
   data-files:
     - dest_path: '.'
       dirs:
         - 'etc'
+        - 'models'
 
   dlls:
     - from_filenames:
@@ -8628,10 +8629,13 @@
     - depends:
         - 'queue'
 
-- module-name: 'ursina' # checksum: e8b5dd34
+- module-name: 'ursina' # checksum: 3605583f
   data-files:
     - dirs:
+        - 'audio'
+        - 'fonts'
         - 'models_compressed'
+        - 'textures'
 
 - module-name: 'usb1' # checksum: 5cbb45ba
   dlls:
