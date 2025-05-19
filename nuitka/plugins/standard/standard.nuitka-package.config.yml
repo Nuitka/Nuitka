@@ -3662,6 +3662,7 @@
     - dest_path: '.'
       dirs:
         - 'etc'
+        - 'models'
 
   dlls:
     - from_filenames:
@@ -8603,7 +8604,10 @@
 - module-name: 'ursina' # checksum: e8b5dd34
   data-files:
     - dirs:
+        - 'audio'
+        - 'fonts'
         - 'models_compressed'
+        - 'textures'
 
 - module-name: 'usb1' # checksum: 5cbb45ba
   dlls:
