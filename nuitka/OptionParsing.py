@@ -1831,7 +1831,7 @@ plugin_group.add_option(
     dest="plugins_disabled",
     metavar="PLUGIN_NAME",
     default=[],
-    github_action=False,
+    github_action=True,
     help="""\
 Disabled plugins. Must be plug-in names. Use '--plugin-list' to query the
 full list and exit. Most standard plugins are not a good idea to disable.
