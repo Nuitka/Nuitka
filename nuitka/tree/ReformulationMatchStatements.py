@@ -772,7 +772,7 @@ def buildMatchNode(provider, node, source_ref):
             makeTryFinallyReleaseStatement(
                 provider=provider,
                 tried=case_statements,
-                variables=(tmp_indicator_variable,),
+                variables=(tmp_indicator_variable, tmp_subject),
                 source_ref=source_ref,
             ),
         ),
