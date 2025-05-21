@@ -4634,6 +4634,11 @@
     - dirs:
         - 'resources'
 
+- module-name: 'pygameextra' # checksum: fd2992b7
+  data-files:
+    - dirs:
+        - 'assets'
+
 - module-name: 'pygeos._geometry' # checksum: 6a3a4737
   implicit-imports:
     - depends:
