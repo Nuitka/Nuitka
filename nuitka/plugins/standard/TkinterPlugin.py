@@ -277,9 +277,7 @@ that works, report a bug."""
         )
         yield self.makeIncludedDataDirectory(
             source_path=tcl_library_dir,
-            ignore_dirs=(
-                ("opt0.4", "http1.0") if isMacOS() and shallCreateAppBundle() else ()
-            ),
+            ignore_dirs=(("opt0.4", "http1.0") if shallCreateAppBundle() else ()),
             # TODO: Not very version robust, may we ought to
             # become able to ignore files by pattern.
             ignore_filenames=(

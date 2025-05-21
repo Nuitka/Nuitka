@@ -1284,7 +1284,7 @@ and not with the non-debug version.
 """
         )
 
-    if isMacOS() and shallCreateAppBundle() and not options.macos_icon_path:
+    if shallCreateAppBundle() and not options.macos_icon_path:
         Tracing.options_logger.warning(
             """\
 For application bundles, you ought to specify an icon with '--macos-app-icon=...' \
