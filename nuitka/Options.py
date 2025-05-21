@@ -1287,9 +1287,9 @@ and not with the non-debug version.
     if isMacOS() and shallCreateAppBundle() and not options.macos_icon_path:
         Tracing.options_logger.warning(
             """\
-For application bundles, you ought to specify an icon with '--macos-app-icon'.", \
-otherwise a dock icon may not be present. Specify 'none' value to disable \
-this warning."""
+For application bundles, you ought to specify an icon with '--macos-app-icon=...' \
+otherwise a dock icon may not be present. Specify the value as 'none' value \
+to disable this warning."""
         )
 
     if (
