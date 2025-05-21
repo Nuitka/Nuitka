@@ -11,7 +11,7 @@ from nuitka.Options import isStandaloneMode, shallCreateAppBundle
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isHomebrewPython
 from nuitka.PythonVersions import getSystemPrefixPath, getTkInterVersion
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker: ignore tkinterdnd,tkdnd,tcltk,tcltest
 
@@ -277,9 +277,7 @@ that works, report a bug."""
         )
         yield self.makeIncludedDataDirectory(
             source_path=tcl_library_dir,
-            ignore_dirs=(
-                ("opt0.4", "http1.0") if isMacOS() and shallCreateAppBundle() else ()
-            ),
+            ignore_dirs=(("opt0.4", "http1.0") if shallCreateAppBundle() else ()),
             # TODO: Not very version robust, may we ought to
             # become able to ignore files by pattern.
             ignore_filenames=(
