@@ -57,13 +57,6 @@ else:
 
 
 if str is bytes:
-    from urllib import (  # pylint: disable=I0021,import-error,no-name-in-module
-        urlretrieve,
-    )
-else:
-    from urllib.request import urlretrieve
-
-if str is bytes:
     from cStringIO import StringIO  # Python2 code, pylint: disable=import-error
 else:
     from io import StringIO
@@ -146,6 +139,7 @@ FileNotFoundError = (  # pylint: disable=redefined-builtin
 
 if not hasattr(pkgutil, "ModuleInfo"):
     # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
+    # spell-checker: ignore ispkg
     from collections import namedtuple
 
     ModuleInfo = namedtuple("ModuleInfo", "module_finder name ispkg")
@@ -177,7 +171,7 @@ try:
     _md5()
 except ValueError:
     # On FIPS compliant systems, checks might be enabled that require
-    # this parameter to be set.
+    # this parameter to be set, spell-checker: ignore FIPS
     def md5(value=b""):
         return _md5(value, usedforsecurity=False)
 
@@ -187,7 +181,6 @@ else:
 # For PyLint to be happy.
 assert long
 assert unicode
-assert urlretrieve
 assert StringIO
 assert BytesIO
 assert type(xrange) is type, xrange
