@@ -1109,7 +1109,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-    result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+    result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
 
     if not result and consider_short:
         if os.path.exists(filename) and os.path.exists(path):
@@ -1120,7 +1120,7 @@ def isFilenameBelowPath(path, filename, consider_short=True):
                 if getWindowsDrive(path) != getWindowsDrive(filename):
                     return False
 
-            result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+            result = os.path.relpath(filename, path).split(os.path.sep, 1)[0] != ".."
 
     return result
 
