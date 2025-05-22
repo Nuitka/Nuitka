@@ -3416,7 +3416,7 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnxruntime' # checksum: 37a94e21
+- module-name: 'onnxruntime' # checksum: 49499325
   dlls:
     - from_filenames:
         relative_path: 'capi'
@@ -3428,7 +3428,7 @@
         prefixes:
           - 'libonnxruntime'
       dest_path: '.'
-      when: 'linux'
+      when: 'not win32'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
   implicit-imports:
