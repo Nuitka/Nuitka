@@ -1826,27 +1826,6 @@ static PyObject *getDllDirectoryObject(void) {
     return dll_directory;
 }
 
-static filename_char_t const *getDllFilename(void) {
-#if defined(_WIN32)
-    static WCHAR path[MAXPATHLEN + 1];
-    path[0] = 0;
-
-    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
-    assert(res != 0);
-
-    return path;
-#else
-    Dl_info where;
-
-    {
-        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
-        assert(res != 0);
-    }
-
-    return where.dli_fname;
-#endif
-}
-
 PyObject *getDllFilenameObject(void) {
     static PyObject *dll_filename = NULL;
 
