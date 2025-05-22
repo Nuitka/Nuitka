@@ -48,7 +48,7 @@ def editModuleCode(module_search_desc):
             # spell-checker: ignore ONEFIL
             while not candidate.endswith((".DIS", ".dist")) and not os.path.basename(
                 candidate
-            ).startswith("ONEFIL"):
+            ).startswith(("ONEFIL", "onefile_")):
                 candidate = os.path.dirname(candidate)
 
             module_name = relpath(module_search_desc, start=candidate).replace(
