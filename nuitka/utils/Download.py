@@ -141,7 +141,7 @@ def getCachedDownload(
     download_ok,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     nuitka_download_dir = getDownloadCacheDir()
 
@@ -239,7 +239,7 @@ Fully automatic, cached. Proceed and download"""
             if reject:
                 general.sysexit(reject)
 
-            exe_path = None
+            return None
 
         return getNormalizedPath(exe_path)
     else:
