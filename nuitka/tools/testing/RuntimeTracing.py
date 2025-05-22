@@ -78,7 +78,7 @@ def _takeSystemCallTraceOutput(logger, path, command):
 
     # Ensure executable is not polluted with third party stuff,
     # tests may fail otherwise due to unexpected libs being loaded
-    # spell-checker: ignore ENOENT,write_nocancel
+    # spell-checker: ignore ENOENT,write_nocancel,newfstatat
     with withEnvironmentVarOverridden("LD_PRELOAD", None):
         if os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0":
             traceExecutedCommand("Tracing with:", command)
