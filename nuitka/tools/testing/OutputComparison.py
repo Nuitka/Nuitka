@@ -128,6 +128,14 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         if line.startswith("Nuitka:WARNING:") and "matching checksum" in line:
             continue
 
+        # TODO: Maybe we need Nuitka-Prompt as a logger used there?
+        if (
+            line.startswith("Nuitka will make use of ccache")
+            or line.startswith("Fully automatic, cached.")
+            or "Is it OK to download" in line
+        ):
+            continue
+
         if syntax_error_caret_re.match(line):
             continue
 
