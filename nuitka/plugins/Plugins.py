@@ -25,7 +25,7 @@ from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Errors import NuitkaSyntaxError
+from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
@@ -480,14 +480,26 @@ class Plugins(object):
             )
 
             if decision:
-                imported_module = recurseTo(
-                    module_name=full_name,
-                    module_filename=module_filename,
-                    module_kind=module_kind,
-                    source_ref=module.getSourceReference(),
-                    reason="implicit import",
-                    using_module_name=module.module_name,
-                )
+                try:
+                    imported_module = recurseTo(
+                        module_name=full_name,
+                        module_filename=module_filename,
+                        module_kind=module_kind,
+                        source_ref=module.getSourceReference(),
+                        reason="implicit import",
+                        using_module_name=module.module_name,
+                    )
+                except NuitkaForbiddenImportEncounter as e:
+                    plugins_logger.sysexit(
+                        """\
+Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' through \
+implicit import encountered."""
+                        % (
+                            e.args[0],
+                            e.args[1],
+                            module.module_name,
+                        )
+                    )
 
                 addUsedModule(
                     module=imported_module,
