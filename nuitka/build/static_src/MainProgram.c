@@ -198,12 +198,21 @@ static void restoreStandaloneEnvironment(void) {
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_PY_PATH_CONFIG
+#if PYTHON_VERSION < 0x3e0
     wprintf(L"_Py_path_config.program_full_path='%lS'\n", _Py_path_config.program_full_path);
     wprintf(L"_Py_path_config.program_name='%lS'\n", _Py_path_config.program_name);
     wprintf(L"_Py_path_config.prefix='%lS'\n", _Py_path_config.prefix);
     wprintf(L"_Py_path_config.exec_prefix='%lS'\n", _Py_path_config.exec_prefix);
     wprintf(L"_Py_path_config.module_search_path='%lS'\n", _Py_path_config.module_search_path);
     wprintf(L"_Py_path_config.home='%lS'\n", _Py_path_config.home);
+#else
+    wprintf(L"PyConfig_Get(program_full_path)='%lS'\n", PyConfig_Get("program_full_path"));
+    wprintf(L"PyConfig_Get(program_name)='%lS'\n", PyConfig_Get("program_name"));
+    wprintf(L"PyConfig_Get(prefix)='%lS'\n", PyConfig_Get("prefix"));
+    wprintf(L"PyConfig_Get(exec_prefix)='%lS'\n", PyConfig_Get("exec_prefix"));
+    wprintf(L"PyConfig_Get(module_search_path)='%lS'\n", PyConfig_Get("module_search_path"));
+    wprintf(L"PyConfig_Get(home)='%lS'\n", PyConfig_Get("home"));
+#endif
 #endif
 }
 
