@@ -148,7 +148,9 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 ):
                     yield dependency
 
-        # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
+        # Support for both pycryotodome (module name Crypto) and pycyptodomex
+        # (module name Cryptodome),
+        # spell-checker: ignore Cryptodome,pycryotodome,pycyptodomex
         if full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
@@ -452,9 +454,17 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 )
 
                 pydantic_lazy_loader_info = {}
+                pydantic_lazy_submodules = []
+
                 for key, value in pydantic_info.items():
                     # Older pydantic had only a string for the attribute.
                     if type(value) is tuple:
+                        # Special case, __module__ means it's a sub-module
+                        if value == ("pydantic", "__module__"):
+                            pydantic_lazy_submodules.append(key)
+                            continue
+
+                        # Otherwise it's a long winded way of specifying a module name.
                         value = "".join(value).rstrip(".")
 
                     if value not in pydantic_lazy_loader_info:
@@ -463,7 +473,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
                 self._addLazyLoader(
                     module_name=module_name,
-                    submodules=(),
+                    submodules=pydantic_lazy_submodules,
                     submodule_attrs=pydantic_lazy_loader_info,
                 )
 
@@ -681,11 +691,11 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "pexpect",  # Not performance relevant.
         "Cython",  # Mostly unused, and a lot of modules.
         "cython",
-        "pyximport",
+        "pyximport",  # spell-checker: ignore pyximport
         "IPython",  # Mostly unused, and a lot of modules.
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
-        "pyglet.gl",  # Too large generated code
+        "pyglet.gl",  # Too large generated code, spell-checker: ignore pyglet
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
@@ -695,19 +705,19 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "packaging",  # Not performance relevant.
         "appdirs",  # Not performance relevant.
         "dropbox.team_log",  # Too large generated code
-        "asyncua.ua.object_ids",  # Too large generated code
+        "asyncua.ua.object_ids",  # Too large generated code spell-checker: ignore asyncua,uaerrors
         "asyncua.ua.uaerrors._auto",  # Too large generated code
         "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
-        "opcua.ua.object_ids",  # Too large generated code
+        "opcua.ua.object_ids",  # Too large generated code spell-checker: ignore opcua
         "opcua.ua.uaerrors._auto",  # Too large generated code
         "opcua.server.server.standard_address_space",
-        "azure.mgmt.network",  # Too large generated code
+        "azure.mgmt.network",  # Too large generated code spell-checker: ignore mgmt
         "azure.mgmt.compute",  # Too large generated code
         "transformers.utils.dummy_pt_objects",  # Not performance relevant.
         "transformers.utils.dummy_flax_objects",  # Not performance relevant.
         "transformers.utils.dummy_tf_objects",  # Not performance relevant.
         "rich",  #  Not performance relevant and memory leaking due to empty compiled cell leaks
-        "altair.vegalite.v5.schema",  # Not performance relevant.
+        "altair.vegalite.v5.schema",  # Not performance relevant. spell-checker: ignore vegalite
         "azure",  # Not performance relevant.
         "networkx",  # Needs solutions for bytecode requiring decorators.
     )

@@ -478,6 +478,15 @@ def decideConstantsBlobResourceMode(env):
         resource_mode = "incbin"
         reason = "default"
 
+    assert resource_mode in (
+        "incbin",
+        "linker",
+        "win_resource",
+        "mac_section",
+        "code",
+        "c23_embed",
+    ), resource_mode
+
     return resource_mode, reason
 
 

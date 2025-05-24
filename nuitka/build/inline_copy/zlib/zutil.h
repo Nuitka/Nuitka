@@ -10,8 +10,8 @@
 
 /* @(#) $Id$ */
 
-#ifndef ZUTIL_H
-#define ZUTIL_H
+#ifndef NUITKA_ZUTIL_H
+#define NUITKA_ZUTIL_H
 
 #ifdef HAVE_HIDDEN
 #  define ZLIB_INTERNAL __attribute__((visibility ("hidden")))

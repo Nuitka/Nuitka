@@ -250,6 +250,21 @@ import %(package_name)s
 """
 
 
+def _getEntryPoints(dist, group):
+    """Abstract setuptools version differences for entry point groups access."""
+    if hasattr(dist, "get_entry_map"):
+        for name, ep in dist.get_entry_map(group).items():
+            package_name, function_name = str(ep).split("=")[1].strip().split(":")
+            yield name, package_name, function_name
+
+    else:
+        for ep in dist.entry_points:
+            if ep.group == group:
+                name = ep.name
+                package_name, function_name = ep.value.split(":", 1)
+                yield name, package_name, function_name
+
+
 # This is for newer setuptools:
 @classmethod
 def get_args(cls, dist, header=None):
@@ -263,9 +278,7 @@ def get_args(cls, dist, header=None):
     for type_ in "console", "gui":
         group = type_ + "_scripts"
 
-        for name, ep in dist.get_entry_map(group).items():
-            package_name, function_name = str(ep).split("=")[1].strip().split(":")
-
+        for name, package_name, function_name in _getEntryPoints(dist, group):
             script_text = runner_script_template % {
                 "package_name": package_name,
                 "function_name": function_name,
@@ -274,6 +287,20 @@ def get_args(cls, dist, header=None):
             args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
                 yield res
+
+        for ep in dist.entry_points:
+            if ep.group == group:
+                name = ep.name
+                package_name, function_name = ep.value.split(":", 1)
+
+                script_text = runner_script_template % {
+                    "package_name": package_name,
+                    "function_name": function_name,
+                }
+
+                args = cls._get_script_args(type_, name, header, script_text)
+                for res in args:
+                    yield res
 
 
 try:

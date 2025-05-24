@@ -202,7 +202,7 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: 25cf95c9
+- module-name: 'arcade' # checksum: f1b138c
   data-files:
     - dirs:
         - 'resources'
@@ -213,6 +213,9 @@
         'examples': 'Arcade examples are not available unless you do "--include-module=arcade.examples"'
         'experimental': 'Experimental features of Arcade will not be available unless you do "--include-module=arcade.experimental"'
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
+  implicit-imports:
+    - depends:
+        - 'arcade.gl.backends'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
@@ -3413,7 +3416,7 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
-- module-name: 'onnxruntime' # checksum: 37a94e21
+- module-name: 'onnxruntime' # checksum: 49499325
   dlls:
     - from_filenames:
         relative_path: 'capi'
@@ -3425,7 +3428,7 @@
         prefixes:
           - 'libonnxruntime'
       dest_path: '.'
-      when: 'linux'
+      when: 'not win32'
 
 - module-name: 'onnxruntime.capi.onnxruntime_pybind11_state' # checksum: 63fe3556
   implicit-imports:
@@ -3657,11 +3660,12 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
-- module-name: 'panda3d' # checksum: 14f69755
+- module-name: 'panda3d' # checksum: 7d7076a9
   data-files:
     - dest_path: '.'
       dirs:
         - 'etc'
+        - 'models'
 
   dlls:
     - from_filenames:
@@ -4630,6 +4634,11 @@
     - dirs:
         - 'resources'
 
+- module-name: 'pygameextra' # checksum: fd2992b7
+  data-files:
+    - dirs:
+        - 'assets'
+
 - module-name: 'pygeos._geometry' # checksum: 6a3a4737
   implicit-imports:
     - depends:
@@ -4959,7 +4968,7 @@
         prefixes:
           - 'libcvhf'
 
-- module-name: 'PySide2' # checksum: c07d1551
+- module-name: 'PySide2' # checksum: 9a5f77a0
   implicit-imports:
     - post-import-code:
         - |
@@ -4980,47 +4989,79 @@
       - description: 'PySide2 is a GUI framework'
         macos_bundle: 'recommend'
         when: 'use_pyside2'
-      - description: 'PySide2 cannot be signed unless onefile'
-        macos_bundle_as_onefile: 'yes'
-        when: 'macos and use_pyside2'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken2'
 
-- module-name: 'PySide6' # checksum: f4fffb09
+    - acceptable-missing-dlls:
+        - 'libeffectsplugin'
+        - 'libeffects'
+        - 'libpdfquickplugin'
+        - 'libqpdf'
+        - 'libqtquick3dhelpersimplplugin'
+        - 'libquick3dspatialaudioplugin'
+        - 'libqtvkbcomponentsplugin'
+        - 'libqtvkbsettingsplugin'
+        - 'libqsqlodbc'
+        - 'libpq.5'
+        - 'libffmpegmediaplugin'
+        - 'libqtquickcontrols2fluentwinui3styleimplplugin'
+        - 'libqtquickcontrols2fluentwinui3styleplugin'
+        - 'libqtwebviewquickplugin'
+        - 'libqtquickscene3dplugin'
+        - 'libqsqlmimer'
+        - 'libqtvkbplugin'
+
+- module-name: 'PySide2.QtWebEngineCore' # checksum: 66facbd0
+  options:
+    checks:
+      - description: 'PySide2 cannot be signed unless onefile'
+        macos_bundle_as_onefile: 'yes'
+        when: 'macos and use_pyside2'
+
+- module-name: 'PySide6' # checksum: 76e197e9
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, slot=None):
-              if hasattr(slot, "im_func"):
-                  if hasattr(slot.im_func, "__compiled__"):
-                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(slot)
+          _protected = []
 
-              return orig_disconnect(self, slot)
+          def protect(func):
+            if hasattr(func, "__compiled__") and hasattr(func, "im_func"):
+                _protected.append(func)
+
+                if not func.__name__.startswith("_pyside6_workaround_"):
+                  func.im_func.__name__ = "_pyside6_workaround_" + func.im_func.__name__
+
+                try:
+                  setattr(func.im_self.__class__, func.im_func.__name__, func.im_func)
+                except Exception:
+                  pass
+
+            return func
+
+          def patched_disconnect(self, slot=None):
+              return orig_disconnect(self, protect(slot))
 
           def patched_connect(self, slot, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(slot, "im_func"):
-                  if hasattr(slot.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(slot)
 
-                      if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
-                        slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
-
-                      try:
-                        setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
-                      except Exception:
-                        pass
-
-              return orig_connect(self, slot, type)
+              return orig_connect(self, protect(slot), type)
 
           from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
           QtCore.SignalInstance.disconnect = patched_disconnect
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = patched_connect
+
+          def patched_singleShot(self, *args, **kwargs):
+            if args:
+              args = list(args)
+              args[0] = protect(args[0])
+
+            return orig_singleShot(self, *args, **kwargs)
+
+          orig_singleShot = QtCore.QTimer.singleShot
+          QtCore.QTimer.singleShot = patched_singleShot
 
   options:
     checks:
@@ -5048,6 +5089,7 @@
         - 'libqtwebviewquickplugin'
         - 'libqtquickscene3dplugin'
         - 'libqsqlmimer'
+        - 'libqtvkbplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -8628,10 +8670,13 @@
     - depends:
         - 'queue'
 
-- module-name: 'ursina' # checksum: e8b5dd34
+- module-name: 'ursina' # checksum: 3605583f
   data-files:
     - dirs:
+        - 'audio'
+        - 'fonts'
         - 'models_compressed'
+        - 'textures'
 
 - module-name: 'usb1' # checksum: 5cbb45ba
   dlls:

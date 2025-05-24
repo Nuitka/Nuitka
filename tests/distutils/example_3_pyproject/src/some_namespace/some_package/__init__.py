@@ -1,9 +1,12 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-import re
+from __future__ import print_function
 
-print(re.sub("venv_(nuitka|cpython)", "venv_xxxxx", __file__))
+print(
+    "This is %s talking from %s."
+    % (__name__, "some_package" + __file__.rsplit("some_package", 1)[1])
+)
 
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

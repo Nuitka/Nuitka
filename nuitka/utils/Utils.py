@@ -293,7 +293,14 @@ def getArchitecture():
         else:
             return "x86"
     else:
-        return os.uname()[4]
+        result = os.uname()[4]
+
+        if isAIX():
+            # Translate known values to what -X would expect.
+            if result == "00C63E504B00":
+                return "64"
+
+        return result
 
 
 def getCPUCoreCount():
@@ -465,6 +472,14 @@ def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
     from nuitka import getLaunchingNuitkaProcessEnvironmentValue
 
     return getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name)
+
+
+def isElfUsingPlatform():
+    return not isWin32OrPosixWindows() and not isMacOS() and not isAIX()
+
+
+def isCoffUsingPlatform():
+    return isAIX()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
