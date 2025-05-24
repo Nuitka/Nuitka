@@ -454,9 +454,17 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 )
 
                 pydantic_lazy_loader_info = {}
+                pydantic_lazy_submodules = []
+
                 for key, value in pydantic_info.items():
                     # Older pydantic had only a string for the attribute.
                     if type(value) is tuple:
+                        # Special case, __module__ means it's a sub-module
+                        if value == ("pydantic", "__module__"):
+                            pydantic_lazy_submodules.append(key)
+                            continue
+
+                        # Otherwise it's a long winded way of specifying a module name.
                         value = "".join(value).rstrip(".")
 
                     if value not in pydantic_lazy_loader_info:
@@ -465,7 +473,7 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
 
                 self._addLazyLoader(
                     module_name=module_name,
-                    submodules=(),
+                    submodules=pydantic_lazy_submodules,
                     submodule_attrs=pydantic_lazy_loader_info,
                 )
 

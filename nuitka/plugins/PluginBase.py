@@ -1362,8 +1362,13 @@ except Exception as e:
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf8"
 
+        command = [sys.executable, "-c", cmd]
+
+        if isMacOS():
+            command = ["arch", "-" + Options.getMacOSTargetArch()] + command
+
         try:
-            feedback = check_output([sys.executable, "-c", cmd], env=env)
+            feedback = check_output(command, env=env)
         except NuitkaCalledProcessError as e:
             if e.returncode == 38:
                 self.warning(
