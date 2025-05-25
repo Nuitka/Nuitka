@@ -5019,40 +5019,49 @@
         macos_bundle_as_onefile: 'yes'
         when: 'macos and use_pyside2'
 
-- module-name: 'PySide6' # checksum: ec2d4c81
+- module-name: 'PySide6' # checksum: 76e197e9
   implicit-imports:
     - post-import-code:
         - |
-          def patched_disconnect(self, slot=None):
-              if hasattr(slot, "im_func"):
-                  if hasattr(slot.im_func, "__compiled__"):
-                      patched_disconnect._protected = getattr(patched_disconnect, "_protected", [])
-                      patched_disconnect._protected.append(slot)
+          _protected = []
 
-              return orig_disconnect(self, slot)
+          def protect(func):
+            if hasattr(func, "__compiled__") and hasattr(func, "im_func"):
+                _protected.append(func)
+
+                if not func.__name__.startswith("_pyside6_workaround_"):
+                  func.im_func.__name__ = "_pyside6_workaround_" + func.im_func.__name__
+
+                try:
+                  setattr(func.im_self.__class__, func.im_func.__name__, func.im_func)
+                except Exception:
+                  pass
+
+            return func
+
+          def patched_disconnect(self, slot=None):
+              return orig_disconnect(self, protect(slot))
 
           def patched_connect(self, slot, type=None):
               type = type or QtCore.Qt.ConnectionType.AutoConnection
-              if hasattr(slot, "im_func"):
-                  if hasattr(slot.im_func, "__compiled__"):
-                      patched_connect._protected = getattr(patched_connect, "_protected", [])
-                      patched_connect._protected.append(slot)
 
-                      if not slot.im_func.__name__.startswith("_pyside6_workaround_"):
-                        slot.im_func.__name__ = "_pyside6_workaround_" + slot.im_func.__name__
-
-                      try:
-                        setattr(slot.im_self.__class__, slot.im_func.__name__, slot.im_func)
-                      except Exception:
-                        pass
-
-              return orig_connect(self, slot, type)
+              return orig_connect(self, protect(slot), type)
 
           from PySide6 import QtCore
           orig_disconnect = QtCore.SignalInstance.disconnect
           QtCore.SignalInstance.disconnect = patched_disconnect
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = patched_connect
+
+          def patched_singleShot(self, *args, **kwargs):
+            if args:
+              args = list(args)
+              args[0] = protect(args[0])
+
+            return orig_singleShot(self, *args, **kwargs)
+
+          orig_singleShot = QtCore.QTimer.singleShot
+          QtCore.QTimer.singleShot = patched_singleShot
 
   options:
     checks:
