@@ -1003,6 +1003,14 @@ def commentArgs():
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
             )
 
+        if os.path.normcase(os.path.basename(filename)) == "__main__.py":
+            Tracing.general.warning(
+                """\
+To compile a package with a '__main__' module, specify its containing
+directory but, not the '__main__.py' itself, also consider if
+'--python-flag=-m' should be used."""
+            )
+
     # Inform the user about potential issues with the running version. e.g. unsupported
     # version.
     if python_version_str not in getSupportedPythonVersions():
