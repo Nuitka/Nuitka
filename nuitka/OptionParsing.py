@@ -1936,7 +1936,9 @@ def _considerPluginOptions(logger):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
+                    """\
+Error, plugin options format changed. Use '--enable-plugin=%s --help' \
+to know new options."""
                     % plugin_names.split("=", 1)[0]
                 )
 
@@ -1950,7 +1952,9 @@ def _considerPluginOptions(logger):
             plugin_name = arg[14:]
             if "=" in plugin_name:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
+                    """\
+Error, plugin options format changed. Use '--user-plugin=%s --help'
+to know new options."""
                     % plugin_name.split("=", 1)[0]
                 )
 
@@ -2281,15 +2285,16 @@ def parseOptions(logger):
         parser.print_help()
 
         logger.sysexit(
-            """
-Error, need filename argument with python module or main program."""
+            """\
+Error, need filename argument with python module, package directory or main
+program."""
         )
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
         logger.sysexit(
-            """
+            """\
 Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""
         )
