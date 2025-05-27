@@ -1254,15 +1254,37 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
+static filename_char_t const *getDllFilename(void) {
+#if defined(_WIN32)
+    static WCHAR dll_filename[MAXPATHLEN + 1] = {0};
+
+    if (dll_filename[0] == 0) {
+        int res = GetModuleFileNameW(getDllModuleHandle(), dll_filename, MAXPATHLEN);
+        assert(res != 0);
+
+        makeShortDirFilename(dll_filename, sizeof(dll_filename) / sizeof(wchar_t));
+    }
+
+    return dll_filename;
+#else
+    Dl_info where;
+
+    {
+        NUITKA_MAY_BE_UNUSED int res = dladdr((void *)getDllDirectory, &where);
+        assert(res != 0);
+    }
+
+    return where.dli_fname;
+#endif
+}
+
 filename_char_t const *getDllDirectory(void) {
 #if defined(_WIN32)
-    static WCHAR path[MAXPATHLEN + 1];
-    path[0] = 0;
-
-    int res = GetModuleFileNameW(getDllModuleHandle(), path, MAXPATHLEN);
-    assert(res != 0);
-
-    stripFilenameW(path);
+    static WCHAR path[MAXPATHLEN + 1] = {0};
+    if (path[0] == 0) {
+        copyStringSafeFilename(path, getDllFilename(), MAXPATHLEN);
+        stripFilenameW(path);
+    }
 
     return path;
 #else

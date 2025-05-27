@@ -1266,6 +1266,9 @@ behavior with the uncompiled code."""
                     "Not included due to its plugin not being active, but a Qt plugin is.",
                 )
 
+            if module_name == self.binding_name:
+                return (True, "Included to allow post load workaround code.")
+
     def onModuleCompleteSet(self, module_set):
         self.onModuleCompleteSetGUI(
             module_set=module_set, plugin_binding_name=self.binding_name
