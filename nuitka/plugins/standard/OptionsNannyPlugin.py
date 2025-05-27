@@ -75,7 +75,7 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
             if isStandaloneMode() and not shallCreateAppBundle():
                 self.sysexit(
                     """\
-Error, package '%s' requires '--macos-create-app-bundle' to be used or else it cannot work."""
+Error, package '%s' requires '--mode=app' to be used or else it cannot work."""
                     % full_name
                 )
         elif macos_bundle == "no":
@@ -84,9 +84,9 @@ Error, package '%s' requires '--macos-create-app-bundle' to be used or else it c
             if not shallCreateAppBundle():
                 self.info(
                     """\
-Note, when using '%s', consider using '--macos-create-app-bundle' option. \
-Otherwise high resolution will not be available and a terminal window will \
-open. However for debugging, terminal output is the easiest way to see \
+Note, when using '%s', consider using '--mode=app' option. Otherwise \
+high resolution will not be available and a terminal window will open. \
+However for debugging, terminal output is the easiest way to see \
 informative traceback and error information, so launch it from there if \
 possible."""
                     % full_name

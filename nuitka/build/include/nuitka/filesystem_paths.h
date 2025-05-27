@@ -13,7 +13,7 @@
 #define FILENAME_SEP_STR L"\\"
 #define FILENAME_SEP_CHAR L'\\'
 #define FILENAME_FORMAT_STR "%ls"
-#define copyStringSafeFilename copyWStringSafeW
+#define copyStringSafeFilename copyStringSafeW
 #define appendStringSafeFilename appendWStringSafeW
 #define appendCharSafeFilename appendWCharSafeW
 #define FILENAME_TMP_STR L".tmp"

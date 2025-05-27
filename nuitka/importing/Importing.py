@@ -30,6 +30,7 @@ from nuitka import SourceCodeReferences
 from nuitka.__past__ import iter_modules
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Errors import NuitkaCodeDeficit
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
@@ -879,6 +880,11 @@ def locateModule(module_name, parent_package, level, logger=None):
         kind.
     """
 
+    if not _main_paths:
+        raise NuitkaCodeDeficit(
+            "Error, cannot locate modules before import mechanism is setup."
+        )
+
     if module_name.isMultidistModuleName():
         return locateMultidistModule(module_name)
 
@@ -1006,7 +1012,7 @@ def decideModuleSourceRef(filename, module_name, is_main, is_fake, logger):
 # spell-checker: ignore _interpqueues,_lsprof,_multibytecodec,_posixshmem _winapi
 # spell-checker: ignore  _testbuffer _testexternalinspection _testimportmultiple
 # spell-checker: ignore _testinternalcapi _testmultiphase _testsinglephase
-# spell-checker: ignore _xxtestfuzz _xxsubinterpreters imageop
+# spell-checker: ignore _xxtestfuzz _xxsubinterpreters imageop _xxinterpchannels
 _stdlib_module_raises = {
     "_abc": False,
     "__builtin__": False,
@@ -1097,6 +1103,7 @@ _stdlib_module_raises = {
     "_winreg": False,
     "_xxtestfuzz": False,
     "_xxsubinterpreters": False,
+    "_xxinterpchannels": False,
     "_zoneinfo": False,
     "array": False,
     "atexit": False,
