@@ -42,7 +42,6 @@ from nuitka.utils.FileOperations import (
     areInSamePaths,
     getNormalizedPath,
     isFilenameBelowPath,
-    listDir,
     makePath,
 )
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
@@ -178,7 +177,8 @@ def _detectBinaryDLLs(
 
 
 def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
-    # This is complex, because we also need to handle OS specifics.
+    # This is complex, because we also need to handle OS specifics,
+    # pylint: disable=too-many-locals
 
     # Only do ones not ignored
     copy_standalone_entry_points = [
@@ -232,21 +232,6 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
 
     closeProgressBar()
 
-    # Make all top level directories symlinks for signing issues with MacOS
-    # bundles.
-    if shallCreateAppBundle():
-        resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
-        makePath(resources_dir)
-
-        for fullpath, filename in listDir(dist_dir):
-            if os.path.isdir(fullpath) and not os.path.islink(fullpath):
-                makePath(resources_dir)
-
-                resources_path = os.path.join(resources_dir, filename)
-
-                os.rename(fullpath, resources_path)
-                os.symlink(os.path.join("..", "Resources", filename), fullpath)
-
     Plugins.onCopiedDLLs(
         dist_dir=dist_dir,
         standalone_entry_points=copy_standalone_entry_points,
@@ -254,13 +239,71 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
 
     # Add macOS code signature
     if isMacOS():
+        # Make all top level directories symlinks for signing issues with MacOS
+        # bundles.
+        translations = OrderedSet()
+        symlinks = OrderedSet()
+
+        def _translatePath(path):
+            for translation in translations:
+                path = path.replace(translation[0] + "/", translation[1] + "/", 1)
+
+            return path
+
+        if shallCreateAppBundle():
+            resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
+
+            def getNotSignableDirectoryPart(filename):
+                result = []
+
+                for part in os.path.dirname(filename).split("/"):
+                    result.append(part)
+                    if "." in part:
+                        return "/".join(result)
+
+                return None
+
+            for data_file_path in sorted(data_file_paths, key=len):
+                data_file_path = _translatePath(data_file_path)
+
+                app_dirname, inside_path = data_file_path.split("/", 1)
+
+                if not inside_path.startswith("Contents/MacOS"):
+                    continue
+
+                not_signable_part = getNotSignableDirectoryPart(inside_path)
+                if not_signable_part is None:
+                    continue
+
+                filename = not_signable_part[len("Contents/MacOS/") :]
+                not_signable_path = os.path.join(app_dirname, not_signable_part)
+                resources_path = os.path.join(resources_dir, filename)
+
+                if resources_path in symlinks:
+                    continue
+
+                makePath(os.path.dirname(resources_path))
+                os.rename(not_signable_path, resources_path)
+
+                symlink_target = os.path.join("..", "Resources", filename)
+                for _i in range(filename.count("/")):
+                    symlink_target = os.path.join("..", symlink_target)
+
+                os.symlink(symlink_target, not_signable_path)
+
+                symlinks.add(resources_path)
+                translations.add((not_signable_path, resources_path))
+
         addMacOSCodeSignature(
             filenames=[
-                os.path.join(dist_dir, standalone_entry_point.dest_path)
-                for standalone_entry_point in [main_standalone_entry_point]
-                + copy_standalone_entry_points
+                _translatePath(filename)
+                for filename in [
+                    os.path.join(dist_dir, standalone_entry_point.dest_path)
+                    for standalone_entry_point in [main_standalone_entry_point]
+                    + copy_standalone_entry_points
+                ]
+                + data_file_paths
             ]
-            + data_file_paths
         )
 
 
