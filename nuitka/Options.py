@@ -2102,6 +2102,15 @@ def getDebugModeIndications():
     return result
 
 
+def requireNoDebugImmortalAssumptions(logger, reason):
+    if is_debug and python_version >= 0x3C0 and options.debug_immortal is not False:
+        logger.sysexit(
+            "Error, need to disable debug partially with '--no-debug-immortal-assumptions' due to %s."
+            % reason,
+            reporting=False,
+        )
+
+
 def shallExplainImports():
     """:returns: bool derived from ``--explain-imports``"""
     return options is not None and options.explain_imports

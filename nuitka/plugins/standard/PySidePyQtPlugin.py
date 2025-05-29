@@ -14,6 +14,7 @@ from nuitka.Options import (
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
     isStandaloneMode,
+    requireNoDebugImmortalAssumptions,
     shallCreateAppBundle,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -119,6 +120,12 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         # Also lets have consistency in naming.
         assert self.plugin_name in getQtPluginNames()
+
+        requireNoDebugImmortalAssumptions(
+            logger=self,
+            reason="%s bindings removing immortal states of objects"
+            % self.binding_name,
+        )
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
