@@ -6012,7 +6012,7 @@
     - depends:
         - 'queue'
 
-- module-name: 'skimage' # checksum: af3da5ed
+- module-name: 'skimage' # checksum: 62d73191
   data-files:
     - dirs:
         - 'data'
@@ -6021,6 +6021,10 @@
       no-auto-follow:
         'nose': 'ignore'
       when: 'not use_pytest'
+    - description: 'remove pydoc reference'
+      no-auto-follow:
+        'pydoc': 'ignore'
+      when: 'not use_pydoc'
 
 # TODO: Our lazy loader support may mean these are not really necessary anymore.
 - module-name: 'skimage._shared' # checksum: 9e389afa
@@ -6109,6 +6113,11 @@
         - 'skimage.graph.heap'
         - 'skimage.graph._mcp'
         - 'skimage.graph._spath'
+
+- module-name: 'skimage.graph._mcp' # checksum: ca09914c
+  implicit-imports:
+    - depends:
+        - 'skimage._shared.utils'
 
 - module-name: 'skimage.io' # checksum: 6b3d25bb
   data-files:

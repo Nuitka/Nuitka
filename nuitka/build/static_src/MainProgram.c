@@ -1999,7 +1999,16 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 #define NUITKA_DLL_FUNCTION __attribute__((visibility("default")))
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) { return Nuitka_Main(argc, argv); }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 /* This is an unofficial API, not available on Windows, but on Linux and others
