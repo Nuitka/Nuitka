@@ -4795,7 +4795,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: 333ba80f
+- module-name: 'pypylon' # checksum: 83b57769
   data-files:
     - patterns:
         - '**/*.sig'
@@ -4805,6 +4805,11 @@
         - '**/*.pdf'
         - '**/*.omc'
         - '**/*.hotc'
+      when: 'not macos'
+    - dest_path: '.'
+      raw_dirs:
+        - 'pylon.framework'
+      when: 'macos'
   dlls:
     - from_filenames:
         prefixes:
@@ -4812,14 +4817,22 @@
           - 'Pylon'
           - 'gxapi'
           - 'uxapi'
+      when: 'not macos'
     - from_filenames:
         relative_path: 'pylonDataProcessingPlugins'
         prefixes:
           - 'Pylon'
+      when: 'not macos'
     - from_filenames:
         relative_path: 'DataProcessingPluginsB'
         prefixes:
           - 'Pylon'
+      when: 'not macos'
+  implicit-imports:
+    - depends:
+        - '_pylon'
+        - '_genicam'
+      when: 'macos'
 
 - module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
