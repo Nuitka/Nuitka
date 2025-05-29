@@ -1052,7 +1052,9 @@ int main(int argc, char **argv) {
 
     // IF we are the bootstrasp binary, show the splash screen.
 #if defined(_NUITKA_ONEFILE_SPLASH_SCREEN) && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
-    initSplashScreen();
+    if (process_role == NULL) {
+        initSplashScreen();
+    }
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
@@ -1338,15 +1340,17 @@ int main(int argc, char **argv) {
         }
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
-        if (exit_code == STILL_ACTIVE) {
-            bool done = checkSplashScreen();
+        if (process_role == NULL) {
+            if (exit_code == STILL_ACTIVE) {
+                bool done = checkSplashScreen();
 
-            // Stop checking splash screen, can increase timeout.
-            if (done) {
-                wait_time = INFINITE;
+                // Stop checking splash screen, can increase timeout.
+                if (done) {
+                    wait_time = INFINITE;
+                }
+
+                continue;
             }
-
-            continue;
         }
 #endif
         CloseHandle(handle_process);
