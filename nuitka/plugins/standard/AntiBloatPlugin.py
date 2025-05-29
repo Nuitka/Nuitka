@@ -535,6 +535,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         config_module_name = module_name
+
         while True:
             for anti_bloat_config in self.config.get(
                 config_module_name, section="anti-bloat"
@@ -568,9 +569,17 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         return source_code
 
     def _onFunctionBodyParsing(
-        self, module_name, anti_bloat_config, function_name, body
+        self,
+        config_module_name,
+        module_name,
+        config_prefix,
+        anti_bloat_config,
+        function_name,
+        body,
     ):
-        replace_code = anti_bloat_config.get("change_function", {}).get(function_name)
+        replace_code = anti_bloat_config.get(config_prefix + "change_function", {}).get(
+            function_name
+        )
 
         if replace_code == "un-callable":
             replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
@@ -582,11 +591,11 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             return False
 
         replacement = self.evaluateExpression(
-            config_module_name=module_name,
+            config_module_name=config_module_name,
             module_name=module_name,
             expression=replace_code,
-            config_name="module '%s' config 'change_function' of '%s'"
-            % (module_name, function_name),
+            config_name="module '%s' config '%schange_function' of '%s'"
+            % (module_name, config_prefix, function_name),
             extra_context=self._getContextCode(
                 module_name=module_name, anti_bloat_config=anti_bloat_config
             ),
@@ -618,17 +627,41 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
     def onFunctionBodyParsing(self, module_name, function_name, body):
         result = False
 
-        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=anti_bloat_config.get("when", "True")
+        config_module_name = module_name
+
+        while True:
+            for anti_bloat_config in self.config.get(
+                config_module_name, section="anti-bloat"
             ):
-                if self._onFunctionBodyParsing(
-                    module_name=module_name,
-                    anti_bloat_config=anti_bloat_config,
-                    function_name=function_name,
-                    body=body,
+                if self.evaluateCondition(
+                    full_name=config_module_name,
+                    condition=anti_bloat_config.get("when", "True"),
                 ):
-                    result = True
+                    if config_module_name == module_name:
+                        if self._onFunctionBodyParsing(
+                            config_module_name=config_module_name,
+                            module_name=module_name,
+                            anti_bloat_config=anti_bloat_config,
+                            config_prefix="",
+                            function_name=function_name,
+                            body=body,
+                        ):
+                            result = True
+
+                    if self._onFunctionBodyParsing(
+                        config_module_name=config_module_name,
+                        module_name=module_name,
+                        anti_bloat_config=anti_bloat_config,
+                        config_prefix="global_",
+                        function_name=function_name,
+                        body=body,
+                    ):
+                        result = True
+
+            config_module_name = config_module_name.getPackageName()
+
+            if not config_module_name:
+                break
 
         return result
 

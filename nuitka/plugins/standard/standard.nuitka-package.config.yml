@@ -5406,6 +5406,13 @@
         'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'reportlab' # checksum: 4aa9542b
+  anti-bloat:
+    - description: 'remove reportlab test code and unittest reference'
+      global_change_function:
+        'test': 'un-callable'
+      when: 'not use_unittest'
+
 - module-name: 'reportlab.rl_config' # checksum: 8e035d91
   implicit-imports:
     - depends:
