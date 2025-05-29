@@ -91,7 +91,13 @@ def _enableC11Settings(env):
         bool - c11_mode flag
     """
 
-    if env.clangcl_mode:
+    # Lots of cases to deal with, pylint: disable=too-many-branches
+
+    if "force-c11-mode" in env.experimental_flags:
+        c11_mode = True
+    elif "force-cpp-mode" in env.experimental_flags:
+        c11_mode = False
+    elif env.clangcl_mode:
         c11_mode = True
     elif (
         env.msvc_mode
