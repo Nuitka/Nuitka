@@ -873,7 +873,8 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             ignore_errors=ignore_errors,
         )
 
-    shutil.copy(tmp_filename, filename)
+    if getFileContents(tmp_filename, mode="rb") != getFileContents(filename, mode="rb"):
+        shutil.copy(tmp_filename, filename)
     os.unlink(tmp_filename)
 
 
