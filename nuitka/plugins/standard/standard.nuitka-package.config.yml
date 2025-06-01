@@ -120,6 +120,14 @@
     - patterns:
         - 'public.xml'
 
+- module-name: 'ansicon' # checksum: a32f94aa
+  dlls:
+    - by_code:
+        setup_code: 'import ansicon'
+        filename_code: 'ansicon._get_dll_path()'
+      dest_path: 'ansicon'
+      when: 'win32'
+
 - module-name: 'antlr4.FileStream' # checksum: b7fe4fce
   anti-bloat:
     - description: 'remove unittest reference'
