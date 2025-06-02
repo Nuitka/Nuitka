@@ -2388,6 +2388,13 @@
     - patterns:
         - '*.txt'
 
+- module-name: 'langsmith' # checksum: 4c9113fd
+  anti-bloat:
+    - description: 'remove langsmith testing usage'
+      no-auto-follow:
+        'langsmith._testing': 'ignore'
+      when: 'not use_pytest'
+
 - module-name: 'lark' # checksum: c9c9b5a
   data-files:
     - dirs:
