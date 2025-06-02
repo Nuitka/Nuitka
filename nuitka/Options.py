@@ -1130,6 +1130,18 @@ and recommended only for use in Nuitka development and testing."""
     if options.macos_app_mode is not None:
         _warnOSSpecificOption("--macos-app-mode", "Darwin")
 
+    cert_filename = getMacOSSigningCertificateFilename()
+    if cert_filename is not None:
+        _warnOSSpecificOption("--macos-sign-keyring-filename", "Darwin")
+
+        if not os.path.exists(cert_filename):
+            Tracing.options_logger.sysexit(
+                "Error, signing certificate file '%s' does not exist." % cert_filename
+            )
+
+    if getMacOSSigningCertificatePassword():
+        _warnOSSpecificOption("--macos-sign-keyring-password", "Darwin")
+
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
             Tracing.options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
@@ -2496,6 +2508,22 @@ def isMacOSBackgroundApp():
 def isMacOSUiElementApp():
     """*bool*, derived from ``--macos-app-mode``"""
     return options.macos_app_mode == "ui-element"
+
+
+def getMacOSSigningCertificateFilename():
+    """*str* or *None* if not given, value of ``--macos-sign-keyring-filename``"""
+    if not isMacOS():
+        return None
+
+    return options.macos_sign_keyring_filename
+
+
+def getMacOSSigningCertificatePassword():
+    """*str* or *None* if not given, value of ``--macos-sign-keyring-password``"""
+    if not isMacOS():
+        return None
+
+    return options.macos_sign_keyring_password
 
 
 _python_flags = None

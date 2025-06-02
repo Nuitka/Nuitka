@@ -7,16 +7,22 @@
 
 from nuitka.Options import (
     getMacOSSignedAppName,
+    getMacOSSigningCertificateFilename,
+    getMacOSSigningCertificatePassword,
     getMacOSSigningIdentity,
     shallUseSigningForNotarization,
 )
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
-from .FileOperations import withMadeWritableFileMode
+from .FileOperations import getExternalUsePath, withMadeWritableFileMode
 
 _macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
+)
+
+_macos_security_usage = (
+    "The 'security' is used to access signatures from files on macOS."
 )
 
 
@@ -39,11 +45,17 @@ for the certificate in KeyChain Access application for this certificate."""
     return None, stderr
 
 
+def _filterSecurityErrorOutput(stderr):
+    # TODO: Probably some errors are given if it already exists.
+    return None, stderr
+
+
 def detectMacIdentity():
     output = executeToolChecked(
         logger=postprocessing_logger,
         command=["security", "find-identity"],
         absence_message="The 'security' program is used to scan for signing identities",
+        stderr_filter=_filterSecurityErrorOutput,
         decoding=str is not bytes,
     )
 
@@ -91,6 +103,22 @@ def addMacOSCodeSignature(filenames):
 
     # Weak signing.
     identity = getMacOSSigningIdentity()
+
+    if getMacOSSigningCertificateFilename() is not None:
+        command = [
+            "security",
+            "unlock-keychain",
+            "-p",
+            getMacOSSigningCertificatePassword() or "",
+            getExternalUsePath(getMacOSSigningCertificateFilename()),
+        ]
+
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            absence_message=_macos_security_usage,
+            stderr_filter=_filterSecurityErrorOutput,
+        )
 
     if identity == "auto":
         identity = detectMacIdentity()

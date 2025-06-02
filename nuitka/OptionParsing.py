@@ -1710,6 +1710,27 @@ https://developer.apple.com/documentation/bundleresources/information_property_l
 the option can be specified multiple times. Default empty.""",
 )
 
+macos_group.add_option(
+    "--macos-sign-keyring-filename",
+    action="store",
+    dest="macos_sign_keyring_filename",
+    metavar="CERTIFICATE_FILENAME",
+    default=None,
+    help="""\
+Path to the certificate file to be used for macOS code signing.
+This is used in conjunction with '--macos-sign-identity'. Default empty.""",
+)
+
+macos_group.add_option(
+    "--macos-sign-keyring-password",
+    action="store",
+    dest="macos_sign_keyring_password",
+    metavar="CERTIFICATE_PASSWORD",
+    default=None,
+    help="""\
+Password for the certificate file provided via
+'--macos-sign-keyring-filename'. Default empty.""",
+)
 
 del macos_group
 
