@@ -5122,6 +5122,11 @@
         - 'pysnmp.smi.mibs'
         - 'pysnmp.smi.mibs.instances'
 
+- module-name: 'PyTaskbar' # checksum: b7c73121
+  data-files:
+    - patterns:
+        - 'TaskbarLib.tlb'
+
 - module-name: 'python_utils.terminal' # checksum: 681007fe
   anti-bloat:
     - description: 'remove IPython reference'
