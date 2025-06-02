@@ -9,7 +9,7 @@ from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Importing import importFromCompileTime
-from nuitka.utils.Utils import withNoDeprecationWarning
+from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
 
 from .AttributeNodes import makeExpressionAttributeLookup
 from .ContainerMakingNodes import (
@@ -53,7 +53,8 @@ def _getPkgResourcesModule():
     avoid making more __import__ calls that necessary.
     """
 
-    return importFromCompileTime("pkg_resources", must_exist=True)
+    with withNoWarning():
+        return importFromCompileTime("pkg_resources", must_exist=True)
 
 
 class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
