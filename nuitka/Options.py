@@ -606,9 +606,10 @@ the Python download page."""
 
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
-        _checkOnefileTargetSpec()
-
         _warnOnefileOnlyOption("--onefile-tempdir-spec")
+
+        if options.is_onefile:
+            _checkOnefileTargetSpec()
 
     # Check onefile splash image
     if options.splash_screen_image:
