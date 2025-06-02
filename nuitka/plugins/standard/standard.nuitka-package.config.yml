@@ -3660,6 +3660,19 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
+- module-name: 'paddlex' # checksum: 40b99ee2
+  data-files:
+    - include-metadata:
+        - 'paddlex'
+    - patterns:
+        - '.version'
+
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'paddle.utils.cpp_extension': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'panda3d' # checksum: 7d7076a9
   data-files:
     - dest_path: '.'
