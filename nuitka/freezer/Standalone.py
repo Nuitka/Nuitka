@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     isFilenameBelowPath,
     makePath,
+    relpath,
 )
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -251,6 +252,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
             return path
 
         if shallCreateAppBundle():
+            app_path = getNormalizedPath(os.path.join(dist_dir, "..", ".."))
             resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
 
             def getNotSignableDirectoryPart(filename):
@@ -266,7 +268,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
             for data_file_path in sorted(data_file_paths, key=len):
                 data_file_path = _translatePath(data_file_path)
 
-                app_dirname, inside_path = data_file_path.split("/", 1)
+                inside_path = relpath(data_file_path, start=app_path)
 
                 if not inside_path.startswith("Contents/MacOS"):
                     continue
@@ -276,7 +278,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
                     continue
 
                 filename = not_signable_part[len("Contents/MacOS/") :]
-                not_signable_path = os.path.join(app_dirname, not_signable_part)
+                not_signable_path = os.path.join(app_path, not_signable_part)
                 resources_path = os.path.join(resources_dir, filename)
 
                 if resources_path in symlinks:
