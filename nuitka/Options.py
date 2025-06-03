@@ -402,7 +402,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
     if not os.path.isdir(src):
         Tracing.options_logger.sysexit(
             "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
-            % (option_name, dst, data_dir)
+            % (option_name, src, data_dir)
         )
 
 
@@ -606,9 +606,10 @@ the Python download page."""
 
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
-        _checkOnefileTargetSpec()
-
         _warnOnefileOnlyOption("--onefile-tempdir-spec")
+
+        if options.is_onefile:
+            _checkOnefileTargetSpec()
 
     # Check onefile splash image
     if options.splash_screen_image:
