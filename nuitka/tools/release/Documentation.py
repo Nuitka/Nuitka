@@ -9,7 +9,7 @@ import os
 import sys
 
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_call
+from nuitka.utils.Execution import check_call, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileList,
@@ -162,30 +162,31 @@ def _fixupManPageContents(manpage_filename):
 
 
 def updateManPages():
-    if not os.path.exists("man"):
-        os.mkdir("man")
+    with withEnvironmentVarOverridden("NUITKA_MANPAGE_GEN", "1"):
+        if not os.path.exists("man"):
+            os.mkdir("man")
 
-    cmd = [
-        "help2man",
-        "-n",
-        "the Python compiler",
-        "--no-discard-stderr",
-        "--no-info",
-        "--include",
-        "doc/nuitka-man-include.txt",
-        "%s ./bin/nuitka --help-plugins" % sys.executable,
-    ]
+        cmd = [
+            "help2man",
+            "-n",
+            "the Python compiler",
+            "--no-discard-stderr",
+            "--no-info",
+            "--include",
+            "doc/nuitka-man-include.txt",
+            "%s ./bin/nuitka --help-plugins" % sys.executable,
+        ]
 
-    with openTextFile("doc/nuitka.1.tmp", "wb") as output:
-        check_call(cmd, stdout=output)
-    _fixupManPageContents("doc/nuitka.1.tmp")
-    replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
+        with openTextFile("doc/nuitka.1.tmp", "wb") as output:
+            check_call(cmd, stdout=output)
+        _fixupManPageContents("doc/nuitka.1.tmp")
+        replaceFileAtomic("doc/nuitka.1.tmp", "doc/nuitka.1")
 
-    cmd[-1] += "-run"
-    with openTextFile("doc/nuitka-run.1.tmp", "wb") as output:
-        check_call(cmd, stdout=output)
-    _fixupManPageContents("doc/nuitka-run.1.tmp")
-    replaceFileAtomic("doc/nuitka-run.1.tmp", "doc/nuitka-run.1")
+        cmd[-1] += " -run"
+        with openTextFile("doc/nuitka-run.1.tmp", "wb") as output:
+            check_call(cmd, stdout=output)
+        _fixupManPageContents("doc/nuitka-run.1.tmp")
+        replaceFileAtomic("doc/nuitka-run.1.tmp", "doc/nuitka-run.1")
 
 
 def checkReleaseDocumentation():

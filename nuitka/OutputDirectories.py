@@ -14,6 +14,7 @@ import os
 
 from nuitka.Options import (
     getOutputFilename,
+    getOutputFolderName,
     getOutputPath,
     getPgoExecutable,
     isOnefileMode,
@@ -25,7 +26,9 @@ from nuitka.Options import (
 )
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
+    changeFilenameExtension,
     getNormalizedPath,
+    hasFilenameExtension,
     makePath,
     putTextFileContents,
 )
@@ -90,9 +93,26 @@ def _getStandaloneDistSuffix(bundle):
 def getStandaloneDirectoryPath(bundle=True):
     assert isStandaloneMode()
 
+    dist_folder_name = getOutputFolderName()
+
+    if dist_folder_name is not None:
+        # Add the suffix if not provided by the user
+        standalone_dist_suffix = _getStandaloneDistSuffix(bundle)
+
+        if not hasFilenameExtension(dist_folder_name, standalone_dist_suffix):
+            dist_folder_name = changeFilenameExtension(
+                dist_folder_name, standalone_dist_suffix
+            )
+
     result = getOutputPath(
-        path=os.path.basename(
-            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
+        path=(
+            dist_folder_name
+            if dist_folder_name is not None
+            else os.path.basename(
+                getTreeFilenameWithSuffix(
+                    _main_module, _getStandaloneDistSuffix(bundle)
+                )
+            )
         )
     )
 
