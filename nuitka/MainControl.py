@@ -125,6 +125,7 @@ from .freezer.Standalone import (
     checkFreezingModuleSet,
     copyDllsUsed,
     detectUsedDLLs,
+    signDistributionMacOS,
 )
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
@@ -1029,11 +1030,6 @@ def _main():
 
     executePostProcessing(scons_options["result_exe"])
 
-    if not Options.shallOnlyExecCCompilerCall():
-        data_file_paths = copyDataFiles(
-            standalone_entry_points=getStandaloneEntryPoints()
-        )
-
     if Options.isStandaloneMode():
         binary_filename = scons_options["result_exe"]
 
@@ -1050,13 +1046,23 @@ def _main():
         dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
         if not Options.shallOnlyExecCCompilerCall():
-            copyDllsUsed(
+            main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
-                data_file_paths=data_file_paths,
             )
 
-    if Options.isStandaloneMode():
+            data_file_paths = copyDataFiles(
+                standalone_entry_points=getStandaloneEntryPoints()
+            )
+
+            if isMacOS():
+                signDistributionMacOS(
+                    dist_dir=dist_dir,
+                    data_file_paths=data_file_paths,
+                    main_standalone_entry_point=main_standalone_entry_point,
+                    copy_standalone_entry_points=copy_standalone_entry_points,
+                )
+
         Plugins.onStandaloneDistributionFinished(dist_dir)
 
         if Options.isOnefileMode():
