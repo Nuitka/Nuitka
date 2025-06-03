@@ -2,7 +2,7 @@
 
 Compile a Python file "some_module.py" to a module "some_module.so":
 .IP
-\f(CW$ nuitka \-\-module some_module.py\fR
+\f(CW$ nuitka \-\-mode=module some_module.py\fR
 .PP
 Compile a Python program "some_program.py" to an executable "some_program.exe":
 .IP
@@ -16,10 +16,6 @@ uses to an executable "some_program.exe":
 Compile a Python program "some_program.py" and all the modules it uses to an executable "some_program.exe". Then execute it immediately when ready:
 .IP
 \f(CW$ nuitka \-\-run \-\-follow\-imports some_program.py\fR
-.PP
-Compile a Python program "some_program.py" and the modules it uses (even standard library) to an executable "some_program.exe":
-.IP
-\f(CW$ nuitka \-\-recurse\-all \-\-follow\-stdlib some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses to an executable "some_program.exe". Keep the debug information, so valgrind, gdb, etc. work
 nicely.
@@ -41,4 +37,12 @@ C and run\-time checks. Also use the debug Python library, which does its own ch
 Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
 \f(CW$ nuitka \-\-debug \-\-python-debug \-\-follow\-imports some_program.py\fR
+.PP
+For deployment create a standalone distribution.
+.IP
+\f(CW$ nuitka \-\-mode=standalone some_program.py\fR
+.PP
+For deployment create an app (single file, or bundle on macOS).
+.IP
+\f(CW$ nuitka \-\-mode=app some_program.py\fR
 .PP
