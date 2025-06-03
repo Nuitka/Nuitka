@@ -402,7 +402,7 @@ def _checkDataDirOptionValue(data_dir, option_name):
     if not os.path.isdir(src):
         Tracing.options_logger.sysexit(
             "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
-            % (option_name, dst, data_dir)
+            % (option_name, src, data_dir)
         )
 
 
