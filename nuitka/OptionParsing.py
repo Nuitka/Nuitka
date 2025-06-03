@@ -2266,6 +2266,10 @@ def parseOptions(logger):
     # First, isolate the first non-option arguments.
     extra_args = []
 
+    # Workaround for issue with help2man.
+    if "--version" in sys.argv[1:] and os.getenv("NUITKA_MANPAGE_GEN"):
+        sys.argv[1:] = ["--version"]
+
     if is_nuitka_run:
         count = 0
 
