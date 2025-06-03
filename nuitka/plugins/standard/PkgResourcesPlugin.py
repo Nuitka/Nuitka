@@ -13,7 +13,7 @@ import re
 from nuitka.__past__ import PermissionError  # pylint: disable=redefined-builtin
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import withNoDeprecationWarning
+from nuitka.utils.Utils import withNoDeprecationWarning, withNoWarning
 
 
 class NuitkaPluginResources(NuitkaPluginBase):
@@ -22,7 +22,7 @@ class NuitkaPluginResources(NuitkaPluginBase):
     plugin_category = "package-support"
 
     def __init__(self):
-        with withNoDeprecationWarning():
+        with withNoWarning():
             try:
                 import pkg_resources
             except (ImportError, RuntimeError, PermissionError):

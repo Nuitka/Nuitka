@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     getNormalizedPath,
     isFilenameBelowPath,
     makePath,
+    relpath,
 )
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -176,10 +177,7 @@ def _detectBinaryDLLs(
         )
 
 
-def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
-    # This is complex, because we also need to handle OS specifics,
-    # pylint: disable=too-many-locals
-
+def copyDllsUsed(dist_dir, standalone_entry_points):
     # Only do ones not ignored
     copy_standalone_entry_points = [
         standalone_entry_point
@@ -237,74 +235,81 @@ def copyDllsUsed(dist_dir, standalone_entry_points, data_file_paths):
         standalone_entry_points=copy_standalone_entry_points,
     )
 
-    # Add macOS code signature
-    if isMacOS():
-        # Make all top level directories symlinks for signing issues with MacOS
-        # bundles.
-        translations = OrderedSet()
-        symlinks = OrderedSet()
+    return main_standalone_entry_point, copy_standalone_entry_points
 
-        def _translatePath(path):
-            for translation in translations:
-                path = path.replace(translation[0] + "/", translation[1] + "/", 1)
 
-            return path
+def signDistributionMacOS(
+    dist_dir, data_file_paths, main_standalone_entry_point, copy_standalone_entry_points
+):
+    # Make all top level directories symlinks for signing issues with MacOS
+    # bundles. This is complex, because we also need to handle the need to
+    # symlink and track information. pylint: disable=too-many-locals
 
-        if shallCreateAppBundle():
-            resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
+    translations = OrderedSet()
+    symlinks = OrderedSet()
 
-            def getNotSignableDirectoryPart(filename):
-                result = []
+    def _translatePath(path):
+        for translation in translations:
+            path = path.replace(translation[0] + "/", translation[1] + "/", 1)
 
-                for part in os.path.dirname(filename).split("/"):
-                    result.append(part)
-                    if "." in part:
-                        return "/".join(result)
+        return path
 
-                return None
+    if shallCreateAppBundle():
+        app_path = getNormalizedPath(os.path.join(dist_dir, "..", ".."))
+        resources_dir = getNormalizedPath(os.path.join(dist_dir, "..", "Resources"))
 
-            for data_file_path in sorted(data_file_paths, key=len):
-                data_file_path = _translatePath(data_file_path)
+        def getNotSignableDirectoryPart(filename):
+            result = []
 
-                app_dirname, inside_path = data_file_path.split("/", 1)
+            for part in os.path.dirname(filename).split("/"):
+                result.append(part)
+                if "." in part:
+                    return "/".join(result)
 
-                if not inside_path.startswith("Contents/MacOS"):
-                    continue
+            return None
 
-                not_signable_part = getNotSignableDirectoryPart(inside_path)
-                if not_signable_part is None:
-                    continue
+        for data_file_path in sorted(data_file_paths, key=len):
+            data_file_path = _translatePath(data_file_path)
 
-                filename = not_signable_part[len("Contents/MacOS/") :]
-                not_signable_path = os.path.join(app_dirname, not_signable_part)
-                resources_path = os.path.join(resources_dir, filename)
+            inside_path = relpath(data_file_path, start=app_path)
 
-                if resources_path in symlinks:
-                    continue
+            if not inside_path.startswith("Contents/MacOS"):
+                continue
 
-                makePath(os.path.dirname(resources_path))
-                os.rename(not_signable_path, resources_path)
+            not_signable_part = getNotSignableDirectoryPart(inside_path)
+            if not_signable_part is None:
+                continue
 
-                symlink_target = os.path.join("..", "Resources", filename)
-                for _i in range(filename.count("/")):
-                    symlink_target = os.path.join("..", symlink_target)
+            filename = not_signable_part[len("Contents/MacOS/") :]
+            not_signable_path = os.path.join(app_path, not_signable_part)
+            resources_path = os.path.join(resources_dir, filename)
 
-                os.symlink(symlink_target, not_signable_path)
+            if resources_path in symlinks:
+                continue
 
-                symlinks.add(resources_path)
-                translations.add((not_signable_path, resources_path))
+            makePath(os.path.dirname(resources_path))
+            os.rename(not_signable_path, resources_path)
 
-        addMacOSCodeSignature(
-            filenames=[
-                _translatePath(filename)
-                for filename in [
-                    os.path.join(dist_dir, standalone_entry_point.dest_path)
-                    for standalone_entry_point in [main_standalone_entry_point]
-                    + copy_standalone_entry_points
-                ]
-                + data_file_paths
+            symlink_target = os.path.join("..", "Resources", filename)
+            for _i in range(filename.count("/")):
+                symlink_target = os.path.join("..", symlink_target)
+
+            os.symlink(symlink_target, not_signable_path)
+
+            symlinks.add(resources_path)
+            translations.add((not_signable_path, resources_path))
+
+    addMacOSCodeSignature(
+        filenames=[
+            _translatePath(filename)
+            for filename in [
+                os.path.join(dist_dir, standalone_entry_point.dest_path)
+                for standalone_entry_point in [main_standalone_entry_point]
+                + copy_standalone_entry_points
             ]
-        )
+            + data_file_paths
+        ]
+    )
 
 
 _excluded_system_dlls = set()

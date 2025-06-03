@@ -120,6 +120,14 @@
     - patterns:
         - 'public.xml'
 
+- module-name: 'ansicon' # checksum: a32f94aa
+  dlls:
+    - by_code:
+        setup_code: 'import ansicon'
+        filename_code: 'ansicon._get_dll_path()'
+      dest_path: 'ansicon'
+      when: 'win32'
+
 - module-name: 'antlr4.FileStream' # checksum: b7fe4fce
   anti-bloat:
     - description: 'remove unittest reference'
@@ -2126,6 +2134,17 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'jax.version' # checksum: cd20d237
+  anti-bloat:
+    - description: 'remove git call'
+      change_function:
+        # No git version after compilation of course.
+        '_version_from_git_tree': "'None'"
+    - description: 'remove setuptools reference'
+      change_function:
+        '_get_cmdclass': 'un-callable'
+      when: 'not use_setuptools'
+
 - module-name: 'jaxlib.version' # checksum: cd20d237
   anti-bloat:
     - description: 'remove git call'
@@ -2172,6 +2191,11 @@
       no-auto-follow:
         'jinja2._identifier': 'ignore'
       when: 'before_python3'
+
+- module-name: 'jinxed' # checksum: 322ea480
+  implicit-imports:
+    - depends:
+        - 'jinxed.terminfo.*'
 
 - module-name: 'joblib._dask' # checksum: e3ae7a22
   anti-bloat:
@@ -2387,6 +2411,13 @@
   data-files:
     - patterns:
         - '*.txt'
+
+- module-name: 'langsmith' # checksum: 4c9113fd
+  anti-bloat:
+    - description: 'remove langsmith testing usage'
+      no-auto-follow:
+        'langsmith._testing': 'ignore'
+      when: 'not use_pytest'
 
 - module-name: 'lark' # checksum: c9c9b5a
   data-files:
@@ -3660,6 +3691,19 @@
     - replacements_re:
         'tools\s*=\s*_import_file\s*\(\s*.*?make_importable=True.*?\s*\)': '"from . import tools"'
 
+- module-name: 'paddlex' # checksum: 40b99ee2
+  data-files:
+    - include-metadata:
+        - 'paddlex'
+    - patterns:
+        - '.version'
+
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'paddle.utils.cpp_extension': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'panda3d' # checksum: 7d7076a9
   data-files:
     - dest_path: '.'
@@ -4751,7 +4795,7 @@
     - dirs:
         - 'proj_dir'
 
-- module-name: 'pypylon' # checksum: 333ba80f
+- module-name: 'pypylon' # checksum: 83b57769
   data-files:
     - patterns:
         - '**/*.sig'
@@ -4761,6 +4805,11 @@
         - '**/*.pdf'
         - '**/*.omc'
         - '**/*.hotc'
+      when: 'not macos'
+    - dest_path: '.'
+      raw_dirs:
+        - 'pylon.framework'
+      when: 'macos'
   dlls:
     - from_filenames:
         prefixes:
@@ -4768,14 +4817,22 @@
           - 'Pylon'
           - 'gxapi'
           - 'uxapi'
+      when: 'not macos'
     - from_filenames:
         relative_path: 'pylonDataProcessingPlugins'
         prefixes:
           - 'Pylon'
+      when: 'not macos'
     - from_filenames:
         relative_path: 'DataProcessingPluginsB'
         prefixes:
           - 'Pylon'
+      when: 'not macos'
+  implicit-imports:
+    - depends:
+        - '_pylon'
+        - '_genicam'
+      when: 'macos'
 
 - module-name: 'PyQt5' # checksum: d5071a1a
   data-files:
@@ -5122,6 +5179,11 @@
         - 'pysnmp.smi.mibs'
         - 'pysnmp.smi.mibs.instances'
 
+- module-name: 'PyTaskbar' # checksum: b7c73121
+  data-files:
+    - patterns:
+        - 'TaskbarLib.tlb'
+
 - module-name: 'python_utils.terminal' # checksum: 681007fe
   anti-bloat:
     - description: 'remove IPython reference'
@@ -5343,6 +5405,13 @@
       replacements_plain:
         'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'reportlab' # checksum: 4aa9542b
+  anti-bloat:
+    - description: 'remove reportlab test code and unittest reference'
+      global_change_function:
+        'test': 'un-callable'
+      when: 'not use_unittest'
 
 - module-name: 'reportlab.rl_config' # checksum: 8e035d91
   implicit-imports:

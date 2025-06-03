@@ -401,7 +401,7 @@ def _addIncludedDataFilesFromFileOptions():
             count += 1
 
         if count == 0:
-            options_logger.warning("No data files in directory '%s.'" % source_path)
+            options_logger.warning("No data files in directory '%s'." % source_path)
 
     for source_path, dest_path in getShallIncludeRawDirs():
         count = 0
