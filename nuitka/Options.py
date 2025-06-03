@@ -406,6 +406,23 @@ def _checkDataDirOptionValue(data_dir, option_name):
         )
 
 
+def _checkFilenameOnlyArgument(option_name, filename, extra_message):
+    if os.path.basename(filename) != filename:
+        Tracing.options_logger.sysexit(
+            """\
+Error, '%s' value cannot contain a directory part%s."""
+            % (option_name, extra_message)
+        )
+
+    is_legal, reason = isLegalPath(filename)
+    if not is_legal:
+        Tracing.options_logger.sysexit(
+            """\
+Error, '%s' value '%s' is not a legal filename: %s%s."""
+            % (option_name, filename, reason, extra_message)
+        )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -448,6 +465,13 @@ Error, the Python from Windows app store is not supported.""",
         options.disabled_caches.append("dll-dependencies")
 
     report_missing_code_helpers = options.report_missing_code_helpers
+
+    # Add validation for the new option
+    if options.output_folder_name is not None:
+        _checkFilenameOnlyArgument(
+            "--output-folder-name", options.output_folder_name, ""
+        )
+
     report_missing_trust = options.report_missing_trust
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
@@ -709,12 +733,9 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 Error, may not module mode where filenames and modules matching are
 mandatory."""
             )
-        elif (
-            isStandaloneMode() and os.path.basename(output_filename) != output_filename
-        ):
-            Tracing.options_logger.sysexit(
-                """\
-Error, output filename for standalone cannot contain a directory part."""
+        elif isStandaloneMode() and not isOnefileMode():
+            _checkFilenameOnlyArgument(
+                "--output-filename", output_filename, " for standalone mode"
             )
 
         output_dir = os.path.dirname(output_filename) or "."
@@ -2853,6 +2874,11 @@ def getCompilationReportUserData():
 def shallCreateDiffableCompilationReport():
     """*bool*" derived from --report-diffable"""
     return options.compilation_report_diffable
+
+
+def getOutputFolderName():
+    """*str* or *None*, value of ``--output-folder-name``"""
+    return options.output_folder_name
 
 
 def getUserProvidedYamlFiles():

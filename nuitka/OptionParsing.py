@@ -753,6 +753,18 @@ platform.
 )
 
 output_group.add_option(
+    "--output-folder-name",
+    action="store",
+    dest="output_folder_name",
+    metavar="FOLDER_NAME",
+    default=None,
+    help="""\
+Specify the name of the distribution folder (for standalone mode) or
+app bundle folder name (for macOS app mode). Defaults to the base filename
+of the main module, will add a '.dist' or '.app' suffix.""",
+)
+
+output_group.add_option(
     "--output-dir",
     action="store",
     dest="output_dir",

@@ -1513,6 +1513,9 @@ def isLegalPath(path):
     illegal_suffixes = "/\\"
     illegal_chars = "\0"
 
+    if path == "":
+        return False, "is empty"
+
     if isWin32Windows():
         illegal_chars += r'*"/<>:|?'
 
