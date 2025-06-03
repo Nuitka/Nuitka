@@ -97,8 +97,7 @@ Please report as a issue."""
         """
         return isStandaloneMode()
 
-    @staticmethod
-    def createPreModuleLoadCode(module):
+    def createPreModuleLoadCode(self, module):
         """This method is called with a module that will be imported.
 
         Notes:
@@ -116,8 +115,11 @@ Please report as a issue."""
             # If required we set the respective environment values.
             code = r"""
 import os
-os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tcl")
-os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "tk")"""
+os.environ["TCL_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tcl_target_path)s")
+os.environ["TK_LIBRARY"] = os.path.join(__nuitka_binary_dir, "%(tk_target_path)s")""" % {
+                "tcl_target_path": self.getTclTargetPath(),
+                "tk_target_path": self.getTkTargetPath(),
+            }
 
             return code, "Need to make sure we set environment variables for TCL."
 
@@ -182,6 +184,17 @@ The Tcl library dir. See comments for Tk library dir.""",
                 )
             )
 
+        if isMacOS():
+            yield os.path.normpath(
+                os.path.join(
+                    getSystemPrefixPath(),
+                    "Frameworks",
+                    "Tcl.framework",
+                    "Resources",
+                    "Scripts",
+                )
+            )
+
     def _getTkCandidatePaths(self):
         yield os.getenv("TK_LIBRARY")
 
@@ -219,6 +232,31 @@ The Tcl library dir. See comments for Tk library dir.""",
                         "tk9.0",
                     )
                 )
+
+        if isMacOS():
+            yield os.path.normpath(
+                os.path.join(
+                    getSystemPrefixPath(),
+                    "Frameworks",
+                    "Tk.framework",
+                    "Resources",
+                    "Scripts",
+                )
+            )
+
+    @staticmethod
+    def getTclTargetPath():
+        if isMacOS():
+            return "tcl-files"
+        else:
+            return "tcl"
+
+    @staticmethod
+    def getTkTargetPath():
+        if isMacOS():
+            return "tk-files"
+        else:
+            return "tk"
 
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.
@@ -270,7 +308,7 @@ that works, report a bug."""
         # survived the above, now do provide the locations
         yield self.makeIncludedDataDirectory(
             source_path=tk_library_dir,
-            dest_path="tk",
+            dest_path=self.getTkTargetPath(),
             reason="Tk needed for tkinter usage",
             ignore_dirs=("demos",),
             tags="tk",
@@ -291,7 +329,7 @@ that works, report a bug."""
                 "tcltest-2.5.5.tm",
                 "tcltest-2.5.8.tm",
             ),
-            dest_path="tcl",
+            dest_path=self.getTclTargetPath(),
             reason="Tcl needed for tkinter usage",
             tags="tcl",
         )
