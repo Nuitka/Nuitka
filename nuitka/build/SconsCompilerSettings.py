@@ -43,7 +43,7 @@ from .SconsUtils import (
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
 # spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
-# spell-checker: ignore -feliminate,noexecstack,implib
+# spell-checker: ignore -feliminate,noexecstack,implib,bexpall
 # spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS
 
 
@@ -627,6 +627,37 @@ unsigned char constant_bin_data[] =\n{\n
         )
 
 
+def _enableMacOSTargetSettings(env):
+    """Set up environment for macOS target settings."""
+    assert isMacOS()
+
+    setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
+
+    target_flag = "--target=%s-apple-macos%s" % (
+        env.macos_target_arch,
+        env.macos_min_version,
+    )
+    env.Append(CCFLAGS=[target_flag])
+    env.Append(LINKFLAGS=[target_flag])
+
+
+def _enableAIXTargetSettings(env):
+    """Set up environment for AIX target settings."""
+    assert isAIX()
+
+    if env.target_arch in ("64", "32"):
+        env.Append(CCFLAGS=["-m%s" % env.target_arch])
+        env.Append(LINKFLAGS=["-m%s" % env.target_arch])
+
+
+def _enableWin32TargetSettings(env):
+    """Set up environment for Windows target settings."""
+    assert isWin32Windows()
+    # The MinGW64 and ClangCL do not default for API level properly, so
+    # help it.
+    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+
+
 def enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
@@ -722,26 +753,17 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Support for macOS standalone to run on older OS versions.
     if isMacOS():
-        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
-
-        target_flag = "--target=%s-apple-macos%s" % (
-            env.macos_target_arch,
-            env.macos_min_version,
-        )
-
-        env.Append(CCFLAGS=[target_flag])
-        env.Append(LINKFLAGS=[target_flag])
+        _enableMacOSTargetSettings(env)
 
     if isAIX():
-        if env.target_arch == "x86_64":
-            env.Append(CCFLAGS=["-m64"])
-        elif env.target_arch == "x86":
-            env.Append(CCFLAGS=["-m32"])
+        _enableAIXTargetSettings(env)
+
+        # Otherwise no symbol is exported.
+        if env.module_mode or env.dll_mode:
+            env.Append(LINKFLAGS=["-Wl,-bexpall"])
 
     if isWin32Windows():
-        # The MinGW64 and ClangCL do not default for API level properly, so
-        # help it.
-        env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+        _enableWin32TargetSettings(env)
 
     # Unicode entry points for programs.
     if env.mingw_mode:
