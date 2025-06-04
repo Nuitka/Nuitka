@@ -167,7 +167,12 @@ filename_char_t *_getBinaryPath2(void) {
         abort();
     }
 #elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+    const char *comm = "invalid";
+    NUITKA_CANNOT_GET_HERE("Cannot query program name on this OS. Please help adding that.");
+#else
     const char *comm = getOriginalArgv0();
+#endif
 
     bool success = false;
 
