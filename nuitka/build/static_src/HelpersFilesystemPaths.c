@@ -252,16 +252,6 @@ filename_char_t *_getBinaryPath2(void) {
 #elif defined(__wasi__)
     const char *wasi_filename = "program.wasm";
     copyStringSafe(binary_filename, wasi_filename, buffer_size);
-#elif defined(_AIX)
-    char proc_link_path[64];
-    snprintf(proc_link_path, sizeof(proc_link_path), "/proc/%d/object/a.out", (int)getpid());
-
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink(proc_link_path, binary_filename, buffer_size - 1);
-
-    if (unlikely(res == -1)) {
-        abort();
-    }
 #else
     /* The remaining platforms, mostly Linux or compatible. */
 
