@@ -732,9 +732,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         env.Append(CCFLAGS=[target_flag])
         env.Append(LINKFLAGS=[target_flag])
 
-    # The MinGW64 and ClangCL do not default for API level properly, so
-    # help it.
-    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+    if isWin32Windows():
+        # The MinGW64 and ClangCL do not default for API level properly, so
+        # help it.
+        env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
 
     # Unicode entry points for programs.
     if env.mingw_mode:
