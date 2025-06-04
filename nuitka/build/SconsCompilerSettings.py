@@ -732,6 +732,12 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         env.Append(CCFLAGS=[target_flag])
         env.Append(LINKFLAGS=[target_flag])
 
+    if isAIX():
+        if env.target_arch == "x86_64":
+            env.Append(CCFLAGS=["-m64"])
+        elif env.target_arch == "x86":
+            env.Append(CCFLAGS=["-m32"])
+
     if isWin32Windows():
         # The MinGW64 and ClangCL do not default for API level properly, so
         # help it.
