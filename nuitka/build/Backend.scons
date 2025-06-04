@@ -782,9 +782,10 @@ if isMacOS():
         # spell-checker: ignore headerpad
         env.Append(LINKFLAGS=["-headerpad_max_install_names"])
 
-if env.android_termux_python:
-    # For Android Termux Python we need modules to link against the
+if env.android_termux_python or isAIX():
+    # For Android Termux Python and AIX we need modules to link against the
     # shared library of Python, different from all other ones.
+    # spell-checker: ignore lpython
 
     if env.module_mode:
         env.Append(_LIBFLAGS=["-lpython%s" % python_version_str])
