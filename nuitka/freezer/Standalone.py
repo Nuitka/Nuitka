@@ -54,6 +54,7 @@ from nuitka.utils.Utils import (
     isDebianBasedLinux,
     isMacOS,
     isPosixWindows,
+    isRPathUsingPlatform,
     isWin32Windows,
 )
 
@@ -198,7 +199,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # After dependency detection, we can change the RPATH for main binary.
-    if not isWin32Windows():
+    if isRPathUsingPlatform():
         setSharedLibraryRPATH(
             os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
         )

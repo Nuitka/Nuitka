@@ -86,6 +86,7 @@ from nuitka.utils.Utils import (
     isMacOS,
     isOpenBSD,
     isPosixWindows,
+    isRPathUsingPlatform,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -965,7 +966,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isLinux():
+    if isStandaloneMode() and isRPathUsingPlatform() and not isMacOS():
         # Cyclic dependency
         from nuitka.utils.SharedLibraries import (
             checkPatchElfPresenceAndUsability,
