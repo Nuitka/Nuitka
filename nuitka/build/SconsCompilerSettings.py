@@ -42,8 +42,8 @@ from .SconsUtils import (
 
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
-# spell-checker: ignore -feliminate,noexecstack,implib,bexpall
+# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode
+# spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
 # spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS
 
 
@@ -761,6 +761,9 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Otherwise no symbol is exported.
         if env.module_mode or env.dll_mode:
             env.Append(LINKFLAGS=["-Wl,-bexpall"])
+
+        if env.standalone_mode:
+            env.Append(LINKFLAGS=["-Wl,-blibpath:/usr/lib:/lib"])
 
     if isWin32Windows():
         _enableWin32TargetSettings(env)
