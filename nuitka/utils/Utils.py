@@ -474,11 +474,18 @@ def getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name):
     return getLaunchingNuitkaProcessEnvironmentValue(environment_variable_name)
 
 
+def isRPathUsingPlatform():
+    """Does the OS have an rpath or equivalent."""
+    return isElfUsingPlatform() or isMacOS()
+
+
 def isElfUsingPlatform():
+    """Does the OS use the ELF file format."""
     return not isWin32OrPosixWindows() and not isMacOS() and not isAIX()
 
 
 def isCoffUsingPlatform():
+    """Does the OS use the COFF file format."""
     return isAIX()
 
 

@@ -35,6 +35,7 @@ from .Utils import (
     isElfUsingPlatform,
     isLinux,
     isMacOS,
+    isRPathUsingPlatform,
     isWin32Windows,
     raiseWindowsError,
 )
@@ -480,8 +481,9 @@ def checkPatchElfPresenceAndUsability(logger):
         logger=logger,
         command=("patchelf", "--version"),
         absence_message="""\
-Error, standalone mode on Linux requires 'patchelf' to be \
-installed. Use 'apt/dnf/yum install patchelf' first.""",
+Error, standalone mode on %s requires 'patchelf' to be \
+installed. Use 'apt/dnf/yum install patchelf' first."""
+        % getOS(),
     )
 
     if output.split() == b"0.18.0":
@@ -792,7 +794,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
     if isMacOS() and getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
-    if isLinux():
+    if isRPathUsingPlatform():
         # Path must be normalized for this to be correct, but entry points enforced that.
         count = dest_path.count(os.path.sep)
 
