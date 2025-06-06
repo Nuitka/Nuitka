@@ -723,6 +723,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
     unworthy_modulename_patterns = (
         "tensorflow.*test",  # Not performance relevant.
         "tensorflow.**.test_util",  # Not performance relevant.
+        "google.protobuf.*_pb2",  #  Too large generated code
     )
 
     def decideCompilation(self, module_name):
