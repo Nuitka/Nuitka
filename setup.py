@@ -41,6 +41,7 @@ from setuptools.command import easy_install
 
 from nuitka.PythonFlavors import isMSYS2MingwPython
 from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.Utils import isMacOS
 from nuitka.Version import getNuitkaVersion
 
 version = getNuitkaVersion()
@@ -402,14 +403,23 @@ with open("README.rst", "rb") as input_file:
 install_requires = []
 if sys.version_info >= (3, 7):
     install_requires.append("ordered-set >= 4.1.0")
-if sys.version_info[:2] == (2, 7):
+if sys.version_info[:2] == (2, 7) and os.name == "nt":
     install_requires.append("subprocess32")
-if sys.version_info >= (3, 7):
-    install_requires.append("zstandard >= 0.15")
 if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
 if sys.platform == "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
+
+build_requires = ["setuptools>=42", "toml"]
+standalone_requires = []
+onefile_requires = []
+package_requires = []
+
+if sys.version_info >= (3, 7):
+    onefile_requires.append("zstandard >= 0.15")
+
+    # TODO: Keep backward compatible until 2.8 at least
+    install_requires.append("zstandard >= 0.15")
 
 setup(
     name="Nuitka",
@@ -496,7 +506,15 @@ Python compiler with full language support and CPython compatibility""",
     },
     install_requires=install_requires,
     extras_require={
-        "build-wheel": ["setuptools>=42", "toml", "wheel"],
+        "build-wheel": build_requires + ["wheel"],
+        # TODO: Enable these, once our "build" integration allows for these build types.
+        #        "build-standalone": build_requires + standalone_requires,
+        #        "build-onefile": build_requires + standalone_requires + onefile_requires,
+        "package": package_requires,
+        "standalone": standalone_requires,
+        "onefile": standalone_requires + onefile_requires,
+        "app": (standalone_requires if isMacOS() else onefile_requires),
+        "icon-conversion": ["imageio"],
     },
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
