@@ -385,6 +385,7 @@
         "setattrofunc",
         "Setuptools",
         "sourcery",
+        "SSCCE",
         "ssizeargfunc",
         "startswith",
         "staticmethod",
