@@ -21,8 +21,8 @@ from nuitka.utils.Utils import isWin32Windows
 
 # Late import and optional to be there.
 use_progress_bar = False
-tqdm = None
-colorama = None
+_tqdm = None
+_colorama = None
 
 _uses_threading = False
 
@@ -50,7 +50,7 @@ class NuitkaProgressBar(object):
         self.progress = 0
 
         # Render immediately with 0 progress, and setting disable=None enables tty detection.
-        self.tqdm = tqdm(
+        self.tqdm = _tqdm(
             iterable=iterable,
             initial=self.progress,
             total=(
@@ -103,52 +103,89 @@ class NuitkaProgressBar(object):
 
 
 def _getTqdmModule():
-    global tqdm  # singleton, pylint: disable=global-statement
+    """Get the tqdm module if possible, might return None."""
+    global _tqdm  # singleton, pylint: disable=global-statement
 
-    if tqdm:
-        return tqdm
-    elif tqdm is False:
+    if _tqdm:
+        return _tqdm
+    elif _tqdm is False:
         return None
     else:
-        tqdm = importFromInlineCopy("tqdm", must_exist=False, delete_module=True)
+        _tqdm = importFromInlineCopy("tqdm", must_exist=False, delete_module=True)
 
-        if tqdm is None:
+        if _tqdm is None:
             try:
                 # Cannot use import tqdm due to pylint bug.
                 import tqdm as tqdm_installed  # pylint: disable=I0021,import-error
 
-                tqdm = tqdm_installed
+                _tqdm = tqdm_installed
             except ImportError:
                 # We handle the case without inline copy too, but it may be removed, e.g. on
                 # Debian it's only a recommended install, and not included that way.
                 pass
 
-        if tqdm is None:
-            tqdm = False
+        if _tqdm is None:
+            _tqdm = False
             return None
 
-        tqdm = tqdm.tqdm
+        _tqdm = _tqdm.tqdm
 
         # Tolerate the absence ignore the progress bar
-        tqdm.set_lock(RLock())
+        _tqdm.set_lock(RLock())
 
-        return tqdm
+        return _tqdm
+
+
+# Global variable to cache the rich module instance or import failure
+_rich_progress = None
+
+
+def _getRichModule():
+    """Get the rich module if possible, might return None."""
+    global _rich_progress  # singleton, pylint: disable=global-statement
+
+    if _rich_progress:
+        return _rich_progress
+    elif _rich_progress is False:
+        return None
+
+    if _rich_progress is None:
+        try:
+            # Try importing from pip's vendored packages first
+            import pip._vendor.rich.progress as vendored_rich_progress
+
+            _rich_progress = vendored_rich_progress
+        except ImportError:
+            try:
+                import rich.progress as standard_rich_progress
+
+                _rich_progress = standard_rich_progress
+            except ImportError:
+                _rich_progress = False
+
+        if not hasattr(_rich_progress, "Progress"):
+            _rich_progress = False
+
+    if _rich_progress is False:
+        return None
+    else:
+        return _rich_progress
 
 
 def enableProgressBar():
     global use_progress_bar  # singleton, pylint: disable=global-statement
-    global colorama  # singleton, pylint: disable=global-statement
+    global _colorama  # singleton, pylint: disable=global-statement
 
     if _getTqdmModule() is not None:
         use_progress_bar = True
 
         if isWin32Windows():
-            if colorama is None:
-                colorama = importFromInlineCopy(
+            if _colorama is None:
+                _colorama = importFromInlineCopy(
                     "colorama", must_exist=True, delete_module=True
                 )
 
-            colorama.init()
+            _colorama.init()
 
 
 def setupProgressBar(stage, unit, total, min_total=0):
@@ -199,7 +236,7 @@ def closeProgressBar():
 
 
 def wrapWithProgressBar(iterable, stage, unit):
-    if tqdm is None:
+    if _tqdm is None:
         return iterable
     else:
         result = NuitkaProgressBar(
@@ -213,28 +250,61 @@ def wrapWithProgressBar(iterable, stage, unit):
 
 @contextmanager
 def withNuitkaDownloadProgressBar(*args, **kwargs):
-    if not use_progress_bar or _getTqdmModule() is None:
-        yield
+    if not use_progress_bar or (_getRichModule() is None and _getTqdmModule() is None):
+        yield None
+        return
+
+    if _rich_progress:
+        description = kwargs.get("desc", "Downloading")
+        total_size_bytes = kwargs.get("total", 0)
+
+        _rich_progress_cm = _rich_progress.Progress(
+            _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
+            _rich_progress.BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            "\u2022",
+            _rich_progress.DownloadColumn(),
+            "\u2022",
+            _rich_progress.TransferSpeedColumn(),
+            "\u2022",
+            _rich_progress.TimeRemainingColumn(),
+            transient=True,
+        )
+
+        with _rich_progress_cm as rich_p_instance:
+            task_id = rich_p_instance.add_task(
+                description, total=total_size_bytes or None
+            )
+
+            def onProgressRich(block_num=1, block_size=1, total_size=None):
+                if total_size is not None:
+                    rich_p_instance.update(task_id, total=total_size)
+
+                current_completed = block_num * block_size
+                rich_p_instance.update(task_id, completed=current_completed)
+
+            yield onProgressRich
     else:
 
-        class NuitkaDownloadProgressBar(tqdm):
+        class NuitkaDownloadProgressBarTqdm(_tqdm):
             # spell-checker: ignore bsize, tsize
             def onProgress(self, b=1, bsize=1, tsize=None):
                 if tsize is not None:
-                    # False alarm when tqdm is not installed, pylint: disable=I0021,attribute-defined-outside-init
                     self.total = tsize
                 self.update(b * bsize - self.n)
 
-        kwargs.update(
+        tqdm_kwargs = kwargs.copy()
+        tqdm_kwargs.update(
             disable=None,
             leave=False,
             dynamic_ncols=True,
             bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
         )
+        with NuitkaDownloadProgressBarTqdm(*args, **tqdm_kwargs) as pb_tqdm:
+            yield pb_tqdm.onProgress
 
-        with NuitkaDownloadProgressBar(*args, **kwargs) as progress_bar:
-            yield progress_bar.onProgress
 
+assert _getRichModule()
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
