@@ -6,114 +6,146 @@ labels: ''
 assignees: ''
 ---
 
-Before submitting an Issue, please review the
-[Issue Guidelines](https://github.com/Nuitka/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue).
+# Bug Report
 
-- Please check whether the bug was already reported or fixed.
+**IMPORTANT: Please review the
+[Issue Guidelines](https://github.com/Nuitka/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue)
+before submitting.**
 
-- Please check whether the issue appears when you run the code with Python, if it does, it's not a
-  Nuitka issue.
+______________________________________________________________________
 
-- Please check out if the develop version of Nuitka works better for you.
+## ⚠️ Pre-Submission Checklist
 
-  Download source, packages [from here](https://nuitka.net/doc/download.html) where you will also
-  find instructions how to do it via pip or git.
+*Please check these items before submitting your report. This text can be removed.*
 
-If you want to post a problem/bug, to help us understand and resolve your issue please check that
-you have provided at least the information below, and discard up to here:
+- [ ] **Search Existing Issues:** Has this bug already been reported or fixed? Sometimes reports you
+  find are bad, always feel free to make a better one, but reference what you found.
+- [ ] **Python vs. Nuitka:** Does the issue occur when running the code with standard Python? If
+  yes, it's not a Nuitka-specific issue, do not report it.
+- [ ] **Test `develop` Branch:** Have you tried the `develop` version of Nuitka? It might contain a
+  fix. Get it here https://nuitka.net/doc/download.html
 
-- Nuitka version, full Python version, flavor, OS, etc. as output by *this exact* command.
+______________________________________________________________________
 
-  > python -m nuitka --version
+**Discard everything above this line before submitting your issue.**
 
-  If you are not providing the full output. The issue cannot be solved and will be considered
-  `invalid`. The command outputs more than you think, and we are adding more all the time. We do not
-  want to left guessing or trying things out to reproduce your issue.
+## 🐛 Bug Description
 
-- How did you install Nuitka and Python
+*(A clear and concise description of what the bug is.)*
 
-  Did you use pip, anaconda, deb, rpm, from source, git clone, then install into a virtualenv or
-  not, this is very important usually and one thing, the above command does not tell us (yet).
+## 🖥️ Environment
 
-- The specific PyPI names and versions
+### 1. Nuitka Version, Python Version, OS, and Platform
 
-  It should be taken from this output if there specific packages involved, e.g. `numpy`, you are
-  expected to shorten this to the relevant ones.
+**Provide the full output** of this command (replace `python` with your specific interpreter if
+needed, e.g. `python_t`, for free-threading or `python_d` for debug Python):
 
-  > python -m pip list -v
+```sh
+python -m nuitka --version
+```
 
-- Many times when you get an error from Nuitka, your setup may be special
+*(Issues without this full output will be considered `invalid` as it contains crucial information
+always required for diagnosis.)*
 
-  Then even a `print("hello world")` program will not work, please try that and report that error
-  instead. We do not need a report that says "Tensorflow does not work" when nothing actually works
-  for you. You ought to also read the User Manual and check that your setup is actually supported
-  already.
+### 2. How Nuitka and Python were Installed
 
-- Also supply a Short, Self Contained, Correct, Eligible Example
+*(e.g., pip, anaconda, deb, rpm, from source, git clone, virtualenv used?)*
 
-  That demonstrates the issue i.e a small piece of code which reproduces the issue and can be run
-  with out any other (or as few as possible) external dependencies. Issues without this may will
-  likely be rejected without much consideration. Often this can be as simple as importing a package,
-  if this is a packaging issue, try that first.
+### 3. Relevant PyPI Packages and Versions
 
-  Pointers to repositories with usage of `pipenv` are very welcome, archives with examples are too,
-  e.g. if a certain package structure is needed. This must be only source code, binaries are not
-  used ever by us. But beware, that e.g. we cannot click around and stuff. Still do an effort to
-  make the usage obvious. Having a compile script in the repo is perfect.
+If specific packages are involved (e.g., `numpy`), list their names and versions. Shorten the output
+of `python -m pip list -v` to only include relevant packages, but in doubt a longer list is not
+necessarily harmful.
 
-  But this cannot be much code for non-commercial users, since that causes too much effort. We
-  cannot just compile your code, run it and have it download a control and command center.
+```sh
+python -m pip list -v
+```
 
-- Provide in your issue the Nuitka options used
+## 🛠️ To Reproduce
 
-  Ideally use the `# nuitka-project:` options feature in the code, so options and example code go
-  along. Alternatively state the command line.
+### 1. "Hello World" Test (if applicable)
 
-  [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
+If you suspect a setup issue, first try compiling a simple `print("hello world")` program. If that
+fails, report that error instead. *(We don't want a "Tensorflow does not work" report if basic
+compilation fails. Please also consult the User Manual for supported setups.)*
 
-- Avoid unnecessary options
+### 2. Short, Self-Contained, Correct, Eligible (SSCCE) Example
 
-  Do **not** use `--deployment` as it disables all potential bug catching, we are not here to
-  replace what it does, remove that option the moment you face an issue and report only then.
+Provide a minimal code example that reproduces the issue. It should have as few external
+dependencies as possible. *(Issues without a clear, runnable example are likely to be rejected. For
+packaging issues, a simple import might suffice. Repositories with `pipenv` or archives with small
+examples are very welcome, but must contain only source code. Ensure usage is obvious; a compile
+script is ideal. For non-commercial users, keep the code brief.)*
 
-  Do not use `--mode=onefile` if the issue also happens with `--mode=standalone`. Minimize the use
-  of options as far as you can, please. Do not disable outputs with `--quiet` and do not disable
-  warnings. If you use `--mode=onefile` in a report, you must state if the issue occurs in
-  standalone mode too.
+```python
+# Your SSCCE code here
+```
 
-- Note if this is a regression
+### 3. Nuitka Command Line Options
 
-  If it used to work in an earlier version of Nuitka, please note what you know about that. Since
-  git bisect is a thing for which we do a lot of error to make it usable, this will help
-  dramatically to isolate the issue.
+State the Nuitka options used. Ideally, use `# nuitka-project:` options in your code.
 
-- Consider getting commercial support
+```python
+# nuitka-project: --your-option=value
+# nuitka-project: --another-option
+```
 
-  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers subscriptions with priority
-  support. This will accelerate your problem solution and helps to sustain Nuitka development. Also
-  you then have a chance to provide source code of your project to us, which might simplify things,
-  or pay for time to solve your issues in your environment.
+Or, list the command line:
 
-Some things are not welcome, please consider it.
+```sh
+# Your Nuitka command here
+# e.g., python -m nuitka --standalone your_script.py
+```
 
-- Do *not* post screenshots
+**Important Notes on Options:**
 
-  These are not welcome unless absolutely necessary, e.g. because of Qt display problem, instead
-  capture the output of programs, so things are searchable and copy&paste will work. I just plainly
-  don't want to manually copy strings and hope they match.
+- **Avoid all unnecessary options:**
+  - Do **not** use `--deployment`. It disables bug-catching features. Remove it if you encounter an
+    issue.
+  - If the issue occurs with `--mode=standalone`, do not report it with `--mode=onefile` unless the
+    problem is specific to onefile. State if the issue also occurs in standalone mode if you report
+    a onefile issue.
+  - Minimize options used. Do not use `--quiet` or disable warnings.
 
-- Do *not* close the issue yourself, we will close things on stable releases
+## 📉 Expected Behavior
 
-  We close issues only when they are released as a stable version, e.g. in a hotfix or a new
-  release, before that it will be "Done" in planning and go through `factory` and `develop` tags to
-  indicate they are solved there.
+*(A clear and concise description of what you expected to happen.)*
 
-  Of course, if you find out your issue is invalid, please do close it, and we then attach the
-  `invalid` tag.
+## 📄 Actual Behavior & Output
 
-- Do *not* report against factory version
+*(What actually happened? Include any error messages, tracebacks, or relevant logs. Use code blocks
+for long outputs (triple backticks).*
 
-  Unless you were asked to test it there, it is frequently very broken, and there is only noise to
-  be had. Telling me about it on Discord would be a better idea.
+## ↩️ Regression (if applicable)
 
-- Do *not* let this template remain part of the issue, it's noise.
+Did this work in a previous version of Nuitka? If so, *please* specify the last known working
+version. *(This helps dramatically in isolating the issue, e.g., via `git bisect`.)*
+
+## 💡 Additional Context (Optional)
+
+*(Add any other context about the problem here.)*
+
+______________________________________________________________________
+
+## 🚫 Unwelcome Practices (Please Read)
+
+- **No Screenshots of Text:** Do *not* post screenshots of code, errors, or console output unless
+  absolutely necessary (e.g., a GUI display problem). Provide text directly so it's searchable and
+  copyable. Reports without proper text are likely to be rejected.
+- **Do Not Close Issues Yourself:** We will close issues once they are resolved in a stable release.
+  If you find your issue is invalid, you may close it, and we will tag it as `invalid` or even
+  delete it later.
+- **Do Not Report Against `factory` Branch:** Unless specifically asked, avoid reporting issues
+  found on the `factory` branch as it's often unstable. Discuss on Discord first.
+
+______________________________________________________________________
+
+## 💼 Commercial Support
+
+Consider Nuitka commercial support for priority assistance, which also helps sustain Nuitka's
+development. This allows for direct code sharing or paid time for issue resolution in your
+environment.
+
+______________________________________________________________________
+
+**PLEASE REMOVE ALL TEMPLATE TEXT (INCLUDING THIS LINE) BEFORE SUBMITTING YOUR ISSUE.**
