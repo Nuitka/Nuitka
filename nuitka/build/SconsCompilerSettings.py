@@ -720,7 +720,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Support for clang.
     if "clang" in env.the_cc_name:
-        env.Append(CCFLAGS=["-w"])
+        env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
         env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
 
         # Don't export anything by default, this should create smaller executables.
