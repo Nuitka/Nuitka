@@ -475,30 +475,73 @@ def executeProcess(
     timeout=None,
     logger=None,
 ):
-    if logger is not None:
-        logger.info("Executing command '%s'." % " ".join(command), keep_format=True)
-
-    process = createProcess(
-        command=command, env=env, stdin=stdin, shell=shell, external_cwd=external_cwd
+    process = Process(
+        command=command,
+        env=env,
+        stdin=stdin,
+        shell=shell,
+        external_cwd=external_cwd,
+        timeout=timeout,
+        logger=logger,
     )
 
-    if stdin is True:
-        process_input = None
-    elif stdin is not False:
-        process_input = stdin
-    else:
-        process_input = None
+    return process.communicate()
 
-    kw_args = {}
-    if timeout is not None:
-        # Apply timeout if possible.
-        if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
-            kw_args["timeout"] = timeout
 
-    stdout, stderr = process.communicate(input=process_input)
-    exit_code = process.wait()
+class Process(object):
+    def __init__(
+        self,
+        command,
+        env=None,
+        stdin=False,
+        stdout=None,
+        stderr=None,
+        shell=False,
+        external_cwd=False,
+        timeout=None,
+        logger=None,
+    ):
+        self.stdin = stdin
+        self.timeout = timeout
 
-    return stdout, stderr, exit_code
+        # When running.
+        self.process = None
+
+        if logger is not None:
+            logger.info("Executing command '%s'." % " ".join(command), keep_format=True)
+
+        self.process = createProcess(
+            command=command,
+            env=env,
+            stdin=self.stdin,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            external_cwd=external_cwd,
+        )
+
+    def communicate(self):
+        if self.stdin is True:
+            process_input = None
+        elif self.stdin is not False:
+            process_input = self.stdin
+        else:
+            process_input = None
+
+        kw_args = {}
+        if self.timeout is not None:
+            # Apply timeout if possible.
+            if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
+                kw_args["timeout"] = self.timeout
+
+        stdout, stderr = self.process.communicate(input=process_input)
+        exit_code = self.process.wait()
+
+        return stdout, stderr, exit_code
+
+    def stop(self):
+        if self.process is not None:
+            self.process.terminate()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
