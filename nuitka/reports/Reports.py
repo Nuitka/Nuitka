@@ -49,6 +49,8 @@ from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.PythonVersions import (
     getLaunchingSystemPrefixPath,
     getSystemPrefixPath,
+    isPythonWithGil,
+    python_version,
     python_version_full_str,
 )
 from nuitka.Tracing import ReportingSystemExit, reports_logger
@@ -214,9 +216,14 @@ def _getReportInputData(aborted):
     python_exe = sys.executable
 
     python_flavor = getPythonFlavorName()
+
+    # We want that name though, we started using it before
+    # pylint: disable=redefined-outer-name
     python_version = python_version_full_str
     os_name = getOS()
     arch_name = getArchitecture()
+
+    gil = isPythonWithGil()
 
     # Record system encoding, spell-checker: ignore getfilesystemencoding
     filesystem_encoding = sys.getfilesystemencoding()
@@ -765,6 +772,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         arch_name=report_input_data["arch_name"],
         filesystem_encoding=report_input_data["filesystem_encoding"],
     )
+
+    if python_version >= 0x3D0:
+        python_xml_node.attrib["gil"] = "yes" if report_input_data["gil"] else "no"
 
     search_path = getPackageSearchPath(None)
 
