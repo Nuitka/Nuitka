@@ -73,11 +73,13 @@ you have provided at least the information below, and discard up to here:
 
 - Avoid unnecessary options
 
-  Do not use `--deployment` as it disables all potential bug catching, we are not here to replace
-  what it does, remove that option the moment you face an issue and report only then.
+  Do **not** use `--deployment` as it disables all potential bug catching, we are not here to
+  replace what it does, remove that option the moment you face an issue and report only then.
 
-  Do not use `--onefile` if the issue also happens with `--standalone`. Minimize the use of options
-  as far as you can, please. Do not disable outputs with `--quiet` and do not disable warnings.
+  Do not use `--mode=onefile` if the issue also happens with `--mode=standalone`. Minimize the use
+  of options as far as you can, please. Do not disable outputs with `--quiet` and do not disable
+  warnings. If you use `--mode=onefile` in a report, you must state if the issue occurs in
+  standalone mode too.
 
 - Note if this is a regression
 
@@ -87,7 +89,7 @@ you have provided at least the information below, and discard up to here:
 
 - Consider getting commercial support
 
-  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers subscriptions and priority
+  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers subscriptions with priority
   support. This will accelerate your problem solution and helps to sustain Nuitka development. Also
   you then have a chance to provide source code of your project to us, which might simplify things,
   or pay for time to solve your issues in your environment.
