@@ -413,6 +413,7 @@ if sys.platform == "darwin" and sys.version_info < (3, 7):
 build_requires = ["setuptools>=42", "toml"]
 standalone_requires = []
 onefile_requires = []
+icon_conversion_requires = ["imageio"]
 package_requires = []
 
 if sys.version_info >= (3, 7):
@@ -514,7 +515,12 @@ Python compiler with full language support and CPython compatibility""",
         "standalone": standalone_requires,
         "onefile": standalone_requires + onefile_requires,
         "app": (standalone_requires if isMacOS() else onefile_requires),
-        "icon-conversion": ["imageio"],
+        "icon-conversion": icon_conversion_requires,
+        "all": build_requires
+        + standalone_requires
+        + onefile_requires
+        + package_requires
+        + icon_conversion_requires,
     },
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
