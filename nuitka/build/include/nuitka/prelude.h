@@ -36,7 +36,7 @@
 #define initstate python_initstate
 
 // Python 3.11 headers give these warnings
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #pragma warning(disable : 4244)
@@ -205,7 +205,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -252,7 +252,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
     PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
     abort();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 /* Using "_alloca" extension due to MSVC restrictions for array variables
  * on the local stack.
  */

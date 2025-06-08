@@ -20,7 +20,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
 
     if (left_c_usable && right_c_usable) {
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -28,7 +28,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_NILONG(nuitka_ilong *result, nuitka_ilon
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -102,7 +102,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
 
     if (left_c_usable && right_c_usable) {
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -110,7 +110,7 @@ bool BINARY_OPERATION_ADD_NILONG_NILONG_DIGIT(nuitka_ilong *result, nuitka_ilong
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

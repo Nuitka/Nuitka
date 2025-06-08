@@ -19,13 +19,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_LONG_LONG(PyObject **operand1, PyOb
     assert(PyLong_CheckExact(operand2));
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -59,13 +59,13 @@ bool INPLACE_OPERATION_RSHIFT_LONG_LONG(PyObject **operand1, PyObject *operand2)
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_RSHIFT_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -232,13 +232,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_LONG(PyObject **operand1, Py
         // return _BINARY_OPERATION_RSHIFT_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -275,13 +275,13 @@ bool INPLACE_OPERATION_RSHIFT_OBJECT_LONG(PyObject **operand1, PyObject *operand
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_RSHIFT_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -450,13 +450,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_LONG_OBJECT(PyObject **operand1, Py
         // return _BINARY_OPERATION_RSHIFT_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -500,7 +500,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_INT(PyObject **operand1, PyObje
     assert(PyInt_CheckExact(operand2));
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -508,7 +508,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_INT(PyObject **operand1, PyObje
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -587,13 +587,13 @@ bool INPLACE_OPERATION_RSHIFT_INT_INT(PyObject **operand1, PyObject *operand2) {
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -756,7 +756,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyO
         // return _BINARY_OPERATION_RSHIFT_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -764,7 +764,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyO
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -846,13 +846,13 @@ bool INPLACE_OPERATION_RSHIFT_OBJECT_INT(PyObject **operand1, PyObject *operand2
 static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_RSHIFT_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1017,7 +1017,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_OBJECT(PyObject **operand1, PyO
         // return _BINARY_OPERATION_RSHIFT_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1025,7 +1025,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_OBJECT(PyObject **operand1, PyO
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1112,13 +1112,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_LONG_INT(PyObject **operand1, PyObj
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1178,13 +1178,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_INT_LONG(PyObject **operand1, PyObj
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1251,7 +1251,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_OBJECT(PyObject **operand1, 
     if (PyInt_CheckExact(*operand1) && PyInt_CheckExact(operand2)) {
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1259,7 +1259,7 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_OBJECT(PyObject **operand1, 
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1340,13 +1340,13 @@ static inline bool _INPLACE_OPERATION_RSHIFT_OBJECT_OBJECT(PyObject **operand1, 
     PyTypeObject *type1 = Py_TYPE(*operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

@@ -227,7 +227,7 @@
 {% endmacro %}
 
 {% macro float_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -235,7 +235,7 @@
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

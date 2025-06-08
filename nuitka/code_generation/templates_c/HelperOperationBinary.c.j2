@@ -4,13 +4,13 @@
 {% from 'HelperSlotsInt.c.j2' import int_slot with context %}
 {% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 {% macro binary_fallback_operation(props, target, left, right, type1, type2) %}
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

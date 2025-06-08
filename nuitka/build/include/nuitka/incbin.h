@@ -374,7 +374,7 @@ For more information, please refer to <http://unlicense.org/>
  * To externally reference the data included by this in another translation unit
  * please @see INCBIN_EXTERN.
  */
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #define INCBIN(NAME, FILENAME) \
     INCBIN_EXTERN(NAME)
 #else

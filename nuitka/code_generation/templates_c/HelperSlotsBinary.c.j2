@@ -299,19 +299,19 @@
         if (sq_slot == NULL) {
             sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
         }
-        {% set lslot_needed = 1 %}
+        {% set left_slot_needed = 1 %}
 {% elif left == object_desc or left.hasSlot(sq_slot) %}
         // Special case for "+" and "*", also works as sequence concat/repeat.
         {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
-        {% set lslot_needed = 1 %}
+        {% set left_slot_needed = 1 %}
 {% else %}
         // No sequence repeat slot {{ sq_slot }} available for this type.
 {% if sq_inplace_slot %}
         // No inplace sequence repeat slot {{ sq_inplace_slot }} available for this type.
 {% endif %}
-        {% set lslot_needed = 0 %}
+        {% set left_slot_needed = 0 %}
 {% endif %}
-{% if lslot_needed == 1 %}
+{% if left_slot_needed == 1 %}
 
         if (sq_slot != NULL) {
 {% if operator == "+" %}
@@ -355,12 +355,12 @@
 {% endif %}
     {
         {{ right.getSlotType(sq_slot) }} sq_slot = {{ right.getSlotValueExpression(type2, sq_slot) }};
-        {% set rslot_needed = 1 %}
+        {% set right_slot_needed = 1 %}
 {% else %}
         // No sequence repeat slot {{ sq_slot }} available for this type.
-        {% set rslot_needed = 0 %}
+        {% set right_slot_needed = 0 %}
 {% endif %}
-{% if rslot_needed == 1 %}
+{% if right_slot_needed == 1 %}
 
         if (sq_slot != NULL) {
             PyObject *result = SEQUENCE_REPEAT(sq_slot, {{ operand2 }}, {{ operand1 }});
