@@ -175,8 +175,14 @@ static unsigned long long payload_size = 0;
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
+#ifdef __LP64__
+#define mach_header_arch mach_header_64
+#else
+#define mach_header_arch mach_header
+#endif
+
 static void initPayloadData2(void) {
-    const struct mach_header *header = &_mh_execute_header;
+    const struct mach_header_arch *header = &_mh_execute_header;
 
     unsigned long section_size;
 

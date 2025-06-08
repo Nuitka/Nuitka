@@ -1367,17 +1367,23 @@ static int findMacOSDllImageId(void) {
 }
 #endif
 
+#ifdef __LP64__
+#define mach_header_arch mach_header_64
+#else
+#define mach_header_arch mach_header
+#endif
+
 unsigned char *findMacOSBinarySection(void) {
 #if _NUITKA_EXE_MODE
-    const struct mach_header *header = &_mh_execute_header;
+    const struct mach_header_arch *header = &_mh_execute_header;
 #else
     int image_id = findMacOSDllImageId();
     assert(image_id != -1);
 
-    const struct mach_header *header = _dyld_get_image_header(image_id);
+    const struct mach_header_arch *header = (const struct mach_header_arch *)_dyld_get_image_header(image_id);
 #endif
 
-    unsigned long *size;
+    unsigned long size;
     return getsectiondata(header, "constants", "constants", &size);
 }
 
