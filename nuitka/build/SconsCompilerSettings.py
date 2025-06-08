@@ -726,11 +726,13 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         # Don't export anything by default, this should create smaller executables.
         env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
-    if (
+    env.warn_error_mode = (
         env.debug_mode
         and "debug_c_warnings" in env.debug_modes_flags
         and not env.debugger_mode
-    ):
+    )
+
+    if env.warn_error_mode:
         # Allow gcc/clang/MSVC to point out all kinds of inconsistency to us by
         # raising an error.
         if env.gcc_mode:

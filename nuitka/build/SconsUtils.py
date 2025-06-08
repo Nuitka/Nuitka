@@ -456,6 +456,18 @@ def writeSconsReport(env, target):
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
+    if env.warn_error_mode:
+        if "all warnings being treated as errors" in stderr:
+            scons_logger.sysexit(
+                "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
+            )
+
+        # spell-checker: ignore Werror
+        if "[-Werror," in stderr:
+            scons_logger.sysexit(
+                "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
+            )
+
     with withFileLock("writing scons error report"):
         file_handle, pickler = openPickleFile(
             _getSconsErrorReportFilename(env.source_dir), "ab", protocol=2
