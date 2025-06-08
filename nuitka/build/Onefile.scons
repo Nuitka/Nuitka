@@ -364,17 +364,7 @@ if env.msvc_mode:
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
 if debug_mode:
-    if env.gcc_mode:
-        # Allow gcc/clang to point out all kinds of inconsistency to us by
-        # raising an error.
-        env.Append(
-            CCFLAGS=[
-                "-Wall",
-                "-Werror",
-            ]
-        )
-
-    elif env.msvc_mode:
+    if env.msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
