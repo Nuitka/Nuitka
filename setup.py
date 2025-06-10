@@ -495,6 +495,9 @@ Python compiler with full language support and CPython compatibility""",
         "console_scripts": console_scripts,
     },
     install_requires=install_requires,
+    extras_require={
+        "build-wheel": ["setuptools>=42", "toml", "wheel"],
+    },
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,
