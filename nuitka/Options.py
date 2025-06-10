@@ -1121,6 +1121,8 @@ and recommended only for use in Nuitka development and testing."""
         _warnOSSpecificOption("--macos-app-protected-resource", "Darwin")
     if options.macos_app_mode is not None:
         _warnOSSpecificOption("--macos-app-mode", "Darwin")
+    if options.macos_prohibit_multiple_instances:
+        _warnOSSpecificOption("--macos-prohibit-multiple-instances", "Darwin")
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
@@ -2479,6 +2481,14 @@ def isMacOSBackgroundApp():
 def isMacOSUiElementApp():
     """*bool*, derived from ``--macos-app-mode``"""
     return options.macos_app_mode == "ui-element"
+
+
+def shallMacOSProhibitMultipleInstances():
+    """*bool*, derived from ``--macos-prohibit-multiple-instances``"""
+    if not isMacOS():
+        return False
+
+    return options.macos_prohibit_multiple_instances
 
 
 _python_flags = None

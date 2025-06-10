@@ -3170,6 +3170,19 @@
         - 'numpy.ma'
         - 'numpy.matrixlib'
 
+- module-name: 'numpy._core' # checksum: b24c40a6
+  anti-bloat:
+    - description: 'remove misleading numpy message'
+      replacements_plain:
+        'except ImportError as exc:': |
+          except ImportError as exc:
+              raise
+
+- module-name: 'numpy._core.multiarray' # checksum: c7ed093e
+  implicit-imports:
+    - depends:
+        - 'numpy._core._exceptions'
+
 - module-name: 'numpy._core.overrides' # checksum: cda0efc0
   anti-bloat:
     - description: 'workaround numpy issues with compiled code'
