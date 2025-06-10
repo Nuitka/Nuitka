@@ -61,6 +61,13 @@ necessarily harmful.
 python -m pip list -v
 ```
 
+Nuitka has its own tool for listing distributions. It may not work perfectly yet, but it shows
+Nuitka's view, esp. on "installer" more clearly. Include its output as well if you can.
+
+```sh
+python -m nuitka --list-distribution-metadata
+```
+
 ## 🛠️ To Reproduce
 
 ### 1. "Hello World" Test (if applicable)
