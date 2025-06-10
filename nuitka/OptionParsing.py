@@ -1660,6 +1660,16 @@ access to desktop when it does open a Window later.""",
 )
 
 macos_group.add_option(
+    "--macos-prohibit-multiple-instances",
+    action="store_true",
+    dest="macos_prohibit_multiple_instances",
+    default=False,
+    help="""\
+For application bundles, set the flag "LSMultipleInstancesProhibited" to prevent
+launching multiple instances of the application. Default is off.""",
+)
+
+macos_group.add_option(
     "--macos-sign-identity",
     action="store",
     dest="macos_sign_identity",

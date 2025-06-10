@@ -15,8 +15,7 @@ from .Images import convertImageToIconFormat
 
 
 def createPlistInfoFile(logger, onefile):
-    # Many details, pylint: disable=too-many-locals
-
+    # Many details, pylint: disable=too-many-branches,too-many-locals
     import plistlib
 
     if Options.isStandaloneMode():
@@ -93,6 +92,9 @@ def createPlistInfoFile(logger, onefile):
         infos["LSUIElement"] = True  # spell-checker: ignore LSUI
     else:
         infos["NSHighResolutionCapable"] = True
+
+    if Options.shallMacOSProhibitMultipleInstances():
+        infos["LSMultipleInstancesProhibited"] = True
 
     legal_text = Options.getLegalInformation()
 
