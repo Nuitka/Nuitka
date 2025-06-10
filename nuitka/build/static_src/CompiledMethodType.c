@@ -240,6 +240,7 @@ static PyObject *Nuitka_Method_tp_call(struct Nuitka_MethodObject *method, PyObj
     }
 }
 
+#if PYTHON_VERSION < 0x3a0 || PYTHON_VERSION >= 0x3d0
 static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, PyObject *object,
                                             PyObject *class_object) {
     // Don't rebind already bound methods.
@@ -262,6 +263,7 @@ static PyObject *Nuitka_Method_tp_descr_get(struct Nuitka_MethodObject *method, 
 
     return Nuitka_Method_New(method->m_function, object, class_object);
 }
+#endif
 
 static PyObject *Nuitka_Method_tp_getattro(struct Nuitka_MethodObject *method, PyObject *name) {
     PyObject *descr = Nuitka_TypeLookup(&Nuitka_Method_Type, name);
@@ -534,21 +536,25 @@ PyTypeObject Nuitka_Method_Type = {
     Nuitka_Method_tp_getset,                          // tp_getset
     0,                                                // tp_base
     0,                                                // tp_dict
-    (descrgetfunc)Nuitka_Method_tp_descr_get,         // tp_descr_get
-    0,                                                // tp_descr_set
-    0,                                                // tp_dictoffset
-    0,                                                // tp_init
-    0,                                                // tp_alloc
-    Nuitka_Method_tp_new,                             // tp_new
-    0,                                                // tp_free
-    0,                                                // tp_is_gc
-    0,                                                // tp_bases
-    0,                                                // tp_mro
-    0,                                                // tp_cache
-    0,                                                // tp_subclasses
-    0,                                                // tp_weaklist
-    0,                                                // tp_del
-    0                                                 // tp_version_tag
+#if PYTHON_VERSION < 0x3a0 || PYTHON_VERSION >= 0x3d0
+    (descrgetfunc)Nuitka_Method_tp_descr_get, // tp_descr_get
+#else
+    0,
+#endif
+    0,                    // tp_descr_set
+    0,                    // tp_dictoffset
+    0,                    // tp_init
+    0,                    // tp_alloc
+    Nuitka_Method_tp_new, // tp_new
+    0,                    // tp_free
+    0,                    // tp_is_gc
+    0,                    // tp_bases
+    0,                    // tp_mro
+    0,                    // tp_cache
+    0,                    // tp_subclasses
+    0,                    // tp_weaklist
+    0,                    // tp_del
+    0                     // tp_version_tag
 #if PYTHON_VERSION >= 0x300
     ,
     0 /* tp_finalizer */
