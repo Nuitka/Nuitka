@@ -457,13 +457,17 @@ def writeSconsReport(env, target):
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
     if env.warn_error_mode:
-        if "all warnings being treated as errors" in stderr:
-            scons_logger.sysexit(
-                "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
-            )
 
-        # spell-checker: ignore Werror
-        if "[-Werror," in stderr:
+        if (
+            # gcc does this: "all warnings being treated as errors"
+            "all warnings being treated as errors" in stderr
+            or
+            # clang does this, spell-checker: ignore Werror
+            "[-Werror," in stderr
+            or
+            # macOS clang does this: "warnings generated"
+            "warnings generated" in stderr
+        ):
             scons_logger.sysexit(
                 "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
             )
