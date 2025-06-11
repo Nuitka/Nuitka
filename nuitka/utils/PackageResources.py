@@ -7,6 +7,7 @@ import os
 import pkgutil
 
 from nuitka.importing.Importing import locateModule
+from nuitka.PythonVersions import python_version
 
 from .FileOperations import getFileContents
 
@@ -25,6 +26,25 @@ def getPackageData(package_name, resource):
         if os.path.exists(resource_filename):
             return getFileContents(resource_filename, mode="rb")
 
+    # Try importlib.resources next for a more standard approach.
+    try:
+        if python_version >= 0x370:
+            import importlib.resources as importlib_resources
+
+            return importlib_resources.read_binary(package_name.asString(), resource)
+        elif python_version >= 0x350:
+            # Use backport or older importlib.resources
+            import importlib.resources as importlib_resources
+
+            with importlib_resources.open_binary(
+                package_name.asString(), resource
+            ) as fp:
+                return fp.read()
+    except (ImportError, FileNotFoundError, OSError, TypeError):
+        pass
+
+    # Fallback to pkgutil if all else fails, this however may import
+    # the package, which is not a good idea at all.
     return pkgutil.get_data(package_name.asString(), resource)
 
 
