@@ -554,6 +554,11 @@ class ExpressionComparisonExceptionMismatch(ExpressionComparisonExceptionMatchBa
     comparator = "exception_mismatch"
 
 
+class ExpressionComparisonExceptionGroupMatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_GROUP_MATCH"
+
+    comparator = "exception_group_match"
+
 class ExpressionComparisonInNotInBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):
