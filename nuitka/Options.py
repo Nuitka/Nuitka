@@ -1091,6 +1091,15 @@ The Python without GIL is only experimentally supported by \
 and recommended only for use in Nuitka development and testing."""
         )
 
+    if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
+        Tracing.general.sysexit(
+            """\
+Due to a CPython bug of 3.13.4 precisely (not <3.13.4 and >3.14.5) \
+it's not possible to use Nuitka with this Python version, as it \
+broke the separation between GIL and no-GIL for the link \
+library. Please upgrade/downgrade to a supported micro version."""
+        )
+
     default_reference_mode = (
         "runtime" if shallMakeModule() or isStandaloneMode() else "original"
     )
