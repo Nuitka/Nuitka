@@ -9,6 +9,7 @@ source code comments with Developer Manual sections.
 """
 
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef, makeExpressionBuiltinRef
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
@@ -16,6 +17,7 @@ from nuitka.nodes.ComparisonNodes import (
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
@@ -328,7 +330,17 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                 [
                     makeStatementAssignmentVariable(
                         variable=tmp_exception,
-                        source="... call ExceptionGroup somehow",
+                        source=makeExpressionCall(
+                            called=makeExpressionBuiltinRef("BaseExceptionGroup"),
+                            args=makeExpressionMakeTuple(
+                                elements=(
+                                    makeConstantRefNode("", source_ref=exception_type.source_ref),
+                                    ExpressionTempVariableRef(tmp_exception, source_ref=exception_type.source_ref),
+                                ),
+                                source_ref=exception_type.source_ref
+                            ),
+                            source_ref=exception_type.source_ref,
+                        ),
                         source_ref=exception_type.source_ref,
                     )
                 ],
