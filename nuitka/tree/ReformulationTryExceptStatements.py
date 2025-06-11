@@ -281,10 +281,9 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
         )
 
         if is_star_try:
-            exception_types = makeExpressionBuiltinRef(
-                "BaseException",
+            exception_types = ExpressionBuiltinExceptionRef(
+                exception_name="BaseException",
                 source_ref=source_ref,
-                locals_scope=None
             )
         else:
             exception_types = buildNode(
@@ -324,14 +323,15 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                     variable=tmp_exception,
                     source=ExpressionCaughtExceptionValueRef(source_ref=exception_type.source_ref),
                     source_ref=exception_type.source_ref
-                )
-            ], source_ref=exception_type.source_ref)
+                ),
+            ], allow_none=False, source_ref=exception_type.source_ref
+            )
             cast_exception = makeStatementsSequence(
                 [
                     makeStatementAssignmentVariable(
                         variable=tmp_exception,
                         source=makeExpressionCall(
-                            called=makeExpressionBuiltinRef("BaseExceptionGroup"),
+                            called=makeExpressionBuiltinRef("BaseExceptionGroup", locals_scope=None, source_ref=exception_type.source_ref),
                             args=makeExpressionMakeTuple(
                                 elements=(
                                     makeConstantRefNode("", source_ref=exception_type.source_ref),
@@ -339,41 +339,52 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                                 ),
                                 source_ref=exception_type.source_ref
                             ),
+                            kw=None,
                             source_ref=exception_type.source_ref,
                         ),
                         source_ref=exception_type.source_ref,
                     )
                 ],
+                allow_none=False,
                 source_ref=exception_type.source_ref
             )
 
-            exception_handling = StatementsSequence(
-                statements=(
-                    makeStatementConditional(
-                        condition=ExpressionComparisonExceptionMatch(
-                            left=ExpressionCaughtExceptionTypeRef(
-                                source_ref=exception_type.source_ref
-                            ),
-                            right=makeExpressionBuiltinRef(
-                                "BaseExceptionGroup",
-                                source_ref=exception_type.source_ref,
-                                locals_scope=None
-                            ),
-                            source_ref=exception_type.source_ref,
+            statements = (
+                makeStatementConditional(
+                    condition=ExpressionComparisonExceptionMatch(
+                        left=ExpressionCaughtExceptionTypeRef(
+                            source_ref=exception_type.source_ref
                         ),
-                        yes_branch=set_exception_inplace,
-                        no_branch=cast_exception,
+                        right=makeExpressionBuiltinRef(
+                            "BaseExceptionGroup",
+                            source_ref=exception_type.source_ref,
+                            locals_scope=None
+                        ),
                         source_ref=exception_type.source_ref,
                     ),
-                    # TODO: reformulation for something like this:
-                    # for _type in exception_types:
-                    #    for _val in exception.exceptions:
-                    #        if isinstance(_val, _type):
-                    #            break
-                    #    else:
-                    #        raise
+                    yes_branch=set_exception_inplace,
+                    no_branch=cast_exception,
+                    source_ref=exception_type.source_ref,
                 ),
-                source_ref=exception_type.source_ref,
+                makeStatementConditional(
+                    condition=ExpressionComparisonExceptionGroupMatch(
+                        left=ExpressionTempVariableRef(
+                            tmp_exception,
+                            source_ref=exception_type.source_ref
+                        ),
+                        right=exception_type,
+                        source_ref=exception_type.source_ref,
+                    ),
+                    yes_branch=handler,
+                    no_branch=exception_handling,
+                    source_ref=exception_type.source_ref,
+                ),
+            )
+            exception_handling = makeTryFinallyReleaseStatement(
+                provider=provider,
+                tried=statements,
+                variables=(tmp_exception,),
+                source_ref=exception_type.source_ref
             )
         else:
             exception_handling = StatementsSequence(
