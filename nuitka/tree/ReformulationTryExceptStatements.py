@@ -8,10 +8,11 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef, makeExpressionBuiltinRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
+    ExpressionComparisonExceptionGroupMatch
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -35,11 +36,12 @@ from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     decodeAssignTarget,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement, makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
+    makeCallNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -276,12 +278,19 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
             statements=statements, allow_none=True, source_ref=source_ref
         )
 
-        exception_types = buildNode(
-            provider=provider,
-            node=exception_expression,
-            source_ref=source_ref,
-            allow_none=True,
-        )
+        if is_star_try:
+            exception_types = makeExpressionBuiltinRef(
+                "BaseException",
+                source_ref=source_ref,
+                locals_scope=None
+            )
+        else:
+            exception_types = buildNode(
+                provider=provider,
+                node=exception_expression,
+                source_ref=source_ref,
+                allow_none=True,
+            )
 
         # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
@@ -302,6 +311,58 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
         if exception_type is None:
             # A default handler was given, so use that indeed.
             exception_handling = handler
+        elif is_star_try:
+            tmp_scope = provider.allocateTempScope("except_star_statement")
+            tmp_exception = provider.allocateTempVariable(
+                tmp_scope, "exception", temp_type="object"
+            )
+
+            set_exception_inplace = makeStatementsSequence([
+                makeStatementAssignmentVariable(
+                    variable=tmp_exception,
+                    source=ExpressionCaughtExceptionValueRef(source_ref=exception_type.source_ref),
+                    source_ref=exception_type.source_ref
+                )
+            ], source_ref=exception_type.source_ref)
+            cast_exception = makeStatementsSequence(
+                [
+                    makeStatementAssignmentVariable(
+                        variable=tmp_exception,
+                        source="... call ExceptionGroup somehow",
+                        source_ref=exception_type.source_ref,
+                    )
+                ],
+                source_ref=exception_type.source_ref
+            )
+
+            exception_handling = StatementsSequence(
+                statements=(
+                    makeStatementConditional(
+                        condition=ExpressionComparisonExceptionMatch(
+                            left=ExpressionCaughtExceptionTypeRef(
+                                source_ref=exception_type.source_ref
+                            ),
+                            right=makeExpressionBuiltinRef(
+                                "BaseExceptionGroup",
+                                source_ref=exception_type.source_ref,
+                                locals_scope=None
+                            ),
+                            source_ref=exception_type.source_ref,
+                        ),
+                        yes_branch=set_exception_inplace,
+                        no_branch=cast_exception,
+                        source_ref=exception_type.source_ref,
+                    ),
+                    # TODO: reformulation for something like this:
+                    # for _type in exception_types:
+                    #    for _val in exception.exceptions:
+                    #        if isinstance(_val, _type):
+                    #            break
+                    #    else:
+                    #        raise
+                ),
+                source_ref=exception_type.source_ref,
+            )
         else:
             exception_handling = StatementsSequence(
                 statements=(
