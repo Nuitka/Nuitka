@@ -3,6 +3,8 @@
 
 """ Display the Distributions installed. """
 
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Tracing import my_print
 from nuitka.utils.Distributions import (
     getDistributionInstallerName,
     getDistributionName,
@@ -12,15 +14,22 @@ from nuitka.utils.Distributions import (
 
 
 def displayDistributions():
+    output = OrderedSet()
+
     for distributions in getDistributions().values():
         for distribution in distributions:
             distribution_name = getDistributionName(distribution)
-            #            print(distribution_name, distribution)
-            print(
-                distribution_name,
-                getDistributionVersion(distribution),
-                getDistributionInstallerName(distribution_name=distribution_name),
+
+            output.add(
+                (
+                    distribution_name,
+                    getDistributionVersion(distribution),
+                    getDistributionInstallerName(distribution_name=distribution_name),
+                )
             )
+
+    for item in sorted(output):
+        my_print(*item)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
