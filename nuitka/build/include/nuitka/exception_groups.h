@@ -158,8 +158,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
 
     PyObject *match;
     PyObject *rest;
-    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc,
-                                    &match, &rest);
+    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc, &match, &rest);
     if (res < 0) {
         return -1;
     }
@@ -178,8 +177,7 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
 
         // Partial match
         return 0;
-    }
-    else {
+    } else {
         Py_DECREF(match);
         Py_DECREF(rest);
         return 1;
