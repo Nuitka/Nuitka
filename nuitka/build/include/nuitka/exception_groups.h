@@ -156,8 +156,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
         return -1;
     }
 
-    PyObject **match;
-    PyObject **rest;
+    PyObject *match;
+    PyObject *rest;
     int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc_group,
                                     &match, &rest);
     if (res < 0) {
