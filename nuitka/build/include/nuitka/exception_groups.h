@@ -165,18 +165,18 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     }
 
     // XXX When can this happen?
-    if (match == NULL || rest == NULL) {
+    if (unlikely(match == NULL || rest == NULL)) {
         return -1;
     }
 
     if (Py_IsNone(match)) {
         Py_XDECREF(rest);
+        return 1;
     }
     else {
         PyErr_SetExcInfo(NULL, match, NULL);
+        return 0;
     }
-
-    return 0;
 }
 
 #endif
