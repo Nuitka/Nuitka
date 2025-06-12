@@ -170,12 +170,19 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     }
 
     if (Py_IsNone(match)) {
-        Py_XDECREF(rest);
-        return 1;
+        Py_DECREF(match);
+        if (Py_IsNone(rest)) {
+            Py_DECREF(rest);
+            return 0;
+        }
+        // Matched different exception, raise it
+        PyErr_SetExcInfo(NULL, rest, NULL);
+        return -1;
     }
     else {
-        PyErr_SetExcInfo(NULL, match, NULL);
-        return 0;
+        Py_DECREF(match);
+        Py_DECREF(rest);
+        return 1;
     }
 }
 
