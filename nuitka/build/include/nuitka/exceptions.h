@@ -1272,43 +1272,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyThreadState *tstat
     }
 }
 
-NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exceptions_got,
-                                                                  PyObject *exceptions_checked) {
-    CHECK_OBJECT(exceptions_got);
-    CHECK_OBJECT(exceptions_checked);
-
-#if PYTHON_VERSION >= 0x3b0
-    int is_subclass = 0;
-    if (PyTuple_Check(exceptions_checked)) {
-        Py_ssize_t length = PyTuple_GET_SIZE(exceptions_checked);
-        for (Py_ssize_t i = 0; i < length; i++) {
-            PyObject *exc = PyTuple_GET_ITEM(exceptions_checked, i);
-            is_subclass = PyObject_IsSubclass(exc, PyExc_BaseExceptionGroup);
-            if (is_subclass < 0) {
-                return -1;
-            }
-            if (is_subclass) {
-                break;
-            }
-        }
-    }
-    else {
-        is_subclass = PyObject_IsSubclass(exceptions_checked, PyExc_BaseExceptionGroup);
-        if (is_subclass < 0) {
-            return -1;
-        }
-    }
-    if (is_subclass) {
-        _PyErr_SetString(tstate, PyExc_TypeError,
-            "catching ExceptionGroup with except* "
-            "is not allowed. Use except instead.");
-            return -1;
-    }
-#endif
-
-    return 0;
-}
-
 // Normalize an exception type to a value.
 
 extern void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val,
