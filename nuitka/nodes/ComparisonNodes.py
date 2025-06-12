@@ -559,6 +559,7 @@ class ExpressionComparisonExceptionGroupMatch(ExpressionComparisonExceptionMatch
 
     comparator = "exception_group_match"
 
+
 class ExpressionComparisonInNotInBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):

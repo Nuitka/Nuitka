@@ -382,8 +382,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name=to_name,
-            condition="%s != 0"
-            % res_name,
+            condition="%s != 0" % res_name,
             emit=emit,
         )
     else:
