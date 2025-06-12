@@ -280,18 +280,12 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
             statements=statements, allow_none=True, source_ref=source_ref
         )
 
-        if is_star_try:
-            exception_types = ExpressionBuiltinExceptionRef(
-                exception_name="BaseException",
-                source_ref=source_ref,
-            )
-        else:
-            exception_types = buildNode(
-                provider=provider,
-                node=exception_expression,
-                source_ref=source_ref,
-                allow_none=True,
-            )
+        exception_types = buildNode(
+            provider=provider,
+            node=exception_expression,
+            source_ref=source_ref,
+            allow_none=True,
+        )
 
         # The exception types should be a tuple, so as to be most general.
         if exception_types is None:

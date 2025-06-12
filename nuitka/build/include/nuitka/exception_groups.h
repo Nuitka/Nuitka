@@ -148,17 +148,17 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     return 0;
 }
 
-NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *catching,
-                                                                  PyObject *exc_group) {
-    CHECK_OBJECT(exceptions_got);
-    CHECK_OBJECT(exceptions_checked);
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc,
+                                                                  PyObject *catching) {
+    CHECK_OBJECT(exc);
+    CHECK_OBJECT(catching);
     if (unlikely(CHECK_EXCEPTION_STAR_VALID(tstate, catching) < 0)) {
         return -1;
     }
 
     PyObject *match;
     PyObject *rest;
-    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc_group,
+    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc,
                                     &match, &rest);
     if (res < 0) {
         return -1;
