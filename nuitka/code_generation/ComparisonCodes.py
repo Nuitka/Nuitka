@@ -364,12 +364,12 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             % (res_name, "!=" if comparator == "exception_match" else "=="),
             emit=emit,
         )
-    elif comparator == "exception_group_match":
+    elif comparator in ("exception_group_match", "exception_group_partial_match"):
         assert expression.mayRaiseExceptionComparison() is False
         res_name = context.getIntResName()
         emit(
-            "%s = EXCEPTION_GROUP_MATCH_BOOL(tstate, %s, %s);"
-            % (res_name, left_name, right_name)
+            "%s = %s_BOOL(tstate, %s, %s);"
+            % (res_name, comparator.upper(), left_name, right_name)
         )
 
         getErrorExitBoolCode(

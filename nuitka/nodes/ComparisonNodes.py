@@ -560,6 +560,12 @@ class ExpressionComparisonExceptionGroupMatch(ExpressionComparisonExceptionMatch
     comparator = "exception_group_match"
 
 
+class ExpressionComparisonExceptionGroupPartialMatch(ExpressionComparisonExceptionMatchBase):
+    kind = "EXPRESSION_COMPARISON_EXCEPTION_GROUP_PARTIAL_MATCH"
+
+    comparator = "exception_group_partial_match"
+
+
 class ExpressionComparisonInNotInBase(
     ExpressionBoolShapeExactMixin, ExpressionComparisonBase
 ):
