@@ -8,13 +8,17 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef, makeExpressionBuiltinRef
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
+    ExpressionComparisonExceptionGroupMatch,
+    ExpressionComparisonExceptionGroupPartialMatch
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
@@ -35,11 +39,12 @@ from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     decodeAssignTarget,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement, makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
+    makeCallNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -302,6 +307,36 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
         if exception_type is None:
             # A default handler was given, so use that indeed.
             exception_handling = handler
+        elif is_star_try:
+            exception_handling = StatementsSequence(
+                statements=(
+                    makeStatementConditional(
+                        condition=ExpressionComparisonExceptionGroupMatch(
+                            left=ExpressionCaughtExceptionTypeRef(
+                                source_ref=exception_type.source_ref
+                            ),
+                            right=exception_type,
+                            source_ref=exception_type.source_ref,
+                        ),
+                        yes_branch=handler,
+                        no_branch=exception_handling,
+                        source_ref=exception_type.source_ref,
+                    ),
+                    makeStatementConditional(
+                        condition=ExpressionComparisonExceptionGroupPartialMatch(
+                            left=ExpressionCaughtExceptionTypeRef(
+                                source_ref=exception_type.source_ref
+                            ),
+                            right=exception_type,
+                            source_ref=exception_type.source_ref,
+                        ),
+                        yes_branch=handler,
+                        no_branch=exception_handling,
+                        source_ref=exception_type.source_ref,
+                    )
+                ),
+                source_ref=exception_type.source_ref,
+            )
         else:
             exception_handling = StatementsSequence(
                 statements=(

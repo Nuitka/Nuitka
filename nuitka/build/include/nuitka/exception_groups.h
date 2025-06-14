@@ -148,6 +148,55 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     return 0;
 }
 
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_COMMON(PyThreadState *tstate, PyObject *left, PyObject *right) {
+    Py_XDECREF(right);
+
+    // XXX When can this happen?
+    if (unlikely(left == NULL || right == NULL)) {
+        Py_XDECREF(left);
+        return -1;
+    }
+
+    if (Py_IsNone(left)) {
+        Py_DECREF(left);
+        return 0;
+    } else {
+        Py_DECREF(left);
+        return 1;
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc,
+                                                                  PyObject *catching) {
+    CHECK_OBJECT(exc);
+    CHECK_OBJECT(catching);
+    if (unlikely(CHECK_EXCEPTION_STAR_VALID(tstate, catching) < 0)) {
+        return -1;
+    }
+
+    PyObject *match;
+    PyObject *rest;
+    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc, &match, &rest);
+    if (unlikely(res < 0)) {
+        return -1;
+    }
+    return EXCEPTION_GROUP_COMMON(tstate, match, rest);
+}
+
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_PARTIAL_BOOL(PyThreadState *tstate, PyObject *exc,
+                                                                          PyObject *catching) {
+    CHECK_OBJECT(exc);
+    CHECK_OBJECT(catching);
+
+    PyObject *match;
+    PyObject *rest;
+    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc, &match, &rest);
+    if (res < 0) {
+        return -1;
+    }
+    return EXCEPTION_GROUP_COMMON(tstate, rest, match);
+}
+
 #endif
 
 #endif
