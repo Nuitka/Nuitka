@@ -5,7 +5,7 @@
 
 import os
 
-from nuitka.Options import isOnefileMode, isOnefileTempDirMode
+from nuitka.Options import isOnefileMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
@@ -142,20 +142,10 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
             self._warnNoUpx()
 
     def onFinalResult(self, filename):
-        if isLinux() and isOnefileMode():
-            if not isOnefileTempDirMode():
-                self.warning(
-                    "UPX cannot compress '%s' as AppImage doesn't support that."
-                    % filename
-                )
-
-            # Bootstrap was compressed already right after creation.
-            return
+        if self.upx_binary is not None:
+            self._compressFile(filename=filename, use_cache=False)
         else:
-            if self.upx_binary is not None:
-                self._compressFile(filename=filename, use_cache=False)
-            else:
-                self._warnNoUpx()
+            self._warnNoUpx()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
