@@ -96,6 +96,8 @@ class PythonModuleBase(NodeBase):
             if python_version >= 0x300 and not package_filename:
                 return ()
 
+            # TODO: This should be a plugin decision too,
+            # spell-checker: ignore uniconvertor
             if package_name == "uniconvertor.app.modules":
                 return ()
 

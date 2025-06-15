@@ -73,6 +73,9 @@ _prefer_source_code_over_extension_modules = None
 # Do not add current directory to search path.
 _safe_path = None
 
+# Debug mode
+_is_debug = None
+
 
 def setupImportingFromOptions():
     """Set up the importing layer from giving options."""
@@ -92,8 +95,11 @@ def setupImportingFromOptions():
     global _safe_path
     _safe_path = Options.hasPythonFlagNoCurrentDirectoryInPath()
 
+    global _is_debug
+    _is_debug = Options.is_debug
+
     # Lets try and have this complete, please report failures.
-    if Options.is_debug and not isNuitkaPython():
+    if _is_debug and not isNuitkaPython():
         _checkRaisingBuiltinComplete()
 
     main_filenames = Options.getMainEntryPointFilenames()
@@ -362,6 +368,10 @@ def normalizePackageName(module_name):
     return module_name
 
 
+# Avoid creating this over and over
+_find_module_not_found = (None, None, None, None, "not-found")
+
+
 def findModule(module_name, parent_package, level, logger):
     """Find a module with given package name as parent.
 
@@ -394,12 +404,12 @@ def findModule(module_name, parent_package, level, logger):
         if parent_package is not None:
             parent_package = parent_package.getRelativePackageName(level - 1)
         else:
-            return None, None, None, "not-found"
+            return _find_module_not_found
 
     if level == 1 and not module_name:
         # Not actually allowed, but we only catch that at run-time.
         if parent_package is None:
-            return None, None, None, "not-found"
+            return _find_module_not_found
 
         module_name = parent_package
         parent_package = None
@@ -423,10 +433,10 @@ def findModule(module_name, parent_package, level, logger):
             else:
                 module_filename = None
 
-            return full_name.getPackageName(), module_filename, "py", "pth"
+            return full_name, full_name.getPackageName(), module_filename, "py", "pth"
 
         try:
-            module_filename, module_kind = _findModule(
+            found_module_name, module_filename, module_kind = _findModule(
                 module_name=full_name,
                 logger=logger,
             )
@@ -440,7 +450,13 @@ def findModule(module_name, parent_package, level, logger):
                     % (module_name, full_name, module_filename)
                 )
 
-            return full_name.getPackageName(), module_filename, module_kind, "relative"
+            return (
+                found_module_name,
+                full_name.getPackageName(),
+                module_filename,
+                module_kind,
+                "relative",
+            )
 
     if level < 1 and module_name:
         module_name = normalizePackageName(module_name)
@@ -456,10 +472,10 @@ def findModule(module_name, parent_package, level, logger):
             else:
                 module_filename = None
 
-            return package_name, module_filename, "py", "pth"
+            return module_name, package_name, module_filename, "py", "pth"
 
         try:
-            module_filename, module_kind = _findModule(
+            found_module_name, module_filename, module_kind = _findModule(
                 module_name=module_name,
                 logger=logger,
             )
@@ -470,12 +486,18 @@ def findModule(module_name, parent_package, level, logger):
             if logger is not None:
                 logger.info(
                     "findModule: Found absolute imported module '%s' in filename '%s':"
-                    % (module_name, module_filename)
+                    % (found_module_name, module_filename)
                 )
 
-            return package_name, module_filename, module_kind, "absolute"
+            return (
+                found_module_name,
+                package_name,
+                module_filename,
+                module_kind,
+                "absolute",
+            )
 
-    return None, None, None, "not-found"
+    return _find_module_not_found
 
 
 # Some platforms are case insensitive.
@@ -483,7 +505,7 @@ case_sensitive = not isMacOS() and not isWin32OrPosixWindows()
 
 ImportScanFinding = collections.namedtuple(
     "ImportScanFinding",
-    ("found_in", "module_type", "priority", "full_path", "search_order"),
+    ("found_as", "found_in", "module_type", "priority", "full_path", "search_order"),
 )
 
 # We put here things that are not worth it (Cython is not really used by
@@ -539,6 +561,99 @@ def flushImportCache():
     module_search_cache.clear()
 
 
+def _findModuleInPath3(
+    module_name,
+    package_name,
+    search_path,
+    search_index,
+    search_path_entry,
+    package_directory,
+):
+    # First, check for a package with an init file, that would be the
+    # first choice.
+
+    # Higher values are lower priority.
+    priority_map = {
+        "PY_COMPILED": 3,
+        # TODO: Make this a per module plugin based decision.
+        "PY_SOURCE": 0 if _prefer_source_code_over_extension_modules else 2,
+        "C_EXTENSION": 1,
+    }
+
+    if os.path.isdir(package_directory):
+        found = False
+
+        for suffix, module_type in getModuleFilenameSuffixes():
+            package_file_name = "__init__" + suffix
+
+            file_path = os.path.join(package_directory, package_file_name)
+
+            if os.path.isfile(file_path):
+                yield (
+                    ImportScanFinding(
+                        found_as=ModuleName.makeModuleNameInPackage(
+                            module_name, package_name
+                        ),
+                        found_in=search_path_entry,
+                        module_type=module_type,
+                        priority=priority_map[module_type],
+                        full_path=package_directory,
+                        search_order=search_index,
+                    )
+                )
+                found = True
+
+        if not found and python_version >= 0x300:
+            yield (
+                ImportScanFinding(
+                    found_as=ModuleName.makeModuleNameInPackage(
+                        module_name, package_name
+                    ),
+                    found_in=search_path_entry,
+                    module_type=10,
+                    priority=10,
+                    full_path=package_directory,
+                    search_order=search_index + len(search_path),
+                )
+            )
+
+    # Then, check out suffixes of all kinds, but only for one directory.
+    if search_path_entry is not None:
+        last_module_type = 0
+        for suffix, module_type in getModuleFilenameSuffixes():
+            # Use first match per kind only.
+            if module_type == last_module_type:
+                continue
+
+            full_path = os.path.join(search_path_entry, module_name + suffix)
+
+            if os.path.isfile(full_path):
+                yield (
+                    ImportScanFinding(
+                        found_as=ModuleName.makeModuleNameInPackage(
+                            module_name, package_name
+                        ),
+                        found_in=search_path_entry,
+                        module_type=module_type,
+                        priority=4 + priority_map[module_type],
+                        full_path=full_path,
+                        search_order=search_index,
+                    )
+                )
+                last_module_type = module_type
+
+
+def _getSetuptoolsDistutilsPackageDir():
+    setuptools_package_dir = locateModule(
+        ModuleName("setuptools"), parent_package=None, level=0
+    )[1]
+
+    if setuptools_package_dir is not None:
+        setuptools_package_dir = os.path.join(setuptools_package_dir, "_distutils")
+
+    return setuptools_package_dir
+
+
 def _findModuleInPath2(package_name, module_name, search_path, logger):
     """This is out own module finding low level implementation.
 
@@ -547,7 +662,7 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
     None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.
@@ -555,75 +670,39 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
 
     considered = set()
 
-    # Higher values are lower priority.
-    priority_map = {
-        "PY_COMPILED": 3,
-        "PY_SOURCE": 0 if _prefer_source_code_over_extension_modules else 2,
-        "C_EXTENSION": 1,
-    }
-
-    for count, entry in enumerate(search_path):
+    for count, search_path_entry in enumerate(search_path):
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
-        if os.path.normcase(entry) in considered:
+        if os.path.normcase(search_path_entry) in considered:
             continue
-        considered.add(os.path.normcase(entry))
+        considered.add(os.path.normcase(search_path_entry))
 
-        package_directory = os.path.join(entry, module_name.asPath())
+        package_directory = os.path.join(search_path_entry, module_name.asPath())
 
-        # First, check for a package with an init file, that would be the
-        # first choice.
-        if os.path.isdir(package_directory):
-            found = False
+        for candidate in _findModuleInPath3(
+            module_name=module_name,
+            package_name=package_name,
+            search_path=search_path,
+            search_index=count,
+            search_path_entry=search_path_entry,
+            package_directory=package_directory,
+        ):
+            candidates.add(candidate)
 
-            for suffix, module_type in getModuleFilenameSuffixes():
-                package_file_name = "__init__" + suffix
+    # TODO: Make this a plugin decision instead.
+    if not candidates and package_name is None and module_name == "distutils":
+        setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
 
-                file_path = os.path.join(package_directory, package_file_name)
-
-                if os.path.isfile(file_path):
-                    candidates.add(
-                        ImportScanFinding(
-                            found_in=entry,
-                            module_type=module_type,
-                            priority=priority_map[module_type],
-                            full_path=package_directory,
-                            search_order=count,
-                        )
-                    )
-                    found = True
-
-            if not found and python_version >= 0x300:
-                candidates.add(
-                    ImportScanFinding(
-                        found_in=entry,
-                        module_type=10,
-                        priority=10,
-                        full_path=package_directory,
-                        search_order=count + len(search_path),
-                    )
-                )
-
-        # Then, check out suffixes of all kinds, but only for one directory.
-        last_module_type = 0
-        for suffix, module_type in getModuleFilenameSuffixes():
-            # Use first match per kind only.
-            if module_type == last_module_type:
-                continue
-
-            full_path = os.path.join(entry, module_name + suffix)
-
-            if os.path.isfile(full_path):
-                candidates.add(
-                    ImportScanFinding(
-                        found_in=entry,
-                        module_type=module_type,
-                        priority=4 + priority_map[module_type],
-                        full_path=full_path,
-                        search_order=count,
-                    )
-                )
-                last_module_type = module_type
+        if setuptools_package_dir is not None:
+            for candidate in _findModuleInPath3(
+                module_name=module_name,
+                package_name=None,
+                search_path=[],
+                search_path_entry=None,
+                package_directory=setuptools_package_dir,
+                search_index=-1,
+            ):
+                candidates.add(candidate)
 
     if logger is not None:
         logger.info("Candidates: %r" % candidates)
@@ -675,6 +754,7 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
     )
 
     return (
+        found_candidate.found_as,
         found_candidate.full_path,
         "extension" if found_candidate.module_type == "C_EXTENSION" else "py",
     )
@@ -724,6 +804,9 @@ def getPythonUnpackedSearchPath():
 
 
 def getPackageSearchPath(package_name):
+    # TODO: Some branches here are hard coded things that ought to be plugin
+    # decisions, pylint: disable=too-many-branches
+
     if not _main_paths:
         return None
 
@@ -764,9 +847,17 @@ def getPackageSearchPath(package_name):
                 yield extra_path, True
 
         result = []
+
+        # TODO: Make this a plugin decision instead.
+        if package_name == "distutils":
+            setuptools_package_dir = _getSetuptoolsDistutilsPackageDir()
+
+            if setuptools_package_dir is not None:
+                result.append(setuptools_package_dir)
+
         for element in getPackageSearchPath(None):
             for package_dir, force_package in getPackageDirCandidates(element):
-                if isPackageDir(package_dir) or force_package:
+                if force_package or isPackageDir(package_dir):
                     result.append(package_dir)
 
     return OrderedSet(
@@ -789,11 +880,11 @@ def _findModuleInPath(module_name, logger):
         candidate = getLaunchingNuitkaProcessEnvironmentValue("NUITKA_SITE_FILENAME")
 
         if candidate:
-            return candidate, "py"
+            return module_name, candidate, "py"
 
     # Free pass for built-in modules, they need not exist.
     if package_name is None and isBuiltinModuleName(module_name):
-        return None, "built-in"
+        return module_name, None, "built-in"
 
     search_path = getPackageSearchPath(package_name)
 
@@ -804,7 +895,7 @@ def _findModuleInPath(module_name, logger):
         )
 
     try:
-        module_filename, module_kind = _findModuleInPath2(
+        found_module_name, module_filename, module_kind = _findModuleInPath2(
             package_name=package_name,
             module_name=module_name,
             search_path=search_path,
@@ -817,7 +908,7 @@ def _findModuleInPath(module_name, logger):
             module_name if package_name is None else package_name + "." + module_name,
         )
 
-        return None, None
+        return None, None, None
 
     if logger is not None:
         logger.info(
@@ -825,7 +916,7 @@ def _findModuleInPath(module_name, logger):
             % (module_filename, module_kind)
         )
 
-    return module_filename, module_kind
+    return found_module_name, module_filename, module_kind
 
 
 module_search_cache = {}
@@ -891,11 +982,13 @@ def locateModule(module_name, parent_package, level, logger=None):
     if _debug_module_finding and logger is None:
         logger = recursion_logger
 
-    module_package, module_filename, module_kind, finding = findModule(
-        module_name=module_name,
-        parent_package=parent_package,
-        level=level,
-        logger=logger,
+    found_module_name, module_package, module_filename, module_kind, finding = (
+        findModule(
+            module_name=module_name,
+            parent_package=parent_package,
+            level=level,
+            logger=logger,
+        )
     )
 
     # Allowing ourselves to be lazy.
@@ -908,8 +1001,24 @@ def locateModule(module_name, parent_package, level, logger=None):
     if module_filename is not None:
         module_filename = getNormalizedPath(module_filename)
 
-        module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
-        module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+        if found_module_name == "distutils":
+            _module_name, module_kind = getModuleNameAndKindFromFilename(
+                module_filename
+            )
+            module_name = found_module_name
+        else:
+            module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
+            module_name = ModuleName.makeModuleNameInPackage(
+                module_name, module_package
+            )
+
+            if _is_debug:
+                assert module_name == found_module_name, (
+                    module_name,
+                    found_module_name,
+                    parent_package,
+                )
+
     elif finding == "not-found":
         if parent_package is not None:
             if not module_name:

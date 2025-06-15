@@ -110,7 +110,7 @@ def decideRecursion(
             package_module_kind,
             package_finding,
         ) = locateModule(module_name=package_part, parent_package=None, level=0)
-        assert _package_part == package_part
+        assert _package_part == package_part, (_package_part, package_part)
 
         # For bad decisions, this may already not work.
         if package_finding != "not-found":
