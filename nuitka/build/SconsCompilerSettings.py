@@ -455,12 +455,18 @@ def decideConstantsBlobResourceMode(env):
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
     elif isWin32Windows():
-        resource_mode = "win_resource"
-        reason = "default for Windows"
+        if env.clangcl_mode and getMsvcVersion(env) >= (14, 3):
+            resource_mode = "c23_embed"
+            reason = "default for ClangCL"
+        else:
+            resource_mode = "win_resource"
+            reason = "default for Windows"
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
+        # TODO: The macOS has no Clang19 yet, once it does, we could also
+        # consider using "c23_embed" for it too.
         resource_mode = "mac_section"
         reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
@@ -588,6 +594,9 @@ unsigned char const *getConstantsBlobData(void) {
                 output.write(
                     """
 // Constant data for the program.
+
+#pragma clang diagnostic ignored "-Wc23-extensions"
+
 #ifdef __cplusplus
 extern "C"
 #endif
