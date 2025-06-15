@@ -9,6 +9,12 @@
     - depends:
         - '_dbus_bindings'
 
+- module-name: '_distutils_hack' # checksum: 8ed94606
+  anti-bloat:
+    - description: 'disable distutils hacks'
+      change_function:
+        'warn_distutils_present': "'(lambda : Mone)'"
+
 - module-name: '_distutils_hack.override' # checksum: f6295952
   anti-bloat:
     - description: 'disable distutils hacks'
@@ -5856,7 +5862,7 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'setuptools' # checksum: aafdeb36
+- module-name: 'setuptools' # checksum: c6f71520
   anti-bloat:
     - description: 'no runtime expansion of sys.path needed'
       replacements_plain:
@@ -5864,7 +5870,8 @@
       when: 'version("setuptools") >= (71,)'
     - description: 'find setuptools.distutils directly'
       replacements_plain:
-        'import _distutils_hack.override': 'import setuptools._distutils as distutils; sys.modules["distutils"] = distutils'
+        'import _distutils_hack.override': 'import distutils'
+        'import setuptools._distutils as distutils': 'import distutils'
       when: 'python312_or_higher'
   import-hacks:
     - global-sys-path:
@@ -5872,36 +5879,6 @@
         # absolute imports from there to be available.
         - '_vendor'
       when: 'version("setuptools") >= (71,)'
-
-- module-name: 'setuptools.command' # checksum: eb17e343
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.command.bdist import bdist': 'from setuptools._distutils.command.bdist import bdist'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.config.expand' # checksum: cd2c573e
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.errors import DistutilsOptionError': 'from setuptools._distutils.errors import DistutilsOptionError'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.discovery' # checksum: d8699eb7
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.util import convert_path': 'from setuptools._distutils.util import convert_path'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.extension' # checksum: a8b782ae
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.core': 'import setuptools._distutils as distutils; import setuptools._distutils.core'
-        'import distutils.errors': 'import setuptools._distutils.errors'
-        'import distutils.extension': 'import setuptools._distutils.extension'
-      when: 'python312_or_higher'
 
 - module-name: 'setuptools.extern' # checksum: 2b2a3793
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
@@ -5912,14 +5889,7 @@
         - 'setuptools._vendor.*'
         - 'setuptools._vendor.*.*'
 
-- module-name: 'setuptools.logging' # checksum: 70588c58
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.log': 'import setuptools._distutils as distutils; import setuptools._distutils.log'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.monkey' # checksum: c31be2f0
+- module-name: 'setuptools.monkey' # checksum: 1ea728a1
   anti-bloat:
     - description: 'remove MSVC patching on non-Windows'
       replacements_plain:
@@ -5929,11 +5899,6 @@
         # these are done, and try to do it in source code somehow.
         'patch_for_msvc_specialized_compiler': "'(lambda: None)'"
       when: 'standalone and not win32'
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.filelist': 'import setuptools._distutils as distutils; import setuptools._distutils.filelist'
-      when: 'python312_or_higher'
-
   implicit-imports:
     - depends:
         - '.msvc'

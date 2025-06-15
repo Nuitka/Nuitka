@@ -72,7 +72,7 @@ class PythonModuleBase(NodeBase):
     def attemptRecursion(self):
         # Make sure the package is recursed to if any
         package_name = self.module_name.getPackageName()
-        if package_name is None:
+        if package_name is None or package_name.getTopLevelPackageName() == "":
             return ()
 
         # Return the list of newly added modules.
@@ -96,6 +96,8 @@ class PythonModuleBase(NodeBase):
             if python_version >= 0x300 and not package_filename:
                 return ()
 
+            # TODO: This should be a plugin decision too,
+            # spell-checker: ignore uniconvertor
             if package_name == "uniconvertor.app.modules":
                 return ()
 
