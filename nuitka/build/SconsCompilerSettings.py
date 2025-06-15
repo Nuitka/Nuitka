@@ -256,13 +256,13 @@ slower without it.
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
-        env.Append(CCFLAGS=["/GL"])
-
         if not env.clangcl_mode:
-            env.Append(LINKFLAGS=["/LTCG"])
+            env.Append(CCFLAGS=["/GL"])
 
             if getMsvcVersion(env) >= (14, 3):
                 env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
+
+        env.Append(LINKFLAGS=["/LTCG"])
 
     if orig_lto_mode == "auto":
         scons_details_logger.info(
@@ -735,9 +735,6 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
     if "clang" in env.the_cc_name:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
         env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
-
-        # Don't export anything by default, this should create smaller executables.
-        env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
 
     env.warn_error_mode = (
         env.debug_mode
