@@ -864,7 +864,8 @@ else:
     elif env.clang_mode:
         pass
     elif env.msvc_mode:
-        env.Append(CCFLAGS=["/LD"])  # Create a DLL.
+        if not env.clangcl_mode:
+            env.Append(CCFLAGS=["/LD"])  # Create a DLL.
     else:
         assert False, env.the_cc_name
 
