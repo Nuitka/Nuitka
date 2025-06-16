@@ -5420,12 +5420,18 @@
         'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
       when: 'not use_ipython'
 
-- module-name: 'reportlab' # checksum: 4aa9542b
+- module-name: 'reportlab' # checksum: 5844c802
   anti-bloat:
     - description: 'remove reportlab test code and unittest reference'
       global_change_function:
         'test': 'un-callable'
+        '_test': 'un-callable'
       when: 'not use_unittest'
+
+- module-name: 'reportlab.graphics.barcode.widgets' # checksum: 2c842857
+  implicit-imports:
+    - depends:
+        - 'reportlab.graphics.barcode.*'
 
 - module-name: 'reportlab.rl_config' # checksum: 8e035d91
   implicit-imports:
