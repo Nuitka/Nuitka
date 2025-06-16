@@ -3129,7 +3129,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: 10720e3
+- module-name: 'numpy' # checksum: cfff3d48
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3164,6 +3164,9 @@
     - description: 'avoid charset_normalizer dependency'
       no-auto-follow:
         'charset_normalizer': 'ignore'
+    - description: 'disable bug hiding'
+      replacements_plain:
+        'raise ImportError(msg) from e': 'raise e'
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -3176,6 +3179,12 @@
         - 'numpy.ctypeslib'
         - 'numpy.ma'
         - 'numpy.matrixlib'
+
+  options:
+    checks:
+      - description: 'should always work'
+        support_info: 'perfect'
+        when: 'standalone'
 
 - module-name: 'numpy._core' # checksum: b24c40a6
   anti-bloat:

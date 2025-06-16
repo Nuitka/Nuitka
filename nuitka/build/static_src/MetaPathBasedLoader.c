@@ -1248,6 +1248,34 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
 
         result = loadModule(tstate, module, module_name, entry);
 
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_PERFECT_SUPPORT)
+        if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
+            if ((entry->flags & NUITKA_PERFECT_SUPPORTED_FLAG) != 0) {
+                PyObject *exception_arg =
+                    PyUnicode_FromFormat("import of module '%s' failed unexpectedly despite intended perfect "
+                                         "support, please raise a Nuitka issue and compile "
+                                         "with an older version of the module in the meantime",
+                                         name);
+
+                struct Nuitka_ExceptionPreservationItem saved_exception;
+                FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+
+#if PYTHON_VERSION < 0x3c0
+                NORMALIZE_EXCEPTION_STATE(tstate, &saved_exception);
+#endif
+
+                struct Nuitka_ExceptionPreservationItem new_exception_state;
+                SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &new_exception_state, PyExc_RuntimeError,
+                                                           exception_arg, NULL);
+                Py_INCREF_IMMORTAL(PyExc_RuntimeError);
+
+                Nuitka_Exception_SetContext(new_exception_state.exception_value, saved_exception.exception_value);
+
+                RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
+            }
+        }
+#endif
+
 #ifdef _NUITKA_EXPERIMENTAL_FORCE_GC_COLLECT_ON_IMPORT
         PyGC_Collect();
 #endif

@@ -16,6 +16,8 @@
 
 #define NUITKA_TRANSLATED_FLAG 16
 
+#define NUITKA_PERFECT_SUPPORTED_FLAG 32
+
 struct Nuitka_MetaPathBasedLoaderEntry;
 
 typedef PyObject *(*module_init_func)(PyThreadState *tstate, PyObject *module,

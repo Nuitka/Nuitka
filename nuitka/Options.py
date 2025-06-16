@@ -2107,6 +2107,10 @@ def getNoDeploymentIndications():
     return options.no_deployment_flags
 
 
+def hasNonDeploymentIndicator(indicator_name):
+    return not isDeploymentMode() and indicator_name not in getNoDeploymentIndications()
+
+
 _experimental = set()
 
 

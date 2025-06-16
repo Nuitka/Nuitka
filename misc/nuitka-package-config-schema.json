@@ -384,7 +384,8 @@
                                         "warning",
                                         "info",
                                         "parameter",
-                                        "plugin"
+                                        "plugin",
+                                        "perfect"
                                     ]
                                 },
                                 "when": {
