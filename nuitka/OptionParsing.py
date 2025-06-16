@@ -97,7 +97,16 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("app", "onefile", "standalone", "accelerated", "module", "package", "dll"),
+    choices=(
+        "app",
+        "app-dist",
+        "onefile",
+        "standalone",
+        "accelerated",
+        "module",
+        "package",
+        "dll",
+    ),
     default=None,
     github_action_default="app",
     help="""\
@@ -105,8 +114,10 @@ Mode in which to compile. "accelerated" runs in your Python
 installation and depends on it. "standalone" creates a folder
 with an executable contained to run it. "onefile" creates a
 single self extracting executable to deploy. "app" is "onefile"
-except on macOS. "module" makes a module from a single module
-and "package" includes also all sub-modules and sub-packages.
+except on macOS where it creates an app bundle. "app-dist" is
+"standalone" except on macOS where it creates an app bundle.
+"module" makes an extension module from a single module and
+"package" compiles a whole package into an extension module.
 "dll" is currently under development and not for users yet.
 Default is 'accelerated'.""",
 )

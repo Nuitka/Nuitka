@@ -586,6 +586,11 @@ Error, the Python from Windows app store is not supported.""",
                 options.macos_create_bundle = True
             else:
                 options.is_onefile = True
+        elif options.compilation_mode == "app-dist":
+            if isMacOS():
+                options.macos_create_bundle = True
+            else:
+                options.is_standalone = True
         elif options.compilation_mode == "dll":
             options.is_standalone = True
         elif options.compilation_mode == "accelerated":
