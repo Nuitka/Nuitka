@@ -20,9 +20,13 @@ Python installation and depends on it. "standalone"
 creates a folder with an executable contained to run
 it. "onefile" creates a single self extracting
 executable to deploy. "app" is "onefile" except on
-macOS. "module" makes a module from a single module
-and "package" includes also all sub\-modules and subpackages. "dll" is currently under development and not
-for users yet. Default is 'accelerated'.
+macOS where it creates an app bundle. "app\-dist" is
+"standalone" except on macOS where it creates an app
+bundle. "module" makes an extension module from a
+single module and "package" compiles a whole package
+into an extension module. "dll" is currently under
+development and not for users yet. Default is
+\&'accelerated'.
 .TP
 \fB\-\-python\-flag\fR=\fI\,FLAG\/\fR
 Python flags to use. Default is what you are using to
