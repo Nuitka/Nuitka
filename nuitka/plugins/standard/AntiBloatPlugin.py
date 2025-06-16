@@ -574,17 +574,29 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         module_name,
         config_prefix,
         anti_bloat_config,
+        function_qualname,
         function_name,
         body,
     ):
+        # Can be "change_function" or "global_change_function"
         config_item_name = config_prefix + "change_function"
 
-        replace_code = anti_bloat_config.get(config_item_name, {}).get(function_name)
+        # TODO: Ought to always use "function_qualname", but for now we cannot
+        # make the switch easily for "change_function" as it we would have to
+        # correct all their uses.
+        if config_prefix == "":
+            replace_code = anti_bloat_config.get(config_item_name, {}).get(
+                function_name
+            )
+        else:
+            replace_code = anti_bloat_config.get(config_item_name, {}).get(
+                function_qualname
+            )
 
         if replace_code == "un-callable":
             replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
                 module_name,
-                function_name,
+                function_qualname,
             )
 
         if replace_code is None:
@@ -624,7 +636,9 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
 
         return True
 
-    def onFunctionBodyParsing(self, module_name, function_name, body):
+    def onFunctionBodyParsing(
+        self, module_name, function_qualname, function_name, body
+    ):
         result = False
 
         config_module_name = module_name
@@ -643,6 +657,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                             module_name=module_name,
                             anti_bloat_config=anti_bloat_config,
                             config_prefix="",
+                            function_qualname=function_qualname,
                             function_name=function_name,
                             body=body,
                         ):
@@ -653,6 +668,7 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
                         module_name=module_name,
                         anti_bloat_config=anti_bloat_config,
                         config_prefix="global_",
+                        function_qualname=function_qualname,
                         function_name=function_name,
                         body=body,
                     ):
