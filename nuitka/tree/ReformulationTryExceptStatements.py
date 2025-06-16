@@ -13,8 +13,7 @@ from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
-    ExpressionComparisonExceptionGroupMatch,
-    ExpressionComparisonExceptionGroupPartialMatch
+    ExpressionComparisonExceptionGroupMatch
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -322,18 +321,6 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                         no_branch=exception_handling,
                         source_ref=exception_type.source_ref,
                     ),
-                    makeStatementConditional(
-                        condition=ExpressionComparisonExceptionGroupPartialMatch(
-                            left=ExpressionCaughtExceptionTypeRef(
-                                source_ref=exception_type.source_ref
-                            ),
-                            right=exception_type,
-                            source_ref=exception_type.source_ref,
-                        ),
-                        yes_branch=handler,
-                        no_branch=exception_handling,
-                        source_ref=exception_type.source_ref,
-                    )
                 ),
                 source_ref=exception_type.source_ref,
             )
