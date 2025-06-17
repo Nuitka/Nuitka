@@ -371,7 +371,8 @@ class SpawnThread(threading.Thread):
 
     def stopThread(self):
         self.is_terminated = True
-        self.process.stop()
+        if self.process is not None:
+            self.process.stop()
 
 
 _threads = []
