@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import time
 
+from nuitka.reports.CompilationReportReader import getCompilationOutputBinary
 from nuitka.tools.Basics import addPYTHONPATH
 from nuitka.tools.testing.Common import (
     getPythonSysPath,
@@ -41,6 +42,8 @@ from nuitka.utils.FileOperations import (
     copyTree,
     deleteFile,
     getFileContents,
+    getFileList,
+    getSubDirectories,
     listDir,
     removeDirectory,
 )
@@ -393,6 +396,18 @@ def executePASS2():
             nuitka=os.path.join(".", "nuitka" + exe_suffix), pass_number=2
         )
 
+    # Cleanup, removing files that will otherwise confuse PASS3.
+    for filename in getFileList("nuitka", only_suffixes=(".so", ".pyd")):
+        deleteFile(filename, must_exist=True)
+    for filename in getSubDirectories("nuitka"):
+        if filename.endswith(".build"):
+            removeDirectory(
+                filename,
+                logger=test_logger,
+                ignore_errors=False,
+                extra_recommendation=None,
+            )
+
     test_logger.info("OK.")
 
 
@@ -419,16 +434,15 @@ def executePASS3():
         command = [
             os.environ["PYTHON"],
             nuitka_main_path,
-            path,
-            "--output-dir=%s" % tmp_dir,
+            "--output-dir=%s" % build_path,
             "--python-flag=-S",
-            "--python-flag=-P",
             "--follow-imports",
             "--include-package=nuitka.plugins.standard",
             "--nofollow-import-to=*-postLoad",
             "--nofollow-import-to=SCons",
             "--nofollow-import-to=pip",
             "--report=compilation-report-pass3.xml",
+            "nuitka-runner.py",
         ]
 
         my_print("Command: ", " ".join(command))
@@ -445,7 +459,10 @@ def executePASS3():
 def executePASS4():
     test_logger.info("PASS 4: Compiling the compiler running from single exe.")
 
-    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
+    exe_path = getCompilationOutputBinary(
+        compilation_report="compilation-report-pass3.xml",
+        prefixes=(("${cwd}", os.getcwd()),),
+    )
 
     with withPythonPathChange(os.path.join("..", "..")):
         compileAndCompareWith(exe_path, pass_number=4)
@@ -495,9 +512,6 @@ def main():
     executePASS2()
     executePASS3()
     executePASS4()
-
-    shutil.rmtree("nuitka")
-
     executePASS5()
 
 

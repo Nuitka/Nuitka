@@ -337,7 +337,7 @@ def createEnvironment(
 def decodeData(data):
     """Our own decode tries to workaround MSVC misbehavior."""
     try:
-        return data.decode(sys.stdout.encoding)
+        return data.decode(sys.__stdout__.encoding)
     except UnicodeDecodeError:
         import locale
 

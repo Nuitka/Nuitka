@@ -506,8 +506,8 @@ def getCommonSconsOptions():
     if Options.assumeYesForDownloads():
         scons_options["assume_yes_for_downloads"] = asBoolStr(True)
 
-    if not Options.shallUseProgressBar():
-        scons_options["progress_bar"] = asBoolStr(False)
+    if Options.getProgressBar() != "auto":
+        scons_options["progress_bar"] = Options.getProgressBar()
 
     if Options.isClang():
         scons_options["clang_mode"] = asBoolStr(True)
