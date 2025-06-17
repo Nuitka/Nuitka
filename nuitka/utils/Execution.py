@@ -369,7 +369,13 @@ def getNullInput():
 
 
 def executeToolChecked(
-    logger, command, absence_message, stderr_filter=None, optional=False, decoding=False
+    logger,
+    command,
+    absence_message,
+    stderr_filter=None,
+    optional=False,
+    decoding=False,
+    context=None,
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
@@ -406,7 +412,7 @@ def executeToolChecked(
     result = process.poll()
 
     if stderr_filter is not None:
-        new_result, stderr = stderr_filter(stderr)
+        new_result, stderr = stderr_filter(stderr, **(context or {}))
 
         if new_result is not None:
             result = new_result

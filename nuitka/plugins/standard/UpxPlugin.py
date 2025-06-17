@@ -5,7 +5,7 @@
 
 import os
 
-from nuitka.Options import isOnefileMode
+from nuitka.Options import isOnefileMode, shallNotCompressOnefile
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
@@ -31,7 +31,19 @@ class NuitkaPluginUpx(NuitkaPluginBase):
         self.upx_binary_hash = None
         self.upx_nocache = upx_nocache
 
-        self.warning_given = False
+    def onCompilationStartChecks(self):
+        if self.upx_binary is None:
+            self.sysexit(
+                """\
+No UPX binary found, please use '--upx-binary' option to specify it."""
+            )
+
+        if isOnefileMode and not shallNotCompressOnefile() and not isLinux():
+            self.warning(
+                """\
+For best results, disable onefile compression with '--onefile-no-compression' \
+as double compression going to give larger and slower results."""
+            )
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -52,22 +64,25 @@ The UPX binary to use or the directory it lives in, by default `upx` from PATH i
 Do not cache UPX compression result, by default DLLs are cached, exe files are not.""",
         )
 
-    @staticmethod
-    def _filterUpxError(stderr):
+    def _filterUpxError(self, stderr, filename):
         new_result = None
 
-        if (
-            b"NotCompressibleException" in stderr
-            or b"CantPackException" in stderr
-            or b"AlreadyPackedException" in stderr
+        for candidate in (
+            b"NotCompressibleException",
+            b"CantPackException",
+            b"AlreadyPackedException",
         ):
-            stderr = b""
-            new_result = 0
+            if candidate in stderr:
+                if candidate == b"NotCompressibleException":
+                    self.warning("File %s is not compressible." % filename)
+
+                stderr = b""
+                new_result = 0
 
         return new_result, stderr
 
     def _compressFile(self, filename, use_cache):
-        upx_options = ["-q", "--no-progress"]
+        upx_options = ["-q", "--no-progress", "--best", "--lzma"]
 
         if os.path.basename(filename).startswith("vcruntime140"):
             return
@@ -110,42 +125,25 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
             command=command,
             absence_message="UPX not found",
             stderr_filter=self._filterUpxError,
+            context={"filename": filename},
         )
 
         if use_cache:
             copyFile(filename, upx_cache_filename)
 
-    def _warnNoUpx(self):
-        if not self.warning_given:
-            self.warning(
-                "No UPX binary found, please use '--upx-binary' option to specify it."
-            )
-            self.warning_given = True
-
     def onCopiedDLL(self, dll_filename):
-        if isOnefileMode():
-            pass
-        elif self.upx_binary is not None:
+        if not isOnefileMode():
             self._compressFile(filename=dll_filename, use_cache=not self.upx_nocache)
-        else:
-            self._warnNoUpx()
 
     # Cannot compress after payload has been added for onefile on Linux,
     # so have a dedicated point for that.
     def onBootstrapBinary(self, filename):
-        if not isLinux():
-            return
-
-        if self.upx_binary is not None:
+        if isLinux():
             self._compressFile(filename=filename, use_cache=False)
-        else:
-            self._warnNoUpx()
 
     def onFinalResult(self, filename):
-        if self.upx_binary is not None:
+        if not isLinux() or not isOnefileMode():
             self._compressFile(filename=filename, use_cache=False)
-        else:
-            self._warnNoUpx()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
