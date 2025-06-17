@@ -298,8 +298,9 @@ macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 # gcc compiler cf_protection option
 cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
-if getArgumentBool("progress_bar", True) and not show_scons_mode:
-    enableSconsProgressBar()
+progress_bar = getArgumentDefaulted("progress_bar", "auto")
+if not show_scons_mode:
+    enableSconsProgressBar(progress_bar)
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")

@@ -525,8 +525,8 @@ Error, the Python from Windows app store is not supported.""",
     # Force to persist this one early.
     getLaunchingSystemPrefixPath()
 
-    if options.progress_bar:
-        Progress.enableProgressBar()
+    if not options.no_progress_bar and options.progress_bar != "none":
+        Progress.enableProgressBar(options.progress_bar)
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
@@ -2805,8 +2805,8 @@ def shallPreferSourceCodeOverExtensionModules():
     return options is not None and options.prefer_source_code
 
 
-def shallUseProgressBar():
-    """*bool* prefer source code over extension modules if both are there"""
+def getProgressBar():
+    """*str* what progress bar to use if any, derived from ``--progress-bar``"""
     return options.progress_bar
 
 

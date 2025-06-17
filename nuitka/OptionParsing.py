@@ -1399,13 +1399,27 @@ detected compilers. Defaults to off.""",
 )
 
 tracing_group.add_option(
+    "--progress-bar",
+    action="store",
+    dest="progress_bar",
+    choices=("auto", "tqdm", "rich", "none"),
+    metavar="PROGRESS_BAR_MODE",
+    default="auto",
+    github_action=False,
+    help="""\
+Select the progress bar mode. The 'auto' selects 'rich' if available,
+otherwise 'tqdm'. The values 'tqdm' and 'rich' force a specific
+library. Use 'none' to disables progress bars. Defaults to 'auto'.""",
+)
+
+tracing_group.add_option(
     "--no-progressbar",
     "--no-progress-bar",
-    action="store_false",
-    dest="progress_bar",
-    default=True,
+    action="store_true",
+    dest="no_progress_bar",
+    default=False,
     github_action=False,
-    help="""Disable progress bars. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 tracing_group.add_option(

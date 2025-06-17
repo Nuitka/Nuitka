@@ -355,8 +355,7 @@ def main():
     as_archive = sys.argv[7] == "True"
     use_compression_cache = sys.argv[8] == "True"
 
-    if os.getenv("NUITKA_PROGRESS_BAR") == "1":
-        enableProgressBar()
+    enableProgressBar(os.getenv("NUITKA_PROGRESS_BAR"), "none")
 
     attachOnefilePayload(
         dist_dir=dist_dir,
