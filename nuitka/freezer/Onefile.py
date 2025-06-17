@@ -156,7 +156,7 @@ def runOnefileCompressor(
             )
         }
 
-        mapping["NUITKA_PROGRESS_BAR"] = "1" if Options.shallUseProgressBar() else "0"
+        mapping["NUITKA_PROGRESS_BAR"] = Options.getProgressBar()
 
         onefile_logger.info(
             "Using external Python '%s' to compress the payload."

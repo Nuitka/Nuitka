@@ -8,6 +8,7 @@ to the user while it's being displayed.
 
 """
 
+import sys
 from contextlib import contextmanager
 
 from nuitka import Tracing
@@ -20,7 +21,7 @@ from nuitka.utils.Utils import isWin32Windows
 # spell-checker: ignore tqdm,ncols
 
 # Late import and optional to be there.
-use_progress_bar = False
+use_progress_bar = "none"
 _tqdm = None
 _colorama = None
 
@@ -36,7 +37,7 @@ def enableThreading():
     _uses_threading = True
 
 
-class NuitkaProgressBar(object):
+class NuitkaProgressBarTqdm(object):
     def __init__(self, iterable, stage, total, min_total, unit):
         self.total = total
 
@@ -99,6 +100,113 @@ class NuitkaProgressBar(object):
         with self.tqdm.external_write_mode(
             nolock=not _uses_threading or isPythonWithGil()
         ):
+            yield
+
+
+class NuitkaProgressBarRich(object):
+    def __init__(self, iterable, stage, total, min_total, unit):
+        self.iterable = iterable
+
+        if total is None and hasattr(iterable, "__len__"):
+            self.total = len(iterable)
+        else:
+            self.total = total
+
+        self.min_total = min_total
+        self.item = None
+
+        self.rich_progress = _rich_progress.Progress(
+            _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
+            _rich_progress.BarColumn(bar_width=25),
+            _rich_progress.TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
+            _rich_progress.TextColumn("\u2022"),
+            _rich_progress.TextColumn(
+                "{task.completed:>0.0f}/{task.total:>0.0f} {task.fields[unit_label]}"
+            ),
+            _rich_progress.TextColumn("\u2022"),
+            _rich_progress.TextColumn("{task.fields[postfix]}"),
+            refresh_per_second=10000,
+            transient=True,
+            redirect_stdout=True,
+            redirect_stderr=True,
+        )
+        self.rich_progress.start()
+
+        effective_total = self.total
+        if self.total is not None:
+            if self.min_total is not None:
+                effective_total = max(self.total, self.min_total)
+            else:
+                effective_total = max(self.total, 0)
+        elif self.min_total is not None and self.min_total > 0:
+            effective_total = self.min_total
+        else:
+            effective_total = None
+
+        self.task_id = self.rich_progress.add_task(
+            description=stage,
+            total=effective_total,
+            postfix="",
+            unit_label=unit or "",
+            start=True,
+        )
+        self.setCurrent(self.item)
+
+    def __iter__(self):
+        if self.iterable is None:
+            return iter([])
+        else:
+            self.rich_progress.start_task(self.task_id)
+            for val in self.iterable:
+                yield val
+                self.update()
+
+    def updateTotal(self, total):
+        if total != self.total:
+            self.total = total
+            effective_total = total
+            if self.min_total is not None:
+                effective_total = max(total, self.min_total)
+            self.rich_progress.update(self.task_id, total=effective_total)
+
+    def setCurrent(self, item):
+        if item != self.item:
+            self.item = item
+            self.rich_progress.update(
+                self.task_id, postfix=str(item) if item is not None else ""
+            )
+
+    def update(self):
+        self.rich_progress.update(self.task_id, advance=1)
+
+    def clear(self):
+        # Rich progress with transient=True clears on stop, so this is not
+        # needed.
+        pass
+
+    def close(self):
+        if self.rich_progress.live.is_started:
+            # Ensure task is marked as finished if not already
+            if (
+                self.task_id in self.rich_progress.task_ids
+                and not self.rich_progress.tasks[
+                    self.rich_progress.task_ids.index(self.task_id)
+                ].finished
+            ):
+                self.rich_progress.stop_task(self.task_id)
+            self.rich_progress.stop()
+
+    @contextmanager
+    def withExternalWritingPause(self):
+        # Temporarily stop (and clear due to transient=True) the Rich progress display
+        # to allow external printing, then restart it.
+        if self.rich_progress.live.is_started:
+            self.rich_progress.stop()
+            try:
+                yield
+            finally:
+                self.rich_progress.start()
+        else:
             yield
 
 
@@ -172,28 +280,44 @@ def _getRichModule():
         return _rich_progress
 
 
-def enableProgressBar():
+def enableProgressBar(progress_bar):
     global use_progress_bar  # singleton, pylint: disable=global-statement
     global _colorama  # singleton, pylint: disable=global-statement
 
-    if _getTqdmModule() is not None:
-        use_progress_bar = True
+    if progress_bar in ("rich", "auto"):
+        if _getRichModule() is not None:
+            use_progress_bar = "rich"
 
-        if isWin32Windows():
-            if _colorama is None:
-                _colorama = importFromInlineCopy(
-                    "colorama", must_exist=True, delete_module=True
-                )
+    # If selected, or if rich wasn't found.
+    if progress_bar == "tqdm" or (
+        progress_bar == "rich" and use_progress_bar == "none"
+    ):
+        if _getTqdmModule() is not None:
+            use_progress_bar = "tqdm"
 
-            _colorama.init()
+            if isWin32Windows():
+                if _colorama is None:
+                    _colorama = importFromInlineCopy(
+                        "colorama", must_exist=True, delete_module=True
+                    )
+
+                _colorama.init()
 
 
 def setupProgressBar(stage, unit, total, min_total=0):
     # Make sure the other was closed.
     assert Tracing.progress is None
 
-    if use_progress_bar:
-        Tracing.progress = NuitkaProgressBar(
+    if use_progress_bar == "rich":
+        Tracing.progress = NuitkaProgressBarRich(
+            iterable=None,
+            stage=stage,
+            total=total,
+            min_total=min_total,
+            unit=unit,
+        )
+    elif use_progress_bar == "tqdm":
+        Tracing.progress = NuitkaProgressBarTqdm(
             iterable=None,
             stage=stage,
             total=total,
@@ -236,25 +360,32 @@ def closeProgressBar():
 
 
 def wrapWithProgressBar(iterable, stage, unit):
-    if _tqdm is None:
-        return iterable
-    else:
-        result = NuitkaProgressBar(
+    if use_progress_bar == "rich":
+        result = NuitkaProgressBarRich(
             iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
         )
-
         Tracing.progress = result
-
         return result
+    elif use_progress_bar == "tqdm":
+        result = NuitkaProgressBarTqdm(
+            iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
+        )
+        Tracing.progress = result
+        return result
+    else:
+        return iterable
 
 
 @contextmanager
 def withNuitkaDownloadProgressBar(*args, **kwargs):
-    if not use_progress_bar or (_getRichModule() is None and _getTqdmModule() is None):
+    if use_progress_bar == "none":
         yield None
         return
 
-    if _rich_progress:
+    # Check if stdout is a TTY for Rich
+    is_tty = sys.stdout.isatty()
+
+    if use_progress_bar == "rich":
         description = kwargs.get("desc", "Downloading")
         total_size_bytes = kwargs.get("total", 0)
 
@@ -269,6 +400,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             "\u2022",
             _rich_progress.TimeRemainingColumn(),
             transient=True,
+            disable=not is_tty,
         )
 
         with _rich_progress_cm as rich_p_instance:
