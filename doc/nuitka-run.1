@@ -604,8 +604,11 @@ Run the C building backend Scons with verbose
 information, showing the executed commands, detected
 compilers. Defaults to off.
 .TP
-\fB\-\-no\-progressbar\fR
-Disable progress bars. Defaults to off.
+\fB\-\-progress\-bar\fR=\fI\,PROGRESS_BAR_MODE\/\fR
+Select the progress bar mode. The 'auto' selects
+\&'rich' if available, otherwise 'tqdm'. The values
+\&'tqdm' and 'rich' force a specific library. Use 'none'
+to disables progress bars. Defaults to 'auto'.
 .TP
 \fB\-\-show\-progress\fR
 Obsolete: Provide progress information and statistics.

@@ -16,8 +16,8 @@ from nuitka.Progress import (
 from nuitka.Tracing import scons_logger
 
 
-def enableSconsProgressBar():
-    enableProgressBar()
+def enableSconsProgressBar(progress_bar):
+    enableProgressBar(progress_bar)
 
     import atexit
 
