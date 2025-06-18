@@ -156,19 +156,19 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 3, Nuitka_String_FromString("%(nuitka_version_level)s"));
 
-    PyObject *binary_directory = getContainingDirectoryObject(false);
+    PyObject *containing_directory = getContainingDirectoryObject(false);
 #if _NUITKA_STANDALONE_MODE
 #if !_NUITKA_ONEFILE_MODE
-    binary_directory = STRIP_DIRNAME(binary_directory);
+    containing_directory = STRIP_DIRNAME(containing_directory);
 #endif
 
 #if _NUITKA_MACOS_BUNDLE_MODE
-    binary_directory = STRIP_DIRNAME(binary_directory);
-    binary_directory = STRIP_DIRNAME(binary_directory);
+    containing_directory = STRIP_DIRNAME(containing_directory);
+    containing_directory = STRIP_DIRNAME(containing_directory);
 #endif
 #endif
 
-    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, binary_directory);
+    PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 4, containing_directory);
 
 #if _NUITKA_STANDALONE_MODE
     PyObject *is_standalone_mode = Py_True;
