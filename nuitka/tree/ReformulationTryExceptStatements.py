@@ -366,6 +366,7 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                 ),
             )
 
+    # spell-checker: ignore orelse
     no_raise = buildStatementsNode(
         provider=provider, nodes=node.orelse, source_ref=source_ref
     )
