@@ -728,7 +728,7 @@
     - patterns:
         - 'cacert.pem'
 
-- module-name: 'certifi.core' # checksum: 40d902d3
+- module-name: 'certifi.core' # checksum: 2eb9c89a
   anti-bloat:
     - description: 'avoid using importlib.resources without need'
       replacements_plain:
@@ -736,6 +736,7 @@
         # now ones check versions first.
         'from importlib.resources import path as get_path, read_text': 'raise ImportError'
         'sys.version_info': '(0,)'
+      when: 'version("certifi") < (2025,)'
 
 - module-name: 'cffi.api' # checksum: 4743eaca
   anti-bloat:
@@ -5419,12 +5420,18 @@
         'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
       when: 'not use_ipython'
 
-- module-name: 'reportlab' # checksum: 4aa9542b
+- module-name: 'reportlab' # checksum: 5844c802
   anti-bloat:
     - description: 'remove reportlab test code and unittest reference'
       global_change_function:
         'test': 'un-callable'
+        '_test': 'un-callable'
       when: 'not use_unittest'
+
+- module-name: 'reportlab.graphics.barcode.widgets' # checksum: 2c842857
+  implicit-imports:
+    - depends:
+        - 'reportlab.graphics.barcode.*'
 
 - module-name: 'reportlab.rl_config' # checksum: 8e035d91
   implicit-imports:
