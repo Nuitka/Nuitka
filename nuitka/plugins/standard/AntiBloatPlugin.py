@@ -577,9 +577,9 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
         function_name,
         body,
     ):
-        replace_code = anti_bloat_config.get(config_prefix + "change_function", {}).get(
-            function_name
-        )
+        config_item_name = config_prefix + "change_function"
+
+        replace_code = anti_bloat_config.get(config_item_name, {}).get(function_name)
 
         if replace_code == "un-callable":
             replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
@@ -594,8 +594,8 @@ Error, cannot exec module '%s', context code '%s' due to: %s"""
             config_module_name=config_module_name,
             module_name=module_name,
             expression=replace_code,
-            config_name="module '%s' config '%schange_function' of '%s'"
-            % (module_name, config_prefix, function_name),
+            config_name="module '%s' config '%s' of '%s'"
+            % (module_name, config_item_name, function_name),
             extra_context=self._getContextCode(
                 module_name=module_name, anti_bloat_config=anti_bloat_config
             ),
