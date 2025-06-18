@@ -1433,7 +1433,9 @@ except Exception as e:
             values=(("key", value),),
         ).key
 
-    def onFunctionBodyParsing(self, module_name, function_name, body):
+    def onFunctionBodyParsing(
+        self, module_name, function_qualname, function_name, body
+    ):
         """Provide a different function body for the function of that module.
 
         Should return a boolean, indicating if any actual change was done.
