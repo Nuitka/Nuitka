@@ -1855,7 +1855,6 @@ PyObject *getDllFilenameObject(void) {
 #endif
 
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
-#if _NUITKA_EXE_MODE
 #if defined(_NUITKA_ONEFILE_MODE)
     environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
     if (onefile_directory != NULL) {
@@ -1866,9 +1865,8 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
     }
 
     return getBinaryDirectoryObject(resolve_symlinks);
-#else
+#elif defined(_NUITKA_EXE_MODE)
     return getBinaryDirectoryObject(resolve_symlinks);
-#endif
 #else
     return getDllDirectoryObject();
 #endif
