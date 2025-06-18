@@ -1405,11 +1405,14 @@ class Plugins(object):
     def onFunctionBodyParsing(cls, provider, function_name, body):
         module_name = provider.getParentModule().getFullName()
 
+        function_qualname = provider.getChildQualname(function_name)
+
         for plugin in getActivePlugins():
             # TODO: Could record what functions got modified by what plugin
             # and in what way checking the return value
             plugin.onFunctionBodyParsing(
                 module_name=module_name,
+                function_qualname=function_qualname,
                 function_name=function_name,
                 body=body,
             )

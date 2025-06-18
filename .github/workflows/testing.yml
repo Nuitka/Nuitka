@@ -181,7 +181,8 @@ jobs:
             - '3.10'
             - '3.11'
             - '3.12'
-            - '3.13'
+            # TODO: Until it's not 3.13.4 anymore
+            # - '3.13'
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
