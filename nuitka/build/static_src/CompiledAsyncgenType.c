@@ -478,7 +478,7 @@ static PyObject *_Nuitka_Asyncgen_send(PyThreadState *tstate, struct Nuitka_Asyn
     case PYGEN_ERROR:
         return NULL;
     default:
-        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
+        NUITKA_CANNOT_GET_HERE("invalid result");
     }
 }
 
