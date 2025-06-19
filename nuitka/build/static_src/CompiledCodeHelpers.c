@@ -1854,6 +1854,14 @@ PyObject *getDllFilenameObject(void) {
 }
 #endif
 
+PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks) {
+#if defined(_NUITKA_EXE_MODE)
+    return getBinaryDirectoryObject(resolve_symlinks);
+#else
+    return getDllDirectoryObject();
+#endif
+}
+
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 #if defined(_NUITKA_ONEFILE_MODE)
     environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
@@ -1863,13 +1871,8 @@ PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
 
         return result;
     }
-
-    return getBinaryDirectoryObject(resolve_symlinks);
-#elif defined(_NUITKA_EXE_MODE)
-    return getBinaryDirectoryObject(resolve_symlinks);
-#else
-    return getDllDirectoryObject();
 #endif
+    return getPythonProgramDirectoryObject(resolve_symlinks);
 }
 
 #if _NUITKA_STANDALONE_MODE
@@ -1966,7 +1969,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     static PyObject *our_path_object = NULL;
 
     if (our_path_object == NULL) {
-        our_path_object = getContainingDirectoryObject(true);
+        our_path_object = getPythonProgramDirectoryObject(true);
     }
 
     return JOIN_PATH2(our_path_object, relative);
