@@ -148,9 +148,9 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
     return 0;
 }
 
-NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState *tstate, PyObject *exc,
-                                                                  PyObject *catching) {
-    CHECK_OBJECT(exc);
+NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_TUPLE(PyThreadState *tstate, PyObject *caught,
+                                                                   PyObject *catching) {
+    CHECK_OBJECT(caught);
     CHECK_OBJECT(catching);
     if (unlikely(CHECK_EXCEPTION_STAR_VALID(tstate, catching) < 0)) {
         return -1;
@@ -166,21 +166,6 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_GROUP_MATCH_BOOL(PyThreadState 
     // XXX When can this happen?
     if (unlikely(match == NULL || rest == NULL)) {
         return -1;
-    }
-
-    if (Py_IsNone(match)) {
-        Py_DECREF(match);
-        if (Py_IsNone(rest)) {
-            Py_DECREF(rest);
-            return 1;
-        }
-
-        // Partial match
-        return 0;
-    } else {
-        Py_DECREF(match);
-        Py_DECREF(rest);
-        return 1;
     }
 }
 
