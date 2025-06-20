@@ -321,11 +321,31 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
     )
 
 def generateExceptionGroupMatch(to_name, expression, emit, context):
-    assert expression.mayRaiseExceptionComparison() is False
+    assert expression.mayRaiseExceptionComparison() is True
+    caught_exception = context.allocateTempName("caught_exception")
+    generateExpressionCode(
+        to_name=caught_exception,
+        expression=expression.caught,
+        emit=emit,
+        context=context,
+        allow_none=False,
+    )
+
+    to_match = context.allocateTempName("to_match")
+    generateExpressionCode(
+        to_name=to_match,
+        expression=expression.catching,
+        emit=emit,
+        context=context,
+        allow_none=False,
+    )
+
     emit(
         "%s = EXCEPTION_GROUP_MATCH_TUPLE(tstate, %s, %s);"
-        % (to_name, expression.caught, expression.catching)
+        % (to_name, caught_exception, to_match)
     )
+    context.removeCleanupTempName(caught_exception)
+    context.removeCleanupTempName(to_match)
     getErrorExitCode(
         check_name=to_name,
         emit=emit,

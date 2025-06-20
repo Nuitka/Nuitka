@@ -149,7 +149,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
 }
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH_TUPLE(PyThreadState *tstate, PyObject *caught,
-                                                                   PyObject *catching) {
+                                                                         PyObject *catching) {
     CHECK_OBJECT(caught);
     CHECK_OBJECT(catching);
     if (unlikely(CHECK_EXCEPTION_STAR_VALID(tstate, catching) < 0)) {
@@ -158,7 +158,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH_TUPLE(PyThrea
 
     PyObject *match;
     PyObject *rest;
-    int res = EXCEPTION_GROUP_MATCH(tstate, catching, exc, &match, &rest);
+    int res = EXCEPTION_GROUP_MATCH(tstate, caught, catching, &match, &rest);
     if (res < 0) {
         return NULL;
     }
@@ -175,10 +175,10 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH_TUPLE(PyThrea
         is_match = PyList_GET_SIZE(match) > 0;
     }
 
-    PyObject *res = PyTuple_Pack(3, PyBool_FromLong(is_match), match, rest);
+    PyObject *tuple = PyTuple_Pack(3, PyBool_FromLong(is_match), match, rest);
     Py_DECREF(match);
     Py_DECREF(rest);
-    return res;
+    return tuple;
 }
 
 #endif

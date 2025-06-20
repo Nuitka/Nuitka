@@ -337,10 +337,29 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
 class ExpressionCaughtExceptionGroupMatch(ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_GROUP_MATCH"
 
+    __slots__ = ("caught", "catching")
+
     def __init__(self, caught, catching, source_ref):
         ExpressionBase.__init__(self, source_ref)
         self.caught = caught
         self.catching = catching
+
+    def finalize(self):
+        del self.caught
+        del self.catching
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+    def mayRaiseExceptionComparison(self):
+        return True
 
 
 def makeBuiltinMakeExceptionNode(
