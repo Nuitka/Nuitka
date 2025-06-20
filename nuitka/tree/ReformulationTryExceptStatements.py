@@ -201,7 +201,9 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
-def starTryHandler(matched, rest, exception_type, handler, source_ref): ...
+def starTryHandler(matched, rest, exception_type, handler, source_ref):
+    # TODO
+    return handler
 
 
 def makeStarTryMatch(provider, exception_type, handler, source_ref):
@@ -216,7 +218,7 @@ def makeStarTryMatch(provider, exception_type, handler, source_ref):
     tried = StatementsSequence(
         statements=(
             makeStatementAssignmentVariable(
-                ExpressionComparisonExceptionGroupMatch(
+                ExpressionCaughtExceptionGroupMatch(
                     caught=ExpressionCaughtExceptionValueRef(source_ref=source_ref),
                     catching=exception_type,
                     source_ref=source_ref,
