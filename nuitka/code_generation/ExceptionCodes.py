@@ -320,6 +320,17 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
         context=context,
     )
 
+def generateExceptionGroupMatch(to_name, expression, emit, context):
+    assert expression.mayRaiseExceptionComparison() is False
+    emit(
+        "%s = EXCEPTION_GROUP_MATCH_TUPLE(tstate, %s, %s);"
+        % (to_name, expression.caught, expression.catching)
+    )
+    getErrorExitCode(
+        check_name=to_name,
+        emit=emit,
+        context=context,
+    )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.

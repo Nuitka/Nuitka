@@ -1,26 +1,29 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of try/except statements.
+"""Reformulation of try/except statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef, makeExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    makeExpressionBuiltinRef,
+)
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
-    ExpressionComparisonExceptionGroupMatch
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantTrueRef, makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
+    ExpressionCaughtExceptionGroupMatch,
 )
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
@@ -38,7 +41,10 @@ from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     decodeAssignTarget,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement, makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
@@ -195,10 +201,57 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
+def starTryHandler(matched, rest, exception_type, handler, source_ref): ...
+
+
 def makeStarTryMatch(provider, exception_type, handler, source_ref):
-    return StatementsSequence(statements=(
-        handler,
-    ), source_ref=source_ref)
+    scope = provider.allocateTempScope()
+    result = provider.allocateTempVariable(temp_scope=scope, temp_name="result")
+    is_match = provider.allocateTempVariable(
+        temp_scope=scope, temp_name="is_match", temp_type="bool"
+    )
+    matched = provider.allocateTempVariable(temp_scope=scope, temp_name="matched")
+    rest = provider.allocateTempVariable(temp_scope=scope, temp_name="rest")
+
+    tried = StatementsSequence(
+        statements=(
+            makeStatementAssignmentVariable(
+                ExpressionComparisonExceptionGroupMatch(
+                    caught=ExpressionCaughtExceptionValueRef(source_ref=source_ref),
+                    catching=exception_type,
+                    source_ref=source_ref,
+                ),
+                variable=result,
+                source_ref=source_ref,
+            ),
+            makeStatementConditional(
+                condition=ExpressionComparisonIs(
+                    left=ExpressionTempVariableRef(
+                        variable=is_match, source_ref=source_ref
+                    ),
+                    right=ExpressionConstantTrueRef(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                yes_branch=starTryHandler(
+                    matched=matched,
+                    rest=rest,
+                    exception_type=exception_type,
+                    handler=handler,
+                    source_ref=source_ref,
+                ),
+                no_branch=None,
+                source_ref=source_ref,
+            ),
+        ),
+        source_ref=source_ref,
+    )
+
+    return makeTryFinallyReleaseStatement(
+        provider=provider,
+        tried=tried,
+        variables=(result, is_match, matched, rest),
+        source_ref=source_ref,
+    )
 
 
 def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
@@ -334,12 +387,11 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
     else:
         matchers = []
         for exception_type, handler in handlers:
-            matchers.append(makeStarTryMatch(
-                provider,
-                exception_type,
-                handler,
-                exception_type.source_ref
-            ))
+            matchers.append(
+                makeStarTryMatch(
+                    provider, exception_type, handler, exception_type.source_ref
+                )
+            )
 
         # except* handlers need to run even after a prior handler
         # has raised an exception, so wrap them all in a try/finally
