@@ -203,9 +203,42 @@ def makeTryExceptSingleHandlerNodeWithPublish(
 
 
 
-def starTryHandler(matched, rest, exception_type, handler, source_ref):
-    # TODO
-    return handler
+def starTryHandler(provider, matched, rest, handler, source_ref):
+    scope = provider.allocateTempScope(name="try_except_star_handler")
+    to_publish = provider.allocateTempVariable(temp_scope=scope, name="to_publish", temp_type="object")
+    raw_handler = StatementsSequence(
+        statements=(
+            makeStatementAssignmentVariable(
+                source=makeExpressionCall(
+                    called=makeExpressionBuiltinRef(
+                        "ExceptionGroup",
+                        locals_scope=None,
+                        source_ref=source_ref
+                    ),
+                    args=makeExpressionMakeTuple(
+                        elements=(
+                            makeConstantRefNode("", source_ref=source_ref),
+                            ExpressionTempVariableRef(matched, source_ref=source_ref),
+                        ),
+                        source_ref=source_ref,
+                    ),
+                    kw=None,
+                    source_ref=source_ref,
+                ),
+                variable=to_publish,
+                source_ref=source_ref
+            ),
+            # TODO: Figure out how to publish the exception
+            handler
+        ),
+        source_ref=source_ref
+    )
+    return makeTryFinallyReleaseStatement(
+        provider=provider,
+        tried=raw_handler,
+        variables=(to_publish,),
+        source_ref=source_ref,
+    )
 
 
 def makeStarTryMatch(provider, exception_type, handler, source_ref):
@@ -228,7 +261,7 @@ def makeStarTryMatch(provider, exception_type, handler, source_ref):
                 variable=result,
                 source_ref=source_ref,
             ),
-            makeStatementAssignmentUnpack(
+            *makeStatementAssignmentUnpack(
                 source=result,
                 variables=(is_match, matched, rest),
                 source_ref=source_ref
@@ -242,9 +275,9 @@ def makeStarTryMatch(provider, exception_type, handler, source_ref):
                     source_ref=source_ref,
                 ),
                 yes_branch=starTryHandler(
+                    provider=provider,
                     matched=matched,
                     rest=rest,
-                    exception_type=exception_type,
                     handler=handler,
                     source_ref=source_ref,
                 ),

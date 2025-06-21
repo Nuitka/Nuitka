@@ -20,6 +20,7 @@ from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.Options import isExperimental
+from nuitka.nodes.StatementNodes import StatementsSequence
 from .SubscriptNodes import makeExpressionIndexLookup
 from .ConstantRefNodes import makeConstantRefNode
 from .NodeMakingHelpers import (
@@ -1161,24 +1162,20 @@ def makeStatementAssignmentVariable(
         )
 
 def makeStatementAssignmentUnpack(source, variables, source_ref):
-    statements = []
     for index, variable in enumerate(variables):
-        statements.append(
-            makeStatementAssignmentVariable(
-                source=makeExpressionIndexLookup(
-                    expression=ExpressionTempVariableRef(
-                        variable=source,
-                        source_ref=source_ref
-                    ),
-                    index_value=index,
-                    source_ref=source_ref,
+        yield makeStatementAssignmentVariable(
+            source=makeExpressionIndexLookup(
+                expression=ExpressionTempVariableRef(
+                    variable=source,
+                    source_ref=source_ref
                 ),
-                variable=variable,
+                index_value=index,
                 source_ref=source_ref,
-            )
+            ),
+            variable=variable,
+            source_ref=source_ref,
         )
 
-    return StatementsSequence(statements=statements, source_ref=source_ref)
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
