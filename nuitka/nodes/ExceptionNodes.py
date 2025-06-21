@@ -7,12 +7,15 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ChildrenHavingMixins import ChildHavingExceptionTypeMixin
+from .ChildrenHavingMixins import (
+    ChildHavingExceptionTypeMixin,
+)
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionAttributeErrorBase,
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
+    ExpressionCaughtExceptionGroupMatchBase
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
 from .StatementBasesGenerated import StatementRaiseExceptionBase
@@ -334,31 +337,22 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-class ExpressionCaughtExceptionGroupMatch(ExpressionBase):
+
+class ExpressionCaughtExceptionGroupMatch(
+    ExpressionCaughtExceptionGroupMatchBase, ExpressionBase
+):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_GROUP_MATCH"
 
-    __slots__ = ("caught", "catching")
+    named_children = ("caught", "catching")
 
-    def __init__(self, caught, catching, source_ref):
-        ExpressionBase.__init__(self, source_ref)
-        self.caught = caught
-        self.catching = catching
+    auto_compute_handling = "final,raise"
 
-    def finalize(self):
-        del self.caught
-        del self.catching
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
+    @staticmethod
+    def mayRaiseException(exception_type):
         return True
 
     @staticmethod
     def mayRaiseExceptionOperation():
-        return True
-
-    def mayRaiseExceptionComparison(self):
         return True
 
 
