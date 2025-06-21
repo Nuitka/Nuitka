@@ -208,12 +208,12 @@ def starTryHandler(matched, rest, exception_type, handler, source_ref):
 
 def makeStarTryMatch(provider, exception_type, handler, source_ref):
     scope = provider.allocateTempScope(name="try_except_star")
-    result = provider.allocateTempVariable(temp_scope=scope, name="result", temp_type="tuple")
+    result = provider.allocateTempVariable(temp_scope=scope, name="result", temp_type="object")
     is_match = provider.allocateTempVariable(
         temp_scope=scope, name="is_match", temp_type="bool"
     )
-    matched = provider.allocateTempVariable(temp_scope=scope, name="matched", temp_type="list")
-    rest = provider.allocateTempVariable(temp_scope=scope, name="rest", temp_type="list")
+    matched = provider.allocateTempVariable(temp_scope=scope, name="matched", temp_type="object")
+    rest = provider.allocateTempVariable(temp_scope=scope, name="rest", temp_type="object")
 
     tried = StatementsSequence(
         statements=(
