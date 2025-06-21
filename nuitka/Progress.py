@@ -114,6 +114,8 @@ class NuitkaProgressBarRich(object):
 
         self.min_total = min_total
         self.item = None
+        self._cached_postfix = ""  # Cache for postfix to avoid redundant updates
+        self._cached_item_str = None  # Cache string representation of current item
 
         self.rich_progress = _rich_progress.Progress(
             _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
@@ -124,11 +126,11 @@ class NuitkaProgressBarRich(object):
                 "{task.completed:>0.0f}/{task.total:>0.0f} {task.fields[unit_label]}"
             ),
             _rich_progress.TextColumn("\u2022"),
-            _rich_progress.TextColumn("{task.fields[postfix]}"),
-            refresh_per_second=10000,
+            _rich_progress.TextColumn("[bold blue]{task.fields[postfix]}"),  # Made postfix blue
+            refresh_per_second=20,
             transient=True,
-            redirect_stdout=True,
-            redirect_stderr=True,
+            redirect_stdout=False,  # Theses should allow us to do keyboard inputs without breaking
+            redirect_stderr=False,  #
         )
         self.rich_progress.start()
 
@@ -172,9 +174,23 @@ class NuitkaProgressBarRich(object):
     def setCurrent(self, item):
         if item != self.item:
             self.item = item
-            self.rich_progress.update(
-                self.task_id, postfix=str(item) if item is not None else ""
-            )
+            # Use cached string representation if item hasn't changed
+            if item is None:
+                new_postfix = ""
+            elif item == self._cached_item_str:
+                new_postfix = self._cached_postfix
+            else:
+                new_postfix = str(item)
+                self._cached_item_str = item
+
+            # Only update if postfix actually changed
+            if new_postfix != self._cached_postfix:
+                self._cached_postfix = new_postfix
+                try:
+                    self.rich_progress.update(self.task_id, postfix=new_postfix)
+                except (KeyError, IndexError):
+                    # Handle potential Rich internal changes gracefully
+                    pass
 
     def update(self):
         self.rich_progress.update(self.task_id, advance=1)
@@ -187,13 +203,17 @@ class NuitkaProgressBarRich(object):
     def close(self):
         if self.rich_progress.live.is_started:
             # Ensure task is marked as finished if not already
-            if (
-                self.task_id in self.rich_progress.task_ids
-                and not self.rich_progress.tasks[
-                    self.rich_progress.task_ids.index(self.task_id)
-                ].finished
-            ):
-                self.rich_progress.stop_task(self.task_id)
+            try:
+                if (
+                    self.task_id in self.rich_progress.task_ids
+                    and not self.rich_progress.tasks[
+                        self.rich_progress.task_ids.index(self.task_id)
+                    ].finished
+                ):
+                    self.rich_progress.stop_task(self.task_id)
+            except (KeyError, IndexError, ValueError):
+                # Handle potential Rich internal state issues gracefully
+                pass
             self.rich_progress.stop()
 
     @contextmanager
@@ -401,19 +421,26 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             _rich_progress.TimeRemainingColumn(),
             transient=True,
             disable=not is_tty,
+            refresh_per_second=10,  # Reduced from default for better performance during downloads
         )
 
         with _rich_progress_cm as rich_p_instance:
             task_id = rich_p_instance.add_task(
                 description, total=total_size_bytes or None
             )
+            last_completed = 0  # Cache to avoid redundant updates
 
             def onProgressRich(block_num=1, block_size=1, total_size=None):
+                nonlocal last_completed
+
                 if total_size is not None:
                     rich_p_instance.update(task_id, total=total_size)
 
                 current_completed = block_num * block_size
-                rich_p_instance.update(task_id, completed=current_completed)
+                # Only update if progress actually changed significantly
+                if current_completed != last_completed:
+                    rich_p_instance.update(task_id, completed=current_completed)
+                    last_completed = current_completed
 
             yield onProgressRich
     else:
