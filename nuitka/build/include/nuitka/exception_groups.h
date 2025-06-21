@@ -167,14 +167,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *EXCEPTION_GROUP_MATCH_TUPLE(PyThrea
         return NULL;
     }
 
-    int is_match;
-    if (Py_IsNone(match)) {
-        is_match = false;
-    } else {
-        // XXX Can it be something other than a list?
-        is_match = PyList_GET_SIZE(match) > 0;
-    }
-
+    int is_match = !Py_IsNone(match);
     PyObject *tuple = PyTuple_Pack(3, PyBool_FromLong(is_match), match, rest);
     Py_DECREF(match);
     Py_DECREF(rest);
