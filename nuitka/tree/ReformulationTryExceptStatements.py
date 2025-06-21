@@ -204,30 +204,8 @@ def makeTryExceptSingleHandlerNodeWithPublish(
 
 
 def starTryHandler(provider, matched, rest, handler, source_ref):
-    scope = provider.allocateTempScope(name="try_except_star_handler")
-    to_publish = provider.allocateTempVariable(temp_scope=scope, name="to_publish", temp_type="object")
     raw_handler = StatementsSequence(
         statements=(
-            makeStatementAssignmentVariable(
-                source=makeExpressionCall(
-                    called=makeExpressionBuiltinRef(
-                        "ExceptionGroup",
-                        locals_scope=None,
-                        source_ref=source_ref
-                    ),
-                    args=makeExpressionMakeTuple(
-                        elements=(
-                            makeConstantRefNode("", source_ref=source_ref),
-                            ExpressionTempVariableRef(matched, source_ref=source_ref),
-                        ),
-                        source_ref=source_ref,
-                    ),
-                    kw=None,
-                    source_ref=source_ref,
-                ),
-                variable=to_publish,
-                source_ref=source_ref
-            ),
             # TODO: Figure out how to publish the exception
 
             # XXX: This is a hack! It seems that we can't have a StatementsSequence()
@@ -238,16 +216,12 @@ def starTryHandler(provider, matched, rest, handler, source_ref):
                 yes_branch=handler,
                 no_branch=None,
                 source_ref=source_ref,
-            )
+            ),
         ),
         source_ref=source_ref
     )
-    return makeTryFinallyReleaseStatement(
-        provider=provider,
-        tried=raw_handler,
-        variables=(to_publish,),
-        source_ref=source_ref,
-    )
+    # TODO: Try/finally that raises rest
+    return raw_handler
 
 
 def makeStarTryMatch(provider, exception_type, handler, source_ref):
