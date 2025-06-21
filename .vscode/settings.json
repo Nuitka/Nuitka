@@ -15,7 +15,7 @@
         "**/*.tmp": true,
         "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
-        "build": true,
+        "build": true
     },
     "files.associations": {
         "*.tac": "python",
@@ -94,16 +94,15 @@
         "xstring": "c",
         "cstdint": "c",
         "hash_map": "c",
-        "list": "c"
+        "list": "c",
+        "regex": "c"
     },
     "python.analysis.autoSearchPaths": false,
     "python.analysis.extraPaths": [
         "nuitka/build/inline_copy/lib/scons-3.1.2",
         "nuitka/build/inline_copy/clcache"
     ],
-    "python.analysis.exclude": [
-        "nuitka/build/inline_copy/stubgen",
-    ],
+    "python.analysis.exclude": ["nuitka/build/inline_copy/stubgen"],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
@@ -468,7 +467,7 @@
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
             "*.nuitka-package.config.yml",
-            "*.nuitka-package.config.yaml",
+            "*.nuitka-package.config.yaml"
         ]
     },
     "yaml.maxItemsComputed": 10000,
