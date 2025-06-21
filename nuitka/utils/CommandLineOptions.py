@@ -3,6 +3,7 @@
 
 """ Tools for command line options."""
 
+import os
 import sys
 from optparse import (
     AmbiguousOptionError,
@@ -188,7 +189,11 @@ class OurHelpFormatter(IndentedHelpFormatter):
 
 
 def makeOptionsParser(usage):
-    return OurOptionParser(usage=usage, formatter=OurHelpFormatter())
+    kwargs = {}
+    if os.getenv("NUITKA_MANPAGE_GEN"):
+        kwargs["width"] = 10000
+
+    return OurOptionParser(usage=usage, formatter=OurHelpFormatter(**kwargs))
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
