@@ -229,7 +229,16 @@ def starTryHandler(provider, matched, rest, handler, source_ref):
                 source_ref=source_ref
             ),
             # TODO: Figure out how to publish the exception
-            handler
+
+            # XXX: This is a hack! It seems that we can't have a StatementsSequence()
+            # nested directly under a StatementsSequence(), so we wrap it in an "if True"
+            # to keep things compiling for now.
+            makeStatementConditional(
+                condition=ExpressionConstantTrueRef(source_ref=source_ref),
+                yes_branch=handler,
+                no_branch=None,
+                source_ref=source_ref,
+            )
         ),
         source_ref=source_ref
     )
