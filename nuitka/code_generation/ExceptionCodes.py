@@ -347,6 +347,8 @@ def generateExceptionGroupMatch(to_name, expression, emit, context):
         check_name=to_name,
         emit=emit,
         context=context,
+        release_names=(caught_exception, to_match),
+        needs_check=expression.mayRaiseExceptionOperation()
     )
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
