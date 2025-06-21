@@ -31,8 +31,9 @@ from nuitka.nodes.StatementNodes import (
     StatementRestoreFrameException,
     StatementsSequence,
 )
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable, makeStatementAssignmentUnpack
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -201,6 +202,7 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
+
 def starTryHandler(matched, rest, exception_type, handler, source_ref):
     # TODO
     return handler
@@ -218,13 +220,18 @@ def makeStarTryMatch(provider, exception_type, handler, source_ref):
     tried = StatementsSequence(
         statements=(
             makeStatementAssignmentVariable(
-                ExpressionCaughtExceptionGroupMatch(
+                source=ExpressionCaughtExceptionGroupMatch(
                     caught=ExpressionCaughtExceptionValueRef(source_ref=source_ref),
                     catching=exception_type,
                     source_ref=source_ref,
                 ),
                 variable=result,
                 source_ref=source_ref,
+            ),
+            makeStatementAssignmentUnpack(
+                source=result,
+                variables=(is_match, matched, rest),
+                source_ref=source_ref
             ),
             makeStatementConditional(
                 condition=ExpressionComparisonIs(
