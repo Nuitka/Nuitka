@@ -384,6 +384,15 @@ def withNoWarning():
         yield
 
 
+@contextmanager
+def withNoExceptions():
+    """Only let RuntimeError and the like escape."""
+    try:
+        yield
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass
+
+
 def decoratorRetries(
     logger,
     purpose,

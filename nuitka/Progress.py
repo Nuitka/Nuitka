@@ -8,6 +8,7 @@ to the user while it's being displayed.
 
 """
 
+import atexit
 import sys
 from contextlib import contextmanager
 
@@ -16,7 +17,7 @@ from nuitka.PythonVersions import isPythonWithGil
 from nuitka.Tracing import general
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.Utils import isWin32Windows, withNoExceptions
 
 # spell-checker: ignore tqdm,ncols
 
@@ -24,6 +25,13 @@ from nuitka.utils.Utils import isWin32Windows
 use_progress_bar = "none"
 _tqdm = None
 _colorama = None
+
+# Determine the bullet character based on file encoding
+try:
+    "\u2022".encode(sys.__stdout__.encoding)
+    _bullet_character = "\u2022"
+except UnicodeEncodeError:
+    _bullet_character = "*"
 
 _uses_threading = False
 
@@ -119,16 +127,16 @@ class NuitkaProgressBarRich(object):
             _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
             _rich_progress.BarColumn(bar_width=25),
             _rich_progress.TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
-            _rich_progress.TextColumn("\u2022"),
+            _bullet_character,
             _rich_progress.TextColumn(
                 "{task.completed:>0.0f}/{task.total:>0.0f} {task.fields[unit_label]}"
             ),
-            _rich_progress.TextColumn("\u2022"),
-            _rich_progress.TextColumn("{task.fields[postfix]}"),
+            _rich_progress.TextColumn("{task.fields[postfix_bullet]}"),
+            _rich_progress.TextColumn("[bold blue]{task.fields[postfix]}"),
             refresh_per_second=10000,
             transient=True,
-            redirect_stdout=True,
-            redirect_stderr=True,
+            redirect_stdout=False,
+            redirect_stderr=False,
         )
         self.rich_progress.start()
 
@@ -147,6 +155,7 @@ class NuitkaProgressBarRich(object):
             description=stage,
             total=effective_total,
             postfix="",
+            postfix_bullet="",
             unit_label=unit or "",
             start=True,
         )
@@ -172,8 +181,11 @@ class NuitkaProgressBarRich(object):
     def setCurrent(self, item):
         if item != self.item:
             self.item = item
+
             self.rich_progress.update(
-                self.task_id, postfix=str(item) if item is not None else ""
+                self.task_id,
+                postfix=str(item),
+                postfix_bullet=_bullet_character if item is not None else "",
             )
 
     def update(self):
@@ -193,8 +205,12 @@ class NuitkaProgressBarRich(object):
                     self.rich_progress.task_ids.index(self.task_id)
                 ].finished
             ):
-                self.rich_progress.stop_task(self.task_id)
-            self.rich_progress.stop()
+
+                with withNoExceptions():
+                    self.rich_progress.stop_task(self.task_id)
+
+            with withNoExceptions():
+                self.rich_progress.stop()
 
     @contextmanager
     def withExternalWritingPause(self):
@@ -277,6 +293,8 @@ def _getRichModule():
     if _rich_progress is False:
         return None
     else:
+        atexit.register(_cleanupRich)
+
         return _rich_progress
 
 
@@ -302,6 +320,12 @@ def enableProgressBar(progress_bar):
                     )
 
                 _colorama.init()
+
+
+def _cleanupRich():
+    if use_progress_bar == "rich" and Tracing.progress is not None:
+        with withNoExceptions():
+            Tracing.progress.close()
 
 
 def setupProgressBar(stage, unit, total, min_total=0):
@@ -409,11 +433,10 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             )
 
             def onProgressRich(block_num=1, block_size=1, total_size=None):
+                # pylint: disable=unused-argument
+
                 if total_size is not None:
                     rich_p_instance.update(task_id, total=total_size)
-
-                current_completed = block_num * block_size
-                rich_p_instance.update(task_id, completed=current_completed)
 
             yield onProgressRich
     else:
