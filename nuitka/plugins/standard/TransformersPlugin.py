@@ -5,6 +5,8 @@
 
 """
 
+import os
+
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -42,13 +44,24 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
         if "_import_structure = {" in source_code:
             self._import_structure_modules.add(module_name)
 
-    def _getImportStructureDefinition(self, module_name, source_filename):
+    def _getImportStructureDefinition(self, module_name, source_filename, prefix):
         # TODO: Is caching is not needed, because it does that on
         # its own?
+
+        if prefix is None:
+            value = (
+                "{tuple(key): value for (key, value) in define_import_structure(%r).items()}"
+                % source_filename
+            )
+        else:
+            value = (
+                "{tuple(key): value for (key, value) in define_import_structure(%r, prefix=%r).items()}"
+                % (source_filename, prefix)
+            )
+
         import_structure_value = self.queryRuntimeInformationSingle(
             setup_codes="from transformers.utils.import_utils import define_import_structure",
-            value="{tuple(key): value for (key, value) in define_import_structure(%r).items()}"
-            % source_filename,
+            value=value,
             info_name="transformers_%s_import_structure" % module_name.asString(),
         )
 
@@ -77,16 +90,44 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                 yield sub_module_name
 
         if module_name in self._define_structure_modules:
-            for sub_module_name in self._define_structure_modules[module_name][
-                frozenset()
-            ].keys():
+            for sub_module_name in (
+                self._define_structure_modules[module_name].get(frozenset(), {}).keys()
+            ):
                 yield module_name.getChildNamed(sub_module_name)
 
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         if module_name.hasNamespace("transformers"):
+            if (
+                'define_import_structure(Path(__file__).parent / "models", prefix="models")'
+                in source_code
+            ):
+                import_structure_value = self._getImportStructureDefinition(
+                    module_name=module_name,
+                    source_filename=os.path.join(
+                        os.path.dirname(source_filename), "models"
+                    ),
+                    prefix="models",
+                )
+
+                # Frozenset does not transport as such, so we converted
+                # them to tuples and now back for compatibility.
+                import_structure_value = dict(
+                    (frozenset(key), value)
+                    for key, value in import_structure_value.items()
+                )
+
+                source_code = source_code.replace(
+                    'define_import_structure(Path(__file__).parent / "models", prefix="models")',
+                    repr(import_structure_value),
+                )
+
+                self._define_structure_modules[module_name] = import_structure_value
+
             if "define_import_structure(_file)" in source_code:
                 import_structure_value = self._getImportStructureDefinition(
-                    module_name=module_name, source_filename=source_filename
+                    module_name=module_name,
+                    source_filename=source_filename,
+                    prefix=None,
                 )
 
                 # Frozenset does not transport as such, so we converted
