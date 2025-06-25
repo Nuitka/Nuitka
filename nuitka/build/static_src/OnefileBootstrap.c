@@ -980,6 +980,19 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 }
 #endif
 
+#if defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+#define NEEDS_ORIGINAL_ARGV0
+#endif
+
+static native_command_line_argument_t const *original_argv0 = NULL;
+
+#if defined(NEEDS_ORIGINAL_ARGV0)
+native_command_line_argument_t const *getOriginalArgv0(void) {
+    assert(original_argv0 != NULL);
+    return original_argv0;
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -987,13 +1000,20 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lp
 #else
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
-#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
-    hideConsoleIfSpawned();
-#endif
 #else
 int main(int argc, char **argv) {
 #endif
 #endif
+
+#if defined(NEEDS_ORIGINAL_ARGV0)
+    original_argv0 = argv[0];
+#endif
+
+    // Hide the console window if asked to do so.
+#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+    hideConsoleIfSpawned();
+#endif
+
     // Attach to the parent console respecting redirection only, otherwise we cannot
     // even output traces.
 #if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
