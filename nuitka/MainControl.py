@@ -25,6 +25,7 @@ from nuitka.code_generation.ConstantCodes import (
 )
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
+    addIncludedDataFilesFromFlavor,
     addIncludedDataFilesFromPackageOptions,
     addIncludedDataFilesFromPlugins,
     copyDataFiles,
@@ -988,6 +989,7 @@ def _main():
 
     Plugins.onCompilationStartChecks()
 
+    addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
