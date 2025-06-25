@@ -723,10 +723,13 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
             found_candidate = candidates[0]
         else:
             for candidate in candidates:
-                for fullname, _filename in listDirCached(candidate.found_in):
-                    if fullname == candidate.full_path:
-                        found_candidate = candidate
-                        break
+                if candidate.found_in is None:
+                    found_candidate = candidate
+                else:
+                    for fullname, _filename in listDirCached(candidate.found_in):
+                        if fullname == candidate.full_path:
+                            found_candidate = candidate
+                            break
 
                 if found_candidate:
                     break
