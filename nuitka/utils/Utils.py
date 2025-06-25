@@ -326,15 +326,13 @@ def getCPUCoreCount():
 
 
 def hasOnefileSupportedOS():
-    return getOS() in (
-        "Linux",
-        "Windows",
-        "Darwin",
-        "FreeBSD",
-    )
+    """Is onefile supported on this OS. Please help to add more."""
+    # List the exceptions where standalone works, but onefile does not.
+    return hasStandaloneSupportedOS() and getOS not in ("OpenBSD",)
 
 
 def hasStandaloneSupportedOS():
+    """Is standalone supported on this OS. Please help to add more."""
     return getOS() in (
         "Linux",
         "Windows",
