@@ -32,7 +32,7 @@ extern void setEnvironmentVariableFromFilename(char const *name, filename_char_t
 extern void unsetEnvironmentVariable(char const *name);
 
 // Get the original argv0 value.
-extern filename_char_t const *getOriginalArgv0(void);
+extern native_command_line_argument_t const *getOriginalArgv0(void);
 
 #endif
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and

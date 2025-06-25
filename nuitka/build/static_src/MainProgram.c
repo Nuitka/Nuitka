@@ -68,6 +68,7 @@
 #endif
 
 #if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
+// spell-checker: ignore HRESULT,PCWSTR
 typedef HRESULT(WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 
 static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_model_id) {
@@ -1221,7 +1222,7 @@ PyObject *getOriginalArgv0Object(void) {
     return Nuitka_String_FromFilename(original_argv0);
 }
 
-filename_char_t const *getOriginalArgv0(void) {
+native_command_line_argument_t const *getOriginalArgv0(void) {
     assert(original_argv0 != NULL);
     return original_argv0;
 }
