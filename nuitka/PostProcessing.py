@@ -35,7 +35,12 @@ from nuitka.utils.SharedLibraries import (
     getOtoolDependencyOutput,
     parseOtoolListingOutput,
 )
-from nuitka.utils.Utils import isAndroidBasedLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    isAIX,
+    isAndroidBasedLinux,
+    isMacOS,
+    isWin32Windows,
+)
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
@@ -244,6 +249,27 @@ set NUITKA_PYTHONPATH=%(python_path)s
             "python_path": python_path,
             "exe_filename": exe_filename,
         }
+    elif isAIX() and not Options.isOnefileMode() and Options.isStandaloneMode():
+        # On AIX we need to set LIBPATH in order to force it to load the DLL from the standalone
+        # distribution. The onefile bootstrap does it the code already, and therefore does not
+        # need it at all.
+        # spell-checker: ignore LIBPATH
+        script_contents = """\
+#!/bin/sh
+# Absolute path to this script, e.g. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+SCRIPT_PATH=$(dirname "$SCRIPT")
+
+LIBPATH=$SCRIPT_PATH
+export LIBPATH
+
+%(debugger_call)s"$SCRIPT_PATH/%(exe_filename)s" $@
+""" % {
+            "debugger_call": debugger_call,
+            "exe_filename": exe_filename,
+        }
+
     else:
         # TODO: Setting PYTHONPATH should not be needed, but it fails to work
         # unlike on Windows for unknown reasons.

@@ -80,6 +80,7 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
+    isAIX,
     isDebianBasedLinux,
     isFreeBSD,
     isLinux,
@@ -1962,11 +1963,19 @@ def shallCreateScriptFileForExecution():
     """*bool* = derived from Python installation and modes
 
     Notes: Mostly for accelerated mode with uninstalled python, to make sure
-    they find their Python DLL and Python packages.
+    they find their Python DLL and Python packages. AIX needs help in standalone
+    mode too.
     """
 
-    # TODO: Are we having a need for both names really?
-    return shallTreatUninstalledPython()
+    # Accelerated mode
+    if shallTreatUninstalledPython():
+        return True
+
+    # AIX standalone, but not onefile mode.
+    if isAIX() and not isOnefileMode() and isStandaloneMode():
+        return True
+
+    return False
 
 
 def isShowScons():
