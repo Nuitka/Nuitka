@@ -26,13 +26,6 @@ use_progress_bar = "none"
 _tqdm = None
 _colorama = None
 
-# Determine the bullet character based on file encoding
-try:
-    "\u2022".encode(sys.__stdout__.encoding)
-    _bullet_character = "\u2022"
-except UnicodeEncodeError:
-    _bullet_character = "*"
-
 _uses_threading = False
 
 
@@ -127,7 +120,7 @@ class NuitkaProgressBarRich(object):
             _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
             _rich_progress.BarColumn(bar_width=25),
             _rich_progress.TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
-            _bullet_character,
+            "|",
             _rich_progress.TextColumn(
                 "{task.completed:>0.0f}/{task.total:>0.0f} {task.fields[unit_label]}"
             ),
@@ -185,7 +178,7 @@ class NuitkaProgressBarRich(object):
             self.rich_progress.update(
                 self.task_id,
                 postfix=str(item),
-                postfix_bullet=_bullet_character if item is not None else "",
+                postfix_bullet="|" if item is not None else "",
             )
 
     def update(self):
