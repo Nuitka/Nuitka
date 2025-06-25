@@ -26,6 +26,7 @@ def _filterCodesignErrorOutput(stderr):
         for line in stderr.splitlines()
         if line
         if b"replacing existing signature" not in line
+        if b"unable to build chain to self-signed root" not in line
     )
 
     if b"errSecInternalComponent" in stderr:
