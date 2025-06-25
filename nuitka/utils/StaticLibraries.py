@@ -29,6 +29,7 @@ from .Execution import executeToolChecked
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
+    isAIX,
     isDebianBasedLinux,
     isMacOS,
     isWin32Windows,
@@ -163,6 +164,9 @@ def _getSystemStaticLibPythonPath():
         return None
 
     if isPythonBuildStandalonePython():
+        return None
+
+    if isAIX():
         return None
 
     if isSelfCompiledPythonUninstalled():
