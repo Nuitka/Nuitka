@@ -1023,10 +1023,9 @@ def commentArgs():
         if not os.path.exists(filename):
             Tracing.general.sysexit("Error, file '%s' is not found." % filename)
 
-        if (
-            shallMakeModule()
-            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-        ):
+        if (shallMakeModule() or isStandaloneMode()) and os.path.normcase(
+            os.path.basename(filename)
+        ) == "__init__.py":
             Tracing.general.sysexit(
                 """\
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
