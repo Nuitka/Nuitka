@@ -1299,6 +1299,11 @@ int main(int argc, char **argv) {
     filename_char_t const *fork_binary = first_filename;
 #endif
 
+#if defined(_AIX)
+    // Force DLL loading from the distribution.
+    setEnvironmentVariable("LIBPATH", payload_path);
+#endif
+
 #if defined(_WIN32)
 
     // spell-checker: ignore STARTUPINFOW, STARTF_USESTDHANDLES
