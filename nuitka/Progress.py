@@ -58,11 +58,11 @@ class NuitkaProgressBarTqdm(object):
             total=(
                 max(self.total, self.min_total) if self.min_total is not None else None
             ),
-            unit=unit,
+            unit=(" " + unit + "s") if unit else "",
             disable=None,
             leave=False,
             dynamic_ncols=True,
-            bar_format="{desc}{percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
+            bar_format="{desc}{percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{unit}{postfix}",
         )
 
         self.tqdm.set_description(stage)
@@ -122,7 +122,7 @@ class NuitkaProgressBarRich(object):
             _rich_progress.TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
             "|",
             _rich_progress.TextColumn(
-                "{task.completed:>0.0f}/{task.total:>0.0f} {task.fields[unit_label]}"
+                "{task.completed:>0.0f}/{task.total:>0.0f}{task.fields[unit_label]}"
             ),
             _rich_progress.TextColumn("{task.fields[postfix_bullet]}"),
             _rich_progress.TextColumn("[bold blue]{task.fields[postfix]}"),
@@ -149,7 +149,7 @@ class NuitkaProgressBarRich(object):
             total=effective_total,
             postfix="",
             postfix_bullet="",
-            unit_label=unit or "",
+            unit_label=(" " + unit + "s") if unit else "",
             start=True,
         )
         self.setCurrent(self.item)
