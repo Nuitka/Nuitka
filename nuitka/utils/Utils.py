@@ -326,11 +326,23 @@ def getCPUCoreCount():
 
 
 def hasOnefileSupportedOS():
-    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
+    return getOS() in (
+        "Linux",
+        "Windows",
+        "Darwin",
+        "FreeBSD",
+    )
 
 
 def hasStandaloneSupportedOS():
-    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD", "OpenBSD")
+    return getOS() in (
+        "Linux",
+        "Windows",
+        "Darwin",
+        "FreeBSD",
+        "OpenBSD",
+        "AIX",
+    )
 
 
 def getUserName():
