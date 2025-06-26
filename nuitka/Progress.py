@@ -134,24 +134,61 @@ class NuitkaProgressBarRich(object):
         self.min_total = min_total
         self.item = None
 
+        class TextColumnCropped(_rich_progress.TextColumn):
+            def __init__(
+                self,
+                text_format,
+                style="none",
+                justify="left",
+                markup=True,
+                highlighter=None,
+                table_column=None,
+            ):
+                # False alarm, pylint: disable=non-parent-init-called
+                _rich_progress.TextColumn.__init__(
+                    self,
+                    text_format=text_format,
+                    style=style,
+                    justify=justify,
+                    markup=markup,
+                    highlighter=highlighter,
+                    table_column=table_column,
+                )
+
+            def render(self, task):
+                _text = self.text_format.format(task=task)
+                if self.markup:
+                    text = _rich_progress.Text.from_markup(
+                        _text, style=self.style, justify=self.justify, overflow="crop"
+                    )
+                else:
+                    text = _rich_progress.Text(
+                        _text, style=self.style, justify=self.justify, overflow="crop"
+                    )
+                if self.highlighter:
+                    self.highlighter.highlight(text)
+                return text
+
         self.rich_progress = _rich_progress.Progress(
             _rich_progress.TextColumn(
                 wrapWithStyles("{task.description}", styles=_progress_info_style),
-                justify="right",
+                justify="full",
             ),
             _rich_progress.BarColumn(bar_width=25),
             _rich_progress.TextColumn(
                 wrapWithStyles(
                     "{task.percentage:>5.1f}%", styles=_progress_percentage_style
-                )
+                ),
+                justify="full",
             ),
             "|",
             _rich_progress.TextColumn(
-                "{task.completed:>0.0f}/{task.total:>0.0f}{task.fields[unit_label]}"
+                "{task.completed:>0.0f}/{task.total:>0.0f}{task.fields[unit_label]}",
+                justify="full",
             ),
             _rich_progress.TextColumn("{task.fields[postfix_bullet]}"),
-            _rich_progress.TextColumn(
-                wrapWithStyles("{task.fields[postfix]}", styles=_progress_info_style)
+            TextColumnCropped(
+                wrapWithStyles("{task.fields[postfix]}", styles=_progress_info_style),
             ),
             refresh_per_second=10000,
             transient=True,
