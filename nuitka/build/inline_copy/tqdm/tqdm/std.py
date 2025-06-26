@@ -456,7 +456,7 @@ class tqdm(Comparable):
             total_fmt = str(total) if total is not None else '?'
 
         try:
-            postfix = ', ' + postfix if postfix else ''
+            postfix = ' - ' + postfix if postfix else ''
         except TypeError:
             pass
 
