@@ -103,7 +103,7 @@ def decideRecursion(
 ):
     package_part, _remainder = module_name.splitModuleBasename()
 
-    if package_part is not None:
+    if package_part is not None and package_part.getTopLevelPackageName() != "":
         (
             _package_part,
             package_filename,
