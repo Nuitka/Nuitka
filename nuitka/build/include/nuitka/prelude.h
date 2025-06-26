@@ -608,6 +608,10 @@ extern void INIT_C_BACKTRACES(void);
 extern void DUMP_C_BACKTRACE(void);
 #endif
 
+#if _NUITKA_PLUGIN_THEMIDA_ENABLED
+#include "nuitka_themida.h"
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
