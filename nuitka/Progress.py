@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 from nuitka import Tracing
 from nuitka.PythonVersions import isPythonWithGil
-from nuitka.Tracing import general
+from nuitka.Tracing import general, getDisableStylesCode
 from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows, withNoExceptions
@@ -22,11 +22,22 @@ from nuitka.utils.Utils import isWin32Windows, withNoExceptions
 # spell-checker: ignore tqdm,ncols
 
 # Late import and optional to be there.
-use_progress_bar = "none"
+use_progress_bar = None
 _tqdm = None
 _colorama = None
 
+
+def wrapWithStyles(value, styles):
+    if use_progress_bar == "tqdm":
+        return Tracing.wrapWithStyles(value, styles)
+    else:
+        return "[%s]%s" % (" ".join(styles), value)
+
+
 _uses_threading = False
+
+_progress_info_style = ("bold", "blue")
+_progress_percentage_style = ("bold", "green")
 
 
 def enableThreading():
@@ -51,6 +62,13 @@ class NuitkaProgressBarTqdm(object):
         # No progress yet.
         self.progress = 0
 
+        bar_format = "%s%s|{bar:25}| {n_fmt}/{total_fmt}{unit}%s%s" % (
+            wrapWithStyles("{desc}", styles=_progress_info_style),
+            wrapWithStyles("{percentage:5.1f}%", styles=_progress_percentage_style),
+            wrapWithStyles("{postfix}", styles=_progress_info_style),
+            getDisableStylesCode(),
+        )
+
         # Render immediately with 0 progress, and setting disable=None enables tty detection.
         self.tqdm = _tqdm(
             iterable=iterable,
@@ -62,7 +80,7 @@ class NuitkaProgressBarTqdm(object):
             disable=None,
             leave=False,
             dynamic_ncols=True,
-            bar_format="{desc}{percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{unit}{postfix}",
+            bar_format=bar_format,
         )
 
         self.tqdm.set_description(stage)
@@ -117,15 +135,24 @@ class NuitkaProgressBarRich(object):
         self.item = None
 
         self.rich_progress = _rich_progress.Progress(
-            _rich_progress.TextColumn("[bold blue]{task.description}", justify="right"),
+            _rich_progress.TextColumn(
+                wrapWithStyles("{task.description}", styles=_progress_info_style),
+                justify="right",
+            ),
             _rich_progress.BarColumn(bar_width=25),
-            _rich_progress.TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
+            _rich_progress.TextColumn(
+                wrapWithStyles(
+                    "{task.percentage:>5.1f}%", styles=_progress_percentage_style
+                )
+            ),
             "|",
             _rich_progress.TextColumn(
                 "{task.completed:>0.0f}/{task.total:>0.0f}{task.fields[unit_label]}"
             ),
             _rich_progress.TextColumn("{task.fields[postfix_bullet]}"),
-            _rich_progress.TextColumn("[bold blue]{task.fields[postfix]}"),
+            _rich_progress.TextColumn(
+                wrapWithStyles("{task.fields[postfix]}", styles=_progress_info_style)
+            ),
             refresh_per_second=10000,
             transient=True,
             redirect_stdout=False,
@@ -291,28 +318,57 @@ def _getRichModule():
         return _rich_progress
 
 
-def enableProgressBar(progress_bar):
-    global use_progress_bar  # singleton, pylint: disable=global-statement
+def _checkRichModule():
+    if _getRichModule() is not None:
+        return "rich"
+    else:
+        return "none"
+
+
+def _checkTqdmModule():
     global _colorama  # singleton, pylint: disable=global-statement
 
-    if progress_bar in ("rich", "auto"):
-        if _getRichModule() is not None:
-            use_progress_bar = "rich"
+    if _getTqdmModule() is not None:
+        if isWin32Windows():
+            if _colorama is None:
+                _colorama = importFromInlineCopy(
+                    "colorama", must_exist=True, delete_module=True
+                )
 
-    # If selected, or if rich wasn't found.
-    if progress_bar == "tqdm" or (
-        progress_bar == "rich" and use_progress_bar == "none"
-    ):
-        if _getTqdmModule() is not None:
-            use_progress_bar = "tqdm"
+            _colorama.init()
 
-            if isWin32Windows():
-                if _colorama is None:
-                    _colorama = importFromInlineCopy(
-                        "colorama", must_exist=True, delete_module=True
-                    )
+        return "tqdm"
+    else:
+        return "none"
 
-                _colorama.init()
+
+# Try progress bars in this order.
+_default_progress_bars = ("rich", "tqdm")
+
+
+def enableProgressBar(progress_bar):
+    global use_progress_bar  # singleton, pylint: disable=global-statement
+
+    if use_progress_bar is None:
+        use_progress_bar = "none"
+
+        if progress_bar == "auto":
+            check_progress_bars = _default_progress_bars
+        elif progress_bar in _default_progress_bars:
+            check_progress_bars = (progress_bar,)
+        else:
+            check_progress_bars = ()
+
+        for progress_bar_check in check_progress_bars:
+            if progress_bar_check == "rich":
+                use_progress_bar = _checkRichModule()
+            elif progress_bar_check == "tqdm":
+                use_progress_bar = _checkTqdmModule()
+            else:
+                assert False, progress_bar_check
+
+            if use_progress_bar != "none":
+                break
 
 
 def _cleanupRich():
@@ -372,6 +428,9 @@ def closeProgressBar():
 
         Tracing.progress.close()
         Tracing.progress = None
+
+        if sys.stdout.isatty():
+            Tracing.my_print(Tracing.getDisableStylesCode(), end="")
 
         return result
 
@@ -446,7 +505,8 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             disable=None,
             leave=False,
             dynamic_ncols=True,
-            bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
+            bar_format="{desc} {percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}"
+            + getDisableStylesCode(),
         )
         with NuitkaDownloadProgressBarTqdm(*args, **tqdm_kwargs) as pb_tqdm:
             yield pb_tqdm.onProgress
