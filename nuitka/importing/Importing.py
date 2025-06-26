@@ -135,6 +135,9 @@ def makeModuleUsageAttempt(
 ):
     assert source_ref is not None
 
+    # The looked for module usage attempt, cannot be a relative module name
+    assert module_name.getTopLevelPackageName() != "", source_ref
+
     return ModuleUsageAttempt(
         module_name=module_name,
         filename=filename,

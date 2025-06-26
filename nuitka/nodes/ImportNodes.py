@@ -943,17 +943,18 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             module_kind=module_kind,
         )
 
-        self.used_modules = makeParentModuleUsagesAttempts(
-            makeModuleUsageAttempt(
-                module_name=module_name_found,
-                filename=module_filename,
-                module_kind=module_kind,
-                finding=self.finding,
-                level=level_value,
-                source_ref=self.source_ref,
-                reason="import",
+        if module_name_found.getTopLevelPackageName() != "":
+            self.used_modules = makeParentModuleUsagesAttempts(
+                makeModuleUsageAttempt(
+                    module_name=module_name_found,
+                    filename=module_filename,
+                    module_kind=module_kind,
+                    finding=self.finding,
+                    level=level_value,
+                    source_ref=self.source_ref,
+                    reason="import",
+                )
             )
-        )
 
         if self.finding != "not-found":
             module_name = module_name_found
@@ -1066,40 +1067,42 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         parent_package = parent_package.getPackageName()
                         level_value -= 1
 
-                    if imported_module_name != "":
-                        candidate_module_name = parent_package.getChildNamed(
-                            imported_module_name
-                        )
-                    else:
-                        candidate_module_name = parent_package
+                    if parent_package is not None:
+                        if imported_module_name != "":
+                            candidate_module_name = parent_package.getChildNamed(
+                                imported_module_name
+                            )
+                        else:
+                            candidate_module_name = parent_package
 
-                    if (
-                        candidate_module_name in hard_modules_non_stdlib
-                        or module_filename is None
-                        or isStandardLibraryPath(module_filename)
-                    ):
-                        result = ExpressionImportModuleHard(
-                            using_module_name=self.getParentModule().getFullName(),
-                            module_name=candidate_module_name,
-                            value_name=self._getImportedValueName(
-                                candidate_module_name
-                            ),
-                            source_ref=self.source_ref,
-                        )
-
-                        return (
-                            result,
-                            "new_expression",
-                            "Lowered import %s module '%s' to hard import."
-                            % (
-                                (
-                                    "hard import"
-                                    if candidate_module_name in hard_modules_non_stdlib
-                                    else "standard library"
+                        if (
+                            candidate_module_name in hard_modules_non_stdlib
+                            or module_filename is None
+                            or isStandardLibraryPath(module_filename)
+                        ):
+                            result = ExpressionImportModuleHard(
+                                using_module_name=self.getParentModule().getFullName(),
+                                module_name=candidate_module_name,
+                                value_name=self._getImportedValueName(
+                                    candidate_module_name
                                 ),
-                                candidate_module_name.asString(),
-                            ),
-                        )
+                                source_ref=self.source_ref,
+                            )
+
+                            return (
+                                result,
+                                "new_expression",
+                                "Lowered import %s module '%s' to hard import."
+                                % (
+                                    (
+                                        "hard import"
+                                        if candidate_module_name
+                                        in hard_modules_non_stdlib
+                                        else "standard library"
+                                    ),
+                                    candidate_module_name.asString(),
+                                ),
+                            )
 
                 imported_module_name = resolveModuleName(imported_module_name)
 
