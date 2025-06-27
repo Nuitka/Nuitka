@@ -8406,7 +8406,7 @@
     - patterns:
         - '*.css'
 
-- module-name: 'transformers' # checksum: 73042aaa
+- module-name: 'transformers' # checksum: deea1e9e
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8437,6 +8437,11 @@
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
+
+    - description: 'remove setuptools (via triton) reference'
+      no-auto-follow:
+        'triton': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
