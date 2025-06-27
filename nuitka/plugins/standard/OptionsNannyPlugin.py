@@ -49,9 +49,12 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
             return
 
         if support_info == "parameter":
-            message = "Module has parameter: " + description
+            message = "Module '%s' has parameter: %s" % (full_name, description)
         elif support_info == "plugin":
-            message = "Module has plugin consideration: " + description
+            message = "Module '%s' has plugin consideration: %s" % (
+                full_name,
+                description,
+            )
         else:
             if condition != "True":
                 problem_desc = (
