@@ -716,6 +716,7 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "transformers.utils.dummy_pt_objects",  # Not performance relevant.
         "transformers.utils.dummy_flax_objects",  # Not performance relevant.
         "transformers.utils.dummy_tf_objects",  # Not performance relevant.
+        "tensorflow.lite.python.schema_py_generated",  # Not performance relevant.
         "rich",  #  Not performance relevant and memory leaking due to empty compiled cell leaks
         "altair.vegalite.v5.schema",  # Not performance relevant. spell-checker: ignore vegalite
         "azure",  # Not performance relevant.
