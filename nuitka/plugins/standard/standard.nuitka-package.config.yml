@@ -2282,7 +2282,13 @@
     - include-metadata:
         - 'jupyter_client'
 
-- module-name: 'keras' # checksum: 292d6ceb
+- module-name: 'keras' # checksum: ae48c1a8
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
   import-hacks:
     # This package adds another directory to the search path of itself,
     # which we will not find packages in unless added.
@@ -2301,13 +2307,6 @@
       replacements_plain:
         'from keras.src.testing_infra import test_utils': 'test_utils = None'
       when: 'not use_unittest'
-
-- module-name: 'keras.src.utils.vis_utils' # checksum: 7d07a2d1
-  anti-bloat:
-    - description: 'remove IPython reference'
-      no-auto-follow:
-        'IPython': 'ignore'
-      when: 'not use_ipython'
 
 - module-name: 'keras.utils.vis_utils' # checksum: 6cba68c8
   anti-bloat:
