@@ -472,7 +472,9 @@
         ".vscode",
         "Mini*.py",
         "devcontainer.json",
-        "nuitka/build/inline_copy"
+        "nuitka/build/inline_copy",
+        "debian",
+        "rpm/*.spec"
     ],
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
