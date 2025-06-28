@@ -1322,7 +1322,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
             return self._runtime_information_cache[info_name]
 
         keys = []
-        query_codes = []
+        query_codes = ['print("-*-" * 15)']
 
         for key, value_expression in values:
             keys.append(key)
@@ -1401,6 +1401,9 @@ except Exception as e:
 
         # Ignore Windows newlines difference.
         feedback = [line.strip() for line in feedback.splitlines()]
+
+        while feedback and not feedback[0] != "-*-" * 15:
+            feedback.pop(0)
 
         if feedback.count("-" * 27) != len(keys):
             self.sysexit(
