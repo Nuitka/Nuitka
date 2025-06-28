@@ -49,6 +49,7 @@ class PythonModuleBase(NodeBase):
     def __init__(self, module_name, reason, source_ref):
         assert type(module_name) is ModuleName, module_name
         assert module_name != "", source_ref
+        assert module_name.getTopLevelPackageName() != "", module_name
 
         NodeBase.__init__(self, source_ref=source_ref)
 
