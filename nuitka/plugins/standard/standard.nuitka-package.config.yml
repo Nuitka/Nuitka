@@ -917,6 +917,13 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
+- module-name: 'cupy' # checksum: c3037f5e
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'curl_cffi' # checksum: 30c8f50c
   data-files:
     - patterns:
