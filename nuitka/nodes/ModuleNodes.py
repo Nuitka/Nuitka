@@ -73,7 +73,7 @@ class PythonModuleBase(NodeBase):
     def attemptRecursion(self):
         # Make sure the package is recursed to if any
         package_name = self.module_name.getPackageName()
-        if package_name is None or package_name.getTopLevelPackageName() == "":
+        if package_name is None:
             return ()
 
         # Return the list of newly added modules.
