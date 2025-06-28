@@ -418,7 +418,15 @@ class Plugins(object):
                         % (plugin.plugin_name, v, module.getFullName())
                     )
 
-                yield ModuleName(v)
+                v = ModuleName(v)
+
+                if v.getTopLevelPackageName() == "":
+                    plugin.sysexit(
+                        "Plugin '%s' returned an invalid relative module name, not %r (for module '%s')"
+                        % (plugin.plugin_name, v, module.getFullName())
+                    )
+
+                yield v
 
         seen = set()
 
@@ -1064,6 +1072,9 @@ implicit import encountered."""
 
     @classmethod
     def onModuleUsageLookAhead(cls, module_name, module_filename, module_kind):
+        if module_name.getTopLevelPackageName() == "":
+            return
+
         if module_name in cls.module_usage_looked_ahead_cache:
             return
 
