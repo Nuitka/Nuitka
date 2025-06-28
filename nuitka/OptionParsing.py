@@ -1740,8 +1740,8 @@ Request an entitlement for access to a macOS protected resources, e.g.
 requests access to the microphone and provides an informative text for
 the user, why that is needed. Before the colon, is an OS identifier for
 an access right, then the informative text. Legal values can be found on
-https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources and
-the option can be specified multiple times. Default empty.""",
+https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources
+and the option can be specified multiple times. Default empty.""",
 )
 
 
