@@ -1,23 +1,29 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
 
-""" Reformulation of try/except statements.
+"""Reformulation of try/except statements.
 
 Consult the Developer Manual for information. TODO: Add ability to sync
 source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    makeExpressionBuiltinRef,
+)
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs,
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantTrueRef, makeConstantRefNode
+from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
+    ExpressionCaughtExceptionGroupMatch,
 )
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
@@ -25,8 +31,9 @@ from nuitka.nodes.StatementNodes import (
     StatementRestoreFrameException,
     StatementsSequence,
 )
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable, makeStatementAssignmentUnpack
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -35,11 +42,15 @@ from .ReformulationAssignmentStatements import (
     buildDeleteStatementFromDecoded,
     decodeAssignTarget,
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .ReformulationTryFinallyStatements import (
+    makeTryFinallyReleaseStatement,
+    makeTryFinallyStatement,
+)
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
+    makeCallNode,
     makeReraiseExceptionStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -191,6 +202,83 @@ def makeTryExceptSingleHandlerNodeWithPublish(
     )
 
 
+
+def starTryHandler(provider, matched, rest, handler, source_ref):
+    raw_handler = StatementsSequence(
+        statements=(
+            # TODO: Figure out how to publish the exception
+
+            # XXX: This is a hack! It seems that we can't have a StatementsSequence()
+            # nested directly under a StatementsSequence(), so we wrap it in an "if True"
+            # to keep things compiling for now.
+            makeStatementConditional(
+                condition=ExpressionConstantTrueRef(source_ref=source_ref),
+                yes_branch=handler,
+                no_branch=None,
+                source_ref=source_ref,
+            ),
+        ),
+        source_ref=source_ref
+    )
+    # TODO: Try/finally that raises rest
+    return raw_handler
+
+
+def makeStarTryMatch(provider, exception_type, handler, source_ref):
+    scope = provider.allocateTempScope(name="try_except_star")
+    result = provider.allocateTempVariable(temp_scope=scope, name="result", temp_type="object")
+    is_match = provider.allocateTempVariable(
+        temp_scope=scope, name="is_match", temp_type="bool"
+    )
+    matched = provider.allocateTempVariable(temp_scope=scope, name="matched", temp_type="object")
+    rest = provider.allocateTempVariable(temp_scope=scope, name="rest", temp_type="object")
+
+    tried = StatementsSequence(
+        statements=(
+            makeStatementAssignmentVariable(
+                source=ExpressionCaughtExceptionGroupMatch(
+                    caught=ExpressionCaughtExceptionValueRef(source_ref=source_ref),
+                    catching=exception_type,
+                    source_ref=source_ref,
+                ),
+                variable=result,
+                source_ref=source_ref,
+            ),
+            *makeStatementAssignmentUnpack(
+                source=result,
+                variables=(is_match, matched, rest),
+                source_ref=source_ref
+            ),
+            makeStatementConditional(
+                condition=ExpressionComparisonIs(
+                    left=ExpressionTempVariableRef(
+                        variable=is_match, source_ref=source_ref
+                    ),
+                    right=ExpressionConstantTrueRef(source_ref=source_ref),
+                    source_ref=source_ref,
+                ),
+                yes_branch=starTryHandler(
+                    provider=provider,
+                    matched=matched,
+                    rest=rest,
+                    handler=handler,
+                    source_ref=source_ref,
+                ),
+                no_branch=None,
+                source_ref=source_ref,
+            ),
+        ),
+        source_ref=source_ref,
+    )
+
+    return makeTryFinallyReleaseStatement(
+        provider=provider,
+        tried=tried,
+        variables=(result, is_match, matched, rest),
+        source_ref=source_ref,
+    )
+
+
 def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
     # Try/except nodes. Re-formulated as described in the Developer Manual.
     # Exception handlers made the assignment to variables explicit. Same for the
@@ -298,28 +386,54 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
     # Re-raise by default
     exception_handling = makeReraiseExceptionStatement(source_ref=source_ref)
 
-    for exception_type, handler in reversed(handlers):
-        if exception_type is None:
-            # A default handler was given, so use that indeed.
-            exception_handling = handler
-        else:
-            exception_handling = StatementsSequence(
-                statements=(
-                    makeStatementConditional(
-                        condition=ExpressionComparisonExceptionMatch(
-                            left=ExpressionCaughtExceptionTypeRef(
-                                source_ref=exception_type.source_ref
+    if not is_star_try:
+        for exception_type, handler in reversed(handlers):
+            if exception_type is None:
+                # A default handler was given, so use that indeed.
+                exception_handling = handler
+            else:
+                exception_handling = StatementsSequence(
+                    statements=(
+                        makeStatementConditional(
+                            condition=ExpressionComparisonExceptionMatch(
+                                left=ExpressionCaughtExceptionTypeRef(
+                                    source_ref=exception_type.source_ref
+                                ),
+                                right=exception_type,
+                                source_ref=exception_type.source_ref,
                             ),
-                            right=exception_type,
+                            yes_branch=handler,
+                            no_branch=exception_handling,
                             source_ref=exception_type.source_ref,
                         ),
-                        yes_branch=handler,
-                        no_branch=exception_handling,
-                        source_ref=exception_type.source_ref,
                     ),
-                ),
-                source_ref=exception_type.source_ref,
+                    source_ref=exception_type.source_ref,
+                )
+    else:
+        matchers = []
+        for exception_type, handler in handlers:
+            matchers.append(
+                makeStarTryMatch(
+                    provider, exception_type, handler, exception_type.source_ref
+                )
             )
+
+        # except* handlers need to run even after a prior handler
+        # has raised an exception, so wrap them all in a try/finally
+        # linked list.
+        last = None
+        for matcher in reversed(matchers):
+            if last is not None:
+                last = makeTryFinallyStatement(
+                    provider=provider,
+                    tried=matcher,
+                    final=last,
+                    source_ref=matcher.source_ref,
+                )
+            else:
+                last = matcher
+
+        exception_handling = last
 
     if exception_handling is None:
         # For Python3, we need not publish at all, if all we do is to revert
