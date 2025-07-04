@@ -7,12 +7,15 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ChildrenHavingMixins import ChildHavingExceptionTypeMixin
+from .ChildrenHavingMixins import (
+    ChildHavingExceptionTypeMixin,
+)
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionAttributeErrorBase,
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
+    ExpressionCaughtExceptionGroupMatchBase
 )
 from .NodeBases import SideEffectsFromChildrenMixin, StatementBase
 from .StatementBasesGenerated import StatementRaiseExceptionBase
@@ -333,6 +336,24 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
+
+
+class ExpressionCaughtExceptionGroupMatch(
+    ExpressionCaughtExceptionGroupMatchBase, ExpressionBase
+):
+    kind = "EXPRESSION_CAUGHT_EXCEPTION_GROUP_MATCH"
+
+    named_children = ("caught", "catching")
+
+    auto_compute_handling = "final,raise"
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 def makeBuiltinMakeExceptionNode(
