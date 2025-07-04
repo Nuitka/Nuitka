@@ -18,12 +18,15 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIs,
 )
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantTrueRef, makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantTrueRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
+    ExpressionCaughtExceptionGroupMatch,
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef,
-    ExpressionCaughtExceptionGroupMatch,
 )
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
@@ -33,7 +36,10 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable, makeStatementAssignmentUnpack
+from nuitka.nodes.VariableAssignNodes import (
+    makeStatementAssignmentUnpack,
+    makeStatementAssignmentVariable,
+)
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -201,6 +207,7 @@ def makeTryExceptSingleHandlerNodeWithPublish(
         source_ref=source_ref,
     )
 
+
 def fix_nested_sequence(statement_sequence, source_ref):
     # XXX: This is a hack! It seems that we can't have a StatementsSequence()
     # nested directly under a StatementsSequence(), so we wrap it in an "if True"
@@ -220,50 +227,52 @@ def starTryHandler(provider, matched, rest, handler, source_ref):
             # TODO: Figure out how to publish the exception
             fix_nested_sequence(handler, source_ref),
         ),
-        source_ref=source_ref
+        source_ref=source_ref,
     )
     return makeTryFinallyStatement(
         provider=provider,
         tried=raw_handler,
         final=StatementRestoreFrameException(
-            preserver_id=preserver_id,
-            source_ref=source_ref
+            preserver_id=preserver_id, source_ref=source_ref
         ),
-        source_ref=source_ref
+        source_ref=source_ref,
     )
 
 
 def makeStarTryMatch(provider, exception_type, handler, rest, source_ref):
     scope = provider.allocateTempScope(name="try_except_star_handler")
-    result = provider.allocateTempVariable(temp_scope=scope, name="result", temp_type="object")
-    is_match = provider.allocateTempVariable(
+    tmp_result = provider.allocateTempVariable(
+        temp_scope=scope, name="result", temp_type="object"
+    )
+    tmp_is_match = provider.allocateTempVariable(
         temp_scope=scope, name="is_match", temp_type="bool"
     )
-    matched = provider.allocateTempVariable(temp_scope=scope, name="matched", temp_type="object")
+    matched = provider.allocateTempVariable(
+        temp_scope=scope, name="matched", temp_type="object"
+    )
 
     tried = StatementsSequence(
         statements=(
             makeStatementAssignmentVariable(
                 source=ExpressionCaughtExceptionGroupMatch(
                     caught=ExpressionTempVariableRef(
-                        variable=rest,
-                        source_ref=source_ref
+                        variable=rest, source_ref=source_ref
                     ),
                     catching=exception_type,
                     source_ref=source_ref,
                 ),
-                variable=result,
+                variable=tmp_result,
                 source_ref=source_ref,
             ),
             *makeStatementAssignmentUnpack(
-                source=result,
-                variables=(is_match, matched, rest),
-                source_ref=source_ref
+                source=tmp_result,
+                variables=(tmp_is_match, matched, rest),
+                source_ref=source_ref,
             ),
             makeStatementConditional(
                 condition=ExpressionComparisonIs(
                     left=ExpressionTempVariableRef(
-                        variable=is_match, source_ref=source_ref
+                        variable=tmp_is_match, source_ref=source_ref
                     ),
                     right=ExpressionConstantTrueRef(source_ref=source_ref),
                     source_ref=source_ref,
@@ -285,7 +294,7 @@ def makeStarTryMatch(provider, exception_type, handler, rest, source_ref):
     return makeTryFinallyReleaseStatement(
         provider=provider,
         tried=tried,
-        variables=(result, is_match, matched),
+        variables=(tmp_result, tmp_is_match, matched),
         source_ref=source_ref,
     )
 
@@ -394,10 +403,10 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
 
         handlers.append((exception_types, handler_body))
 
-    # Re-raise by default
-    exception_handling = makeReraiseExceptionStatement(source_ref=source_ref)
-
     if not is_star_try:
+        # Re-raise by default
+        exception_handling = makeReraiseExceptionStatement(source_ref=source_ref)
+
         for exception_type, handler in reversed(handlers):
             if exception_type is None:
                 # A default handler was given, so use that indeed.
@@ -422,20 +431,24 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
                 )
     else:
         scope = provider.allocateTempScope(name="try_except_star")
-        rest = provider.allocateTempVariable(temp_scope=scope, name="rest", temp_type="object")
+        tmp_rest = provider.allocateTempVariable(
+            temp_scope=scope, name="rest", temp_type="object"
+        )
         matchers = []
         assign_rest = makeStatementAssignmentVariable(
-            source=ExpressionCaughtExceptionValueRef(
-                source_ref=source_ref
-            ),
-            variable=rest,
-            source_ref=source_ref
+            source=ExpressionCaughtExceptionValueRef(source_ref=source_ref),
+            variable=tmp_rest,
+            source_ref=source_ref,
         )
 
         for exception_type, handler in handlers:
             matchers.append(
                 makeStarTryMatch(
-                    provider, exception_type, handler, rest, exception_type.source_ref
+                    provider,
+                    exception_type,
+                    handler,
+                    tmp_rest,
+                    exception_type.source_ref,
                 )
             )
         # except* handlers need to run even after a prior handler
@@ -453,13 +466,24 @@ def buildTryExceptionNode(provider, node, source_ref, is_star_try=False):
             else:
                 last = matcher
 
+        # Re-raise by default
+        reraise_exception = makeStatementConditional(
+            condition=ExpressionTempVariableRef(
+                variable=tmp_rest, source_ref=source_ref
+            ),
+            yes_branch=None,
+            no_branch=makeReraiseExceptionStatement(source_ref=source_ref),
+            source_ref=source_ref,
+        )
+
         exception_handling = makeTryFinallyReleaseStatement(
             provider=provider,
-            tried=StatementsSequence(
-                statements=(assign_rest, fix_nested_sequence(last, source_ref)),
-                source_ref=source_ref
+            tried=makeStatementsSequence(
+                statements=(assign_rest, last, reraise_exception),
+                allow_none=False,
+                source_ref=source_ref,
             ),
-            variables=(rest,),
+            variables=(tmp_rest,),
             source_ref=source_ref,
         )
 
