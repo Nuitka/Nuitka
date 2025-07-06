@@ -378,7 +378,7 @@ def _checkTqdmModule():
 
 
 # Try progress bars in this order.
-_default_progress_bars = ("rich", "tqdm")
+_default_progress_bars = ("tqdm", "rich")
 
 
 def enableProgressBar(progress_bar):
