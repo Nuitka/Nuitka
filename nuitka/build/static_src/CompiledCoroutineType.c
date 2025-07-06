@@ -1344,11 +1344,7 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
     // we have the line number stored.
 
     int addr = _PyInterpreterFrame_LASTI(frame) * sizeof(_Py_CODEUNIT);
-#if PYTHON_VERSION < 0x3d0
-    return PyCode_Addr2Line(frame->f_code, addr);
-#else
-    return PyCode_Addr2Line((PyCodeObject *)frame->f_executable, addr);
-#endif
+    return PyCode_Addr2Line(Nuitka_InterpreterFrame_GetCodeObject(frame), addr);
 }
 
 static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
@@ -1493,9 +1489,11 @@ static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
 #elif PYTHON_VERSION < 0x3d0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return frame->f_code;
-#else
+#elif PYTHON_VERSION < 0x3e0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return (PyCodeObject *)frame->f_executable;
+#else
+    return Nuitka_InterpreterFrame_GetCodeObject(&gen->gi_iframe);
 #endif
 }
 

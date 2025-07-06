@@ -201,6 +201,10 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_time.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+#include <internal/pycore_interpframe.h>
+#endif
+
 #undef Py_BUILD_CORE
 
 #endif
