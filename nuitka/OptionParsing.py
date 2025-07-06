@@ -495,8 +495,8 @@ whole directory simply use 'package_name'. Default empty.""",
 )
 
 data_group.add_option(
-    "--include-onefile-external-data",
     "--include-data-files-external",
+    "--include-onefile-external-data",
     action="append",
     dest="data_files_external",
     metavar="PATTERN",
@@ -1407,8 +1407,8 @@ tracing_group.add_option(
     default="auto",
     github_action=False,
     help="""\
-Select the progress bar mode. The 'auto' selects 'rich' if available,
-otherwise 'tqdm'. The values 'tqdm' and 'rich' force a specific
+Select the progress bar mode. The 'auto' selects 'tqdm' if available,
+otherwise 'rich'. The values 'tqdm' and 'rich' force a specific
 library. Use 'none' to disables progress bars. Defaults to 'auto'.""",
 )
 
