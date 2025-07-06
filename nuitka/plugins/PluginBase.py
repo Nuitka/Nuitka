@@ -69,6 +69,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.AppDirs import getAppdirsModule
 from nuitka.utils.Distributions import (
+    getCondaMetaDataVersion,
     getDistributionFromModuleName,
     getDistributionName,
     isDistributionCondaPackage,
@@ -243,10 +244,15 @@ def _getEvaluationContext():
     return _context_dict
 
 
-def _convertVersionToTuple(version_str):
+def _convertVersionToTuple(distribution_name, version_str):
     def numberize(v):
         # For now, we ignore rc/post stuff, hoping it doesn't matter for us.
         return int("".join(d for d in v if d.isdigit()))
+
+    # Anaconda uses placeholders in packages, and different ones come up for
+    # pkg_resources and importlib_metadata
+    if version_str in ("$PKG_VERSION", "-PKG-VERSION") and isAnacondaPython():
+        version_str = getCondaMetaDataVersion(distribution_name)
 
     return tuple(numberize(d) for d in version_str.split("."))
 
@@ -286,7 +292,11 @@ def _getPackageVersion(distribution_name):
             else:
                 from importlib_metadata import version
 
-            result = _convertVersionToTuple(version(distribution_name))
+            version_str = version(distribution_name)
+            result = _convertVersionToTuple(
+                distribution_name=distribution_name,
+                version_str=version_str,
+            )
         except ImportError:
             try:
                 from pkg_resources import (
@@ -298,22 +308,26 @@ def _getPackageVersion(distribution_name):
                 result = None
             else:
                 try:
-                    result = _convertVersionToTuple(
-                        get_distribution(distribution_name).version
-                    )
+                    version_str = get_distribution(distribution_name).version
                 except DistributionNotFound:
                     result = None
                 except extern.packaging.version.InvalidVersion:
                     result = None
+                else:
+                    result = _convertVersionToTuple(
+                        distribution_name=distribution_name,
+                        version_str=version_str,
+                    )
 
         if result is None:
             # Fallback if nothing is available, which may happen if no package is installed,
             # but only source code is found.
             try:
                 result = _convertVersionToTuple(
-                    __import__(
+                    distribution_name=distribution_name,
+                    version_str=__import__(
                         _getPackageNameFromDistributionName(distribution_name)
-                    ).__version__
+                    ).__version__,
                 )
             except ImportError:
                 result = None
