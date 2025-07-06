@@ -21,8 +21,8 @@ from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
-    getExternalUsePath,
     deleteFile,
+    getExternalUsePath,
     getFileContentByLine,
     getFilenameExtension,
     getNormalizedPath,
