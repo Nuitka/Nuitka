@@ -19,7 +19,6 @@ to grow both.
 
 import re
 
-from nuitka.__past__ import intern
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -45,7 +44,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
                     pass
                 else:
                     annotations[count] = set(
-                        intern(match.strip()) for match in match.group(1).split(",")
+                        match.strip() for match in match.group(1).split(",")
                     )
 
         # Only remember them if there were any.
