@@ -54,7 +54,7 @@ def getZstandardSupportingVersions():
     # with newly supported versions, and to list the ones not supported by
     # zstandard.
     result = tuple(
-        version for version in result if version not in ("2.6", "2.7", "3.3", "3.4")
+        version for version in result if version not in ("2.6", "2.7", "3.4")
     )
 
     return result
