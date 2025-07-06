@@ -1269,8 +1269,9 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
                                                            exception_arg, NULL);
                 Py_INCREF_IMMORTAL(PyExc_RuntimeError);
 
+#if PYTHON_VERSION >= 0x300
                 Nuitka_Exception_SetContext(new_exception_state.exception_value, saved_exception.exception_value);
-
+#endif
                 RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
             }
         }
