@@ -141,12 +141,11 @@ def _getPythonForSconsExePath():
         Tracing.scons_logger.sysexit(
             """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
-Nuitka needs to find a %s executable, so please install
-it.
+Nuitka needs to find a %s executable, so please install it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
-in case it is not visible in registry, e.g. due to using uninstalled
-Anaconda Python.
+in case it is not visible in registry or PATH, e.g. due to using an
+uninstalled Anaconda Python.
 """
             % scons_python_requirement
         )
