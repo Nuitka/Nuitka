@@ -516,7 +516,9 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
 #endif
 
     // Make sure our strings are consistent.
-#if PYTHON_VERSION >= 0x3c0 && !defined(__NUITKA_NO_ASSERT__)
+    // TODO: Check with an assertion making build of Python 3.13.0 if this is really true,
+    // for 3.14 it ought to not be done.
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0 && !defined(__NUITKA_NO_ASSERT__)
     // Note: Setting to immortal happens last, but we want to check now.
     Py_SET_REFCNT_IMMORTAL(u);
 
