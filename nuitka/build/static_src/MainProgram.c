@@ -1320,7 +1320,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     // Attach to the parent console respecting redirection only, otherwise we
     // cannot even output traces.
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) && !_NUITKA_DLL_MODE
     inheritAttachedConsole();
 #endif
 
