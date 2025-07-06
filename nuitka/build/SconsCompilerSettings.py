@@ -685,9 +685,53 @@ def enableWindowsStackSize(env, target_arch):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
-def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
+def enableOutputSettings(env):
+    # This has many cases to deal with
+    # pylint: disable=too-many-branches
+    if env.msvc_mode:
+        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
+        # for Nuitka-Python there is of course none.
+        if env.nuitka_python:
+            env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
+        else:
+            env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
+
+    if not env.exe_target:
+        if isGccName(env.the_cc_name):
+            env.Append(CCFLAGS=["-shared"])
+        elif env.clang_mode:
+            pass
+        elif env.msvc_mode:
+            if not env.clangcl_mode:
+                env.Append(CCFLAGS=["/LD"])  # Create a DLL.
+        else:
+            assert False, env.the_cc_name
+
+    if env.forced_stderr_path and not env.forced_stdout_path:
+        env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
+
+    if env.forced_stdout_path:
+        if env.forced_stdout_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
+        elif env.forced_stdout_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDOUT_PATH"] = env.forced_stdout_path
+
+    if env.forced_stderr_path:
+        if env.forced_stderr_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
+        elif env.forced_stderr_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDERR_PATH"] = env.forced_stderr_path
+
+
+def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compile):
     # This is driven by many branches on purpose and has a lot of things
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+
+    env.exe_target = exe_target
 
     # Enable LTO for compiler.
     _enableLtoSettings(
@@ -968,6 +1012,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
                 aix_dll_addr_inline_copy_dir,
             ],
         )
+
+    enableOutputSettings(env)
 
 
 def _enablePgoSettings(env):

@@ -117,7 +117,6 @@ from .build.SconsInterface import (
     cleanSconsDirectory,
     getCommonSconsOptions,
     runScons,
-    setPythonTargetOptions,
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
@@ -596,8 +595,6 @@ def runSconsBackend():
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
-
-    setPythonTargetOptions(scons_options)
 
     scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath()
     scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())

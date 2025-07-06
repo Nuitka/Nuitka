@@ -390,6 +390,10 @@ def runScons(scons_options, env_values, scons_filename):
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
                 Tracing.scons_logger.sysexit("User interrupted scons build.")
+            else:
+                # TODO: We might want to make a difference for where reporting makes sense or not.
+                if result == 27:
+                    Tracing.scons_logger.sysexit("Fatal error in scons build.")
 
         # TODO: Actually this should only flush one of these, namely the one for
         # current source_dir.
@@ -487,6 +491,8 @@ def getCommonSconsOptions():
     scons_options["deployment"] = asBoolStr(isDeploymentMode())
 
     scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
+
+    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
     if Options.shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
@@ -630,10 +636,6 @@ def getCommonSconsOptions():
         scons_options["macos_bundle_mode"] = asBoolStr(True)
 
     return scons_options, env_values
-
-
-def setPythonTargetOptions(scons_options):
-    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
