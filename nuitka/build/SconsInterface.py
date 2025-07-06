@@ -36,6 +36,7 @@ from nuitka.PythonFlavors import (
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
+    getSconsSupportingVersions,
     getSystemPrefixPath,
     isPythonWithGil,
     python_version,
@@ -124,23 +125,11 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    scons_supported_pythons = (
-        "3.5",
-        "3.6",
-        "3.7",
-        "3.8",
-        "3.9",
-        "3.10",
-        "3.11",
-        "3.12",
-        "3.13",
-    )
-    if not isWin32Windows():
-        scons_supported_pythons += ("2.7", "2.6")
-
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
-        python_versions=scons_supported_pythons, module_name=None, module_version=None
+        python_versions=getSconsSupportingVersions(),
+        module_name=None,
+        module_version=None,
     )
 
     if python_for_scons is None:
