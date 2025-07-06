@@ -7,6 +7,8 @@
 #define _NUITKA_ATTACH_CONSOLE_WINDOW 1
 #endif
 
+#include "nuitka/tracing.h"
+
 #if defined(_WIN32)
 #if defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
 #include <io.h>
@@ -89,6 +91,8 @@ void inheritAttachedConsole(void) {
         assert(r);
 #endif
     }
+
+    NUITKA_PRINTF_TRACE("inheritAttachedConsole(): Attachable: %s\n", (is_attachable ? "true" : "false"));
 }
 #endif
 #if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
