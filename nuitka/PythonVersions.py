@@ -60,6 +60,17 @@ def getZstandardSupportingVersions():
     return result
 
 
+def getSconsSupportingVersions():
+    result = getSupportedPythonVersions()
+
+    result = tuple(version for version in result if version not in ("3.4",))
+
+    if os.name == "nt":
+        result = tuple(version for version in result if version not in ("2.7", "2.6"))
+
+    return result
+
+
 def getTestExecutionPythonVersions():
     return (
         getSupportedPythonVersions()
