@@ -777,6 +777,10 @@ static bool shallSetOutputHandleToNull(char const *name) {
     }
 #endif
 
+#if _NUITKA_DLL_MODE
+    return false;
+#endif
+
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
     if (sys_std_handle == NULL || sys_std_handle == Py_None) {
         return true;
@@ -1331,7 +1335,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 // Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
-#if !defined(_NUITKA_ONEFILE_MODE)
+#if !_NUITKA_ONEFILE_MODE
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
 #endif
 #endif
@@ -1469,7 +1473,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initial command line handling only. */
 
-#if defined(_NUITKA_ONEFILE_MODE)
+#if _NUITKA_ONEFILE_MODE
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
 
@@ -1978,17 +1982,24 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
-    /* MSVC, MINGW64 */
+    /* MSVC, MINGW64 both have this */
     int argc = __argc;
     wchar_t **argv = __wargv;
 
+    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 #else
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
+int wmain(int argc, wchar_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #else
-int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
+int main(int argc, char **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #endif
 #endif
 
@@ -2004,7 +2015,10 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) { return Nuitka_Main(argc, argv); }
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 
 #ifdef __cplusplus
 }

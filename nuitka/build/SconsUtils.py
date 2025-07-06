@@ -331,6 +331,11 @@ def createEnvironment(
     if env.onefile_dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
 
+    env.forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
+    env.forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
+
+    env.build_definitions = {}
+
     return env
 
 

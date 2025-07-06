@@ -203,9 +203,6 @@ if os.name == "nt" and not mingw_mode and clang_mode:
 # modules loader.
 frozen_modules = getArgumentInt("frozen_modules", 0)
 
-forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
-forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
-
 # Show scons mode, output information about Scons operation
 show_scons_mode = getArgumentBool("show_scons", False)
 scons_details_logger.is_quiet = not show_scons_mode
@@ -426,6 +423,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode=pgo_mode,
     job_count=job_count,
+    exe_target=not env.module_mode and not env.dll_mode,
     onefile_compile=False,
 )
 
@@ -846,29 +844,6 @@ addConstantBlobFile(
 
 env.Append(CPPDEFINES=["_NUITKA_FROZEN=%d" % frozen_modules])
 
-# Tell compiler to create a shared library or program.
-if env.exe_mode:
-    if env.msvc_mode:
-        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
-        # for Nuitka-Python there is of course none.
-        if not env.nuitka_python and (
-            forced_stdout_path not in ("{NONE}", "{NULL}", None)
-            or forced_stderr_path not in ("{NONE}", "{NULL}", None)
-        ):
-            env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
-        else:
-            env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
-else:
-    if isGccName(env.the_cc_name):
-        env.Append(CCFLAGS=["-shared"])
-    elif env.clang_mode:
-        pass
-    elif env.msvc_mode:
-        if not env.clangcl_mode:
-            env.Append(CCFLAGS=["/LD"])  # Create a DLL.
-    else:
-        assert False, env.the_cc_name
-
 
 def discoverSourceFiles():
     result = []
@@ -955,85 +930,70 @@ if job_count:
 
 
 def createBuildDefinitionsFile():
-    build_definitions = {}
-
     if uninstalled_python and not env.static_libpython:
         # Use the non-external one, so it's not a short path.
-        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+        env.build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
-    build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0
+    env.build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0
 
     if python_version < (3,):
-        build_definitions["SYSFLAG_PY3K_WARNING"] = (
+        env.build_definitions["SYSFLAG_PY3K_WARNING"] = (
             1 if python_sysflag_py3k_warning else 0
         )
 
-        build_definitions["SYSFLAG_DIVISION_WARNING"] = (
+        env.build_definitions["SYSFLAG_DIVISION_WARNING"] = (
             1 if python_sysflag_division_warning else 0
         )
 
-        build_definitions["SYSFLAG_UNICODE"] = 1 if python_sysflag_unicode else 0
+        env.build_definitions["SYSFLAG_UNICODE"] = 1 if python_sysflag_unicode else 0
 
-    build_definitions["SYSFLAG_BYTES_WARNING"] = (
+    env.build_definitions["SYSFLAG_BYTES_WARNING"] = (
         1 if python_sysflag_bytes_warning else 0
     )
 
-    build_definitions["SYSFLAG_NO_SITE"] = 1 if python_sysflag_no_site else 0
+    env.build_definitions["SYSFLAG_NO_SITE"] = 1 if python_sysflag_no_site else 0
 
-    build_definitions["SYSFLAG_VERBOSE"] = 1 if python_sysflag_verbose else 0
+    env.build_definitions["SYSFLAG_VERBOSE"] = 1 if python_sysflag_verbose else 0
 
-    build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
+    env.build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
-    build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
+    env.build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
 
-    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+    env.build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
         1 if python_sysflag_dontwritebytecode else 0
     )
 
-    build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
+    env.build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
 
-    build_definitions["_NUITKA_NO_DOCSTRINGS"] = 1 if python_flag_no_docstrings else 0
+    env.build_definitions["_NUITKA_NO_DOCSTRINGS"] = (
+        1 if python_flag_no_docstrings else 0
+    )
 
-    build_definitions["_NUITKA_NO_ANNOTATIONS"] = 1 if python_flag_no_annotations else 0
+    env.build_definitions["_NUITKA_NO_ANNOTATIONS"] = (
+        1 if python_flag_no_annotations else 0
+    )
 
-    build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
+    env.build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
         1 if python_sysflag_no_randomization else 0
     )
 
-    build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+    env.build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
 
-    build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
+    env.build_definitions["SYSFLAG_DONTWRITEBYTECODE"] = (
         1 if python_sysflag_dontwritebytecode else 0
     )
 
-    build_definitions["SYSFLAG_SAFE_PATH"] = 1 if python_sysflag_safe_path else 0
+    env.build_definitions["SYSFLAG_SAFE_PATH"] = 1 if python_sysflag_safe_path else 0
 
-    build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
+    env.build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
-    if forced_stdout_path:
-        if forced_stdout_path == "{NONE}":
-            build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
-        elif forced_stdout_path == "{NULL}":
-            build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
-        else:
-            build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
+    env.build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
+    env.build_definitions["NUITKA_MAIN_IS_PACKAGE_BOOL"] = (
+        main_module_name != "__main__"
+    )
 
-    if forced_stderr_path:
-        if forced_stderr_path == "{NONE}":
-            build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
-        elif forced_stderr_path == "{NULL}":
-            build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
-        else:
-            build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
+    createDefinitionsFile(source_dir, "build_definitions.h", env.build_definitions)
 
-    build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
-    build_definitions["NUITKA_MAIN_IS_PACKAGE_BOOL"] = main_module_name != "__main__"
-
-    createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
-
-
-if forced_stderr_path and not forced_stdout_path:
-    env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
 
 if file_reference_mode == "original":
     env.Append(CPPDEFINES=["_NUITKA_FILE_REFERENCE_ORIGINAL_MODE"])
