@@ -382,7 +382,7 @@ _stop_threads_lock = threading.Lock()
 def _stopOtherThreads():
     # Ensure only one thread can stop others. Never released, only supposed
     # to happen once, pylint: disable=consider-using-with
-    if _stop_threads_lock.acquire(blocking=False):
+    if _stop_threads_lock.acquire(False):
 
         current_thread = threading.current_thread()
         for thread in list(_threads):  # Iterate over a copy
