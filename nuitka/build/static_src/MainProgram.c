@@ -523,11 +523,11 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
 }
 
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
 
 static long onefile_ppid;
 
-DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
 
     for (;;) {
@@ -1919,7 +1919,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else {
 #endif
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
         {
             char buffer[128] = {0};
             DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
