@@ -492,7 +492,7 @@ def writeSconsReport(env, target):
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
-    if env.warn_error_mode:
+    if env.warn_error_mode and stderr is not None:
 
         if (
             # gcc does this: "all warnings being treated as errors"
