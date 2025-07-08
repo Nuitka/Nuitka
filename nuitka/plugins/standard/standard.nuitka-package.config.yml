@@ -854,6 +854,9 @@
     - from_filenames:
         prefixes:
           - 'native'
+    - from_filenames:
+        prefixes:
+          - ''
 
 - module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
   dlls:
