@@ -18,6 +18,22 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     // Lets not get called other than this
     assert(size > 0);
 
+#if PYTHON_VERSION >= 0x3e0
+    Py_ssize_t index = size - 1;
+
+    if (index < PyTuple_MAXSAVESIZE) {
+        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->tuples[index]);
+    } else {
+        result_tuple = NULL;
+    }
+
+    if (result_tuple == NULL) {
+        result_tuple = (PyTupleObject *)Nuitka_GC_NewVar(&PyTuple_Type, size);
+    } else {
+        _PyTuple_RESET_HASH_CACHE(result_tuple);
+        Nuitka_Py_NewReference((PyObject *)result_tuple);
+    }
+#else
     // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     PyTupleObject **items = tstate->interp->tuple.free_list;
@@ -52,6 +68,7 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 
         result_tuple = (PyTupleObject *)Nuitka_GC_NewVar(&PyTuple_Type, size);
     }
+#endif
 
     // TODO: Why not use memset here, and can we rely on memory being cleared
     // by allocator?
