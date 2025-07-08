@@ -64,6 +64,17 @@ static const bool use_freelists = true;
     }
 
 #if PYTHON_VERSION >= 0x3d0
+
+#if PYTHON_VERSION >= 0x3e0
+
+// Like _PyFreeList_Pop but doesn't set the reference, may also be totally
+// unnecessary to have.
+static inline PyObject *Nuitka_PyFreeList_Pop(struct _Py_freelist *freelist) {
+    return _PyFreeList_PopNoStats(freelist);
+}
+
+#else
+
 NUITKA_MAY_BE_UNUSED static inline struct _Py_object_freelists *_Nuitka_object_freelists_GET(PyThreadState *tstate) {
 
 #ifdef Py_GIL_DISABLED
@@ -72,6 +83,8 @@ NUITKA_MAY_BE_UNUSED static inline struct _Py_object_freelists *_Nuitka_object_f
     return &tstate->interp->object_state.freelists;
 #endif
 }
+#endif
+
 #endif
 
 #endif

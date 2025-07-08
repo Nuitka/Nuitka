@@ -57,8 +57,16 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     return PyList_New(size);
 #else
-    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION >= 0x3e0
+    PyListObject *result_list = (PyListObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->lists);
 
+    if (result_list == NULL) {
+        result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
+    } else {
+        Nuitka_Py_NewReference((PyObject *)result_list);
+    }
+#else
+    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     PyListObject **items = tstate->interp->list.free_list;
     int *numfree = &tstate->interp->list.numfree;
@@ -79,6 +87,9 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     } else {
         result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
     }
+#endif
+    assert(result_list != NULL);
+    assert(PyList_CheckExact(result_list));
 
     // Elements are allocated separately.
     if (size > 0) {
