@@ -774,9 +774,11 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION < 0x3d0
     locals_owner->f_code = code;
-#else
-    // TODO: Why is our code object not just immortal.
+#elif PYTHON_VERSION < 0x3e0
     locals_owner->f_executable = (PyObject *)code;
+#else
+    // TODO: Why is our code object not immortal?
+    locals_owner->f_executable = _PyStackRef_FromPyObjectNew((PyObject *)code);
 #endif
 
     frame->f_trace = Py_None;
@@ -825,7 +827,9 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
     result->m_interpreter_frame.owner = FRAME_OWNED_BY_GENERATOR;
-#if PYTHON_VERSION >= 0x3c0
+#if PYTHON_VERSION >= 0x3e0
+    result->m_interpreter_frame.f_funcobj = PyStackRef_NULL; // spell-checker: ignore funcobj
+#elif PYTHON_VERSION >= 0x3c0
     result->m_interpreter_frame.f_funcobj = NULL; // spell-checker: ignore funcobj
 #else
     result->m_interpreter_frame.f_func = NULL;
