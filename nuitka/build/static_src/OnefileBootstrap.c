@@ -974,6 +974,19 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 }
 #endif
 
+#if defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+#define NEEDS_ORIGINAL_ARGV0
+#endif
+
+#if defined(NEEDS_ORIGINAL_ARGV0)
+static native_command_line_argument_t const *original_argv0 = NULL;
+
+native_command_line_argument_t const *getOriginalArgv0(void) {
+    assert(original_argv0 != NULL);
+    return original_argv0;
+}
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -996,12 +1009,8 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
-    filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
-    bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
-
-    // _putws(payload_path);
-
 #if _NUITKA_ONEFILE_DLL_MODE
+    NUITKA_PRINT_TIMING("ONEFILE: Checking role of process.");
     environment_char_t const *process_role = getEnvironmentVariable("NUITKA_ONEFILE_PARENT");
 
     // Empty strings do not count.
@@ -1043,14 +1052,30 @@ int main(int argc, char **argv) {
         } else {
             process_role = NULL;
         }
+
+        // Do not inherit these from another onefile binary.
+        if (process_role == NULL) {
+            NUITKA_PRINT_TIMING("ONEFILE: Removing other onefile environment.");
+
+            unsetEnvironmentVariable("NUITKA_ONEFILE_PARENT");
+            unsetEnvironmentVariable("NUITKA_ONEFILE_START");
+        } else {
+            NUITKA_PRINT_TIMING("ONEFILE: Decided we child environment.");
+        }
     }
 #endif
-
 #else
+    // TODO: Only Windows has the solved so far, it's also the only platform we
+    // use it on right now.
     environment_char_t const *process_role = NULL;
 #endif
 
-    // IF we are the bootstrasp binary, show the splash screen.
+    filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
+    bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
+
+    // _putws(payload_path);
+
+    // If we are the onefile initial bootstrap binary, show the splash screen.
 #if defined(_NUITKA_ONEFILE_SPLASH_SCREEN) && _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     if (process_role == NULL) {
         initSplashScreen();
