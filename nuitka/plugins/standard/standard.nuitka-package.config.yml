@@ -932,13 +932,13 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 3a4aa553
+- module-name: 'cv2' # checksum: 743289ea
   variables:
     setup_code:
       - 'import cv2'
     declarations:
       'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
-    when: 'not is_conda_package("cv2")'
+    when: 'not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -981,7 +981,7 @@
         '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
       change_function:
         '__collect_extra_submodules': 'un-callable'
-      when: 'standalone and not is_conda_package("cv2")'
+      when: 'standalone and not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
 
   implicit-imports:
     - depends:
@@ -990,7 +990,7 @@
         - 'numpy.core'
     - depends:
         - '["cv2.%s" % m for m in get_variable("cv2_extra_sub_modules")]'
-      when: 'not is_conda_package("cv2")'
+      when: 'not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
     - pre-import-code:
         - |
           import os
@@ -999,8 +999,8 @@
       when: 'linux and standalone'
   options:
     checks:
-      - description: 'OpenCV2 is only supported with 4.6 or later'
-        support_info: 'error'
+      - description: 'OpenCV2 is best supported with 4.6 or later (earlier versions may lack support for implicit import of cv2 extra submodules)'
+        support_info: 'warning'
         when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
