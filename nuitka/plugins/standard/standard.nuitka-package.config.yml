@@ -951,13 +951,13 @@
       # Not necessary on Windows
       when: 'not win32'
 
-- module-name: 'cv2' # checksum: 3a4aa553
+- module-name: 'cv2' # checksum: 743289ea
   variables:
     setup_code:
       - 'import cv2'
     declarations:
       'cv2_extra_sub_modules': 'tuple(m for m in cv2.__collect_extra_submodules(False) if m != ".dylibs")'
-    when: 'not is_conda_package("cv2")'
+    when: 'not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
   data-files:
     - dirs:
         - 'qt/fonts'
@@ -1000,7 +1000,7 @@
         '__collect_extra_submodules(DEBUG)': 'repr(get_variable("cv2_extra_sub_modules"))'
       change_function:
         '__collect_extra_submodules': 'un-callable'
-      when: 'standalone and not is_conda_package("cv2")'
+      when: 'standalone and not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
 
   implicit-imports:
     - depends:
@@ -1009,7 +1009,7 @@
         - 'numpy.core'
     - depends:
         - '["cv2.%s" % m for m in get_variable("cv2_extra_sub_modules")]'
-      when: 'not is_conda_package("cv2")'
+      when: 'not is_conda_package("cv2") and not version(get_dist_name("cv2")) < (4,6)'
     - pre-import-code:
         - |
           import os
@@ -1018,8 +1018,8 @@
       when: 'linux and standalone'
   options:
     checks:
-      - description: 'OpenCV2 is only supported with 4.6 or later'
-        support_info: 'error'
+      - description: 'OpenCV2 is best supported with 4.6 or later (earlier versions may lack support for implicit import of cv2 extra submodules)'
+        support_info: 'warning'
         when: 'version(get_dist_name("cv2")) < (4,6)'
 
 - module-name: 'cvxpy.utilities.key_utils' # checksum: fc2bb323
@@ -4686,7 +4686,7 @@
     - dirs:
         - '.'
 
-- module-name: 'pygame' # checksum: 64efeec5
+- module-name: 'pygame' # checksum: db7d5ddb
   data-files:
     - patterns:
         - 'freesansbold.ttf'
@@ -4696,6 +4696,11 @@
     - patterns:
         - 'pygame_icon.bmp'
       when: 'not macos'
+  dlls:
+    - from_filenames:
+        relative_path: '.'
+        prefixes:
+          - ''
 
   anti-bloat:
     - no-auto-follow:
@@ -5587,7 +5592,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 831d0852
+- module-name: 'scipy' # checksum: 9c031415
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5614,6 +5619,7 @@
         'sparse': 'ignore'
         'ndonnx': 'ignore'
         'yaml': 'ignore'
+        'pytest': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
@@ -5698,7 +5704,7 @@
         - 'scipy.linalg.cython_blas'
         - 'scipy.linalg.cython_lapack'
 
-- module-name: 'scipy.optimize._cobyla_py' # checksum: 3ea0b5b1
+- module-name: 'scipy.optimize._cobyla_py' # checksum: 37a1223f
   implicit-imports:
     - post-import-code:
         - |
@@ -5717,11 +5723,17 @@
               kwargs["callback"] = callback_wrapper
             return orig_minimize(*args, **kwargs)
           scipy.optimize._cobyla.minimize=nuitka_compatible_minimize
+      when: 'version("scipy") < (1,16)'
 
 - module-name: 'scipy.optimize._shgo_lib.triangulation' # checksum: 7547ad25
   anti-bloat:
     - no-auto-follow:
         'matplotlib': 'plotting will lack matplotlib'
+
+- module-name: 'scipy.sparse._lil' # checksum: 41e6ce11
+  implicit-imports:
+    - depends:
+        - 'scipy._cyutility'
 
 - module-name: 'scipy.sparse.csgraph' # checksum: 8997608e
   implicit-imports:
@@ -6372,6 +6384,11 @@
     - depends:
         - 'sklearn.externals.joblib'
 
+- module-name: 'sklearn.externals.array_api_compat.numpy' # checksum: 441c388
+  implicit-imports:
+    - depends:
+        - 'sklearn.externals.array_api_compat.numpy.fft'
+
 - module-name: 'sklearn.externals.joblib' # checksum: d27fe3d7
   implicit-imports:
     - depends:
@@ -6490,10 +6507,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: cecf5599
+- module-name: 'sklearn.utils' # checksum: b6c286fd
   data-files:
     - patterns:
-        - '*.css'
+        - '**/*.css'
   implicit-imports:
     - depends:
         - 'sklearn.utils.arrayfuncs'
@@ -8856,6 +8873,11 @@
   implicit-imports:
     - depends:
         - 'vibora.router.parser'
+
+- module-name: 'vllm' # checksum: 764db455
+  data-files:
+    - include-metadata:
+        - 'gguf'
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
