@@ -6397,6 +6397,11 @@
     - depends:
         - 'sklearn.externals.joblib'
 
+- module-name: 'sklearn.externals.array_api_compat.numpy' # checksum: 441c388
+  implicit-imports:
+    - depends:
+        - 'sklearn.externals.array_api_compat.numpy.fft'
+
 - module-name: 'sklearn.externals.joblib' # checksum: d27fe3d7
   implicit-imports:
     - depends:
@@ -6515,10 +6520,10 @@
     - depends:
         - 'sklearn.neighbors._quad_tree'
 
-- module-name: 'sklearn.utils' # checksum: cecf5599
+- module-name: 'sklearn.utils' # checksum: b6c286fd
   data-files:
     - patterns:
-        - '*.css'
+        - '**/*.css'
   implicit-imports:
     - depends:
         - 'sklearn.utils.arrayfuncs'
