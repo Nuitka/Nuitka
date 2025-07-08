@@ -13,6 +13,15 @@
 PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *stop, PyObject *step) {
     PySliceObject *result_slice;
 
+#if PYTHON_VERSION >= 0x3e0
+    result_slice = (PySliceObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->slices);
+
+    if (result_slice == NULL) {
+        result_slice = (PySliceObject *)Nuitka_GC_New(&PySlice_Type);
+    } else {
+        Nuitka_Py_NewReference((PyObject *)result_slice);
+    }
+#else
 #if PYTHON_VERSION >= 0x3d0
     struct _Py_object_freelists *freelists = _Nuitka_object_freelists_GET(tstate);
     PySliceObject **slice_cache_ptr = &freelists->slices.slice_cache;
@@ -28,11 +37,8 @@ PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *sto
         Nuitka_Py_NewReference((PyObject *)result_slice);
     } else {
         result_slice = (PySliceObject *)Nuitka_GC_New(&PySlice_Type);
-
-        if (result_slice == NULL) {
-            return NULL;
-        }
     }
+#endif
 
     if (step == NULL) {
         step = Py_None;
@@ -43,6 +49,9 @@ PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *sto
     if (stop == NULL) {
         stop = Py_None;
     }
+
+    CHECK_OBJECT(result_slice);
+    assert(PySlice_Check(result_slice));
 
     Py_INCREF(step);
     result_slice->step = step;

@@ -36,8 +36,18 @@ PyObject *TO_FLOAT(PyObject *value) {
 #if NUITKA_FLOAT_HAS_FREELIST
 
 static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
-    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION >= 0x3e0
+    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->floats);
 
+    if (result_float == NULL) {
+        result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));
+
+        Py_SET_TYPE(result_float, &PyFloat_Type);
+    }
+
+    Nuitka_Py_NewReference((PyObject *)result_float);
+#else
+    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     struct _Py_float_state *state = &tstate->interp->float_state;
     PyFloatObject **free_list = &state->free_list;
@@ -59,8 +69,9 @@ static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
 
     Py_SET_TYPE(result_float, &PyFloat_Type);
     Nuitka_Py_NewReference((PyObject *)result_float);
-
+#endif
     assert(result_float != NULL);
+    assert(PyFloat_CheckExact(result_float));
 
     return result_float;
 }
