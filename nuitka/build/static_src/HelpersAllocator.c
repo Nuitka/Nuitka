@@ -671,14 +671,14 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
         Nuitka_gc_collect_generations(tstate);
         gcstate->collecting = 0;
     }
-#else
+#elif PYTHON_VERSION < 0x3e0
+    // TODO: This is not the no-GIL implementation
     PyGC_Head *gc = _Py_AS_GC(op);
 
     // gc must be correctly aligned
     _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
 
     // TODO: Have this passed.
-
     PyThreadState *tstate = _PyThreadState_GET();
     GCState *gcstate = &tstate->interp->gc;
 
@@ -690,6 +690,27 @@ void Nuitka_PyObject_GC_Link(PyObject *op) {
     if (gcstate->generations[0].count > gcstate->generations[0].threshold && gcstate->enabled &&
         gcstate->generations[0].threshold && !_Py_atomic_load_int_relaxed(&gcstate->collecting) &&
         !_PyErr_Occurred(tstate)) {
+        Nuitka_Py_ScheduleGC(tstate);
+    }
+#else
+    // TODO: This is considering the no-GIL implementation
+    PyGC_Head *gc = _Py_AS_GC(op);
+
+    // gc must be correctly aligned
+    _PyObject_ASSERT(op, ((uintptr_t)gc & (sizeof(uintptr_t) - 1)) == 0);
+
+    // TODO: Have this passed.
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+
+    gc->_gc_next = 0;
+    gc->_gc_prev = 0;
+
+    gcstate->young.count++;
+    gcstate->heap_size++;
+
+    if (gcstate->young.count > gcstate->young.threshold && gcstate->enabled && gcstate->young.threshold &&
+        !_Py_atomic_load_int_relaxed(&gcstate->collecting) && !_PyErr_Occurred(tstate)) {
         Nuitka_Py_ScheduleGC(tstate);
     }
 #endif
