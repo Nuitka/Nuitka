@@ -5094,7 +5094,7 @@
         macos_bundle_as_onefile: 'yes'
         when: 'macos and use_pyside2'
 
-- module-name: 'PySide6' # checksum: 76e197e9
+- module-name: 'PySide6' # checksum: c7532421
   implicit-imports:
     - post-import-code:
         - |
@@ -5165,6 +5165,7 @@
         - 'libqtquickscene3dplugin'
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
+        - 'lib3dquicklogicplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
