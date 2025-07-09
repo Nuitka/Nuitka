@@ -149,6 +149,7 @@ from .ExceptionCodes import (
     generateExceptionCaughtValueCode,
     generateExceptionPublishCode,
     generateExceptionRefCode,
+    generateExceptionGroupMatch
 )
 from .ExpressionCodes import (
     generateExpressionOnlyCode,
@@ -692,6 +693,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF": generateExceptionCaughtTypeCode,
         "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF": generateExceptionCaughtValueCode,
         "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF": generateExceptionCaughtTracebackCode,
+        "EXPRESSION_CAUGHT_EXCEPTION_GROUP_MATCH": generateExceptionGroupMatch,
         "EXPRESSION_CALL_EMPTY": generateCallCode,
         "EXPRESSION_CALL_KEYWORDS_ONLY": generateCallCode,
         "EXPRESSION_CALL_NO_KEYWORDS": generateCallCode,

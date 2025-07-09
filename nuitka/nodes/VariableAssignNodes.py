@@ -20,7 +20,8 @@ from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.Options import isExperimental
-
+from nuitka.nodes.StatementNodes import StatementsSequence
+from .SubscriptNodes import makeExpressionIndexLookup
 from .ConstantRefNodes import makeConstantRefNode
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
@@ -1157,6 +1158,21 @@ def makeStatementAssignmentVariable(
             source=source,
             variable=variable,
             variable_version=variable_version,
+            source_ref=source_ref,
+        )
+
+def makeStatementAssignmentUnpack(source, variables, source_ref):
+    for index, variable in enumerate(variables):
+        yield makeStatementAssignmentVariable(
+            source=makeExpressionIndexLookup(
+                expression=ExpressionTempVariableRef(
+                    variable=source,
+                    source_ref=source_ref
+                ),
+                index_value=index,
+                source_ref=source_ref,
+            ),
+            variable=variable,
             source_ref=source_ref,
         )
 
