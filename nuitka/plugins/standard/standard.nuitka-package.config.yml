@@ -5795,6 +5795,12 @@
       replacements:
         'get_version("scyjava")': 'repr(version("scyjava"))'
 
+- module-name: 'seaborn._docstrings' # checksum: fd299a69
+  anti-bloat:
+    - description: 'Need to allow pydoc usage'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
+
 - module-name: 'seaborn.external.docscrape' # checksum: f18b6919
   anti-bloat:
     # TODO: Keep the same as 'scipy._lib._docscrape' module
