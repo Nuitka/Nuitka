@@ -62,7 +62,19 @@ extra_rst_keywords = (
     b"automodule",
     b"dropdown",
     b"rst-class",
+    b"carousel-container",
+    b"carousel",
+    b"carousel-top-controls",
+    b"carousel-top-button",
+    b"carousel-content",
+    b"carousel-main-content",
+    b"carousel-main-content-heading",
+    b"carousel-main-content-text",
+    b"carousel-cta",
+    b"carousel-side-tabs",
+    b"carousel-side-tab-container",
 )
+extra_rst_keywords = tuple(sorted(extra_rst_keywords, key=len, reverse=True))
 
 
 def checkRstLint(document):
