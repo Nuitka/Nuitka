@@ -10,14 +10,15 @@
         "troelsdamgaard.reflow-paragraph",
         "ms-vscode.cpptools",
         "mervin.markdown-formatter",
-        "stkb.rewrap",
         "trond-snekvik.simple-rst",
         "redhat.vscode-yaml",
         "dawidd6.debian-vscode",
         "streetsidesoftware.code-spell-checker",
         "samuelcolvin.jinjahtml",
         "tamasfe.even-better-toml",
-        "swyddfa.esbonio"
+        "swyddfa.esbonio",
+        "ms-python.vscode-pylance",
+        "dnut.rewrap-revived"
 
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
