@@ -27,7 +27,12 @@ fi
 
 # Autoformat the files.
 if [ "$COMMIT_UNCHECKED" != "1" ]; then
-    exec ./bin/autoformat-nuitka-source --from-commit
+    if [ -f "./bin/autoformat-nuitka-source" ]
+    then
+        exec ./bin/autoformat-nuitka-source --from-commit
+    else
+        exec python -m pipenv run python Nuitka-develop/bin/autoformat-nuitka-source --from-commit
+    fi
 fi
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
