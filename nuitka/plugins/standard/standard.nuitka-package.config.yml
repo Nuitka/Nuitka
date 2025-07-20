@@ -6559,6 +6559,11 @@
     - depends:
         - 'skimage.draw'
 
+- module-name: 'sklearn.utils._isfinite' # checksum: 739d2c3a
+  implicit-imports:
+    - depends:
+        - 'sklearn._cyutility'
+
 - module-name: 'sklearn.utils._testing' # checksum: 8b4de7fe
   anti-bloat:
     - description: 'remove pytest testing framework'
