@@ -894,6 +894,21 @@ def makeHelperCalls():
 
             emitIDE(emit)
 
+            emit_c(
+                """\
+// We are switching some warnings off for this code, as they are triggered
+// by the generated code constructs in a way that is not useful.
+// spell-checker: ignore Wparentheses GNUC
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+"""
+            )
+
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
 
@@ -947,6 +962,16 @@ def makeHelperCalls():
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
+
+            emit_c(
+                """\
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#pragma GCC diagnostic pop
+#endif
+"""
+            )
 
 
 def makeHelperLists():
