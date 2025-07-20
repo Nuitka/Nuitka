@@ -7,6 +7,17 @@
 #include "nuitka/prelude.h"
 #endif
 
+// We are switching some warnings off for this code, as they are triggered
+// by the generated code constructs in a way that is not useful.
+// spell-checker: ignore Wparentheses GNUC
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+
 PyObject *CALL_FUNCTION_NO_ARGS(PyThreadState *tstate, PyObject *called) {
     CHECK_OBJECT(called);
 
@@ -14344,6 +14355,11 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyThreadState *tstate, PyObject *source, PyObj
         return NULL;
     }
 }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#pragma GCC diagnostic pop
+#endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
