@@ -452,8 +452,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin", require_slots=False)):
     and invisible to the user.
 
     Nuitka comes with a number of "standard" plugins to be enabled as needed.
-    What they are can be displayed using "nuitka --plugin-list file.py" (filename
-    required but ignored).
+    What they are can be displayed using "--plugin-list" option.
 
     User plugins may be specified (and implicitly enabled) using their Python
     script pathname.
@@ -1284,14 +1283,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use
         return None
 
-    def warnUnusedPlugin(self, message):
+    def warnUnusedPlugin(self, message, key=None):
         """An inactive plugin may issue a warning if it believes this may be wrong.
 
         Returns:
             None
         """
-        if self.plugin_name not in _warned_unused_plugins:
-            _warned_unused_plugins.add(self.plugin_name)
+        if key is None:
+            key = self.plugin_name, message
+        else:
+            key = self.plugin_name, key
+
+        if key not in _warned_unused_plugins:
+            _warned_unused_plugins.add(key)
 
             plugins_logger.warning(
                 "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
@@ -1867,6 +1871,33 @@ Error, expression '%s' for module '%s' did not evaluate to 'tuple[str]' or 'list
         plugins_logger.sysexit(
             cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=reporting
         )
+
+
+class NuitkaDetectorPluginBase(NuitkaPluginBase):
+    """Base class for detectors."""
+
+    @classmethod
+    def isRelevant(cls):
+        """Always relevant by default."""
+        return True
+
+    # Needs to be another plugin.
+    detector_for = None
+
+
+class NuitkaNamespaceDetectorPluginBase(NuitkaDetectorPluginBase):
+    """Base class for a detector just waiting for a namespace to appear."""
+
+    # TODO: This actually would be done best when the module set is complete, as
+    # in theory, this module using it could become unused again.
+    def onModuleDiscovered(self, module):
+        """This method checks whether detected plugin is required for a module."""
+        for detector_namespace in self.detector_namespaces:
+            if module.getFullName().hasNamespace(detector_namespace):
+                self.warnUnusedPlugin("Missing '%s' support." % detector_namespace)
+
+    # Should be a tuple
+    detector_namespaces = ()
 
 
 class TagContext(dict):
