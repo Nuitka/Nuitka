@@ -599,7 +599,9 @@ unsigned char const *getConstantsBlobData(void) {
                     """
 // Constant data for the program.
 
+#if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
+#endif
 
 #ifdef __cplusplus
 extern "C"
