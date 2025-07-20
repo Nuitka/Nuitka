@@ -6407,6 +6407,13 @@
     - depends:
         - 'sklearn.externals.array_api_compat.numpy.fft'
 
+- module-name: 'sklearn.externals.array_api_extra.testing' # checksum: 6ac5aa4f
+  anti-bloat:
+    - description: 'remove dask reference'
+      no-auto-follow:
+        'dask': 'ignore'
+      when: 'not use_dask'
+
 - module-name: 'sklearn.externals.joblib' # checksum: d27fe3d7
   implicit-imports:
     - depends:
@@ -6556,6 +6563,11 @@
   implicit-imports:
     - depends:
         - 'skimage.draw'
+
+- module-name: 'sklearn.utils._isfinite' # checksum: 739d2c3a
+  implicit-imports:
+    - depends:
+        - 'sklearn._cyutility'
 
 - module-name: 'sklearn.utils._testing' # checksum: 8b4de7fe
   anti-bloat:
