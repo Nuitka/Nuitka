@@ -6402,6 +6402,11 @@
     - depends:
         - 'sklearn.externals.joblib'
 
+- module-name: 'sklearn.externals.array_api_compat.cupy' # checksum: 83e9f327
+  implicit-imports:
+    - depends:
+        - 'cupy'
+
 - module-name: 'sklearn.externals.array_api_compat.numpy' # checksum: 441c388
   implicit-imports:
     - depends:
