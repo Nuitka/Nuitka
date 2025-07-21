@@ -984,9 +984,9 @@ static int runPythonCodeDLL(filename_char_t const *dll_filename, int argc, nativ
 #define NEEDS_ORIGINAL_ARGV0
 #endif
 
+#if defined(NEEDS_ORIGINAL_ARGV0)
 static native_command_line_argument_t const *original_argv0 = NULL;
 
-#if defined(NEEDS_ORIGINAL_ARGV0)
 native_command_line_argument_t const *getOriginalArgv0(void) {
     assert(original_argv0 != NULL);
     return original_argv0;
