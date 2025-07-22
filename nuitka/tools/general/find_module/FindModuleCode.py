@@ -19,7 +19,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import callProcess, getExecutablePath
-from nuitka.utils.FileOperations import relpath
+from nuitka.utils.FileOperations import getNormalizedPath, relpath
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.Utils import isWin32Windows
 
@@ -36,7 +36,12 @@ def editModuleCode(module_search_desc):
     module_filename = None
     module_name = None
 
-    if isWin32Windows() and "\\" in module_search_desc:
+    if not isWin32Windows():
+        module_search_desc = module_search_desc.replace("\\", "/")
+
+    module_search_desc = getNormalizedPath(module_search_desc)
+
+    if "\\" in module_search_desc or "/" in module_search_desc:
         if os.path.exists(module_search_desc):
             module_filename = module_search_desc
         else:
@@ -46,37 +51,25 @@ def editModuleCode(module_search_desc):
             candidate = module_search_desc
 
             # spell-checker: ignore ONEFIL
-            while not candidate.endswith((".DIS", ".dist")) and not os.path.basename(
-                candidate
-            ).startswith(("ONEFIL", "onefile_")):
+            while not candidate.endswith(
+                (".DIS", ".dist", ".app")
+            ) and not os.path.basename(candidate).startswith(("ONEFIL", "onefile_")):
                 candidate = os.path.dirname(candidate)
 
-            module_name = relpath(module_search_desc, start=candidate).replace(
-                "\\", "."
-            )
-    elif not isWin32Windows() and "/" in module_search_desc:
-        if os.path.exists(module_search_desc):
-            module_filename = module_search_desc
-        else:
-            if module_search_desc.endswith(".py"):
-                module_search_desc = module_search_desc[:-3]
-
-            candidate = module_search_desc
-
-            while not candidate.endswith((".dist", ".app")) and candidate:
-                candidate = os.path.dirname(candidate)
+                if not candidate:
+                    break
 
             if candidate:
-                module_name = relpath(module_search_desc, start=candidate).replace(
-                    "/", "."
+                module_name = (
+                    relpath(module_search_desc, start=candidate)
+                    .replace("/", ".")
+                    .replace("\\", ".")
                 )
 
                 if module_name.startswith("Contents.MacOS."):
                     module_name = module_name[15:]
-            else:
-                module_name = None
-    else:
-        module_name = ModuleName(module_search_desc)
+
+            module_name = ModuleName(module_name)
 
     if module_name is None:
         tools_logger.sysexit(
