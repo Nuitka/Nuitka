@@ -7732,6 +7732,11 @@
         prefixes:
           - 'libnv'
       dest_path: '.'
+      when: 'not win32'
+    - from_filenames:
+        prefixes:
+          - 'nv'
+      when: 'win32'
 
 - module-name: 'text_unidecode' # checksum: db822b99
   data-files:
