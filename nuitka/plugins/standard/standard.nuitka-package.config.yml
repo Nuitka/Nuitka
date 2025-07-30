@@ -1671,6 +1671,11 @@
         'from future.moves.test import support': 'raise ImportError'
       when: 'not use_unittest'
 
+- module-name: 'gdsfactory' # checksum: 90d957fe
+  data-files:
+    - dirs:
+        - 'generic_tech'
+
 - module-name: 'geopandas.datasets' # checksum: 3983d794
   data-files:
     - dirs:
@@ -2367,6 +2372,15 @@
     - depends:
         - 'win32timezone'
         - 'win32ctypes.core.ctypes.*'
+
+- module-name: 'kfactory' # checksum: 54fa1ca1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+    - no-follow:
+        'kfactory.widgets': 'disable jupyterhub'
 
 - module-name: 'kivy' # checksum: 648dc799
   data-files:
@@ -8711,6 +8725,11 @@
       no-auto-follow:
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
+
+- module-name: 'trimesh' # checksum: ae5ca038
+  data-files:
+    - dirs:
+        - 'resources'
 
 - module-name: 'trimesh.viewer.notebook' # checksum: d055e332
   anti-bloat:
