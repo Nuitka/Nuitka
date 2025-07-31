@@ -224,7 +224,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
     } else if (PyGen_CheckExact(yield_from) || PyCoro_CheckExact(yield_from)) {
         retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
     } else if (send_value == Py_None && Nuitka_CoroutineWrapper_Check(yield_from)) {
-        struct Nuitka_CoroutineObject *yieldfrom_coroutine =
+        struct Nuitka_CoroutineObject *yield_from_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yield_from)->m_coroutine;
 
         Py_INCREF_IMMORTAL(Py_None);
@@ -232,7 +232,8 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         struct Nuitka_ExceptionPreservationItem no_exception_state;
         INIT_ERROR_OCCURRED_STATE(&no_exception_state);
 
-        retval = _Nuitka_Coroutine_send(tstate, yieldfrom_coroutine, Py_None, mode ? false : true, &no_exception_state);
+        retval =
+            _Nuitka_Coroutine_send(tstate, yield_from_coroutine, Py_None, mode ? false : true, &no_exception_state);
     } else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
         retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
@@ -610,7 +611,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
     case PYGEN_ERROR:
         return NULL;
     default:
-        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
+        NUITKA_CANNOT_GET_HERE("invalid _Nuitka_Coroutine_sendR result");
     }
 }
 
