@@ -326,6 +326,34 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 
             break;
         }
+
+#endif
+
+#if !defined(_NUITKA_DEPLOYMENT_MODE)
+#if PYTHON_VERSION < 0x3c0
+        PyObject *exception_value = tstate->curexc_value;
+#else
+        PyObject *exception_value = tstate->current_exception;
+#endif
+        PyTypeObject *exception_type = Py_TYPE(exception_value);
+        char const *exception_name = exception_type->tp_name;
+
+        assert(HAS_ERROR_OCCURRED(tstate));
+
+        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+            struct Nuitka_ExceptionPreservationItem saved_exception;
+            FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+
+            PyObject *exception_arg = PyUnicode_FromFormat("\
+Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
+and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
+included by default",
+                                                           exception_value);
+
+            CHECK_OBJECT(exception_arg);
+
+            raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+        }
 #endif
         NUITKA_FINALIZE_PROGRAM(tstate);
 

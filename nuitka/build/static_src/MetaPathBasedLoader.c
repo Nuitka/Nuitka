@@ -1251,28 +1251,16 @@ static PyObject *_EXECUTE_EMBEDDED_MODULE(PyThreadState *tstate, PyObject *modul
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_PERFECT_SUPPORT)
         if (unlikely(HAS_ERROR_OCCURRED(tstate))) {
             if ((entry->flags & NUITKA_PERFECT_SUPPORTED_FLAG) != 0) {
-                PyObject *exception_arg =
-                    PyUnicode_FromFormat("import of module '%s' failed unexpectedly despite intended perfect "
-                                         "support, please raise a Nuitka issue and compile "
-                                         "with an older version of the module in the meantime",
-                                         name);
-
                 struct Nuitka_ExceptionPreservationItem saved_exception;
                 FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
 
-#if PYTHON_VERSION < 0x3c0
-                NORMALIZE_EXCEPTION_STATE(tstate, &saved_exception);
-#endif
+                PyObject *exception_arg = PyUnicode_FromFormat("Nuitka: import of module '%s' failed unexpectedly "
+                                                               "despite intended perfect support, please raise a "
+                                                               "Nuitka issue and compile with an older version of "
+                                                               "the module in the meantime",
+                                                               name);
 
-                struct Nuitka_ExceptionPreservationItem new_exception_state;
-                SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &new_exception_state, PyExc_RuntimeError,
-                                                           exception_arg, NULL);
-                Py_INCREF_IMMORTAL(PyExc_RuntimeError);
-
-#if PYTHON_VERSION >= 0x300
-                Nuitka_Exception_SetContext(new_exception_state.exception_value, saved_exception.exception_value);
-#endif
-                RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
+                raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
             }
         }
 #endif

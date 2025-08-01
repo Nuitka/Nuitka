@@ -96,6 +96,11 @@ SET_EXCEPTION_PRESERVATION_STATE_STOP_ITERATION_EMPTY(PyThreadState *tstate,
 // Create an exception value object from type and value input.
 extern PyObject *MAKE_EXCEPTION_WITH_VALUE(PyThreadState *tstate, PyObject *exception_type, PyObject *value);
 
+// Raise a RuntimeError with the value and set context with the error given
+extern void raiseReplacementRuntimeError(PyThreadState *tstate,
+                                         struct Nuitka_ExceptionPreservationItem *exception_state,
+                                         PyObject *exception_arg);
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
