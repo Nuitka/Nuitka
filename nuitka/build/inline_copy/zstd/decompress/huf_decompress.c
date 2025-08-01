@@ -887,9 +887,9 @@ HUF_decompress4X2_usingDTable_internal_body(
             HUF_DECODE_SYMBOLX2_0(op4, &bitD4);
             endSignal = (U32)LIKELY(
                         (BIT_reloadDStreamFast(&bitD1) == BIT_DStream_unfinished)
-                      & (BIT_reloadDStreamFast(&bitD2) == BIT_DStream_unfinished)
-                      & (BIT_reloadDStreamFast(&bitD3) == BIT_DStream_unfinished)
-                      & (BIT_reloadDStreamFast(&bitD4) == BIT_DStream_unfinished));
+                      && (BIT_reloadDStreamFast(&bitD2) == BIT_DStream_unfinished)
+                      && (BIT_reloadDStreamFast(&bitD3) == BIT_DStream_unfinished)
+                      && (BIT_reloadDStreamFast(&bitD4) == BIT_DStream_unfinished));
 #endif
         }
 
