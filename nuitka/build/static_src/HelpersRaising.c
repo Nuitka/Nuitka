@@ -431,6 +431,22 @@ PyObject *MAKE_BASE_EXCEPTION_DERIVED_EMPTY(PyObject *exception_type) {
 }
 
 #endif
+
+void raiseReplacementRuntimeError(PyThreadState *tstate, struct Nuitka_ExceptionPreservationItem *exception_state,
+                                  PyObject *exception_arg) {
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, exception_state);
+#endif
+
+    struct Nuitka_ExceptionPreservationItem new_exception_state;
+    SET_EXCEPTION_PRESERVATION_STATE_FROM_ARGS(tstate, &new_exception_state, PyExc_RuntimeError, exception_arg, NULL);
+    Py_INCREF_IMMORTAL(PyExc_RuntimeError);
+
+#if PYTHON_VERSION >= 0x300
+    Nuitka_Exception_SetContext(new_exception_state.exception_value, exception_state->exception_value);
+#endif
+    RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
+}
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

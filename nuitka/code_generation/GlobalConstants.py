@@ -226,6 +226,9 @@ def getConstantDefaultPopulation():
     if isWin32Windows():
         result.append("fileno")
 
+    if not Options.isDeploymentMode():
+        result.append("args")
+
     for value in Plugins.getExtraConstantDefaultPopulation():
         if value not in result:
             result.append(value)
