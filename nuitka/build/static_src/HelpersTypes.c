@@ -280,10 +280,10 @@ static PyTypeObject *_getTypeGenericAliasType(void) {
 
     if (type_generic_alias_type == NULL) {
 
-        PyObject *typing_module = PyImport_ImportModule("_typing");
-        CHECK_OBJECT(typing_module);
+        PyObject *types_module = PyImport_ImportModule("types");
+        CHECK_OBJECT(types_module);
 
-        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(typing_module, "_GenericAlias");
+        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(types_module, "GenericAlias");
         CHECK_OBJECT(type_generic_alias_type);
     }
 
@@ -302,6 +302,7 @@ PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
     CHECK_OBJECT(params);
     PyObject *unpacked_params = _Nuitka_unpack_typevartuples(params);
     CHECK_OBJECT(unpacked_params);
+    assert(PyTuple_CheckExact(unpacked_params));
 
     PyObject *args[2] = {(PyObject *)tstate->interp->cached_objects.generic_type, unpacked_params};
 
