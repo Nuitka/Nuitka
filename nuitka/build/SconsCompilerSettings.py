@@ -596,13 +596,22 @@ unsigned char const *getConstantsBlobData(void) {
                     output.write('extern "C" {')
 
                 output.write(
-                    """
+                    """\
 // Constant data for the program.
+"""
+                )
 
+                if env.clang_mode:
+                    output.write(
+                        """
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
 #endif
+"""
+                    )
 
+                output.write(
+                    """
 #ifdef __cplusplus
 extern "C"
 #endif
