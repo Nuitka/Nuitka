@@ -443,7 +443,7 @@ Plugins can detect if they might be used, and the you can disable the warning vi
 Provide a module parameter. You are asked by some packages to provide extra decisions. Format is currently \fB\-\-module\-parameter\fR=\fI\,module\/\fR.name\-option\-name=value Default empty.
 .TP
 \fB\-\-show\-source\-changes\fR=\fI\,SHOW_SOURCE_CHANGES\/\fR
-Show source changes to original Python file content before compilation. Mostly intended for developing plugins and Nuitka package configuration. Use e.g. '\-\-show\-source\-changes=numpy.**' to see all changes below a given namespace or use '*' to see everything which can get a lot. Default empty.
+Show source changes to original Python file content before compilation. Mostly intended for developing plugins and Nuitka package configuration. Use e.g. '\-\-show\-source\-changes=numpy' to see all changes below a given namespace. This accepts patterns, so use '*' to see everything which can get a lot. Default empty.
 .IP
 Cross compilation:
 .TP
