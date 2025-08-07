@@ -425,6 +425,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 download_ok=download_ok,
+                experimental="winlibs-new" in env.experimental_flags,
             )
 
             if compiler_path is not None:
