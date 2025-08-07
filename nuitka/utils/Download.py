@@ -248,14 +248,22 @@ Fully automatic, cached. Proceed and download"""
         return getNormalizedPath(download_path)
 
 
-def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads, download_ok):
+def getCachedDownloadedMinGW64(
+    target_arch, assume_yes_for_downloads, download_ok, experimental=False
+):
     # Large URLs, pylint: disable=line-too-long
-
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-msvcrt-r2/winlibs-x86_64-posix-seh-gcc-14.2.0-llvm-19.1.1-mingw-w64msvcrt-12.0.0-r2.zip"
+        if experimental:
+            url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.1.0posix-13.0.0-msvcrt-r4/winlibs-x86_64-posix-seh-gcc-15.1.0-mingw-w64msvcrt-13.0.0-r4.zip"
+        else:
+            url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-msvcrt-r2/winlibs-x86_64-posix-seh-gcc-14.2.0-llvm-19.1.1-mingw-w64msvcrt-12.0.0-r2.zip"
+
         binary = r"mingw64\bin\gcc.exe"
     elif target_arch == "x86":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-msvcrt-r2/winlibs-i686-posix-dwarf-gcc-14.2.0-llvm-19.1.1-mingw-w64msvcrt-12.0.0-r2.zip"
+        if experimental:
+            url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.1.0posix-13.0.0-msvcrt-r4/winlibs-i686-posix-dwarf-gcc-15.1.0-mingw-w64msvcrt-13.0.0-r4.zip"
+        else:
+            url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-msvcrt-r2/winlibs-i686-posix-dwarf-gcc-14.2.0-llvm-19.1.1-mingw-w64msvcrt-12.0.0-r2.zip"
         binary = r"mingw32\bin\gcc.exe"
     elif target_arch == "arm64":
         return None
