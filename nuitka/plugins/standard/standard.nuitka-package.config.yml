@@ -7972,32 +7972,40 @@
           - ''
       when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
-- module-name: 'tkinterweb' # checksum: 5de6ded8
+- module-name: 'tkinterweb' # checksum: 2aa01e7a
+  data-files:
+    - dirs:
+        - 'resources'
+
+  implicit-imports:
+    - depends:
+        - 'tkinterweb_tkhtml'
+
+- module-name: 'tkinterweb.utilities' # checksum: 575a76dc
+  anti-bloat:
+    - description: 'change resolution of ROOT_DIR'
+      replacements_plain:
+        '__file__': 'sys.argv[0]'
+        '"resources"': '__title__.lower(), "resources"'
+
+- module-name: 'tkinterweb_tkhtml' # checksum: 734d9519
   data-files:
     - dirs:
         - 'tkhtml'
-
   dlls:
     - from_filenames:
-        relative_path: 'tkhtml/Windows/32-bit'
+        relative_path: 'tkhtml'
         prefixes:
-          - 'Tkhtml'
-      when: 'win32 and arch_x86'
-    - from_filenames:
-        relative_path: 'tkhtml/Windows/64-bit'
-        prefixes:
-          - 'Tkhtml'
-      when: 'win32 and arch_amd64'
-
+          - 'lib'
+        suffixes:
+          - 'dll'
+      when: 'win32 and (arch_x86 or arch_amd64)'
   anti-bloat:
-    - description: 'remove "sys.path" hack'
+    - description: 'change resolution of ROOT_DIR'
       replacements_plain:
-        'sys.path.append': ''
-  import-hacks:
-    - global-sys-path:
-        # This package forces itself into "sys.path" and expects absolute
-        # imports to be available.
-        - ''
+        'import os': 'import os, sys'
+        '__file__': 'sys.argv[0]'
+        '"tkhtml"': '__title__.lower(), "tkhtml"'
 
 - module-name: 'tls_client.cffi' # checksum: 97b24774
   dlls:
