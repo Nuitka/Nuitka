@@ -7988,7 +7988,7 @@
         '__file__': 'sys.argv[0]'
         '"resources"': '__title__.lower(), "resources"'
 
-- module-name: 'tkinterweb_tkhtml' # checksum: 734d9519
+- module-name: 'tkinterweb_tkhtml' # checksum: 45a8d3a9
   data-files:
     - dirs:
         - 'tkhtml'
@@ -8005,7 +8005,7 @@
       replacements_plain:
         'import os': 'import os, sys'
         '__file__': 'sys.argv[0]'
-        '"tkhtml"': '__title__.lower(), "tkhtml"'
+        '"tkhtml"': '__title__.lower().replace("-", "_"), "tkhtml"'
 
 - module-name: 'tls_client.cffi' # checksum: 97b24774
   dlls:
