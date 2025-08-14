@@ -12,8 +12,6 @@ from binascii import crc32
 
 from nuitka.__past__ import md5, unicode
 
-from .FileOperations import openTextFile
-
 
 class HashBase(object):
     __slots__ = ("hash",)
@@ -43,6 +41,8 @@ class HashBase(object):
                 assert False, type(value)
 
     def updateFromFile(self, filename, line_filter=None):
+        from .FileOperations import openTextFile
+
         with openTextFile(filename, "rb") as input_file:
             self.updateFromFileHandle(input_file, line_filter=line_filter)
 
@@ -75,16 +75,6 @@ class Hash(HashBase):
 
     def asHexDigest(self):
         return self.hash.hexdigest()
-
-
-def getFileContentsHash(filename, as_string=True, line_filter=None):
-    result = Hash()
-    result.updateFromFile(filename=filename, line_filter=line_filter)
-
-    if as_string:
-        return result.asHexDigest()
-    else:
-        return result.asDigest()
 
 
 def getStringHash(value, as_string=True):

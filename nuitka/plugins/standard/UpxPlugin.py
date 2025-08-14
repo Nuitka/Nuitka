@@ -9,8 +9,8 @@ from nuitka.Options import isOnefileMode, shallNotCompressOnefile
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeToolChecked, getExecutablePath
-from nuitka.utils.FileOperations import copyFile, makePath
-from nuitka.utils.Hashing import Hash, getFileContentsHash
+from nuitka.utils.FileOperations import copyFile, getFileContentsHash, makePath
+from nuitka.utils.Hashing import Hash
 from nuitka.utils.Utils import isLinux
 
 
@@ -84,6 +84,7 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
     def _compressFile(self, filename, use_cache):
         upx_options = ["-q", "--no-progress", "--best", "--lzma"]
 
+        # spell-checker: ignore vcruntime140
         if os.path.basename(filename).startswith("vcruntime140"):
             return
 

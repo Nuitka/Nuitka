@@ -332,9 +332,18 @@ def pickSourceFilenames(source_dir, modules):
         # or not, but that's probably not worth the effort. False positives do
         # no harm at all. We cannot use normcase, as macOS is not using one that
         # will tell us the truth.
-        collision_filename = base_filename.lower()
+        collision_filename = os.path.join(
+            source_dir, "module." + module.getFullName().asString().lower()
+        )
 
-        return base_filename, collision_filename
+        # When the filename becomes to long to add ".const", we use a hash name
+        # instead.
+        hash_filename = os.path.join(
+            source_dir,
+            "module.hashed_" + module.getFullName().asLegalFilename(),
+        )
+
+        return base_filename, collision_filename, hash_filename
 
     seen_filenames = set()
 
@@ -343,7 +352,7 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonExtensionModule():
             continue
 
-        _base_filename, collision_filename = _getModuleFilenames(module)
+        _base_filename, collision_filename, _hash_filename = _getModuleFilenames(module)
 
         if collision_filename in seen_filenames:
             collision_filenames.add(collision_filename)
@@ -362,13 +371,18 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonExtensionModule():
             continue
 
-        base_filename, collision_filename = _getModuleFilenames(module)
+        base_filename, collision_filename, hash_filename = _getModuleFilenames(module)
 
         if collision_filename in collision_filenames:
             collision_counts[collision_filename] = (
                 collision_counts.get(collision_filename, 0) + 1
             )
             base_filename += "@%d" % collision_counts[collision_filename]
+
+        # Allow for longer suffixes that .c, we use .const and might use others
+        # as well in the C compiler.
+        if len(base_filename) > 240:
+            base_filename = hash_filename
 
         module_filenames[module] = base_filename + ".c"
 
@@ -451,7 +465,9 @@ def makeSourceDirectory():
 
         source_code = CodeGeneration.generateModuleCode(
             module=module,
-            data_filename=os.path.basename(c_filename[:-2] + ".const"),
+            data_filename=changeFilenameExtension(
+                os.path.basename(c_filename), ".const"
+            ),
         )
 
         writeSourceCode(filename=c_filename, source_code=source_code)
