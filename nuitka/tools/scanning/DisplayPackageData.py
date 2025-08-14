@@ -22,7 +22,7 @@ def displayPackageData(module_name):
     if not hasMainScriptDirectory():
         addMainScriptDirectory(os.getcwd())
 
-    module_name, package_directory, _module_kind, finding = locateModule(
+    _module_name, package_directory, _module_kind, finding = locateModule(
         module_name=module_name, parent_package=None, level=0
     )
 
@@ -37,7 +37,9 @@ def displayPackageData(module_name):
             % module_name.asString()
         )
 
-    tools_logger.info("Checking package directory '%s' .. " % package_directory)
+    tools_logger.info(
+        "Checking package '%s' directory '%s' .. " % (module_name, package_directory)
+    )
 
     count = 0
 
