@@ -38,11 +38,11 @@ from nuitka.Tracing import recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
+    getFileContentsHash,
     getNormalizedPath,
     listDir,
     removeDirectory,
 )
-from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.Importing import (
     builtin_module_names,
     getExtensionModuleSuffixes,

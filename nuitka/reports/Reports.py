@@ -63,6 +63,7 @@ from nuitka.utils.Distributions import (
     isDistributionVendored,
 )
 from nuitka.utils.FileOperations import (
+    getNormalizedPath,
     getReportPath,
     putBinaryFileContents,
     putTextFileContents,
@@ -807,7 +808,9 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         contents = contents.encode("utf8")
 
     try:
-        putBinaryFileContents(filename=report_filename, contents=contents)
+        putBinaryFileContents(
+            filename=getNormalizedPath(report_filename), contents=contents
+        )
     except OSError as e:
         reports_logger.warning(
             "Compilation report write to file '%s' failed due to: %s."
@@ -939,8 +942,8 @@ def writeCompilationReports(aborted):
                 continue
 
             writeCompilationReportFromTemplate(
-                template_filename=template_filename,
-                report_filename=report_filename,
+                template_filename=getNormalizedPath(template_filename),
+                report_filename=getNormalizedPath(report_filename),
                 report_input_data=report_input_data,
             )
 
