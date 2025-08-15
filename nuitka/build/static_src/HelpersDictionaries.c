@@ -16,7 +16,7 @@
 // From CPython
 #define PyDict_LOG_MINSIZE 3
 
-#ifdef WITH_FREELISTS
+#if defined(WITH_FREELISTS) && PYTHON_VERSION >= 0x3d0
 static struct _Py_dictkeys_freelist *
 get_dictkeys_freelist(void)
 {
@@ -35,7 +35,7 @@ Nuitka_Py_dictkeys_free_keys_object(PyDictKeysObject *keys, bool use_qsbr)
     }
 #endif
 
-#ifdef WITH_FREELISTS
+#if defined(WITH_FREELISTS) && PYTHON_VERSION >= 0x3d0
     struct _Py_dictkeys_freelist *freelist = get_dictkeys_freelist();
     if (DK_LOG_SIZE(keys) == PyDict_LOG_MINSIZE
             && freelist->numfree < PyDict_MAXFREELIST
