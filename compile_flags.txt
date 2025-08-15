@@ -1,0 +1,4 @@
+-D__IDE_ONLY__
+-I./nuitka/build/include/
+-I/home/peter/develop/cpython/Include
+-I/home/peter/develop/cpython/
