@@ -1314,7 +1314,7 @@ static inline Py_ALWAYS_INLINE Py_ssize_t
 Nuitka_Py_dictkeys_do_lookup(PyDictObject *mp, PyDictKeysObject *dk, PyObject *key, Py_hash_t hash,
           int (*check_lookup)(PyDictObject *, PyDictKeysObject *, void *, Py_ssize_t ix, PyObject *key, Py_hash_t))
 {
-    void *ep0 = _DK_ENTRIES(dk);
+    void *ep0 = DK_ENTRIES(dk);
     size_t mask = DK_MASK(dk);
     size_t perturb = hash;
     size_t i = (size_t)hash & mask;
@@ -1679,7 +1679,7 @@ read_failed:
 Py_ssize_t
 Nuitka_Py_dict_lookup_threadsafe(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **value_addr)
 {
-    Py_ssize_t ix = _Py_dict_lookup(mp, key, hash, value_addr);
+    Py_ssize_t ix = Nuitka_PyDictLookup(mp, key, hash, &value_addr);
     Py_XNewRef(*value_addr);
     return ix;
 }
