@@ -1315,12 +1315,14 @@ static inline Py_ssize_t Nuitka_Py_dictkeys_get_index(const PyDictKeysObject *ke
 // From CPython
 #define PERTURB_SHIFT 5
 
+// 3.13+
+#if PYTHON_VERSION >= 0x3d0
 
 static inline Py_ALWAYS_INLINE Py_ssize_t
 Nuitka_Py_dictkeys_do_lookup(PyDictObject *mp, PyDictKeysObject *dk, PyObject *key, Py_hash_t hash,
           int (*check_lookup)(PyDictObject *, PyDictKeysObject *, void *, Py_ssize_t ix, PyObject *key, Py_hash_t))
 {
-    void *ep0 = DK_ENTRIES(dk);
+    void *ep0 = _DK_ENTRIES(dk);
     size_t mask = DK_MASK(dk);
     size_t perturb = hash;
     size_t i = (size_t)hash & mask;
@@ -1759,6 +1761,222 @@ restart:
 
     return ix;
 }
+
+#else
+static Py_ssize_t Nuitka_Py_unicodekeys_lookup_generic(PyDictObject *mp, PyDictKeysObject *dk, PyObject *key,
+                                                       Py_hash_t hash) {
+    PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(dk);
+
+    size_t mask = DK_MASK(dk);
+    size_t perturb = hash;
+    size_t i = (size_t)hash & mask;
+
+    while (1) {
+        Py_ssize_t ix = Nuitka_Py_dictkeys_get_index(dk, i);
+
+        if (ix >= 0) {
+            PyDictUnicodeEntry *ep = &ep0[ix];
+
+            assert(ep->me_key != NULL);
+            assert(PyUnicode_CheckExact(ep->me_key));
+
+            if (ep->me_key == key) {
+                return ix;
+            }
+
+            if (Nuitka_Py_unicode_get_hash(ep->me_key) == hash) {
+                PyObject *startkey = ep->me_key;
+                Py_INCREF(startkey);
+                nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(startkey, key);
+                Py_DECREF(startkey);
+
+                if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
+                    return DKIX_ERROR;
+                }
+
+                if (dk == mp->ma_keys && ep->me_key == startkey) {
+                    if (cmp == NUITKA_BOOL_TRUE) {
+                        return ix;
+                    }
+                } else {
+                    // In case of changed dictionary, trigger restart in caller.
+                    return DKIX_KEY_CHANGED;
+                }
+            }
+        } else if (ix == DKIX_EMPTY) {
+            return DKIX_EMPTY;
+        }
+        perturb >>= PERTURB_SHIFT;
+        i = mask & (i * 5 + perturb + 1);
+    }
+
+    NUITKA_CANNOT_GET_HERE("Nuitka_Py_unicodekeys_lookup_generic failed");
+}
+
+Py_ssize_t Nuitka_Py_unicodekeys_lookup_unicode(PyDictKeysObject *dk, PyObject *key, Py_hash_t hash) {
+    assert(PyUnicode_CheckExact(key));
+    assert(dk->dk_kind != DICT_KEYS_GENERAL);
+
+    PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(dk);
+
+    size_t mask = DK_MASK(dk);
+    size_t perturb = hash;
+    size_t i = (size_t)hash & mask;
+
+    while (true) {
+        Py_ssize_t ix = Nuitka_Py_dictkeys_get_index(dk, i);
+
+        // Found it.
+        if (ix >= 0) {
+            PyDictUnicodeEntry *ep = &ep0[ix];
+            assert(ep->me_key != NULL);
+            assert(PyUnicode_CheckExact(ep->me_key));
+
+            if (ep->me_key == key || (Nuitka_Py_unicode_get_hash(ep->me_key) == hash &&
+                                      RICH_COMPARE_EQ_CBOOL_UNICODE_UNICODE(ep->me_key, key))) {
+                return ix;
+            }
+        } else if (ix == DKIX_EMPTY) {
+            return DKIX_EMPTY;
+        }
+        perturb >>= PERTURB_SHIFT;
+
+        i = mask & (i * 5 + perturb + 1);
+        ix = Nuitka_Py_dictkeys_get_index(dk, i);
+
+        if (ix >= 0) {
+            PyDictUnicodeEntry *ep = &ep0[ix];
+
+            assert(ep->me_key != NULL);
+            assert(PyUnicode_CheckExact(ep->me_key));
+
+            if (ep->me_key == key || (Nuitka_Py_unicode_get_hash(ep->me_key) == hash &&
+                                      RICH_COMPARE_EQ_CBOOL_UNICODE_UNICODE(ep->me_key, key))) {
+                return ix;
+            }
+        } else if (ix == DKIX_EMPTY) {
+            return DKIX_EMPTY;
+        }
+
+        perturb >>= PERTURB_SHIFT;
+        i = mask & (i * 5 + perturb + 1);
+    }
+
+    NUITKA_CANNOT_GET_HERE("Nuitka_Py_unicodekeys_lookup_unicode failed");
+}
+
+// Search key from Generic table.
+static Py_ssize_t Nuitka_Py_dictkeys_generic_lookup(PyDictObject *mp, PyDictKeysObject *dk, PyObject *key,
+                                                    Py_hash_t hash) {
+    PyDictKeyEntry *ep0 = DK_ENTRIES(dk);
+
+    size_t mask = DK_MASK(dk);
+    size_t perturb = hash;
+    size_t i = (size_t)hash & mask;
+
+    while (1) {
+        Py_ssize_t ix = Nuitka_Py_dictkeys_get_index(dk, i);
+
+        if (ix >= 0) {
+            PyDictKeyEntry *ep = &ep0[ix];
+            assert(ep->me_key != NULL);
+            if (ep->me_key == key) {
+                return ix;
+            }
+            if (ep->me_hash == hash) {
+                PyObject *startkey = ep->me_key;
+                Py_INCREF(startkey);
+                nuitka_bool cmp = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(startkey, key);
+                Py_DECREF(startkey);
+
+                if (unlikely(cmp == NUITKA_BOOL_EXCEPTION)) {
+                    return DKIX_ERROR;
+                }
+                if (dk == mp->ma_keys && ep->me_key == startkey) {
+                    if (cmp == NUITKA_BOOL_TRUE) {
+                        return ix;
+                    }
+                } else {
+                    // In case of changed dictionary, trigger restart in caller.
+                    return DKIX_KEY_CHANGED;
+                }
+            }
+        } else if (ix == DKIX_EMPTY) {
+            return DKIX_EMPTY;
+        }
+        perturb >>= PERTURB_SHIFT;
+        i = mask & (i * 5 + perturb + 1);
+    }
+}
+
+Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
+    PyDictKeysObject *dk;
+    DictKeysKind kind;
+    Py_ssize_t ix;
+
+    _Py_CRITICAL_SECTION_ASSERT_OBJECT_LOCKED(mp);
+restart:
+    dk = mp->ma_keys;
+    kind = (DictKeysKind)dk->dk_kind;
+
+    if (kind != DICT_KEYS_GENERAL) {
+        if (PyUnicode_CheckExact(key)) {
+#ifdef Py_GIL_DISABLED
+            if (kind == DICT_KEYS_SPLIT) {
+                ix = Nuitka_Py_unicodekeys_lookup_unicode_threadsafe(dk, key, hash);
+
+                if (ix == DKIX_KEY_CHANGED) {
+                    LOCK_KEYS(dk);
+                    ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+                    UNLOCK_KEYS(dk);
+                }
+            } else
+#endif
+            {
+                ix = Nuitka_Py_unicodekeys_lookup_unicode(dk, key, hash);
+            }
+        } else {
+            INCREF_KEYS_FT(dk);
+            LOCK_KEYS_IF_SPLIT(dk, kind);
+
+            ix = Nuitka_Py_unicodekeys_lookup_generic(mp, dk, key, hash);
+
+            UNLOCK_KEYS_IF_SPLIT(dk, kind);
+            DECREF_KEYS_FT(dk, IS_DICT_SHARED(mp));
+
+            // Dictionary lookup changed the dictionary, retry.
+            if (ix == DKIX_KEY_CHANGED) {
+                goto restart;
+            }
+        }
+
+        if (ix >= 0) {
+            if (kind == DICT_KEYS_SPLIT) {
+                *value_addr = &mp->ma_values->values[ix];
+            } else {
+                *value_addr = &DK_UNICODE_ENTRIES(dk)[ix].me_value;
+            }
+        } else {
+            *value_addr = NULL;
+        }
+    } else {
+        ix = Nuitka_Py_dictkeys_generic_lookup(mp, dk, key, hash);
+
+        // Dictionary lookup changed the dictionary, retry.
+        if (ix == DKIX_KEY_CHANGED) {
+            goto restart;
+        }
+
+        if (ix >= 0) {
+            *value_addr = &DK_ENTRIES(dk)[ix].me_value;
+        } else {
+            *value_addr = NULL;
+        }
+    }
+
+    return ix;
+}
+#endif
 
 Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr) {
     assert(PyUnicode_CheckExact(key));
