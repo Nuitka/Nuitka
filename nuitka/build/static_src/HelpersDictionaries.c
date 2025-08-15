@@ -173,6 +173,9 @@ static inline void split_keys_entry_added(PyDictKeysObject *keys)
 #define STORE_INDEX(keys, size, idx, value) ((int##size##_t*)(keys->dk_indices))[idx] = (int##size##_t)value
 #endif
 
+Py_ssize_t
+Nuitka_Py_dict_lookup_threadsafe(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject **value_addr);
+
 PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
@@ -235,6 +238,9 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -245,7 +251,7 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -321,6 +327,9 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -331,7 +340,7 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -448,6 +457,9 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -464,7 +476,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
     }
 #endif
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -546,6 +558,9 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, 
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -556,7 +571,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, 
     }
 #endif
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -635,6 +650,9 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -645,7 +663,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
     }
 #endif
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -722,6 +740,9 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
 #elif PYTHON_VERSION < 0x3b0
     PyObject *result;
     Py_ssize_t ix = (dict_object->ma_keys->dk_lookup)(dict_object, key, hash, &result);
+#elif defined(Py_GIL_DISABLED)
+    PyObject *result;
+    Py_ssize_t ix = Nuitka_Py_dict_lookup_threadsafe(dict_object, key, hash, &result);
 #else
     PyObject **value_addr;
     Py_ssize_t ix = Nuitka_PyDictLookup(dict_object, key, hash, &value_addr);
@@ -735,7 +756,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
         return 0;
     }
 
-#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 && !defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
