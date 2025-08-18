@@ -1645,7 +1645,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
-    _initBuiltinModule();
+    _initBuiltinModule(tstate);
 
     /* Initialize the Python constant values used. This also sets
      * "sys.executable" while at it.
