@@ -1236,11 +1236,12 @@ static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #include <signal.h>
 static void nuitka_segfault_handler(int sig) {
+    signal(SIGSEGV, SIG_DFL);
+
     puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
     puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
     puts("for solutions.");
 
-    signal(SIGSEGV, SIG_DFL);
     raise(SIGSEGV);
 }
 #endif
