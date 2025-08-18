@@ -61,6 +61,10 @@
 #include "HelpersConsole.c"
 #endif
 
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
+#include "HelpersDialogs.c"
+#endif
+
 // We are open to having this defined otherwise, this is a default only.
 #if defined(_WIN32) && defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) &&                                 \
     !defined(NUITKA_APP_MODEL_USER_ID)
@@ -906,9 +910,9 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         if (method == NULL) {
             DROP_ERROR_OCCURRED(tstate);
         } else {
-        CHECK_OBJECT(method);
+            CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
+            PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
             Py_DECREF(method);
 
             Py_XDECREF(result);
@@ -920,7 +924,7 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-            PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
         if (method == NULL) {
             DROP_ERROR_OCCURRED(tstate);
         } else {
