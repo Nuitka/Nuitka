@@ -903,10 +903,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
         PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
         CHECK_OBJECT(method);
 
         PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-        CHECK_OBJECT(result);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
+        }
     }
 #endif
 
@@ -914,12 +920,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-        if (sys_stderr != Py_None) {
             PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
             CHECK_OBJECT(method);
 
             PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-            CHECK_OBJECT(result);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
         }
     }
 #endif
