@@ -247,7 +247,7 @@ PyObject *modulecode_%(module_identifier)s(PyThreadState *tstate, PyObject *modu
         initNuitkaAllocators();
 #endif
         // Initialize the constant values used.
-        _initBuiltinModule();
+        _initBuiltinModule(tstate);
 
         PyObject *real_module_name = PyObject_GetAttrString(module, "__name__");
         CHECK_OBJECT(real_module_name);

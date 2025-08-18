@@ -127,7 +127,10 @@ PyTypeObject *Nuitka_PyUnion_Type;
 
 static PyObject *_makeDeepCopyFunctionCapsule(copy_func func) { return Nuitka_CapsuleNew((void *)func); }
 
-static void _initDeepCopy(void) {
+static void _initDeepCopy(PyThreadState *tstate) {
+    // Once only
+    assert(_deep_copy_dispatch == NULL);
+
     _deep_copy_dispatch = PyDict_New();
     _deep_noop = Py_None;
 
@@ -146,8 +149,6 @@ static void _initDeepCopy(void) {
 
 #if PYTHON_VERSION >= 0x3a0
     {
-        PyThreadState *tstate = PyThreadState_GET();
-
         PyObject *args[2] = {(PyObject *)&PyFloat_Type, (PyObject *)&PyTuple_Type};
         PyObject *args_tuple = MAKE_TUPLE(tstate, args, 2);
         PyObject *union_value = MAKE_UNION_TYPE(args_tuple);
@@ -206,7 +207,6 @@ static PyObject *DEEP_COPY_ITEM(PyThreadState *tstate, PyObject *value, PyTypeOb
 }
 
 PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value) {
-#if 1
     PyObject *dispatcher = DICT_GET_ITEM0(tstate, _deep_copy_dispatch, (PyObject *)Py_TYPE(value));
 
     if (unlikely(dispatcher == NULL)) {
@@ -220,55 +220,6 @@ PyObject *DEEP_COPY(PyThreadState *tstate, PyObject *value) {
         copy_func copy_function = (copy_func)(Nuitka_CapsuleGetPointer(dispatcher));
         return copy_function(tstate, value);
     }
-
-#else
-
-    if (PyDict_CheckExact(value)) {
-        return DEEP_COPY_DICT(value);
-    } else if (PyList_CheckExact(value)) {
-        return DEEP_COPY_LIST(value);
-    } else if (PyTuple_CheckExact(value)) {
-        return DEEP_COPY_TUPLE(value);
-    } else if (PySet_CheckExact(value)) {
-        return DEEP_COPY_SET(value);
-    } else if (PyFrozenSet_CheckExact(value)) {
-        // Sets cannot contain non-hashable types, so they must be immutable and
-        // the frozenset itself is immutable.
-        return value;
-    } else if (
-#if PYTHON_VERSION < 0x300
-        PyString_Check(value) ||
-#endif
-        PyUnicode_Check(value) ||
-#if PYTHON_VERSION < 0x300
-        PyInt_CheckExact(value) ||
-#endif
-        PyLong_CheckExact(value) || value == Py_None || PyBool_Check(value) || PyFloat_CheckExact(value) ||
-        PyBytes_CheckExact(value) || PyRange_Check(value) || PyType_Check(value) || PySlice_Check(value) ||
-        PyComplex_CheckExact(value) || PyCFunction_Check(value) || value == Py_Ellipsis || value == Py_NotImplemented) {
-        Py_INCREF(value);
-        return value;
-    } else if (PyByteArray_CheckExact(value)) {
-        // TODO: Could make an exception for zero size.
-        return PyByteArray_FromObject(value);
-#if PYTHON_VERSION >= 0x390
-    } else if (Py_TYPE(value) == &Py_GenericAliasType) {
-        GenericAliasObject *generic_alias = (GenericAliasObject *)value;
-
-        PyObject *args = DEEP_COPY(generic_alias->args);
-        PyObject *origin = DEEP_COPY(generic_alias->origin);
-
-        if (generic_alias->args == args && generic_alias->origin == origin) {
-            Py_INCREF(value);
-            return value;
-        } else {
-            return Py_GenericAlias(origin, args);
-        }
-#endif
-    } else {
-        NUITKA_CANNOT_GET_HERE("DEEP_COPY encountered unknown type");
-    }
-#endif
 }
 
 #ifndef __NUITKA_NO_ASSERT__
