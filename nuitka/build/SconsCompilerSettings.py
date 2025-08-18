@@ -968,6 +968,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
 
     if env.console_mode == "attach" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
+
+    if env.console_mode == "disable" and os.name == "nt":
+        env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
 
     if env.console_mode == "hide" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
