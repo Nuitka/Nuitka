@@ -157,7 +157,7 @@ Defaults to off.""",
             enableProgressBar(progress_bar="auto")
 
         for filename in wrapWithProgressBar(
-            filenames, stage="Auto format", unit="files"
+            filenames, stage="Auto format", unit="file"
         ):
             if autoFormatFile(
                 filename,

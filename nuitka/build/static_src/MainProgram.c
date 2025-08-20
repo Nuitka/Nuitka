@@ -326,6 +326,34 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
 
             break;
         }
+
+#endif
+
+#if !defined(_NUITKA_DEPLOYMENT_MODE)
+#if PYTHON_VERSION < 0x3c0
+        PyObject *exception_value = tstate->curexc_value;
+#else
+        PyObject *exception_value = tstate->current_exception;
+#endif
+        PyTypeObject *exception_type = Py_TYPE(exception_value);
+        char const *exception_name = exception_type->tp_name;
+
+        assert(HAS_ERROR_OCCURRED(tstate));
+
+        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+            struct Nuitka_ExceptionPreservationItem saved_exception;
+            FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+
+            PyObject *exception_arg = PyUnicode_FromFormat("\
+Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
+and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
+included by default",
+                                                           exception_value);
+
+            CHECK_OBJECT(exception_arg);
+
+            raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
+        }
 #endif
         NUITKA_FINALIZE_PROGRAM(tstate);
 
@@ -523,11 +551,11 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
 }
 
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
 
 static long onefile_ppid;
 
-DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
 
     for (;;) {
@@ -775,6 +803,10 @@ static bool shallSetOutputHandleToNull(char const *name) {
     if (strcmp(name, "stderr") == 0) {
         return false;
     }
+#endif
+
+#if _NUITKA_DLL_MODE
+    return false;
 #endif
 
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
@@ -1320,7 +1352,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     // Attach to the parent console respecting redirection only, otherwise we
     // cannot even output traces.
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) && !_NUITKA_DLL_MODE
     inheritAttachedConsole();
 #endif
 
@@ -1331,7 +1363,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 // Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
-#if !defined(_NUITKA_ONEFILE_MODE)
+#if !_NUITKA_ONEFILE_MODE
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
 #endif
 #endif
@@ -1469,7 +1501,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initial command line handling only. */
 
-#if defined(_NUITKA_ONEFILE_MODE)
+#if _NUITKA_ONEFILE_MODE
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
 
@@ -1919,7 +1951,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else {
 #endif
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
         {
             char buffer[128] = {0};
             DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
@@ -1978,17 +2010,24 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
-    /* MSVC, MINGW64 */
+    /* MSVC, MINGW64 both have this */
     int argc = __argc;
     wchar_t **argv = __wargv;
 
+    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 #else
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
+int wmain(int argc, wchar_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #else
-int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
+int main(int argc, char **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #endif
 #endif
 
@@ -2004,7 +2043,10 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) { return Nuitka_Main(argc, argv); }
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 
 #ifdef __cplusplus
 }

@@ -54,6 +54,7 @@ from .SconsCompilerSettings import (
 )
 from .SconsHacks import getEnhancedToolDetect
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
+from .SconsPythonBuild import addWin32PythonLib, applyPythonBuildSettings
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -98,16 +99,6 @@ result_exe = getArgumentRequired("result_exe")
 # Python version to target.
 python_version_str = getArgumentRequired("python_version")
 python_version = tuple(int(d) for d in python_version_str.split("."))
-
-gil_mode = getArgumentBool("gil_mode")
-
-# The ABI flags to target.
-abiflags = getArgumentDefaulted("abiflags", "")
-
-if not gil_mode and "t" not in abiflags:
-    abiflags = "t" + abiflags
-
-python_abi_version = python_version_str + abiflags
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
@@ -239,6 +230,7 @@ env.nuitka_src = nuitka_src
 env.low_memory = False
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
+env.target_arch = target_arch
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
@@ -301,6 +293,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",
     job_count=job_count,
+    exe_target=True,
     onefile_compile=False,
 )
 
@@ -372,74 +365,6 @@ if python_debug:
 if env.static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
-
-def _detectPythonHeaderPath():
-    if os.name == "nt":
-        # On Windows, the CPython installation layout is relatively fixed, but on MSYS2
-        # compiled for mingw64, it's more standard.
-
-        candidates = [
-            os.path.join(python_prefix_external, "include"),
-            # On MSYS2 with MinGW64 Python, it is also the other form.
-            os.path.join(
-                python_prefix_external, "include", "python" + python_abi_version
-            ),
-        ]
-    else:
-        # The python header path is a combination of python version and debug
-        # indication, we make sure the headers are found by adding it to the C
-        # include path.
-
-        candidates = [
-            os.path.join(
-                python_prefix_external, "include", "python" + python_abi_version
-            ),
-            # CPython source code checkout
-            os.path.join(python_prefix_external, "Include"),
-            # Haiku specific paths:
-            os.path.join(
-                python_prefix_external, "develop/headers", "python" + python_abi_version
-            ),
-        ]
-
-        # Not all Python versions, have the ABI version to use for the debug version.
-        if python_debug and "d" in python_abi_version:
-            candidates.append(
-                os.path.join(
-                    python_prefix_external,
-                    "include",
-                    "python" + python_abi_version.replace("d", ""),
-                )
-            )
-
-    for candidate in candidates:
-        if os.path.exists(os.path.join(candidate, "Python.h")):
-            yield candidate
-            break
-    else:
-        if os.name == "nt":
-            scons_logger.sysexit(
-                """\
-Error, you seem to be using the unsupported embeddable CPython distribution \
-use a full Python instead."""
-            )
-        else:
-            scons_logger.sysexit(
-                """\
-Error, no 'Python.h' %s headers can be found at '%s', dependency \
-not satisfied!"""
-                % ("debug" if python_debug else "development", candidates)
-            )
-
-    if python_version >= (3, 13):
-        yield os.path.join(candidate, "internal", "mimalloc")
-
-    if env.self_compiled_python_uninstalled:
-        yield python_prefix_external
-
-
-env.Append(CPPPATH=list(_detectPythonHeaderPath()))
-
 # To support self-built Python on Windows, need to also add the "PC" directory,
 # that a normal install won't have.
 if os.name == "nt":
@@ -454,8 +379,7 @@ if env.nuitka_python:
 if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if not gil_mode:
-    env.Append(CPPDEFINES="Py_GIL_DISABLED")
+applyPythonBuildSettings(env)
 
 if env.static_libpython and python_version >= (3, 12):
     env.Append(
@@ -481,35 +405,8 @@ if env.static_libpython and python_version >= (3, 12):
 if env.gcc_mode and env.static_libpython:
     env.Append(LIBS=[env.File(env.static_libpython)])
 else:
-    # Some non CPython flavors on Windows have this.
-    def addWinLib():
-        # Make sure to locate the Python link library from multiple potential
-        # locations (installed vs. self-built).
-        if python_debug:
-            win_lib_name = "python" + python_abi_version.replace(".", "") + "_d"
-        else:
-            win_lib_name = "python" + python_abi_version.replace(".", "")
-
-        if python_version >= (3,):
-            pc_build_dir = (
-                "PCBuild/amd64" if target_arch == "x86_64" else "PCBuild/win32"
-            )
-        else:
-            pc_build_dir = "PCBuild"
-
-        for candidate in ("libs", pc_build_dir):
-            win_lib_path = os.path.join(python_prefix_external, candidate)
-
-            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-                break
-        else:
-            scons_logger.sysexit("Error, cannot find '%s.lib' file." % win_lib_name)
-
-        env.Append(LIBPATH=[win_lib_path])
-        env.Append(LIBS=[win_lib_name])
-
     if not env.msys2_mingw_python:
-        addWinLib()
+        addWin32PythonLib(env)
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.

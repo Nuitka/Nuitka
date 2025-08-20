@@ -96,7 +96,7 @@ Include data files from complete directory in the distribution. This is recursiv
 \fB\-\-noinclude\-data\-files\fR=\fI\,PATTERN\/\fR
 Do not include data files matching the filename pattern given. This is against the target filename, not source paths. So to ignore a file pattern from package data for 'package_name' should be matched as 'package_name/*.txt'. Or for the whole directory simply use 'package_name'. Default empty.
 .TP
-\fB\-\-include\-onefile\-external\-data\fR=\fI\,PATTERN\/\fR
+\fB\-\-include\-data\-files\-external\fR=\fI\,PATTERN\/\fR
 Include the specified data file patterns outside of the onefile binary, rather than on the inside. Makes only sense in case of '\-\-onefile' compilation. First files have to be specified as included with other `\-\-include\-*data*` options, and then this refers to target paths inside the distribution. Default empty.
 .TP
 \fB\-\-list\-package\-data\fR=\fI\,LIST_PACKAGE_DATA\/\fR
@@ -305,7 +305,7 @@ Disable all information outputs, but show warnings. Defaults to off.
 Run the C building backend Scons with verbose information, showing the executed commands, detected compilers. Defaults to off.
 .TP
 \fB\-\-progress\-bar\fR=\fI\,PROGRESS_BAR_MODE\/\fR
-Select the progress bar mode. The 'auto' selects 'rich' if available, otherwise 'tqdm'. The values 'tqdm' and 'rich' force a specific library. Use 'none' to disables progress bars. Defaults to 'auto'.
+Select the progress bar mode. The 'auto' selects 'tqdm' if available, otherwise 'rich'. The values 'tqdm' and 'rich' force a specific library. Use 'none' to disables progress bars. Defaults to 'auto'.
 .TP
 \fB\-\-show\-progress\fR
 Obsolete: Provide progress information and statistics. Disables normal progress bar. Defaults to off.

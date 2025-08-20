@@ -6,11 +6,14 @@
 """
 
 from nuitka.Options import shallMakeModule
-from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.PluginBase import (
+    NuitkaNamespaceDetectorPluginBase,
+    NuitkaPluginBase,
+)
 
 
 class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
-    """This is to make dill module work with compiled methods."""
+    """This is to make dill/ray/cloudpickle modules work with compiled methods."""
 
     plugin_name = "dill-compat"
     plugin_desc = "Required for 'dill' package and 'cloudpickle' compatibility."
@@ -119,6 +122,17 @@ Extending "%s" for compiled types to be pickle-able as well.""",
 
     def getExtraCodeFiles(self):
         return {"DillPlugin.c": self.getPluginDataFileContents("DillPlugin.c")}
+
+
+class NuitkaPluginDetectorDillWorkarounds(NuitkaNamespaceDetectorPluginBase):
+    """Only used if plugin is NOT activated.
+
+    Notes:
+        We are given the chance to issue a warning if we think we may be required.
+    """
+
+    detector_for = NuitkaPluginDillWorkarounds
+    detector_namespaces = NuitkaPluginDillWorkarounds.pickle_package_names
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

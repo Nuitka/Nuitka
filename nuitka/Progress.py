@@ -124,7 +124,7 @@ class NuitkaProgressBarTqdm(object):
 
 class NuitkaProgressBarRich(object):
     def __init__(self, iterable, stage, total, min_total, unit):
-        self.iterable = iterable
+        self.iterable = iterable or ()
 
         if total is None and hasattr(iterable, "__len__"):
             self.total = len(iterable)
@@ -219,13 +219,11 @@ class NuitkaProgressBarRich(object):
         self.setCurrent(self.item)
 
     def __iter__(self):
-        if self.iterable is None:
-            return iter([])
-        else:
-            self.rich_progress.start_task(self.task_id)
-            for val in self.iterable:
-                yield val
-                self.update()
+        self.rich_progress.start_task(self.task_id)
+
+        for val in self.iterable:
+            yield val
+            self.update()
 
     def updateTotal(self, total):
         if total != self.total:
@@ -380,7 +378,7 @@ def _checkTqdmModule():
 
 
 # Try progress bars in this order.
-_default_progress_bars = ("rich", "tqdm")
+_default_progress_bars = ("tqdm", "rich")
 
 
 def enableProgressBar(progress_bar):
@@ -534,7 +532,7 @@ def withNuitkaDownloadProgressBar(*args, **kwargs):
             # spell-checker: ignore bsize, tsize
             def onProgress(self, b=1, bsize=1, tsize=None):
                 if tsize is not None:
-                    self.total = tsize
+                    self.total = tsize # false alarm, pylint: disable=attribute-defined-outside-init,I0021
                 self.update(b * bsize - self.n)
 
         tqdm_kwargs = kwargs.copy()
