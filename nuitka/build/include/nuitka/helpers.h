@@ -341,7 +341,7 @@ extern PyObject *getContainingDirectoryObject(bool resolve_symlinks);
 
 // Get the original argv[0] as recorded by the bootstrap stage. Returns
 // None, if not available, in module mode.
-#if _NUITKA_EXE_MODE
+#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
 extern PyObject *getOriginalArgv0Object(void);
 #endif
 
