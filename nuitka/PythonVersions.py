@@ -54,8 +54,19 @@ def getZstandardSupportingVersions():
     # with newly supported versions, and to list the ones not supported by
     # zstandard.
     result = tuple(
-        version for version in result if version not in ("2.6", "2.7", "3.3", "3.4")
+        version for version in result if version not in ("2.6", "2.7", "3.4")
     )
+
+    return result
+
+
+def getSconsSupportingVersions():
+    result = getSupportedPythonVersions()
+
+    result = tuple(version for version in result if version not in ("3.4",))
+
+    if os.name == "nt":
+        result = tuple(version for version in result if version not in ("2.7", "2.6"))
 
     return result
 

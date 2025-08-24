@@ -224,7 +224,7 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
     } else if (PyGen_CheckExact(yield_from) || PyCoro_CheckExact(yield_from)) {
         retval = Nuitka_PyGen_Send(tstate, (PyGenObject *)yield_from, Py_None);
     } else if (send_value == Py_None && Nuitka_CoroutineWrapper_Check(yield_from)) {
-        struct Nuitka_CoroutineObject *yieldfrom_coroutine =
+        struct Nuitka_CoroutineObject *yield_from_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yield_from)->m_coroutine;
 
         Py_INCREF_IMMORTAL(Py_None);
@@ -232,7 +232,8 @@ static PyObject *_Nuitka_YieldFromCore(PyThreadState *tstate, PyObject *yield_fr
         struct Nuitka_ExceptionPreservationItem no_exception_state;
         INIT_ERROR_OCCURRED_STATE(&no_exception_state);
 
-        retval = _Nuitka_Coroutine_send(tstate, yieldfrom_coroutine, Py_None, mode ? false : true, &no_exception_state);
+        retval =
+            _Nuitka_Coroutine_send(tstate, yield_from_coroutine, Py_None, mode ? false : true, &no_exception_state);
     } else if (send_value == Py_None && Py_TYPE(yield_from)->tp_iternext != NULL) {
         retval = Py_TYPE(yield_from)->tp_iternext(yield_from);
     } else {
@@ -610,7 +611,7 @@ static PyObject *_Nuitka_Coroutine_send(PyThreadState *tstate, struct Nuitka_Cor
     case PYGEN_ERROR:
         return NULL;
     default:
-        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
+        NUITKA_CANNOT_GET_HERE("invalid _Nuitka_Coroutine_sendR result");
     }
 }
 
@@ -1344,11 +1345,7 @@ static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
     // we have the line number stored.
 
     int addr = _PyInterpreterFrame_LASTI(frame) * sizeof(_Py_CODEUNIT);
-#if PYTHON_VERSION < 0x3d0
-    return PyCode_Addr2Line(frame->f_code, addr);
-#else
-    return PyCode_Addr2Line((PyCodeObject *)frame->f_executable, addr);
-#endif
+    return PyCode_Addr2Line(Nuitka_InterpreterFrame_GetCodeObject(frame), addr);
 }
 
 static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth) {
@@ -1493,9 +1490,11 @@ static inline PyCodeObject *_Nuitka_PyGen_GetCode(PyGenObject *gen) {
 #elif PYTHON_VERSION < 0x3d0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return frame->f_code;
-#else
+#elif PYTHON_VERSION < 0x3e0
     _PyInterpreterFrame *frame = (_PyInterpreterFrame *)(gen->gi_iframe);
     return (PyCodeObject *)frame->f_executable;
+#else
+    return Nuitka_InterpreterFrame_GetCodeObject(&gen->gi_iframe);
 #endif
 }
 

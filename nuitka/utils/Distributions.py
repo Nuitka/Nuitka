@@ -26,7 +26,9 @@ from nuitka.Tracing import metadata_logger
 from .FileOperations import (
     getFileContentByLine,
     getFileList,
+    getNormalizedPath,
     isFilenameBelowPath,
+    relpath,
     searchPrefixPath,
 )
 from .Importing import getModuleNameAndKindFromFilenameSuffix
@@ -39,7 +41,7 @@ _package_to_distribution = None
 _conda_package_infos = None
 
 
-def _getCondaMetaDataFiles(distribution_name):
+def _getCondaPackageInfos():
     # Cached result, pylint: disable=global-statement
     global _conda_package_infos
 
@@ -52,6 +54,7 @@ def _getCondaMetaDataFiles(distribution_name):
             conda_data = loadJsonFromFilename(filename)
 
             if conda_data is not None:
+                found = False
                 for contained_filename in conda_data["files"]:
                     if contained_filename.endswith(".dist-info/METADATA"):
                         contained_filename_full = os.path.join(
@@ -66,12 +69,59 @@ def _getCondaMetaDataFiles(distribution_name):
                                     _conda_package_infos[
                                         contained_distribution_name
                                     ] = conda_data
+                                    found = True
                                     break
+
+                if not found:
+                    _conda_package_infos[conda_data["name"]] = conda_data
+
+    return _conda_package_infos
+
+
+def _getCondaMetaDataFiles(distribution_name):
+    _getCondaPackageInfos()
 
     if distribution_name in _conda_package_infos:
         return _conda_package_infos[distribution_name]["files"]
     else:
         return ()
+
+
+def getCondaMetaDataVersion(distribution_name):
+    _getCondaPackageInfos()
+
+    if distribution_name in _conda_package_infos:
+        return _conda_package_infos[distribution_name]["version"]
+    else:
+        return None
+
+
+def getCondaDistributionName(distribution):
+    _getCondaPackageInfos()
+
+    # That's what we got to use there, pylint: disable=protected-access
+    distribution_relpath = os.path.normcase(
+        getNormalizedPath(relpath(path=distribution._path, start=sys.prefix))
+    )
+    distribution_relpath2 = distribution_relpath + "\\"
+    distribution_relpath3 = distribution_relpath + "/"
+
+    # Working with filenames as strings here to avoid performance breakdowns due
+    # to IO load.
+
+    for distribution_name, conda_data in _conda_package_infos.items():
+        for contained_filename in conda_data["files"]:
+            contained_filename = os.path.normcase(contained_filename)
+
+            if (
+                contained_filename == distribution_relpath
+                or contained_filename.startswith(
+                    (distribution_relpath2, distribution_relpath3)
+                )
+            ):
+                return distribution_name
+
+    return None
 
 
 def getDistributionFiles(distribution):
@@ -598,6 +648,7 @@ def getDistributionName(distribution):
     and this is to abstract the difference is how to look up the name from
     one.
     """
+    result = None
 
     if hasattr(distribution, "metadata"):
         result = distribution.metadata["Name"]
@@ -615,8 +666,17 @@ def getDistributionName(distribution):
                         dir_name = dir_name[:-10]
 
                         result = dir_name.rsplit("-", 1)[0]
-    else:
+
+    if result is None and hasattr(distribution, "project_name"):
         result = distribution.project_name
+
+    if result is None and isAnacondaPython() and hasattr(distribution, "_path"):
+        result = getCondaDistributionName(distribution)
+
+        # Abuse above code path preferring "project_name" as a cheap form of
+        # caching.
+        if result is not None:
+            distribution.project_name = result
 
     return result
 

@@ -176,10 +176,15 @@ extern void dumpFrameStack(void);
 #if PYTHON_VERSION >= 0x3b0
 inline static PyCodeObject *Nuitka_InterpreterFrame_GetCodeObject(_PyInterpreterFrame *frame) {
 #if PYTHON_VERSION < 0x3d0
-    return frame->f_code;
+    PyCodeObject *result = frame->f_code;
+#elif PYTHON_VERSION < 0x3e0
+    PyCodeObject *result = (PyCodeObject *)frame->f_executable;
 #else
-    return (PyCodeObject *)frame->f_executable;
+    assert(!PyStackRef_IsNull(frame->f_executable));
+    PyCodeObject *result = (PyCodeObject *)PyStackRef_AsPyObjectBorrow(frame->f_executable);
 #endif
+    assert(PyCode_Check(result));
+    return result;
 }
 #endif
 

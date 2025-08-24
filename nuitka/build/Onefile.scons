@@ -330,6 +330,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    exe_target=True,
     onefile_compile=True,
 )
 
@@ -409,10 +410,6 @@ env.Append(
         os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
 )
-
-# Tell compiler to create a program.
-if env.msvc_mode:
-    env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if isMacOS():
     addConstantBlobFile(

@@ -287,6 +287,8 @@ def _addPluginClass(plugin_class, detector):
 
 
 def _loadPluginClassesFromPackage(scan_package):
+    # We check many things here, pylint: disable=too-many-branches
+
     scan_path = scan_package.__path__
 
     for item in iter_modules(scan_path):
@@ -337,6 +339,12 @@ def _loadPluginClassesFromPackage(scan_package):
 
         # First the ones with detectors.
         for detector in detectors:
+            if detector.detector_for is None:
+                plugins_logger.sysexit(
+                    """Error, detector plugin %s without detector_for pointing to a plugin."""
+                    % detector
+                )
+
             plugin_class = detector.detector_for
 
             if detector.__name__.replace(
@@ -1644,21 +1652,26 @@ def listPlugins():
 
     plist = []
     max_name_length = 0
-    for plugin_name in sorted(plugin_name2plugin_classes):
+    for plugin_name, detector_info in sorted(plugin_name2plugin_classes.items()):
         plugin = plugin_name2plugin_classes[plugin_name][0]
 
         if plugin.isDeprecated():
             continue
 
-        if hasattr(plugin, "plugin_desc"):
-            plist.append((plugin_name, plugin.plugin_desc))
-        else:
-            plist.append((plugin_name, ""))
+        plugin_desc = getattr(plugin, "plugin_desc", None)
+
+        plist.append(
+            (
+                plugin_name,
+                plugin_desc,
+                "" if detector_info[1] is None else "Has detector.",
+            )
+        )
 
         max_name_length = max(len(plugin_name), max_name_length)
 
     for line in plist:
-        printLine(" " + line[0].ljust(max_name_length + 1), line[1])
+        printLine(" " + line[0].ljust(max_name_length + 1), line[1], line[2])
 
 
 def isObjectAUserPluginBaseClass(obj):

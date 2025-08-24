@@ -940,8 +940,17 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
     PyDictObject *result_mp;
 
 #if NUITKA_DICT_HAS_FREELIST
-    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION >= 0x3e0
+    // TODO: Eliminate _Py_freelists_GET for our own version, using tstate passed in
+    result_mp = (PyDictObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->dicts);
 
+    if (result_mp == NULL) {
+        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+    } else {
+        Nuitka_Py_NewReference((PyObject *)result_mp);
+    }
+#else
+    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     PyDictObject **items = tstate->interp->dict_state.free_list;
     int *numfree = &tstate->interp->dict_state.numfree;
@@ -957,15 +966,16 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(PyThreadState *tstate) {
         result_mp = items[*numfree];
 
         Nuitka_Py_NewReference((PyObject *)result_mp);
-
-        assert(PyDict_CheckExact((PyObject *)result_mp));
-        assert(result_mp != NULL);
     } else
 #endif
     {
         result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
     }
-
+#else
+    result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
+#endif
+    CHECK_OBJECT(result_mp);
+    assert(PyDict_CheckExact((PyObject *)result_mp));
     return result_mp;
 }
 #endif
@@ -1639,10 +1649,12 @@ PyObject *MAKE_DICT_EMPTY(PyThreadState *tstate) {
     result_mp->ma_keys = empty_dict_mp->ma_keys;
     result_mp->ma_values = empty_dict_mp->ma_values;
     result_mp->ma_used = 0;
+#if PYTHON_VERSION < 0x3e0
 #if PYTHON_VERSION >= 0x3c0
     result_mp->ma_version_tag = DICT_NEXT_VERSION(_PyInterpreterState_GET());
 #elif PYTHON_VERSION >= 0x360
     result_mp->ma_version_tag = 1;
+#endif
 #endif
 
     // Key reference needs to be counted on older Python
