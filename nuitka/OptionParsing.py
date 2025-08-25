@@ -1690,9 +1690,9 @@ macos_group.add_option(
     default=None,
     help="""\
 Mode of application for the application bundle. When launching a Window, and appearing
-in Docker is desired, default value "gui" is a good fit. Without a Window ever, the
+in the dock is desired, default value "gui" is a good fit. Without a Window ever, the
 application is a "background" application. For UI elements that get to display later,
-"ui-element" is in-between. The application will not appear in dock, but get full
+"ui-element" is in-between. The application will not appear in the dock, but get full
 access to desktop when it does open a Window later.""",
 )
 
