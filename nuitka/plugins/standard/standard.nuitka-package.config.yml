@@ -9312,11 +9312,12 @@
       replacements_plain:
         'os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name)': 'os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name))'
 
-- module-name: 'zaber_motion_bindings' # checksum: 679f33dc
+- module-name: 'zaber_motion_bindings' # checksum: d5c24d7c
   dlls:
     - from_filenames:
         prefixes:
           - 'zaber-motion-lib'
+          - 'zaber-motion-core'
       when: 'None is not version("zaber_motion") >= (5,1,3)'
 
 - module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea

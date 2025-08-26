@@ -10,8 +10,12 @@ import re
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.plugins.Plugins import hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython
-from nuitka.utils.FileOperations import listDllFilesFromDirectory
+from nuitka.utils.FileOperations import (
+    getNormalizedPath,
+    listDllFilesFromDirectory,
+)
 
 # spell-checker: ignore delvewheel
 
@@ -122,11 +126,16 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         dll_directory = self.dll_directories.get(full_name)
 
         if dll_directory is not None:
+            if hasActivePlugin("themida"):
+                target_directory = "."
+            else:
+                target_directory = os.path.basename(dll_directory)
+
             for dll_filename, dll_basename in listDllFilesFromDirectory(dll_directory):
                 yield self.makeDllEntryPoint(
                     source_path=dll_filename,
-                    dest_path=os.path.join(
-                        os.path.basename(dll_directory), dll_basename
+                    dest_path=getNormalizedPath(
+                        os.path.join(target_directory, dll_basename)
                     ),
                     module_name=full_name,
                     package_name=full_name,

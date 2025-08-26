@@ -902,7 +902,7 @@ def addFunctionVariableReleases(function):
     if release_variables:
         body = function.subnode_body
 
-        if body.isStatementsFrame():
+        if body is not None and body.isStatementsFrame():
             body = makeStatementsSequenceFromStatement(statement=body)
 
         body = makeTryFinallyReleaseStatement(
