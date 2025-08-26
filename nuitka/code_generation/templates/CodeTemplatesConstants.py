@@ -226,7 +226,7 @@ static void _createGlobalConstants(PyThreadState *tstate) {
 #endif
     PyStructSequence_SET_ITEM(Nuitka_dunder_compiled_value, 12, main_name);
 
-#if _NUITKA_EXE_MODE
+#if _NUITKA_EXE_MODE || _NUITKA_DLL_MODE
     PyObject *original_argv0 = getOriginalArgv0Object();
 #else
     PyObject *original_argv0 = Py_None;
