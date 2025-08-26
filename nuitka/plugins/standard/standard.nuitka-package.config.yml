@@ -4738,6 +4738,17 @@
     - dirs:
         - 'data'
 
+- module-name: 'pymediainfo' # checksum: 70f7a032
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'MediaInfo'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'libmediainfo'
+      when: 'linux'
+
 - module-name: 'pymoo.cython' # checksum: 158685c1
   implicit-imports:
     - depends:
@@ -5094,7 +5105,7 @@
         macos_bundle_as_onefile: 'yes'
         when: 'macos and use_pyside2'
 
-- module-name: 'PySide6' # checksum: 76e197e9
+- module-name: 'PySide6' # checksum: c7532421
   implicit-imports:
     - post-import-code:
         - |
@@ -5165,6 +5176,7 @@
         - 'libqtquickscene3dplugin'
         - 'libqsqlmimer'
         - 'libqtvkbplugin'
+        - 'lib3dquicklogicplugin'
 
 - module-name: 'PySide6.QtCore' # checksum: be0d99ac
   implicit-imports:
@@ -5794,6 +5806,12 @@
       replacements:
         'get_version("scyjava")': 'repr(version("scyjava"))'
 
+- module-name: 'seaborn._docstrings' # checksum: fd299a69
+  anti-bloat:
+    - description: 'Need to allow pydoc usage'
+      bloat-mode-overrides:
+        'pydoc': 'allow'
+
 - module-name: 'seaborn.external.docscrape' # checksum: f18b6919
   anti-bloat:
     # TODO: Keep the same as 'scipy._lib._docscrape' module
@@ -6397,10 +6415,22 @@
     - depends:
         - 'sklearn.externals.joblib'
 
+- module-name: 'sklearn.externals.array_api_compat.cupy' # checksum: 83e9f327
+  implicit-imports:
+    - depends:
+        - 'cupy'
+
 - module-name: 'sklearn.externals.array_api_compat.numpy' # checksum: 441c388
   implicit-imports:
     - depends:
         - 'sklearn.externals.array_api_compat.numpy.fft'
+
+- module-name: 'sklearn.externals.array_api_extra.testing' # checksum: 6ac5aa4f
+  anti-bloat:
+    - description: 'remove dask reference'
+      no-auto-follow:
+        'dask': 'ignore'
+      when: 'not use_dask'
 
 - module-name: 'sklearn.externals.joblib' # checksum: d27fe3d7
   implicit-imports:
@@ -6551,6 +6581,11 @@
   implicit-imports:
     - depends:
         - 'skimage.draw'
+
+- module-name: 'sklearn.utils._isfinite' # checksum: 739d2c3a
+  implicit-imports:
+    - depends:
+        - 'sklearn._cyutility'
 
 - module-name: 'sklearn.utils._testing' # checksum: 8b4de7fe
   anti-bloat:
@@ -9290,11 +9325,12 @@
       replacements_plain:
         'os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name)': 'os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "bindings", lib_name))'
 
-- module-name: 'zaber_motion_bindings' # checksum: 679f33dc
+- module-name: 'zaber_motion_bindings' # checksum: d5c24d7c
   dlls:
     - from_filenames:
         prefixes:
           - 'zaber-motion-lib'
+          - 'zaber-motion-core'
       when: 'None is not version("zaber_motion") >= (5,1,3)'
 
 - module-name: 'zaber_motion_bindings_darwin' # checksum: dbde56ea
