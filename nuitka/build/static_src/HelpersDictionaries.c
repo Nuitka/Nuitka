@@ -13,12 +13,12 @@
 // spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
 // spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
 
-// From CPython
-#define PyDict_LOG_MINSIZE 3
-
 // Only needed for 3.13t right now, but I suspect we'll need to remove this
 // guard later.
 #ifdef Py_GIL_DISABLED
+
+// From CPython
+#define PyDict_LOG_MINSIZE 3
 
 #if defined(WITH_FREELISTS) && PYTHON_VERSION >= 0x3d0
 static struct _Py_dictkeys_freelist *
