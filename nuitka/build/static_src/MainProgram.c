@@ -1239,12 +1239,22 @@ static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #include <signal.h>
+
+#if defined(_WIN32)
 static void nuitka_segfault_handler(int sig) {
+#else
+static void nuitka_segfault_handler(int sig, siginfo_t *info, void *ucontext) {
+#endif
+    // Restore default handler to avoid recursion.
     signal(SIGSEGV, SIG_DFL);
 
     puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
     puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
     puts("for solutions.");
+
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+    DUMP_C_BACKTRACE_FROM_CONTEXT(ucontext);
+#endif
 
     raise(SIGSEGV);
 }
@@ -1353,12 +1363,19 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     // Installer a segfault handler that outputs a helpful message.
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
+#if defined(_WIN32)
     signal(SIGSEGV, nuitka_segfault_handler);
+#else
+    struct sigaction sa;
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = nuitka_segfault_handler;
+    sigaction(SIGSEGV, &sa, NULL);
+#endif
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
     INIT_C_BACKTRACES();
-    DUMP_C_BACKTRACE();
 #endif
     // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
