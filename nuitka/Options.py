@@ -1467,6 +1467,11 @@ def shallExecuteImmediately():
 
 def shallRunInDebugger():
     """:returns: bool derived from ``--debug``"""
+    return options.debugger is not None
+
+
+def getDebuggerName():
+    """:returns: str derived from ``--debugger=...``"""
     return options.debugger
 
 

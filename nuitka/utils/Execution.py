@@ -9,6 +9,7 @@ binaries (needed for exec) and run them capturing outputs.
 
 import os
 from contextlib import contextmanager
+import shlex
 
 from nuitka.__past__ import subprocess
 from nuitka.Tracing import general
@@ -278,7 +279,13 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
 
     if debugger not in ("gdb", "lldb", None):
-        general.sysexit("Error, the selected debugger name '%s' is not supported.")
+        # We don't know how to do anything special for this debugger -- just
+        # hope that the user set it up correctly.
+        debugger_name, *rest = shlex.split(debugger)
+        debugger_path = getExecutablePath(debugger_name)
+        if debugger_path is None:
+            general.sysexit("Error, the selected debugger '%s' was not found in path." % debugger_name)
+        return (debugger_path, *rest) + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
