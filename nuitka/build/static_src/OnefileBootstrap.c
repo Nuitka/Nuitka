@@ -1057,6 +1057,17 @@ int main(int argc, char **argv) {
     environment_char_t const *process_role = NULL;
 #endif
 
+    // Pass our pid value to the child. If we exit for some reason, re-parenting
+    // might change it by the time the child looks at its parent and we will use it
+    // for calculating the template path potentially as well.
+    if (process_role == NULL) {
+#if defined(_WIN32)
+        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
+#else
+        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", (long)getpid());
+#endif
+    }
+
     filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
     bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
 
@@ -1277,16 +1288,6 @@ int main(int argc, char **argv) {
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     releaseZSTD();
 #endif
-
-    // Pass our pid by value to the child. If we exit for some reason, re-parenting
-    // might change it by the time the child looks at its parent.
-    if (process_role == NULL) {
-#if defined(_WIN32)
-        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", GetCurrentProcessId());
-#else
-        setEnvironmentVariableFromLong("NUITKA_ONEFILE_PARENT", (long)getpid());
-#endif
-    }
 
 #if defined(_WIN32)
     filename_char_t const *binary_filename = getBinaryFilenameWideChars(false);
