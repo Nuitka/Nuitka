@@ -1527,6 +1527,19 @@
     - depends:
         - '.response_helpers'
 
+- module-name: 'fast_ssim' # checksum: 2124d51b
+  dlls:
+    - from_filenames:
+        relative_path: 'resources'
+        prefixes:
+          - 'ssim'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'resources'
+        prefixes:
+          - 'libssim'
+      when: 'linux'
+
 - module-name: 'fastapi' # checksum: 583d2408
   implicit-imports:
     - depends:
