@@ -5499,6 +5499,11 @@
         - 'urllib.request'
         - 'urllib.response'
 
+- module-name: 'rfc3987_syntax' # checksum: 3c40bffc
+  data-files:
+    - patterns:
+        - 'syntax_rfc3987.lark'
+
 - module-name: 'rich.jupyter' # checksum: b346e77
   anti-bloat:
     - description: 'remove IPython reference'
