@@ -613,6 +613,10 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
 extern void INIT_C_BACKTRACES(void);
 extern void DUMP_C_BACKTRACE(void);
+
+// For signal handlers, we can do this.
+#include <ucontext.h>
+extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
 #endif
 
 #if _NUITKA_PLUGIN_THEMIDA_ENABLED
