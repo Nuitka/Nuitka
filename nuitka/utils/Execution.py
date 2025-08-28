@@ -285,7 +285,7 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
             general.sysexit("Error, the selected debugger '%s' was not found in path." % debugger_name)
-        return (debugger_path, *rest) + command
+        return (debugger_path, debugger, *rest) + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
