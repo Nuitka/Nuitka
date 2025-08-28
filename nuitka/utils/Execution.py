@@ -8,10 +8,12 @@ binaries (needed for exec) and run them capturing outputs.
 """
 
 import os
+import shlex
 from contextlib import contextmanager
 
 from nuitka.__past__ import subprocess
 from nuitka.Tracing import general
+from nuitka import Options
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
@@ -275,10 +277,19 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
 
     # Default from environment variable.
     if debugger is None:
-        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
+        debugger = Options.getDebuggerName()
 
     if debugger not in ("gdb", "lldb", None):
-        general.sysexit("Error, the selected debugger name '%s' is not supported.")
+        # We don't know how to do anything special for this debugger -- just
+        # hope that the user set it up correctly.
+        debugger_name, *rest = shlex.split(debugger)
+        debugger_path = getExecutablePath(debugger_name)
+        if debugger_path is None:
+            general.sysexit(
+                "Error, the selected debugger '%s' was not found in path."
+                % debugger_name
+            )
+        return (debugger_path, debugger, *rest) + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:

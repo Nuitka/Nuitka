@@ -1467,7 +1467,14 @@ def shallExecuteImmediately():
 
 def shallRunInDebugger():
     """:returns: bool derived from ``--debug``"""
-    return options.debugger
+    return options.debugger is not None
+
+
+def getDebuggerName():
+    """:returns: str derived from ``--debugger-choice=...`` or NUITKA_DEBUGGER_CHOICE"""
+    if options.debugger_choice is None:
+        return os.getenv("NUITKA_DEBUGGER_CHOICE")
+    return options.debugger_choice
 
 
 def getXMLDumpOutputFilename():
