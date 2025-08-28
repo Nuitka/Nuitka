@@ -8,8 +8,8 @@ binaries (needed for exec) and run them capturing outputs.
 """
 
 import os
-from contextlib import contextmanager
 import shlex
+from contextlib import contextmanager
 
 from nuitka.__past__ import subprocess
 from nuitka.Tracing import general
@@ -284,7 +284,10 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debugger_name, *rest = shlex.split(debugger)
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
-            general.sysexit("Error, the selected debugger '%s' was not found in path." % debugger_name)
+            general.sysexit(
+                "Error, the selected debugger '%s' was not found in path."
+                % debugger_name
+            )
         return (debugger_path, debugger, *rest) + command
 
     # Windows extra ball, attempt the downloaded one.

@@ -792,7 +792,9 @@ def _executeMain(binary_filename):
     if Options.shallRunInDebugger() and not Options.shallCreateScriptFileForExecution():
         # The path needs to be absolute for some debuggers to work e.g. valgrind
         absolute_binary_filename = os.path.abspath(binary_filename)
-        args = wrapCommandForDebuggerForExec(command=(absolute_binary_filename,), debugger=Options.getDebuggerName())
+        args = wrapCommandForDebuggerForExec(
+            command=(absolute_binary_filename,), debugger=Options.getDebuggerName()
+        )
     else:
         args = (binary_filename, binary_filename)
 
@@ -843,7 +845,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
     if Options.shallRunInDebugger():
         args = wrapCommandForDebuggerForExec(
             command=(sys.executable, "-c", python_command),
-            debugger=Options.getDebuggerName()
+            debugger=Options.getDebuggerName(),
         )
     else:
         args = (sys.executable, "python", "-c", python_command)

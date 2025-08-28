@@ -669,12 +669,12 @@ execute_group.add_option(
     "--debugger",
     "--gdb",  # Remove this now that this supports any arbitrary debugger?
     dest="debugger",
-    default="gdb",
+    default=None,
     help="""\
 Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The
 debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE
 environment variable or this flag. Defaults to off.""",
-    allow_implicit_default=True
+    implicit_default="gdb",
 )
 
 del execute_group

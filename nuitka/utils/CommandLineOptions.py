@@ -44,7 +44,7 @@ class OurOptionGroup(OptionGroup):
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
         link = kwargs.pop("link", None)
-        allow_implicit_default = kwargs.pop("allow_implicit_default", False)
+        implicit_default = kwargs.pop("implicit_default", None)
 
         result = OptionGroup.add_option(self, *args, **kwargs)
 
@@ -52,7 +52,7 @@ class OurOptionGroup(OptionGroup):
         result.github_action = github_action
         result.github_action_default = github_action_default
         result.link = link
-        result.allow_implicit_default = allow_implicit_default
+        result.implicit_default = implicit_default
 
         return result
 
@@ -65,12 +65,12 @@ class OurOptionParser(OptionParser):
         if "=" not in arg:
             opt = self._match_long_opt(arg)
             option = self._long_opt[opt]
-            if option.takes_value() and not option.allow_implicit_default:
+            if option.takes_value() and not option.implicit_default:
                 self.error(
                     "The '%s' option requires an argument with '%s='." % (opt, opt)
                 )
-            elif option.allow_implicit_default:
-                rargs[0] += f"={option.default}"
+            elif option.implicit_default is not None:
+                rargs[0] += f"={option.implicit_default}"
 
         return OptionParser._process_long_opt(self, rargs, values)
 
@@ -113,7 +113,7 @@ class OurOptionParser(OptionParser):
         require_compiling = kwargs.pop("require_compiling", True)
         github_action = kwargs.pop("github_action", True)
         github_action_default = kwargs.pop("github_action_default", None)
-        allow_implicit_default = kwargs.pop("allow_implicit_default", False)
+        implicit_default = kwargs.pop("implicit_default", False)
 
         default_values = self.get_default_values()
 
@@ -121,7 +121,7 @@ class OurOptionParser(OptionParser):
         result.require_compiling = require_compiling
         result.github_action = github_action
         result.github_action_default = github_action_default
-        result.allow_implicit_default = allow_implicit_default
+        result.implicit_default = implicit_default
 
         if result.dest is not None:
             if hasattr(default_values, result.dest):
