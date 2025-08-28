@@ -13,6 +13,7 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import subprocess
 from nuitka.Tracing import general
+from nuitka import Options
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
@@ -276,7 +277,7 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
 
     # Default from environment variable.
     if debugger is None:
-        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
+        debugger = Options.getDebuggerName()
 
     if debugger not in ("gdb", "lldb", None):
         # We don't know how to do anything special for this debugger -- just
