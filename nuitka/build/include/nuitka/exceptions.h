@@ -1392,7 +1392,8 @@ extern void FORMAT_UNBOUND_CLOSURE_ERROR(PyThreadState *tstate,
                                          PyObject *variable_name);
 
 #if PYTHON_VERSION >= 0x300
-static inline PyBaseExceptionObject *_PyBaseExceptionObject_cast(PyObject *exc) {
+static inline PyBaseExceptionObject *_Nuitka_PyBaseExceptionObject_cast(PyObject *exc) {
+    CHECK_OBJECT(exc);
     assert(PyExceptionInstance_Check(exc));
     return (PyBaseExceptionObject *)exc;
 }
@@ -1400,20 +1401,21 @@ static inline PyBaseExceptionObject *_PyBaseExceptionObject_cast(PyObject *exc) 
 // Exception context, replacement for "PyException_GetContext", it however gives no
 // reference.
 NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Exception_GetContext(PyObject *self) {
-    return _PyBaseExceptionObject_cast(self)->context;
+    return _Nuitka_PyBaseExceptionObject_cast(self)->context;
 }
 
 // Exception context, replacement for "PyException_SetContext" it however doesn't
 // consume a reference.
 NUITKA_MAY_BE_UNUSED static inline void Nuitka_Exception_SetContext(PyObject *self, PyObject *context) {
+    CHECK_OBJECT(self);
     CHECK_OBJECT(context);
 
     Py_INCREF(context);
-    Py_XSETREF(_PyBaseExceptionObject_cast(self)->context, context);
+    Py_XSETREF(_Nuitka_PyBaseExceptionObject_cast(self)->context, context);
 }
 
 NUITKA_MAY_BE_UNUSED static inline void Nuitka_Exception_DeleteContext(PyObject *self) {
-    Py_XSETREF(_PyBaseExceptionObject_cast(self)->context, NULL);
+    Py_XSETREF(_Nuitka_PyBaseExceptionObject_cast(self)->context, NULL);
 }
 
 #if PYTHON_VERSION >= 0x300
@@ -1433,7 +1435,7 @@ ADD_EXCEPTION_CONTEXT(PyThreadState *tstate, struct Nuitka_ExceptionPreservation
 
 // Our replacement for "PyException_SetCause", consumes a reference.
 NUITKA_MAY_BE_UNUSED static inline void Nuitka_Exception_SetCause(PyObject *self, PyObject *cause) {
-    PyBaseExceptionObject *base_self = _PyBaseExceptionObject_cast(self);
+    PyBaseExceptionObject *base_self = _Nuitka_PyBaseExceptionObject_cast(self);
     base_self->suppress_context = 1;
     Py_XSETREF(base_self->cause, cause);
 }

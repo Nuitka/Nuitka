@@ -443,6 +443,10 @@ void raiseReplacementRuntimeError(PyThreadState *tstate, struct Nuitka_Exception
     Py_INCREF_IMMORTAL(PyExc_RuntimeError);
 
 #if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3c0
+    NORMALIZE_EXCEPTION_STATE(tstate, &new_exception_state);
+#endif
+
     Nuitka_Exception_SetContext(new_exception_state.exception_value, exception_state->exception_value);
 #endif
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);

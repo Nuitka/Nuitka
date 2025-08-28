@@ -25,6 +25,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
+    getFileContentsHash,
     getFileList,
     getNormalizedPath,
     listDir,
@@ -33,7 +34,6 @@ from nuitka.utils.FileOperations import (
     relpath,
     withDirectoryChange,
 )
-from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml

@@ -292,12 +292,13 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.Options import assumeYesForDownloads
+        from nuitka.Options import assumeYesForDownloads, isExperimental
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
             download_ok=True,
+            experimental=isExperimental("winlibs-new"),
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):

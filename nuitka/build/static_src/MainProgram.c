@@ -61,6 +61,10 @@
 #include "HelpersConsole.c"
 #endif
 
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
+#include "HelpersDialogs.c"
+#endif
+
 // We are open to having this defined otherwise, this is a default only.
 #if defined(_WIN32) && defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) &&                                 \
     !defined(NUITKA_APP_MODEL_USER_ID)
@@ -903,10 +907,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
         PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
-        CHECK_OBJECT(method);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
+            CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-        CHECK_OBJECT(result);
+            PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
+        }
     }
 #endif
 
@@ -914,12 +924,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-        if (sys_stderr != Py_None) {
-            PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
             CHECK_OBJECT(method);
 
             PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-            CHECK_OBJECT(result);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
         }
     }
 #endif
@@ -1226,11 +1240,12 @@ static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #include <signal.h>
 static void nuitka_segfault_handler(int sig) {
+    signal(SIGSEGV, SIG_DFL);
+
     puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
     puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
     puts("for solutions.");
 
-    signal(SIGSEGV, SIG_DFL);
     raise(SIGSEGV);
 }
 #endif
@@ -1645,7 +1660,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
-    _initBuiltinModule();
+    _initBuiltinModule(tstate);
 
     /* Initialize the Python constant values used. This also sets
      * "sys.executable" while at it.

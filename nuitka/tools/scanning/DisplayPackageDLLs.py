@@ -63,7 +63,7 @@ def scanModule(module_name, scan_function):
     if not hasMainScriptDirectory():
         addMainScriptDirectory(os.getcwd())
 
-    module_name, package_directory, module_kind, finding = locateModule(
+    _module_name, package_directory, module_kind, finding = locateModule(
         module_name=module_name, parent_package=None, level=0
     )
 
@@ -88,7 +88,9 @@ def scanModule(module_name, scan_function):
         if package_filename is not None:
             readSourceCodeFromFilename(module_name, package_filename, pre_load=False)
 
-    tools_logger.info("Checking package directory '%s' .. " % package_directory)
+    tools_logger.info(
+        "Checking package '%s' directory '%s' .. " % (module_name, package_directory)
+    )
 
     for package_dll_dir in getPackageSpecificDLLDirectories(
         module_name, consider_plugins=True

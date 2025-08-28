@@ -21,13 +21,15 @@ exec 1>&2
 
 files=$(git diff --cached --name-only $against)
 
-if [ -z "$files" ]; then
+if [ -z "$files" ]
+then
     exit 0
 fi
 
 # Autoformat the files.
-if [ "$COMMIT_UNCHECKED" != "1" ]; then
-    if [ -f "./bin/autoformat-nuitka-source" ]
+if [ "$COMMIT_UNCHECKED" != "1" ]
+then
+    if [ -f "bin/autoformat-nuitka-source" ]
     then
         exec ./bin/autoformat-nuitka-source --from-commit
     else

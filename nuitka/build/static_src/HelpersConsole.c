@@ -33,27 +33,11 @@ void inheritAttachedConsole(void) {
 #endif
     }
 
-    if (needs_stdin_attaching) {
-        SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
-
-        FILE_HANDLE win_handle = CreateFileW(L"CONIN$", GENERIC_READ, FILE_SHARE_READ, &security_attributes,
-                                             CREATE_ALWAYS, FILE_FLAG_NO_BUFFERING, NULL);
-
-        FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);
-        assert(new_handle != NULL);
-        *stdin = *new_handle;
-
-        SetStdHandle(STD_INPUT_HANDLE, win_handle);
-    } else {
-        BOOL r = SetStdHandle(STD_INPUT_HANDLE, (HANDLE)_get_osfhandle(fileno(stdin)));
-        assert(r);
-    }
+    SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
 
     if (needs_stdout_attaching) {
-        SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
-
-        FILE_HANDLE win_handle = CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes,
-                                             CREATE_ALWAYS, FILE_FLAG_NO_BUFFERING, NULL);
+        FILE_HANDLE win_handle =
+            CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes, OPEN_EXISTING, 0, NULL);
         assert(win_handle != INVALID_HANDLE_VALUE);
 
         FILE *new_handle = _wfreopen(L"CONOUT$", L"wb", stdout);
@@ -71,10 +55,8 @@ void inheritAttachedConsole(void) {
     }
 
     if (needs_stderr_attaching) {
-        SECURITY_ATTRIBUTES security_attributes = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
-
-        FILE_HANDLE win_handle = CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes,
-                                             CREATE_ALWAYS, FILE_FLAG_NO_BUFFERING, NULL);
+        FILE_HANDLE win_handle =
+            CreateFileW(L"CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, &security_attributes, OPEN_EXISTING, 0, NULL);
 
         FILE *new_handle = _wfreopen(L"CONOUT$", L"wb", stderr);
         assert(new_handle != NULL);
@@ -90,6 +72,29 @@ void inheritAttachedConsole(void) {
         BOOL r = SetStdHandle(STD_ERROR_HANDLE, (HANDLE)_get_osfhandle(fileno(stderr)));
         assert(r);
 #endif
+    }
+
+    if (needs_stdin_attaching) {
+        FILE_HANDLE win_handle =
+            CreateFileW(L"CONIN$", GENERIC_READ, FILE_SHARE_READ, &security_attributes, OPEN_EXISTING, 0, NULL);
+
+        // Get the current mode of the console input buffer if possible.
+        DWORD console_mode = 0;
+        GetConsoleMode(win_handle, &console_mode);
+
+        needs_stdin_attaching = (console_mode & 0x100) == 0;
+
+        if (needs_stdin_attaching) {
+            FILE *new_handle = _wfreopen(L"CONIN$", L"rb", stdin);
+            assert(new_handle != NULL);
+            assert(new_handle == stdin);
+            *stdin = *new_handle;
+
+            SetStdHandle(STD_INPUT_HANDLE, win_handle);
+        }
+    } else {
+        BOOL r = SetStdHandle(STD_INPUT_HANDLE, (HANDLE)_get_osfhandle(fileno(stdin)));
+        assert(r);
     }
 
     NUITKA_PRINTF_TRACE("inheritAttachedConsole(): Attachable: %s\n", (is_attachable ? "true" : "false"));

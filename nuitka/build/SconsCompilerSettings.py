@@ -425,6 +425,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 download_ok=download_ok,
+                experimental="winlibs-new" in env.experimental_flags,
             )
 
             if compiler_path is not None:
@@ -596,13 +597,22 @@ unsigned char const *getConstantsBlobData(void) {
                     output.write('extern "C" {')
 
                 output.write(
-                    """
+                    """\
 // Constant data for the program.
+"""
+                )
 
+                if env.clang_mode:
+                    output.write(
+                        """
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wc23-extensions"
 #endif
+"""
+                    )
 
+                output.write(
+                    """
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -958,6 +968,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
 
     if env.console_mode == "attach" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
+
+    if env.console_mode == "disable" and os.name == "nt":
+        env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
 
     if env.console_mode == "hide" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])

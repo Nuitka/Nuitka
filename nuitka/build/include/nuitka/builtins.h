@@ -44,7 +44,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
     return result;
 }
 
-extern void _initBuiltinModule(void);
+extern void _initBuiltinModule(PyThreadState *tstate);
 
 #define NUITKA_DECLARE_BUILTIN(name) extern PyObject *_python_original_builtin_value_##name;
 #define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;

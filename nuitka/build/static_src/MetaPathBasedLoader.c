@@ -1454,7 +1454,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             continue;
         }
 
-        if (current->name[strlen(s)] == 0) {
+        if (current->name[strlen(s)] != '.') {
             current++;
             continue;
         }

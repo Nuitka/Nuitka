@@ -156,6 +156,8 @@ class ConstantStreamWriter(object):
 
 class ConstantStreamReader(object):
     def __init__(self, const_file):
+        # spell-checker: ignore Unpickler
+
         self.count = 0
         self.pickle = pickle.Unpickler(const_file)
 

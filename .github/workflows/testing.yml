@@ -105,7 +105,7 @@ jobs:
           # Install clang-format that matches what we use in VS code.
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt-get install software-properties-common
-          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble main'
+          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main'
           sudo apt-get update
           sudo apt-get install clang-format-21
 
