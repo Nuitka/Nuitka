@@ -280,28 +280,66 @@ static PyTypeObject *_getTypeGenericAliasType(void) {
 
     if (type_generic_alias_type == NULL) {
 
-        PyObject *typing_module = PyImport_ImportModule("_typing");
-        CHECK_OBJECT(typing_module);
+        PyObject *types_module = PyImport_ImportModule("types");
+        CHECK_OBJECT(types_module);
 
-        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(typing_module, "_GenericAlias");
+        type_generic_alias_type = (PyTypeObject *)PyObject_GetAttrString(types_module, "GenericAlias");
         CHECK_OBJECT(type_generic_alias_type);
     }
 
     return type_generic_alias_type;
 }
 
+static int
+_Nuitka_contains_typevartuple(PyTupleObject *params)
+{
+    Py_ssize_t n = PyTuple_GET_SIZE(params);
+    PyTypeObject *tp = PyInterpreterState_Get()->cached_objects.typevartuple_type;
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyObject *param = PyTuple_GET_ITEM(params, i);
+        if (Py_IS_TYPE(param, tp)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static PyObject *_Nuitka_unpack_typevartuples(PyObject *params) {
     assert(PyTuple_Check(params));
-
-    // TODO: Not implemented yet.
-
-    return Py_NewRef(params);
+    // TypeVarTuple must be unpacked when passed to Generic, so we do that here.
+    if (_Nuitka_contains_typevartuple((PyTupleObject *)params)) {
+        Py_ssize_t n = PyTuple_GET_SIZE(params);
+        PyObject *new_params = PyTuple_New(n);
+        if (new_params == NULL) {
+            return NULL;
+        }
+        PyTypeObject *tp = PyInterpreterState_Get()->cached_objects.typevartuple_type;
+        for (Py_ssize_t i = 0; i < n; i++) {
+            PyObject *param = PyTuple_GET_ITEM(params, i);
+            if (Py_IS_TYPE(param, tp)) {
+                PyObject *unpacked = _Nuitka_unpack_typevartuples(param);
+                if (unpacked == NULL) {
+                    Py_DECREF(new_params);
+                    return NULL;
+                }
+                PyTuple_SET_ITEM(new_params, i, unpacked);
+            }
+            else {
+                PyTuple_SET_ITEM(new_params, i, Py_NewRef(param));
+            }
+        }
+        return new_params;
+    }
+    else {
+        return Py_NewRef(params);
+    }
 }
 
 PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
     CHECK_OBJECT(params);
     PyObject *unpacked_params = _Nuitka_unpack_typevartuples(params);
     CHECK_OBJECT(unpacked_params);
+    assert(PyTuple_CheckExact(unpacked_params));
 
     PyObject *args[2] = {(PyObject *)tstate->interp->cached_objects.generic_type, unpacked_params};
 
@@ -309,7 +347,10 @@ PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
 
     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called, args);
     Py_DECREF(unpacked_params);
-    return result;
+    PyObject *tuple = PyTuple_New(1);
+    CHECK_OBJECT(tuple);
+    PyTuple_SET_ITEM(tuple, 1, result);
+    return tuple;
 }
 
 #endif
