@@ -279,30 +279,6 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-    if type_params_expressions:
-        tmp_type_params = provider.allocateTempVariable(temp_scope=temp_scope, name="type_params", temp_type="object")
-        statements.append(
-            makeStatementAssignmentVariable(
-                variable=tmp_type_params,
-                source=makeExpressionMakeTuple(
-                    elements=type_params_expressions,
-                    source_ref=source_ref,
-                ),
-                source_ref=source_ref
-            )
-        )
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=class_creation_function,
-                variable_name="__type_params__",
-                source=ExpressionTempVariableRef(
-                    variable=tmp_type_params,
-                    source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
@@ -462,6 +438,30 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements = []
+
+    if type_params_expressions:
+        tmp_type_params = provider.allocateTempVariable(temp_scope=temp_scope, name="type_params", temp_type="object")
+        statements.append(
+            makeStatementAssignmentVariable(
+                variable=tmp_type_params,
+                source=makeExpressionMakeTuple(
+                    elements=type_params_expressions,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref
+            )
+        )
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__type_params__",
+                source=ExpressionTempVariableRef(
+                    variable=tmp_type_params,
+                    source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
 
     if has_bases:
         bases_value = _buildBasesTupleCreationNode(
