@@ -9128,6 +9128,11 @@
     - depends:
         - '._noop'
 
+- module-name: 'wordninja_enhanced' # checksum: ae5ca038
+  data-files:
+    - dirs:
+        - 'resources'
+
 - module-name: 'wx' # checksum: 9a4d4164
   options:
     checks:
