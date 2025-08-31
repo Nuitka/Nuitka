@@ -394,20 +394,20 @@ def simpleFunction43():
 
 
 def simpleFunction47():
-    def reraisy():
+    def reRaisingFunction():
         def raisingFunction():
             raise ValueError(3)
 
-        def reraiser():
+        def reRaiser():
             raise
 
         try:
             raisingFunction()
         except:
-            reraiser()
+            reRaiser()
 
     try:
-        reraisy()
+        reRaisingFunction()
     except:
         pass
 
@@ -597,9 +597,9 @@ def simpleFunction67():
     pattern = "1234567890\00\01\02\03\04\05\06"
 
     q, r = divmod(length, len(pattern))
-    teststring = pattern * q + pattern[:r]
+    test_string = pattern * q + pattern[:r]
 
-    return teststring
+    return test_string
 
 
 def simpleFunction68():
@@ -706,13 +706,13 @@ def simpleFunction76():
             pass
 
 
-class weirdstr(str):
+class weird_str(str):
     def __getitem__(self, index):
-        return weirdstr(str.__getitem__(self, index))
+        return weird_str(str.__getitem__(self, index))
 
 
 def simpleFunction77():
-    return filter(lambda x: x >= "33", weirdstr("1234"))
+    return filter(lambda x: x >= "33", weird_str("1234"))
 
 
 def simpleFunction78():
@@ -985,7 +985,7 @@ def simpleFunction105():
 
 
 def simpleFunction106():
-    # Call a PyCFunction with a single argument.
+    # Call a PyCFunction with a single argument, spell-checker: ignore getsizeof
     return sys.getsizeof(type)
 
 
@@ -1031,13 +1031,13 @@ def simpleFunction112():
     if sys.version_info >= (3, 12):
         return
 
-    TESTFN = "tmp.txt"
+    TEST_FN = "tmp.txt"
     import codecs
 
     try:
-        with open(TESTFN, "wb") as out_file:
+        with open(TEST_FN, "wb") as out_file:
             out_file.write(b"\xa1")
-        f = codecs.open(TESTFN, encoding="cp949")
+        f = codecs.open(TEST_FN, encoding="cp949")
         f.read(2)
     except UnicodeDecodeError:
         pass
@@ -1047,7 +1047,7 @@ def simpleFunction112():
         except Exception:
             pass
         try:
-            os.unlink(TESTFN)
+            os.unlink(TEST_FN)
         except Exception:
             pass
 
@@ -1312,6 +1312,7 @@ def copy_func(func):
     except AttributeError:
         import types
 
+        # spell-checker: ignore argdefs
         return types.FunctionType(
             func.__code__,
             func.__globals__,
@@ -1341,7 +1342,7 @@ def simpleFunction135():
 
 
 # TODO: This memory leaks closure cells and needs a fix
-def nosimpleFunction136():
+def no_simpleFunction136():
     def someGenWithClosureGiven():
         if x:
             return
