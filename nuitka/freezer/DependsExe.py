@@ -72,7 +72,7 @@ def _attemptToFindNotFoundDLL(dll_filename):
     # Lets try the Windows system, spell-checker: ignore systemroot
     dll_filename = os.path.join(
         os.environ["SYSTEMROOT"],
-        "SysWOW64" if getArchitecture() == "x86_64" else "System32",
+        "System32" if getArchitecture() == "x86_64" else "SysWOW64",
         dll_filename,
     )
     dll_filename = os.path.normcase(dll_filename)
