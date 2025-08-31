@@ -39,10 +39,6 @@ from nuitka.tools.testing.Common import executeReferenceChecked, run_async
 # Tests do bad stuff, pylint: disable=redefined-outer-name
 
 
-def raisy():
-    raise TypeError
-
-
 def simpleFunction1():
     async def someCoroutine():
         return
@@ -211,6 +207,19 @@ def simpleFunction12():
         return x
 
     func([2, 3, 4])
+
+
+def local_function(*args, **kwargs):
+    pass
+
+
+pool_kwargs = {"a" * 1000: "b" * 1000, "d" * 1000: "d" * 1000}
+host_params = {}
+
+
+def simpleFunction13():
+    # New syntax, can put keywords after dict unpacking
+    return local_function(**host_params, pool_kwargs=pool_kwargs)
 
 
 # These need stderr to be wrapped.
