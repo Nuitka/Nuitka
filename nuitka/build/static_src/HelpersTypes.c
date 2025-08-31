@@ -298,9 +298,7 @@ static PyTypeObject *_getTypeGenericAliasType(void) {
     return type_generic_alias_type;
 }
 
-static int
-_Nuitka_contains_typevartuple(PyTupleObject *params)
-{
+static int _Nuitka_contains_typevartuple(PyTupleObject *params) {
     Py_ssize_t n = PyTuple_GET_SIZE(params);
     PyTypeObject *tp = PyInterpreterState_Get()->cached_objects.typevartuple_type;
     for (Py_ssize_t i = 0; i < n; i++) {
@@ -331,14 +329,12 @@ static PyObject *_Nuitka_unpack_typevartuples(PyObject *params) {
                     return NULL;
                 }
                 PyTuple_SET_ITEM(new_params, i, unpacked);
-            }
-            else {
+            } else {
                 PyTuple_SET_ITEM(new_params, i, Py_NewRef(param));
             }
         }
         return new_params;
-    }
-    else {
+    } else {
         return Py_NewRef(params);
     }
 }

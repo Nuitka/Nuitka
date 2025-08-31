@@ -403,10 +403,11 @@ def buildClassNode3(provider, node, source_ref):
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
     )
 
-
     new_statements = []
     if type_params_expressions:
-        tmp_type_params = provider.allocateTempVariable(temp_scope=temp_scope, name="type_params", temp_type="object")
+        tmp_type_params = provider.allocateTempVariable(
+            temp_scope=temp_scope, name="type_params", temp_type="object"
+        )
         new_statements.append(
             makeStatementAssignmentVariable(
                 variable=tmp_type_params,
@@ -414,7 +415,7 @@ def buildClassNode3(provider, node, source_ref):
                     elements=type_params_expressions,
                     source_ref=source_ref,
                 ),
-                source_ref=source_ref
+                source_ref=source_ref,
             )
         )
         statements.append(
@@ -422,8 +423,7 @@ def buildClassNode3(provider, node, source_ref):
                 provider=class_creation_function,
                 variable_name="__type_params__",
                 source=ExpressionTempVariableRef(
-                    variable=tmp_type_params,
-                    source_ref=source_ref
+                    variable=tmp_type_params, source_ref=source_ref
                 ),
                 source_ref=source_ref,
             )
@@ -462,7 +462,6 @@ def buildClassNode3(provider, node, source_ref):
             kw=None,
             source_ref=decorator.getSourceReference(),
         )
-
 
     statements = new_statements
 
