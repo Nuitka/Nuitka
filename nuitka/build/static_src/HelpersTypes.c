@@ -232,6 +232,10 @@ typedef struct {
     PyObject *evaluate_bound;
     PyObject *constraints;
     PyObject *evaluate_constraints;
+#if PYTHON_VERSION >= 0x3d0
+    PyObject *default_value;
+    PyObject *evaluate_default;
+#endif
     bool covariant;
     bool contravariant;
     bool infer_variance;
@@ -250,6 +254,10 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
     result->evaluate_bound = Py_XNewRef(evaluate_bound);
     result->constraints = Py_XNewRef(constraints);
     result->evaluate_constraints = Py_XNewRef(evaluate_constraints);
+#if PYTHON_VERSION >= 0x3d0
+    result->default_value = NULL;
+    result->evaluate_default = NULL;
+#endif
 
     result->covariant = covariant;
     result->contravariant = contravariant;
@@ -346,10 +354,12 @@ PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
     PyObject *called = (PyObject *)_getTypeGenericAliasType();
 
     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called, args);
+    _PyObject_Dump(result);
     Py_DECREF(unpacked_params);
     PyObject *tuple = PyTuple_New(1);
     CHECK_OBJECT(tuple);
-    PyTuple_SET_ITEM(tuple, 1, result);
+    //_PyObject_Dump(result);
+    PyTuple_SET_ITEM(tuple, 0, result);
     return tuple;
 }
 
