@@ -10,6 +10,7 @@ Here the small things that fit nowhere else and don't deserve their own module.
 import ctypes
 import functools
 import os
+import subprocess
 import sys
 import time
 from contextlib import contextmanager
@@ -506,6 +507,81 @@ def isElfUsingPlatform():
 def isCoffUsingPlatform():
     """Does the OS use the COFF file format."""
     return isAIX()
+
+
+def findVCRedistPath():
+    vswhere_path = os.path.join(
+        os.environ.get("ProgramFiles(x86)", ""),
+        "Microsoft Visual Studio",
+        "Installer",
+        "vswhere.exe",
+    )
+
+    if not os.path.exists(vswhere_path):
+        return None
+
+    try:
+        command = [
+            vswhere_path,
+            "-latest",
+            "-property",
+            "installationPath",
+            "-products",
+            "*",
+            "-prerelease",
+        ]
+        vs_path = subprocess.check_output(command).decode("utf8").strip()
+
+        if not vs_path:
+            return None
+
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+    redist_base_path = os.path.join(vs_path, "VC", "Redist", "MSVC")
+
+    if not os.path.exists(redist_base_path):
+        return None
+
+    try:
+        all_folders = [
+            d
+            for d in os.listdir(redist_base_path)
+            if os.path.isdir(os.path.join(redist_base_path, d))
+        ]
+        if not all_folders:
+            return None
+
+        version_folders = [v for v in all_folders if v[0].isdigit()]
+
+        if not version_folders:
+            return None
+
+        latest_version = sorted(
+            version_folders, key=lambda v: list(map(int, v.split(".")))
+        )[-1]
+
+    except (IOError, ValueError):
+        return None
+
+    arch_folder_map = {
+        "x86_64": "x64",
+        "arm64": "arm64",
+        "x86": "x86",
+    }
+    arch_folder = arch_folder_map.get(getArchitecture())
+    final_path = os.path.join(redist_base_path, latest_version, arch_folder)
+
+    if os.path.exists(final_path):
+        return final_path
+
+    return None
+
+
+if isWin32Windows():
+    VCREDIST_PATH = findVCRedistPath()
+else:
+    VCREDIST_PATH = None
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
