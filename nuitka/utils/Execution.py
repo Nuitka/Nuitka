@@ -269,7 +269,10 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debuggers would be very welcome.
     """
 
-    command = tuple(command)
+    # The path needs to be absolute for some debuggers to work e.g. valgrind
+    modified_command = list(command)
+    modified_command[0] = os.path.abspath(command[0])
+    command = tuple(modified_command)
 
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
