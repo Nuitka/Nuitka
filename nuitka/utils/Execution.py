@@ -313,19 +313,7 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         if lldb_path is None:
             general.sysexit("Error, no 'gdb', 'lldb', or 'valgrind' binary found in path.")
 
-    if lldb_path is not None and debugger not in ("gdb", "valgrind-memcheck"):
-        args = (
-            lldb_path,
-            "lldb",
-            "-o",
-            "run",
-            "-o",
-            "bt",
-            "-o",
-            "quit",
-            "--",
-        ) + command
-    elif gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
+    if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
             gdb_path,
             "gdb",
@@ -336,6 +324,18 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
             "-ex=where",
             "-ex=quit",
             "--args",
+        ) + command
+    elif lldb_path is not None and debugger not in ("gdb", "valgrind-memcheck"):
+        args = (
+            lldb_path,
+            "lldb",
+            "-o",
+            "run",
+            "-o",
+            "bt",
+            "-o",
+            "quit",
+            "--",
         ) + command
     elif valgrind_path is not None and debugger not in ("gdb", "lldb"):
         args = (
