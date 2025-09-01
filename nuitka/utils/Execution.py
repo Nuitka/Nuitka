@@ -273,13 +273,14 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
 
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
+    valgrind_path = getExecutablePath("valgrind")
 
     # Default from environment variable.
     if debugger is None:
         from nuitka.Options import getDebuggerName
         debugger = getDebuggerName()
 
-    if debugger not in ("gdb", "lldb", None):
+    if debugger not in ("gdb", "lldb", "valgrind-memcheck", None):
         # We don't know how to do anything special for this debugger -- just
         # hope that the user set it up correctly.
         debugger_name, *rest = shlex.split(debugger)
@@ -305,11 +306,11 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
             lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None and lldb_path is None:
+    if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
+            general.sysexit("Error, no 'gdb', 'lldb', or 'valgrind' binary found in path.")
 
-    if lldb_path is not None and debugger != "gdb":
+    if lldb_path is not None and debugger not in ("gdb", "valgrind-memcheck"):
         args = (
             lldb_path,
             "lldb",
@@ -321,7 +322,7 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
             "quit",
             "--",
         ) + command
-    elif gdb_path is not None and debugger != "lldb":
+    elif gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
             gdb_path,
             "gdb",
@@ -332,6 +333,13 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
             "-ex=where",
             "-ex=quit",
             "--args",
+        ) + command
+    elif valgrind_path is not None and debugger not in ("gdb", "lldb"):
+        args = (
+            valgrind_path,
+            "valgrind",
+            "--tool=memcheck",
+            "--num-callers=25",
         ) + command
     else:
         general.sysexit("Error, the selected debugger '%s' was not found in path.")
