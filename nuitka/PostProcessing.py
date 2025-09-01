@@ -15,7 +15,7 @@ from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.Tracing import postprocessing_logger
-from nuitka.utils.Execution import wrapCommandForDebuggerForExec
+from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileContents,
@@ -226,7 +226,7 @@ def createScriptFileForExecution(result_filename):
     python_path = os.pathsep.join(makeFilesystemEncodable(e) for e in sys.path)
 
     debugger_call = (
-        (" ".join(wrapCommandForDebuggerForExec(command=())[1:]) + " ")
+        (" ".join(wrapCommandForDebuggerForSubprocess(command=())) + " ")
         if Options.shallRunInDebugger()
         else ""
     )
