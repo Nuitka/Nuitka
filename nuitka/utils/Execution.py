@@ -8,6 +8,7 @@ binaries (needed for exec) and run them capturing outputs.
 """
 
 import os
+import shlex
 from contextlib import contextmanager
 
 from nuitka.__past__ import subprocess
@@ -20,8 +21,8 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
-# We emulate and use APIs of stdlib,
-# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod
+# We emulate and use APIs of stdlib and use special commands
+# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod,memcheck
 
 
 def _getExecutablePath(filename, search_path):
@@ -255,7 +256,7 @@ def withEnvironmentVarsOverridden(mapping):
             os.environ[env_var_name] = old_values[env_var_name]
 
 
-def wrapCommandForDebuggerForExec(command, debugger=None):
+def wrapCommandForDebuggerForExec(command, debugger):
     """Wrap a command for system debugger to call exec
 
     Args:
@@ -268,17 +269,26 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debuggers would be very welcome.
     """
 
-    command = tuple(command)
+    # The path needs to be absolute for some debuggers to work e.g. valgrind
+    modified_command = list(command)
+    modified_command[0] = os.path.abspath(command[0])
+    command = tuple(modified_command)
 
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
+    valgrind_path = getExecutablePath("valgrind")
 
-    # Default from environment variable.
-    if debugger is None:
-        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
-
-    if debugger not in ("gdb", "lldb", None):
-        general.sysexit("Error, the selected debugger name '%s' is not supported.")
+    if debugger not in ("gdb", "lldb", "valgrind-memcheck", None):
+        # We don't know how to do anything special for this debugger -- just
+        # hope that the user set it up correctly.
+        debugger_name, *rest = shlex.split(debugger)
+        debugger_path = getExecutablePath(debugger_name)
+        if debugger_path is None:
+            general.sysexit(
+                "Error, the selected debugger '%s' was not found in path."
+                % debugger_name
+            )
+        return (debugger_path, debugger, *rest) + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
@@ -294,23 +304,13 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
             lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None and lldb_path is None:
+    if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
+            general.sysexit(
+                "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
+            )
 
-    if lldb_path is not None and debugger != "gdb":
-        args = (
-            lldb_path,
-            "lldb",
-            "-o",
-            "run",
-            "-o",
-            "bt",
-            "-o",
-            "quit",
-            "--",
-        ) + command
-    elif gdb_path is not None and debugger != "lldb":
+    if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
             gdb_path,
             "gdb",
@@ -322,13 +322,32 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
             "-ex=quit",
             "--args",
         ) + command
+    elif lldb_path is not None and debugger not in ("gdb", "valgrind-memcheck"):
+        args = (
+            lldb_path,
+            "lldb",
+            "-o",
+            "run",
+            "-o",
+            "bt",
+            "-o",
+            "quit",
+            "--",
+        ) + command
+    elif valgrind_path is not None and debugger not in ("gdb", "lldb"):
+        args = (
+            valgrind_path,
+            "valgrind",
+            "--tool=memcheck",
+            "--num-callers=25",
+        ) + command
     else:
         general.sysexit("Error, the selected debugger '%s' was not found in path.")
 
     return args
 
 
-def wrapCommandForDebuggerForSubprocess(command, debugger=None):
+def wrapCommandForDebuggerForSubprocess(command, debugger):
     """Wrap a command for system debugger with subprocess module.
 
     Args:
