@@ -70,6 +70,8 @@ def editModuleCode(module_search_desc):
                     module_name = module_name[15:]
 
             module_name = ModuleName(module_name)
+    else:
+        module_name = ModuleName(module_search_desc)
 
     if module_name is None:
         tools_logger.sysexit(
