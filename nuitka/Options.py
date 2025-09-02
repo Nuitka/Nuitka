@@ -1467,7 +1467,7 @@ def shallExecuteImmediately():
 
 def shallRunInDebugger():
     """:returns: bool derived from ``--debug``"""
-    return options.debugger is not None
+    return bool(options.debugger)
 
 
 def getDebuggerName():
@@ -1479,6 +1479,7 @@ def getDebuggerName():
 
     if options.debugger_choice is None:
         return os.getenv("NUITKA_DEBUGGER_CHOICE")
+
     return options.debugger_choice
 
 

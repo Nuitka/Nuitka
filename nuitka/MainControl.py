@@ -807,7 +807,8 @@ def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
     if Options.shallRunInDebugger() and not Options.shallCreateScriptFileForExecution():
         args = wrapCommandForDebuggerForExec(
-            command=(binary_filename,), debugger=Options.getDebuggerName()
+            command=(binary_filename,),
+            debugger=Options.getDebuggerName(),
         )
     else:
         args = (binary_filename, binary_filename)

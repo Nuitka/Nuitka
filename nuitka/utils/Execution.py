@@ -21,8 +21,8 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
-# We emulate and use APIs of stdlib,
-# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod
+# We emulate and use APIs of stdlib and use special commands
+# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod,memcheck
 
 
 def _getExecutablePath(filename, search_path):
