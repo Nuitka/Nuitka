@@ -226,7 +226,14 @@ def createScriptFileForExecution(result_filename):
     python_path = os.pathsep.join(makeFilesystemEncodable(e) for e in sys.path)
 
     debugger_call = (
-        (" ".join(wrapCommandForDebuggerForSubprocess(command=())) + " ")
+        (
+            " ".join(
+                wrapCommandForDebuggerForSubprocess(
+                    command=(), debugger=Options.getDebuggerName()
+                )
+            )
+            + " "
+        )
         if Options.shallRunInDebugger()
         else ""
     )

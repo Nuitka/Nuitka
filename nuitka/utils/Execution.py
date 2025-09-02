@@ -256,7 +256,7 @@ def withEnvironmentVarsOverridden(mapping):
             os.environ[env_var_name] = old_values[env_var_name]
 
 
-def wrapCommandForDebuggerForExec(command, debugger=None):
+def wrapCommandForDebuggerForExec(command, debugger):
     """Wrap a command for system debugger to call exec
 
     Args:
@@ -277,11 +277,6 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
     valgrind_path = getExecutablePath("valgrind")
-
-    # Default from environment variable.
-    if debugger is None:
-        from nuitka.Options import getDebuggerName
-        debugger = getDebuggerName()
 
     if debugger not in ("gdb", "lldb", "valgrind-memcheck", None):
         # We don't know how to do anything special for this debugger -- just
@@ -311,7 +306,9 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
 
     if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit("Error, no 'gdb', 'lldb', or 'valgrind' binary found in path.")
+            general.sysexit(
+                "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
+            )
 
     if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
@@ -350,7 +347,7 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
     return args
 
 
-def wrapCommandForDebuggerForSubprocess(command, debugger=None):
+def wrapCommandForDebuggerForSubprocess(command, debugger):
     """Wrap a command for system debugger with subprocess module.
 
     Args:

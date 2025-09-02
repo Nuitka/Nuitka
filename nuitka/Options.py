@@ -1472,6 +1472,11 @@ def shallRunInDebugger():
 
 def getDebuggerName():
     """:returns: str derived from ``--debugger-choice=...`` or NUITKA_DEBUGGER_CHOICE"""
+
+    # Don't get asked about this, unless it's relevant, all calls to this
+    # function should be guarded by that call on the outside.
+    assert shallRunInDebugger()
+
     if options.debugger_choice is None:
         return os.getenv("NUITKA_DEBUGGER_CHOICE")
     return options.debugger_choice
