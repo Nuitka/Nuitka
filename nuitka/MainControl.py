@@ -806,7 +806,10 @@ def callExecPython(args, add_path, uac):
 def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
     if Options.shallRunInDebugger() and not Options.shallCreateScriptFileForExecution():
-        args = wrapCommandForDebuggerForExec(command=(binary_filename,))
+        args = wrapCommandForDebuggerForExec(
+            command=(binary_filename,),
+            debugger=Options.getDebuggerName(),
+        )
     else:
         args = (binary_filename, binary_filename)
 
@@ -856,7 +859,8 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
     if Options.shallRunInDebugger():
         args = wrapCommandForDebuggerForExec(
-            command=(sys.executable, "-c", python_command)
+            command=(sys.executable, "-c", python_command),
+            debugger=Options.getDebuggerName(),
         )
     else:
         args = (sys.executable, "python", "-c", python_command)

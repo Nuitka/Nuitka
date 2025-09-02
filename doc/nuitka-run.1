@@ -144,7 +144,10 @@ Immediate execution after compilation:
 Execute immediately the created binary (or import the compiled module). Defaults to off.
 .TP
 \fB\-\-debugger\fR
-Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE environment variable. Defaults to off.
+Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The debugger is automatically chosen unless specified by name with the 'NUITKA_DEBUGGER_CHOICE' environment variable or the '\-\-debugger\-choice' flag. Defaults to off.
+.TP
+\fB\-\-debugger\-choice\fR=\fI\,DEBUGGER_CHOICE\/\fR
+Choose the debugger to use.
 .IP
 Compilation choices:
 .TP
@@ -588,7 +591,10 @@ Plugin options of 'themida' (categories: commercial, integration):
 The location of the Themida or WinLicense software, by default it's searched in PATH and user directory "Themida", "WinLicense".
 .TP
 \fB\-\-themida\-unbundled\-files\fR=\fI\,THEMIDA_UNBUNDLED\/\fR
-Patterns of files to not be bundled inside the binary, i.e. that shall be user visible.
+Patterns of files to not be bundled inside the binary by Themida, i.e. that shall be user visible.
+.TP
+\fB\-\-themida\-bundled\-files\fR=\fI\,THEMIDA_FORCE_BUNDLED\/\fR
+Patterns of files to be bundled inside the binary, despite matching unbundled file patterns. By default all files are bundled except if they match patterns given to the '\-\-themida\-unbundled\-files' option.
 .TP
 \fB\-\-themida\-keep\-unprotected\-binary\fR
 Keep the unprotected version of the Nuitka compiled binary.

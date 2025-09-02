@@ -726,7 +726,8 @@ Stderr was:
                     # In case of segfault or assertion triggered, run in debugger.
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(
-                            command=nuitka_cmd2
+                            command=nuitka_cmd2,
+                            debugger=os.getenv("NUITKA_DEBUGGER_CHOICE"),
                         )
 
                         callProcess(nuitka_cmd2, shell=False)

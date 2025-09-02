@@ -670,11 +670,19 @@ execute_group.add_option(
     "--gdb",
     action="store_true",
     dest="debugger",
-    default=False,
+    default=None,
     help="""\
 Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The
-debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE
-environment variable. Defaults to off.""",
+debugger is automatically chosen unless specified by name with the 'NUITKA_DEBUGGER_CHOICE'
+environment variable or the '--debugger-choice' flag. Defaults to off.""",
+)
+
+execute_group.add_option(
+    "--debugger-choice",
+    dest="debugger_choice",
+    default=None,
+    help="""\
+Choose the debugger to use.""",
 )
 
 del execute_group
