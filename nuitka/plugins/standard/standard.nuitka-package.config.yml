@@ -2621,7 +2621,7 @@
         '_test': 'un-callable'
         'main': 'un-callable'
 
-- module-name: 'matplotlib' # checksum: d5e66e6c
+- module-name: 'matplotlib' # checksum: 11ca5d4
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements_plain:
@@ -2657,7 +2657,7 @@
     checks:
       - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
         support_info: 'plugin'
-        when: 'not macos and not (use_noqt or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
+        when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
   anti-bloat:
