@@ -509,6 +509,10 @@ def isCoffUsingPlatform():
     return isAIX()
 
 
+_vcredist_path = None
+_vcredist_path_searched = False
+
+
 def findVCRedistPath():
     vswhere_path = os.path.join(
         os.environ.get("ProgramFiles(x86)", ""),
@@ -578,10 +582,16 @@ def findVCRedistPath():
     return None
 
 
-if isWin32Windows():
-    VCREDIST_PATH = findVCRedistPath()
-else:
-    VCREDIST_PATH = None
+def getVCRedistPath():
+    global _vcredist_path, _vcredist_path_searched
+
+    if not _vcredist_path_searched:
+        if isWin32Windows():
+            _vcredist_path = findVCRedistPath()
+
+        _vcredist_path_searched = True
+
+    return _vcredist_path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

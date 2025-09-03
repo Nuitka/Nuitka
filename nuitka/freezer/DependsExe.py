@@ -28,7 +28,9 @@ from nuitka.utils.FileOperations import (
     withFileLock,
 )
 from nuitka.utils.SharedLibraries import getWindowsRunningProcessDLLPaths
-from nuitka.utils.Utils import VCREDIST_PATH, getArchitecture
+from nuitka.utils.Utils import getArchitecture
+
+_missing_vcredist_dlls = OrderedSet()
 
 
 def getDependsExePath():
@@ -59,40 +61,26 @@ to analyze the dependencies of Python extension modules.""",
     )
 
 
-def _find_dll_in_redist(redist_base_path, dll_name):
-    """Recursively searches for a DLL within the VCRedist base path."""
-    for root, _, files in os.walk(redist_base_path):
-        if dll_name.lower() in (f.lower() for f in files):
-            return os.path.join(root, dll_name)
-
-    return None
-
-
-def _attemptToFindNotFoundDLL(dll_filename, is_python_dll, is_vcredist_dll):
+def _attemptToFindNotFoundDLL(dll_filename):
     """Some heuristics and tricks to find DLLs that dependency walker did not find."""
 
-    if is_python_dll:
-        # Lets attempt to find it on currently loaded DLLs, this typically should
-        # find the Python DLL.
-        currently_loaded_dlls = getWindowsRunningProcessDLLPaths()
+    # Lets attempt to find it on currently loaded DLLs, this typically should
+    # find the Python DLL.
+    currently_loaded_dlls = getWindowsRunningProcessDLLPaths()
 
-        if dll_filename in currently_loaded_dlls:
-            return currently_loaded_dlls[dll_filename]
+    if dll_filename in currently_loaded_dlls:
+        return currently_loaded_dlls[dll_filename]
 
-        # Lets try the Windows system, spell-checker: ignore systemroot
-        dll_filename = os.path.join(
-            os.environ["SYSTEMROOT"],
-            "System32" if getArchitecture() == "x86_64" else "SysWOW64",
-            dll_filename,
-        )
-        dll_filename = os.path.normcase(dll_filename)
+    # Lets try the Windows system, spell-checker: ignore systemroot
+    dll_filename = os.path.join(
+        os.environ["SYSTEMROOT"],
+        "System32" if getArchitecture() == "x86_64" else "SysWOW64",
+        dll_filename,
+    )
+    dll_filename = os.path.normcase(dll_filename)
 
-        if os.path.exists(dll_filename):
-            return dll_filename
-
-    if is_vcredist_dll and VCREDIST_PATH:
-        # Lets attempt to find it in the MSVC Redistributable folder
-        return _find_dll_in_redist(VCREDIST_PATH, dll_filename)
+    if os.path.exists(dll_filename):
+        return dll_filename
 
     return None
 
@@ -132,7 +120,7 @@ def _parseDependsExeOutput2(lines):
         if "E" in line[: line.find("]")]:
             continue
 
-        # Try to find missing DLLs for PythonXY.dll and MSVC Redist dlls.
+        # Try to find missing DLLs for PythonXY.dll and keep track of missing MSVC Redist DLLs.
         VCREDIST_DLLS = {
             "concrt140.dll",
             "msvcp140.dll",
@@ -149,27 +137,15 @@ def _parseDependsExeOutput2(lines):
         }
 
         if "?" in line[: line.find("]")]:
-            is_vcredist_dll = os.path.basename(dll_filename) in VCREDIST_DLLS
-            is_python_dll = dll_filename.startswith("python") and dll_filename.endswith(
-                ".dll"
-            )
+            # Track missing VCRedist DLLs
+            if dll_filename in VCREDIST_DLLS:
+                _missing_vcredist_dlls.add(dll_filename)
 
-            if is_python_dll or is_vcredist_dll:
-                found_path = _attemptToFindNotFoundDLL(
-                    dll_filename, is_python_dll, is_vcredist_dll
-                )
+            # One exception are "PythonXY.DLL", we try to find them from Windows folder.
+            if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
+                dll_filename = _attemptToFindNotFoundDLL(dll_filename)
 
-                if found_path:
-                    dll_filename = found_path
-                else:
-                    if is_vcredist_dll:
-                        inclusion_logger.warning(
-                            """\
-                            Required Visual C++ Redistributable DLL '%s' could not be included. \
-                            Visual Studio has to be installed to include this DLL."""
-                            % os.path.basename(dll_filename)
-                        )
-
+                if dll_filename is None:
                     continue
             else:
                 continue
@@ -281,6 +257,18 @@ SxS
 
     deleteFile(output_filename, must_exist=True)
     deleteFile(dwp_filename, must_exist=True)
+
+    if _missing_vcredist_dlls:
+        inclusion_logger.warning(
+            """\
+The following Visual C++ Redistributable DLLs were not found: %s. \
+For a fully portable standalone distribution, these DLLs must be \
+available either by installing the Microsoft Visual C++ Redistributable \
+for Visual Studio 2015-2022 on the target system or by bundling them with \
+the application. To bundle them, Visual Studio must be installed on the build machine."""
+            % ", ".join(sorted(_missing_vcredist_dlls))
+        )
+        _missing_vcredist_dlls.clear()
 
     return result
 
