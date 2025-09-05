@@ -253,7 +253,7 @@ def _getReportInputData(aborted):
             getResultRunFilename(onefile=isOnefileMode())
         )
         scons_error_report_data = readSconsErrorReport(
-            source_dir=getSourceDirectoryPath()
+            source_dir=getSourceDirectoryPath(onefile=False, create=False)
         )
     else:
         scons_error_report_data = {}

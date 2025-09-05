@@ -817,7 +817,8 @@ implicit import encountered."""
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if Options.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
+                OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+                module_name + ".py",
             )
 
             putTextFileContents(filename=source_path, contents=code)
@@ -1351,7 +1352,9 @@ implicit import encountered."""
         # Circular dependency.
         from nuitka.tree.SourceHandling import writeSourceCode
 
-        source_dir = OutputDirectories.getSourceDirectoryPath(onefile=onefile)
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=onefile, create=True
+        )
 
         for filename, source_code in Plugins._getExtraCodeFiles(onefile).items():
             target_dir = os.path.join(source_dir, "plugins")
