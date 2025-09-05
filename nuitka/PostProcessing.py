@@ -129,7 +129,7 @@ def _addWindowsIconFromIcons(onefile):
                 )
 
             icon_build_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=onefile),
+                OutputDirectories.getSourceDirectoryPath(onefile=onefile, create=False),
                 "icons",
             )
             makePath(icon_build_path)
@@ -477,7 +477,9 @@ def executePostProcessing(result_filename):
                 result_filename=result_filename, manifest=manifest, onefile=False
             )
 
-        source_dir = OutputDirectories.getSourceDirectoryPath()
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=True
+        )
 
         # Attach the binary blob as a Windows resource.
         addResourceToFile(

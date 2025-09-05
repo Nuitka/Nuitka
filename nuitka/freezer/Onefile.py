@@ -57,7 +57,7 @@ def packDistFolderToOnefile(dist_dir):
 def _runOnefileScons(onefile_compression, onefile_archive):
     scons_options, env_values = getCommonSconsOptions()
 
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=False)
 
     # Let plugins do their thing for onefile mode too.
     Plugins.writeExtraCodeFiles(onefile=True)
@@ -189,7 +189,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
     # Cleanup first.
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=True)
     cleanSconsDirectory(source_dir)
 
     # Used only in some configurations

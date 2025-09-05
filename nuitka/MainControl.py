@@ -180,7 +180,7 @@ def _createMainModule():
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
     # harm.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=True)
 
     if not Options.shallOnlyExecCCompilerCall():
         cleanSconsDirectory(source_dir)
@@ -442,7 +442,7 @@ def makeSourceDirectory():
             assert False, module
 
     # Pick filenames.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     module_filenames = pickSourceFilenames(
         source_dir=source_dir, modules=compiled_modules
@@ -518,7 +518,10 @@ def _wasMsvcMode():
 
     return (
         getSconsReportValue(
-            source_dir=OutputDirectories.getSourceDirectoryPath(), key="msvc_mode"
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+            key="msvc_mode",
         )
         == "True"
     )
@@ -552,7 +555,10 @@ def _runCPgoBinary():
         with withEnvironmentVarOverridden(
             "PATH",
             getSconsReportValue(
-                source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
+                source_dir=OutputDirectories.getSourceDirectoryPath(
+                    onefile=False, create=False
+                ),
+                key="PATH",
             ),
         ):
             exit_code_pgo = _runPgoBinary()
@@ -563,7 +569,8 @@ def _runCPgoBinary():
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
-            OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+            "__constants.gcda",
         )
 
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
@@ -612,7 +619,9 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
-    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath()
+    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
+        onefile=False, create=False
+    )
     scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
     scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
@@ -869,7 +878,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
 
 def compileTree():
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     general.info("Completed Python level compilation and optimization.")
 
@@ -901,7 +910,9 @@ def compileTree():
         )
 
     else:
-        source_dir = OutputDirectories.getSourceDirectoryPath()
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=False
+        )
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             general.sysexit("Error, no previous build directory exists.")
@@ -1059,7 +1070,9 @@ def _main():
 
         detectUsedDLLs(
             standalone_entry_points=getStandaloneEntryPoints(),
-            source_dir=OutputDirectories.getSourceDirectoryPath(),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
         )
 
         dist_dir = OutputDirectories.getStandaloneDirectoryPath()
@@ -1103,7 +1116,7 @@ def _main():
                 )
 
     # Remove the source directory (now build directory too) if asked to.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     if Options.isRemoveBuildDir():
         general.info("Removing build directory '%s'." % source_dir)

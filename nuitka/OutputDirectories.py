@@ -58,7 +58,9 @@ def getMainModule():
     return _main_module
 
 
-def getSourceDirectoryPath(onefile=False):
+# TODO: This is for compatibility for the hotfix, after Nuitka 2.8 release we can
+# and should remove this.
+def getSourceDirectoryPath(onefile=False, create=False):
     """Return path inside the build directory."""
 
     # Distinct build folders for onefile mode.
@@ -71,12 +73,13 @@ def getSourceDirectoryPath(onefile=False):
         path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
     )
 
-    makePath(result)
+    if create:
+        makePath(result)
 
-    git_ignore_filename = os.path.join(result, ".gitignore")
+        git_ignore_filename = os.path.join(result, ".gitignore")
 
-    if not os.path.exists(git_ignore_filename):
-        putTextFileContents(filename=git_ignore_filename, contents="*")
+        if not os.path.exists(git_ignore_filename):
+            putTextFileContents(filename=git_ignore_filename, contents="*")
 
     return result
 
