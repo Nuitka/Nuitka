@@ -61,7 +61,7 @@ def createPlistInfoFile(logger, onefile):
             )
 
             icon_build_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=onefile),
+                OutputDirectories.getSourceDirectoryPath(onefile=onefile, create=False),
                 "icons",
             )
             makePath(icon_build_path)
