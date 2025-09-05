@@ -824,6 +824,7 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
     PyObject *base_name_obj = NULL;
     PyObject *prefix_name_obj = NULL;
     PyObject *preserved_basename_module = NULL;
+    PyObject *preserved_sub_modules = NULL;
 
     if (base_name != NULL) {
         base_name_obj = Nuitka_String_FromString(base_name + 1);
@@ -831,6 +832,35 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         Py_XINCREF(preserved_basename_module);
 
         prefix_name_obj = Nuitka_String_FromStringAndSize(full_name, base_name - full_name + 1);
+
+        if (preserved_basename_module != NULL) {
+            preserved_sub_modules = MAKE_DICT_EMPTY(tstate);
+
+            PyObject *modules_dict = Nuitka_GetSysModules();
+
+            Py_ssize_t pos = 0;
+            PyObject *key, *value;
+
+            PyObject *base_name_prefix = BINARY_OPERATION_ADD_OBJECT_UNICODE_UNICODE(base_name_obj, const_str_dot);
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_STRING("Scanning for sub-modules needing protection:");
+            PRINT_ITEM_LINE(base_name_prefix);
+#endif
+            while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
+                // TODO: Should have nuitka_bool return values for these as well maybe.
+                PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
+
+                if (CHECK_IF_TRUE(starts_with_result) == 1) {
+                    DICT_SET_ITEM(preserved_sub_modules, key, value);
+                }
+
+                Py_DECREF(starts_with_result);
+            }
+
+#if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
+            PRINT_ITEM_LINE(preserved_sub_modules);
+#endif
+        }
     }
 #endif
 
@@ -1056,6 +1086,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 #endif
             while (Nuitka_DictNext(modules_dict, &pos, &key, &value)) {
                 // TODO: Should have nuitka_bool return values for these as well maybe.
+                if (preserved_sub_modules != NULL && DICT_HAS_ITEM(tstate, preserved_sub_modules, key) == 1) {
+                    continue;
+                }
+
                 PyObject *starts_with_result = UNICODE_STARTSWITH2(tstate, key, base_name_prefix);
 
                 if (CHECK_IF_TRUE(starts_with_result) == 1) {
@@ -1064,6 +1098,8 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
 
                 Py_DECREF(starts_with_result);
             }
+
+            Py_XDECREF(preserved_sub_modules);
         }
 
 #if _NUITKA_EXPERIMENTAL_DEBUG_EXTENSION_MODULE_PRESERVATION_HACK
