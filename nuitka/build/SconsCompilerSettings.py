@@ -602,7 +602,7 @@ unsigned char const *getConstantsBlobData(void) {
 """
                 )
 
-                if env.clang_mode:
+                if env.clang_mode or env.clangcl_mode:
                     output.write(
                         """
 #if defined(__clang__)
