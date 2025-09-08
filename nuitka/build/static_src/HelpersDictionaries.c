@@ -12,6 +12,7 @@
 
 // spell-checker: ignore ob_shash,dictiterobject,dictiteritems_type,dictiterkeys_type
 // spell-checker: ignore dictitervalues_type,dictviewobject dictvaluesview_type,dictkeysview_type
+// spell-checker: ignore qsbr,decref,dkix,ixsize
 
 // Only needed for 3.13t right now, but I suspect we'll need to remove this
 // guard later.
