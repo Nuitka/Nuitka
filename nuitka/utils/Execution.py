@@ -281,14 +281,18 @@ def wrapCommandForDebuggerForExec(command, debugger):
     if debugger not in ("gdb", "lldb", "valgrind-memcheck", None):
         # We don't know how to do anything special for this debugger -- just
         # hope that the user set it up correctly.
-        debugger_name, *rest = shlex.split(debugger)
+        debugger_command_parts = shlex.split(debugger)
+
+        debugger_name = debugger_command_parts[0]
+        rest = tuple(debugger_command_parts[1:])
+
         debugger_path = getExecutablePath(debugger_name)
         if debugger_path is None:
             general.sysexit(
                 "Error, the selected debugger '%s' was not found in path."
                 % debugger_name
             )
-        return (debugger_path, debugger, *rest) + command
+        return (debugger_path, debugger) + rest + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
