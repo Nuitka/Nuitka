@@ -1508,7 +1508,7 @@
     - depends:
         - '.response_helpers'
 
-- module-name: 'fast_ssim' # checksum: 2124d51b
+- module-name: 'fast_ssim' # checksum: 5d608fa6
   dlls:
     - from_filenames:
         relative_path: 'resources'
