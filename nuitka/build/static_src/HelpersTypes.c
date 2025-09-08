@@ -355,10 +355,8 @@ PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params) {
 
     PyObject *result = CALL_FUNCTION_WITH_ARGS2(tstate, called, args);
     Py_DECREF(unpacked_params);
-    PyObject *tuple = PyTuple_New(1);
-    CHECK_OBJECT(tuple);
-    PyTuple_SET_ITEM(tuple, 0, result);
-    return tuple;
+
+    return MAKE_TUPLE1_0(tstate, result);
 }
 
 #endif
