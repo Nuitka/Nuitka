@@ -515,6 +515,8 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                     submodule_attrs=toga_submodule_attrs,
                 )
 
+                source_code = source_code.replace("= lazy_load()", " = %r" % toga_info)
+
         return source_code
 
     def _addLazyLoader(self, module_name, submodules, submodule_attrs):
