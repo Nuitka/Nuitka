@@ -1508,6 +1508,19 @@
     - depends:
         - '.response_helpers'
 
+- module-name: 'fast_ssim' # checksum: 2124d51b
+  dlls:
+    - from_filenames:
+        relative_path: 'resources'
+        prefixes:
+          - 'ssim'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'resources'
+        prefixes:
+          - 'libssim'
+      when: 'not win32'
+
 - module-name: 'fastapi' # checksum: 583d2408
   implicit-imports:
     - depends:
@@ -5499,6 +5512,11 @@
         - 'urllib.request'
         - 'urllib.response'
 
+- module-name: 'rfc3987_syntax' # checksum: 3c40bffc
+  data-files:
+    - patterns:
+        - 'syntax_rfc3987.lark'
+
 - module-name: 'rich.jupyter' # checksum: b346e77
   anti-bloat:
     - description: 'remove IPython reference'
@@ -9109,6 +9127,11 @@
   implicit-imports:
     - depends:
         - '._noop'
+
+- module-name: 'wordninja_enhanced' # checksum: ae5ca038
+  data-files:
+    - dirs:
+        - 'resources'
 
 - module-name: 'wx' # checksum: 9a4d4164
   options:
