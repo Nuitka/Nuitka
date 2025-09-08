@@ -7812,12 +7812,17 @@
     - depends:
         - 'keras.api._v2'
 
-- module-name: 'tensorrt_libs' # checksum: cb30dde5
+- module-name: 'tensorrt_libs' # checksum: 7630569e
   dlls:
     - from_filenames:
         prefixes:
           - 'libnv'
       dest_path: '.'
+      when: 'not win32'
+    - from_filenames:
+        prefixes:
+          - 'nv'
+      when: 'win32'
 
 - module-name: 'text_unidecode' # checksum: db822b99
   data-files:
@@ -8055,7 +8060,7 @@
         '__file__': 'sys.argv[0]'
         '"resources"': '__title__.lower(), "resources"'
 
-- module-name: 'tkinterweb_tkhtml' # checksum: 45a8d3a9
+- module-name: 'tkinterweb_tkhtml' # checksum: 8dc89e23
   data-files:
     - dirs:
         - 'tkhtml'
