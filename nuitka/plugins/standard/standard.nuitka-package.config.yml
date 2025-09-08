@@ -7972,14 +7972,37 @@
           - ''
       when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
-- module-name: 'tkinterweb' # checksum: 2aa01e7a
+- module-name: 'tkinterweb' # checksum: 3f91ac54
   data-files:
     - dirs:
+        - 'tkhtml'
         - 'resources'
 
+  dlls:
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/32-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/64-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_amd64'
+
+  anti-bloat:
+    - description: 'remove "sys.path" hack'
+      replacements_plain:
+        'sys.path.append': ''
   implicit-imports:
     - depends:
         - 'tkinterweb_tkhtml'
+
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
+        - ''
 
 - module-name: 'tkinterweb.utilities' # checksum: 575a76dc
   anti-bloat:
