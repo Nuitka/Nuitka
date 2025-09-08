@@ -8016,10 +8016,11 @@
           - ''
       when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
-- module-name: 'tkinterweb' # checksum: 5de6ded8
+- module-name: 'tkinterweb' # checksum: 3f91ac54
   data-files:
     - dirs:
         - 'tkhtml'
+        - 'resources'
 
   dlls:
     - from_filenames:
@@ -8037,11 +8038,39 @@
     - description: 'remove "sys.path" hack'
       replacements_plain:
         'sys.path.append': ''
+  implicit-imports:
+    - depends:
+        - 'tkinterweb_tkhtml'
+
   import-hacks:
     - global-sys-path:
         # This package forces itself into "sys.path" and expects absolute
         # imports to be available.
         - ''
+
+- module-name: 'tkinterweb.utilities' # checksum: 575a76dc
+  anti-bloat:
+    - description: 'change resolution of ROOT_DIR'
+      replacements_plain:
+        '__file__': 'sys.argv[0]'
+        '"resources"': '__title__.lower(), "resources"'
+
+- module-name: 'tkinterweb_tkhtml' # checksum: 45a8d3a9
+  data-files:
+    - dirs:
+        - 'tkhtml'
+  dlls:
+    - from_filenames:
+        relative_path: 'tkhtml'
+        prefixes:
+          - 'lib'
+      when: 'win32'
+  anti-bloat:
+    - description: 'change resolution of ROOT_DIR'
+      replacements_plain:
+        'import os': 'import os, sys'
+        '__file__': 'sys.argv[0]'
+        '"tkhtml"': '__title__.lower().replace("-", "_"), "tkhtml"'
 
 - module-name: 'tls_client.cffi' # checksum: 97b24774
   dlls:
