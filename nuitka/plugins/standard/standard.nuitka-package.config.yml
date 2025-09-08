@@ -8020,9 +8020,7 @@
         relative_path: 'tkhtml'
         prefixes:
           - 'lib'
-        suffixes:
-          - 'dll'
-      when: 'win32 and (arch_x86 or arch_amd64)'
+      when: 'win32'
   anti-bloat:
     - description: 'change resolution of ROOT_DIR'
       replacements_plain:
