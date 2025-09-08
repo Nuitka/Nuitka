@@ -75,6 +75,7 @@ from nuitka.PythonVersions import (
     getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
+    isPythonWithGil,
     python_version,
     python_version_str,
 )
@@ -997,7 +998,12 @@ def _main():
         message="%s %s %s."
         % doNotBreakSpaces(
             "Version '%s'" % getNuitkaVersion(),
-            "on Python %s (flavor '%s')" % (python_version_str, getPythonFlavorName()),
+            "on Python %s (flavor '%s'%s)"
+            % (
+                python_version_str,
+                getPythonFlavorName(),
+                ("" if isPythonWithGil() else " no GIL"),
+            ),
             "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
         ),
     )
