@@ -44,6 +44,7 @@ from .ComplexCallHelperFunctions import (
 )
 from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
 from .ReformulationSequenceCreation import buildListUnpacking
+from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeTuple,
@@ -129,18 +130,23 @@ def buildCallNode(provider, node, source_ref):
                     makeStatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
                     ),
-                    StatementReturn(
-                        expression=_makeCallNode(
-                            called=ExpressionTempVariableRef(
-                                variable=tmp_called, source_ref=source_ref
+                    makeTryFinallyReleaseStatement(
+                        provider=outline_body,
+                        tried=StatementReturn(
+                            expression=_makeCallNode(
+                                called=ExpressionTempVariableRef(
+                                    variable=tmp_called, source_ref=source_ref
+                                ),
+                                positional_args=positional_args,
+                                keys=keys,
+                                values=values,
+                                list_star_arg=list_star_arg,
+                                dict_star_arg=dict_star_arg,
+                                source_ref=source_ref,
                             ),
-                            positional_args=positional_args,
-                            keys=keys,
-                            values=values,
-                            list_star_arg=list_star_arg,
-                            dict_star_arg=dict_star_arg,
                             source_ref=source_ref,
                         ),
+                        variables=(tmp_called,),
                         source_ref=source_ref,
                     ),
                 )
