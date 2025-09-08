@@ -242,7 +242,7 @@ PyObject *DICT_GET_ITEM0(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -331,7 +331,7 @@ PyObject *DICT_GET_ITEM1(PyThreadState *tstate, PyObject *dict, PyObject *key) {
     }
 #endif
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -467,7 +467,7 @@ PyObject *DICT_GET_ITEM_WITH_ERROR(PyThreadState *tstate, PyObject *dict, PyObje
     }
 #endif
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -562,7 +562,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyThreadState *tstate, PyObject *dict, 
     }
 #endif
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -654,7 +654,7 @@ PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyThreadState *tstate, PyObject *dict, 
     }
 #endif
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
@@ -747,7 +747,7 @@ int DICT_HAS_ITEM(PyThreadState *tstate, PyObject *dict, PyObject *key) {
         return 0;
     }
 
-#if (PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0) && !defined(Py_GIL_DISABLED)
+#if PYTHON_VERSION < 0x370 || PYTHON_VERSION >= 0x3b0 || defined(Py_GIL_DISABLED)
     assert(value_addr != NULL);
     PyObject *result = *value_addr;
 #endif
