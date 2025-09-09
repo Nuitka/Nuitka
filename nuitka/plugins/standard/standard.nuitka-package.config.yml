@@ -2079,6 +2079,11 @@
         - 'hydra._internal.core_plugins.*'
         - 'hydra_plugins.*'
 
+- module-name: 'idlelib' # checksum: 8d059869
+  data-files:
+    - dirs:
+        - 'Icons'
+
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
     - replacements_plain:
