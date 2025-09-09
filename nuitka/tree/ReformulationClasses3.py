@@ -74,10 +74,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionTypeMakeGeneric,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableNameRef,
-    StatementAssignmentVariableName,
-)
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
