@@ -321,7 +321,7 @@ _excluded_system_dlls = set()
 def _reduceToPythonPath(used_dll_paths):
     """Remove DLLs outside of python path unless they are found in the MSVC Redist folder."""
     inside_paths = getPythonUnpackedSearchPath()
-    vc_redist_path = getVCRedistPath()
+    vc_redist_path = getVCRedistPath(logger=inclusion_logger)
 
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())

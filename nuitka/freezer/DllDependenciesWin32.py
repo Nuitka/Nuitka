@@ -210,15 +210,9 @@ def _getScanDirectories(package_name, original_dir, use_path):
     scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
 
     # Add the VCRedist path to the list of directories to search if it exists
-    vc_redist_path = getVCRedistPath()
-    if vc_redist_path:
-        try:
-            for sub_dir in os.listdir(vc_redist_path):
-                full_sub_dir = os.path.join(vc_redist_path, sub_dir)
-                if os.path.isdir(full_sub_dir):
-                    scan_dirs.append(full_sub_dir)
-        except OSError:
-            pass
+    vc_redist_path = getVCRedistPath(logger=inclusion_logger)
+    if vc_redist_path is not None:
+        scan_dirs.extend(getSubDirectoriesWithDlls(vc_redist_path))
 
     if package_name is not None:
         scan_dirs.extend(

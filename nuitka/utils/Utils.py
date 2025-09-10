@@ -10,7 +10,6 @@ Here the small things that fit nowhere else and don't deserve their own module.
 import ctypes
 import functools
 import os
-import subprocess
 import sys
 import time
 from contextlib import contextmanager
@@ -509,38 +508,53 @@ def isCoffUsingPlatform():
     return isAIX()
 
 
-_vcredist_path = None
-_vcredist_path_searched = False
+_msvc_redist_path = None
 
 
-def findVCRedistPath():
-    vswhere_path = os.path.join(
-        os.environ.get("ProgramFiles(x86)", ""),
-        "Microsoft Visual Studio",
-        "Installer",
-        "vswhere.exe",
+def _getVCRedistPath(logger):
+
+    # TODO: We could try and export the vswhere information from what Scons
+    # found out, to avoid the (then duplicated) vswhere call entirely.
+
+    # The program name is from the installer, spell-checker: ignore vswhere
+    vswhere_path = None
+    for candidate in ("ProgramFiles(x86)", "ProgramFiles"):
+        program_files_dir = os.getenv(candidate)
+
+        if program_files_dir is not None:
+            candidate = os.path.join(
+                program_files_dir,
+                "Microsoft Visual Studio",
+                "Installer",
+                "vswhere.exe",
+            )
+
+            if os.path.exists(candidate):
+                vswhere_path = candidate
+                break
+
+    if vswhere_path is None:
+        return None
+
+    # Cyclic imports
+    from .Execution import executeToolChecked
+
+    command = (
+        vswhere_path,
+        "-latest",
+        "-property",
+        "installationPath",
+        "-products",
+        "*",
+        "-prerelease",
     )
 
-    if not os.path.exists(vswhere_path):
-        return None
-
-    try:
-        command = [
-            vswhere_path,
-            "-latest",
-            "-property",
-            "installationPath",
-            "-products",
-            "*",
-            "-prerelease",
-        ]
-        vs_path = subprocess.check_output(command).decode("utf8").strip()
-
-        if not vs_path:
-            return None
-
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return None
+    vs_path = executeToolChecked(
+        logger=logger,
+        command=command,
+        absence_message="requiring vswhere for redist discovery",
+        decoding=True,
+    ).strip()
 
     redist_base_path = os.path.join(vs_path, "VC", "Redist", "MSVC")
 
@@ -582,16 +596,14 @@ def findVCRedistPath():
     return None
 
 
-def getVCRedistPath():
-    global _vcredist_path, _vcredist_path_searched
+def getVCRedistPath(logger):
+    global _msvc_redist_path
 
-    if not _vcredist_path_searched:
+    if _msvc_redist_path is None:
         if isWin32Windows():
-            _vcredist_path = findVCRedistPath()
+            _msvc_redist_path = _getVCRedistPath(logger=logger)
 
-        _vcredist_path_searched = True
-
-    return _vcredist_path
+    return _msvc_redist_path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
