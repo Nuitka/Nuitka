@@ -31,7 +31,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.SharedLibraries import getPEFileUsedDllNames, getPyWin32Dir
-from nuitka.utils.Utils import getArchitecture, getVCRedistPath
+from nuitka.utils.Utils import getArchitecture, getMSVCRedistPath
 from nuitka.Version import version_string
 
 from .DependsExe import detectDLLsWithDependencyWalker
@@ -210,9 +210,9 @@ def _getScanDirectories(package_name, original_dir, use_path):
     scan_dirs = [os.path.dirname(sys.executable), getSystemPrefixPath()]
 
     # Add the VCRedist path to the list of directories to search if it exists
-    vc_redist_path = getVCRedistPath(logger=inclusion_logger)
-    if vc_redist_path is not None:
-        scan_dirs.extend(getSubDirectoriesWithDlls(vc_redist_path))
+    msvc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
+    if msvc_redist_path is not None:
+        scan_dirs.extend(getSubDirectoriesWithDlls(msvc_redist_path))
 
     if package_name is not None:
         scan_dirs.extend(

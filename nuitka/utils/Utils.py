@@ -511,7 +511,7 @@ def isCoffUsingPlatform():
 _msvc_redist_path = None
 
 
-def _getVCRedistPath(logger):
+def _getMSVCRedistPath(logger):
 
     # TODO: We could try and export the vswhere information from what Scons
     # found out, to avoid the (then duplicated) vswhere call entirely.
@@ -596,12 +596,12 @@ def _getVCRedistPath(logger):
     return None
 
 
-def getVCRedistPath(logger):
+def getMSVCRedistPath(logger):
     global _msvc_redist_path
 
     if _msvc_redist_path is None:
         if isWin32Windows():
-            _msvc_redist_path = _getVCRedistPath(logger=logger)
+            _msvc_redist_path = _getMSVCRedistPath(logger=logger)
 
     return _msvc_redist_path
 
