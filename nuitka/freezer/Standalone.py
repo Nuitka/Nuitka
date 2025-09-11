@@ -50,6 +50,7 @@ from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
+    getMSVCRedistPath,
     getOS,
     isDebianBasedLinux,
     isMacOS,
@@ -318,8 +319,9 @@ _excluded_system_dlls = set()
 
 
 def _reduceToPythonPath(used_dll_paths):
-    """Remove DLLs outside of python path."""
+    """Remove DLLs outside of python path unless they are found in the MSVC Redist folder."""
     inside_paths = getPythonUnpackedSearchPath()
+    vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
@@ -343,7 +345,13 @@ def _reduceToPythonPath(used_dll_paths):
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        if decideInside(dll_filename):
+        is_from_vc_redist = False
+        if vc_redist_path:
+            is_from_vc_redist = isFilenameBelowPath(
+                path=vc_redist_path, filename=dll_filename
+            )
+
+        if decideInside(dll_filename) or is_from_vc_redist:
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
