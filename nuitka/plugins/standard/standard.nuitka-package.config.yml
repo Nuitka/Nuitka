@@ -2454,6 +2454,16 @@
         prefixes:
           - '_cext'
 
+- module-name: 'klayout' # checksum: 680f5ae4
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib_*'
+    - from_filenames:
+        relative_path: 'db_plugins'
+        prefixes:
+          - ''
+
 - module-name: 'lab_lamma' # checksum: 2c54cdc3
   implicit-imports:
     - depends:
