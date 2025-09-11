@@ -512,6 +512,8 @@ _msvc_redist_path = None
 
 
 def _getMSVCRedistPath(logger):
+    # The detection is return driven with many cases to look at
+    # pylint: disable=too-many-return-statements
 
     # TODO: We could try and export the vswhere information from what Scons
     # found out, to avoid the (then duplicated) vswhere call entirely.
@@ -597,7 +599,7 @@ def _getMSVCRedistPath(logger):
 
 
 def getMSVCRedistPath(logger):
-    global _msvc_redist_path
+    global _msvc_redist_path  # singleton, pylint: disable=global-statement
 
     if _msvc_redist_path is None:
         if isWin32Windows():
