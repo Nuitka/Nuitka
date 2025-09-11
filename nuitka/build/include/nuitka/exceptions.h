@@ -64,7 +64,7 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(PyThreadState *tsta
 #endif
 }
 
-// Clear error, which is not likely set, use "CLEAR_ERROR_OCCURRED" not sure there is an error.
+// Clear error, which is not likely set, use "CLEAR_ERROR_OCCURRED" if not sure there is an error.
 NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED(PyThreadState *tstate) {
 
 #if PYTHON_VERSION < 0x3c0
