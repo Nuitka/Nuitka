@@ -30,6 +30,8 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.SharedLibraries import getWindowsRunningProcessDLLPaths
 from nuitka.utils.Utils import getArchitecture
 
+_missing_msvc_redist_dlls = OrderedSet()
+
 
 def getDependsExePath():
     """Return the path of depends.exe (for Windows).
@@ -83,6 +85,24 @@ def _attemptToFindNotFoundDLL(dll_filename):
     return None
 
 
+# Names of MSVC redistributable DLLs to pick up
+# spell-checker: ignore concrt,msvcp,vcruntime,vcamp,vccorlib,codecvt,vcomp
+msvc_redist_dll_names = {
+    "concrt140.dll",
+    "msvcp140.dll",
+    "msvcp140_1.dll",
+    "msvcp140_2.dll",
+    "msvcp140_atomic_wait.dll",
+    "msvcp140_codecvt_ids.dll",
+    "vccorlib140.dll",
+    "vcruntime140.dll",
+    "vcruntime140_1.dll",
+    "vcruntime140_threads.dll",
+    "vcamp140.dll",
+    "vcomp140.dll",
+}
+
+
 def _parseDependsExeOutput2(lines):
     # Many cases to deal with, pylint: disable=too-many-branches
 
@@ -118,9 +138,12 @@ def _parseDependsExeOutput2(lines):
         if "E" in line[: line.find("]")]:
             continue
 
-        # Skip missing DLLs, apparently not needed anyway, but we can still
-        # try a few tricks
+        # Try to find missing DLLs for PythonXY.dll and keep track of missing MSVC Redist DLLs.
         if "?" in line[: line.find("]")]:
+            # Track missing VCRedist DLLs
+            if dll_filename in msvc_redist_dll_names:
+                _missing_msvc_redist_dlls.add(dll_filename)
+
             # One exception are "PythonXY.DLL", we try to find them from Windows folder.
             if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
                 dll_filename = _attemptToFindNotFoundDLL(dll_filename)
@@ -237,6 +260,18 @@ SxS
 
     deleteFile(output_filename, must_exist=True)
     deleteFile(dwp_filename, must_exist=True)
+
+    if _missing_msvc_redist_dlls:
+        inclusion_logger.warning(
+            """\
+The following Visual C++ Redistributable DLLs were not found: %s. \
+For a fully portable standalone distribution, these DLLs must be \
+available either by installing the Microsoft Visual C++ Redistributable \
+for Visual Studio 2015-2022 on the target system or by bundling them with \
+the application. To bundle them, Visual Studio must be installed on the build machine."""
+            % ", ".join(sorted(_missing_msvc_redist_dlls))
+        )
+        _missing_msvc_redist_dlls.clear()
 
     return result
 
