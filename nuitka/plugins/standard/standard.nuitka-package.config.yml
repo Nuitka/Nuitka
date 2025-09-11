@@ -849,14 +849,13 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
-- module-name: 'cmsis_pack_manager.cmsis_pack_manager' # checksum: a25e9cc1
+- module-name: 'cmsis_pack_manager.cmsis_pack_manager' # checksum: 4761e177
   dlls:
     - from_filenames:
         prefixes:
           - 'native'
-    - from_filenames:
-        prefixes:
-          - ''
+          - 'cmsis'
+          - 'libcmsis'
 
 - module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
   dlls:
