@@ -837,11 +837,13 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
-- module-name: 'cmsis_pack_manager.cmsis_pack_manager' # checksum: a25e9cc1
+- module-name: 'cmsis_pack_manager.cmsis_pack_manager' # checksum: 4761e177
   dlls:
     - from_filenames:
         prefixes:
           - 'native'
+          - 'cmsis'
+          - 'libcmsis'
 
 - module-name: 'coincurve._libsecp256k1' # checksum: a0cd690f
   dlls:
@@ -1650,6 +1652,11 @@
         'from future.moves.test import support': 'raise ImportError'
       when: 'not use_unittest'
 
+- module-name: 'gdsfactory' # checksum: 90d957fe
+  data-files:
+    - dirs:
+        - 'generic_tech'
+
 - module-name: 'geopandas.datasets' # checksum: 3983d794
   data-files:
     - dirs:
@@ -2060,6 +2067,11 @@
         - 'hydra._internal.core_plugins.*'
         - 'hydra_plugins.*'
 
+- module-name: 'idlelib' # checksum: 8d059869
+  data-files:
+    - dirs:
+        - 'Icons'
+
 - module-name: 'imageio.core.imopen' # checksum: 7af58240
   anti-bloat:
     - replacements_plain:
@@ -2342,6 +2354,15 @@
         - 'win32timezone'
         - 'win32ctypes.core.ctypes.*'
 
+- module-name: 'kfactory' # checksum: 54fa1ca1
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+    - no-follow:
+        'kfactory.widgets': 'disable jupyterhub'
+
 - module-name: 'kivy' # checksum: 648dc799
   data-files:
     - dirs:
@@ -2413,6 +2434,16 @@
     - from_filenames:
         prefixes:
           - '_cext'
+
+- module-name: 'klayout' # checksum: 680f5ae4
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'lib_*'
+    - from_filenames:
+        relative_path: 'db_plugins'
+        prefixes:
+          - ''
 
 - module-name: 'lab_lamma' # checksum: 2c54cdc3
   implicit-imports:
@@ -7781,12 +7812,17 @@
     - depends:
         - 'keras.api._v2'
 
-- module-name: 'tensorrt_libs' # checksum: cb30dde5
+- module-name: 'tensorrt_libs' # checksum: 7630569e
   dlls:
     - from_filenames:
         prefixes:
           - 'libnv'
       dest_path: '.'
+      when: 'not win32'
+    - from_filenames:
+        prefixes:
+          - 'nv'
+      when: 'win32'
 
 - module-name: 'text_unidecode' # checksum: db822b99
   data-files:
@@ -7985,10 +8021,11 @@
           - ''
       when: 'use_tkinter and macos and arch_amd64 and version("tkinterdnd2") >= (0,4)'
 
-- module-name: 'tkinterweb' # checksum: 5de6ded8
+- module-name: 'tkinterweb' # checksum: 3f91ac54
   data-files:
     - dirs:
         - 'tkhtml'
+        - 'resources'
 
   dlls:
     - from_filenames:
@@ -8006,11 +8043,39 @@
     - description: 'remove "sys.path" hack'
       replacements_plain:
         'sys.path.append': ''
+  implicit-imports:
+    - depends:
+        - 'tkinterweb_tkhtml'
+
   import-hacks:
     - global-sys-path:
         # This package forces itself into "sys.path" and expects absolute
         # imports to be available.
         - ''
+
+- module-name: 'tkinterweb.utilities' # checksum: 575a76dc
+  anti-bloat:
+    - description: 'change resolution of ROOT_DIR'
+      replacements_plain:
+        '__file__': 'sys.argv[0]'
+        '"resources"': '__title__.lower(), "resources"'
+
+- module-name: 'tkinterweb_tkhtml' # checksum: 8dc89e23
+  data-files:
+    - dirs:
+        - 'tkhtml'
+  dlls:
+    - from_filenames:
+        relative_path: 'tkhtml'
+        prefixes:
+          - 'lib'
+      when: 'win32'
+  anti-bloat:
+    - description: 'change resolution of ROOT_DIR'
+      replacements_plain:
+        'import os': 'import os, sys'
+        '__file__': 'sys.argv[0]'
+        '"tkhtml"': '__title__.lower().replace("-", "_"), "tkhtml"'
 
 - module-name: 'tls_client.cffi' # checksum: 97b24774
   dlls:
@@ -8683,6 +8748,11 @@
       no-auto-follow:
         'setuptools_scm': 'ignore'
       when: 'not use_setuptools'
+
+- module-name: 'trimesh' # checksum: ae5ca038
+  data-files:
+    - dirs:
+        - 'resources'
 
 - module-name: 'trimesh.viewer.notebook' # checksum: d055e332
   anti-bloat:
