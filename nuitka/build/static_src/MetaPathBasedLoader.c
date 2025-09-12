@@ -981,8 +981,10 @@ static PyObject *callIntoExtensionModule(PyThreadState *tstate, char const *full
         def->m_base.m_init = entrypoint;
 
 #if PYTHON_VERSION >= 0x3d0
-        if (PyState_AddModule(module, def) == -1) {
-            return NULL;
+        if (PyState_FindModule(def) == NULL) {
+            if (PyState_AddModule(module, def) == -1) {
+                return NULL;
+            }
         }
 #endif
 
