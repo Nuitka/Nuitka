@@ -157,6 +157,17 @@ class ExpressionOperationBinaryBase(
             description="Operator '%s' with constant arguments." % self.operator,
         )
 
+    def _hasIncompleteLoopVariables(self, left, right):
+        from nuitka.optimizations.ValueTraces import ValueTraceLoopIncomplete
+        for operand in (left, right):
+            if operand.isExpressionVariableRef():
+                variable = operand.getVariable()
+                for trace in variable.getTraces():
+                    if isinstance(trace, ValueTraceLoopIncomplete):
+                        return True
+                    
+        return False
+
     def computeExpression(self, trace_collection):
         # Nothing to do anymore for large constants.
         if self.shape is not None and self.shape.isConstant():
@@ -181,7 +192,7 @@ class ExpressionOperationBinaryBase(
 
             if self.escape_desc.isUnsupported() and self.canCreateUnsupportedException(
                 left_shape, right_shape
-            ):
+            ) and not self._hasIncompleteLoopVariables(left, right):
                 result = wrapExpressionWithSideEffects(
                     new_node=makeRaiseExceptionReplacementExpressionFromInstance(
                         expression=self,

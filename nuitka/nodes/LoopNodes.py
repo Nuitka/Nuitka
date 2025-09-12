@@ -61,6 +61,43 @@ class StatementLoop(StatementLoopBase):
         # To allow an upper limit in case it doesn't terminate.
         self.incomplete_count = 0
 
+    def _checkNestedLoopCompletion(self, current, loop_variable):
+        """
+        Check if the change in loop shapes is due to nested loops becoming complete
+        rather than genuinely incomplete information.
+        
+        This addresses the bug where nested loop analysis completion doesn't
+        properly update outer loop variable completeness status.
+        """
+        # If we have previous shapes, check if the current change represents
+        # a refinement from incomplete to complete knowledge
+        if self.loop_previous_resume.get(loop_variable) is None:
+            return False
+            
+        previous_shapes = self.loop_previous_resume[loop_variable]
+        current_shapes = self.loop_resume[loop_variable]
+        
+        # More flexible approach: if we have more information now than before,
+        # consider it as potential completion rather than incompletion
+        from nuitka.nodes.shapes.StandardShapes import tshape_unknown, tshape_unknown_loop
+        
+        # If we previously had unknown shapes and now have specific ones, 
+        # this suggests nested loop completion
+        if tshape_unknown in previous_shapes and tshape_unknown not in current_shapes:
+            return True
+            
+        if tshape_unknown_loop in previous_shapes and tshape_unknown_loop not in current_shapes:
+            return True
+            
+        # Check if we've gone from a smaller set to a larger, more specific set
+        # which typically indicates refinement rather than new incompleteness
+        if len(current_shapes) > len(previous_shapes):
+            # But only if all previous shapes are still included (refinement)
+            if previous_shapes.issubset(current_shapes):
+                return True
+        
+        return False
+
     def mayReturn(self):
         # TODO: Seems the trace collection should feed this after first pass of the loop.
         loop_body = self.subnode_loop_body
@@ -170,13 +207,19 @@ class StatementLoop(StatementLoopBase):
                 ):
                     # print("incomplete", self.source_ref, loop_variable, ":",
                     # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
+                    nested_loop_complete = self._checkNestedLoopCompletion(
+                        current, loop_variable
+                    )
+                    
+                    if nested_loop_complete:
+                        incomplete = False
+                    else:
+                        incomplete = True
 
-                    incomplete = True
+                        if incomplete_variables is None:
+                            incomplete_variables = set()
 
-                    if incomplete_variables is None:
-                        incomplete_variables = set()
-
-                    incomplete_variables.add(loop_variable)
+                        incomplete_variables.add(loop_variable)
                 else:
                     # print("complete", self.source_ref, loop_variable, ":",
                     # self.loop_previous_resume[loop_variable], "<->", self.loop_resume[loop_variable])
