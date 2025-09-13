@@ -47,7 +47,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
         getErrorExitCode(
             check_name=value_name,
-            release_names=(type_alias_name, compute_value_name),
+            release_names=(type_alias_name, compute_value_name, type_params_name),
             emit=emit,
             context=context,
             needs_check=expression.mayRaiseExceptionOperation(),
