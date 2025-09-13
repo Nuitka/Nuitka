@@ -1228,7 +1228,6 @@ def buildTypeVarNode(node, source_ref):
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
-    assert not node.type_params, node.type_params
     type_alias_node = ExpressionTypeAlias(
         type_params=buildNodeTuple(provider, node.type_params, source_ref),
         value=buildNode(provider, node.value, source_ref),
