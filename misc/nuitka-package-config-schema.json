@@ -1,462 +1,462 @@
 {
-    "type": "array",
-    "items": {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "module-name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
+      },
+      "parameters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "values": {
+              "type": "string"
+            },
+            "default": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "values"
+          ]
+        }
+      },
+      "constants": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-            "module-name": {
-                "type": "string",
-                "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
-            },
-            "parameters": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "values": {
-                            "type": "string"
-                        },
-                        "default": {
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "name",
-                        "values"
-                    ]
-                }
-            },
-            "constants": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "declarations": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "variables": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "environment": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "setup_code": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "declarations": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "when": {
-                        "type": "string"
-                    }
-                }
-            },
-            "data-files": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "dest_path": {
-                            "type": "string"
-                        },
-                        "dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "raw_dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "patterns": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "empty_dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "empty_dir_structures": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "include-pyi-file": {
-                            "type": "string",
-                            "enum": [
-                                "yes",
-                                "no"
-                            ]
-                        },
-                        "include-metadata": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "when": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "dlls": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "from_sources": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "source_paths": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                },
-                                "dest_names": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                }
-                            },
-                            "required": [
-                                "source_paths"
-                            ]
-                        },
-                        "from_filenames": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "relative_path": {
-                                    "type": "string"
-                                },
-                                "prefixes": {
-                                    "type": "array"
-                                },
-                                "suffixes": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string",
-                                        "pattern": "^[^.]\\w*$"
-                                    }
-                                },
-                                "executable": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no"
-                                    ]
-                                }
-                            },
-                            "required": [
-                                "prefixes"
-                            ]
-                        },
-                        "by_code": {
-                            "additionalProperties": false,
-                            "type": "object",
-                            "properties": {
-                                "setup_code": {
-                                    "type": "string"
-                                },
-                                "filename_code": {
-                                    "type": "string"
-                                },
-                                "executable": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no"
-                                    ]
-                                }
-                            }
-                        },
-                        "dest_path": {
-                            "type": "string"
-                        },
-                        "when": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "anti-bloat": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "description": {
-                            "type": "string"
-                        },
-                        "context": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "module_code": {
-                            "type": "string"
-                        },
-                        "replacements_plain": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "global_replacements_re": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "global_replacements": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "global_replacements_plain": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "replacements_re": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "replacements": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "change_class": {
-                            "type": "object"
-                        },
-                        "global_change_function": {
-                            "type": "object"
-                        },
-                        "change_function": {
-                            "type": "object"
-                        },
-                        "append_result": {
-                            "type": "string"
-                        },
-                        "append_plain": {
-                            "type": "string"
-                        },
-                        "no-follow": {
-                            "type": "object"
-                        },
-                        "no-auto-follow": {
-                            "type": "object"
-                        },
-                        "bloat-mode-overrides": {
-                            "type": "object"
-                        },
-                        "annotations": {
-                            "type": "string",
-                            "enum": [
-                                "default",
-                                "yes",
-                                "no"
-                            ]
-                        },
-                        "doc_strings": {
-                            "type": "string",
-                            "enum": [
-                                "default",
-                                "yes",
-                                "no"
-                            ]
-                        },
-                        "asserts": {
-                            "type": "string",
-                            "enum": [
-                                "default",
-                                "yes",
-                                "no"
-                            ]
-                        },
-                        "when": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "implicit-imports": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "depends": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "pre-import-code": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "post-import-code": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "when": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "options": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                    "checks": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "description": {
-                                    "type": "string"
-                                },
-                                "macos_bundle": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no",
-                                        "recommend"
-                                    ]
-                                },
-                                "macos_bundle_as_onefile": {
-                                    "type": "string",
-                                    "enum": [
-                                        "yes",
-                                        "no"
-                                    ]
-                                },
-                                "support_info": {
-                                    "type": "string",
-                                    "enum": [
-                                        "error",
-                                        "warning",
-                                        "info",
-                                        "parameter",
-                                        "plugin",
-                                        "perfect"
-                                    ]
-                                },
-                                "when": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "import-hacks": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "overridden-environment-variables": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "force-environment-variables": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        },
-                        "package-paths": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "package-dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "find-dlls-near-module": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "acceptable-missing-dlls": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "global-sys-path": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "package-system-dlls": {
-                            "type": "string",
-                            "enum": [
-                                "yes",
-                                "no"
-                            ]
-                        },
-                        "when": {
-                            "type": "string"
-                        }
-                    }
-                }
+          "declarations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
             }
+          }
         }
+      },
+      "variables": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "setup_code": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "declarations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "when": {
+            "type": "string"
+          }
+        }
+      },
+      "data-files": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dest_path": {
+              "type": "string"
+            },
+            "dirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "raw_dirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "empty_dirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "empty_dir_structures": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "include-pyi-file": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            },
+            "include-metadata": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "when": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "dlls": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from_sources": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "dest_names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "source_paths"
+              ]
+            },
+            "from_filenames": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "relative_path": {
+                  "type": "string"
+                },
+                "prefixes": {
+                  "type": "array"
+                },
+                "suffixes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[^.]\\w*$"
+                  }
+                },
+                "executable": {
+                  "type": "string",
+                  "enum": [
+                    "yes",
+                    "no"
+                  ]
+                }
+              },
+              "required": [
+                "prefixes"
+              ]
+            },
+            "by_code": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "setup_code": {
+                  "type": "string"
+                },
+                "filename_code": {
+                  "type": "string"
+                },
+                "executable": {
+                  "type": "string",
+                  "enum": [
+                    "yes",
+                    "no"
+                  ]
+                }
+              }
+            },
+            "dest_path": {
+              "type": "string"
+            },
+            "when": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "anti-bloat": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "context": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "module_code": {
+              "type": "string"
+            },
+            "replacements_plain": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "global_replacements_re": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "global_replacements": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "global_replacements_plain": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "replacements_re": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "replacements": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "change_class": {
+              "type": "object"
+            },
+            "global_change_function": {
+              "type": "object"
+            },
+            "change_function": {
+              "type": "object"
+            },
+            "append_result": {
+              "type": "string"
+            },
+            "append_plain": {
+              "type": "string"
+            },
+            "no-follow": {
+              "type": "object"
+            },
+            "no-auto-follow": {
+              "type": "object"
+            },
+            "bloat-mode-overrides": {
+              "type": "object"
+            },
+            "annotations": {
+              "type": "string",
+              "enum": [
+                "default",
+                "yes",
+                "no"
+              ]
+            },
+            "doc_strings": {
+              "type": "string",
+              "enum": [
+                "default",
+                "yes",
+                "no"
+              ]
+            },
+            "asserts": {
+              "type": "string",
+              "enum": [
+                "default",
+                "yes",
+                "no"
+              ]
+            },
+            "when": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "implicit-imports": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "depends": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "pre-import-code": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "post-import-code": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "when": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "options": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "macos_bundle": {
+                  "type": "string",
+                  "enum": [
+                    "yes",
+                    "no",
+                    "recommend"
+                  ]
+                },
+                "macos_bundle_as_onefile": {
+                  "type": "string",
+                  "enum": [
+                    "yes",
+                    "no"
+                  ]
+                },
+                "support_info": {
+                  "type": "string",
+                  "enum": [
+                    "error",
+                    "warning",
+                    "info",
+                    "parameter",
+                    "plugin",
+                    "perfect"
+                  ]
+                },
+                "when": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "import-hacks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "overridden-environment-variables": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "force-environment-variables": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "package-paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "package-dirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "find-dlls-near-module": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "acceptable-missing-dlls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "global-sys-path": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "package-system-dlls": {
+              "type": "string",
+              "enum": [
+                "yes",
+                "no"
+              ]
+            },
+            "when": {
+              "type": "string"
+            }
+          }
+        }
+      }
     }
+  }
 }

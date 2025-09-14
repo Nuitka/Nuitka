@@ -97,6 +97,15 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
+    parser.add_option(
+        "--json",
+        action="store_true",
+        dest="json",
+        default=False,
+        help="""Format only matching JSON files
+Defaults to off.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if options.from_commit:
@@ -142,6 +151,7 @@ Defaults to off.""",
                     ".c",
                     ".h",
                     ".yml",
+                    ".json",
                 ),
             )
         )
@@ -168,6 +178,7 @@ Defaults to off.""",
                 limit_python=options.python,
                 limit_rst=options.rst,
                 limit_md=options.md,
+                limit_json=options.json,
             ):
                 result += 1
 
