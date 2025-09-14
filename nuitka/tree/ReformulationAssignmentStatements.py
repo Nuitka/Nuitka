@@ -28,10 +28,12 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
+from nuitka.nodes.FunctionNodes import ExpressionFunctionRef, makeExpressionFunctionCall, makeExpressionFunctionCreation
 from nuitka.nodes.InjectCNodes import (
     StatementInjectCCode,
     StatementInjectCDecl,
 )
+from .InternalModule import makeInternalHelperFunctionBody
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -62,6 +64,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
     StatementDelVariableName,
 )
+from nuitka.specs.ParameterSpecs import ParameterSpec
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
@@ -1228,17 +1231,64 @@ def buildTypeVarNode(node, source_ref):
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
-    type_alias_node = ExpressionTypeAlias(
-        type_params=buildNodeTuple(provider, node.type_params, source_ref),
-        value=buildNode(provider, node.value, source_ref),
-        source_ref=source_ref,
-    )
+    def typeExpressionFunction():
+        helper_name = "type_expression_function"
 
-    # TODO: A specialized assignment statement might be in order
+        result = makeInternalHelperFunctionBody(
+            name=helper_name,
+            parameters=ParameterSpec(
+                ps_name=helper_name,
+                ps_normal_args=(),
+                ps_list_star_arg=None,
+                ps_dict_star_arg=None,
+                ps_default_count=0,
+                ps_kw_only_args=(),
+                ps_pos_only_args=(),
+            ),
+        )
+
+
+        assignments = []
+        for type_param in node.type_params:
+            type_var = ExpressionTypeVariable(type_param, source_ref=source_ref)
+            assign = StatementAssignmentVariableName(
+                provider=provider,
+                variable_name=type_param.name,
+                source=type_var,
+                source_ref=source_ref
+            )
+            assignments.append(assign)
+
+        type_alias_node = ExpressionTypeAlias(
+            type_params=buildNodeTuple(provider, node.type_params, source_ref),
+            value=buildNode(provider, node.value, source_ref),
+            source_ref=source_ref,
+        )
+        body = makeStatementsSequenceFromStatements(
+            *assignments,
+            StatementReturn(type_alias_node, source_ref=source_ref)
+        )
+        result.setChildBody(body)
+
+        return result
+
     return StatementAssignmentVariableName(
         provider=provider,
         variable_name=mangleName(node.name.id, provider),
-        source=type_alias_node,
+        source=makeExpressionFunctionCall(
+            function=makeExpressionFunctionCreation(
+                ExpressionFunctionRef(
+                    function_body=typeExpressionFunction(),
+                    source_ref=source_ref
+                ),
+                defaults=(),
+                kw_defaults=None,
+                annotations=None,
+                source_ref=source_ref,
+            ),
+            values=[],
+            source_ref=source_ref
+        ),
         source_ref=source_ref,
     )
 
