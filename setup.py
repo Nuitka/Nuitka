@@ -40,7 +40,6 @@ from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
 from nuitka.PythonFlavors import isMSYS2MingwPython
-from nuitka.utils.FileOperations import getFileList
 from nuitka.utils.Utils import isMacOS
 from nuitka.Version import getNuitkaVersion
 
@@ -183,33 +182,6 @@ package_data = {
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
 }
 
-
-if "nuitka.plugins.commercial" in nuitka_packages:
-    commercial_data_files = []
-
-    commercial_plugins_dir = os.path.join("nuitka", "plugins", "commercial")
-
-    for filename in getFileList(commercial_plugins_dir):
-        filename_relative = os.path.relpath(filename, commercial_plugins_dir)
-
-        if (
-            filename_relative.endswith(".py")
-            and os.path.basename(filename_relative) == filename_relative
-        ):
-            continue
-
-        if filename.endswith((".py", ".yml", ".c", ".h", ".plk", ".tmd")):
-            commercial_data_files.append(filename_relative)
-            continue
-
-        filename_base = os.path.basename(filename_relative)
-
-        if filename_base.startswith("LICENSE"):
-            commercial_data_files.append(filename_relative)
-            continue
-
-    package_data["nuitka.plugins.commercial"] = commercial_data_files
-    package_data["nuitka.tools.commercial.container_build"] = ["Containerfile"]
 
 try:
     import distutils.util
@@ -363,10 +335,6 @@ else:
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
 
-    if "nuitka.plugins.commercial" in nuitka_packages:
-        console_scripts.append(
-            "nuitka-decrypt = nuitka.tools.commercial.decrypt.__main__:main"
-        )
 
 scripts = []
 
@@ -374,8 +342,6 @@ scripts = []
 if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.cmd", "misc/nuitka-run.cmd"]
 
-    if "nuitka.plugins.commercial" in nuitka_packages:
-        scripts.append("misc/nuitka-decrypt.cmd")
 
 
 # With this, we can enforce a binary package.
