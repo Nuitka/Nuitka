@@ -182,11 +182,9 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
 
     // --- Run a Modal Message Loop ---
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        if (!IsDialogMessage(state.hDlg, &msg)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+    while (GetMessageW(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
     }
 
     // --- Process the Result ---
