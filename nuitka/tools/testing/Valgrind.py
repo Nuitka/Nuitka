@@ -82,7 +82,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
 def getBinarySizes(filename):
     command = ["size", filename]
     sizes = check_output(command).strip()
-    sizes = sizes.split(b"\n")[-1].replace(b"\t", b"").split()
+    sizes = sizes.split(b"\n")[-1].replace(b"\t", b" ").split()
 
     return int(sizes[0]), int(sizes[1])
 
