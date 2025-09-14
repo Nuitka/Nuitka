@@ -194,14 +194,14 @@
             "includePath": [
                 "/usr/include",
                 "${myDefaultIncludePath}",
-                "/usr/include/python3.10"
+                "/usr/include/python3.12"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3a0",
+                "PYTHON_VERSION=0x3c0",
                 "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",
