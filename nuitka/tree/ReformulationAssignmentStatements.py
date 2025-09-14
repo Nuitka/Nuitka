@@ -28,12 +28,15 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.FunctionNodes import ExpressionFunctionRef, makeExpressionFunctionCall, makeExpressionFunctionCreation
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
+)
 from nuitka.nodes.InjectCNodes import (
     StatementInjectCCode,
     StatementInjectCDecl,
 )
-from .InternalModule import makeInternalHelperFunctionBody
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
@@ -64,13 +67,14 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
     StatementDelVariableName,
 )
-from nuitka.specs.ParameterSpecs import ParameterSpec
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
+from nuitka.specs.ParameterSpecs import ParameterSpec
 from nuitka.Tracing import general
 
 from .FutureSpecState import getFutureSpec
+from .InternalModule import makeInternalHelperFunctionBody
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
@@ -1247,7 +1251,6 @@ def buildTypeAliasNode(provider, node, source_ref):
             ),
         )
 
-
         assignments = []
         for type_param in node.type_params:
             type_var = ExpressionTypeVariable(type_param, source_ref=source_ref)
@@ -1255,7 +1258,7 @@ def buildTypeAliasNode(provider, node, source_ref):
                 provider=provider,
                 variable_name=type_param.name,
                 source=type_var,
-                source_ref=source_ref
+                source_ref=source_ref,
             )
             assignments.append(assign)
 
@@ -1265,8 +1268,7 @@ def buildTypeAliasNode(provider, node, source_ref):
             source_ref=source_ref,
         )
         body = makeStatementsSequenceFromStatements(
-            *assignments,
-            StatementReturn(type_alias_node, source_ref=source_ref)
+            *assignments, StatementReturn(type_alias_node, source_ref=source_ref)
         )
         result.setChildBody(body)
 
@@ -1278,8 +1280,7 @@ def buildTypeAliasNode(provider, node, source_ref):
         source=makeExpressionFunctionCall(
             function=makeExpressionFunctionCreation(
                 ExpressionFunctionRef(
-                    function_body=typeExpressionFunction(),
-                    source_ref=source_ref
+                    function_body=typeExpressionFunction(), source_ref=source_ref
                 ),
                 defaults=(),
                 kw_defaults=None,
@@ -1287,7 +1288,7 @@ def buildTypeAliasNode(provider, node, source_ref):
                 source_ref=source_ref,
             ),
             values=[],
-            source_ref=source_ref
+            source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
