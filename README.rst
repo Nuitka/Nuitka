@@ -552,13 +552,13 @@ these criterions.
 |            | party packages do actually used them as data, e.g. ``.NET`` packages, we solve that in | For rare cases, data-files section with special configuration might be the correct thing to do.        |
 |            | package configuration for it.                                                          |                                                                                                        |
 +------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``.dylib`` | These are ignored, since they macOS extension modules or DLLs.                         | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
+| ``.dylib`` | These are ignored, since they are macOS extension modules or DLLs.                     | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
 +------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``.so``    | These are ignored, since they Linux, BSD, etc. extension modules or DLLs.              | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
+| ``.so``    | These are ignored, since they are Linux, BSD, etc. extension modules or DLLs.          | Need to add configuration with ``dll`` section or ``depends`` that are missing                         |
 +------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``.exe``   | The are binaries to Windows.                                                           | You can add Nuitka Package configuration to include those as DLLs and mark them as ``executable: yes`` |
+| ``.exe``   | They are binaries to Windows.                                                          | You can add Nuitka Package configuration to include those as DLLs and mark them as ``executable: yes`` |
 +------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
-| ``.bin``   | The are binaries to non-Windows, otherwise same as ``.exe``.                           |                                                                                                        |
+| ``.bin``   | They are binaries to non-Windows, otherwise same as ``.exe``.                          |                                                                                                        |
 +------------+----------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------+
 
 Also folders are ignored, these are ``site-packages``, ``dist-packages``
