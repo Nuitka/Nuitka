@@ -2571,6 +2571,33 @@ def getMacOSAppVersion():
     return options.macos_app_version
 
 
+# Mapping of Info.plist keys to the corresponding entitlement keys for hardened
+# runtime, spell-checker: ignore addressbook
+_macos_protected_resource_entitlements = {
+    "NSCameraUsageDescription": "com.apple.security.device.camera",
+    "NSMicrophoneUsageDescription": "com.apple.security.device.microphone",
+    "NSLocationWhenInUseUsageDescription": "com.apple.security.personal-information.location",
+    "NSContactsUsageDescription": "com.apple.security.personal-information.addressbook",
+    "NSCalendarsUsageDescription": "com.apple.security.personal-information.calendars",
+    "NSRemindersUsageDescription": "com.apple.security.personal-information.reminders",
+    # Both full access and add-only map to the same top-level entitlement.
+    "NSPhotoLibraryUsageDescription": "com.apple.security.personal-information.photos-library",
+    "NSPhotoLibraryAddUsageDescription": "com.apple.security.personal-information.photos-library",
+    "NSBluetoothAlwaysUsageDescription": "com.apple.security.device.bluetooth",
+    "NSAppleEventsUsageDescription": "com.apple.security.automation.apple-events",
+    # For folder access, the entitlement depends on read-only vs read-write, which
+    # Nuitka will need to determine from its options.
+    "NSDownloadsFolderUsageDescription": (
+        "com.apple.security.files.downloads.read-only",
+        "com.apple.security.files.downloads.read-write",
+    ),
+    "NSDesktopFolderUsageDescription": (
+        "com.apple.security.files.desktop.read-only",
+        "com.apple.security.files.desktop.read-write",
+    ),
+}
+
+
 def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
     result = []
@@ -2583,7 +2610,36 @@ Wrong format for '--macos-app-protected-resource' value '%s', it \
 needs to contain separator ':' with a description."""
                 % macos_protected_resource
             )
-        result.append(macos_protected_resource.split(":", 1))
+
+        resource_description_name, description = macos_protected_resource.split(":", 1)
+
+        if resource_description_name not in _macos_protected_resource_entitlements:
+            Tracing.options_logger.sysexit(
+                """\
+Wrong key for '--macos-app-protected-resource' value '%s', it \
+needs to be one of the following: %s."""
+                % (
+                    macos_protected_resource,
+                    ", ".join(_macos_protected_resource_entitlements.keys()),
+                )
+            )
+
+        entitlement = _macos_protected_resource_entitlements[resource_description_name]
+
+        if type(entitlement) is tuple:
+            if "read-only" in description:
+                entitlement = entitlement[0]
+            elif "read-write" in description:
+                entitlement = entitlement[1]
+            else:
+                Tracing.options_logger.sysexit(
+                    """\
+Wrong value for '--macos-app-protected-resource' value '%s' needs to
+either contain 'read-only' or 'read-write' as part of the description."""
+                    % macos_protected_resource
+                )
+
+        result.append((resource_description_name, description, entitlement))
 
     return result
 
