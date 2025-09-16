@@ -7,33 +7,59 @@
 
 import os
 
-from nuitka import Options, OutputDirectories
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.Options import (
+    getLegalInformation,
+    getMacOSAppName,
+    getMacOSAppProtectedResourcesAccesses,
+    getMacOSAppVersion,
+    getMacOSIconPaths,
+    getMacOSSignedAppName,
+    isMacOSBackgroundApp,
+    isMacOSUiElementApp,
+    isOnefileMode,
+    isStandaloneMode,
+    shallMacOSProhibitMultipleInstances,
+)
+from nuitka.OutputDirectories import (
+    getResultFullpath,
+    getResultRunFilename,
+    getSourceDirectoryPath,
+    getStandaloneDirectoryPath,
+)
 
 from .FileOperations import copyFile, makePath, openTextFile
 from .Images import convertImageToIconFormat
 
 
-def createPlistInfoFile(logger, onefile):
-    # Many details, pylint: disable=too-many-branches,too-many-locals
+def _writePlist(filename, data):
+    """Helper to write a plist file for macOS."""
+    # Late import, not always used.
     import plistlib
 
-    if Options.isStandaloneMode():
-        bundle_dir = os.path.dirname(OutputDirectories.getStandaloneDirectoryPath())
+    if str is bytes:
+        plist_contents = plistlib.writePlistToString(data)
     else:
-        bundle_dir = os.path.dirname(
-            OutputDirectories.getResultRunFilename(onefile=onefile)
-        )
+        plist_contents = plistlib.dumps(data)
 
-    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
-    app_name = Options.getMacOSAppName() or os.path.basename(result_filename)
+    with openTextFile(filename=filename, mode="wb") as plist_file:
+        plist_file.write(plist_contents)
 
-    executable_name = os.path.basename(
-        OutputDirectories.getResultFullpath(onefile=Options.isOnefileMode())
-    )
 
-    signed_app_name = Options.getMacOSSignedAppName() or app_name
-    app_version = Options.getMacOSAppVersion() or "1.0"
+def createPlistInfoFile(logger, onefile):
+    # Many details, pylint: disable=too-many-locals
+    if isStandaloneMode():
+        bundle_dir = os.path.dirname(getStandaloneDirectoryPath())
+    else:
+        bundle_dir = os.path.dirname(getResultRunFilename(onefile=onefile))
+
+    result_filename = getResultFullpath(onefile=onefile)
+    app_name = getMacOSAppName() or os.path.basename(result_filename)
+
+    executable_name = os.path.basename(getResultFullpath(onefile=isOnefileMode()))
+
+    signed_app_name = getMacOSSignedAppName() or app_name
+    app_version = getMacOSAppVersion() or "1.0"
 
     infos = OrderedDict(
         [
@@ -47,7 +73,7 @@ def createPlistInfoFile(logger, onefile):
         ]
     )
 
-    icon_paths = Options.getMacOSIconPaths()
+    icon_paths = getMacOSIconPaths()
 
     if icon_paths:
         assert len(icon_paths) == 1
@@ -61,7 +87,7 @@ def createPlistInfoFile(logger, onefile):
             )
 
             icon_build_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=onefile, create=False),
+                getSourceDirectoryPath(onefile=onefile, create=False),
                 "icons",
             )
             makePath(icon_build_path)
@@ -86,22 +112,26 @@ def createPlistInfoFile(logger, onefile):
         infos["CFBundleIconFile"] = icon_name
 
     # Console mode, which is why we have to use bundle in the first place typically.
-    if Options.isMacOSBackgroundApp():
+    if isMacOSBackgroundApp():
         infos["LSBackgroundOnly"] = True
-    elif Options.isMacOSUiElementApp():
+    elif isMacOSUiElementApp():
         infos["LSUIElement"] = True  # spell-checker: ignore LSUI
     else:
         infos["NSHighResolutionCapable"] = True
 
-    if Options.shallMacOSProhibitMultipleInstances():
+    if shallMacOSProhibitMultipleInstances():
         infos["LSMultipleInstancesProhibited"] = True
 
-    legal_text = Options.getLegalInformation()
+    legal_text = getLegalInformation()
 
     if legal_text is not None:
         infos["NSHumanReadableCopyright"] = legal_text
 
-    for resource_name, resource_desc in Options.getMacOSAppProtectedResourcesAccesses():
+    for (
+        resource_name,
+        resource_desc,
+        _entitlement_name,
+    ) in getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:
             logger.sysexit("Duplicate value for '%s' is not allowed." % resource_name)
 
@@ -109,13 +139,29 @@ def createPlistInfoFile(logger, onefile):
 
     filename = os.path.join(bundle_dir, "Info.plist")
 
-    if str is bytes:
-        plist_contents = plistlib.writePlistToString(infos)
-    else:
-        plist_contents = plistlib.dumps(infos)
+    _writePlist(filename, infos)
 
-    with openTextFile(filename=filename, mode="wb") as plist_file:
-        plist_file.write(plist_contents)
+
+def createEntitlementsInfoFile():
+    entitlements_dict = {}
+    for (
+        _protected_resource,
+        _description,
+        entitlement_name,
+    ) in getMacOSAppProtectedResourcesAccesses():
+        entitlements_dict[entitlement_name] = True
+
+    if not entitlements_dict:
+        return None
+
+    if entitlements_dict:
+        entitlements_filename = os.path.join(
+            getSourceDirectoryPath(), "entitlements.plist"
+        )
+
+        _writePlist(entitlements_filename, entitlements_dict)
+
+    return entitlements_filename
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
