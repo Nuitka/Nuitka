@@ -35,6 +35,9 @@ extern PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size);
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyThreadState *tstate, PyObject *const *elements, Py_ssize_t size) {
     assert(size > 0);
+    assert(elements != NULL);
+    CHECK_OBJECTS(elements, size);
+
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
