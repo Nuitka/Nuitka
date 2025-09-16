@@ -344,6 +344,7 @@ def wrapCommandForDebuggerForExec(command, debugger):
             "valgrind",
             "--tool=memcheck",
             "--num-callers=25",
+            #            "--leak-check=full",
         ) + command
     else:
         general.sysexit("Error, the selected debugger '%s' was not found in path.")
