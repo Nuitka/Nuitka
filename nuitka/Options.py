@@ -354,7 +354,7 @@ def printVersionInformation():
 
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
-        if options.github_workflow_options and isMacOS() and shallCreateAppBundle():
+        if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
             Tracing.options_logger.info(
                 """\
 Note: Using onefile mode specific option '%s' has no effect \
@@ -366,6 +366,26 @@ with macOS app bundles."""
                 """\
 Using onefile mode specific option '%s' has no effect \
 when '--mode=onefile' is not specified."""
+                % option_name
+            )
+
+
+def _warningModuleModeOnlyOption(option_name):
+    if options.compilation_mode not in ("module", "package"):
+        if options.github_workflow_options:
+            Tracing.options_logger.info(
+                """\
+Using module mode specific option '%s' has no effect \
+when neither '--mode=module' or --mode='package' is \
+specified."""
+                % option_name
+            )
+        else:
+            Tracing.options_logger.warning(
+                """\
+Using module mode specific option '%s' has no effect \
+when neither '--mode=module' or --mode='package' is \
+specified."""
                 % option_name
             )
 
@@ -663,6 +683,11 @@ Error, the value given for '--onefile-child-grace-time' must be integer."""
 
     if getShallIncludeExternallyDataFilePatterns():
         _warnOnefileOnlyOption("--include-onefile-external-data")
+
+    if not shallCreatePyiFile():
+        _warningModuleModeOnlyOption("--no-pyi-file")
+    if not shallCreatePyiFileContainStubs():
+        _warningModuleModeOnlyOption("--no-pyi-stubs")
 
     if options.force_stdout_spec:
         options.force_stdout_spec = checkPathSpec(
