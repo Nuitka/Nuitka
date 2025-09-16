@@ -1966,13 +1966,13 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         return NULL;
     }
 
-    PyObject *name = PyObject_GetAttr(context, const_str_plain_name);
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *name = LOOKUP_ATTRIBUTE(tstate, context, const_str_plain_name);
 
     if (unlikely(name == NULL)) {
         return NULL;
     }
-
-    PyThreadState *tstate = PyThreadState_GET();
 
     PyObject *temp = MAKE_LIST_EMPTY(tstate, 0);
 
@@ -1984,7 +1984,20 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
         if (name == Py_None) {
             include = true;
         } else {
-            nuitka_bool cmp_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, distribution_name);
+            PyObject *name_lower = CALL_METHOD_NO_ARGS(tstate, name, const_str_plain_lower);
+            if (unlikely(name_lower == NULL)) {
+                return NULL;
+            }
+            PyObject *distribution_name_lower = CALL_METHOD_NO_ARGS(tstate, distribution_name, const_str_plain_lower);
+            if (unlikely(distribution_name_lower == NULL)) {
+                Py_DECREF(name_lower);
+                return NULL;
+            }
+
+            nuitka_bool cmp_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name_lower, distribution_name_lower);
+
+            Py_DECREF(name_lower);
+            Py_DECREF(distribution_name_lower);
 
             if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
                 Py_DECREF(name);
