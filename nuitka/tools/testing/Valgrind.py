@@ -19,14 +19,14 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Utils import isWin32Windows
 
 
-def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
+def runValgrind(description, tool, args, include_startup, save_log_filename=None):
     # Many cases to deal with, pylint: disable=too-many-branches
 
     if isWin32Windows():
         sys.exit("Error, valgrind is not available on Windows.")
 
-    if descr:
-        my_print(descr, tool, file=sys.stderr, end="... ")
+    if description:
+        my_print(description, tool, file=sys.stderr, end="... ")
 
     with withTemporaryFile() as log_file:
         log_filename = log_file.name
@@ -54,11 +54,11 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
         _stdout_valgrind, stderr_valgrind, exit_valgrind = executeProcess(command)
 
         assert exit_valgrind == 0, stderr_valgrind
-        if descr:
+        if description:
             my_print("OK", file=sys.stderr)
 
-        if save_logfilename is not None:
-            copyFile(log_filename, save_logfilename)
+        if save_log_filename is not None:
+            copyFile(log_filename, save_log_filename)
 
         max_mem = None
 
