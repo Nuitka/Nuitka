@@ -89,7 +89,7 @@ from nuitka.Tracing import (
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
-from nuitka.utils.Distributions import getDistribution
+from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
@@ -172,8 +172,18 @@ def _createMainModule():
                 % distribution_name
             )
 
+        real_distribution_name = getDistributionName(distribution)
+
+        if real_distribution_name != distribution_name:
+            general.warning(
+                """\
+Warning, the distribution specified as '--include-distribution-metadata=%s' is really named '%s', \
+use the correct name instead."""
+                % (distribution_name, real_distribution_name)
+            )
+
         addDistributionMetadataValue(
-            distribution_name=distribution_name,
+            distribution_name=real_distribution_name,
             distribution=distribution,
             reason="user requested",
         )
