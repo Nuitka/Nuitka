@@ -9337,6 +9337,13 @@
         'chunk': 'un-callable'
       when: 'not use_dask'
 
+- module-name: 'xformers.ops.tiled_matmul' # checksum: 7047521e
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'xformers.ops._triton.tiled_matmul_kernels': 'ignore'
+      when: 'not use_setuptools'
+
 - module-name: 'xgboost' # checksum: 49521496
   data-files:
     - patterns:
