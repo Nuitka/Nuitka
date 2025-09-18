@@ -109,7 +109,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install clang-format-21
 
-          python ./bin/autoformat-nuitka-source --check-only
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
         if: matrix.python_version == '3.9'
 
   mac-python3:

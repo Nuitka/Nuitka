@@ -10,7 +10,6 @@
 
 import os
 
-from nuitka.Options import assumeYesForDownloads
 from nuitka.utils.Download import getCachedDownload
 from nuitka.utils.Execution import check_call
 from nuitka.utils.FileOperations import addFileExecutablePermission
@@ -19,7 +18,7 @@ from nuitka.utils.Utils import getArchitecture, getOS
 _biome_path = None
 
 
-def getBiomeBinaryPath():
+def getBiomeBinaryPath(assume_yes_for_downloads=False):
     """
     Downloads and returns the path to the biome executable.
     """
@@ -82,7 +81,7 @@ def getBiomeBinaryPath():
         flatten=False,
         message="Nuitka will make use of 'biome' to format JSON files.",
         reject=None,
-        assume_yes_for_downloads=assumeYesForDownloads(),
+        assume_yes_for_downloads=assume_yes_for_downloads,
         download_ok=True,
     )
 
@@ -91,10 +90,10 @@ def getBiomeBinaryPath():
     return _biome_path
 
 
-def cleanupJsonFile(filename):
+def formatJsonFile(filename, assume_yes_for_downloads):
     # Many tools work on files, and when they do, they need to be told to
     # treat it as a JSON file.
-    biome_path = getBiomeBinaryPath()
+    biome_path = getBiomeBinaryPath(assume_yes_for_downloads=assume_yes_for_downloads)
 
     if biome_path:
         command = (

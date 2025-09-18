@@ -46,7 +46,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
-from .BiomeFormatter import cleanupJsonFile
+from .BiomeFormatter import formatJsonFile
 from .YamlFormatter import formatYaml
 
 # black no longer supports Python 2 syntax, and sometimes removes import
@@ -618,6 +618,7 @@ def autoFormatFile(
     limit_json=False,
     ignore_errors=False,
     ignore_yaml_diff=True,
+    assume_yes_for_downloads=False,
 ):  # a bit many knobs but that's fine, pylint: disable=too-many-arguments
     """Format source code with external tools
 
@@ -830,7 +831,9 @@ def autoFormatFile(
         elif is_jpeg:
             _cleanupJpegImage(tmp_filename)
         elif is_json:
-            cleanupJsonFile(tmp_filename)
+            formatJsonFile(
+                tmp_filename, assume_yes_for_downloads=assume_yes_for_downloads
+            )
             _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)

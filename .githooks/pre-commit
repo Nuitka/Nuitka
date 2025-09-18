@@ -29,11 +29,13 @@ fi
 # Autoformat the files.
 if [ "$COMMIT_UNCHECKED" != "1" ]
 then
+    OPTIONS="--from-commit --assume-yes-for-downloads"
+
     if [ -f "bin/autoformat-nuitka-source" ]
     then
-        exec ./bin/autoformat-nuitka-source --from-commit
+        exec ./bin/autoformat-nuitka-source $OPTIONS
     else
-        exec python -m pipenv run python Nuitka-develop/bin/autoformat-nuitka-source --from-commit
+        exec python -m pipenv run python Nuitka-develop/bin/autoformat-nuitka-source $OPTIONS
     fi
 fi
 

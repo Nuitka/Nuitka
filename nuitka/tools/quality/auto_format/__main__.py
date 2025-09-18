@@ -53,6 +53,14 @@ Defaults to off.""",
     )
 
     parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""Allow download and execution of tools if needed. Default is %default.""",
+    )
+
+    parser.add_option(
         "--yaml",
         action="store_true",
         dest="yaml",
@@ -179,6 +187,7 @@ Defaults to off.""",
                 limit_rst=options.rst,
                 limit_md=options.md,
                 limit_json=options.json,
+                assume_yes_for_downloads=options.assume_yes_for_downloads,
             ):
                 result += 1
 
