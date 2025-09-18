@@ -9011,10 +9011,13 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: 764db455
+- module-name: 'vllm' # checksum: a5840e4a
   data-files:
     - include-metadata:
         - 'gguf'
+  implicit-imports:
+    - depends:
+        - 'vllm.logging_utils'
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
