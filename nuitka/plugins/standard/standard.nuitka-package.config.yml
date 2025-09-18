@@ -1061,11 +1061,12 @@
     - depends:
         - 'pyarrow._*'
 
-- module-name: 'dask.dataframe._compat' # checksum: a10ec27c
+- module-name: 'dask.dataframe._compat' # checksum: 33e9840c
   anti-bloat:
     - description: 'remove pandas.testing reference'
       replacements_plain:
         'import pandas.testing as tm': 'tm=None'
+      when: 'not use_pytest'
 
 - module-name: 'dask.dataframe.utils' # checksum: 5af31dde
   anti-bloat:
