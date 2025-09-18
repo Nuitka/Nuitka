@@ -919,12 +919,16 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
-- module-name: 'cupy' # checksum: c3037f5e
+- module-name: 'cupy' # checksum: 8c7aadcc
   anti-bloat:
     - description: 'remove setuptools usage'
       no-auto-follow:
         'setuptools': 'ignore'
       when: 'not use_setuptools'
+    - description: 'remove cupy testing framework'
+      replacements_plain:
+        'from cupy import testing': 'testing = None'
+      when: 'not use_pytest'
 
 - module-name: 'curl_cffi' # checksum: 30c8f50c
   data-files:
