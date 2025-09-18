@@ -343,7 +343,6 @@ if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.cmd", "misc/nuitka-run.cmd"]
 
 
-
 # With this, we can enforce a binary package.
 class BinaryDistribution(Distribution):
     """Distribution which always forces a binary package with platform name"""
