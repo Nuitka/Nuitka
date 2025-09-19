@@ -362,7 +362,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
     def onModuleSourceCode(self, module_name, source_filename, source_code):
         # TODO: Move the ones that would be possible to yaml config, or a
         # separate plugin for lazy loaders.
-        # pylint: disable=too-many-branches,too-many-locals
+        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
         if module_name == "site":
             if source_code.startswith("def ") or source_code.startswith("class "):
@@ -514,6 +514,30 @@ __file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(
                 )
 
                 source_code = source_code.replace("= lazy_load()", " = %r" % toga_info)
+
+        if module_name == "vllm":  # spell-checker: ignore vllm
+            if "def __getattr__(" in source_code:
+                vllm_info = self.queryRuntimeInformationSingle(
+                    setup_codes="import vllm",
+                    value="vllm.MODULE_ATTRS",
+                    info_name="vllm_lazy_loader",
+                )
+
+                vllm_submodule_attrs = {}
+
+                for attribute_name, attribute_desc in vllm_info.items():
+                    assert ":" in attribute_desc, attribute_desc
+                    sub_module_name, _sub_attribute_name = attribute_desc.split(":")
+
+                    if sub_module_name not in vllm_submodule_attrs:
+                        vllm_submodule_attrs[attribute_name] = []
+                    vllm_submodule_attrs[attribute_name].append(sub_module_name)
+
+                self._addLazyLoader(
+                    module_name=module_name,
+                    submodules=(),
+                    submodule_attrs=vllm_submodule_attrs,
+                )
 
         return source_code
 

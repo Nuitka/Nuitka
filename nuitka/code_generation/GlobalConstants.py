@@ -95,6 +95,7 @@ def getConstantDefaultPopulation():
         "r",
         "w",
         "b",
+        "lower",
         # File handling
         "/",
         "\\",
