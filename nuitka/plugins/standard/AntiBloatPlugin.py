@@ -89,6 +89,14 @@ class NuitkaPluginAntiBloat(NuitkaYamlPluginBase):
                 noinclude_setuptools_mode,
                 "setuptools",
             )
+            self.handled_modules["xformers.ops._triton.tiled_matmul_kernels"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
+            self.handled_modules["xformers.ops._triton.matmul_perf_model"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
             self.handled_modules["Cython"] = (
                 noinclude_setuptools_mode,
                 "setuptools",
