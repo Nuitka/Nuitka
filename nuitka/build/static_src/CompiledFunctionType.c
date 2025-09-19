@@ -1807,6 +1807,8 @@ static void formatErrorTooFewKwOnlyArguments(PyThreadState *tstate, struct Nuitk
         }
     }
 
+    assert(missing != 0);
+
     Py_DECREF(comma_str);
     Py_DECREF(and_str);
 
@@ -2352,13 +2354,14 @@ static bool handleMethodArgumentsPlainOnly(PyThreadState *tstate, struct Nuitka_
         Py_INCREF(object);
     } else {
         // Without self, there can only be star list to get the object as its
-        // first element. Or we complain about illegal arguments.
-        if (function->m_args_star_list_index == 0) {
-            python_pars[0] = MAKE_TUPLE_EMPTY(tstate, args_size + 1);
-            PyTuple_SET_ITEM0(python_pars[0], 0, object);
+        // first element. Or we complain about illegal arguments. The star list
+        // argument is then the one right after the keyword only arguments.
+        if (function->m_args_star_list_index == function->m_args_keywords_count) {
+            python_pars[function->m_args_keywords_count] = MAKE_TUPLE_EMPTY(tstate, args_size + 1);
+            PyTuple_SET_ITEM0(python_pars[function->m_args_keywords_count], 0, object);
 
             for (Py_ssize_t i = 0; i < args_size; i++) {
-                PyTuple_SET_ITEM0(python_pars[0], i + 1, args[i]);
+                PyTuple_SET_ITEM0(python_pars[function->m_args_keywords_count], i + 1, args[i]);
             }
 
             return true;
@@ -2584,8 +2587,6 @@ static void releaseParameters(struct Nuitka_FunctionObject const *function, PyOb
 
 static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObject const *function,
                               PyObject **python_pars, PyObject *const *args, Py_ssize_t args_size) {
-    bool result;
-
     Py_ssize_t arg_count = function->m_args_positional_count;
 
     if (unlikely(arg_count == 0 && function->m_args_simple && args_size != 0)) {
@@ -2599,7 +2600,7 @@ static bool parseArgumentsPos(PyThreadState *tstate, struct Nuitka_FunctionObjec
         return false;
     }
 
-    result = _handleArgumentsPlainOnly(tstate, function, python_pars, args, args_size);
+    bool result = _handleArgumentsPlainOnly(tstate, function, python_pars, args, args_size);
 
     if (result == false) {
         releaseParameters(function, python_pars);
