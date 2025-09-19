@@ -1080,11 +1080,12 @@
     - depends:
         - 'pyarrow._*'
 
-- module-name: 'dask.dataframe._compat' # checksum: a10ec27c
+- module-name: 'dask.dataframe._compat' # checksum: 33e9840c
   anti-bloat:
     - description: 'remove pandas.testing reference'
       replacements_plain:
         'import pandas.testing as tm': 'tm=None'
+      when: 'not use_pytest'
 
 - module-name: 'dask.dataframe.utils' # checksum: 5af31dde
   anti-bloat:
@@ -8997,10 +8998,13 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: 764db455
+- module-name: 'vllm' # checksum: a5840e4a
   data-files:
     - include-metadata:
         - 'gguf'
+  implicit-imports:
+    - depends:
+        - 'vllm.logging_utils'
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
@@ -9323,6 +9327,13 @@
         '__dask_tokenize__': 'un-callable'
         'chunk': 'un-callable'
       when: 'not use_dask'
+
+- module-name: 'xformers.ops.tiled_matmul' # checksum: 7047521e
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'xformers.ops._triton.tiled_matmul_kernels': 'ignore'
+      when: 'not use_setuptools'
 
 - module-name: 'xgboost' # checksum: 49521496
   data-files:

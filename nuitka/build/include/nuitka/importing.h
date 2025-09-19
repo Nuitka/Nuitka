@@ -78,7 +78,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(PyThreadState *tsta
 NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModule(PyObject *module_name, PyObject *module) {
     CHECK_OBJECT(module_name);
     CHECK_OBJECT(module);
-    assert(PyModule_Check(module));
 
     return DICT_SET_ITEM(Nuitka_GetSysModules(), module_name, module);
 }
