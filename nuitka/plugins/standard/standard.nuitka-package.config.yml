@@ -9193,6 +9193,19 @@
     - depends:
         - '._noop'
 
+- module-name: 'winpty' # checksum: b40fa233
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '*pty'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'OpenConsole'
+          - 'winpty'
+        executable: 'yes'
+      when: 'win32'
+
 - module-name: 'wordninja_enhanced' # checksum: ae5ca038
   data-files:
     - dirs:
