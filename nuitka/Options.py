@@ -1870,6 +1870,9 @@ def _couldUseStaticLibPython():
         and isDebianSuitableForStaticLinking()
         and not shallUsePythonDebug()
     ):
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
+
         if python_version >= 0x3C0 and not os.path.exists(
             getInlineCopyFolder("python_hacl")
         ):
@@ -1925,6 +1928,8 @@ added to provide the static link library.""",
         )
 
     if isMacOS() and isCPythonOfficialPackage():
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
         return True, None
 
     if isArchPackagePython():

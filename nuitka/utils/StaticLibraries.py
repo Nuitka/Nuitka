@@ -202,6 +202,9 @@ def _getSystemStaticLibPythonPath():
     # This is not necessarily only for Python3 on Debian, but maybe others as well,
     # but that's what's been tested. spell-checker: ignore libpl
     if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
+        if python_version >= 0x3E0:
+            return None
+
         candidate = os.path.join(
             _getSysConfigVarLIBPL(),
             "libpython" + python_abi_version + "-pic.a",
