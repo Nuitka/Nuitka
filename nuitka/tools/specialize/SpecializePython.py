@@ -45,6 +45,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.utils.FileOperations import getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
@@ -347,7 +348,7 @@ def _getPython3OperationName(attribute_name):
 
 
 def makeAttributeNodes():
-    filename_python = "nuitka/nodes/AttributeNodesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/AttributeNodesGenerated.py")
 
     template = getTemplate(
         package_name=__package__,
@@ -416,7 +417,9 @@ from nuitka.nodes.NodeMakingHelpers import (
 
 
 def makeBuiltinOperationNodes():
-    filename_python = "nuitka/nodes/BuiltinOperationNodeBasesGenerated.py"
+    filename_python = getNormalizedPath(
+        "nuitka/nodes/BuiltinOperationNodeBasesGenerated.py"
+    )
 
     template = getTemplate(
         package_name=__package__,
@@ -770,9 +773,9 @@ def makeChildrenHavingMixinNodes():
     # Complex stuff with many details due to 2 files and modes,
     # pylint: disable=too-many-locals,too-many-statements
 
-    filename_python = "nuitka/nodes/ChildrenHavingMixins.py"
-    filename_python2 = "nuitka/nodes/ExpressionBasesGenerated.py"
-    filename_python3 = "nuitka/nodes/StatementBasesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/ChildrenHavingMixins.py")
+    filename_python2 = getNormalizedPath("nuitka/nodes/ExpressionBasesGenerated.py")
+    filename_python3 = getNormalizedPath("nuitka/nodes/StatementBasesGenerated.py")
 
     template = getTemplate(
         package_name=__package__,
@@ -989,7 +992,7 @@ def getSpecVersions(spec_module):
 def makeHardImportNodes():
     # Too many details, pylint: disable=too-many-locals
 
-    filename_python = "nuitka/nodes/HardImportNodesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/HardImportNodesGenerated.py")
 
     template_ref_node = getTemplate(
         package_name=__package__,
