@@ -459,6 +459,11 @@ static PyObject *_unpackAnonValue(unsigned char anon_index) {
         return (PyObject *)&PyMethod_Type;
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+    case 10:
+        return (PyObject *)Nuitka_PyUnion_Type;
+#endif
+
     default:
         PRINT_FORMAT("Missing anon value for %d\n", (int)anon_index);
         NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
