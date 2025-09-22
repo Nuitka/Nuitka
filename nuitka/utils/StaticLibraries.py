@@ -180,7 +180,7 @@ def _getSystemStaticLibPythonPath():
     if os.path.exists(candidate):
         return candidate
 
-    # For Python2 this works. TODO: Figure out Debian and Python3.
+    # For Python2 this works.
     if (
         python_version < 0x300
         and isDebianPackagePython()
