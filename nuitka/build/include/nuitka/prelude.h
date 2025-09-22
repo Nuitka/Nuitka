@@ -203,6 +203,8 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 
 #if PYTHON_VERSION >= 0x3e0
 #include <internal/pycore_interpframe.h>
+#include <internal/pycore_interpolation.h>
+#include <internal/pycore_template.h>
 #include <internal/pycore_tuple.h>
 #include <internal/pycore_typedefs.h>
 #include <internal/pycore_unicodeobject.h>

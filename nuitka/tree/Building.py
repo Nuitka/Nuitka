@@ -64,6 +64,10 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinFormat,
 )
 from nuitka.nodes.BuiltinRefNodes import quick_names
+from nuitka.nodes.BuiltinTemplateNodes import (
+    ExpressionTemplateInterpolation,
+    ExpressionTemplateString,
+)
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStrP3
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -698,6 +702,46 @@ def buildJoinedStrNode(provider, node, source_ref):
         return makeConstantRefNode(constant="", source_ref=source_ref)
 
 
+def buildTemplateStringNode(provider, node, source_ref):
+    """Python3.14 or higher, template strings."""
+
+    str_values = []
+    interpolations = []
+
+    last_was_interpolation = False
+
+    for value in buildNodeTuple(provider, node.values, source_ref):
+        if value.isExpressionConstantRef():
+            str_values.append(value.getCompileTimeConstant())
+            last_was_interpolation = False
+        elif value.isExpressionTemplateInterpolation():
+            if last_was_interpolation:
+                str_values.append("")
+
+            interpolations.append(value)
+            last_was_interpolation = True
+
+    if last_was_interpolation:
+        str_values.append("")
+
+    return ExpressionTemplateString(
+        str_values=tuple(str_values),
+        interpolations=tuple(interpolations),
+        source_ref=source_ref,
+    )
+
+
+def buildInterpolationNode(provider, node, source_ref):
+    """Python3.14 or higher, interpolations in template strings."""
+    return ExpressionTemplateInterpolation(
+        value=buildNode(provider, node.value, source_ref),
+        str_value=node.str,
+        format_spec=buildNode(provider, node.format_spec, source_ref, allow_none=True),
+        conversion=node.conversion,
+        source_ref=source_ref,
+    )
+
+
 def buildSliceNode(provider, node, source_ref):
     """Python3.9 or higher, slice notations."""
     return makeExpressionBuiltinSlice(
@@ -767,6 +811,8 @@ setBuildingDispatchers(
         "Slice": buildSliceNode,
         "Match": buildMatchNode,
         "TypeAlias": buildTypeAliasNode,
+        "TemplateStr": buildTemplateStringNode,
+        "Interpolation": buildInterpolationNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -792,7 +838,7 @@ def buildParseTree(provider, ast_tree, source_ref, is_main):
 
     body, doc = extractDocFromBody(ast_tree)
 
-    if is_main and python_version >= 0x360:
+    if is_main and 0x360 <= python_version < 0x3E0:
         provider.markAsNeedsAnnotationsDictionary()
 
     try:

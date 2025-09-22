@@ -337,6 +337,8 @@ from .StringCodes import (
     generateStrFormatMethodCode,
     generateStringConcatenationCode,
     generateStrOperationCode,
+    generateTemplateInterpolationCode,
+    generateTemplateStringCode,
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
@@ -966,6 +968,8 @@ addExpressionDispatchDict(
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
+        "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
+        "EXPRESSION_TEMPLATE_INTERPOLATION": generateTemplateInterpolationCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
