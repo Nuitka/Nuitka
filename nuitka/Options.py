@@ -1098,7 +1098,7 @@ final version instead."""
             Tracing.general.warning(
                 """\
 The Python version '%s' level '%s' is only experimentally supported \
-by Nuitka and recommended only for use in Nuitka development and
+by Nuitka and recommended only for use in Nuitka development and \
 testing."""
                 % (python_version_str, python_release_level)
             )
