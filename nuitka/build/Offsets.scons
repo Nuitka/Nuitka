@@ -54,7 +54,11 @@ from .SconsCompilerSettings import (
 )
 from .SconsHacks import getEnhancedToolDetect
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
-from .SconsPythonBuild import addWin32PythonLib, applyPythonBuildSettings
+from .SconsPythonBuild import (
+    addPythonHaclLib,
+    addWin32PythonLib,
+    applyPythonBuildSettings,
+)
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
@@ -381,25 +385,7 @@ if env.static_libpython:
 
 applyPythonBuildSettings(env)
 
-if env.static_libpython and python_version >= (3, 12):
-    env.Append(
-        CPPPATH=[
-            os.path.join(env.nuitka_src, "inline_copy", "python_hacl", "hacl_312"),
-            os.path.join(
-                env.nuitka_src, "inline_copy", "python_hacl", "hacl_312", "include"
-            ),
-        ]
-    )
-
-    env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
-
-    # Remove it from static link libraries as well, if present, so far they are
-    # bugs and do not exist.
-    link_module_libs = [
-        link_module_lib
-        for link_module_lib in link_module_libs
-        if "libHacl_Hash_SHA2" not in link_module_lib
-    ]
+addPythonHaclLib(env, link_module_libs=link_module_libs)
 
 # TODO: Make backend libpython handling reusable.
 if env.gcc_mode and env.static_libpython:

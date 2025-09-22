@@ -8,7 +8,7 @@
 import os
 
 from nuitka.Tracing import scons_logger
-from nuitka.utils.Utils import isLinux
+from nuitka.utils.Utils import isLinux, isMacOS
 
 # spell-checker: ignore ccversion,cflags,ccflags,werror,cppdefines,cpppath,
 # spell-checker: ignore linkflags,libpath,libflags
@@ -137,6 +137,48 @@ def addWin32PythonLib(env):
 
     env.Append(LIBPATH=[win_lib_path])
     env.Append(LIBS=[win_lib_name])
+
+
+def addPythonHaclLib(env, link_module_libs):
+    if env.static_libpython and not isMacOS():
+        if env.python_version >= (3, 14):
+            hacl_version = "hacl_314"
+        elif env.python_version >= (3, 12):
+            hacl_version = "hacl_312"
+        else:
+            hacl_version = None
+
+        if hacl_version is not None:
+            env.Append(
+                CPPPATH=[
+                    os.path.join(
+                        env.nuitka_src,
+                        "inline_copy",
+                        "python_hacl",
+                        hacl_version,
+                    ),
+                    os.path.join(
+                        env.nuitka_src,
+                        "inline_copy",
+                        "python_hacl",
+                        hacl_version,
+                        "include",
+                    ),
+                ]
+            )
+
+            env.Append(CPPDEFINES=["_NUITKA_INLINE_COPY_HACL"])
+
+            # env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC128"])
+            env.Append(CPPDEFINES=["HACL_CAN_COMPILE_VEC256"])
+
+        # Remove it from static link libraries as well, if present, so far they are
+        # bugs and do not exist.
+        link_module_libs = [
+            link_module_lib
+            for link_module_lib in link_module_libs
+            if "libHacl_Hash_SHA2" not in link_module_lib
+        ]
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
