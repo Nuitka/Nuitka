@@ -42,8 +42,8 @@ Include also the code found in that directory, considering as if they are each g
 \fB\-\-include\-plugin\-files\fR=\fI\,PATTERN\/\fR
 Include into files matching the PATTERN. Overrides all other follow options. Can be given multiple times. Default empty.
 .TP
-\fB\-\-prefer\-source\-code\fR
-For already compiled extension modules, where there is both a source file and an extension module, normally the extension module is used, but it should be better to compile the module from available source code for best performance. If not desired, there is \fB\-\-no\-prefer\-source\-code\fR to disable warnings about it. Default off.
+\fB\-\-recompile\-extension\-modules\fR=\fI\,PATTERN\/\fR
+Recompile extension module matching the PATTERN from source. Overrides all other decision logic except where Nuitka Package Configuration specifies "never" which we do for cases where it is known to not work. Can be given multiple times. Default empty.
 .IP
 Control the following into imported modules:
 .TP

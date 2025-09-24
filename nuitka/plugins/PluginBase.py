@@ -1168,6 +1168,10 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def decideRecompileExtensionModules(self, module_name):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def decideAnnotations(self, module_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None

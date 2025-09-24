@@ -21,7 +21,10 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.freezer.Standalone import getRemovedUsedDllsInfo
-from nuitka.importing.Importing import getPackageSearchPath
+from nuitka.importing.Importing import (
+    getPackageSearchPath,
+    getRecompileDecisionReason,
+)
 from nuitka.importing.Recursion import getRecursionDecisions
 from nuitka.ModuleRegistry import (
     getDoneModules,
@@ -314,6 +317,13 @@ def _addModulesToReport(root, report_input_data, diffable):
                 report_input_data["module_sources"][module_name].getFilename()
             ),
         )
+
+        recompiled, recompiled_reason = getRecompileDecisionReason(module_name)
+        if recompiled_reason is not None:
+            module_xml_node.attrib["recompiled_extension"] = (
+                "yes" if recompiled else "no"
+            )
+            module_xml_node.attrib["recompiled_extension_reason"] = recompiled_reason
 
         distributions = report_input_data["module_distributions"][module_name]
 

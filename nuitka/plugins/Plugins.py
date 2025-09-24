@@ -30,7 +30,7 @@ from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import plugins_logger, printLine
+from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -1230,6 +1230,48 @@ implicit import encountered."""
                 return value
 
         return None
+
+    @staticmethod
+    def decideRecompileExtensionModules(module_name):
+        """Let plugins decide whether to re-compile an extension module from source code.
+
+        Notes:
+            The decision is made by the first plugin "never", otherwise a matching
+            "yes" config wins, "no" is allowed to be overridden by command line options.
+        """
+        result = None
+
+        for plugin in getActivePlugins():
+            plugin_result = plugin.decideRecompileExtensionModules(module_name)
+            if plugin_result is not None:
+                value, plugin_reason = plugin_result
+
+                if value is not None:
+                    assert value in ("yes", "no", "never"), value
+
+                    if value == "never":
+                        return False, plugin_reason
+                    elif value == "yes":
+                        result = True, plugin_reason
+                    elif value == "no" and result is None:
+                        result = False, plugin_reason
+
+        options_value = Options.shallRecompileExtensionModules(module_name)
+        if options_value[0] in (True, False):
+            return options_value
+
+        if result is None:
+            recursion_logger.info(
+                """\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default, but source code is available and \
+may work too."""
+                % (module_name)
+            )
+
+            return None, "default behavior"
+        else:
+            return result
 
     preprocessor_symbols = None
 

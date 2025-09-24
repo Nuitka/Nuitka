@@ -536,17 +536,20 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: db60cdd5
+- module-name: 'black' # checksum: 521dcf47
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
-
-  # TODO: This ought to be determined at run-time.
   implicit-imports:
     - depends:
         - '30fcd23745efe32ce681__mypyc'
+
+  import-hacks:
+    - recompile-extensions: 'no'
+
+  # TODO: This ought to be determined at run-time.
 
 - module-name: 'blib2to3' # checksum: a54cab2a
   data-files:
@@ -1038,6 +1041,10 @@
   data-files:
     - dirs:
         - 'schema/_res'
+
+- module-name: 'Cython' # checksum: ea8997da
+  import-hacks:
+    - recompile-extensions: 'never'
 
 - module-name: 'cytoolz.functoolz' # checksum: e6faf7b7
   implicit-imports:
@@ -2600,7 +2607,7 @@
     - depends:
         - 'numpy.core.multiarray'
 
-- module-name: 'lxml' # checksum: f89961a7
+- module-name: 'lxml' # checksum: 1528e581
   implicit-imports:
     - depends:
         - '.builder'
@@ -2608,6 +2615,8 @@
         - '.objectify'
         - '.sax'
         - '._elementpath'
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'lxml.etree' # checksum: dfaed226
   implicit-imports:
@@ -8165,6 +8174,10 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'tomli' # checksum: 339a370b
+  import-hacks:
+    - recompile-extensions: 'no'
+
 - module-name: 'torch' # checksum: 9b1bc67d
   parameters:
     - 'name': 'disable-jit'
@@ -9469,7 +9482,7 @@
     - depends:
         - 'zeroconf._utils.ipaddress'
 
-- module-name: 'zmq' # checksum: b0320bcc
+- module-name: 'zmq' # checksum: 888be189
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
     # needed at all normally, but this one is trange and for old PyZMQ
@@ -9481,6 +9494,8 @@
           - 'pyd'
       dest_path: '.'
       when: 'win32'
+  import-hacks:
+    - recompile-extensions: 'never'
 
 - module-name: 'zmq.backend' # checksum: 139febbd
   implicit-imports:
