@@ -67,9 +67,6 @@ from .StandardLibrary import isStandardLibraryPath
 # Debug traces, enabled via --explain-imports
 _debug_module_finding = None
 
-# Preference as expressed via --prefer-source-code
-_prefer_source_code_over_extension_modules = None
-
 # Do not add current directory to search path.
 _safe_path = None
 
@@ -86,11 +83,6 @@ def setupImportingFromOptions():
     # singleton, pylint: disable=global-statement
     global _debug_module_finding
     _debug_module_finding = Options.shallExplainImports()
-
-    global _prefer_source_code_over_extension_modules
-    _prefer_source_code_over_extension_modules = (
-        Options.shallPreferSourceCodeOverExtensionModules()
-    )
 
     global _safe_path
     _safe_path = Options.hasPythonFlagNoCurrentDirectoryInPath()
@@ -511,36 +503,6 @@ ImportScanFinding = collections.namedtuple(
     ("found_as", "found_in", "module_type", "priority", "full_path", "search_order"),
 )
 
-# We put here things that are not worth it (Cython is not really used by
-# anything really, or where it's know to not have a big # impact, e.g. lxml.
-
-# TODO: Do we really want this warning to persist?
-unworthy_namespaces = ("Cython", "lxml", "black", "tomli")
-
-
-def _reportCandidates(package_name, module_name, candidate, candidates):
-    module_name = (
-        package_name.getChildNamed(module_name)
-        if package_name is not None
-        else module_name
-    )
-
-    if candidate.priority == 1 and _prefer_source_code_over_extension_modules is None:
-        for c in candidates:
-            # Don't compare to itself and don't consider unused bytecode a problem.
-            if c is candidate or c.priority == 3:
-                continue
-
-            if c.search_order == candidate.search_order:
-                if not module_name.hasOneOfNamespaces(unworthy_namespaces):
-                    recursion_logger.info(
-                        """\
-Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
-existing '%s' extension module by default. Candidates were: %s <-> %s."""
-                        % (module_name, candidate, c)
-                    )
-
-
 _list_dir_cache = {}
 
 
@@ -578,8 +540,7 @@ def _findModuleInPath3(
     # Higher values are lower priority.
     priority_map = {
         "PY_COMPILED": 3,
-        # TODO: Make this a per module plugin based decision.
-        "PY_SOURCE": 0 if _prefer_source_code_over_extension_modules else 2,
+        "PY_SOURCE": 2,
         "C_EXTENSION": 1,
     }
 
@@ -657,6 +618,13 @@ def _getSetuptoolsDistutilsPackageDir():
     return setuptools_package_dir
 
 
+_recompile_extension_modules = {}
+
+
+def getRecompileDecisionReason(module_name):
+    return _recompile_extension_modules.get(module_name, (None, None))
+
+
 def _findModuleInPath2(package_name, module_name, search_path, logger):
     """This is out own module finding low level implementation.
 
@@ -713,10 +681,30 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
     found_candidate = None
 
     if candidates:
-        # Sort by priority, with entries from same path element coming first, then desired type.
-        candidates = tuple(
-            sorted(candidates, key=lambda c: (c.search_order, c.priority))
-        )
+        # Sort by priority, with entries from same path element coming first, then desired type. In case
+        # pf there being an extension module,
+        if any(c.module_type == "C_EXTENSION" for c in candidates):
+
+            def prioritize(c):
+                if c.module_type == "PY_SOURCE":
+                    decision, reason = Plugins.decideRecompileExtensionModules(
+                        c.found_as
+                    )
+                    _recompile_extension_modules[c.found_as] = decision, reason
+                else:
+                    decision = False
+
+                return (
+                    c.search_order,
+                    ((c.priority - 2) if decision else c.priority),
+                )
+
+        else:
+
+            def prioritize(c):
+                return (c.search_order, c.priority)
+
+        candidates = tuple(sorted(candidates, key=prioritize))
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
@@ -751,13 +739,6 @@ def _findModuleInPath2(package_name, module_name, search_path, logger):
     ):
         # Not usable for target architecture.
         raise ImportError
-
-    _reportCandidates(
-        package_name=package_name,
-        module_name=module_name,
-        candidate=found_candidate,
-        candidates=candidates,
-    )
 
     return (
         found_candidate.found_as,

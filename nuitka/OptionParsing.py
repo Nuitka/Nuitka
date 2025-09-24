@@ -273,12 +273,7 @@ include_group.add_option(
     action="store_true",
     dest="prefer_source_code",
     default=None,
-    help="""\
-For already compiled extension modules, where there is both a source file and an
-extension module, normally the extension module is used, but it should be better
-to compile the module from available source code for best performance. If not
-desired, there is --no-prefer-source-code to disable warnings about it. Default
-off.""",
+    help=SUPPRESS_HELP,
 )
 include_group.add_option(
     "--no-prefer-source-code",
@@ -287,6 +282,20 @@ include_group.add_option(
     default=None,
     help=SUPPRESS_HELP,
 )
+
+include_group.add_option(
+    "--recompile-extension-modules",
+    action="append",
+    dest="recompile_extension_modules",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Recompile extension module matching the PATTERN from source. Overrides all other
+decision logic except where Nuitka Package Configuration specifies "never" which
+we do for cases where it is known to not work. Can be given multiple times.
+Default empty.""",
+)
+
 
 del include_group
 

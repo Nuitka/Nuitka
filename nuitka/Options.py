@@ -2908,9 +2908,24 @@ def shallCompileWithoutBuildDirectory():
     return not shallRunInDebugger()
 
 
-def shallPreferSourceCodeOverExtensionModules():
+def shallRecompileExtensionModules(module_name):
     """*bool* prefer source code over extension modules if both are there"""
-    return options is not None and options.prefer_source_code
+    if options is None:
+        return None, "no user options available"
+
+    if options.prefer_source_code in (True, False):
+        return (
+            options.prefer_source_code,
+            "global user option to %s"
+            % ("enable" if options.prefer_source_code else "disable"),
+        )
+
+    result = module_name.matchesToShellPatterns(options.recompile_extension_modules)
+
+    if result is None:
+        return None, "no user options given"
+
+    return result
 
 
 def getProgressBar():

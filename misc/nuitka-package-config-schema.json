@@ -451,6 +451,15 @@
                 "no"
               ]
             },
+            "recompile-extensions": {
+              "type": "string",
+              "enum": [
+                "default",
+                "never",
+                "yes",
+                "no"
+              ]
+            },
             "when": {
               "type": "string"
             }
