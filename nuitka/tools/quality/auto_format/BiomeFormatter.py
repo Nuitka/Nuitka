@@ -11,14 +11,18 @@
 import os
 
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import check_call
-from nuitka.utils.FileOperations import addFileExecutablePermission
+from nuitka.utils.Execution import check_call, getNullOutput
+from nuitka.utils.FileOperations import (
+    addFileExecutablePermission,
+    deleteFile,
+    withTemporaryFile,
+)
 from nuitka.utils.Utils import getArchitecture, getOS
 
 _biome_path = None
 
 
-def getBiomeBinaryPath(assume_yes_for_downloads=False):
+def _getBiomeBinaryPath(assume_yes_for_downloads=False):
     """
     Downloads and returns the path to the biome executable.
     """
@@ -93,19 +97,29 @@ def getBiomeBinaryPath(assume_yes_for_downloads=False):
 def formatJsonFile(filename, assume_yes_for_downloads):
     # Many tools work on files, and when they do, they need to be told to
     # treat it as a JSON file.
-    biome_path = getBiomeBinaryPath(assume_yes_for_downloads=assume_yes_for_downloads)
+    biome_path = _getBiomeBinaryPath(assume_yes_for_downloads=assume_yes_for_downloads)
 
     if biome_path:
-        command = (
-            biome_path,
-            "format",
-            "--write",
-            "--json-formatter-expand=always",
-            "--json-formatter-indent-style=space",
-            filename,
-        )
+        with withTemporaryFile(suffix=".json", delete=False) as config_temp_file:
+            config_temp_file.write("{}")
+            config_temp_file.close()
 
-        check_call(command)
+            command = (
+                biome_path,
+                "format",
+                "--write",
+                "--json-formatter-expand=always",
+                "--json-formatter-indent-style=space",
+                "--log-level=warn",
+                "--config-path=%s" % config_temp_file.name,
+                "--",
+                filename,
+            )
+
+            with getNullOutput() as null_output:
+                check_call(command, stdout=null_output)
+
+        deleteFile(config_temp_file.name, must_exist=True)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
