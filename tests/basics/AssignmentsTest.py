@@ -76,12 +76,12 @@ def otherFunction():
         except UnboundLocalError:
             print("Variable g is untouched")
 
-    print("Assignments from too large iterable", end=" ")
+    print("Assignments from too large iterable gave", end=" ")
 
     try:
         d, j = 1, 2, 3
     except Exception as e:
-        print("gave", type(e), repr(e))
+        print(type(e), repr(e))
 
         try:
             print(d)
