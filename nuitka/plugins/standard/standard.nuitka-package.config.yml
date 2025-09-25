@@ -8551,6 +8551,12 @@
     - patterns:
         - '*.css'
 
+- module-name: 'traits.trait_notifiers' # checksum: 6677774e
+  anti-bloat:
+    - description: 'support older traits package'
+      replacements_plain:
+        'type(handler) is MethodType': 'isinstance(handler, MethodType)'
+
 - module-name: 'transformers' # checksum: deea1e9e
   data-files:
     - include-metadata:
