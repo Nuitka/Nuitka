@@ -183,7 +183,7 @@ inline static PyCodeObject *Nuitka_InterpreterFrame_GetCodeObject(_PyInterpreter
     assert(!PyStackRef_IsNull(frame->f_executable));
     PyCodeObject *result = (PyCodeObject *)PyStackRef_AsPyObjectBorrow(frame->f_executable);
 #endif
-    assert(PyCode_Check(result));
+    assert(result == (PyCodeObject *)Py_None || PyCode_Check(result));
     return result;
 }
 #endif
