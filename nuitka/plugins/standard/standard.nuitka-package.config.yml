@@ -8557,7 +8557,7 @@
       replacements_plain:
         'type(handler) is MethodType': 'isinstance(handler, MethodType)'
 
-- module-name: 'transformers' # checksum: deea1e9e
+- module-name: 'transformers' # checksum: dfd0b428
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8582,6 +8582,8 @@
         - 'soundfile'
         - 'tqdm'
         - 'rich'
+        - 'Pillow'
+        - 'Pillow-SIMD'
 
   anti-bloat:
     - description: 'remove IPython reference'
