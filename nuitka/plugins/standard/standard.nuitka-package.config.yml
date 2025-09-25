@@ -1867,6 +1867,11 @@
         - 'gevent.resolver.cares'
         - 'gevent.resolver.thread'
 
+- module-name: 'gi' # checksum: 23e52503
+  implicit-imports:
+    - depends:
+        - 'gi._enum'
+
 - module-name: 'git.objects.submodule.base' # checksum: 3c6d40d1
   anti-bloat:
     - description: 'remove unittest reference'
