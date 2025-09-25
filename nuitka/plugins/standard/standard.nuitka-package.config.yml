@@ -5510,6 +5510,12 @@
         - '.metrics_cpp'
         - '.metrics_py'
 
+- module-name: 'rasterio' # checksum: 74d1dbe5
+  data-files:
+    - dirs:
+        - 'gdal_data'
+        - 'proj_data'
+
 - module-name: 'rasterio._io' # checksum: 5acc49ae
   implicit-imports:
     - depends:
