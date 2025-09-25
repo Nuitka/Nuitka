@@ -769,6 +769,7 @@ static void cleanupChildProcess(bool send_sigint) {
 #endif
 }
 
+#if !_NUITKA_ONEFILE_DLL_MODE
 #if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
@@ -817,6 +818,7 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 
 #else
 void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
+#endif
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
@@ -1119,6 +1121,7 @@ int main(int argc, char **argv) {
     wprintf(L"payload path: '%lS'\n", payload_path);
 #endif
 
+#if !_NUITKA_ONEFILE_DLL_MODE
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {
@@ -1128,6 +1131,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, ourConsoleCtrlHandler);
     signal(SIGQUIT, ourConsoleCtrlHandler);
     signal(SIGTERM, ourConsoleCtrlHandler);
+#endif
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL
