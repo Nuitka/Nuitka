@@ -1362,11 +1362,19 @@ static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth)
 
     frame = current_frame;
     for (int i = 0; i < frame_count; i++) {
-        PyCodeObject *code = Nuitka_InterpreterFrame_GetCodeObject(frame);
+        PyCodeObject *code_object = Nuitka_InterpreterFrame_GetCodeObject(frame);
+
+        // TODO: Clarify why Nuitka_InterpreterFrame_GetCodeObject does return
+        // "None" sometimes.
+        if (code_object == (PyCodeObject *)Py_None) {
+            continue;
+        }
 
         int line = Nuitka_PyInterpreterFrame_GetLine(frame);
 
-        PyObject *frame_info = Py_BuildValue("OiO", code->co_filename, line, code->co_name);
+        assert(code_object->co_filename != NULL);
+        assert(code_object->co_name != NULL);
+        PyObject *frame_info = Py_BuildValue("OiO", code_object->co_filename, line, code_object->co_name);
         assert(frame_info);
 
         PyTuple_SET_ITEM(cr_origin, i, frame_info);
@@ -1392,8 +1400,19 @@ static PyObject *computeCoroutineOrigin(PyThreadState *tstate, int origin_depth)
     frame = PyEval_GetFrame();
 
     for (int i = 0; i < frame_count; i++) {
-        PyObject *frame_info = Py_BuildValue("OiO", Nuitka_Frame_GetCodeObject(frame)->co_filename,
-                                             PyFrame_GetLineNumber(frame), frame->f_code->co_name);
+        PyCodeObject *code_object = Nuitka_Frame_GetCodeObject(frame);
+
+        // TODO: See 3.8+ code above, this ought not to be done.
+        if (code_object == (PyCodeObject *)Py_None) {
+            continue;
+        }
+
+        PyObject *filename = code_object->co_filename;
+        CHECK_OBJECT(filename);
+        PyObject *co_name = frame->f_code->co_name;
+        CHECK_OBJECT(co_name);
+
+        PyObject *frame_info = Py_BuildValue("OiO", filename, PyFrame_GetLineNumber(frame), co_name);
 
         assert(frame_info);
 
