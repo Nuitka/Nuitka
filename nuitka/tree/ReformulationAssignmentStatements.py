@@ -1263,8 +1263,8 @@ def buildTypeAliasNode(provider, node, source_ref):
                 variable_name=type_alias_name,
                 source_ref=source_ref
             ),
-            type_params=buildNodeTuple(provider, node.type_params, source_ref),
-            value=buildNode(provider, node.value, source_ref),
+            type_params=buildNodeTuple(outline_body, node.type_params, source_ref),
+            value=buildNode(outline_body, node.value, source_ref),
             source_ref=source_ref,
         )
         body = makeStatementsSequenceFromStatements(
