@@ -31,6 +31,7 @@ spell-checker: ignore winmode zfill
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
 
+
 from abc import abstractmethod
 
 from .ExpressionBases import ExpressionBase
@@ -2209,153 +2210,17 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 ExpressionBuiltinClassmethodBase = ChildHavingValueFinalNoRaiseMixin
 ExpressionBuiltinStaticmethodBase = ChildHavingValueFinalNoRaiseMixin
 
-
-class ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin(ExpressionBase):
-    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
-    __slots__ = ()
-
-    # This is generated for use in
-    #   ExpressionTemplateInterpolation
-
-    def __init__(self, value, format_spec, str_value, conversion, source_ref):
-        value.parent = self
-
-        self.subnode_value = value
-
-        if format_spec is not None:
-            format_spec.parent = self
-
-        self.subnode_format_spec = format_spec
-
-        self.str_value = str_value
-        self.conversion = conversion
-
-        ExpressionBase.__init__(self, source_ref)
-
-    def getDetails(self):
-        return {
-            "str_value": self.str_value,
-            "conversion": self.conversion,
-        }
-
-    def getVisitableNodes(self):
-        """The visitable nodes, with tuple values flattened."""
-
-        result = []
-        result.append(self.subnode_value)
-        value = self.subnode_format_spec
-        if value is None:
-            pass
-        else:
-            result.append(value)
-        return tuple(result)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in cloning nodes, debugging and XML output.
-        """
-
-        return (
-            ("value", self.subnode_value),
-            ("format_spec", self.subnode_format_spec),
-        )
-
-    def replaceChild(self, old_node, new_node):
-        value = self.subnode_value
-        if old_node is value:
-            new_node.parent = self
-
-            self.subnode_value = new_node
-
-            return
-
-        value = self.subnode_format_spec
-        if old_node is value:
-            if new_node is not None:
-                new_node.parent = self
-
-            self.subnode_format_spec = new_node
-
-            return
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        """Get clones of all children to pass for a new node.
-
-        Needs to make clones of child nodes too.
-        """
-
-        values = {
-            "value": self.subnode_value.makeClone(),
-            "format_spec": (
-                self.subnode_format_spec.makeClone()
-                if self.subnode_format_spec is not None
-                else None
-            ),
-        }
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        self.subnode_value.finalize()
-        del self.subnode_value
-        if self.subnode_format_spec is not None:
-            self.subnode_format_spec.finalize()
-        del self.subnode_format_spec
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseAnyException():
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    @abstractmethod
-    def computeExpression(self, trace_collection):
-        """Must be overloaded for non-final node."""
-
-    def collectVariableAccesses(self, emit_read, emit_write):
-        """Collect variable reads and writes of child nodes."""
-
-        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
-        subnode_format_spec = self.subnode_format_spec
-
-        if subnode_format_spec is not None:
-            self.subnode_format_spec.collectVariableAccesses(emit_read, emit_write)
-
-
-# Assign the names that are easier to import with a stable name.
-ExpressionTemplateInterpolationBase = (
-    ChildrenHavingValueFormatSpecOptionalConversionStrValueMixin
-)
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.

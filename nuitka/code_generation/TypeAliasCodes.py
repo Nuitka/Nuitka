@@ -26,10 +26,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
         expression=expression.subnode_value, emit=emit, context=context
     )
 
-    assert (
-        expression.getParent().isStatementAssignmentVariable()
-    ), expression.getParent()
-    type_alias_name = expression.getParent().getVariableName()
+    type_alias_name = expression.subnode_name.getVariableName()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "type_alias_value", expression, emit, context

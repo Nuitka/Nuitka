@@ -45,7 +45,7 @@ from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
 )
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody, ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
     ExpressionSliceLookup,
@@ -1235,27 +1235,22 @@ def buildTypeVarNode(node, source_ref):
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
-    def typeExpressionFunction():
-        helper_name = "type_expression_function"
+    type_alias_name = mangleName(node.name.id, provider)
 
-        result = makeInternalHelperFunctionBody(
+    def createTypeExpression():
+        helper_name = "create_type_expression"
+
+        outline_body = ExpressionOutlineFunction(
+            provider=provider,
             name=helper_name,
-            parameters=ParameterSpec(
-                ps_name=helper_name,
-                ps_normal_args=(),
-                ps_list_star_arg=None,
-                ps_dict_star_arg=None,
-                ps_default_count=0,
-                ps_kw_only_args=(),
-                ps_pos_only_args=(),
-            ),
+            source_ref=source_ref
         )
 
         assignments = []
         for type_param in node.type_params:
-            type_var = ExpressionTypeVariable(type_param, source_ref=source_ref)
+            type_var = buildTypeVarNode(type_param, source_ref=source_ref)
             assign = StatementAssignmentVariableName(
-                provider=provider,
+                provider=outline_body,
                 variable_name=type_param.name,
                 source=type_var,
                 source_ref=source_ref,
@@ -1263,33 +1258,27 @@ def buildTypeAliasNode(provider, node, source_ref):
             assignments.append(assign)
 
         type_alias_node = ExpressionTypeAlias(
+            name=ExpressionVariableNameRef(
+                provider=provider,
+                variable_name=type_alias_name,
+                source_ref=source_ref
+            ),
             type_params=buildNodeTuple(provider, node.type_params, source_ref),
             value=buildNode(provider, node.value, source_ref),
             source_ref=source_ref,
         )
         body = makeStatementsSequenceFromStatements(
-            *assignments, StatementReturn(type_alias_node, source_ref=source_ref)
+            *assignments,
+            StatementReturn(expression=type_alias_node, source_ref=source_ref)
         )
-        result.setChildBody(body)
+        outline_body.setChildBody(body)
 
-        return result
+        return outline_body
 
     return StatementAssignmentVariableName(
         provider=provider,
-        variable_name=mangleName(node.name.id, provider),
-        source=makeExpressionFunctionCall(
-            function=makeExpressionFunctionCreation(
-                ExpressionFunctionRef(
-                    function_body=typeExpressionFunction(), source_ref=source_ref
-                ),
-                defaults=(),
-                kw_defaults=None,
-                annotations=None,
-                source_ref=source_ref,
-            ),
-            values=[],
-            source_ref=source_ref,
-        ),
+        variable_name=type_alias_name,
+        source=createTypeExpression(),
         source_ref=source_ref,
     )
 
