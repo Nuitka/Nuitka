@@ -5988,12 +5988,12 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'setuptools' # checksum: c6f71520
+- module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
     - description: 'no runtime expansion of sys.path needed'
       replacements_plain:
         'sys.path.extend(': '('
-      when: 'version("setuptools") >= (71,)'
+      when: 'None is not version("setuptools") >= (71,)'
     - description: 'find setuptools.distutils directly'
       replacements_plain:
         'import _distutils_hack.override': 'import distutils'
@@ -6004,7 +6004,7 @@
         # This package forces vendored packages into "sys.path" and causes
         # absolute imports from there to be available.
         - '_vendor'
-      when: 'version("setuptools") >= (71,)'
+      when: 'None is not version("setuptools") >= (71,)'
 
 - module-name: 'setuptools.extern' # checksum: 2b2a3793
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
