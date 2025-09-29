@@ -4740,6 +4740,20 @@
         'cython': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'pyface' # checksum: a2a403b1
+  data-files:
+    - include-metadata:
+        - 'pyface'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'load_tests': 'un-callable'
+      when: 'not use_unittest'
+
+  implicit-imports:
+    - depends:
+        - 'pyface.ui.null.init'
+
 - module-name: 'pyfiglet' # checksum: b8621a7d
   implicit-imports:
     - depends:
@@ -8562,6 +8576,20 @@
     - description: 'support older traits package'
       replacements_plain:
         'type(handler) is MethodType': 'isinstance(handler, MethodType)'
+
+- module-name: 'traitsui' # checksum: 694e312c
+  data-files:
+    - include-metadata:
+        - 'traitsui'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'load_tests': 'un-callable'
+      when: 'not use_unittest'
+
+  implicit-imports:
+    - depends:
+        - 'traitsui.null'
 
 - module-name: 'transformers' # checksum: dfd0b428
   data-files:
