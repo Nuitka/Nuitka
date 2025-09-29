@@ -142,6 +142,7 @@ static PyObject *Nuitka_ResourceReader_New(struct Nuitka_MetaPathBasedLoaderEntr
 }
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

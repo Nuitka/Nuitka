@@ -894,6 +894,7 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
 }
 
 #include "HelpersListsGenerated.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

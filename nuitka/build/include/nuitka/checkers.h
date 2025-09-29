@@ -23,6 +23,7 @@ extern void CHECK_OBJECT_DEEP(PyObject *value);
 extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

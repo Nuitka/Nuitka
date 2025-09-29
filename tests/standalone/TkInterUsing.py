@@ -20,7 +20,7 @@ import os
 import sys
 
 print("START:")
-# os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(__file__) or ".")
 # print(os.getcwd())
 
 # Python3 changed module name.

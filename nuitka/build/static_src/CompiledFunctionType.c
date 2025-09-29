@@ -3305,6 +3305,7 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
 #include "CompiledCodeHelpers.c"
 
 #include "InspectPatcher.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

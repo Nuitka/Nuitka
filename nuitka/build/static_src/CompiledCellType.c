@@ -284,6 +284,7 @@ struct Nuitka_CellObject *Nuitka_Cell_New1(PyObject *value) {
 
     return result;
 }
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

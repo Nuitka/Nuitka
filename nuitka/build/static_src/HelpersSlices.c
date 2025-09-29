@@ -66,6 +66,7 @@ PyObject *Nuitka_Slice_New(PyThreadState *tstate, PyObject *start, PyObject *sto
 }
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

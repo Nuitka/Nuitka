@@ -35,6 +35,7 @@ extern void unsetEnvironmentVariable(char const *name);
 extern native_command_line_argument_t const *getOriginalArgv0(void);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

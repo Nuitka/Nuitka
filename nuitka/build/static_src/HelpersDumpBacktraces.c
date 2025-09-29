@@ -95,6 +95,7 @@ void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext) {
 #include "backtrace/read.c"
 #include "backtrace/sort.c"
 #include "backtrace/state.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
