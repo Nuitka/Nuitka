@@ -107,7 +107,7 @@ def _addWindowsIconFromIcons(onefile):
     image_id = 1
     images = []
 
-    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
+    result_filename = OutputDirectories.getResultFullpath(onefile=onefile, real=False)
 
     for icon_spec in Options.getWindowsIconPaths():
         if "#" in icon_spec:

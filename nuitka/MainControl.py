@@ -102,7 +102,6 @@ from nuitka.utils.FileOperations import (
     getReportPath,
     openTextFile,
     removeDirectory,
-    resetDirectory,
 )
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
@@ -198,30 +197,18 @@ use the correct name instead."""
 
         # Prepare the ".dist" directory, throwing away what was there before.
         if Options.isStandaloneMode():
-            standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-            resetDirectory(
-                path=standalone_dir,
-                logger=general,
-                ignore_errors=True,
-                extra_recommendation="Stop previous binary.",
-            )
-
-            if Options.shallCreateAppBundle():
-                resetDirectory(
-                    path=changeFilenameExtension(standalone_dir, ".app"),
-                    logger=general,
-                    ignore_errors=True,
-                    extra_recommendation=None,
-                )
+            OutputDirectories.initStandaloneDirectory(logger=general)
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
     deleteFile(
-        path=OutputDirectories.getResultFullpath(onefile=False), must_exist=False
+        path=OutputDirectories.getResultFullpath(onefile=False, real=True),
+        must_exist=False,
     )
     if Options.isOnefileMode():
         deleteFile(
-            path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
+            path=OutputDirectories.getResultFullpath(onefile=True, real=True),
+            must_exist=False,
         )
 
         # Also make sure we inform the user in case the compression is not possible.
@@ -648,7 +635,9 @@ def runSconsBackend():
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
 
-    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(
+        onefile=False, real=False
+    )
 
     if not Options.shallMakeModule():
         main_module = ModuleRegistry.getRootTopModule()
@@ -871,7 +860,9 @@ import sys; sys.path.insert(0, %(output_dir)r)
         "module_name": tree.getName(),
         "expected_filename": os.path.normcase(
             os.path.abspath(
-                os.path.normpath(OutputDirectories.getResultFullpath(onefile=False))
+                os.path.normpath(
+                    OutputDirectories.getResultFullpath(onefile=False, real=True)
+                )
             )
         ),
         "output_dir": output_dir,
@@ -1091,7 +1082,7 @@ def _main():
             ),
         )
 
-        dist_dir = OutputDirectories.getStandaloneDirectoryPath()
+        dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 
         if not Options.shallOnlyExecCCompilerCall():
             main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
@@ -1111,7 +1102,14 @@ def _main():
                     copy_standalone_entry_points=copy_standalone_entry_points,
                 )
 
-        Plugins.onStandaloneDistributionFinished(dist_dir)
+            dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
+
+        Plugins.onStandaloneDistributionFinished(
+            dist_dir=dist_dir,
+            standalone_binary=OutputDirectories.getResultFullpath(
+                onefile=False, real=True
+            ),
+        )
 
         if Options.isOnefileMode():
             packDistFolderToOnefile(dist_dir)
@@ -1152,7 +1150,7 @@ def _main():
         general.info("Keeping build directory '%s'." % source_dir)
 
     final_filename = OutputDirectories.getResultFullpath(
-        onefile=Options.isOnefileMode()
+        onefile=Options.isOnefileMode(), real=True
     )
 
     if Options.isStandaloneMode() and isMacOS():

@@ -618,12 +618,10 @@ implicit import encountered."""
             plugin.onBeforeCodeParsing()
 
     @staticmethod
-    def onStandaloneDistributionFinished(dist_dir):
+    def onStandaloneDistributionFinished(dist_dir, standalone_binary):
         """Let plugins post-process the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
-
-        standalone_binary = OutputDirectories.getResultFullpath(onefile=False)
 
         for plugin in getActivePlugins():
             plugin.onStandaloneBinary(standalone_binary)
