@@ -451,6 +451,7 @@ void raiseReplacementRuntimeError(PyThreadState *tstate, struct Nuitka_Exception
 #endif
     RESTORE_ERROR_OCCURRED_STATE(tstate, &new_exception_state);
 }
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

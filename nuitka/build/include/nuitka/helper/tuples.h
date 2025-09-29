@@ -174,6 +174,7 @@ extern PyObject *TUPLE_CONCAT(PyThreadState *tstate, PyObject *tuple1, PyObject 
 extern PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

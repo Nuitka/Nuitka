@@ -45,6 +45,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.tools.release.Copyright import getLicenseTextStandard
 from nuitka.utils.FileOperations import getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
@@ -357,7 +358,9 @@ def makeAttributeNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):
@@ -428,7 +431,9 @@ def makeBuiltinOperationNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):
@@ -786,11 +791,17 @@ def makeChildrenHavingMixinNodes():
     mixins_done = set()
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python, withFileOpenedAndAutoFormatted(
-        filename_python2, ignore_errors=True
+        filename_python2,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python2, withFileOpenedAndAutoFormatted(
-        filename_python3, ignore_errors=True
+        filename_python3,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python3:
 
         def emit1(*args):
@@ -1007,7 +1018,9 @@ def makeHardImportNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):

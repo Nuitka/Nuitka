@@ -46,6 +46,7 @@ uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
 
 uint32_t calcCRC32(unsigned char const *message, uint32_t size) { return crc32(0, message, size) & 0xFFFFFFFF; }
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -151,6 +151,7 @@ NUITKA_MAY_BE_UNUSED static int EXCEPTION_GROUP_MATCH(PyThreadState *tstate, PyO
 #endif
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

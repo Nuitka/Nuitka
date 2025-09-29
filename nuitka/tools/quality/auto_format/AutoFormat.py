@@ -23,6 +23,10 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.quality.yamllint.YamlChecker import checkYamlSchema
+from nuitka.tools.release.Copyright import (
+    attachLeadingComment,
+    getCopyrightClaim,
+)
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print, tools_logger
 from nuitka.utils.Execution import (
@@ -861,7 +865,7 @@ def autoFormatFile(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
+def withFileOpenedAndAutoFormatted(filename, ignore_errors=False, claim=None):
     my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
@@ -884,6 +888,13 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             effective_filename=filename,
             trace=False,
             ignore_errors=ignore_errors,
+        )
+
+    if claim:
+        attachLeadingComment(
+            filename=tmp_filename,
+            effective_filename=filename,
+            comments=getCopyrightClaim(filename=filename, claim=claim),
         )
 
     if getFileContents(tmp_filename, mode="rb") != getFileContents(filename, mode="rb"):

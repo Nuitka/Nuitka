@@ -212,6 +212,7 @@ PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt) {
 }
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

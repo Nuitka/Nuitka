@@ -31,6 +31,7 @@ extern PyObject *Nuitka_Number_IndexAsLong(PyObject *item);
 #endif
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

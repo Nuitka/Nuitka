@@ -9,6 +9,7 @@
 extern void SET_UNCOMPILED_FUNCTION_SOURCE_DICT(PyObject *name, PyObject *source);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
