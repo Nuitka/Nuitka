@@ -637,7 +637,7 @@ def _handleDataFile(included_datafile, standalone_entry_points):
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
 
-    dist_dir = getStandaloneDirectoryPath()
+    dist_dir = getStandaloneDirectoryPath(bundle=True, real=False)
 
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)

@@ -49,14 +49,18 @@ def _writePlist(filename, data):
 def createPlistInfoFile(logger, onefile):
     # Many details, pylint: disable=too-many-locals
     if isStandaloneMode():
-        bundle_dir = os.path.dirname(getStandaloneDirectoryPath())
+        bundle_dir = os.path.dirname(
+            getStandaloneDirectoryPath(bundle=True, real=False)
+        )
     else:
         bundle_dir = os.path.dirname(getResultRunFilename(onefile=onefile))
 
-    result_filename = getResultFullpath(onefile=onefile)
+    result_filename = getResultFullpath(onefile=onefile, real=True)
     app_name = getMacOSAppName() or os.path.basename(result_filename)
 
-    executable_name = os.path.basename(getResultFullpath(onefile=isOnefileMode()))
+    executable_name = os.path.basename(
+        getResultFullpath(onefile=isOnefileMode(), real=True)
+    )
 
     signed_app_name = getMacOSSignedAppName() or app_name
     app_version = getMacOSAppVersion() or "1.0"
