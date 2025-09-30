@@ -15,6 +15,12 @@
 #include <structmember.h>
 #endif
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Method_Type;
+int count_allocated_Nuitka_Method_Type;
+int count_released_Nuitka_Method_Type;
+#endif
+
 static PyObject *Nuitka_Method_get__doc__(PyObject *self, void *data) {
     struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
     PyObject *result = method->m_function->m_doc;
@@ -412,6 +418,11 @@ static struct Nuitka_MethodObject *free_list_methods = NULL;
 static int free_list_methods_count = 0;
 
 static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Method_Type -= 1;
+    count_released_Nuitka_Method_Type += 1;
+#endif
+
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
     PyThreadState *tstate = PyThreadState_GET();
@@ -567,6 +578,11 @@ void _initCompiledMethodType(void) {
 
 PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object) {
     struct Nuitka_MethodObject *result;
+
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Method_Type += 1;
+    count_allocated_Nuitka_Method_Type += 1;
+#endif
 
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
