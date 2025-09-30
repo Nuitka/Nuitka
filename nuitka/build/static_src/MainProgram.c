@@ -270,6 +270,8 @@ static void PRINT_REFCOUNTS(void) {
     PRINT_FORMAT("Compiled Functions: %d | %d | %d (module/class ownership may occur)\n",
                  count_active_Nuitka_Function_Type, count_allocated_Nuitka_Function_Type,
                  count_released_Nuitka_Function_Type);
+    PRINT_FORMAT("Compiled Methods: %d | %d | %d (instance ownership may occur)\n", count_active_Nuitka_Method_Type,
+                 count_allocated_Nuitka_Method_Type, count_released_Nuitka_Method_Type);
     PRINT_FORMAT("Compiled Generators: %d | %d | %d\n", count_active_Nuitka_Generator_Type,
                  count_allocated_Nuitka_Generator_Type, count_released_Nuitka_Generator_Type);
 #if PYTHON_VERSION >= 0x350

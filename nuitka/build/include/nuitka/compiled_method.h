@@ -36,6 +36,12 @@ extern PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObj
 
 static inline bool Nuitka_Method_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Method_Type; }
 
+#if _DEBUG_REFCOUNTS
+extern int count_active_Nuitka_Method_Type;
+extern int count_allocated_Nuitka_Method_Type;
+extern int count_released_Nuitka_Method_Type;
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
