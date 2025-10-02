@@ -412,6 +412,10 @@ _stdlib_no_auto_inclusion_list = (
 if not isWin32Windows():
     _stdlib_no_auto_inclusion_list += ("ntpath",)
 
+# This was removed, but can exist in some circumstances still.
+if python_version >= 0x3D0:
+    _stdlib_no_auto_inclusion_list += ("cgi",)
+
 
 def isStandardLibraryNoAutoInclusionModule(module_name):
     return module_name.hasOneOfNamespaces(*_stdlib_no_auto_inclusion_list)
