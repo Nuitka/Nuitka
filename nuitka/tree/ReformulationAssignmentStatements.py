@@ -28,11 +28,6 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionRef,
-    makeExpressionFunctionCall,
-    makeExpressionFunctionCreation,
-)
 from nuitka.nodes.InjectCNodes import (
     StatementInjectCCode,
     StatementInjectCDecl,
@@ -70,11 +65,9 @@ from nuitka.nodes.VariableNameNodes import (
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
-from nuitka.specs.ParameterSpecs import ParameterSpec
 from nuitka.Tracing import general
 
 from .FutureSpecState import getFutureSpec
-from .InternalModule import makeInternalHelperFunctionBody
 from .ReformulationTryFinallyStatements import makeTryFinallyReleaseStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
