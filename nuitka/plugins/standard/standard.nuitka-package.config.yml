@@ -3692,6 +3692,13 @@
         - 'json'
         - 'uuid'
 
+- module-name: 'ortools' # checksum: 1f172dc5
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - ''
+
 - module-name: 'osgeo' # checksum: b3e12844
   data-files:
     - dirs:
