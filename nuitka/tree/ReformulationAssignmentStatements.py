@@ -40,7 +40,10 @@ from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
 )
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody, ExpressionOutlineFunction
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
     ExpressionSliceLookup,
@@ -1234,9 +1237,7 @@ def buildTypeAliasNode(provider, node, source_ref):
         helper_name = "create_type_expression"
 
         outline_body = ExpressionOutlineFunction(
-            provider=provider,
-            name=helper_name,
-            source_ref=source_ref
+            provider=provider, name=helper_name, source_ref=source_ref
         )
 
         assignments = []
@@ -1252,9 +1253,7 @@ def buildTypeAliasNode(provider, node, source_ref):
 
         type_alias_node = ExpressionTypeAlias(
             name=ExpressionVariableNameRef(
-                provider=provider,
-                variable_name=type_alias_name,
-                source_ref=source_ref
+                provider=provider, variable_name=type_alias_name, source_ref=source_ref
             ),
             type_params=buildNodeTuple(outline_body, node.type_params, source_ref),
             value=buildNode(outline_body, node.value, source_ref),
