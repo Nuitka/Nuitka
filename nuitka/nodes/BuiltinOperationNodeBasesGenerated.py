@@ -1,5 +1,6 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
+
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,line-too-long,too-many-instance-attributes,too-many-lines
 # pylint: disable=I0021,too-many-arguments,too-many-return-statements,too-many-statements
