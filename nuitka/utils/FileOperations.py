@@ -1552,7 +1552,7 @@ def isLegalPath(path):
             return False, "contains illegal suffix %r" % illegal_suffix
 
         for part in path.split(os.path.sep):
-            if part == ".":
+            if part in (".", ".."):
                 continue
 
             if part.endswith(illegal_suffix):
