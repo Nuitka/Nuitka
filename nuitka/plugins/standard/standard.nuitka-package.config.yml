@@ -8606,7 +8606,7 @@
     - depends:
         - 'traitsui.null'
 
-- module-name: 'transformers' # checksum: dfd0b428
+- module-name: 'transformers' # checksum: b823624e
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8615,12 +8615,15 @@
         - 'flax'
         - 'ftfy'
         - 'jinja2'
+        - 'mistral_common'
         - 'pandas'
         - 'peft'
         - 'psutil'
+        - 'tiktoken'
         - 'tensorflow'
         - 'torch'
         - 'tokenizers'
+        - 'torchaudio'
         - 'torchvision'
         - 'scipy'
         - 'safetensors'
@@ -8781,7 +8784,7 @@
     - depends:
         - 'huggingface_hub.hf_api'
 
-- module-name: 'transformers.utils.import_utils' # checksum: 705fafc4
+- module-name: 'transformers.utils.import_utils' # checksum: a4dec76e
   anti-bloat:
     - description: 'workaround for metadata checks not recognized'
       replacements_plain:
@@ -8796,7 +8799,7 @@
         'importlib.util.find_spec("tensorflow") is not None': 'False'
     - description: 'more clear missing metadata error message'
       replacements_plain:
-        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile with '--include-distribution-metadata=%s'.''' % pkg_name)"
+        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile 'transformers' with '--include-distribution-metadata=%s'.''' % pkg_name)"
       when: 'not deployment'
 
 - module-name: 'transformers.utils.versions' # checksum: 7a77f5b1
