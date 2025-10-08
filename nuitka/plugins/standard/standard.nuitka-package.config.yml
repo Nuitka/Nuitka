@@ -5662,6 +5662,14 @@
           - 'librlottie'
       when: 'not win32'
 
+- module-name: 'roboflow' # checksum: e3a3aa6a
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+        'ipywidgets': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'rtree.finder' # checksum: 312489cf
   variables:
     setup_code:
