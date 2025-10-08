@@ -18,6 +18,7 @@ from nuitka.PythonFlavors import (
     isCPythonOfficialPackage,
     isHomebrewPython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
@@ -59,7 +60,7 @@ def _detectPythonRpaths():
             )
         )
 
-    if isCPythonOfficialPackage():
+    if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
     if isHomebrewPython():

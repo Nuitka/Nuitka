@@ -36,6 +36,7 @@ from nuitka.PythonFlavors import (
     isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
@@ -326,7 +327,7 @@ def _reduceToPythonPath(used_dll_paths):
     if isAnacondaPython():
         inside_paths.insert(0, getSystemPrefixPath())
 
-    if isMacOS() and isCPythonOfficialPackage():
+    if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
         inside_paths.insert(0, getSystemPrefixPath())
 
     if isHomebrewPython():
