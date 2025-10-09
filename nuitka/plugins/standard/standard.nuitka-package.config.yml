@@ -1215,6 +1215,12 @@
     - depends:
         - 'dependency_injector.errors'
 
+- module-name: 'depyf' # checksum: 77493764
+  anti-bloat:
+    - description: "remove 'dill' package reference"
+      no-auto-follow:
+        'dill': 'ignore'
+
 - module-name: 'diatheke' # checksum: ad402cfe
   import-hacks:
     - global-sys-path:
