@@ -9117,11 +9117,13 @@
         - 'vtkmodules'
       when: 'version("vtk") >= (9,)'
 
-- module-name: 'vtkmodules' # checksum: 8db0fa0f
+- module-name: 'vtkmodules' # checksum: 3b668f13
   implicit-imports:
     - depends:
         - 'vtkmodules.all'
         - 'vtkmodules.util'
+        - 'vtkmodules.util.data_model'
+        - 'vtkmodules.util.execution_model'
 
 - module-name: 'vtkmodules.qt' # checksum: e9590444
   implicit-imports:
