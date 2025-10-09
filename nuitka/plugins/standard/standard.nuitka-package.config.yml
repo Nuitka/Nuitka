@@ -8635,7 +8635,7 @@
     - depends:
         - 'traitsui.null'
 
-- module-name: 'transformers' # checksum: b823624e
+- module-name: 'transformers' # checksum: fab655ad
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8676,6 +8676,10 @@
       no-auto-follow:
         'triton': 'ignore'
       when: 'not use_setuptools'
+
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        'ray': 'some functions may assert that ray is available'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
