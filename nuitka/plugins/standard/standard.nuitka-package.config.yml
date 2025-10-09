@@ -8219,7 +8219,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: 9b1bc67d
+- module-name: 'torch' # checksum: fe3ef51e
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -8253,7 +8253,11 @@
         'pytest': 'ignore'
         '_pytest': 'ignore'
       when: 'not use_pytest'
-
+    - description: 'remove dill reference'
+      no-auto-follow:
+        # When using dill, we expect that to be outside, this is only for
+        # testing if it needs to be considered.
+        'dill': 'ignore'
   options:
     checks:
       - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
