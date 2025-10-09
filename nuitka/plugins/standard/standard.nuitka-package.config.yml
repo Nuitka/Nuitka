@@ -3623,6 +3623,18 @@
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
 
+- module-name: 'opentelemetry.context' # checksum: 5846a543
+  data-files:
+    - include-metadata:
+        - 'opentelemetry-api'
+  anti-bloat:
+    - description: 'workaround for metadata functions'
+      replacements_plain:
+        'opentelemetry.util._importlib_metadata': 'importlib_metadata'
+  implicit-imports:
+    - depends:
+        - 'opentelemetry.context.contextvars_context'
+
 - module-name: 'opentelemetry.exporter.jaeger.thrift' # checksum: f0eea343
   import-hacks:
     - global-sys-path:
