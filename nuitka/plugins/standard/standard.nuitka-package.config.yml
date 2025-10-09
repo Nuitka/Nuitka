@@ -9081,10 +9081,15 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: a5840e4a
+- module-name: 'vllm' # checksum: 87570df9
   data-files:
     - include-metadata:
         - 'gguf'
+  anti-bloat:
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        # When using ray, we expect that to be outside, this is only for testing.
+        'ray': 'ignore'
   implicit-imports:
     - depends:
         - 'vllm.logging_utils'
