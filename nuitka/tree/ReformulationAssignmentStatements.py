@@ -1260,8 +1260,8 @@ def buildTypeAliasNode(provider, node, source_ref):
             source_ref=source_ref,
         )
         body = makeStatementsSequenceFromStatements(
-            *assignments,
-            StatementReturn(expression=type_alias_node, source_ref=source_ref)
+            assignments,
+            StatementReturn(expression=type_alias_node, source_ref=source_ref),
         )
         outline_body.setChildBody(body)
 
