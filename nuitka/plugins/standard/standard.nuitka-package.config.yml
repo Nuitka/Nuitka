@@ -6924,6 +6924,13 @@
     - depends:
         - 'sqlglot.dialects.*'
 
+- module-name: 'sqlglot.parser' # checksum: 33ab58fb
+  anti-bloat:
+    - description: 'workaround incompatibility'
+      # TODO: Remove once free variables are no longer in co_varnames.
+      replacements_plain:
+        'if "dialect" in func_builder.__code__.co_varnames': 'if "dialect" in __import__("inspect").getargs(func_builder.__code__)'
+
 - module-name: 'srsly.msgpack._packer' # checksum: ef9e3a96
   implicit-imports:
     - depends:
