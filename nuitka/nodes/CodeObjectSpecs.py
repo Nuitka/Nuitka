@@ -144,6 +144,7 @@ class CodeObjectSpec(object):
     def getCodeObjectKind(self):
         return self.co_kind
 
+    # Follow CPython naming, spell-checker: ignore freevar
     def updateLocalNames(self, local_names, freevar_names):
         """Move detected local variables after closure has been decided."""
 
