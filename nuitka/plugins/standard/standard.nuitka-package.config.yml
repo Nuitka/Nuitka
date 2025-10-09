@@ -9127,6 +9127,21 @@
     - depends:
         - 'vllm.logging_utils'
 
+- module-name: 'vllm.attention.backends.mla.common' # checksum: 73ff1d01
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'if HAS_TRITON:': 'if False:'
+      when: 'not use_setuptools'
+
+- module-name: 'vllm.config' # checksum: 807f4cc3
+  anti-bloat:
+    - description: 'remove need for config class source code'
+      replacements_re:
+        'if f.name not in attr_docs:': 'if False:'
+      change_function:
+        'get_attr_docs': "'(lambda cls: {})'"
+
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
     - from_filenames:
