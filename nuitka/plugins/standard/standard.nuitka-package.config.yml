@@ -2322,12 +2322,11 @@
         'import pydoc': ''
         'if inspect.isfunction(func):': 'if False:'
 
-- module-name: 'jpype' # checksum: 7b04152a
+- module-name: 'jpype' # checksum: 8b99529
   data-files:
     - dest_path: 'jpype'
       patterns:
         - '../org.jpype.jar'
-      when: 'is_conda_package("jpype")'
 
 - module-name: 'jsonrpcserver.main' # checksum: 245e25bc
   data-files:
