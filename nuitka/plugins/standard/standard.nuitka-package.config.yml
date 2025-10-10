@@ -5726,7 +5726,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 9c031415
+- module-name: 'scipy' # checksum: 39cab727
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5754,6 +5754,7 @@
         'ndonnx': 'ignore'
         'yaml': 'ignore'
         'pytest': 'ignore'
+        'sphinx': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
