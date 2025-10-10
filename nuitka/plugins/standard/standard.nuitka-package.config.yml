@@ -216,7 +216,7 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: f1b138c
+- module-name: 'arcade' # checksum: 5abbaedc
   data-files:
     - dirs:
         - 'resources'
@@ -229,7 +229,7 @@
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
   implicit-imports:
     - depends:
-        - 'arcade.gl.backends'
+        - 'arcade.gl.backends.opengl.provider'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
