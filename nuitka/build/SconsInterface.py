@@ -36,6 +36,7 @@ from nuitka.PythonFlavors import (
     isSelfCompiledPythonUninstalled,
 )
 from nuitka.PythonVersions import (
+    getSconsSupportingVersions,
     getSystemPrefixPath,
     isPythonWithGil,
     python_version,
@@ -65,7 +66,7 @@ from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
 from nuitka.utils.Utils import (
     getArchitecture,
-    isAIX,
+    isElfUsingPlatform,
     isMacOS,
     isWin32OrPosixWindows,
     isWin32Windows,
@@ -124,23 +125,11 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    scons_supported_pythons = (
-        "3.5",
-        "3.6",
-        "3.7",
-        "3.8",
-        "3.9",
-        "3.10",
-        "3.11",
-        "3.12",
-        "3.13",
-    )
-    if not isWin32Windows():
-        scons_supported_pythons += ("2.7", "2.6")
-
     # Our inline copy needs no other module, just the right version of Python is needed.
     python_for_scons = findInstalledPython(
-        python_versions=scons_supported_pythons, module_name=None, module_version=None
+        python_versions=getSconsSupportingVersions(),
+        module_name=None,
+        module_version=None,
     )
 
     if python_for_scons is None:
@@ -152,12 +141,11 @@ def _getPythonForSconsExePath():
         Tracing.scons_logger.sysexit(
             """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
-Nuitka needs to find a %s executable, so please install
-it.
+Nuitka needs to find a %s executable, so please install it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
-in case it is not visible in registry, e.g. due to using uninstalled
-Anaconda Python.
+in case it is not visible in registry or PATH, e.g. due to using an
+uninstalled Anaconda Python.
 """
             % scons_python_requirement
         )
@@ -402,6 +390,10 @@ def runScons(scons_options, env_values, scons_filename):
                 result = subprocess.call(scons_command, shell=False, cwd=source_dir)
             except KeyboardInterrupt:
                 Tracing.scons_logger.sysexit("User interrupted scons build.")
+            else:
+                # TODO: We might want to make a difference for where reporting makes sense or not.
+                if result == 27:
+                    Tracing.scons_logger.sysexit("Fatal error in scons build.")
 
         # TODO: Actually this should only flush one of these, namely the one for
         # current source_dir.
@@ -500,14 +492,16 @@ def getCommonSconsOptions():
 
     scons_options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
 
+    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
+
     if Options.shallRunInDebugger():
         scons_options["full_names"] = asBoolStr(True)
 
     if Options.assumeYesForDownloads():
         scons_options["assume_yes_for_downloads"] = asBoolStr(True)
 
-    if not Options.shallUseProgressBar():
-        scons_options["progress_bar"] = asBoolStr(False)
+    if Options.getProgressBar() != "auto":
+        scons_options["progress_bar"] = Options.getProgressBar()
 
     if Options.isClang():
         scons_options["clang_mode"] = asBoolStr(True)
@@ -530,7 +524,7 @@ def getCommonSconsOptions():
     if Options.getLtoMode() != "auto":
         scons_options["lto_mode"] = Options.getLtoMode()
 
-    if isWin32OrPosixWindows() or isMacOS() or isAIX():
+    if not isElfUsingPlatform():
         scons_options["noelf_mode"] = asBoolStr(True)
 
     if Options.isUnstripped():
@@ -644,18 +638,14 @@ def getCommonSconsOptions():
     return scons_options, env_values
 
 
-def setPythonTargetOptions(scons_options):
-    scons_options["gil_mode"] = asBoolStr(isPythonWithGil())
-
-
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

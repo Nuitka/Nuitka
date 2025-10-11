@@ -17,13 +17,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -54,13 +54,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
 
     PyTypeObject *type1 = Py_TYPE(operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -108,13 +108,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -167,13 +167,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -200,13 +200,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
 
     PyTypeObject *type1 = Py_TYPE(operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -250,13 +250,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -308,7 +308,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
         PyObject *result;
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -316,7 +316,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -359,13 +359,13 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -440,11 +440,11 @@ PyObject *BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyOb
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

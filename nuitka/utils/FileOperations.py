@@ -30,9 +30,11 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     basestring,
     unicode,
 )
+from nuitka.Errors import NuitkaFilenameError
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, my_print, options_logger, queryUser
 
+from .Hashing import Hash
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
 from .Utils import (
@@ -687,6 +689,11 @@ def getFilenameExtension(path):
 
 def changeFilenameExtension(path, extension):
     """Change the filename extension."""
+
+    is_legal, illegal_reason = isLegalPath(path)
+    if not is_legal:
+        raise NuitkaFilenameError(illegal_reason)
+
     return os.path.splitext(path)[0] + extension
 
 
@@ -851,6 +858,14 @@ def getFileFirstLine(filename, mode="r", encoding=None):
 
 
 def openTextFile(filename, mode, encoding=None, errors=None):
+    # Do not attempt to create files with what we consider
+    # illegal filenames.
+    if "w" in mode:
+        is_legal, illegal_reason = isLegalPath(filename)
+        if not is_legal:
+            raise NuitkaFilenameError(illegal_reason)
+
+    # Doesn't exist anymore for Python3.7 or later.
     if python_version >= 0x370:
         mode = mode.replace("U", "")
 
@@ -1513,6 +1528,9 @@ def isLegalPath(path):
     illegal_suffixes = "/\\"
     illegal_chars = "\0"
 
+    if path == "":
+        return False, "is empty"
+
     if isWin32Windows():
         illegal_chars += r'*"/<>:|?'
 
@@ -1522,7 +1540,10 @@ def isLegalPath(path):
     if isMacOS():
         illegal_chars += ":"
 
-    for c in path:
+    for pos, c in enumerate(path):
+        if c == ":" and pos == 1 and isWin32Windows():
+            continue
+
         if c in illegal_chars:
             return False, "contains illegal character %r" % c
 
@@ -1531,13 +1552,20 @@ def isLegalPath(path):
             return False, "contains illegal suffix %r" % illegal_suffix
 
         for part in path.split(os.path.sep):
-            if part == ".":
+            if part in (".", ".."):
                 continue
 
             if part.endswith(illegal_suffix):
                 return False, "contains illegal suffix %r in path part %r" % (
-                    part,
                     illegal_suffix,
+                    part,
+                )
+
+            part_length = len(part)
+            if part_length > 255:
+                return False, "contains too long (%d) name part %r" % (
+                    part_length,
+                    part,
                 )
 
     return True, None
@@ -1571,14 +1599,24 @@ def getNormalizedPath(path):
     return path
 
 
+def getFileContentsHash(filename, as_string=True, line_filter=None):
+    result = Hash()
+    result.updateFromFile(filename=filename, line_filter=line_filter)
+
+    if as_string:
+        return result.asHexDigest()
+    else:
+        return result.asDigest()
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

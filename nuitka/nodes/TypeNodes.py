@@ -334,11 +334,11 @@ class ExpressionSubtypeCheck(
 class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
     kind = "EXPRESSION_TYPE_ALIAS"
 
-    named_children = ("type_params|tuple", "value")
+    named_children = ("name", "type_params|tuple", "value")
 
-    def __init__(self, type_params, value, source_ref):
+    def __init__(self, name, type_params, value, source_ref):
         ChildrenExpressionTypeAliasMixin.__init__(
-            self, type_params=type_params, value=value
+            self, name=name, type_params=type_params, value=value
         )
 
         ExpressionBase.__init__(self, source_ref)
@@ -377,11 +377,11 @@ class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, Expressi
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -35,6 +35,9 @@ extern PyObject *MAKE_TUPLE_EMPTY_VAR(PyThreadState *tstate, Py_ssize_t size);
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyThreadState *tstate, PyObject *const *elements, Py_ssize_t size) {
     assert(size > 0);
+    assert(elements != NULL);
+    CHECK_OBJECTS(elements, size);
+
     PyObject *result = MAKE_TUPLE_EMPTY(tstate, size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
@@ -171,14 +174,15 @@ extern PyObject *TUPLE_CONCAT(PyThreadState *tstate, PyObject *tuple1, PyObject 
 extern PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

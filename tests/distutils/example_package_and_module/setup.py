@@ -12,7 +12,7 @@ setup(
     packages=["some_package"],
     py_modules=["some_module"],
     scripts=["runner"],
-    description="yadda yadda",
+    description="Nuitka example with package and module both",
     author="Nobody really",
     author_email="email@someplace.com",
     url="whatever",

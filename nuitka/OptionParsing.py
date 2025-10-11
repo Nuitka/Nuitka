@@ -89,8 +89,7 @@ parser.add_option(
     dest="module_mode",
     default=False,
     github_action=False,
-    help="""\
-Create an importable binary extension module executable instead of a program. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 parser.add_option(
@@ -98,17 +97,28 @@ parser.add_option(
     action="store",
     dest="compilation_mode",
     metavar="COMPILATION_MODE",
-    choices=("app", "onefile", "standalone", "accelerated", "module", "package", "dll"),
+    choices=(
+        "app",
+        "app-dist",
+        "onefile",
+        "standalone",
+        "accelerated",
+        "module",
+        "package",
+        "dll",
+    ),
     default=None,
     github_action_default="app",
     help="""\
-Mode in which to compile. Accelerated runs in your Python
-installation and depends on it. Standalone creates a folder
-with an executable contained to run it. Onefile creates a
-single executable to deploy. App is onefile except on macOS
-where it's not to be used. Module makes a module, and
-package includes also all sub-modules and sub-packages. Dll
-is currently under development and not for users yet.
+Mode in which to compile. "accelerated" runs in your Python
+installation and depends on it. "standalone" creates a folder
+with an executable contained to run it. "onefile" creates a
+single self extracting executable to deploy. "app" is "onefile"
+except on macOS where it creates an app bundle. "app-dist" is
+"standalone" except on macOS where it creates an app bundle.
+"module" makes an extension module from a single module and
+"package" compiles a whole package into an extension module.
+"dll" is currently under development and not for users yet.
 Default is 'accelerated'.""",
 )
 
@@ -118,21 +128,8 @@ parser.add_option(
     dest="is_standalone",
     default=False,
     github_action=False,
-    help="""\
-Enable standalone mode for output. This allows you to transfer the created binary
-to other machines without it using an existing Python installation. This also
-means it will become big. It implies these options: "--follow-imports" and
-"--python-flag=no_site". Defaults to off.""",
-)
-
-parser.add_option(
-    "--no-standalone",
-    action="store_false",
-    dest="is_standalone",
-    default=False,
     help=SUPPRESS_HELP,
 )
-
 
 parser.add_option(
     "--onefile",
@@ -140,16 +137,6 @@ parser.add_option(
     dest="is_onefile",
     default=False,
     github_action=False,
-    help="""\
-On top of standalone mode, enable onefile mode. This means not a folder,
-but a compressed executable is created and used. Defaults to off.""",
-)
-
-parser.add_option(
-    "--no-onefile",
-    action="store_false",
-    dest="is_onefile",
-    default=False,
     help=SUPPRESS_HELP,
 )
 
@@ -286,12 +273,7 @@ include_group.add_option(
     action="store_true",
     dest="prefer_source_code",
     default=None,
-    help="""\
-For already compiled extension modules, where there is both a source file and an
-extension module, normally the extension module is used, but it should be better
-to compile the module from available source code for best performance. If not
-desired, there is --no-prefer-source-code to disable warnings about it. Default
-off.""",
+    help=SUPPRESS_HELP,
 )
 include_group.add_option(
     "--no-prefer-source-code",
@@ -300,6 +282,20 @@ include_group.add_option(
     default=None,
     help=SUPPRESS_HELP,
 )
+
+include_group.add_option(
+    "--recompile-extension-modules",
+    action="append",
+    dest="recompile_extension_modules",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Recompile extension module matching the PATTERN from source. Overrides all other
+decision logic except where Nuitka Package Configuration specifies "never" which
+we do for cases where it is known to not work. Can be given multiple times.
+Default empty.""",
+)
+
 
 del include_group
 
@@ -508,8 +504,8 @@ whole directory simply use 'package_name'. Default empty.""",
 )
 
 data_group.add_option(
-    "--include-onefile-external-data",
     "--include-data-files-external",
+    "--include-onefile-external-data",
     action="append",
     dest="data_files_external",
     metavar="PATTERN",
@@ -683,11 +679,19 @@ execute_group.add_option(
     "--gdb",
     action="store_true",
     dest="debugger",
-    default=False,
+    default=None,
     help="""\
 Execute inside a debugger, e.g. "gdb" or "lldb" to automatically get a stack trace. The
-debugger is automatically chosen unless specified by name with the NUITKA_DEBUGGER_CHOICE
-environment variable. Defaults to off.""",
+debugger is automatically chosen unless specified by name with the 'NUITKA_DEBUGGER_CHOICE'
+environment variable or the '--debugger-choice' flag. Defaults to off.""",
+)
+
+execute_group.add_option(
+    "--debugger-choice",
+    dest="debugger_choice",
+    default=None,
+    help="""\
+Choose the debugger to use.""",
 )
 
 del execute_group
@@ -774,6 +778,18 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
+)
+
+output_group.add_option(
+    "--output-folder-name",
+    action="store",
+    dest="output_folder_name",
+    metavar="FOLDER_NAME",
+    default=None,
+    help="""\
+Specify the name of the distribution folder (for standalone mode) or
+app bundle folder name (for macOS app mode). Defaults to the base filename
+of the main module, will add a '.dist' or '.app' suffix.""",
 )
 
 output_group.add_option(
@@ -1400,13 +1416,27 @@ detected compilers. Defaults to off.""",
 )
 
 tracing_group.add_option(
+    "--progress-bar",
+    action="store",
+    dest="progress_bar",
+    choices=("auto", "tqdm", "rich", "none"),
+    metavar="PROGRESS_BAR_MODE",
+    default="auto",
+    github_action=False,
+    help="""\
+Select the progress bar mode. The 'auto' selects 'tqdm' if available,
+otherwise 'rich'. The values 'tqdm' and 'rich' force a specific
+library. Use 'none' to disables progress bars. Defaults to 'auto'.""",
+)
+
+tracing_group.add_option(
     "--no-progressbar",
     "--no-progress-bar",
-    action="store_false",
-    dest="progress_bar",
-    default=True,
+    action="store_true",
+    dest="no_progress_bar",
+    default=False,
     github_action=False,
-    help="""Disable progress bars. Defaults to off.""",
+    help=SUPPRESS_HELP,
 )
 
 tracing_group.add_option(
@@ -1677,9 +1707,9 @@ macos_group.add_option(
     default=None,
     help="""\
 Mode of application for the application bundle. When launching a Window, and appearing
-in Docker is desired, default value "gui" is a good fit. Without a Window ever, the
+in the dock is desired, default value "gui" is a good fit. Without a Window ever, the
 application is a "background" application. For UI elements that get to display later,
-"ui-element" is in-between. The application will not appear in dock, but get full
+"ui-element" is in-between. The application will not appear in the dock, but get full
 access to desktop when it does open a Window later.""",
 )
 
@@ -1744,6 +1774,27 @@ https://developer.apple.com/documentation/bundleresources/information_property_l
 and the option can be specified multiple times. Default empty.""",
 )
 
+macos_group.add_option(
+    "--macos-sign-keyring-filename",
+    action="store",
+    dest="macos_sign_keyring_filename",
+    metavar="CERTIFICATE_FILENAME",
+    default=None,
+    help="""\
+Path to the certificate file to be used for macOS code signing.
+This is used in conjunction with '--macos-sign-identity'. Default empty.""",
+)
+
+macos_group.add_option(
+    "--macos-sign-keyring-password",
+    action="store",
+    dest="macos_sign_keyring_password",
+    metavar="CERTIFICATE_PASSWORD",
+    default=None,
+    help="""\
+Password for the certificate file provided via
+'--macos-sign-keyring-filename'. Default empty.""",
+)
 
 del macos_group
 
@@ -1865,7 +1916,7 @@ plugin_group.add_option(
     dest="plugins_disabled",
     metavar="PLUGIN_NAME",
     default=[],
-    github_action=False,
+    github_action=True,
     help="""\
 Disabled plugins. Must be plug-in names. Use '--plugin-list' to query the
 full list and exit. Most standard plugins are not a good idea to disable.
@@ -1926,8 +1977,8 @@ plugin_group.add_option(
     help="""\
 Show source changes to original Python file content before compilation. Mostly
 intended for developing plugins and Nuitka package configuration. Use e.g.
-'--show-source-changes=numpy.**' to see all changes below a given namespace
-or use '*' to see everything which can get a lot.
+'--show-source-changes=numpy' to see all changes below a given namespace. This
+accepts patterns, so use '*' to see everything which can get a lot.
 Default empty.""",
 )
 
@@ -1970,7 +2021,9 @@ def _considerPluginOptions(logger):
             plugin_names = arg.split("=", 1)[1]
             if "=" in plugin_names:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
+                    """\
+Error, plugin options format changed. Use '--enable-plugin=%s --help' \
+to know new options."""
                     % plugin_names.split("=", 1)[0]
                 )
 
@@ -1984,7 +2037,9 @@ def _considerPluginOptions(logger):
             plugin_name = arg[14:]
             if "=" in plugin_name:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
+                    """\
+Error, plugin options format changed. Use '--user-plugin=%s --help'
+to know new options."""
                     % plugin_name.split("=", 1)[0]
                 )
 
@@ -2253,6 +2308,10 @@ def parseOptions(logger):
     # First, isolate the first non-option arguments.
     extra_args = []
 
+    # Workaround for issue with help2man.
+    if "--version" in sys.argv[1:] and os.getenv("NUITKA_MANPAGE_GEN"):
+        sys.argv[1:] = ["--version"]
+
     if is_nuitka_run:
         count = 0
 
@@ -2315,15 +2374,16 @@ def parseOptions(logger):
         parser.print_help()
 
         logger.sysexit(
-            """
-Error, need filename argument with python module or main program."""
+            """\
+Error, need filename argument with python module, package directory or main
+program."""
         )
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
 
         logger.sysexit(
-            """
+            """\
 Error, specify only one positional argument unless "--run" is specified to
 pass them to the compiled program execution."""
         )
@@ -2397,11 +2457,11 @@ def runSpecialCommandsFromOptions(options):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

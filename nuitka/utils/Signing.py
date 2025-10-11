@@ -7,16 +7,23 @@
 
 from nuitka.Options import (
     getMacOSSignedAppName,
+    getMacOSSigningCertificateFilename,
+    getMacOSSigningCertificatePassword,
     getMacOSSigningIdentity,
     shallUseSigningForNotarization,
 )
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
-from .FileOperations import withMadeWritableFileMode
+from .FileOperations import getExternalUsePath, withMadeWritableFileMode
+from .MacOSApp import createEntitlementsInfoFile
 
 _macos_codesign_usage = (
     "The 'codesign' is used to make signatures on macOS and required to be found."
+)
+
+_macos_security_usage = (
+    "The 'security' is used to access signatures from files on macOS."
 )
 
 
@@ -40,11 +47,17 @@ for the certificate in KeyChain Access application for this certificate."""
     return None, stderr
 
 
+def _filterSecurityErrorOutput(stderr):
+    # TODO: Probably some errors are given if it already exists.
+    return None, stderr
+
+
 def detectMacIdentity():
     output = executeToolChecked(
         logger=postprocessing_logger,
         command=["security", "find-identity"],
         absence_message="The 'security' program is used to scan for signing identities",
+        stderr_filter=_filterSecurityErrorOutput,
         decoding=str is not bytes,
     )
 
@@ -93,6 +106,22 @@ def addMacOSCodeSignature(filenames):
     # Weak signing.
     identity = getMacOSSigningIdentity()
 
+    if getMacOSSigningCertificateFilename() is not None:
+        command = [
+            "security",
+            "unlock-keychain",
+            "-p",
+            getMacOSSigningCertificatePassword() or "",
+            getExternalUsePath(getMacOSSigningCertificateFilename()),
+        ]
+
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            absence_message=_macos_security_usage,
+            stderr_filter=_filterSecurityErrorOutput,
+        )
+
     if identity == "auto":
         identity = detectMacIdentity()
 
@@ -114,6 +143,14 @@ def addMacOSCodeSignature(filenames):
             macos_signed_app_name,
         ]
 
+    entitlements_filename = createEntitlementsInfoFile()
+
+    if entitlements_filename is not None:
+        command += [
+            "--entitlements",
+            getExternalUsePath(entitlements_filename),
+        ]
+
     if shallUseSigningForNotarization():
         command.append("--options=runtime")
 
@@ -132,11 +169,11 @@ def addMacOSCodeSignature(filenames):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

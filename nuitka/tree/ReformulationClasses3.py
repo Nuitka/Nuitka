@@ -74,10 +74,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionTypeMakeGeneric,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableNameNodes import (
-    ExpressionVariableNameRef,
-    StatementAssignmentVariableName,
-)
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -274,25 +271,7 @@ def buildClassNode3(provider, node, source_ref):
         statements.append(
             makeStatementAssignmentVariable(
                 variable=type_variable,
-                source=type_params_expression,
-                source_ref=source_ref,
-            )
-        )
-
-    if type_params_expressions:
-        statements.append(
-            StatementAssignmentVariableName(
-                provider=class_creation_function,
-                variable_name="__type_params__",
-                source=makeExpressionMakeTuple(
-                    elements=tuple(
-                        ExpressionVariableRef(
-                            variable=type_variable, source_ref=source_ref
-                        )
-                        for type_variable in type_variables
-                    ),
-                    source_ref=source_ref,
-                ),
+                source=type_params_expression.makeClone(),
                 source_ref=source_ref,
             )
         )
@@ -421,6 +400,32 @@ def buildClassNode3(provider, node, source_ref):
         StatementReturn(expression=class_variable_ref, source_ref=source_ref),
     )
 
+    new_statements = []
+    if type_params_expressions:
+        tmp_type_params = provider.allocateTempVariable(
+            temp_scope=temp_scope, name="type_params", temp_type="object"
+        )
+        new_statements.append(
+            makeStatementAssignmentVariable(
+                variable=tmp_type_params,
+                source=makeExpressionMakeTuple(
+                    elements=type_params_expressions,
+                    source_ref=source_ref,
+                ),
+                source_ref=source_ref,
+            )
+        )
+        statements.append(
+            StatementAssignmentVariableName(
+                provider=class_creation_function,
+                variable_name="__type_params__",
+                source=ExpressionTempVariableRef(
+                    variable=tmp_type_params, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            )
+        )
+
     # TODO: Is this something similar to makeTryFinallyReleaseStatement
     body = makeStatementsSequenceFromStatement(
         statement=makeTryFinallyStatement(
@@ -455,30 +460,26 @@ def buildClassNode3(provider, node, source_ref):
             source_ref=decorator.getSourceReference(),
         )
 
-    statements = []
+    statements = new_statements
 
     if has_bases:
-        if node.bases:
-            bases_value = _buildBasesTupleCreationNode(
-                provider=provider, elements=node.bases, source_ref=source_ref
-            )
+        bases_value = _buildBasesTupleCreationNode(
+            provider=provider, elements=node.bases, source_ref=source_ref
+        )
 
-            if type_params_expressions:
-                bases_value = makeBinaryOperationNode(
-                    operator="Add",
-                    left=bases_value,
-                    right=ExpressionTypeMakeGeneric(
-                        type_params=ExpressionVariableNameRef(
-                            provider=class_creation_function,
-                            variable_name="__type_params__",
-                            source_ref=source_ref,
-                        ),
+        if type_params_expressions:
+            bases_value = makeBinaryOperationNode(
+                operator="Add",
+                left=bases_value,
+                right=ExpressionTypeMakeGeneric(
+                    type_params=ExpressionTempVariableRef(
+                        variable=tmp_type_params,
                         source_ref=source_ref,
                     ),
                     source_ref=source_ref,
-                )
-        else:
-            assert False
+                ),
+                source_ref=source_ref,
+            )
 
         statements.append(
             makeStatementAssignmentVariable(
@@ -744,6 +745,8 @@ def buildClassNode3(provider, node, source_ref):
         tmp_variables.insert(0, tmp_bases)
         if needs_orig_bases:
             tmp_variables.insert(0, tmp_bases_orig)
+    if type_params_expressions:
+        tmp_variables.append(tmp_type_params)
 
     return makeTryFinallyReleaseStatement(
         provider=provider,
@@ -1136,11 +1139,11 @@ def getClassSelectMetaClassHelper():
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

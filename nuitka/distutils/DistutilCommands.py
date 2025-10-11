@@ -288,6 +288,61 @@ class build(distutils.command.build.build):
             else:
                 output_dir = build_lib
 
+            options = []
+
+            toml_filename = os.getenv("NUITKA_TOML_FILE")
+            if toml_filename:
+                # Import toml parser like "build" module does.
+                if python_version >= 0x3B0:
+                    # stdlib only for 3.11+, pylint: disable=I0021,import-error
+                    from tomllib import loads as toml_loads
+                else:
+                    try:
+                        from tomli import loads as toml_loads
+                    except ImportError:
+                        from toml import loads as toml_loads
+
+                # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
+                # pylint: disable=unspecified-encoding
+
+                with open(toml_filename) as toml_file:
+                    toml_options = toml_loads(toml_file.read())
+
+                for option, value in toml_options.get("nuitka", {}).items():
+                    options.extend(self._parseOptionsEntry(option, value))
+
+                for option, value in (
+                    toml_options.get("tool", {}).get("nuitka", {}).items()
+                ):
+                    options.extend(self._parseOptionsEntry(option, value))
+
+            # Process any extra options from setuptools
+            if "nuitka" in self.distribution.command_options:
+                for option, value in self.distribution.command_options[
+                    "nuitka"
+                ].items():
+                    for option in self._parseOptionsEntry(option, value):
+                        options.append(option)
+
+            for option in options:
+                if option.startswith(("--standalone", "--onefile", "--mode=")):
+                    wheel_logger.sysexit(
+                        "Cannot specify mode in options when building wheels."
+                    )
+
+            # Enforcing having a report, so we can later check what we have done.
+            report_filename = None
+            for option in options:
+                if option.startswith("--report="):
+                    report_filename = option.split("=", 1)[1]
+
+            if report_filename is None:
+                options.append("--report=compilation-report.xml")
+                report_filename = "compilation-report.xml"
+                delete_report = True
+            else:
+                delete_report = False
+
             command = [
                 sys.executable,
                 "-m",
@@ -303,52 +358,8 @@ class build(distutils.command.build.build):
                 # "--trace",
                 # "--python-flag=-v"
             ]
-
-            toml_filename = os.getenv("NUITKA_TOML_FILE")
-            if toml_filename:
-                # Import toml parser like "build" module does.
-                if python_version >= 0x3B0:
-                    # stdlib only for 3.11, pylint: disable=I0021,import-error
-                    from tomllib import loads as toml_loads
-                else:
-                    try:
-                        from tomli import loads as toml_loads
-                    except ImportError:
-                        from toml import loads as toml_loads
-
-                # Cannot use FileOperations.getFileContents() here, because of non-Nuitka process
-                # pylint: disable=unspecified-encoding
-
-                with open(toml_filename) as toml_file:
-                    toml_options = toml_loads(toml_file.read())
-
-                for option, value in toml_options.get("nuitka", {}).items():
-                    command.extend(self._parseOptionsEntry(option, value))
-
-                for option, value in (
-                    toml_options.get("tool", {}).get("nuitka", {}).items()
-                ):
-                    command.extend(self._parseOptionsEntry(option, value))
-
-            report_filename = None
-
-            # Process any extra options from setuptools
-            if "nuitka" in self.distribution.command_options:
-                for option, value in self.distribution.command_options[
-                    "nuitka"
-                ].items():
-                    for option in self._parseOptionsEntry(option, value):
-                        command.append(option)
-
-                        if option.startswith("--report="):
-                            report_filename = option.split("=", 1)[1]
-
-            if report_filename is None:
-                command.append("--report=compilation-report.xml")
-                report_filename = "compilation-report.xml"
-                delete_report = True
-            else:
-                delete_report = False
+            command.extend(options)
+            del options
 
             command.append(main_filename)
 
@@ -425,11 +436,11 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

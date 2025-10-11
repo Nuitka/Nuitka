@@ -78,7 +78,7 @@ def _takeSystemCallTraceOutput(logger, path, command):
 
     # Ensure executable is not polluted with third party stuff,
     # tests may fail otherwise due to unexpected libs being loaded
-    # spell-checker: ignore ENOENT,write_nocancel
+    # spell-checker: ignore ENOENT,write_nocancel,newfstatat
     with withEnvironmentVarOverridden("LD_PRELOAD", None):
         if os.getenv("NUITKA_TRACE_COMMANDS", "0") != "0":
             traceExecutedCommand("Tracing with:", command)
@@ -247,11 +247,11 @@ if __name__ == "__main__":
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

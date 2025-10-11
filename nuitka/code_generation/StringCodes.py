@@ -10,6 +10,7 @@ from nuitka.PythonVersions import python_version
 from .CallCodes import getCallCodePosVariableKeywordVariableArgs
 from .CodeHelpers import (
     decideConversionCheckNeeded,
+    generateChildExpressionsCode,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
@@ -287,14 +288,70 @@ def generateStrFormatMethodCode(to_name, expression, emit, context):
         )
 
 
+def generateTemplateStringCode(to_name, expression, emit, context):
+    interpolations_name = context.allocateTempName("template_values")
+
+    getTupleCreationCode(
+        to_name=interpolations_name,
+        elements=expression.subnode_interpolations,
+        emit=emit,
+        context=context,
+    )
+
+    emit(
+        """\
+%(to_name)s = _PyTemplate_Build(%(str_values_name)s, %(interpolations_name)s);
+"""
+        % {
+            "to_name": to_name,
+            "str_values_name": context.getConstantCode(constant=expression.str_values),
+            "interpolations_name": interpolations_name,
+        }
+    )
+
+    getErrorExitCode(
+        check_name=to_name, release_name=interpolations_name, emit=emit, context=context
+    )
+
+
+def generateTemplateInterpolationCode(to_name, expression, emit, context):
+    value_name, format_spec_name = generateChildExpressionsCode(
+        expression, emit, context
+    )
+
+    emit(
+        """\
+%(to_name)s = _PyInterpolation_Build(%(value_name)s, %(str_value_name)s, %(conversion)s, %(format_spec_name)s);
+"""
+        % {
+            "to_name": to_name,
+            "value_name": value_name,
+            "str_value_name": context.getConstantCode(constant=expression.str_value),
+            "conversion": expression.conversion if expression.conversion != -1 else 0,
+            "format_spec_name": (
+                format_spec_name
+                if format_spec_name is not None
+                else context.getConstantCode("")
+            ),
+        }
+    )
+
+    getErrorExitCode(
+        check_name=to_name,
+        release_names=(value_name, format_spec_name),
+        emit=emit,
+        context=context,
+    )
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

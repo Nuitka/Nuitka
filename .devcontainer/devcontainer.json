@@ -21,7 +21,8 @@
                 "streetsidesoftware.code-spell-checker",
                 "samuelcolvin.jinjahtml",
                 "tamasfe.even-better-toml",
-                "swyddfa.esbonio"
+                "swyddfa.esbonio",
+                "ms-python.vscode-pylance"
             ]
         }
     },

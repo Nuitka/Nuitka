@@ -56,8 +56,8 @@ Pull requests are great. Here's a quick guide:
    more commits to the branch. Indicate work in progress with a `WIP:` prefix in your PR title.
 
 All the submitted pieces including potential data must be compatible with the
-Apache License 2, which already says that once you are sending modified source,
-e.g. via pull request, you automatically license it as that too.
+license of Nuitka and subject to CLA which will make it possible to re-license
+the code.
 
 ## Submitting a Question
 

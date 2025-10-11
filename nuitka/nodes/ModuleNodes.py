@@ -73,7 +73,7 @@ class PythonModuleBase(NodeBase):
     def attemptRecursion(self):
         # Make sure the package is recursed to if any
         package_name = self.module_name.getPackageName()
-        if package_name is None:
+        if package_name is None or package_name.getTopLevelPackageName() == "":
             return ()
 
         # Return the list of newly added modules.
@@ -97,6 +97,8 @@ class PythonModuleBase(NodeBase):
             if python_version >= 0x300 and not package_filename:
                 return ()
 
+            # TODO: This should be a plugin decision too,
+            # spell-checker: ignore uniconvertor
             if package_name == "uniconvertor.app.modules":
                 return ()
 
@@ -1125,11 +1127,11 @@ class PythonExtensionModule(PythonModuleBase):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

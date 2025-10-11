@@ -8,6 +8,7 @@ binaries (needed for exec) and run them capturing outputs.
 """
 
 import os
+import shlex
 from contextlib import contextmanager
 
 from nuitka.__past__ import subprocess
@@ -20,8 +21,8 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
-# We emulate and use APIs of stdlib,
-# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod
+# We emulate and use APIs of stdlib and use special commands
+# spell-checker: ignore popenargs,creationflags,preexec_fn,setsid,debuginfod,memcheck
 
 
 def _getExecutablePath(filename, search_path):
@@ -255,7 +256,7 @@ def withEnvironmentVarsOverridden(mapping):
             os.environ[env_var_name] = old_values[env_var_name]
 
 
-def wrapCommandForDebuggerForExec(command, debugger=None):
+def wrapCommandForDebuggerForExec(command, debugger):
     """Wrap a command for system debugger to call exec
 
     Args:
@@ -268,48 +269,52 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
         debuggers would be very welcome.
     """
 
-    command = tuple(command)
+    # The path needs to be absolute for some debuggers to work e.g. valgrind
+    modified_command = list(command)
+    modified_command[0] = os.path.abspath(command[0])
+    command = tuple(modified_command)
 
     gdb_path = getExecutablePath("gdb")
     lldb_path = getExecutablePath("lldb")
+    valgrind_path = getExecutablePath("valgrind")
 
-    # Default from environment variable.
-    if debugger is None:
-        debugger = os.getenv("NUITKA_DEBUGGER_CHOICE")
+    if debugger not in ("gdb", "lldb", "valgrind-memcheck", None):
+        # We don't know how to do anything special for this debugger -- just
+        # hope that the user set it up correctly.
+        debugger_command_parts = shlex.split(debugger)
 
-    if debugger not in ("gdb", "lldb", None):
-        general.sysexit("Error, the selected debugger name '%s' is not supported.")
+        debugger_name = debugger_command_parts[0]
+        rest = tuple(debugger_command_parts[1:])
+
+        debugger_path = getExecutablePath(debugger_name)
+        if debugger_path is None:
+            general.sysexit(
+                "Error, the selected debugger '%s' was not found in path."
+                % debugger_name
+            )
+        return (debugger_path, debugger) + rest + command
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None and lldb_path is None:
-        from nuitka.Options import assumeYesForDownloads
+        from nuitka.Options import assumeYesForDownloads, isExperimental
 
         mingw64_gcc_path = getCachedDownloadedMinGW64(
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
             download_ok=True,
+            experimental=isExperimental("winlibs-new"),
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
             lldb_path = getExecutablePath("lldb")
 
-    if gdb_path is None and lldb_path is None:
+    if gdb_path is None and lldb_path is None and valgrind_path is None:
         if lldb_path is None:
-            general.sysexit("Error, no 'gdb' or 'lldb' binary found in path.")
+            general.sysexit(
+                "Error, no 'gdb', 'lldb', or 'valgrind' binary found in path."
+            )
 
-    if lldb_path is not None and debugger != "gdb":
-        args = (
-            lldb_path,
-            "lldb",
-            "-o",
-            "run",
-            "-o",
-            "bt",
-            "-o",
-            "quit",
-            "--",
-        ) + command
-    elif gdb_path is not None and debugger != "lldb":
+    if gdb_path is not None and debugger not in ("lldb", "valgrind-memcheck"):
         args = (
             gdb_path,
             "gdb",
@@ -321,13 +326,33 @@ def wrapCommandForDebuggerForExec(command, debugger=None):
             "-ex=quit",
             "--args",
         ) + command
+    elif lldb_path is not None and debugger not in ("gdb", "valgrind-memcheck"):
+        args = (
+            lldb_path,
+            "lldb",
+            "-o",
+            "run",
+            "-o",
+            "bt",
+            "-o",
+            "quit",
+            "--",
+        ) + command
+    elif valgrind_path is not None and debugger not in ("gdb", "lldb"):
+        args = (
+            valgrind_path,
+            "valgrind",
+            "--tool=memcheck",
+            "--num-callers=25",
+            #            "--leak-check=full",
+        ) + command
     else:
         general.sysexit("Error, the selected debugger '%s' was not found in path.")
 
     return args
 
 
-def wrapCommandForDebuggerForSubprocess(command, debugger=None):
+def wrapCommandForDebuggerForSubprocess(command, debugger):
     """Wrap a command for system debugger with subprocess module.
 
     Args:
@@ -369,7 +394,13 @@ def getNullInput():
 
 
 def executeToolChecked(
-    logger, command, absence_message, stderr_filter=None, optional=False, decoding=False
+    logger,
+    command,
+    absence_message,
+    stderr_filter=None,
+    optional=False,
+    decoding=False,
+    context=None,
 ):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
@@ -406,7 +437,7 @@ def executeToolChecked(
     result = process.poll()
 
     if stderr_filter is not None:
-        new_result, stderr = stderr_filter(stderr)
+        new_result, stderr = stderr_filter(stderr, **(context or {}))
 
         if new_result is not None:
             result = new_result
@@ -475,40 +506,83 @@ def executeProcess(
     timeout=None,
     logger=None,
 ):
-    if logger is not None:
-        logger.info("Executing command '%s'." % " ".join(command), keep_format=True)
-
-    process = createProcess(
-        command=command, env=env, stdin=stdin, shell=shell, external_cwd=external_cwd
+    process = Process(
+        command=command,
+        env=env,
+        stdin=stdin,
+        shell=shell,
+        external_cwd=external_cwd,
+        timeout=timeout,
+        logger=logger,
     )
 
-    if stdin is True:
-        process_input = None
-    elif stdin is not False:
-        process_input = stdin
-    else:
-        process_input = None
+    return process.communicate()
 
-    kw_args = {}
-    if timeout is not None:
-        # Apply timeout if possible.
-        if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
-            kw_args["timeout"] = timeout
 
-    stdout, stderr = process.communicate(input=process_input)
-    exit_code = process.wait()
+class Process(object):
+    def __init__(
+        self,
+        command,
+        env=None,
+        stdin=False,
+        stdout=None,
+        stderr=None,
+        shell=False,
+        external_cwd=False,
+        timeout=None,
+        logger=None,
+    ):
+        self.stdin = stdin
+        self.timeout = timeout
 
-    return stdout, stderr, exit_code
+        # When running.
+        self.process = None
+
+        if logger is not None:
+            logger.info("Executing command '%s'." % " ".join(command), keep_format=True)
+
+        self.process = createProcess(
+            command=command,
+            env=env,
+            stdin=self.stdin,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            external_cwd=external_cwd,
+        )
+
+    def communicate(self):
+        if self.stdin is True:
+            process_input = None
+        elif self.stdin is not False:
+            process_input = self.stdin
+        else:
+            process_input = None
+
+        kw_args = {}
+        if self.timeout is not None:
+            # Apply timeout if possible.
+            if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
+                kw_args["timeout"] = self.timeout
+
+        stdout, stderr = self.process.communicate(input=process_input)
+        exit_code = self.process.wait()
+
+        return stdout, stderr, exit_code
+
+    def stop(self):
+        if self.process is not None:
+            self.process.terminate()
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

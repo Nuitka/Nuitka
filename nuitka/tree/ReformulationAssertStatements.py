@@ -37,6 +37,8 @@ def buildAssertNode(provider, node, source_ref):
     # static raise contained.
     #
 
+    asserted_value_expression = buildNode(provider, node.test, source_ref)
+
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
     if hasPythonFlagNoAsserts():
@@ -71,9 +73,17 @@ def buildAssertNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
+    # May not need a condition.
+    if asserted_value_expression.isCompileTimeConstant():
+        asserted_value = asserted_value_expression.getCompileTimeConstant()
+
+        if not asserted_value:
+            return raise_statement
+
     return makeStatementConditional(
         condition=ExpressionOperationNot(
-            operand=buildNode(provider, node.test, source_ref), source_ref=source_ref
+            operand=asserted_value_expression,
+            source_ref=source_ref,
         ),
         yes_branch=raise_statement,
         no_branch=None,
@@ -84,11 +94,11 @@ def buildAssertNode(provider, node, source_ref):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

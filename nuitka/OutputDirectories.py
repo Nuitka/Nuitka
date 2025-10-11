@@ -14,6 +14,7 @@ import os
 
 from nuitka.Options import (
     getOutputFilename,
+    getOutputFolderName,
     getOutputPath,
     getPgoExecutable,
     isOnefileMode,
@@ -25,9 +26,14 @@ from nuitka.Options import (
 )
 from nuitka.utils.FileOperations import (
     addFilenameExtension,
+    changeFilenameExtension,
     getNormalizedPath,
+    hasFilenameExtension,
+    isFilesystemEncodable,
     makePath,
     putTextFileContents,
+    removeDirectory,
+    resetDirectory,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffix
 from nuitka.utils.SharedLibraries import getDllSuffix
@@ -55,7 +61,9 @@ def getMainModule():
     return _main_module
 
 
-def getSourceDirectoryPath(onefile=False):
+# TODO: This is for compatibility for the hotfix, after Nuitka 2.8 release we can
+# and should remove this.
+def getSourceDirectoryPath(onefile=False, create=False):
     """Return path inside the build directory."""
 
     # Distinct build folders for onefile mode.
@@ -64,16 +72,20 @@ def getSourceDirectoryPath(onefile=False):
     else:
         suffix = ".build"
 
-    result = getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
-    )
+    filename = os.path.basename(getTreeFilenameWithSuffix(_main_module, suffix))
 
-    makePath(result)
+    if isWin32Windows() and not isFilesystemEncodable(filename):
+        filename = "_nuitka_temp" + suffix
 
-    git_ignore_filename = os.path.join(result, ".gitignore")
+    result = getOutputPath(path=filename)
 
-    if not os.path.exists(git_ignore_filename):
-        putTextFileContents(filename=git_ignore_filename, contents="*")
+    if create:
+        makePath(result)
+
+        git_ignore_filename = os.path.join(result, ".gitignore")
+
+        if not os.path.exists(git_ignore_filename):
+            putTextFileContents(filename=git_ignore_filename, contents="*")
 
     return result
 
@@ -87,14 +99,40 @@ def _getStandaloneDistSuffix(bundle):
         return ".dist"
 
 
-def getStandaloneDirectoryPath(bundle=True):
-    assert isStandaloneMode()
+def _getActualOutputFolderName(bundle):
+    dist_folder_name = getOutputFolderName()
 
-    result = getOutputPath(
-        path=os.path.basename(
+    if dist_folder_name is None:
+        dist_folder_name = os.path.basename(
             getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
         )
+    else:
+        # Add the suffix if not provided by the user
+        standalone_dist_suffix = _getStandaloneDistSuffix(bundle)
+
+        if not hasFilenameExtension(dist_folder_name, standalone_dist_suffix):
+            dist_folder_name = changeFilenameExtension(
+                dist_folder_name, standalone_dist_suffix
+            )
+
+    return dist_folder_name
+
+
+def needsStandaloneDirectoryWorkaround():
+    return isWin32Windows() and not isFilesystemEncodable(
+        _getActualOutputFolderName(bundle=False)
     )
+
+
+def getStandaloneDirectoryPath(bundle, real):
+    assert isStandaloneMode()
+
+    if needsStandaloneDirectoryWorkaround() and not real:
+        dist_folder_name = "_nuitka_temp"
+    else:
+        dist_folder_name = _getActualOutputFolderName(bundle=bundle)
+
+    result = getOutputPath(path=dist_folder_name)
 
     if bundle and shallCreateAppBundle() and not isOnefileMode():
         result = os.path.join(result, "Contents", "MacOS")
@@ -102,7 +140,46 @@ def getStandaloneDirectoryPath(bundle=True):
     return result
 
 
-def getResultBasePath(onefile=False):
+def initStandaloneDirectory(logger):
+    """Reset the standalone directory, if it exists from a previous run."""
+    standalone_dir = getStandaloneDirectoryPath(bundle=False, real=False)
+    resetDirectory(
+        path=standalone_dir,
+        logger=logger,
+        ignore_errors=True,
+        extra_recommendation="Stop previous binary.",
+    )
+
+    standalone_dir_real = getStandaloneDirectoryPath(bundle=False, real=True)
+
+    if standalone_dir != standalone_dir_real:
+        removeDirectory(
+            path=standalone_dir_real,
+            logger=logger,
+            ignore_errors=True,
+            extra_recommendation="Stop previous binary.",
+        )
+
+        if shallCreateAppBundle():
+            resetDirectory(
+                path=changeFilenameExtension(standalone_dir_real, ".app"),
+                logger=logger,
+                ignore_errors=True,
+                extra_recommendation=None,
+            )
+
+
+def renameStandaloneDirectory(dist_dir):
+    if needsStandaloneDirectoryWorkaround():
+        dist_dir_real = getStandaloneDirectoryPath(bundle=True, real=True)
+
+        os.rename(dist_dir, dist_dir_real)
+        dist_dir = dist_dir_real
+
+    return dist_dir
+
+
+def getResultBasePath(onefile=False, real=False):
     if isOnefileMode() and onefile:
         file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
 
@@ -112,7 +189,7 @@ def getResultBasePath(onefile=False):
         return getOutputPath(path=file_path)
     elif isStandaloneMode() and not onefile:
         return os.path.join(
-            getStandaloneDirectoryPath(),
+            getStandaloneDirectoryPath(bundle=True, real=real),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
         )
     else:
@@ -121,10 +198,10 @@ def getResultBasePath(onefile=False):
         )
 
 
-def getResultFullpath(onefile):
+def getResultFullpath(onefile, real):
     """Get the final output binary result full path."""
 
-    result = getResultBasePath(onefile=onefile)
+    result = getResultBasePath(onefile=onefile, real=real)
 
     if shallMakeModule():
         result += getExtensionModuleSuffix(preferred=True)
@@ -140,12 +217,12 @@ def getResultFullpath(onefile):
                 result = getOutputPath(output_filename)
             else:
                 result = os.path.join(
-                    getStandaloneDirectoryPath(),
+                    getStandaloneDirectoryPath(bundle=True, real=real),
                     os.path.basename(output_filename),
                 )
         elif isStandaloneMode() and output_filename is not None:
             result = os.path.join(
-                getStandaloneDirectoryPath(),
+                getStandaloneDirectoryPath(bundle=True, real=real),
                 os.path.basename(output_filename),
             )
         elif output_filename is not None:
@@ -163,7 +240,7 @@ def getResultFullpath(onefile):
 
 
 def getResultRunFilename(onefile):
-    result = getResultFullpath(onefile=onefile)
+    result = getResultFullpath(onefile=onefile, real=True)
 
     if shallCreateScriptFileForExecution():
         result = getResultBasePath(onefile=onefile) + (
@@ -188,11 +265,11 @@ def getPgoRunInputFilename():
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

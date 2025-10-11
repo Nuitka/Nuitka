@@ -25,6 +25,7 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     deleteFile,
     getFileContents,
+    getFileContentsHash,
     getFileList,
     getNormalizedPath,
     listDir,
@@ -33,7 +34,6 @@ from nuitka.utils.FileOperations import (
     relpath,
     withDirectoryChange,
 )
-from nuitka.utils.Hashing import getFileContentsHash
 from nuitka.utils.InstalledPythons import findPythons
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 from nuitka.utils.Yaml import parseYaml
@@ -602,11 +602,11 @@ if __name__ == "__main__":
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

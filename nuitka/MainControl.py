@@ -25,6 +25,7 @@ from nuitka.code_generation.ConstantCodes import (
 )
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
+    addIncludedDataFilesFromFlavor,
     addIncludedDataFilesFromPackageOptions,
     addIncludedDataFilesFromPlugins,
     copyDataFiles,
@@ -74,6 +75,7 @@ from nuitka.PythonVersions import (
     getModuleLinkerLibs,
     getPythonABI,
     getSupportedPythonVersions,
+    isPythonWithGil,
     python_version,
     python_version_str,
 )
@@ -87,7 +89,7 @@ from nuitka.Tracing import (
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
-from nuitka.utils.Distributions import getDistribution
+from nuitka.utils.Distributions import getDistribution, getDistributionName
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
@@ -100,7 +102,6 @@ from nuitka.utils.FileOperations import (
     getReportPath,
     openTextFile,
     removeDirectory,
-    resetDirectory,
 )
 from nuitka.utils.Importing import getPackageDirFilename
 from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
@@ -116,7 +117,6 @@ from .build.SconsInterface import (
     cleanSconsDirectory,
     getCommonSconsOptions,
     runScons,
-    setPythonTargetOptions,
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
@@ -171,8 +171,18 @@ def _createMainModule():
                 % distribution_name
             )
 
+        real_distribution_name = getDistributionName(distribution)
+
+        if real_distribution_name != distribution_name:
+            general.warning(
+                """\
+Warning, the distribution specified as '--include-distribution-metadata=%s' is really named '%s', \
+use the correct name instead."""
+                % (distribution_name, real_distribution_name)
+            )
+
         addDistributionMetadataValue(
-            distribution_name=distribution_name,
+            distribution_name=real_distribution_name,
             distribution=distribution,
             reason="user requested",
         )
@@ -180,37 +190,25 @@ def _createMainModule():
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
     # harm.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=True)
 
     if not Options.shallOnlyExecCCompilerCall():
         cleanSconsDirectory(source_dir)
 
         # Prepare the ".dist" directory, throwing away what was there before.
         if Options.isStandaloneMode():
-            standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-            resetDirectory(
-                path=standalone_dir,
-                logger=general,
-                ignore_errors=True,
-                extra_recommendation="Stop previous binary.",
-            )
-
-            if Options.shallCreateAppBundle():
-                resetDirectory(
-                    path=changeFilenameExtension(standalone_dir, ".app"),
-                    logger=general,
-                    ignore_errors=True,
-                    extra_recommendation=None,
-                )
+            OutputDirectories.initStandaloneDirectory(logger=general)
 
     # Delete result file, to avoid confusion with previous build and to
     # avoid locking issues after the build.
     deleteFile(
-        path=OutputDirectories.getResultFullpath(onefile=False), must_exist=False
+        path=OutputDirectories.getResultFullpath(onefile=False, real=True),
+        must_exist=False,
     )
     if Options.isOnefileMode():
         deleteFile(
-            path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
+            path=OutputDirectories.getResultFullpath(onefile=True, real=True),
+            must_exist=False,
         )
 
         # Also make sure we inform the user in case the compression is not possible.
@@ -332,9 +330,18 @@ def pickSourceFilenames(source_dir, modules):
         # or not, but that's probably not worth the effort. False positives do
         # no harm at all. We cannot use normcase, as macOS is not using one that
         # will tell us the truth.
-        collision_filename = base_filename.lower()
+        collision_filename = os.path.join(
+            source_dir, "module." + module.getFullName().asString().lower()
+        )
 
-        return base_filename, collision_filename
+        # When the filename becomes to long to add ".const", we use a hash name
+        # instead.
+        hash_filename = os.path.join(
+            source_dir,
+            "module.hashed_" + module.getFullName().asLegalFilename(),
+        )
+
+        return base_filename, collision_filename, hash_filename
 
     seen_filenames = set()
 
@@ -343,7 +350,7 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonExtensionModule():
             continue
 
-        _base_filename, collision_filename = _getModuleFilenames(module)
+        _base_filename, collision_filename, _hash_filename = _getModuleFilenames(module)
 
         if collision_filename in seen_filenames:
             collision_filenames.add(collision_filename)
@@ -362,13 +369,18 @@ def pickSourceFilenames(source_dir, modules):
         if module.isPythonExtensionModule():
             continue
 
-        base_filename, collision_filename = _getModuleFilenames(module)
+        base_filename, collision_filename, hash_filename = _getModuleFilenames(module)
 
         if collision_filename in collision_filenames:
             collision_counts[collision_filename] = (
                 collision_counts.get(collision_filename, 0) + 1
             )
             base_filename += "@%d" % collision_counts[collision_filename]
+
+        # Allow for longer suffixes that .c, we use .const and might use others
+        # as well in the C compiler.
+        if len(base_filename) > 240:
+            base_filename = hash_filename
 
         module_filenames[module] = base_filename + ".c"
 
@@ -428,7 +440,7 @@ def makeSourceDirectory():
             assert False, module
 
     # Pick filenames.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     module_filenames = pickSourceFilenames(
         source_dir=source_dir, modules=compiled_modules
@@ -451,7 +463,9 @@ def makeSourceDirectory():
 
         source_code = CodeGeneration.generateModuleCode(
             module=module,
-            data_filename=os.path.basename(c_filename[:-2] + ".const"),
+            data_filename=changeFilenameExtension(
+                os.path.basename(c_filename), ".const"
+            ),
         )
 
         writeSourceCode(filename=c_filename, source_code=source_code)
@@ -502,7 +516,10 @@ def _wasMsvcMode():
 
     return (
         getSconsReportValue(
-            source_dir=OutputDirectories.getSourceDirectoryPath(), key="msvc_mode"
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
+            key="msvc_mode",
         )
         == "True"
     )
@@ -536,7 +553,10 @@ def _runCPgoBinary():
         with withEnvironmentVarOverridden(
             "PATH",
             getSconsReportValue(
-                source_dir=OutputDirectories.getSourceDirectoryPath(), key="PATH"
+                source_dir=OutputDirectories.getSourceDirectoryPath(
+                    onefile=False, create=False
+                ),
+                key="PATH",
             ),
         ):
             exit_code_pgo = _runPgoBinary()
@@ -547,7 +567,8 @@ def _runCPgoBinary():
 
         # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
-            OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
+            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+            "__constants.gcda",
         )
 
         pgo_data_collected = os.path.exists(gcc_constants_pgo_filename)
@@ -596,9 +617,9 @@ def runSconsBackend():
     # pylint: disable=too-many-branches,too-many-statements
     scons_options, env_values = getCommonSconsOptions()
 
-    setPythonTargetOptions(scons_options)
-
-    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath()
+    scons_options["source_dir"] = OutputDirectories.getSourceDirectoryPath(
+        onefile=False, create=False
+    )
     scons_options["nuitka_python"] = asBoolStr(isNuitkaPython())
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
     scons_options["debugger_mode"] = asBoolStr(Options.shallRunInDebugger())
@@ -614,7 +635,9 @@ def runSconsBackend():
     if Options.isLowMemory():
         scons_options["low_memory"] = asBoolStr(True)
 
-    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=False)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(
+        onefile=False, real=False
+    )
 
     if not Options.shallMakeModule():
         main_module = ModuleRegistry.getRootTopModule()
@@ -792,7 +815,10 @@ def callExecPython(args, add_path, uac):
 def _executeMain(binary_filename):
     # Wrap in debugger, unless the CMD file contains that call already.
     if Options.shallRunInDebugger() and not Options.shallCreateScriptFileForExecution():
-        args = wrapCommandForDebuggerForExec(command=(binary_filename,))
+        args = wrapCommandForDebuggerForExec(
+            command=(binary_filename,),
+            debugger=Options.getDebuggerName(),
+        )
     else:
         args = (binary_filename, binary_filename)
 
@@ -834,7 +860,9 @@ import sys; sys.path.insert(0, %(output_dir)r)
         "module_name": tree.getName(),
         "expected_filename": os.path.normcase(
             os.path.abspath(
-                os.path.normpath(OutputDirectories.getResultFullpath(onefile=False))
+                os.path.normpath(
+                    OutputDirectories.getResultFullpath(onefile=False, real=True)
+                )
             )
         ),
         "output_dir": output_dir,
@@ -842,7 +870,8 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
     if Options.shallRunInDebugger():
         args = wrapCommandForDebuggerForExec(
-            command=(sys.executable, "-c", python_command)
+            command=(sys.executable, "-c", python_command),
+            debugger=Options.getDebuggerName(),
         )
     else:
         args = (sys.executable, "python", "-c", python_command)
@@ -851,7 +880,7 @@ import sys; sys.path.insert(0, %(output_dir)r)
 
 
 def compileTree():
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     general.info("Completed Python level compilation and optimization.")
 
@@ -883,7 +912,9 @@ def compileTree():
         )
 
     else:
-        source_dir = OutputDirectories.getSourceDirectoryPath()
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=False
+        )
 
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             general.sysexit("Error, no previous build directory exists.")
@@ -968,7 +999,12 @@ def _main():
         message="%s %s %s."
         % doNotBreakSpaces(
             "Version '%s'" % getNuitkaVersion(),
-            "on Python %s (flavor '%s')" % (python_version_str, getPythonFlavorName()),
+            "on Python %s (flavor '%s'%s)"
+            % (
+                python_version_str,
+                getPythonFlavorName(),
+                ("" if isPythonWithGil() else " no GIL"),
+            ),
             "commercial grade '%s'" % (getCommercialVersion() or "not installed"),
         ),
     )
@@ -988,6 +1024,7 @@ def _main():
 
     Plugins.onCompilationStartChecks()
 
+    addIncludedDataFilesFromFlavor()
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
@@ -1040,10 +1077,12 @@ def _main():
 
         detectUsedDLLs(
             standalone_entry_points=getStandaloneEntryPoints(),
-            source_dir=OutputDirectories.getSourceDirectoryPath(),
+            source_dir=OutputDirectories.getSourceDirectoryPath(
+                onefile=False, create=False
+            ),
         )
 
-        dist_dir = OutputDirectories.getStandaloneDirectoryPath()
+        dist_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=True, real=False)
 
         if not Options.shallOnlyExecCCompilerCall():
             main_standalone_entry_point, copy_standalone_entry_points = copyDllsUsed(
@@ -1063,7 +1102,14 @@ def _main():
                     copy_standalone_entry_points=copy_standalone_entry_points,
                 )
 
-        Plugins.onStandaloneDistributionFinished(dist_dir)
+            dist_dir = OutputDirectories.renameStandaloneDirectory(dist_dir)
+
+        Plugins.onStandaloneDistributionFinished(
+            dist_dir=dist_dir,
+            standalone_binary=OutputDirectories.getResultFullpath(
+                onefile=False, real=True
+            ),
+        )
 
         if Options.isOnefileMode():
             packDistFolderToOnefile(dist_dir)
@@ -1084,7 +1130,7 @@ def _main():
                 )
 
     # Remove the source directory (now build directory too) if asked to.
-    source_dir = OutputDirectories.getSourceDirectoryPath()
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=False, create=False)
 
     if Options.isRemoveBuildDir():
         general.info("Removing build directory '%s'." % source_dir)
@@ -1104,7 +1150,7 @@ def _main():
         general.info("Keeping build directory '%s'." % source_dir)
 
     final_filename = OutputDirectories.getResultFullpath(
-        onefile=Options.isOnefileMode()
+        onefile=Options.isOnefileMode(), real=True
     )
 
     if Options.isStandaloneMode() and isMacOS():
@@ -1188,11 +1234,11 @@ Report writing was prevented by exception %r, use option \
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

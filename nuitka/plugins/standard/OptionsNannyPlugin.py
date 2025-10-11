@@ -39,10 +39,22 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
         if support_info == "ignore":
             return
 
+        # No issues at all, but remember that for code generation.
+        if support_info == "perfect":
+            from nuitka.code_generation.LoaderCodes import (
+                markModuleAsPerfectSupported,
+            )
+
+            markModuleAsPerfectSupported(full_name)
+            return
+
         if support_info == "parameter":
-            message = "Module has parameter: " + description
+            message = "Module '%s' has parameter: %s" % (full_name, description)
         elif support_info == "plugin":
-            message = "Module has plugin consideration: " + description
+            message = "Module '%s' has plugin consideration: %s" % (
+                full_name,
+                description,
+            )
         else:
             if condition != "True":
                 problem_desc = (
@@ -67,7 +79,7 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
         else:
             self.sysexit(
                 "Error, unknown support_info level '%s' for module '%s'"
-                % full_name.asString()
+                % (support_info, full_name.asString())
             )
 
     def _checkMacOSBundleMode(self, full_name, macos_bundle):
@@ -145,11 +157,11 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

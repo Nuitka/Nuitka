@@ -57,13 +57,6 @@ else:
 
 
 if str is bytes:
-    from urllib import (  # pylint: disable=I0021,import-error,no-name-in-module
-        urlretrieve,
-    )
-else:
-    from urllib.request import urlretrieve
-
-if str is bytes:
     from cStringIO import StringIO  # Python2 code, pylint: disable=import-error
 else:
     from io import StringIO
@@ -146,6 +139,7 @@ FileNotFoundError = (  # pylint: disable=redefined-builtin
 
 if not hasattr(pkgutil, "ModuleInfo"):
     # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
+    # spell-checker: ignore ispkg
     from collections import namedtuple
 
     ModuleInfo = namedtuple("ModuleInfo", "module_finder name ispkg")
@@ -177,7 +171,7 @@ try:
     _md5()
 except ValueError:
     # On FIPS compliant systems, checks might be enabled that require
-    # this parameter to be set.
+    # this parameter to be set, spell-checker: ignore FIPS
     def md5(value=b""):
         return _md5(value, usedforsecurity=False)
 
@@ -187,7 +181,6 @@ else:
 # For PyLint to be happy.
 assert long
 assert unicode
-assert urlretrieve
 assert StringIO
 assert BytesIO
 assert type(xrange) is type, xrange
@@ -204,11 +197,11 @@ assert FileNotFoundError
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -8,7 +8,7 @@
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType, ModuleType
 
-from nuitka.__past__ import GenericAlias, builtins
+from nuitka.__past__ import GenericAlias, UnionType, builtins
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 
@@ -196,11 +196,14 @@ def _getAnonBuiltins():
         anon_names["GenericAlias"] = GenericAlias
         anon_codes["GenericAlias"] = "&Py_GenericAliasType"
 
-    if python_version >= 0x3A0:
+    if UnionType is not None:
         # 3.10 only code, pylint: disable=I0021,unsupported-binary-operation
 
-        anon_names["UnionType"] = type(int | str)
-        anon_codes["UnionType"] = "Nuitka_PyUnion_Type"
+        # Note: The name changed in Python3.14 to "Union", before it was UnionType.
+        union_name = UnionType.__name__
+
+        anon_names[union_name] = type(int | str)
+        anon_codes[union_name] = "Nuitka_PyUnion_Type"
 
     return anon_names, anon_codes
 
@@ -246,11 +249,11 @@ def isBaseExceptionSimpleExtension(exception_type):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

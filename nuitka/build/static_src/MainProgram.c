@@ -61,6 +61,10 @@
 #include "HelpersConsole.c"
 #endif
 
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
+#include "HelpersDialogs.c"
+#endif
+
 // We are open to having this defined otherwise, this is a default only.
 #if defined(_WIN32) && defined(NUITKA_COMPANY_NAME) && defined(NUITKA_PRODUCT_NAME) &&                                 \
     !defined(NUITKA_APP_MODEL_USER_ID)
@@ -68,6 +72,7 @@
 #endif
 
 #if defined(_WIN32) && defined(NUITKA_APP_MODEL_USER_ID)
+// spell-checker: ignore HRESULT,PCWSTR
 typedef HRESULT(WINAPI *pfnSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 
 static void setCurrentProcessExplicitAppUserModelID(wchar_t const *app_user_model_id) {
@@ -198,12 +203,21 @@ static void restoreStandaloneEnvironment(void) {
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_PY_PATH_CONFIG
+#if PYTHON_VERSION < 0x3e0
     wprintf(L"_Py_path_config.program_full_path='%lS'\n", _Py_path_config.program_full_path);
     wprintf(L"_Py_path_config.program_name='%lS'\n", _Py_path_config.program_name);
     wprintf(L"_Py_path_config.prefix='%lS'\n", _Py_path_config.prefix);
     wprintf(L"_Py_path_config.exec_prefix='%lS'\n", _Py_path_config.exec_prefix);
     wprintf(L"_Py_path_config.module_search_path='%lS'\n", _Py_path_config.module_search_path);
     wprintf(L"_Py_path_config.home='%lS'\n", _Py_path_config.home);
+#else
+    wprintf(L"PyConfig_Get(program_full_path)='%lS'\n", PyConfig_Get("program_full_path"));
+    wprintf(L"PyConfig_Get(program_name)='%lS'\n", PyConfig_Get("program_name"));
+    wprintf(L"PyConfig_Get(prefix)='%lS'\n", PyConfig_Get("prefix"));
+    wprintf(L"PyConfig_Get(exec_prefix)='%lS'\n", PyConfig_Get("exec_prefix"));
+    wprintf(L"PyConfig_Get(module_search_path)='%lS'\n", PyConfig_Get("module_search_path"));
+    wprintf(L"PyConfig_Get(home)='%lS'\n", PyConfig_Get("home"));
+#endif
 #endif
 }
 
@@ -256,6 +270,8 @@ static void PRINT_REFCOUNTS(void) {
     PRINT_FORMAT("Compiled Functions: %d | %d | %d (module/class ownership may occur)\n",
                  count_active_Nuitka_Function_Type, count_allocated_Nuitka_Function_Type,
                  count_released_Nuitka_Function_Type);
+    PRINT_FORMAT("Compiled Methods: %d | %d | %d (instance ownership may occur)\n", count_active_Nuitka_Method_Type,
+                 count_allocated_Nuitka_Method_Type, count_released_Nuitka_Method_Type);
     PRINT_FORMAT("Compiled Generators: %d | %d | %d\n", count_active_Nuitka_Generator_Type,
                  count_allocated_Nuitka_Generator_Type, count_released_Nuitka_Generator_Type);
 #if PYTHON_VERSION >= 0x350
@@ -315,6 +331,34 @@ static int HANDLE_PROGRAM_EXIT(PyThreadState *tstate) {
             }
 
             break;
+        }
+
+#endif
+
+#if !defined(_NUITKA_DEPLOYMENT_MODE)
+#if PYTHON_VERSION < 0x3c0
+        PyObject *exception_value = tstate->curexc_value;
+#else
+        PyObject *exception_value = tstate->current_exception;
+#endif
+        PyTypeObject *exception_type = Py_TYPE(exception_value);
+        char const *exception_name = exception_type->tp_name;
+
+        assert(HAS_ERROR_OCCURRED(tstate));
+
+        if (unlikely(strcmp(exception_name, "DistributionNotFound") == 0)) {
+            struct Nuitka_ExceptionPreservationItem saved_exception;
+            FETCH_ERROR_OCCURRED_STATE(tstate, &saved_exception);
+
+            PyObject *exception_arg = PyUnicode_FromFormat("\
+Nuitka: Distribution metadata not found, use --include-distribution-metadata to avoid '%R' \
+and for 3rd party packages doing it, please raise a Nuitka issue so we can make this be \
+included by default",
+                                                           exception_value);
+
+            CHECK_OBJECT(exception_arg);
+
+            raiseReplacementRuntimeError(tstate, &saved_exception, exception_arg);
         }
 #endif
         NUITKA_FINALIZE_PROGRAM(tstate);
@@ -384,6 +428,11 @@ void SvcStopPython(void) { PyErr_SetInterrupt(); }
 
 // This is a multiprocessing fork
 static bool is_multiprocessing_fork = false;
+// This is a multiprocessing forkserver
+static bool is_multiprocessing_forkserver = false;
+static int multiprocessing_forkserver_fd1 = -1;
+static int multiprocessing_forkserver_fd2 = -1;
+
 // This is a multiprocessing resource tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 
@@ -466,6 +515,14 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                 break;
             }
 
+            if (scanFilename(argv[i + 1],
+                             FILENAME_EMPTY_STR
+                             "from multiprocessing.forkserver import main; main(%i, %i, ['__main__'],",
+                             &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
+                is_multiprocessing_forkserver = true;
+                break;
+            }
+
 #if defined(_WIN32)
             if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR
                                "from joblib.externals.loky.backend.popen_loky_win32 import main; main()") == 0) {
@@ -513,11 +570,11 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
     }
 }
 
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
 
 static long onefile_ppid;
 
-DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+static DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
 
     for (;;) {
@@ -767,6 +824,10 @@ static bool shallSetOutputHandleToNull(char const *name) {
     }
 #endif
 
+#if _NUITKA_DLL_MODE
+    return false;
+#endif
+
     PyObject *sys_std_handle = Nuitka_SysGetObject(name);
     if (sys_std_handle == NULL || sys_std_handle == Py_None) {
         return true;
@@ -861,10 +922,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
 
         PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stdout, const_str_plain_reconfigure);
-        CHECK_OBJECT(method);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
+            CHECK_OBJECT(method);
 
-        PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-        CHECK_OBJECT(result);
+            PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
+        }
     }
 #endif
 
@@ -872,12 +939,16 @@ static void setInputOutputHandles(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("setInputOutputHandles(): Forced stderr update.");
     {
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-        if (sys_stderr != Py_None) {
-            PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        PyObject *method = LOOKUP_ATTRIBUTE(tstate, sys_stderr, const_str_plain_reconfigure);
+        if (method == NULL) {
+            DROP_ERROR_OCCURRED(tstate);
+        } else {
             CHECK_OBJECT(method);
 
             PyObject *result = CALL_FUNCTION_WITH_KW_ARGS(tstate, method, args);
-            CHECK_OBJECT(result);
+            Py_DECREF(method);
+
+            Py_XDECREF(result);
         }
     }
 #endif
@@ -1183,12 +1254,23 @@ static void Nuitka_at_exit(void) { NUITKA_PRINT_TIMING("Nuitka_at_exit(): Called
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
 #include <signal.h>
+
+#if defined(_WIN32)
 static void nuitka_segfault_handler(int sig) {
+#else
+static void nuitka_segfault_handler(int sig, siginfo_t *info, void *ucontext) {
+#endif
+    // Restore default handler to avoid recursion.
+    signal(SIGSEGV, SIG_DFL);
+
     puts("Nuitka: A segmentation fault has occurred. This is highly unusual and can");
     puts("have multiple reasons. Please check https://nuitka.net/info/segfault.html");
     puts("for solutions.");
 
-    signal(SIGSEGV, SIG_DFL);
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
+    DUMP_C_BACKTRACE_FROM_CONTEXT(ucontext);
+#endif
+
     raise(SIGSEGV);
 }
 #endif
@@ -1212,7 +1294,7 @@ PyObject *getOriginalArgv0Object(void) {
     return Nuitka_String_FromFilename(original_argv0);
 }
 
-filename_char_t const *getOriginalArgv0(void) {
+native_command_line_argument_t const *getOriginalArgv0(void) {
     assert(original_argv0 != NULL);
     return original_argv0;
 }
@@ -1296,12 +1378,19 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     // Installer a segfault handler that outputs a helpful message.
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SEGFAULT)
+#if defined(_WIN32)
     signal(SIGSEGV, nuitka_segfault_handler);
+#else
+    struct sigaction sa;
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = nuitka_segfault_handler;
+    sigaction(SIGSEGV, &sa, NULL);
+#endif
 #endif
 
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
     INIT_C_BACKTRACES();
-    DUMP_C_BACKTRACE();
 #endif
     // Trace when the process exits.
 #if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
@@ -1310,7 +1399,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     // Attach to the parent console respecting redirection only, otherwise we
     // cannot even output traces.
-#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
+#if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW) && !_NUITKA_DLL_MODE
     inheritAttachedConsole();
 #endif
 
@@ -1321,7 +1410,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 // Make sure, we use the absolute program path for argv[0] for standalone mode
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
     original_argv0 = argv[0];
-#if !defined(_NUITKA_ONEFILE_MODE)
+#if !_NUITKA_ONEFILE_MODE
     argv[0] = (char *)getBinaryFilenameHostEncoded(false);
 #endif
 #endif
@@ -1459,7 +1548,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initial command line handling only. */
 
-#if defined(_NUITKA_ONEFILE_MODE)
+#if _NUITKA_ONEFILE_MODE
     {
         environment_char_t const *parent_original_argv0 = getEnvironmentVariable("NUITKA_ORIGINAL_ARGV0");
 
@@ -1603,7 +1692,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
     /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
-    _initBuiltinModule();
+    _initBuiltinModule(tstate);
 
     /* Initialize the Python constant values used. This also sets
      * "sys.executable" while at it.
@@ -1811,6 +1900,25 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
         Py_Exit(exit_code);
+    } else if (unlikely(is_multiprocessing_forkserver)) {
+        NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver.");
+        PyObject *forkserver_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.forkserver", true);
+
+        PyObject *main_function = PyObject_GetAttrString(forkserver_module, "main");
+        CHECK_OBJECT(main_function);
+
+        PyObject *main_list = MAKE_LIST_EMPTY(tstate, 1);
+        PyList_SET_ITEM(main_list, 0, Nuitka_String_FromString("__main__"));
+
+        PyObject *args[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd1),
+                            Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd2), main_list};
+
+        CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+        NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver Py_Exit.");
+        Py_Exit(exit_code);
 #if defined(_WIN32)
     } else if (unlikely(is_joblib_popen_loky_win32)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
@@ -1909,7 +2017,7 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
         Py_Exit(exit_code);
     } else {
 #endif
-#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
+#if _NUITKA_ONEFILE_MODE && !_NUITKA_DLL_MODE && defined(_WIN32)
         {
             char buffer[128] = {0};
             DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));
@@ -1968,17 +2076,24 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
-    /* MSVC, MINGW64 */
+    /* MSVC, MINGW64 both have this */
     int argc = __argc;
     wchar_t **argv = __wargv;
 
+    // Call the Nuitka main code.
     return Nuitka_Main(argc, argv);
 }
 #else
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) { return Nuitka_Main(argc, argv); }
+int wmain(int argc, wchar_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #else
-int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
+int main(int argc, char **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 #endif
 #endif
 
@@ -1994,7 +2109,10 @@ int main(int argc, char **argv) { return Nuitka_Main(argc, argv); }
 extern "C" {
 #endif
 
-NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) { return Nuitka_Main(argc, argv); }
+NUITKA_DLL_FUNCTION int run_code(int argc, native_command_line_argument_t **argv) {
+    // Call the Nuitka main code.
+    return Nuitka_Main(argc, argv);
+}
 
 #ifdef __cplusplus
 }
@@ -2047,11 +2165,11 @@ int Py_Main(int argc, char **argv) { return 0; }
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

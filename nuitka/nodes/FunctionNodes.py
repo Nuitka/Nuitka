@@ -34,6 +34,7 @@ from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
+from nuitka.utils.CStrings import decodePythonIdentifierFromC
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -1131,7 +1132,9 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
     def getFunctionBody(self):
         if self.function_body is None:
-            module_code_name, _ = self.code_name.split("$$$", 1)
+            code_name = decodePythonIdentifierFromC(self.code_name)
+
+            module_code_name, _ = code_name.split("$$$", 1)
 
             from nuitka.ModuleRegistry import getModuleFromCodeName
 
@@ -1290,11 +1293,11 @@ class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionB
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -175,8 +175,14 @@ static unsigned long long payload_size = 0;
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
+#ifdef __LP64__
+#define mach_header_arch mach_header_64
+#else
+#define mach_header_arch mach_header
+#endif
+
 static void initPayloadData2(void) {
-    const struct mach_header *header = &_mh_execute_header;
+    const struct mach_header_arch *header = &_mh_execute_header;
 
     unsigned long section_size;
 
@@ -763,6 +769,7 @@ static void cleanupChildProcess(bool send_sigint) {
 #endif
 }
 
+#if !_NUITKA_ONEFILE_DLL_MODE
 #if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
@@ -811,6 +818,7 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 
 #else
 void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
+#endif
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
@@ -994,13 +1002,20 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lp
 #else
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
-#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
-    hideConsoleIfSpawned();
-#endif
 #else
 int main(int argc, char **argv) {
 #endif
 #endif
+
+#if defined(NEEDS_ORIGINAL_ARGV0)
+    original_argv0 = argv[0];
+#endif
+
+    // Hide the console window if asked to do so.
+#if defined(_NUITKA_HIDE_CONSOLE_WINDOW)
+    hideConsoleIfSpawned();
+#endif
+
     // Attach to the parent console respecting redirection only, otherwise we cannot
     // even output traces.
 #if defined(_WIN32) && defined(_NUITKA_ATTACH_CONSOLE_WINDOW)
@@ -1106,6 +1121,7 @@ int main(int argc, char **argv) {
     wprintf(L"payload path: '%lS'\n", payload_path);
 #endif
 
+#if !_NUITKA_ONEFILE_DLL_MODE
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {
@@ -1115,6 +1131,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, ourConsoleCtrlHandler);
     signal(SIGQUIT, ourConsoleCtrlHandler);
     signal(SIGTERM, ourConsoleCtrlHandler);
+#endif
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL
@@ -1319,6 +1336,11 @@ int main(int argc, char **argv) {
     filename_char_t const *fork_binary = first_filename;
 #endif
 
+#if defined(_AIX)
+    // Force DLL loading from the distribution.
+    setEnvironmentVariable("LIBPATH", payload_path);
+#endif
+
 #if defined(_WIN32)
 
     // spell-checker: ignore STARTUPINFOW, STARTF_USESTDHANDLES
@@ -1432,11 +1454,11 @@ int main(int argc, char **argv) {
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

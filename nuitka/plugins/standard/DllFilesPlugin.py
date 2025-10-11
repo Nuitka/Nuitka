@@ -456,6 +456,21 @@ conditions are missing, or this version of the module needs treatment added."""
                     if os.path.isdir(package_directory):
                         yield dylib_directory
 
+    def decideRecompileExtensionModules(self, module_name):
+        for config_module_name, recompile_extensions in self.getYamlConfigItem(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="recompile-extensions",
+            decide_relevant=None,
+            recursive=True,
+            default=None,
+        ):
+            return (
+                recompile_extensions,
+                "package configuration for '%s' module says '%s'"
+                % (config_module_name, recompile_extensions),
+            )
+
     def isAcceptableMissingDLL(self, package_name, dll_basename):
         if package_name is None:
             return None
@@ -514,11 +529,11 @@ conditions are missing, or this version of the module needs treatment added."""
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -15,6 +15,12 @@
 #include <structmember.h>
 #endif
 
+#if _DEBUG_REFCOUNTS
+int count_active_Nuitka_Method_Type;
+int count_allocated_Nuitka_Method_Type;
+int count_released_Nuitka_Method_Type;
+#endif
+
 static PyObject *Nuitka_Method_get__doc__(PyObject *self, void *data) {
     struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)self;
     PyObject *result = method->m_function->m_doc;
@@ -132,17 +138,17 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {NULL}};
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
-                                             PyObject *kwnames) {
+static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargs_f,
+                                             PyObject *kw_names) {
     assert(Nuitka_Method_Check((PyObject *)method));
-    assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
-    Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
-    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
+    Py_ssize_t kwargs_count = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargs_f);
 
     assert(nargs >= 0);
-    assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+    assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
-    Py_ssize_t totalargs = nargs + nkwargs;
+    Py_ssize_t totalargs = nargs + kwargs_count;
 
     // Shortcut possible, no args.
     if (totalargs == 0) {
@@ -151,7 +157,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
     PyObject *result;
 
-    if (nargsf & PY_VECTORCALL_ARGUMENTS_OFFSET) {
+    if (nargs_f & PY_VECTORCALL_ARGUMENTS_OFFSET) {
         /* We are allowed to mutate the stack. TODO: Is this the normal case, so
            we can consider the else branch irrelevant? Also does it not make sense
            to check pos arg and kw counts and shortcut somewhat. */
@@ -164,7 +170,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
         CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
-                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+                                               kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
@@ -180,7 +186,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
         CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
-                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+                                               kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
     }
@@ -412,6 +418,11 @@ static struct Nuitka_MethodObject *free_list_methods = NULL;
 static int free_list_methods_count = 0;
 
 static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Method_Type -= 1;
+    count_released_Nuitka_Method_Type += 1;
+#endif
+
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
     PyThreadState *tstate = PyThreadState_GET();
@@ -568,6 +579,11 @@ void _initCompiledMethodType(void) {
 PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *class_object) {
     struct Nuitka_MethodObject *result;
 
+#if _DEBUG_REFCOUNTS
+    count_active_Nuitka_Method_Type += 1;
+    count_allocated_Nuitka_Method_Type += 1;
+#endif
+
     CHECK_OBJECT((PyObject *)function);
     assert(Nuitka_Function_Check((PyObject *)function));
     assert(_PyObject_GC_IS_TRACKED(function));
@@ -601,11 +617,11 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

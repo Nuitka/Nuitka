@@ -47,9 +47,14 @@ from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 def packDistFolderToOnefile(dist_dir):
     """Pack distribution to onefile, i.e. a single file that is directly executable."""
 
-    onefile_output_filename = getResultFullpath(onefile=True)
+    onefile_output_filename = getResultFullpath(onefile=True, real=True)
+    start_binary = getResultFullpath(onefile=False, real=True)
 
-    packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir)
+    packDistFolderToOnefileBootstrap(
+        onefile_output_filename=onefile_output_filename,
+        dist_dir=dist_dir,
+        start_binary=start_binary,
+    )
 
     Plugins.onOnefileFinished(onefile_output_filename)
 
@@ -57,12 +62,14 @@ def packDistFolderToOnefile(dist_dir):
 def _runOnefileScons(onefile_compression, onefile_archive):
     scons_options, env_values = getCommonSconsOptions()
 
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=False)
 
     # Let plugins do their thing for onefile mode too.
     Plugins.writeExtraCodeFiles(onefile=True)
 
-    scons_options["result_exe"] = OutputDirectories.getResultFullpath(onefile=True)
+    scons_options["result_exe"] = OutputDirectories.getResultFullpath(
+        onefile=True, real=False
+    )
     scons_options["source_dir"] = source_dir
     scons_options["debug_mode"] = asBoolStr(Options.is_debug)
     scons_options["trace_mode"] = asBoolStr(Options.shallTraceExecution())
@@ -156,7 +163,7 @@ def runOnefileCompressor(
             )
         }
 
-        mapping["NUITKA_PROGRESS_BAR"] = "1" if Options.shallUseProgressBar() else "0"
+        mapping["NUITKA_PROGRESS_BAR"] = Options.getProgressBar()
 
         onefile_logger.info(
             "Using external Python '%s' to compress the payload."
@@ -181,7 +188,7 @@ def runOnefileCompressor(
             )
 
 
-def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
+def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_binary):
     postprocessing_logger.info(
         "Creating single file from dist folder, this may take a while."
     )
@@ -189,7 +196,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
     # Cleanup first.
-    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True, create=True)
     cleanSconsDirectory(source_dir)
 
     # Used only in some configurations
@@ -207,7 +214,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
             compressor_python=compressor_python,
             dist_dir=dist_dir,
             onefile_output_filename=onefile_payload_filename,
-            start_binary=getResultFullpath(onefile=False),
+            start_binary=start_binary,
         )
 
     # Create the bootstrap binary for unpacking.
@@ -239,7 +246,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
                 if isWin32Windows()
                 else onefile_output_filename
             ),
-            start_binary=getResultFullpath(onefile=False),
+            start_binary=start_binary,
         )
 
         if isWin32Windows():
@@ -269,11 +276,11 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

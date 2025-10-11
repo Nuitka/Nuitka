@@ -36,8 +36,18 @@ PyObject *TO_FLOAT(PyObject *value) {
 #if NUITKA_FLOAT_HAS_FREELIST
 
 static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
-    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION >= 0x3e0
+    PyFloatObject *result_float = (PyFloatObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->floats);
 
+    if (result_float == NULL) {
+        result_float = (PyFloatObject *)NuitkaObject_Malloc(sizeof(PyFloatObject));
+
+        Py_SET_TYPE(result_float, &PyFloat_Type);
+    }
+
+    Nuitka_Py_NewReference((PyObject *)result_float);
+#else
+    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     struct _Py_float_state *state = &tstate->interp->float_state;
     PyFloatObject **free_list = &state->free_list;
@@ -59,8 +69,9 @@ static PyFloatObject *_Nuitka_AllocatePyFloatObject(PyThreadState *tstate) {
 
     Py_SET_TYPE(result_float, &PyFloat_Type);
     Nuitka_Py_NewReference((PyObject *)result_float);
-
+#endif
     assert(result_float != NULL);
+    assert(PyFloat_CheckExact(result_float));
 
     return result_float;
 }
@@ -79,11 +90,11 @@ PyObject *MAKE_FLOAT_FROM_DOUBLE(double value) {
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

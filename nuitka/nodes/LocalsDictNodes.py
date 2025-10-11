@@ -60,11 +60,11 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
-        self.variable_trace = trace_collection.getVariableCurrentTrace(
+        variable_trace = self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable=self.variable
         )
 
-        replacement = self.variable_trace.getReplacementNode(self)
+        replacement = variable_trace.getReplacementNode(self)
 
         if replacement is not None:
             trace_collection.signalChange(
@@ -86,55 +86,63 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
             and not self.locals_scope.isPreventedPropagation()
         )
 
-        # If we can be sure it doesn't have a value set, go to the fallback directly.
-        if no_exec and self.variable_trace.mustNotHaveValue():
-            return trace_collection.computedExpressionResultRaw(
-                self.subnode_fallback,
-                "new_expression",
-                "Name '%s' cannot be in locals dict." % self.variable.getName(),
-            )
+        if no_exec:
+            if variable_trace.isUnknownTrace():
+                if self.subnode_fallback.hasVeryTrustedValue():
+                    return trace_collection.computedExpressionResultRaw(
+                        expression=self.subnode_fallback,
+                        change_tags="var_usage",
+                        change_desc="Name '%s' with hard value referenced in class not considering class dictionary."
+                        % self.variable.getName(),
+                    )
+                elif self.subnode_fallback.isExpressionVariableRef():
+                    fallback_variable_trace = self.subnode_fallback.variable_trace
 
-        # If we cannot be sure if the value is set, then we need the fallback,
-        # otherwise we could remove it simply.
-        if no_exec and self.variable_trace.mustHaveValue():
-            trace_collection.signalChange(
-                "new_expression",
-                self.source_ref,
-                "Name '%s' must be in locals dict." % self.variable.getName(),
-            )
+                    if fallback_variable_trace is not None:
+                        trusted_node = (
+                            self.subnode_fallback.variable_trace.getAttributeNodeVeryTrusted()
+                        )
 
-            result = ExpressionLocalsVariableRef(
-                locals_scope=self.locals_scope,
-                variable_name=self.variable.getName(),
-                source_ref=self.source_ref,
-            )
+                        if trusted_node is not None:
+                            return trace_collection.computedExpressionResultRaw(
+                                expression=self.subnode_fallback,
+                                change_tags="var_usage",
+                                change_desc="Name '%s' with hard value referenced in class not considering class dictionary."
+                                % self.variable.getName(),
+                            )
+            else:
+                # If we can be sure it doesn't have a value set, go to the fallback directly.
+                if no_exec and variable_trace.mustNotHaveValue():
+                    return trace_collection.computedExpressionResultRaw(
+                        expression=self.subnode_fallback,
+                        change_tags="new_expression",
+                        change_desc="Name '%s' cannot be in locals dict."
+                        % self.variable.getName(),
+                    )
 
-            # Need to compute the replacement still.
-            return result.computeExpressionRaw(trace_collection)
+                # If we cannot be sure if the value is set, then we need the fallback,
+                # otherwise we could remove it simply.
+                if no_exec and variable_trace.mustHaveValue():
+                    trace_collection.signalChange(
+                        "new_expression",
+                        self.source_ref,
+                        "Name '%s' must be in locals dict." % self.variable.getName(),
+                    )
+
+                    result = ExpressionLocalsVariableRef(
+                        locals_scope=self.locals_scope,
+                        variable_name=self.variable.getName(),
+                        source_ref=self.source_ref,
+                    )
+
+                    # Need to compute the replacement still.
+                    return result.computeExpressionRaw(trace_collection)
 
         trace_collection.onExceptionRaiseExit(BaseException)
 
         branch_fallback = TraceCollectionBranch(
             parent=trace_collection, name="fallback node usage"
         )
-
-        if (
-            self.variable_trace.isUnknownTrace()
-            and self.subnode_fallback.isExpressionVariableRef()
-        ):
-            fallback_variable_trace = self.subnode_fallback.variable_trace
-
-            if fallback_variable_trace is not None:
-                trusted_node = (
-                    self.subnode_fallback.variable_trace.getAttributeNodeVeryTrusted()
-                )
-
-                if trusted_node is not None:
-                    return trace_collection.computedExpressionResultRaw(
-                        expression=self.subnode_fallback,
-                        change_tags="var_usage",
-                        change_desc="Hard value referenced in class not considering class dictionary.",
-                    )
 
         branch_fallback.onExpression(self.subnode_fallback)
         trace_collection.mergeBranches(branch_fallback, None)
@@ -704,11 +712,11 @@ class StatementReleaseLocals(StatementBase):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

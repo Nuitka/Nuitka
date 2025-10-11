@@ -11,13 +11,23 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
+from nuitka.PythonFlavors import (
+    getHomebrewInstallPath,
+    getSystemPrefixPath,
+    isAnacondaPython,
+    isCPythonOfficialPackage,
+    isHomebrewPython,
+    isNuitkaPython,
+    isPythonBuildStandalonePython,
+)
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
     changeFilenameExtension,
+    getNormalizedPath,
     getReportPath,
+    getSubDirectories,
     isFilenameBelowPath,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
@@ -40,20 +50,33 @@ def _detectPythonRpaths():
     result = []
 
     if isAnacondaPython() and "CONDA_PREFIX" in os.environ:
-        candidate = os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib"))
-
-        if os.path.isdir(candidate):
-            result.append(candidate)
+        result.append(os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib")))
 
     if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
-        candidate = os.path.normpath(
-            os.path.join(os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib")
+        result.append(
+            os.path.normpath(
+                os.path.join(
+                    os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib"
+                )
+            )
         )
 
-        if os.path.isdir(candidate):
-            result.append(candidate)
+    if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
+        result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
-    return tuple(set(result))
+    if isHomebrewPython():
+        result.extend(
+            os.path.join(getHomebrewInstallPath(), directory)
+            for directory in getSubDirectories(
+                path=getHomebrewInstallPath(), ignore_dirs=("__pycache__",)
+            )
+        )
+
+    return tuple(
+        getNormalizedPath(candidate)
+        for candidate in set(result)
+        if os.path.isdir(candidate)
+    )
 
 
 def detectBinaryPathDLLsMacOS(
@@ -413,7 +436,7 @@ def fixupBinaryDLLPathsMacOS(
             if dist_path is None:
                 inclusion_logger.sysexit(
                     """\
-    Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+Error, problem with dependency scan of '%s' with '%s' please report the bug."""
                     % (getReportPath(original_location), rpath_filename)
                 )
 
@@ -431,11 +454,11 @@ def fixupBinaryDLLPathsMacOS(
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

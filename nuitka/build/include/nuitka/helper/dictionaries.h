@@ -463,16 +463,27 @@ extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
 // Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
 extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
 
+// TODO: It's probably unchanged across all Python versions 2.6-3.14
+#if PYTHON_VERSION >= 0x3e0
+typedef struct {
+    PyObject_HEAD PyDictObject *di_dict;
+    Py_ssize_t di_used;
+    Py_ssize_t di_pos;
+    PyObject *di_result;
+    Py_ssize_t len;
+} dictiterobject;
+#endif
+
 #endif
 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

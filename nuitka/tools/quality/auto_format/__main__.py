@@ -53,6 +53,14 @@ Defaults to off.""",
     )
 
     parser.add_option(
+        "--assume-yes-for-downloads",
+        action="store_true",
+        dest="assume_yes_for_downloads",
+        default=False,
+        help="""Allow download and execution of tools if needed. Default is %default.""",
+    )
+
+    parser.add_option(
         "--yaml",
         action="store_true",
         dest="yaml",
@@ -94,6 +102,15 @@ Defaults to off.""",
         dest="md",
         default=False,
         help="""Format only matching markdown files
+Defaults to off.""",
+    )
+
+    parser.add_option(
+        "--json",
+        action="store_true",
+        dest="json",
+        default=False,
+        help="""Format only matching JSON files
 Defaults to off.""",
     )
 
@@ -142,6 +159,7 @@ Defaults to off.""",
                     ".c",
                     ".h",
                     ".yml",
+                    ".json",
                 ),
             )
         )
@@ -154,10 +172,10 @@ Defaults to off.""",
         result = 0
 
         if options.progress_bar:
-            enableProgressBar()
+            enableProgressBar(progress_bar="auto")
 
         for filename in wrapWithProgressBar(
-            filenames, stage="Auto format", unit="files"
+            filenames, stage="Auto format", unit="file"
         ):
             if autoFormatFile(
                 filename,
@@ -168,6 +186,8 @@ Defaults to off.""",
                 limit_python=options.python,
                 limit_rst=options.rst,
                 limit_md=options.md,
+                limit_json=options.json,
+                assume_yes_for_downloads=options.assume_yes_for_downloads,
             ):
                 result += 1
 
@@ -191,11 +211,11 @@ if __name__ == "__main__":
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

@@ -1,6 +1,6 @@
 #     Copyright 2025, Kay Hayen, mailto:kay.hayen@gmail.com find license text at end of file
 
-FROM debian:11-slim
+FROM debian:12-slim
 ENV container docker
 
 VOLUME [ "/sys/fs/cgroup" ]
@@ -8,14 +8,10 @@ VOLUME [ "/sys/fs/cgroup" ]
 ## Install what we use for CI generally
 COPY requirements-devel.txt /etc/requirements-devel.txt
 RUN mkdir /src
-RUN echo >>/etc/apt/sources.list "deb http://deb.debian.org/debian bullseye-backports main"
 RUN apt-get update && apt-get install -y apt-utils gcc python2 python2-dev python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
 
 ## Install pbuilder extra stuff along with Nuitka build dependencies.
 RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
-
-## Update reprepro from backports
-RUN apt-get install -y -t bullseye-backports reprepro
 
 RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
@@ -28,11 +24,11 @@ RUN git config --global --add safe.directory /src
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

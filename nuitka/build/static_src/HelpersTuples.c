@@ -18,6 +18,22 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     // Lets not get called other than this
     assert(size > 0);
 
+#if PYTHON_VERSION >= 0x3e0
+    Py_ssize_t index = size - 1;
+
+    if (index < PyTuple_MAXSAVESIZE) {
+        result_tuple = (PyTupleObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->tuples[index]);
+    } else {
+        result_tuple = NULL;
+    }
+
+    if (result_tuple == NULL) {
+        result_tuple = (PyTupleObject *)Nuitka_GC_NewVar(&PyTuple_Type, size);
+    } else {
+        _PyTuple_RESET_HASH_CACHE(result_tuple);
+        Nuitka_Py_NewReference((PyObject *)result_tuple);
+    }
+#else
     // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     PyTupleObject **items = tstate->interp->tuple.free_list;
@@ -52,6 +68,7 @@ PyObject *MAKE_TUPLE_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 
         result_tuple = (PyTupleObject *)Nuitka_GC_NewVar(&PyTuple_Type, size);
     }
+#endif
 
     // TODO: Why not use memset here, and can we rely on memory being cleared
     // by allocator?
@@ -135,11 +152,11 @@ PyObject *TUPLE_COPY(PyThreadState *tstate, PyObject *tuple) {
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

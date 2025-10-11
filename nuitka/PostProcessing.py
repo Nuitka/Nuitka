@@ -15,7 +15,7 @@ from nuitka.ModuleRegistry import getImportedModuleNames
 from nuitka.PythonFlavors import isSelfCompiledPythonUninstalled
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.Tracing import postprocessing_logger
-from nuitka.utils.Execution import wrapCommandForDebuggerForExec
+from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
     addFileExecutablePermission,
     getFileContents,
@@ -35,7 +35,12 @@ from nuitka.utils.SharedLibraries import (
     getOtoolDependencyOutput,
     parseOtoolListingOutput,
 )
-from nuitka.utils.Utils import isAndroidBasedLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    isAIX,
+    isAndroidBasedLinux,
+    isMacOS,
+    isWin32Windows,
+)
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
@@ -102,7 +107,7 @@ def _addWindowsIconFromIcons(onefile):
     image_id = 1
     images = []
 
-    result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
+    result_filename = OutputDirectories.getResultFullpath(onefile=onefile, real=False)
 
     for icon_spec in Options.getWindowsIconPaths():
         if "#" in icon_spec:
@@ -124,7 +129,7 @@ def _addWindowsIconFromIcons(onefile):
                 )
 
             icon_build_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(onefile=onefile),
+                OutputDirectories.getSourceDirectoryPath(onefile=onefile, create=False),
                 "icons",
             )
             makePath(icon_build_path)
@@ -221,7 +226,14 @@ def createScriptFileForExecution(result_filename):
     python_path = os.pathsep.join(makeFilesystemEncodable(e) for e in sys.path)
 
     debugger_call = (
-        (" ".join(wrapCommandForDebuggerForExec(command=())) + " ")
+        (
+            " ".join(
+                wrapCommandForDebuggerForSubprocess(
+                    command=(), debugger=Options.getDebuggerName()
+                )
+            )
+            + " "
+        )
         if Options.shallRunInDebugger()
         else ""
     )
@@ -244,6 +256,27 @@ set NUITKA_PYTHONPATH=%(python_path)s
             "python_path": python_path,
             "exe_filename": exe_filename,
         }
+    elif isAIX() and not Options.isOnefileMode() and Options.isStandaloneMode():
+        # On AIX we need to set LIBPATH in order to force it to load the DLL from the standalone
+        # distribution. The onefile bootstrap does it the code already, and therefore does not
+        # need it at all.
+        # spell-checker: ignore LIBPATH
+        script_contents = """\
+#!/bin/sh
+# Absolute path to this script, e.g. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+SCRIPT_PATH=$(dirname "$SCRIPT")
+
+LIBPATH=$SCRIPT_PATH
+export LIBPATH
+
+%(debugger_call)s"$SCRIPT_PATH/%(exe_filename)s" $@
+""" % {
+            "debugger_call": debugger_call,
+            "exe_filename": exe_filename,
+        }
+
     else:
         # TODO: Setting PYTHONPATH should not be needed, but it fails to work
         # unlike on Windows for unknown reasons.
@@ -444,7 +477,9 @@ def executePostProcessing(result_filename):
                 result_filename=result_filename, manifest=manifest, onefile=False
             )
 
-        source_dir = OutputDirectories.getSourceDirectoryPath()
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=False, create=True
+        )
 
         # Attach the binary blob as a Windows resource.
         addResourceToFile(
@@ -538,11 +573,11 @@ executable by Windows due to its limitations."""
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

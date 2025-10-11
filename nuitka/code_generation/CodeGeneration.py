@@ -337,6 +337,8 @@ from .StringCodes import (
     generateStrFormatMethodCode,
     generateStringConcatenationCode,
     generateStrOperationCode,
+    generateTemplateInterpolationCode,
+    generateTemplateStringCode,
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
@@ -966,6 +968,8 @@ addExpressionDispatchDict(
         "EXPRESSION_TYPE_VARIABLE": generateTypeVarCode,
         "EXPRESSION_TYPE_MAKE_GENERIC": generateTypeGenericCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
+        "EXPRESSION_TEMPLATE_STRING": generateTemplateStringCode,
+        "EXPRESSION_TEMPLATE_INTERPOLATION": generateTemplateInterpolationCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
         "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
@@ -1065,11 +1069,11 @@ setStatementDispatchDict(
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

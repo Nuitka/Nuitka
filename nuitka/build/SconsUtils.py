@@ -22,6 +22,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
+    getExternalUsePath,
     getFileContentByLine,
     getFilenameExtension,
     getNormalizedPath,
@@ -268,11 +269,41 @@ def createEnvironment(
         assert os.path.exists(env.static_libpython), env.static_libpython
 
     # Python version we are working on.
-    python_version_str = getArgumentDefaulted("python_version", None)
-    if python_version_str is not None:
-        env.python_version = tuple(int(d) for d in python_version_str.split("."))
+    env.python_version_str = getArgumentDefaulted("python_version", None)
+    if env.python_version_str is not None:
+        env.python_version = tuple(int(d) for d in env.python_version_str.split("."))
+
+        # Do we have a GIL build, or no-GIL (free-threading)
+        env.gil_mode = getArgumentBool("gil_mode")
+
+        # Python debug mode: reference count checking, assertions in CPython core.
+        env.python_debug = getArgumentBool("python_debug", False)
+
+        # The Python ABI flags to target.
+        abiflags = getArgumentDefaulted("abiflags", "")
+
+        if not env.gil_mode and "t" not in abiflags:
+            abiflags = "t" + abiflags
+
+        # Python version with ABI included.
+        env.python_abi_version = env.python_version_str + abiflags
+
+        # Home of Python to be compiled against, used to find include files and
+        # libraries to link against.
+        env.python_prefix = getArgumentRequired("python_prefix")
+
+        env.python_prefix_external = getExternalUsePath(env.python_prefix)
     else:
         env.python_version = None
+
+        env.gil_mode = None
+
+        env.python_debug = None
+
+        env.python_abi_version = None
+
+        env.python_prefix = None
+        env.python_prefix_external = None
 
     # Modules count, determines if this is a large compilation.
     env.compiled_module_count = getArgumentInt("compiled_module_count", 0)
@@ -331,13 +362,18 @@ def createEnvironment(
     if env.onefile_dll_mode:
         env.Append(CPPDEFINES=["_NUITKA_ONEFILE_DLL_MODE"])
 
+    env.forced_stdout_path = getArgumentDefaulted("forced_stdout_path", None)
+    env.forced_stderr_path = getArgumentDefaulted("forced_stderr_path", None)
+
+    env.build_definitions = {}
+
     return env
 
 
 def decodeData(data):
     """Our own decode tries to workaround MSVC misbehavior."""
     try:
-        return data.decode(sys.stdout.encoding)
+        return data.decode(sys.__stdout__.encoding)
     except UnicodeDecodeError:
         import locale
 
@@ -451,11 +487,33 @@ def writeSconsReport(env, target):
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
+        print("cpp_flags=%s" % (env.cpp_flags or ""), file=report_file)
+        print("c_flags=%s" % (env.c_flags or ""), file=report_file)
+        print("cc_flags=%s" % (env.cc_flags or ""), file=report_file)
+        print("cxx_flags=%s" % (env.cxx_flags or ""), file=report_file)
+        print("ld_flags=%s" % (env.ld_flags or ""), file=report_file)
+
         print("PATH=%s" % os.environ["PATH"], file=report_file)
         print("TARGET=%s" % target[0].abspath, file=report_file)
 
 
 def reportSconsUnexpectedOutput(env, cmdline, stdout, stderr):
+    if env.warn_error_mode and stderr is not None:
+
+        if (
+            # gcc does this: "all warnings being treated as errors"
+            "all warnings being treated as errors" in stderr
+            or
+            # clang does this, spell-checker: ignore Werror
+            "[-Werror," in stderr
+            or
+            # macOS clang does this: "warnings generated"
+            "warnings generated" in stderr
+        ):
+            scons_logger.sysexit(
+                "Error, C warnings occurred with '--debug' or '--debug-c-warnings', use '--no-debug-c-warnings' or fix them."
+            )
+
     with withFileLock("writing scons error report"):
         file_handle, pickler = openPickleFile(
             _getSconsErrorReportFilename(env.source_dir), "ab", protocol=2
@@ -750,7 +808,7 @@ def getMsvcVersion(env):
 
 
 def _getBinaryArch(binary, mingw_mode):
-    if "linux" in sys.platform or mingw_mode:
+    if isLinux() or mingw_mode:
         assert os.path.exists(binary), binary
 
         # Binutils binary name, spell-checker: ignore objdump,binutils
@@ -926,11 +984,11 @@ def makeResultPathFileSystemEncodable(env, result_exe):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

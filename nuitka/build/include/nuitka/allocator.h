@@ -172,13 +172,20 @@ static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
     } while (0)
 #endif
 
+// Note: The value should be used >= for checking immortality.
+#if PYTHON_VERSION < 0x3e0
+#define _Py_IMMORTAL_INITIAL_REFCNT _Py_IMMORTAL_REFCNT
+#endif
+
 // For Python3.12, avoid reference management if value is known to be immortal.
 #if PYTHON_VERSION < 0x3c0
 #define Py_INCREF_IMMORTAL(value) Py_INCREF(value)
 #define Py_DECREF_IMMORTAL(value) Py_DECREF(value)
 #elif defined(_NUITKA_DEBUG_DEBUG_IMMORTAL)
-#define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
-#define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_REFCNT)
+// We strive for Nuitka to never harm these, the assertion is going to fail with
+// third party extension modules.
+#define Py_INCREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
+#define Py_DECREF_IMMORTAL(value) assert(Py_REFCNT(value) == _Py_IMMORTAL_INITIAL_REFCNT)
 #else
 #define Py_INCREF_IMMORTAL(value)
 #define Py_DECREF_IMMORTAL(value)
@@ -368,10 +375,10 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 
 #ifdef Py_GIL_DISABLED
     object->ob_tid = _Py_UNOWNED_TID;
-    object->ob_ref_local = _Py_IMMORTAL_REFCNT_LOCAL;
+    object->ob_ref_local = _Py_IMMORTAL_INITIAL_REFCNT;
     object->ob_ref_shared = 0;
 #else
-    object->ob_refcnt = _Py_IMMORTAL_REFCNT;
+    object->ob_refcnt = _Py_IMMORTAL_INITIAL_REFCNT;
 #endif
 }
 #else
@@ -437,11 +444,11 @@ static void inline Py_SET_REFCNT_IMMORTAL(PyObject *object) {
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

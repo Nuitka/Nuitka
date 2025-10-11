@@ -14,6 +14,7 @@ from nuitka.Options import (
     getWindowsIconExecutablePath,
     getWindowsIconPaths,
     isStandaloneMode,
+    requireNoDebugImmortalAssumptions,
     shallCreateAppBundle,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -70,6 +71,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
         self.web_engine_done_binaries = False
         self.web_engine_done_data = False
 
+        self.plugin_families = None
+
     def onCompilationStartChecks(self):
         # Make sure, distribution location for this uses shortest name approach,
         # we do not need to use the value, just want to make sure it is resolved
@@ -98,7 +101,8 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
                 include_qt_plugin
             ):
                 self.sysexit(
-                    "Error, there is no Qt plugin family '%s'." % include_qt_plugin
+                    "Error, there is no Qt plugin family '%s' (only %s)."
+                    % (include_qt_plugin, self.getAvailablePluginFamilies())
                 )
 
         self.qt_plugins = sensible_qt_plugins
@@ -116,6 +120,12 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         # Also lets have consistency in naming.
         assert self.plugin_name in getQtPluginNames()
+
+        requireNoDebugImmortalAssumptions(
+            logger=self,
+            reason="%s bindings removing immortal states of objects"
+            % self.binding_name,
+        )
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -455,11 +465,19 @@ import %(binding_name)s.QtCore
 
                 yield qt_bin_dir
 
+    def getAvailablePluginFamilies(self):
+        if self.plugin_families is None:
+            self.plugin_families = OrderedSet()
+
+            for plugin_dir in self.getQtPluginDirs():
+                for filename, filename_relative in listDir(plugin_dir):
+                    if os.path.isdir(filename):
+                        self.plugin_families.add(filename_relative)
+
+        return self.plugin_families
+
     def hasPluginFamily(self, family):
-        return any(
-            os.path.isdir(os.path.join(plugin_dir, family))
-            for plugin_dir in self.getQtPluginDirs()
-        )
+        return family in self.getAvailablePluginFamilies()
 
     def _getQmlDirectory(self):
         for plugin_dir in self.getQtPluginDirs():
@@ -979,7 +997,7 @@ Prefix = .
     def _handleWebEngineDataFilesGeneric(self):
         resources_dir = self._getWebEngineResourcesPath()
 
-        for filename in getFileList(resources_dir):
+        for filename in getFileList(resources_dir, ignore_suffixes=(".debug.bin",)):
             filename_relative = os.path.relpath(filename, resources_dir)
 
             yield self.makeIncludedDataFile(
@@ -1337,6 +1355,8 @@ to compiled functions, etc. may not be working.""",
                 conda_prefix = os.environ["CONDA_PREFIX"]
             elif "CONDA_PYTHON_EXE" in os.environ:
                 conda_prefix = os.path.dirname(os.environ["CONDA_PYTHON_EXE"])
+            else:
+                conda_prefix = None
 
             if conda_prefix is not None:
                 values = result._asdict()
@@ -1653,11 +1673,11 @@ it for full compatible behavior with the uncompiled code to debug it."""
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

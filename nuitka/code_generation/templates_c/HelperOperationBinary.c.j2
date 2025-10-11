@@ -4,13 +4,13 @@
 {% from 'HelperSlotsInt.c.j2' import int_slot with context %}
 {% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 {% macro binary_fallback_operation(props, target, left, right, type1, type2) %}
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -135,11 +135,11 @@ static {{ target.getTypeDecl() }} _BINARY_OPERATION_{{op_code}}_{{target.getHelp
 {#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
 {#     integrates with CPython, but also works on its own.                      #}
 {#                                                                              #}
-{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     Licensed under the GNU Affero General Public License, Version 3 (the "License"); #}
 {#     you may not use this file except in compliance with the License.         #}
 {#     You may obtain a copy of the License at                                  #}
 {#                                                                              #}
-{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#        http://www.gnu.org/licenses/agpl.txt                                  #}
 {#                                                                              #}
 {#     Unless required by applicable law or agreed to in writing, software      #}
 {#     distributed under the License is distributed on an "AS IS" BASIS,        #}

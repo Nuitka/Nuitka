@@ -247,9 +247,24 @@ PyObject *BUILTIN_OPEN(PyThreadState *tstate, PyObject *file_name, PyObject *mod
 
 #endif
 
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
+// TODO: Have an include file for these and the defines combination.
+extern PyObject *Nuitka_Win32_InputDialog(PyThreadState *tstate, PyObject *prompt);
+#endif
+
 NUITKA_DEFINE_BUILTIN(input);
 
 PyObject *BUILTIN_INPUT(PyThreadState *tstate, PyObject *prompt) {
+#if defined(_WIN32) && (defined(_NUITKA_ATTACH_CONSOLE_WINDOW) || defined(_NUITKA_DISABLE_CONSOLE_WINDOW))
+    // Check if stdin is None, which happens in "windows" mode (pythonw.exe behavior).
+    PyObject *stdin_obj = PySys_GetObject("stdin"); // Borrows reference
+    if (stdin_obj == Py_None) {
+        return Nuitka_Win32_InputDialog(tstate, prompt);
+    }
+
+    assert(false);
+#endif
+
     NUITKA_ASSIGN_BUILTIN(input);
 
 #if NUITKA_STDERR_NOT_VISIBLE && (PYTHON_VERSION >= 0x300 || !defined(_WIN32))
@@ -888,11 +903,11 @@ PyObject *BUILTIN_LONG2(PyThreadState *tstate, PyObject *value, PyObject *base) 
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

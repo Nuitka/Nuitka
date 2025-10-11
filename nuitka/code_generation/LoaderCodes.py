@@ -19,16 +19,23 @@ needed except for technical reasons.
 
 import sys
 
-from nuitka import Options
 from nuitka.ModuleRegistry import (
     getDoneModules,
     getUncompiledModules,
     getUncompiledTechnicalModules,
 )
+from nuitka.Options import (
+    getFileReferenceMode,
+    hasNonDeploymentIndicator,
+    isShowInclusion,
+    isStandaloneMode,
+    shallMakeModule,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
+from nuitka.utils.Utils import isWin32Windows
 
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
@@ -40,20 +47,22 @@ from .templates.CodeTemplatesLoader import (
 
 
 def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
+    module_name = module.getFullName()
+
     module_c_name = encodePythonStringToC(
-        Plugins.encodeDataComposerName(module.getFullName().asString())
+        Plugins.encodeDataComposerName(module_name.asString())
     )
 
     flags = ["NUITKA_TRANSLATED_FLAG"]
 
     if (
-        not Options.isStandaloneMode()
-        and not Options.shallMakeModule()
-        and Options.getFileReferenceMode() == "original"
+        not isStandaloneMode()
+        and not shallMakeModule()
+        and getFileReferenceMode() == "original"
         and python_version >= 0x370
     ):
         # File system paths that will hopefully work, spell-checker: ignore getfilesystemencoding
-        if Options.isWin32Windows():
+        if isWin32Windows():
             file_path = encodePythonUnicodeToC(module.getCompileTimeFilename())
         else:
             file_path = encodePythonStringToC(
@@ -61,6 +70,9 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
             )
     else:
         file_path = "NULL"
+
+    if hasNonDeploymentIndicator("perfect-support") and isPerfectSupported(module_name):
+        flags.append("NUITKA_PERFECT_SUPPORTED_FLAG")
 
     if module.isUncompiledPythonModule():
         code_data = module.getByteCode()
@@ -166,7 +178,7 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
             )
         )
 
-        if Options.isShowInclusion():
+        if isShowInclusion():
             inclusion_logger.info("Embedded as frozen module '%s'." % module_name)
 
     return template_metapath_loader_body % {
@@ -177,14 +189,25 @@ PyThreadState *tstate, PyObject *, struct Nuitka_MetaPathBasedLoaderEntry const 
     }
 
 
+perfect_supported = set()
+
+
+def markModuleAsPerfectSupported(module_name):
+    perfect_supported.add(module_name)
+
+
+def isPerfectSupported(module_name):
+    return module_name in perfect_supported
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

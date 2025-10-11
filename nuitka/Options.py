@@ -80,12 +80,14 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
+    isAIX,
     isDebianBasedLinux,
     isFreeBSD,
     isLinux,
     isMacOS,
     isOpenBSD,
     isPosixWindows,
+    isRPathUsingPlatform,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -352,7 +354,7 @@ def printVersionInformation():
 
 def _warnOnefileOnlyOption(option_name):
     if not options.is_onefile:
-        if options.github_workflow_options and isMacOS() and shallCreateAppBundle():
+        if options.github_workflow_options or (isMacOS() and shallCreateAppBundle()):
             Tracing.options_logger.info(
                 """\
 Note: Using onefile mode specific option '%s' has no effect \
@@ -364,6 +366,26 @@ with macOS app bundles."""
                 """\
 Using onefile mode specific option '%s' has no effect \
 when '--mode=onefile' is not specified."""
+                % option_name
+            )
+
+
+def _warningModuleModeOnlyOption(option_name):
+    if options.compilation_mode not in ("module", "package"):
+        if options.github_workflow_options:
+            Tracing.options_logger.info(
+                """\
+Using module mode specific option '%s' has no effect \
+when neither '--mode=module' or --mode='package' is \
+specified."""
+                % option_name
+            )
+        else:
+            Tracing.options_logger.warning(
+                """\
+Using module mode specific option '%s' has no effect \
+when neither '--mode=module' or --mode='package' is \
+specified."""
                 % option_name
             )
 
@@ -403,6 +425,23 @@ def _checkDataDirOptionValue(data_dir, option_name):
         Tracing.options_logger.sysexit(
             "Error, malformed '%s' value, must specify existing source data directory, not '%s' as in '%s'."
             % (option_name, src, data_dir)
+        )
+
+
+def _checkFilenameOnlyArgument(option_name, filename, extra_message):
+    if os.path.basename(filename) != filename:
+        Tracing.options_logger.sysexit(
+            """\
+Error, '%s' value cannot contain a directory part%s."""
+            % (option_name, extra_message)
+        )
+
+    is_legal, reason = isLegalPath(filename)
+    if not is_legal:
+        Tracing.options_logger.sysexit(
+            """\
+Error, '%s' value '%s' is not a legal filename: %s%s."""
+            % (option_name, filename, reason, extra_message)
         )
 
 
@@ -448,6 +487,13 @@ Error, the Python from Windows app store is not supported.""",
         options.disabled_caches.append("dll-dependencies")
 
     report_missing_code_helpers = options.report_missing_code_helpers
+
+    # Add validation for the new option
+    if options.output_folder_name is not None:
+        _checkFilenameOnlyArgument(
+            "--output-folder-name", options.output_folder_name, ""
+        )
+
     report_missing_trust = options.report_missing_trust
 
     if options.quiet or int(os.getenv("NUITKA_QUIET", "0")):
@@ -500,8 +546,8 @@ Error, the Python from Windows app store is not supported.""",
     # Force to persist this one early.
     getLaunchingSystemPrefixPath()
 
-    if options.progress_bar:
-        Progress.enableProgressBar()
+    if not options.no_progress_bar and options.progress_bar != "none":
+        Progress.enableProgressBar(options.progress_bar)
 
     if options.verbose_output:
         Tracing.optimization_logger.setFileHandle(
@@ -561,6 +607,11 @@ Error, the Python from Windows app store is not supported.""",
                 options.macos_create_bundle = True
             else:
                 options.is_onefile = True
+        elif options.compilation_mode == "app-dist":
+            if isMacOS():
+                options.macos_create_bundle = True
+            else:
+                options.is_standalone = True
         elif options.compilation_mode == "dll":
             options.is_standalone = True
         elif options.compilation_mode == "accelerated":
@@ -632,6 +683,11 @@ Error, the value given for '--onefile-child-grace-time' must be integer."""
 
     if getShallIncludeExternallyDataFilePatterns():
         _warnOnefileOnlyOption("--include-onefile-external-data")
+
+    if not shallCreatePyiFile():
+        _warningModuleModeOnlyOption("--no-pyi-file")
+    if not shallCreatePyiFileContainStubs():
+        _warningModuleModeOnlyOption("--no-pyi-stubs")
 
     if options.force_stdout_spec:
         options.force_stdout_spec = checkPathSpec(
@@ -709,12 +765,9 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 Error, may not module mode where filenames and modules matching are
 mandatory."""
             )
-        elif (
-            isStandaloneMode() and os.path.basename(output_filename) != output_filename
-        ):
-            Tracing.options_logger.sysexit(
-                """\
-Error, output filename for standalone cannot contain a directory part."""
+        elif isStandaloneMode() and not isOnefileMode():
+            _checkFilenameOnlyArgument(
+                "--output-filename", output_filename, " for standalone mode"
             )
 
         output_dir = os.path.dirname(output_filename) or "."
@@ -944,7 +997,7 @@ download. With that, your program will work on macOS 10.9 or higher."""
                 "Error, Apple Python 2.7 from macOS is not usable as per Apple decision, use e.g. CPython 2.7 instead."
             )
 
-    if isStandaloneMode() and isLinux():
+    if isStandaloneMode() and isRPathUsingPlatform() and not isMacOS():
         # Cyclic dependency
         from nuitka.utils.SharedLibraries import (
             checkPatchElfPresenceAndUsability,
@@ -995,13 +1048,20 @@ def commentArgs():
         if not os.path.exists(filename):
             Tracing.general.sysexit("Error, file '%s' is not found." % filename)
 
-        if (
-            shallMakeModule()
-            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-        ):
+        if (shallMakeModule() or isStandaloneMode()) and os.path.normcase(
+            os.path.basename(filename)
+        ) == "__init__.py":
             Tracing.general.sysexit(
                 """\
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
+            )
+
+        if os.path.normcase(os.path.basename(filename)) == "__main__.py":
+            Tracing.general.warning(
+                """\
+To compile a package with a '__main__' module, specify its containing
+directory but, not the '__main__.py' itself, also consider if
+'--python-flag=-m' should be used."""
             )
 
     # Inform the user about potential issues with the running version. e.g. unsupported
@@ -1037,8 +1097,9 @@ final version instead."""
         ):
             Tracing.general.warning(
                 """\
-The Python version '%s' '%s' is only experimentally supported by \
-and recommended only for use in Nuitka development and testing."""
+The Python version '%s' level '%s' is only experimentally supported \
+by Nuitka and recommended only for use in Nuitka development and \
+testing."""
                 % (python_version_str, python_release_level)
             )
 
@@ -1132,6 +1193,17 @@ library. Please upgrade/downgrade to a supported micro version."""
         _warnOSSpecificOption("--macos-app-mode", "Darwin")
     if options.macos_prohibit_multiple_instances:
         _warnOSSpecificOption("--macos-prohibit-multiple-instances", "Darwin")
+    if getMacOSSigningCertificatePassword():
+        _warnOSSpecificOption("--macos-sign-keyring-password", "Darwin")
+
+    cert_filename = getMacOSSigningCertificateFilename()
+    if cert_filename is not None:
+        _warnOSSpecificOption("--macos-sign-keyring-filename", "Darwin")
+
+        if not os.path.exists(cert_filename):
+            Tracing.options_logger.sysexit(
+                "Error, signing certificate file '%s' does not exist." % cert_filename
+            )
 
     if options.msvc_version:
         if isMSYS2MingwPython() or isPosixWindows():
@@ -1296,7 +1368,7 @@ and not with the non-debug version.
 """
         )
 
-    if isMacOS() and shallCreateAppBundle() and not options.macos_icon_path:
+    if shallCreateAppBundle() and not options.macos_icon_path:
         Tracing.options_logger.warning(
             """\
 For application bundles, you ought to specify an icon with '--macos-app-icon=...' \
@@ -1419,8 +1491,21 @@ def shallExecuteImmediately():
 
 
 def shallRunInDebugger():
-    """:returns: bool derived from ``--debug``"""
-    return options.debugger
+    """:returns: bool derived from ``--debugger``"""
+    return bool(options.debugger)
+
+
+def getDebuggerName():
+    """:returns: str derived from ``--debugger-choice=...`` or NUITKA_DEBUGGER_CHOICE"""
+
+    # Don't get asked about this, unless it's relevant, all calls to this
+    # function should be guarded by that call on the outside.
+    assert shallRunInDebugger()
+
+    if options.debugger_choice is None:
+        return os.getenv("NUITKA_DEBUGGER_CHOICE")
+
+    return options.debugger_choice
 
 
 def getXMLDumpOutputFilename():
@@ -1785,6 +1870,9 @@ def _couldUseStaticLibPython():
         and isDebianSuitableForStaticLinking()
         and not shallUsePythonDebug()
     ):
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
+
         if python_version >= 0x3C0 and not os.path.exists(
             getInlineCopyFolder("python_hacl")
         ):
@@ -1840,6 +1928,8 @@ added to provide the static link library.""",
         )
 
     if isMacOS() and isCPythonOfficialPackage():
+        if python_version >= 0x3E0:
+            return False, "Not yet supporting 3.14+ static linking"
         return True, None
 
     if isArchPackagePython():
@@ -1916,11 +2006,19 @@ def shallCreateScriptFileForExecution():
     """*bool* = derived from Python installation and modes
 
     Notes: Mostly for accelerated mode with uninstalled python, to make sure
-    they find their Python DLL and Python packages.
+    they find their Python DLL and Python packages. AIX needs help in standalone
+    mode too.
     """
 
-    # TODO: Are we having a need for both names really?
-    return shallTreatUninstalledPython()
+    # Accelerated mode
+    if shallTreatUninstalledPython():
+        return True
+
+    # AIX standalone, but not onefile mode.
+    if isAIX() and not isOnefileMode() and isStandaloneMode():
+        return True
+
+    return False
 
 
 def isShowScons():
@@ -2061,6 +2159,10 @@ def getNoDeploymentIndications():
     return options.no_deployment_flags
 
 
+def hasNonDeploymentIndicator(indicator_name):
+    return not isDeploymentMode() and indicator_name not in getNoDeploymentIndications()
+
+
 _experimental = set()
 
 
@@ -2103,6 +2205,15 @@ def getDebugModeIndications():
                 result.append(debug_option_value_name)
 
     return result
+
+
+def requireNoDebugImmortalAssumptions(logger, reason):
+    if is_debug and python_version >= 0x3C0 and options.debug_immortal is not False:
+        logger.sysexit(
+            "Error, need to disable debug partially with '--no-debug-immortal-assumptions' due to %s."
+            % reason,
+            reporting=False,
+        )
 
 
 def shallExplainImports():
@@ -2465,6 +2576,33 @@ def getMacOSAppVersion():
     return options.macos_app_version
 
 
+# Mapping of Info.plist keys to the corresponding entitlement keys for hardened
+# runtime, spell-checker: ignore addressbook
+_macos_protected_resource_entitlements = {
+    "NSCameraUsageDescription": "com.apple.security.device.camera",
+    "NSMicrophoneUsageDescription": "com.apple.security.device.microphone",
+    "NSLocationWhenInUseUsageDescription": "com.apple.security.personal-information.location",
+    "NSContactsUsageDescription": "com.apple.security.personal-information.addressbook",
+    "NSCalendarsUsageDescription": "com.apple.security.personal-information.calendars",
+    "NSRemindersUsageDescription": "com.apple.security.personal-information.reminders",
+    # Both full access and add-only map to the same top-level entitlement.
+    "NSPhotoLibraryUsageDescription": "com.apple.security.personal-information.photos-library",
+    "NSPhotoLibraryAddUsageDescription": "com.apple.security.personal-information.photos-library",
+    "NSBluetoothAlwaysUsageDescription": "com.apple.security.device.bluetooth",
+    "NSAppleEventsUsageDescription": "com.apple.security.automation.apple-events",
+    # For folder access, the entitlement depends on read-only vs read-write, which
+    # Nuitka will need to determine from its options.
+    "NSDownloadsFolderUsageDescription": (
+        "com.apple.security.files.downloads.read-only",
+        "com.apple.security.files.downloads.read-write",
+    ),
+    "NSDesktopFolderUsageDescription": (
+        "com.apple.security.files.desktop.read-only",
+        "com.apple.security.files.desktop.read-write",
+    ),
+}
+
+
 def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
     result = []
@@ -2477,7 +2615,36 @@ Wrong format for '--macos-app-protected-resource' value '%s', it \
 needs to contain separator ':' with a description."""
                 % macos_protected_resource
             )
-        result.append(macos_protected_resource.split(":", 1))
+
+        resource_description_name, description = macos_protected_resource.split(":", 1)
+
+        if resource_description_name not in _macos_protected_resource_entitlements:
+            Tracing.options_logger.sysexit(
+                """\
+Wrong key for '--macos-app-protected-resource' value '%s', it \
+needs to be one of the following: %s."""
+                % (
+                    macos_protected_resource,
+                    ", ".join(_macos_protected_resource_entitlements.keys()),
+                )
+            )
+
+        entitlement = _macos_protected_resource_entitlements[resource_description_name]
+
+        if type(entitlement) is tuple:
+            if "read-only" in description:
+                entitlement = entitlement[0]
+            elif "read-write" in description:
+                entitlement = entitlement[1]
+            else:
+                Tracing.options_logger.sysexit(
+                    """\
+Wrong value for '--macos-app-protected-resource' value '%s' needs to
+either contain 'read-only' or 'read-write' as part of the description."""
+                    % macos_protected_resource
+                )
+
+        result.append((resource_description_name, description, entitlement))
 
     return result
 
@@ -2490,6 +2657,22 @@ def isMacOSBackgroundApp():
 def isMacOSUiElementApp():
     """*bool*, derived from ``--macos-app-mode``"""
     return options.macos_app_mode == "ui-element"
+
+
+def getMacOSSigningCertificateFilename():
+    """*str* or *None* if not given, value of ``--macos-sign-keyring-filename``"""
+    if not isMacOS():
+        return None
+
+    return options.macos_sign_keyring_filename
+
+
+def getMacOSSigningCertificatePassword():
+    """*str* or *None* if not given, value of ``--macos-sign-keyring-password``"""
+    if not isMacOS():
+        return None
+
+    return options.macos_sign_keyring_password
 
 
 def shallMacOSProhibitMultipleInstances():
@@ -2725,13 +2908,28 @@ def shallCompileWithoutBuildDirectory():
     return not shallRunInDebugger()
 
 
-def shallPreferSourceCodeOverExtensionModules():
+def shallRecompileExtensionModules(module_name):
     """*bool* prefer source code over extension modules if both are there"""
-    return options is not None and options.prefer_source_code
+    if options is None:
+        return None, "no user options available"
+
+    if options.prefer_source_code in (True, False):
+        return (
+            options.prefer_source_code,
+            "global user option to %s"
+            % ("enable" if options.prefer_source_code else "disable"),
+        )
+
+    result = module_name.matchesToShellPatterns(options.recompile_extension_modules)
+
+    if result is None:
+        return None, "no user options given"
+
+    return result
 
 
-def shallUseProgressBar():
-    """*bool* prefer source code over extension modules if both are there"""
+def getProgressBar():
+    """*str* what progress bar to use if any, derived from ``--progress-bar``"""
     return options.progress_bar
 
 
@@ -2818,6 +3016,11 @@ def getCompilationReportUserData():
 def shallCreateDiffableCompilationReport():
     """*bool*" derived from --report-diffable"""
     return options.compilation_report_diffable
+
+
+def getOutputFolderName():
+    """*str* or *None*, value of ``--output-folder-name``"""
+    return options.output_folder_name
 
 
 def getUserProvidedYamlFiles():
@@ -2917,11 +3120,11 @@ def getCompilationMode():
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

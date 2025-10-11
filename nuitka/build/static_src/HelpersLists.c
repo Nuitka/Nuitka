@@ -57,8 +57,16 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     return PyList_New(size);
 #else
-    // This is the CPython name, spell-checker: ignore numfree
+#if PYTHON_VERSION >= 0x3e0
+    PyListObject *result_list = (PyListObject *)Nuitka_PyFreeList_Pop(&_Py_freelists_GET()->lists);
 
+    if (result_list == NULL) {
+        result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
+    } else {
+        Nuitka_Py_NewReference((PyObject *)result_list);
+    }
+#else
+    // This is the CPython name, spell-checker: ignore numfree
 #if PYTHON_VERSION < 0x3d0
     PyListObject **items = tstate->interp->list.free_list;
     int *numfree = &tstate->interp->list.numfree;
@@ -79,6 +87,9 @@ PyObject *MAKE_LIST_EMPTY(PyThreadState *tstate, Py_ssize_t size) {
     } else {
         result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
     }
+#endif
+    assert(result_list != NULL);
+    assert(PyList_CheckExact(result_list));
 
     // Elements are allocated separately.
     if (size > 0) {
@@ -883,14 +894,15 @@ PyObject *MAKE_LIST(PyThreadState *tstate, PyObject *iterable) {
 }
 
 #include "HelpersListsGenerated.c"
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

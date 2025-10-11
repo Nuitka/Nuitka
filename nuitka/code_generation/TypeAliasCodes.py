@@ -26,10 +26,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
         expression=expression.subnode_value, emit=emit, context=context
     )
 
-    assert (
-        expression.getParent().isStatementAssignmentVariable()
-    ), expression.getParent()
-    type_alias_name = expression.getParent().getVariableName()
+    type_alias_name = expression.subnode_name.getVariableName()
 
     with withObjectCodeTemporaryAssignment(
         to_name, "type_alias_value", expression, emit, context
@@ -47,7 +44,7 @@ def generateTypeAliasCode(to_name, expression, emit, context):
 
         getErrorExitCode(
             check_name=value_name,
-            release_names=(type_alias_name, compute_value_name),
+            release_names=(type_alias_name, compute_value_name, type_params_name),
             emit=emit,
             context=context,
             needs_check=expression.mayRaiseExceptionOperation(),
@@ -107,11 +104,11 @@ def generateTypeGenericCode(to_name, expression, emit, context):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
