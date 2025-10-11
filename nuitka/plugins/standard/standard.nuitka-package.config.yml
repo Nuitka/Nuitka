@@ -1633,6 +1633,13 @@
       dirs:
         - 'templates'
 
+- module-name: 'flet.utils.pip' # checksum: 81c7a256
+  anti-bloat:
+    - description: 'avoid calling pip in standalone mode'
+      change_function:
+        'install_flet_package': 'un-callable'
+      when: 'standalone'
+
 - module-name: 'folium' # checksum: 2e123618
   data-files:
     - dirs:
