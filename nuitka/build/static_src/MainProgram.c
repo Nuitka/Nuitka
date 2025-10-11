@@ -428,6 +428,11 @@ void SvcStopPython(void) { PyErr_SetInterrupt(); }
 
 // This is a multiprocessing fork
 static bool is_multiprocessing_fork = false;
+// This is a multiprocessing forkserver
+static bool is_multiprocessing_forkserver = false;
+static int multiprocessing_forkserver_fd1 = -1;
+static int multiprocessing_forkserver_fd2 = -1;
+
 // This is a multiprocessing resource tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 
@@ -507,6 +512,14 @@ static void setCommandLineParameters(int argc, wchar_t **argv) {
                              FILENAME_EMPTY_STR
                              "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
                              &loky_resource_tracker_arg)) {
+                break;
+            }
+
+            if (scanFilename(argv[i + 1],
+                             FILENAME_EMPTY_STR
+                             "from multiprocessing.forkserver import main; main(%i, %i, ['__main__'],",
+                             &multiprocessing_forkserver_fd1, &multiprocessing_forkserver_fd2)) {
+                is_multiprocessing_forkserver = true;
                 break;
             }
 
@@ -1887,6 +1900,25 @@ static int Nuitka_Main(int argc, native_command_line_argument_t **argv) {
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
         Py_Exit(exit_code);
+    } else if (unlikely(is_multiprocessing_forkserver)) {
+        NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver.");
+        PyObject *forkserver_module = EXECUTE_MAIN_MODULE(tstate, "multiprocessing.forkserver", true);
+
+        PyObject *main_function = PyObject_GetAttrString(forkserver_module, "main");
+        CHECK_OBJECT(main_function);
+
+        PyObject *main_list = MAKE_LIST_EMPTY(tstate, 1);
+        PyList_SET_ITEM(main_list, 0, Nuitka_String_FromString("__main__"));
+
+        PyObject *args[] = {Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd1),
+                            Nuitka_PyInt_FromLong(multiprocessing_forkserver_fd2), main_list};
+
+        CALL_FUNCTION_WITH_ARGS3(tstate, main_function, args);
+
+        int exit_code = HANDLE_PROGRAM_EXIT(tstate);
+
+        NUITKA_PRINT_TRACE("main(): Calling multiprocessing.forkserver Py_Exit.");
+        Py_Exit(exit_code);
 #if defined(_WIN32)
     } else if (unlikely(is_joblib_popen_loky_win32)) {
         NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_win32.");
@@ -2133,11 +2165,11 @@ int Py_Main(int argc, char **argv) { return 0; }
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //
-//     Licensed under the Apache License, Version 2.0 (the "License");
+//     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 //     you may not use this file except in compliance with the License.
 //     You may obtain a copy of the License at
 //
-//        http://www.apache.org/licenses/LICENSE-2.0
+//        http://www.gnu.org/licenses/agpl.txt
 //
 //     Unless required by applicable law or agreed to in writing, software
 //     distributed under the License is distributed on an "AS IS" BASIS,

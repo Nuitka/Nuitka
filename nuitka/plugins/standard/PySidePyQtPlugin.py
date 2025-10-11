@@ -1355,6 +1355,8 @@ to compiled functions, etc. may not be working.""",
                 conda_prefix = os.environ["CONDA_PREFIX"]
             elif "CONDA_PYTHON_EXE" in os.environ:
                 conda_prefix = os.path.dirname(os.environ["CONDA_PYTHON_EXE"])
+            else:
+                conda_prefix = None
 
             if conda_prefix is not None:
                 values = result._asdict()
@@ -1671,11 +1673,11 @@ it for full compatible behavior with the uncompiled code to debug it."""
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

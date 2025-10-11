@@ -487,6 +487,12 @@ def writeSconsReport(env, target):
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
+        print("cpp_flags=%s" % (env.cpp_flags or ""), file=report_file)
+        print("c_flags=%s" % (env.c_flags or ""), file=report_file)
+        print("cc_flags=%s" % (env.cc_flags or ""), file=report_file)
+        print("cxx_flags=%s" % (env.cxx_flags or ""), file=report_file)
+        print("ld_flags=%s" % (env.ld_flags or ""), file=report_file)
+
         print("PATH=%s" % os.environ["PATH"], file=report_file)
         print("TARGET=%s" % target[0].abspath, file=report_file)
 
@@ -978,11 +984,11 @@ def makeResultPathFileSystemEncodable(env, result_exe):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

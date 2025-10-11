@@ -18,6 +18,7 @@ from nuitka.PythonFlavors import (
     isCPythonOfficialPackage,
     isHomebrewPython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
@@ -26,6 +27,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getNormalizedPath,
     getReportPath,
+    getSubDirectories,
     isFilenameBelowPath,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
@@ -59,11 +61,16 @@ def _detectPythonRpaths():
             )
         )
 
-    if isCPythonOfficialPackage():
+    if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
     if isHomebrewPython():
-        result.append(os.path.join(getHomebrewInstallPath(), "lib"))
+        result.extend(
+            os.path.join(getHomebrewInstallPath(), directory)
+            for directory in getSubDirectories(
+                path=getHomebrewInstallPath(), ignore_dirs=("__pycache__",)
+            )
+        )
 
     return tuple(
         getNormalizedPath(candidate)
@@ -447,11 +454,11 @@ Error, problem with dependency scan of '%s' with '%s' please report the bug."""
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

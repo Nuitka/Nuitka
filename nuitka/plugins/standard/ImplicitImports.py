@@ -170,6 +170,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_ecb"
 
             elif full_name == crypto_module_name + ".Cipher.AES":
+                # spell-checker: ignore aesni,cpuid
                 yield crypto_module_name + ".Cipher._raw_aes"
                 yield crypto_module_name + ".Cipher._raw_aesni"
                 yield crypto_module_name + ".Util._cpuid"
@@ -187,6 +188,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_ocb"
 
             elif full_name == crypto_module_name + ".Cipher._EKSBlowfish":
+                # spell-checker: ignore eksblowfish
                 yield crypto_module_name + ".Cipher._raw_eksblowfish"
 
             elif full_name == crypto_module_name + ".Cipher.Blowfish":
@@ -199,6 +201,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_cbc"
 
             elif full_name == crypto_module_name + ".Util.strxor":
+                # spell-checker: ignore strxor
                 yield crypto_module_name + ".Util._strxor"
 
             elif full_name == crypto_module_name + ".Util._cpu_features":
@@ -235,9 +238,11 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Hash._MD5"
 
             elif full_name == crypto_module_name + ".Hash.keccak":
+                # spell-checker: ignore keccak
                 yield crypto_module_name + ".Hash._keccak"
 
             elif full_name == crypto_module_name + ".Hash.RIPEMD160":
+                # spell-checker: ignore RIPEMD
                 yield crypto_module_name + ".Hash._RIPEMD160"
 
             elif full_name == crypto_module_name + ".Hash.Poly1305":
@@ -248,6 +253,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Protocol._scrypt"
 
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                # spell-checker: ignore ghash,clmul
                 yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
                 yield crypto_module_name + ".Util._galois"
@@ -256,6 +262,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._Salsa20"
 
             elif full_name == crypto_module_name + ".Cipher.ChaCha20":
+                # spell-checker: ignore chacha
                 yield crypto_module_name + ".Cipher._chacha20"
 
             elif full_name == crypto_module_name + ".PublicKey.ECC":
@@ -267,14 +274,18 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._ARC4"
 
             elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
+                # spell-checker: ignore pkcs
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
             elif full_name == crypto_module_name + ".Cipher.PKCS1_OAEP":
+                # spell-checker: ignore oaep
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
             elif full_name == crypto_module_name + ".Math._IntegerCustom":
+                # spell-checker: ignore modexp
                 yield crypto_module_name + ".Math._modexp"
 
+        # spell-checker: ignore pynput,xorg
         elif full_name in ("pynput.keyboard", "pynput.mouse"):
             if isMacOS():
                 yield full_name.getChildNamed("_darwin")
@@ -300,7 +311,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could
             # be done here, but this might be simpler to hardcode for now. Once we have
             # the infrastructure to ask a module that after optimization, we should do
-            # that instead, as it will not use a separate process.
+            # that instead, as it will not use a separate process. spell-checker: ignore jaraco
             for part in (
                 "packaging",
                 "pyparsing",
@@ -371,7 +382,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 source_code = "\n" + source_code
 
             source_code = """\
-__file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
+__file__ = (__nuitka_binary_dir + '%s" + "site.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
                 os.path.sep,
                 source_code,
             )
@@ -861,11 +872,11 @@ def _lookAhead(using_module_name, module_name):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

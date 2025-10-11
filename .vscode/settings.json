@@ -295,6 +295,7 @@
     "manylinux",
     "Matmult",
     "mdef",
+    "memcpy",
     "metaclass",
     "metaclasses",
     "metapath",

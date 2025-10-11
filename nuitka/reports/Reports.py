@@ -15,7 +15,7 @@ import traceback
 from nuitka import TreeXML
 from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
-from nuitka.build.SconsUtils import readSconsErrorReport
+from nuitka.build.SconsUtils import getSconsReportValue, readSconsErrorReport
 from nuitka.code_generation.ConstantCodes import getDistributionMetadataValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
@@ -262,6 +262,18 @@ def _getReportInputData(aborted):
     else:
         scons_error_report_data = {}
         output_run_filename = "failed too early"
+
+    source_dir = (
+        getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
+    )
+
+    cpp_flags = getSconsReportValue(source_dir, "cpp_flags")
+    c_flags = getSconsReportValue(source_dir, "c_flags")
+    cc_flags = getSconsReportValue(source_dir, "cc_flags")
+    cxx_flags = getSconsReportValue(source_dir, "cxx_flags")
+    ld_flags = getSconsReportValue(source_dir, "ld_flags")
+
+    del source_dir
 
     compilation_mode = getCompilationMode()
 
@@ -566,6 +578,22 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         )
 
         exception_xml_node.text = "\n" + traceback.format_exc()
+
+    scons_environment_xml_node = TreeXML.appendTreeElement(
+        root,
+        "scons_environment",
+    )
+
+    if report_input_data["cpp_flags"] != "None":
+        scons_environment_xml_node.attrib["cpp_flags"] = report_input_data["cpp_flags"]
+    if report_input_data["c_flags"] != "None":
+        scons_environment_xml_node.attrib["c_flags"] = report_input_data["c_flags"]
+    if report_input_data["cc_flags"] != "None":
+        scons_environment_xml_node.attrib["cc_flags"] = report_input_data["cc_flags"]
+    if report_input_data["cxx_flags"] != "None":
+        scons_environment_xml_node.attrib["cxx_flags"] = report_input_data["cxx_flags"]
+    if report_input_data["ld_flags"] != "None":
+        scons_environment_xml_node.attrib["ld_flags"] = report_input_data["ld_flags"]
 
     if report_input_data["scons_error_report_data"]:
         scons_error_reports_node = TreeXML.appendTreeElement(
@@ -961,11 +989,11 @@ def writeCompilationReports(aborted):
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,

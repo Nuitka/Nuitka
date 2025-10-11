@@ -1217,40 +1217,37 @@ def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
     # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
 
-    # Outside compiler settings are respected.
-    if "CPPFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
-        )
-        env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-    if "CFLAGS" in os.environ:
-        scons_logger.info("Inherited CFLAGS='%s' variable." % os.environ["CFLAGS"])
-        env.Append(CCFLAGS=os.environ["CFLAGS"].split())
-    if "CCFLAGS" in os.environ:
-        scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-        env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-    if "CXXFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
-        )
-        env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
+    env.cpp_flags = os.environ.get("CPPFLAGS")
+    if env.cpp_flags:
+        scons_logger.info("Scons: Inherited CPPFLAGS='%s' variable." % env.cpp_flags)
+        env.Append(CPPFLAGS=env.cpp_flags.split())
+    env.c_flags = os.environ.get("CFLAGS")
+    if env.c_flags:
+        scons_logger.info("Inherited CFLAGS='%s' variable." % env.c_flags)
+        env.Append(CCFLAGS=env.c_flags.split())
+    env.cc_flags = os.environ.get("CCFLAGS")
+    if env.cc_flags:
+        scons_logger.info("Inherited CCFLAGS='%s' variable." % env.cc_flags)
+        env.Append(CCFLAGS=env.cc_flags.split())
+    env.cxx_flags = os.environ.get("CXXFLAGS")
+    if env.cxx_flags:
+        scons_logger.info("Scons: Inherited CXXFLAGS='%s' variable." % env.cxx_flags)
+        env.Append(CXXFLAGS=env.cxx_flags.split())
 
-    # Outside linker flags are respected.
-    if "LDFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"]
-        )
-        env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+    env.ld_flags = os.environ.get("LDFLAGS")
+    if env.ld_flags:
+        scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % env.ld_flags)
+        env.Append(LINKFLAGS=env.ld_flags.split())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     Licensed under the Apache License, Version 2.0 (the "License");
+#     Licensed under the GNU Affero General Public License, Version 3 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.gnu.org/licenses/agpl.txt
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
