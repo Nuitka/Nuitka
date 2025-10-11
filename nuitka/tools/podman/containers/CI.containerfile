@@ -8,7 +8,7 @@ VOLUME [ "/sys/fs/cgroup" ]
 ## Install what we use for CI generally
 COPY requirements-devel.txt /etc/requirements-devel.txt
 RUN mkdir /src
-RUN apt-get update && apt-get install -y apt-utils gcc python2 python2-dev python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
+RUN apt-get update && apt-get install -y apt-utils gcc python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
 
 ## Install pbuilder extra stuff along with Nuitka build dependencies.
 RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
