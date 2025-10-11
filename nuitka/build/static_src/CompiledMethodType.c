@@ -138,17 +138,17 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {NULL}};
 
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
-                                             PyObject *kwnames) {
+static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargs_f,
+                                             PyObject *kw_names) {
     assert(Nuitka_Method_Check((PyObject *)method));
-    assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
-    Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
-    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
+    Py_ssize_t kwargs_count = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargs_f);
 
     assert(nargs >= 0);
-    assert((nargs == 0 && nkwargs == 0) || stack != NULL);
+    assert((nargs == 0 && kwargs_count == 0) || stack != NULL);
 
-    Py_ssize_t totalargs = nargs + nkwargs;
+    Py_ssize_t totalargs = nargs + kwargs_count;
 
     // Shortcut possible, no args.
     if (totalargs == 0) {
@@ -157,7 +157,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
 
     PyObject *result;
 
-    if (nargsf & PY_VECTORCALL_ARGUMENTS_OFFSET) {
+    if (nargs_f & PY_VECTORCALL_ARGUMENTS_OFFSET) {
         /* We are allowed to mutate the stack. TODO: Is this the normal case, so
            we can consider the else branch irrelevant? Also does it not make sense
            to check pos arg and kw counts and shortcut somewhat. */
@@ -170,7 +170,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
         CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
-                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+                                               kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
 
@@ -186,7 +186,7 @@ static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method,
         CHECK_OBJECTS(new_args, totalargs + 1);
 
         result = Nuitka_CallFunctionVectorcall(PyThreadState_GET(), method->m_function, new_args, nargs + 1,
-                                               kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL, nkwargs);
+                                               kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL, kwargs_count);
 
         CHECK_OBJECTS(new_args, totalargs + 1);
     }

@@ -1355,6 +1355,8 @@ to compiled functions, etc. may not be working.""",
                 conda_prefix = os.environ["CONDA_PREFIX"]
             elif "CONDA_PYTHON_EXE" in os.environ:
                 conda_prefix = os.path.dirname(os.environ["CONDA_PYTHON_EXE"])
+            else:
+                conda_prefix = None
 
             if conda_prefix is not None:
                 values = result._asdict()

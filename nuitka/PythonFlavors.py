@@ -195,8 +195,8 @@ def isUninstalledPython():
     if isPythonBuildStandalonePython():
         return True
 
-    if isStaticallyLinkedPython():
-        return False
+    if isAnacondaPython() or isWinPython():
+        return True
 
     if os.name == "nt":
         import ctypes.wintypes
@@ -216,7 +216,10 @@ def isUninstalledPython():
             path=system_path, filename=getRunningPythonDLLPath()
         )
 
-    return isAnacondaPython() or "WinPython" in sys.version
+    if isStaticallyLinkedPython():
+        return False
+
+    return None
 
 
 _is_win_python = None

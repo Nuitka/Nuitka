@@ -487,6 +487,12 @@ def writeSconsReport(env, target):
         print("mingw_mode=%s" % env.mingw_mode, file=report_file)
         print("clangcl_mode=%s" % env.clangcl_mode, file=report_file)
 
+        print("cpp_flags=%s" % (env.cpp_flags or ""), file=report_file)
+        print("c_flags=%s" % (env.c_flags or ""), file=report_file)
+        print("cc_flags=%s" % (env.cc_flags or ""), file=report_file)
+        print("cxx_flags=%s" % (env.cxx_flags or ""), file=report_file)
+        print("ld_flags=%s" % (env.ld_flags or ""), file=report_file)
+
         print("PATH=%s" % os.environ["PATH"], file=report_file)
         print("TARGET=%s" % target[0].abspath, file=report_file)
 

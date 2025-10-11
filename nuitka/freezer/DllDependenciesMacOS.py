@@ -18,6 +18,7 @@ from nuitka.PythonFlavors import (
     isCPythonOfficialPackage,
     isHomebrewPython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
@@ -26,6 +27,7 @@ from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getNormalizedPath,
     getReportPath,
+    getSubDirectories,
     isFilenameBelowPath,
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
@@ -59,11 +61,16 @@ def _detectPythonRpaths():
             )
         )
 
-    if isCPythonOfficialPackage():
+    if isCPythonOfficialPackage() or isPythonBuildStandalonePython():
         result.append(os.path.join(getSystemPrefixPath(), "lib"))
 
     if isHomebrewPython():
-        result.append(os.path.join(getHomebrewInstallPath(), "lib"))
+        result.extend(
+            os.path.join(getHomebrewInstallPath(), directory)
+            for directory in getSubDirectories(
+                path=getHomebrewInstallPath(), ignore_dirs=("__pycache__",)
+            )
+        )
 
     return tuple(
         getNormalizedPath(candidate)

@@ -216,7 +216,7 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: f1b138c
+- module-name: 'arcade' # checksum: 5abbaedc
   data-files:
     - dirs:
         - 'resources'
@@ -229,7 +229,7 @@
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
   implicit-imports:
     - depends:
-        - 'arcade.gl.backends'
+        - 'arcade.gl.backends.opengl.provider'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
@@ -1215,6 +1215,12 @@
     - depends:
         - 'dependency_injector.errors'
 
+- module-name: 'depyf' # checksum: 77493764
+  anti-bloat:
+    - description: "remove 'dill' package reference"
+      no-auto-follow:
+        'dill': 'ignore'
+
 - module-name: 'diatheke' # checksum: ad402cfe
   import-hacks:
     - global-sys-path:
@@ -1626,6 +1632,13 @@
     - dest_path: '.'
       dirs:
         - 'templates'
+
+- module-name: 'flet.utils.pip' # checksum: 81c7a256
+  anti-bloat:
+    - description: 'avoid calling pip in standalone mode'
+      change_function:
+        'install_flet_package': 'un-callable'
+      when: 'standalone'
 
 - module-name: 'folium' # checksum: 2e123618
   data-files:
@@ -2316,12 +2329,11 @@
         'import pydoc': ''
         'if inspect.isfunction(func):': 'if False:'
 
-- module-name: 'jpype' # checksum: 7b04152a
+- module-name: 'jpype' # checksum: 8b99529
   data-files:
     - dest_path: 'jpype'
       patterns:
         - '../org.jpype.jar'
-      when: 'is_conda_package("jpype")'
 
 - module-name: 'jsonrpcserver.main' # checksum: 245e25bc
   data-files:
@@ -3616,6 +3628,18 @@
     - description: 'workaround compiled function decorator issues'
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
+
+- module-name: 'opentelemetry.context' # checksum: 5846a543
+  data-files:
+    - include-metadata:
+        - 'opentelemetry-api'
+  anti-bloat:
+    - description: 'workaround for metadata functions'
+      replacements_plain:
+        'opentelemetry.util._importlib_metadata': 'importlib_metadata'
+  implicit-imports:
+    - depends:
+        - 'opentelemetry.context.contextvars_context'
 
 - module-name: 'opentelemetry.exporter.jaeger.thrift' # checksum: f0eea343
   import-hacks:
@@ -5662,6 +5686,14 @@
           - 'librlottie'
       when: 'not win32'
 
+- module-name: 'roboflow' # checksum: e3a3aa6a
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+        'ipywidgets': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'rtree.finder' # checksum: 312489cf
   variables:
     setup_code:
@@ -5700,7 +5732,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 9c031415
+- module-name: 'scipy' # checksum: 39cab727
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5728,6 +5760,7 @@
         'ndonnx': 'ignore'
         'yaml': 'ignore'
         'pytest': 'ignore'
+        'sphinx': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
@@ -6897,6 +6930,13 @@
   implicit-imports:
     - depends:
         - 'sqlglot.dialects.*'
+
+- module-name: 'sqlglot.parser' # checksum: 33ab58fb
+  anti-bloat:
+    - description: 'workaround incompatibility'
+      # TODO: Remove once free variables are no longer in co_varnames.
+      replacements_plain:
+        'if "dialect" in func_builder.__code__.co_varnames': 'if "dialect" in __import__("inspect").getargs(func_builder.__code__)'
 
 - module-name: 'srsly.msgpack._packer' # checksum: ef9e3a96
   implicit-imports:
@@ -8211,7 +8251,7 @@
   import-hacks:
     - recompile-extensions: 'no'
 
-- module-name: 'torch' # checksum: 9b1bc67d
+- module-name: 'torch' # checksum: fe3ef51e
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -8245,7 +8285,11 @@
         'pytest': 'ignore'
         '_pytest': 'ignore'
       when: 'not use_pytest'
-
+    - description: 'remove dill reference'
+      no-auto-follow:
+        # When using dill, we expect that to be outside, this is only for
+        # testing if it needs to be considered.
+        'dill': 'ignore'
   options:
     checks:
       - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
@@ -8598,7 +8642,7 @@
     - depends:
         - 'traitsui.null'
 
-- module-name: 'transformers' # checksum: dfd0b428
+- module-name: 'transformers' # checksum: fab655ad
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8607,12 +8651,15 @@
         - 'flax'
         - 'ftfy'
         - 'jinja2'
+        - 'mistral_common'
         - 'pandas'
         - 'peft'
         - 'psutil'
+        - 'tiktoken'
         - 'tensorflow'
         - 'torch'
         - 'tokenizers'
+        - 'torchaudio'
         - 'torchvision'
         - 'scipy'
         - 'safetensors'
@@ -8636,6 +8683,10 @@
       no-auto-follow:
         'triton': 'ignore'
       when: 'not use_setuptools'
+
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        'ray': 'some functions may assert that ray is available'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
@@ -8773,7 +8824,7 @@
     - depends:
         - 'huggingface_hub.hf_api'
 
-- module-name: 'transformers.utils.import_utils' # checksum: 705fafc4
+- module-name: 'transformers.utils.import_utils' # checksum: a4dec76e
   anti-bloat:
     - description: 'workaround for metadata checks not recognized'
       replacements_plain:
@@ -8788,7 +8839,7 @@
         'importlib.util.find_spec("tensorflow") is not None': 'False'
     - description: 'more clear missing metadata error message'
       replacements_plain:
-        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile with '--include-distribution-metadata=%s'.''' % pkg_name)"
+        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile 'transformers' with '--include-distribution-metadata=%s'.''' % pkg_name)"
       when: 'not deployment'
 
 - module-name: 'transformers.utils.versions' # checksum: 7a77f5b1
@@ -9070,13 +9121,33 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: a5840e4a
+- module-name: 'vllm' # checksum: 87570df9
   data-files:
     - include-metadata:
         - 'gguf'
+  anti-bloat:
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        # When using ray, we expect that to be outside, this is only for testing.
+        'ray': 'ignore'
   implicit-imports:
     - depends:
         - 'vllm.logging_utils'
+
+- module-name: 'vllm.attention.backends.mla.common' # checksum: 73ff1d01
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'if HAS_TRITON:': 'if False:'
+      when: 'not use_setuptools'
+
+- module-name: 'vllm.config' # checksum: 807f4cc3
+  anti-bloat:
+    - description: 'remove need for config class source code'
+      replacements_re:
+        'if f.name not in attr_docs:': 'if False:'
+      change_function:
+        'get_attr_docs': "'(lambda cls: {})'"
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
@@ -9097,11 +9168,13 @@
         - 'vtkmodules'
       when: 'version("vtk") >= (9,)'
 
-- module-name: 'vtkmodules' # checksum: 8db0fa0f
+- module-name: 'vtkmodules' # checksum: 3b668f13
   implicit-imports:
     - depends:
         - 'vtkmodules.all'
         - 'vtkmodules.util'
+        - 'vtkmodules.util.data_model'
+        - 'vtkmodules.util.execution_model'
 
 - module-name: 'vtkmodules.qt' # checksum: e9590444
   implicit-imports:
