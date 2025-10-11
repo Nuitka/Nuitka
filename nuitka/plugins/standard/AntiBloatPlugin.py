@@ -226,8 +226,16 @@ form 'module_name:[%s]'."""
 
             if mode not in _mode_choices and mode not in _other_choices:
                 self.sysexit(
-                    "Error, illegal mode given '%s' in '--noinclude-custom-mode=%s'"
+                    "Error, illegal mode value given '%s' in '--noinclude-custom-mode=%s'"
                     % (mode, custom_choice)
+                )
+
+            if mode == "nofollow":
+                self.sysexit(
+                    """\
+Error, cannot use 'follow' as a custom mode, use '--nofollow-import-to=%s' option \
+instead of '--noinclude-custom-mode=%s'"""
+                    % (module_name, custom_choice)
                 )
 
             self.handled_modules[ModuleName(module_name)] = mode, module_name
