@@ -173,7 +173,15 @@ def _decideRecursion(
         module_filename
     )
 
-    if is_stdlib and module_name in detectStdlibAutoInclusionModules():
+    any_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowModules()
+    )
+
+    no_case, reason = module_name.matchesToShellPatterns(
+        patterns=Options.getShallFollowInNoCase()
+    )
+
+    if is_stdlib and module_name in detectStdlibAutoInclusionModules() and not no_case:
         return True, "Including as part of the non-excluded parts of standard library."
 
     # In '-m' mode, when including the package, do not duplicate main program.
@@ -201,10 +209,6 @@ def _decideRecursion(
         if deciding_plugin.plugin_name != "anti-bloat"
     ]
 
-    no_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowInNoCase()
-    )
-
     if no_case:
         if plugin_decision and plugin_decision[0]:
             deciding_plugins[0].sysexit(
@@ -213,10 +217,6 @@ def _decideRecursion(
             )
 
         return False, "Module %s instructed by user to not follow to." % reason
-
-    any_case, reason = module_name.matchesToShellPatterns(
-        patterns=Options.getShallFollowModules()
-    )
 
     if any_case:
         if plugin_decision and not plugin_decision[0] and deciding_plugins:
