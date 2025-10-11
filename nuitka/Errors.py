@@ -61,7 +61,7 @@ class CodeTooComplexCode(Exception):
     It cannot be compiled, with recursive code, and therefore the bytecode
     should be used instead.
 
-    Example of this is "idnadata".
+    Example of this is "idnadata", spell-checker: ignore idnadata
     """
 
 
@@ -75,6 +75,10 @@ class NuitkaForbiddenDLLEncounter(Exception):
 
 class NuitkaSyntaxError(Exception):
     """The code cannot be read due to SyntaxError"""
+
+
+class NuitkaFilenameError(Exception):
+    """A filename is illegal and should not be used internally, but was."""
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

@@ -32,9 +32,11 @@ from nuitka.Progress import (
 from nuitka.PythonFlavors import (
     getHomebrewInstallPath,
     isAnacondaPython,
+    isCPythonOfficialPackage,
     isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isPythonBuildStandalonePython,
 )
 from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.Tracing import general, inclusion_logger
@@ -49,10 +51,12 @@ from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
+    getMSVCRedistPath,
     getOS,
     isDebianBasedLinux,
     isMacOS,
     isPosixWindows,
+    isRPathUsingPlatform,
     isWin32Windows,
 )
 
@@ -197,7 +201,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # After dependency detection, we can change the RPATH for main binary.
-    if not isWin32Windows():
+    if isRPathUsingPlatform():
         setSharedLibraryRPATH(
             os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
         )
@@ -316,10 +320,14 @@ _excluded_system_dlls = set()
 
 
 def _reduceToPythonPath(used_dll_paths):
-    """Remove DLLs outside of python path."""
+    """Remove DLLs outside of python path unless they are found in the MSVC Redist folder."""
     inside_paths = getPythonUnpackedSearchPath()
+    vc_redist_path = getMSVCRedistPath(logger=inclusion_logger)
 
     if isAnacondaPython():
+        inside_paths.insert(0, getSystemPrefixPath())
+
+    if isMacOS() and (isCPythonOfficialPackage() or isPythonBuildStandalonePython()):
         inside_paths.insert(0, getSystemPrefixPath())
 
     if isHomebrewPython():
@@ -338,7 +346,13 @@ def _reduceToPythonPath(used_dll_paths):
     removed_dll_paths = OrderedSet()
 
     for dll_filename in used_dll_paths:
-        if decideInside(dll_filename):
+        is_from_vc_redist = False
+        if vc_redist_path:
+            is_from_vc_redist = isFilenameBelowPath(
+                path=vc_redist_path, filename=dll_filename
+            )
+
+        if decideInside(dll_filename) or is_from_vc_redist:
             kept_used_dll_paths.add(dll_filename)
         else:
             if dll_filename not in _excluded_system_dlls:
@@ -363,12 +377,12 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
     # pylint: disable=too-many-branches,too-many-locals
 
     if standalone_entry_point.module_name is not None:
-        module_name, module_filename, _kind, finding = locateModule(
-            standalone_entry_point.module_name, parent_package=None, level=0
-        )
-
-        # TODO: How can this be None at all.
-        if module_filename is not None and isStandardLibraryPath(module_filename):
+        # For Linux Pythons, there can be DLLs to pick up from the system.
+        if (
+            not isWin32Windows()
+            and not isMacOS()
+            and isStandardLibraryPath(standalone_entry_point.source_path)
+        ):
             allow_outside_dependencies = True
         else:
             allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
@@ -406,7 +420,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
         # based on the package name.
 
         if standalone_entry_point.module_name is not None and used_dll_paths:
-            module_name, module_filename, _kind, finding = locateModule(
+            module_name, _module_filename, _kind, finding = locateModule(
                 standalone_entry_point.module_name, parent_package=None, level=0
             )
 
@@ -458,7 +472,7 @@ Error, cannot detect used DLLs for DLL '%s' in package '%s' due to: %s"""
                 # where required that way (openvino) or known to be good only (av),
                 # because it broke other things. spell-checker: ignore openvino
 
-                dest_path = os.path.normpath(
+                dest_path = getNormalizedPath(
                     os.path.join(
                         os.path.dirname(standalone_entry_point.dest_path),
                         os.path.basename(used_dll_path),

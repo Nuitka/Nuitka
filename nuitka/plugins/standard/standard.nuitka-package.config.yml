@@ -9,6 +9,12 @@
     - depends:
         - '_dbus_bindings'
 
+- module-name: '_distutils_hack' # checksum: 8ed94606
+  anti-bloat:
+    - description: 'disable distutils hacks'
+      change_function:
+        'warn_distutils_present': "'(lambda : Mone)'"
+
 - module-name: '_distutils_hack.override' # checksum: f6295952
   anti-bloat:
     - description: 'disable distutils hacks'
@@ -210,7 +216,7 @@
     - depends:
         - 'apt_pkg'
 
-- module-name: 'arcade' # checksum: f1b138c
+- module-name: 'arcade' # checksum: 5abbaedc
   data-files:
     - dirs:
         - 'resources'
@@ -223,7 +229,7 @@
         'future': 'Upcoming features of Arcade will not be available unless you do "--include-module=arcade.future"'
   implicit-imports:
     - depends:
-        - 'arcade.gl.backends'
+        - 'arcade.gl.backends.opengl.provider'
 
 - module-name: 'aspose' # checksum: 1ffc48f1
   data-files:
@@ -530,17 +536,20 @@
         'is_triton_available()': 'False'
       when: 'not use_setuptools'
 
-- module-name: 'black' # checksum: db60cdd5
+- module-name: 'black' # checksum: 521dcf47
   anti-bloat:
     - description: 'remove IPython reference'
       no-auto-follow:
         'IPython': 'ignore'
       when: 'not use_ipython'
-
-  # TODO: This ought to be determined at run-time.
   implicit-imports:
     - depends:
         - '30fcd23745efe32ce681__mypyc'
+
+  import-hacks:
+    - recompile-extensions: 'no'
+
+  # TODO: This ought to be determined at run-time.
 
 - module-name: 'blib2to3' # checksum: a54cab2a
   data-files:
@@ -728,7 +737,7 @@
     - patterns:
         - 'cacert.pem'
 
-- module-name: 'certifi.core' # checksum: 2eb9c89a
+- module-name: 'certifi.core' # checksum: 87b26833
   anti-bloat:
     - description: 'avoid using importlib.resources without need'
       replacements_plain:
@@ -737,6 +746,12 @@
         'from importlib.resources import path as get_path, read_text': 'raise ImportError'
         'sys.version_info': '(0,)'
       when: 'version("certifi") < (2025,)'
+
+  options:
+    checks:
+      - description: 'should always work'
+        support_info: 'perfect'
+        when: 'standalone'
 
 - module-name: 'cffi.api' # checksum: 4743eaca
   anti-bloat:
@@ -907,6 +922,17 @@
       no-auto-follow:
         'comtypes': 'ignore'
 
+- module-name: 'cupy' # checksum: 8c7aadcc
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      no-auto-follow:
+        'setuptools': 'ignore'
+      when: 'not use_setuptools'
+    - description: 'remove cupy testing framework'
+      replacements_plain:
+        'from cupy import testing': 'testing = None'
+      when: 'not use_pytest'
+
 - module-name: 'curl_cffi' # checksum: 30c8f50c
   data-files:
     - patterns:
@@ -1015,6 +1041,10 @@
   data-files:
     - dirs:
         - 'schema/_res'
+
+- module-name: 'Cython' # checksum: ea8997da
+  import-hacks:
+    - recompile-extensions: 'never'
 
 - module-name: 'cytoolz.functoolz' # checksum: e6faf7b7
   implicit-imports:
@@ -1184,6 +1214,12 @@
   implicit-imports:
     - depends:
         - 'dependency_injector.errors'
+
+- module-name: 'depyf' # checksum: 77493764
+  anti-bloat:
+    - description: "remove 'dill' package reference"
+      no-auto-follow:
+        'dill': 'ignore'
 
 - module-name: 'diatheke' # checksum: ad402cfe
   import-hacks:
@@ -1597,6 +1633,13 @@
       dirs:
         - 'templates'
 
+- module-name: 'flet.utils.pip' # checksum: 81c7a256
+  anti-bloat:
+    - description: 'avoid calling pip in standalone mode'
+      change_function:
+        'install_flet_package': 'un-callable'
+      when: 'standalone'
+
 - module-name: 'folium' # checksum: 2e123618
   data-files:
     - dirs:
@@ -1836,6 +1879,11 @@
         - 'gevent.resolver.blocking'
         - 'gevent.resolver.cares'
         - 'gevent.resolver.thread'
+
+- module-name: 'gi' # checksum: 23e52503
+  implicit-imports:
+    - depends:
+        - 'gi._enum'
 
 - module-name: 'git.objects.submodule.base' # checksum: 3c6d40d1
   anti-bloat:
@@ -2281,12 +2329,11 @@
         'import pydoc': ''
         'if inspect.isfunction(func):': 'if False:'
 
-- module-name: 'jpype' # checksum: 7b04152a
+- module-name: 'jpype' # checksum: 8b99529
   data-files:
     - dest_path: 'jpype'
       patterns:
         - '../org.jpype.jar'
-      when: 'is_conda_package("jpype")'
 
 - module-name: 'jsonrpcserver.main' # checksum: 245e25bc
   data-files:
@@ -2536,12 +2583,13 @@
     - patterns:
         - 'version.info'
 
-- module-name: 'litellm' # checksum: fa10c772
+- module-name: 'litellm' # checksum: c104ffe5
   data-files:
     - patterns:
         - '*.json'
     - dirs:
         - 'llms/tokenizers'
+        - 'litellm_core_utils/tokenizers'
 
 - module-name: 'llama_cpp' # checksum: 34acaa89
   dlls:
@@ -2577,7 +2625,7 @@
     - depends:
         - 'numpy.core.multiarray'
 
-- module-name: 'lxml' # checksum: f89961a7
+- module-name: 'lxml' # checksum: 1528e581
   implicit-imports:
     - depends:
         - '.builder'
@@ -2585,6 +2633,8 @@
         - '.objectify'
         - '.sax'
         - '._elementpath'
+  import-hacks:
+    - recompile-extensions: 'no'
 
 - module-name: 'lxml.etree' # checksum: dfaed226
   implicit-imports:
@@ -2634,7 +2684,7 @@
         '_test': 'un-callable'
         'main': 'un-callable'
 
-- module-name: 'matplotlib' # checksum: d5e66e6c
+- module-name: 'matplotlib' # checksum: 11ca5d4
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
       replacements_plain:
@@ -2670,7 +2720,7 @@
     checks:
       - description: "For matplotlib a GUI tooltkit selection might be needed use, use '--enable-plugin=tk-inter|PySide6|PySide2|PyQt6|PyQt5', or use '--enable-plugin=no-qt' for headless mode."
         support_info: 'plugin'
-        when: 'not macos and not (use_noqt or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
+        when: 'not macos and not (use_noqt or use_tkinter or use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6)'
 
 - module-name: 'matplotlib.backend_bases' # checksum: 5954e33d
   anti-bloat:
@@ -3167,7 +3217,7 @@
       replacements_plain:
         'type(attr) is types.MethodType': 'isinstance(attr, types.MethodType)'
 
-- module-name: 'numpy' # checksum: 10720e3
+- module-name: 'numpy' # checksum: cfff3d48
   dlls:
     - from_filenames:
         relative_path: '.libs'
@@ -3202,6 +3252,9 @@
     - description: 'avoid charset_normalizer dependency'
       no-auto-follow:
         'charset_normalizer': 'ignore'
+    - description: 'disable bug hiding'
+      replacements_plain:
+        'raise ImportError(msg) from e': 'raise e'
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -3214,6 +3267,12 @@
         - 'numpy.ctypeslib'
         - 'numpy.ma'
         - 'numpy.matrixlib'
+
+  options:
+    checks:
+      - description: 'should always work'
+        support_info: 'perfect'
+        when: 'standalone'
 
 - module-name: 'numpy._core' # checksum: b24c40a6
   anti-bloat:
@@ -3570,6 +3629,18 @@
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
 
+- module-name: 'opentelemetry.context' # checksum: 5846a543
+  data-files:
+    - include-metadata:
+        - 'opentelemetry-api'
+  anti-bloat:
+    - description: 'workaround for metadata functions'
+      replacements_plain:
+        'opentelemetry.util._importlib_metadata': 'importlib_metadata'
+  implicit-imports:
+    - depends:
+        - 'opentelemetry.context.contextvars_context'
+
 - module-name: 'opentelemetry.exporter.jaeger.thrift' # checksum: f0eea343
   import-hacks:
     - global-sys-path:
@@ -3644,6 +3715,13 @@
         - 'zoneinfo'
         - 'json'
         - 'uuid'
+
+- module-name: 'ortools' # checksum: 1f172dc5
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - ''
 
 - module-name: 'osgeo' # checksum: b3e12844
   data-files:
@@ -4693,6 +4771,20 @@
         'cython': 'ignore'
       when: 'not use_setuptools'
 
+- module-name: 'pyface' # checksum: a2a403b1
+  data-files:
+    - include-metadata:
+        - 'pyface'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'load_tests': 'un-callable'
+      when: 'not use_unittest'
+
+  implicit-imports:
+    - depends:
+        - 'pyface.ui.null.init'
+
 - module-name: 'pyfiglet' # checksum: b8621a7d
   implicit-imports:
     - depends:
@@ -5463,6 +5555,12 @@
         - '.metrics_cpp'
         - '.metrics_py'
 
+- module-name: 'rasterio' # checksum: 74d1dbe5
+  data-files:
+    - dirs:
+        - 'gdal_data'
+        - 'proj_data'
+
 - module-name: 'rasterio._io' # checksum: 5acc49ae
   implicit-imports:
     - depends:
@@ -5588,6 +5686,14 @@
           - 'librlottie'
       when: 'not win32'
 
+- module-name: 'roboflow' # checksum: e3a3aa6a
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+        'ipywidgets': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'rtree.finder' # checksum: 312489cf
   variables:
     setup_code:
@@ -5626,7 +5732,7 @@
     - depends:
         - 'scapy.layers.*'
 
-- module-name: 'scipy' # checksum: 9c031415
+- module-name: 'scipy' # checksum: 39cab727
   data-files:
     - patterns:
         - 'stats/_sobol_direction_numbers.npz' # for scipy.stats._sobol._initialize_direction_numbers
@@ -5654,6 +5760,7 @@
         'ndonnx': 'ignore'
         'yaml': 'ignore'
         'pytest': 'ignore'
+        'sphinx': 'ignore'
       bloat-mode-overrides:
         'pydoc': 'allow'
 
@@ -5935,52 +6042,23 @@
     - depends:
         - 'huggingface_hub.repository'
 
-- module-name: 'setuptools' # checksum: aafdeb36
+- module-name: 'setuptools' # checksum: 182fa110
   anti-bloat:
     - description: 'no runtime expansion of sys.path needed'
       replacements_plain:
         'sys.path.extend(': '('
-      when: 'version("setuptools") >= (71,)'
+      when: 'None is not version("setuptools") >= (71,)'
     - description: 'find setuptools.distutils directly'
       replacements_plain:
-        'import _distutils_hack.override': 'import setuptools._distutils as distutils; sys.modules["distutils"] = distutils'
+        'import _distutils_hack.override': 'import distutils'
+        'import setuptools._distutils as distutils': 'import distutils'
       when: 'python312_or_higher'
   import-hacks:
     - global-sys-path:
         # This package forces vendored packages into "sys.path" and causes
         # absolute imports from there to be available.
         - '_vendor'
-      when: 'version("setuptools") >= (71,)'
-
-- module-name: 'setuptools.command' # checksum: eb17e343
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.command.bdist import bdist': 'from setuptools._distutils.command.bdist import bdist'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.config.expand' # checksum: cd2c573e
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.errors import DistutilsOptionError': 'from setuptools._distutils.errors import DistutilsOptionError'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.discovery' # checksum: d8699eb7
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'from distutils.util import convert_path': 'from setuptools._distutils.util import convert_path'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.extension' # checksum: a8b782ae
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.core': 'import setuptools._distutils as distutils; import setuptools._distutils.core'
-        'import distutils.errors': 'import setuptools._distutils.errors'
-        'import distutils.extension': 'import setuptools._distutils.extension'
-      when: 'python312_or_higher'
+      when: 'None is not version("setuptools") >= (71,)'
 
 - module-name: 'setuptools.extern' # checksum: 2b2a3793
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
@@ -5991,14 +6069,7 @@
         - 'setuptools._vendor.*'
         - 'setuptools._vendor.*.*'
 
-- module-name: 'setuptools.logging' # checksum: 70588c58
-  anti-bloat:
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.log': 'import setuptools._distutils as distutils; import setuptools._distutils.log'
-      when: 'python312_or_higher'
-
-- module-name: 'setuptools.monkey' # checksum: c31be2f0
+- module-name: 'setuptools.monkey' # checksum: 1ea728a1
   anti-bloat:
     - description: 'remove MSVC patching on non-Windows'
       replacements_plain:
@@ -6008,11 +6079,6 @@
         # these are done, and try to do it in source code somehow.
         'patch_for_msvc_specialized_compiler': "'(lambda: None)'"
       when: 'standalone and not win32'
-    - description: 'find setuptools distutils'
-      replacements_plain:
-        'import distutils.filelist': 'import setuptools._distutils as distutils; import setuptools._distutils.filelist'
-      when: 'python312_or_higher'
-
   implicit-imports:
     - depends:
         - '.msvc'
@@ -6864,6 +6930,13 @@
   implicit-imports:
     - depends:
         - 'sqlglot.dialects.*'
+
+- module-name: 'sqlglot.parser' # checksum: 33ab58fb
+  anti-bloat:
+    - description: 'workaround incompatibility'
+      # TODO: Remove once free variables are no longer in co_varnames.
+      replacements_plain:
+        'if "dialect" in func_builder.__code__.co_varnames': 'if "dialect" in __import__("inspect").getargs(func_builder.__code__)'
 
 - module-name: 'srsly.msgpack._packer' # checksum: ef9e3a96
   implicit-imports:
@@ -8174,7 +8247,11 @@
         'from IPython.core.display import HTML, display': 'raise ImportError'
       when: 'not use_ipython'
 
-- module-name: 'torch' # checksum: 9b1bc67d
+- module-name: 'tomli' # checksum: 339a370b
+  import-hacks:
+    - recompile-extensions: 'no'
+
+- module-name: 'torch' # checksum: fe3ef51e
   parameters:
     - 'name': 'disable-jit'
       'values': 'value in ("yes", "no")'
@@ -8208,7 +8285,11 @@
         'pytest': 'ignore'
         '_pytest': 'ignore'
       when: 'not use_pytest'
-
+    - description: 'remove dill reference'
+      no-auto-follow:
+        # When using dill, we expect that to be outside, this is only for
+        # testing if it needs to be considered.
+        'dill': 'ignore'
   options:
     checks:
       - description: "Torch JIT is disabled by default in standalone mode, make a choice explicit with '--module-parameter=torch-disable-jit=yes|no'"
@@ -8541,7 +8622,27 @@
     - patterns:
         - '*.css'
 
-- module-name: 'transformers' # checksum: deea1e9e
+- module-name: 'traits.trait_notifiers' # checksum: 6677774e
+  anti-bloat:
+    - description: 'support older traits package'
+      replacements_plain:
+        'type(handler) is MethodType': 'isinstance(handler, MethodType)'
+
+- module-name: 'traitsui' # checksum: 694e312c
+  data-files:
+    - include-metadata:
+        - 'traitsui'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'load_tests': 'un-callable'
+      when: 'not use_unittest'
+
+  implicit-imports:
+    - depends:
+        - 'traitsui.null'
+
+- module-name: 'transformers' # checksum: fab655ad
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8550,12 +8651,15 @@
         - 'flax'
         - 'ftfy'
         - 'jinja2'
+        - 'mistral_common'
         - 'pandas'
         - 'peft'
         - 'psutil'
+        - 'tiktoken'
         - 'tensorflow'
         - 'torch'
         - 'tokenizers'
+        - 'torchaudio'
         - 'torchvision'
         - 'scipy'
         - 'safetensors'
@@ -8566,6 +8670,8 @@
         - 'soundfile'
         - 'tqdm'
         - 'rich'
+        - 'Pillow'
+        - 'Pillow-SIMD'
 
   anti-bloat:
     - description: 'remove IPython reference'
@@ -8577,6 +8683,10 @@
       no-auto-follow:
         'triton': 'ignore'
       when: 'not use_setuptools'
+
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        'ray': 'some functions may assert that ray is available'
 
 - module-name: 'transformers.integrations' # checksum: ccb3fd3
   anti-bloat:
@@ -8714,7 +8824,7 @@
     - depends:
         - 'huggingface_hub.hf_api'
 
-- module-name: 'transformers.utils.import_utils' # checksum: 705fafc4
+- module-name: 'transformers.utils.import_utils' # checksum: a4dec76e
   anti-bloat:
     - description: 'workaround for metadata checks not recognized'
       replacements_plain:
@@ -8729,7 +8839,7 @@
         'importlib.util.find_spec("tensorflow") is not None': 'False'
     - description: 'more clear missing metadata error message'
       replacements_plain:
-        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile with '--include-distribution-metadata=%s'.''' % pkg_name)"
+        'package_exists = False': "sys.exit('''Nuitka: Need to use this as an option to compile 'transformers' with '--include-distribution-metadata=%s'.''' % pkg_name)"
       when: 'not deployment'
 
 - module-name: 'transformers.utils.versions' # checksum: 7a77f5b1
@@ -9011,13 +9121,33 @@
     - depends:
         - 'vibora.router.parser'
 
-- module-name: 'vllm' # checksum: a5840e4a
+- module-name: 'vllm' # checksum: 87570df9
   data-files:
     - include-metadata:
         - 'gguf'
+  anti-bloat:
+    - description: "remove 'ray' package reference"
+      no-auto-follow:
+        # When using ray, we expect that to be outside, this is only for testing.
+        'ray': 'ignore'
   implicit-imports:
     - depends:
         - 'vllm.logging_utils'
+
+- module-name: 'vllm.attention.backends.mla.common' # checksum: 73ff1d01
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'if HAS_TRITON:': 'if False:'
+      when: 'not use_setuptools'
+
+- module-name: 'vllm.config' # checksum: 807f4cc3
+  anti-bloat:
+    - description: 'remove need for config class source code'
+      replacements_re:
+        'if f.name not in attr_docs:': 'if False:'
+      change_function:
+        'get_attr_docs': "'(lambda cls: {})'"
 
 - module-name: 'vosk' # checksum: 77da6060
   dlls:
@@ -9038,11 +9168,13 @@
         - 'vtkmodules'
       when: 'version("vtk") >= (9,)'
 
-- module-name: 'vtkmodules' # checksum: 8db0fa0f
+- module-name: 'vtkmodules' # checksum: 3b668f13
   implicit-imports:
     - depends:
         - 'vtkmodules.all'
         - 'vtkmodules.util'
+        - 'vtkmodules.util.data_model'
+        - 'vtkmodules.util.execution_model'
 
 - module-name: 'vtkmodules.qt' # checksum: e9590444
   implicit-imports:
@@ -9201,6 +9333,19 @@
   implicit-imports:
     - depends:
         - '._noop'
+
+- module-name: 'winpty' # checksum: b40fa233
+  dlls:
+    - from_filenames:
+        prefixes:
+          - '*pty'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - 'OpenConsole'
+          - 'winpty'
+        executable: 'yes'
+      when: 'win32'
 
 - module-name: 'wordninja_enhanced' # checksum: ae5ca038
   data-files:
@@ -9465,7 +9610,7 @@
     - depends:
         - 'zeroconf._utils.ipaddress'
 
-- module-name: 'zmq' # checksum: b0320bcc
+- module-name: 'zmq' # checksum: 888be189
   dlls:
     # Do not look at this one, using dest_path and suffixes is not
     # needed at all normally, but this one is trange and for old PyZMQ
@@ -9477,6 +9622,8 @@
           - 'pyd'
       dest_path: '.'
       when: 'win32'
+  import-hacks:
+    - recompile-extensions: 'never'
 
 - module-name: 'zmq.backend' # checksum: 139febbd
   implicit-imports:

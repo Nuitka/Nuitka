@@ -13,7 +13,7 @@ template_constants_reading = r"""
 #include "build_definitions.h"
 
 // Global constants storage
-PyObject *global_constants[%(global_constants_count)d];
+PyObject *global_constants[%(global_constants_count)d] = {0};
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's

@@ -149,6 +149,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_Long_GetSmallValue(medium_re
 #endif
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

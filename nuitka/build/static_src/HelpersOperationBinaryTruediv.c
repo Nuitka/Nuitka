@@ -20,7 +20,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, Py
     PyObject *result;
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -28,7 +28,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, Py
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -119,13 +119,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_IN
                                                                                   PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -261,7 +261,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1,
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -269,7 +269,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1,
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -363,13 +363,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJEC
                                                                                   PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -519,7 +519,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1,
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -527,7 +527,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1,
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -625,13 +625,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(PyObject *operand1, 
     PyObject *result;
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -664,13 +664,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LO
                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -810,13 +810,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_LONG(PyObject *operand1
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -852,13 +852,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJE
                                                                                    PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1012,13 +1012,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_OBJECT(PyObject *operand1
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1058,7 +1058,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1
 
     PyObject *result;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1066,7 +1066,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1112,13 +1112,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FL
                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1253,7 +1253,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand
 
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1261,7 +1261,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1310,13 +1310,13 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJ
                                                                                     PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1465,7 +1465,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand
 
         // return _BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1473,7 +1473,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1524,13 +1524,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_LONG(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1575,13 +1575,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_FLOAT(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1633,13 +1633,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_INT(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1682,13 +1682,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_FLOAT(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1737,13 +1737,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_LONG_INT(PyObject *operand1, P
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1786,13 +1786,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_LONG(PyObject *operand1, P
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1842,7 +1842,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_CLONG(PyObject *operand1, 
     PyObject *result;
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1850,7 +1850,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_CLONG(PyObject *operand1, 
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -1945,7 +1945,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CLONG_INT(long operand1, PyObj
     PyObject *result;
 
     // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -1953,7 +1953,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CLONG_INT(long operand1, PyObj
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -2045,7 +2045,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand
 
     PyObject *result;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -2053,7 +2053,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -2100,7 +2100,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CFLOAT_FLOAT(double operand1, 
 
     PyObject *result;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -2108,7 +2108,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CFLOAT_FLOAT(double operand1, 
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
     NUITKA_MAY_BE_UNUSED long clong_result;
     NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -2157,7 +2157,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_OBJECT(PyObject *operan
         PyObject *result;
 
         // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
@@ -2165,7 +2165,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_OBJECT(PyObject *operan
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
         NUITKA_MAY_BE_UNUSED long clong_result;
         NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -2249,13 +2249,13 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_OBJECT(PyObject *operan
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

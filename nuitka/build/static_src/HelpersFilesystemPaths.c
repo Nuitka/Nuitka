@@ -167,7 +167,12 @@ filename_char_t *_getBinaryPath2(void) {
         abort();
     }
 #elif defined(__OpenBSD__) || defined(_AIX) || defined(_NUITKA_EXPERIMENTAL_FORCE_UNIX_BINARY_NAME)
+#if _NUITKA_DLL_MODE || _NUITKA_MODULE_MODE
+    const char *comm = "invalid";
+    NUITKA_CANNOT_GET_HERE("Cannot query program name on this OS. Please help adding that.");
+#else
     const char *comm = getOriginalArgv0();
+#endif
 
     bool success = false;
 
@@ -247,16 +252,6 @@ filename_char_t *_getBinaryPath2(void) {
 #elif defined(__wasi__)
     const char *wasi_filename = "program.wasm";
     copyStringSafe(binary_filename, wasi_filename, buffer_size);
-#elif defined(_AIX)
-    char proc_link_path[64];
-    snprintf(proc_link_path, sizeof(proc_link_path), "/proc/%d/object/a.out", (int)getpid());
-
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink(proc_link_path, binary_filename, buffer_size - 1);
-
-    if (unlikely(res == -1)) {
-        abort();
-    }
 #else
     /* The remaining platforms, mostly Linux or compatible. */
 
@@ -1254,6 +1249,10 @@ static HMODULE getDllModuleHandle(void) {
 }
 #endif
 
+#if defined(_AIX)
+#include "AixDllAddr.c"
+#endif
+
 static filename_char_t const *getDllFilename(void) {
 #if defined(_WIN32)
     static WCHAR dll_filename[MAXPATHLEN + 1] = {0};
@@ -1306,6 +1305,7 @@ filename_char_t const *getDllDirectory(void) {
 #endif
 }
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

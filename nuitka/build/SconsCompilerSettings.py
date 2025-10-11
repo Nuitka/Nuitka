@@ -42,8 +42,8 @@ from .SconsUtils import (
 
 # spell-checker: ignore LIBPATH,CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
 # spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
-# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
-# spell-checker: ignore -feliminate,noexecstack,implib
+# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode
+# spell-checker: ignore -feliminate,noexecstack,implib,bexpall,blibpath
 # spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,CGTHREADS
 
 
@@ -256,13 +256,13 @@ slower without it.
 
     # Tell compiler to use link time optimization for MSVC
     if env.msvc_mode and lto_mode:
-        env.Append(CCFLAGS=["/GL"])
-
         if not env.clangcl_mode:
-            env.Append(LINKFLAGS=["/LTCG"])
+            env.Append(CCFLAGS=["/GL"])
 
             if getMsvcVersion(env) >= (14, 3):
                 env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
+
+        env.Append(LINKFLAGS=["/LTCG"])
 
     if orig_lto_mode == "auto":
         scons_details_logger.info(
@@ -425,6 +425,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
                 download_ok=download_ok,
+                experimental="winlibs-new" in env.experimental_flags,
             )
 
             if compiler_path is not None:
@@ -451,16 +452,26 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
 
 
 def decideConstantsBlobResourceMode(env):
+    # This is a complicated decision with a lot of cases, as there are many
+    # compiler, mode, OS and their versions related decisions.
+    # pylint: disable=too-many-branches
+
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
     elif isWin32Windows():
-        resource_mode = "win_resource"
-        reason = "default for Windows"
+        if env.clangcl_mode and getMsvcVersion(env) >= (14, 3):
+            resource_mode = "c23_embed"
+            reason = "default for ClangCL"
+        else:
+            resource_mode = "win_resource"
+            reason = "default for Windows"
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
     elif isMacOS():
+        # TODO: The macOS has no Clang19 yet, once it does, we could also
+        # consider using "c23_embed" for it too.
         resource_mode = "mac_section"
         reason = "default for macOS"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
@@ -483,6 +494,15 @@ def decideConstantsBlobResourceMode(env):
         # All is done already, this is for most platforms.
         resource_mode = "incbin"
         reason = "default"
+
+    assert resource_mode in (
+        "incbin",
+        "linker",
+        "win_resource",
+        "mac_section",
+        "code",
+        "c23_embed",
+    ), resource_mode
 
     return resource_mode, reason
 
@@ -577,8 +597,22 @@ unsigned char const *getConstantsBlobData(void) {
                     output.write('extern "C" {')
 
                 output.write(
-                    """
+                    """\
 // Constant data for the program.
+"""
+                )
+
+                if env.clang_mode or env.clangcl_mode:
+                    output.write(
+                        """
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wc23-extensions"
+#endif
+"""
+                    )
+
+                output.write(
+                    """
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -618,6 +652,37 @@ unsigned char constant_bin_data[] =\n{\n
         )
 
 
+def _enableMacOSTargetSettings(env):
+    """Set up environment for macOS target settings."""
+    assert isMacOS()
+
+    setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
+
+    target_flag = "--target=%s-apple-macos%s" % (
+        env.macos_target_arch,
+        env.macos_min_version,
+    )
+    env.Append(CCFLAGS=[target_flag])
+    env.Append(LINKFLAGS=[target_flag])
+
+
+def _enableAIXTargetSettings(env):
+    """Set up environment for AIX target settings."""
+    assert isAIX()
+
+    if env.target_arch in ("64", "32"):
+        env.Append(CCFLAGS=["-m%s" % env.target_arch])
+        env.Append(LINKFLAGS=["-m%s" % env.target_arch])
+
+
+def _enableWin32TargetSettings(env):
+    """Set up environment for Windows target settings."""
+    assert isWin32Windows()
+    # The MinGW64 and ClangCL do not default for API level properly, so
+    # help it.
+    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+
+
 def enableWindowsStackSize(env, target_arch):
     # Stack size 4MB or 8MB, we might need more than the default 1MB.
     if target_arch == "x86_64":
@@ -632,9 +697,53 @@ def enableWindowsStackSize(env, target_arch):
         env.Append(LINKFLAGS=["-Wl,--stack,%d" % stack_size])
 
 
-def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
+def enableOutputSettings(env):
+    # This has many cases to deal with
+    # pylint: disable=too-many-branches
+    if env.msvc_mode:
+        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
+        # for Nuitka-Python there is of course none.
+        if env.nuitka_python:
+            env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
+        else:
+            env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
+
+    if not env.exe_target:
+        if isGccName(env.the_cc_name):
+            env.Append(CCFLAGS=["-shared"])
+        elif env.clang_mode:
+            pass
+        elif env.msvc_mode:
+            if not env.clangcl_mode:
+                env.Append(CCFLAGS=["/LD"])  # Create a DLL.
+        else:
+            assert False, env.the_cc_name
+
+    if env.forced_stderr_path and not env.forced_stdout_path:
+        env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
+
+    if env.forced_stdout_path:
+        if env.forced_stdout_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
+        elif env.forced_stdout_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDOUT_PATH"] = env.forced_stdout_path
+
+    if env.forced_stderr_path:
+        if env.forced_stderr_path == "{NONE}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
+        elif env.forced_stderr_path == "{NULL}":
+            env.build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
+        else:
+            env.build_definitions["NUITKA_FORCED_STDERR_PATH"] = env.forced_stderr_path
+
+
+def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compile):
     # This is driven by many branches on purpose and has a lot of things
     # to deal with for LTO checks and flags, pylint: disable=too-many-branches,too-many-statements
+
+    env.exe_target = exe_target
 
     # Enable LTO for compiler.
     _enableLtoSettings(
@@ -680,17 +789,16 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Support for clang.
     if "clang" in env.the_cc_name:
-        env.Append(CCFLAGS=["-w"])
+        env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
         env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
 
-        # Don't export anything by default, this should create smaller executables.
-        env.Append(CCFLAGS=["-fvisibility=hidden", "-fvisibility-inlines-hidden"])
-
-    if (
+    env.warn_error_mode = (
         env.debug_mode
         and "debug_c_warnings" in env.debug_modes_flags
         and not env.debugger_mode
-    ):
+    )
+
+    if env.warn_error_mode:
         # Allow gcc/clang/MSVC to point out all kinds of inconsistency to us by
         # raising an error.
         if env.gcc_mode:
@@ -713,19 +821,20 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     # Support for macOS standalone to run on older OS versions.
     if isMacOS():
-        setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
+        _enableMacOSTargetSettings(env)
 
-        target_flag = "--target=%s-apple-macos%s" % (
-            env.macos_target_arch,
-            env.macos_min_version,
-        )
+    if isAIX():
+        _enableAIXTargetSettings(env)
 
-        env.Append(CCFLAGS=[target_flag])
-        env.Append(LINKFLAGS=[target_flag])
+        # Otherwise no symbol is exported.
+        if env.module_mode or env.dll_mode:
+            env.Append(LINKFLAGS=["-Wl,-bexpall"])
 
-    # The MinGW64 and ClangCL do not default for API level properly, so
-    # help it.
-    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+        if env.standalone_mode:
+            env.Append(LINKFLAGS=["-Wl,-blibpath:/usr/lib:/lib"])
+
+    if isWin32Windows():
+        _enableWin32TargetSettings(env)
 
     # Unicode entry points for programs.
     if env.mingw_mode:
@@ -859,6 +968,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
 
     if env.console_mode == "attach" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_ATTACH_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
+
+    if env.console_mode == "disable" and os.name == "nt":
+        env.Append(CPPDEFINES=["_NUITKA_DISABLE_CONSOLE_WINDOW"])
+        env.Append(LIBS=["User32"])
 
     if env.console_mode == "hide" and os.name == "nt":
         env.Append(CPPDEFINES=["_NUITKA_HIDE_CONSOLE_WINDOW"])
@@ -905,6 +1019,18 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, onefile_compile):
         else:
             env.Append(CPPDEFINES=["_NUITKA_USE_SYSTEM_CRC32"])
             env.Append(LIBS="z")
+
+    if isAIX():
+        aix_dll_addr_inline_copy_dir = os.path.join(
+            env.nuitka_src, "inline_copy", "aix_dll_addr"
+        )
+        env.Append(
+            CPPPATH=[
+                aix_dll_addr_inline_copy_dir,
+            ],
+        )
+
+    enableOutputSettings(env)
 
 
 def _enablePgoSettings(env):
@@ -1091,30 +1217,27 @@ def importEnvironmentVariableSettings(env):
     """Import typical environment variables that compilation should use."""
     # spell-checker: ignore cppflags,cflags,ccflags,cxxflags,ldflags
 
-    # Outside compiler settings are respected.
-    if "CPPFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited CPPFLAGS='%s' variable." % os.environ["CPPFLAGS"]
-        )
-        env.Append(CPPFLAGS=os.environ["CPPFLAGS"].split())
-    if "CFLAGS" in os.environ:
-        scons_logger.info("Inherited CFLAGS='%s' variable." % os.environ["CFLAGS"])
-        env.Append(CCFLAGS=os.environ["CFLAGS"].split())
-    if "CCFLAGS" in os.environ:
-        scons_logger.info("Inherited CCFLAGS='%s' variable." % os.environ["CCFLAGS"])
-        env.Append(CCFLAGS=os.environ["CCFLAGS"].split())
-    if "CXXFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited CXXFLAGS='%s' variable." % os.environ["CXXFLAGS"]
-        )
-        env.Append(CXXFLAGS=os.environ["CXXFLAGS"].split())
+    env.cpp_flags = os.environ.get("CPPFLAGS")
+    if env.cpp_flags:
+        scons_logger.info("Scons: Inherited CPPFLAGS='%s' variable." % env.cpp_flags)
+        env.Append(CPPFLAGS=env.cpp_flags.split())
+    env.c_flags = os.environ.get("CFLAGS")
+    if env.c_flags:
+        scons_logger.info("Inherited CFLAGS='%s' variable." % env.c_flags)
+        env.Append(CCFLAGS=env.c_flags.split())
+    env.cc_flags = os.environ.get("CCFLAGS")
+    if env.cc_flags:
+        scons_logger.info("Inherited CCFLAGS='%s' variable." % env.cc_flags)
+        env.Append(CCFLAGS=env.cc_flags.split())
+    env.cxx_flags = os.environ.get("CXXFLAGS")
+    if env.cxx_flags:
+        scons_logger.info("Scons: Inherited CXXFLAGS='%s' variable." % env.cxx_flags)
+        env.Append(CXXFLAGS=env.cxx_flags.split())
 
-    # Outside linker flags are respected.
-    if "LDFLAGS" in os.environ:
-        scons_logger.info(
-            "Scons: Inherited LDFLAGS='%s' variable." % os.environ["LDFLAGS"]
-        )
-        env.Append(LINKFLAGS=os.environ["LDFLAGS"].split())
+    env.ld_flags = os.environ.get("LDFLAGS")
+    if env.ld_flags:
+        scons_logger.info("Scons: Inherited LDFLAGS='%s' variable." % env.ld_flags)
+        env.Append(LINKFLAGS=env.ld_flags.split())
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

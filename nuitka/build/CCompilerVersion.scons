@@ -258,6 +258,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    exe_target=True,
     onefile_compile=False,
 )
 

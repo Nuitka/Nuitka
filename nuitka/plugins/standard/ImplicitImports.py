@@ -148,7 +148,9 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 ):
                     yield dependency
 
-        # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
+        # Support for both pycryotodome (module name Crypto) and pycyptodomex
+        # (module name Cryptodome),
+        # spell-checker: ignore Cryptodome,pycryotodome,pycyptodomex
         if full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
@@ -168,6 +170,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_ecb"
 
             elif full_name == crypto_module_name + ".Cipher.AES":
+                # spell-checker: ignore aesni,cpuid
                 yield crypto_module_name + ".Cipher._raw_aes"
                 yield crypto_module_name + ".Cipher._raw_aesni"
                 yield crypto_module_name + ".Util._cpuid"
@@ -185,6 +188,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_ocb"
 
             elif full_name == crypto_module_name + ".Cipher._EKSBlowfish":
+                # spell-checker: ignore eksblowfish
                 yield crypto_module_name + ".Cipher._raw_eksblowfish"
 
             elif full_name == crypto_module_name + ".Cipher.Blowfish":
@@ -197,6 +201,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._raw_cbc"
 
             elif full_name == crypto_module_name + ".Util.strxor":
+                # spell-checker: ignore strxor
                 yield crypto_module_name + ".Util._strxor"
 
             elif full_name == crypto_module_name + ".Util._cpu_features":
@@ -233,9 +238,11 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Hash._MD5"
 
             elif full_name == crypto_module_name + ".Hash.keccak":
+                # spell-checker: ignore keccak
                 yield crypto_module_name + ".Hash._keccak"
 
             elif full_name == crypto_module_name + ".Hash.RIPEMD160":
+                # spell-checker: ignore RIPEMD
                 yield crypto_module_name + ".Hash._RIPEMD160"
 
             elif full_name == crypto_module_name + ".Hash.Poly1305":
@@ -246,6 +253,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Protocol._scrypt"
 
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                # spell-checker: ignore ghash,clmul
                 yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
                 yield crypto_module_name + ".Util._galois"
@@ -254,6 +262,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._Salsa20"
 
             elif full_name == crypto_module_name + ".Cipher.ChaCha20":
+                # spell-checker: ignore chacha
                 yield crypto_module_name + ".Cipher._chacha20"
 
             elif full_name == crypto_module_name + ".PublicKey.ECC":
@@ -265,14 +274,18 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 yield crypto_module_name + ".Cipher._ARC4"
 
             elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
+                # spell-checker: ignore pkcs
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
             elif full_name == crypto_module_name + ".Cipher.PKCS1_OAEP":
+                # spell-checker: ignore oaep
                 yield crypto_module_name + ".Cipher._pkcs1_decode"
 
             elif full_name == crypto_module_name + ".Math._IntegerCustom":
+                # spell-checker: ignore modexp
                 yield crypto_module_name + ".Math._modexp"
 
+        # spell-checker: ignore pynput,xorg
         elif full_name in ("pynput.keyboard", "pynput.mouse"):
             if isMacOS():
                 yield full_name.getChildNamed("_darwin")
@@ -298,7 +311,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could
             # be done here, but this might be simpler to hardcode for now. Once we have
             # the infrastructure to ask a module that after optimization, we should do
-            # that instead, as it will not use a separate process.
+            # that instead, as it will not use a separate process. spell-checker: ignore jaraco
             for part in (
                 "packaging",
                 "pyparsing",
@@ -369,7 +382,7 @@ class NuitkaPluginImplicitImports(NuitkaYamlPluginBase):
                 source_code = "\n" + source_code
 
             source_code = """\
-__file__ = (__nuitka_binary_dir + '%ssite.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
+__file__ = (__nuitka_binary_dir + '%s" + "site.py') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
                 os.path.sep,
                 source_code,
             )
@@ -715,11 +728,11 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "pexpect",  # Not performance relevant.
         "Cython",  # Mostly unused, and a lot of modules.
         "cython",
-        "pyximport",
+        "pyximport",  # spell-checker: ignore pyximport
         "IPython",  # Mostly unused, and a lot of modules.
         "wx._core",  # Too large generated code
         "pyVmomi.ServerObjects",  # Too large generated code
-        "pyglet.gl",  # Too large generated code
+        "pyglet.gl",  # Too large generated code, spell-checker: ignore pyglet
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
         "comtypes.gen",  # Not performance relevant and slow C compile
@@ -729,19 +742,20 @@ According to Yaml 'overridden-environment-variables' configuration."""
         "packaging",  # Not performance relevant.
         "appdirs",  # Not performance relevant.
         "dropbox.team_log",  # Too large generated code
-        "asyncua.ua.object_ids",  # Too large generated code
+        "asyncua.ua.object_ids",  # Too large generated code spell-checker: ignore asyncua,uaerrors
         "asyncua.ua.uaerrors._auto",  # Too large generated code
         "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
-        "opcua.ua.object_ids",  # Too large generated code
+        "opcua.ua.object_ids",  # Too large generated code spell-checker: ignore opcua
         "opcua.ua.uaerrors._auto",  # Too large generated code
         "opcua.server.server.standard_address_space",
-        "azure.mgmt.network",  # Too large generated code
+        "azure.mgmt.network",  # Too large generated code spell-checker: ignore mgmt
         "azure.mgmt.compute",  # Too large generated code
         "transformers.utils.dummy_pt_objects",  # Not performance relevant.
         "transformers.utils.dummy_flax_objects",  # Not performance relevant.
         "transformers.utils.dummy_tf_objects",  # Not performance relevant.
+        "tensorflow.lite.python.schema_py_generated",  # Not performance relevant.
         "rich",  #  Not performance relevant and memory leaking due to empty compiled cell leaks
-        "altair.vegalite.v5.schema",  # Not performance relevant.
+        "altair.vegalite.v5.schema",  # Not performance relevant. spell-checker: ignore vegalite
         "azure",  # Not performance relevant.
         "networkx",  # Needs solutions for bytecode requiring decorators.
     )

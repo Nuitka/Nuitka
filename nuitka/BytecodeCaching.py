@@ -34,7 +34,7 @@ def makeCacheName(module_name, source_code):
     module_config_hash = _getModuleConfigHash(module_name)
 
     return (
-        module_name.asString()
+        module_name.asLegalFilename()
         + "@"
         + module_config_hash
         + "@"

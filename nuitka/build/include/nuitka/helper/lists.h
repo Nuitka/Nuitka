@@ -78,6 +78,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST_REPEATED(PyThreadState *tstate, 
 #include "lists_generated.h"
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

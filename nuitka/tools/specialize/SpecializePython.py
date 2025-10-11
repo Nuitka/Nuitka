@@ -45,6 +45,8 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.tools.release.Copyright import getLicenseTextStandard
+from nuitka.utils.FileOperations import getNormalizedPath
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
@@ -347,7 +349,7 @@ def _getPython3OperationName(attribute_name):
 
 
 def makeAttributeNodes():
-    filename_python = "nuitka/nodes/AttributeNodesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/AttributeNodesGenerated.py")
 
     template = getTemplate(
         package_name=__package__,
@@ -356,7 +358,9 @@ def makeAttributeNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):
@@ -416,7 +420,9 @@ from nuitka.nodes.NodeMakingHelpers import (
 
 
 def makeBuiltinOperationNodes():
-    filename_python = "nuitka/nodes/BuiltinOperationNodeBasesGenerated.py"
+    filename_python = getNormalizedPath(
+        "nuitka/nodes/BuiltinOperationNodeBasesGenerated.py"
+    )
 
     template = getTemplate(
         package_name=__package__,
@@ -425,7 +431,9 @@ def makeBuiltinOperationNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):
@@ -770,9 +778,9 @@ def makeChildrenHavingMixinNodes():
     # Complex stuff with many details due to 2 files and modes,
     # pylint: disable=too-many-locals,too-many-statements
 
-    filename_python = "nuitka/nodes/ChildrenHavingMixins.py"
-    filename_python2 = "nuitka/nodes/ExpressionBasesGenerated.py"
-    filename_python3 = "nuitka/nodes/StatementBasesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/ChildrenHavingMixins.py")
+    filename_python2 = getNormalizedPath("nuitka/nodes/ExpressionBasesGenerated.py")
+    filename_python3 = getNormalizedPath("nuitka/nodes/StatementBasesGenerated.py")
 
     template = getTemplate(
         package_name=__package__,
@@ -783,11 +791,17 @@ def makeChildrenHavingMixinNodes():
     mixins_done = set()
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python, withFileOpenedAndAutoFormatted(
-        filename_python2, ignore_errors=True
+        filename_python2,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python2, withFileOpenedAndAutoFormatted(
-        filename_python3, ignore_errors=True
+        filename_python3,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python3:
 
         def emit1(*args):
@@ -989,7 +1003,7 @@ def getSpecVersions(spec_module):
 def makeHardImportNodes():
     # Too many details, pylint: disable=too-many-locals
 
-    filename_python = "nuitka/nodes/HardImportNodesGenerated.py"
+    filename_python = getNormalizedPath("nuitka/nodes/HardImportNodesGenerated.py")
 
     template_ref_node = getTemplate(
         package_name=__package__,
@@ -1004,7 +1018,9 @@ def makeHardImportNodes():
     )
 
     with withFileOpenedAndAutoFormatted(
-        filename_python, ignore_errors=True
+        filename_python,
+        ignore_errors=True,
+        claim=getLicenseTextStandard(),
     ) as output_python:
 
         def emit(*args):

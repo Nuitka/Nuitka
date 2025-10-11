@@ -7,7 +7,6 @@ from nuitka.build.SconsInterface import (
     cleanSconsDirectory,
     getCommonSconsOptions,
     runScons,
-    setPythonTargetOptions,
 )
 from nuitka.PythonVersions import isPythonWithGil, python_version_str
 from nuitka.Tracing import offsets_logger
@@ -17,8 +16,6 @@ from nuitka.utils.FileOperations import makePath, withTemporaryFilename
 
 def generateHeader():
     scons_options, env_values = getCommonSconsOptions()
-
-    setPythonTargetOptions(scons_options)
 
     scons_options["source_dir"] = "generate_header.build"
     cleanSconsDirectory(scons_options["source_dir"])

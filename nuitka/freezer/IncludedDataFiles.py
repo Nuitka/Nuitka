@@ -26,6 +26,8 @@ from nuitka.Options import (
     shallMakeModule,
 )
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
+from nuitka.PythonFlavors import getSystemPrefixPath
+from nuitka.PythonVersions import python_version_str
 from nuitka.Tracing import general, inclusion_logger, options_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -46,7 +48,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getExtensionModuleSuffixes
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import isMacOS
+from nuitka.utils.Utils import getArchitecture, isAIX, isMacOS
 
 data_file_tags = []
 
@@ -422,6 +424,39 @@ def _addIncludedDataFilesFromFileOptions():
             options_logger.warning("No files in raw directory '%s.'" % source_path)
 
 
+def addIncludedDataFilesFromFlavor():
+    if isAIX():
+        # On AIX, the Python DLL is hidden in an archive.
+        filename = "libpython%s.a" % python_version_str
+        system_prefix = getSystemPrefixPath()
+
+        if getArchitecture() == "64":
+            lib_part = "lib64"
+        else:
+            inclusion_logger.sysexit(
+                "Error, need to define the path of the '%s' file in the Python installation '%s'."
+                % (filename, system_prefix)
+            )
+
+        filename_full = os.path.join(system_prefix, lib_part, filename)
+
+        if not os.path.exists(filename_full):
+            inclusion_logger.sysexit(
+                "Error, the defined path of the '%s' file in the Python installation '%s' is wrong."
+                % (filename_full, system_prefix)
+            )
+
+        addIncludedDataFile(
+            makeIncludedDataFile(
+                source_path=filename_full,
+                dest_path=filename,
+                reason="Required Python DLL",
+                tracer=inclusion_logger,
+                tags="flavor",
+            )
+        )
+
+
 def addIncludedDataFilesFromFileOptions():
     """Early data files, from user options that work with file system."""
 
@@ -602,7 +637,7 @@ def _handleDataFile(included_datafile, standalone_entry_points):
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
 
-    dist_dir = getStandaloneDirectoryPath()
+    dist_dir = getStandaloneDirectoryPath(bundle=True, real=False)
 
     if "external" in included_datafile.tags:
         dest_path = getOutputPath(included_datafile.dest_path)

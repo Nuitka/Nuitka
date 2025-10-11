@@ -40,7 +40,7 @@ from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
 from nuitka.PythonFlavors import isMSYS2MingwPython
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.Utils import isMacOS
 from nuitka.Version import getNuitkaVersion
 
 version = getNuitkaVersion()
@@ -155,6 +155,7 @@ package_data = {
         "static_src/*.cpp",
         "static_src/*/*.c",
         "static_src/*/*.h",
+        "inline_copy/aix_dl/AixDllAddr.c",
         "inline_copy/zstd/LICENSE.txt",
         "inline_copy/zstd/*.h",
         "inline_copy/zstd/*/*.h",
@@ -181,33 +182,6 @@ package_data = {
     "nuitka.plugins.standard": ["*/*.c", "*/*.py"],
 }
 
-
-if "nuitka.plugins.commercial" in nuitka_packages:
-    commercial_data_files = []
-
-    commercial_plugins_dir = os.path.join("nuitka", "plugins", "commercial")
-
-    for filename in getFileList(commercial_plugins_dir):
-        filename_relative = os.path.relpath(filename, commercial_plugins_dir)
-
-        if (
-            filename_relative.endswith(".py")
-            and os.path.basename(filename_relative) == filename_relative
-        ):
-            continue
-
-        if filename.endswith((".py", ".yml", ".c", ".h", ".plk", ".tmd")):
-            commercial_data_files.append(filename_relative)
-            continue
-
-        filename_base = os.path.basename(filename_relative)
-
-        if filename_base.startswith("LICENSE"):
-            commercial_data_files.append(filename_relative)
-            continue
-
-    package_data["nuitka.plugins.commercial"] = commercial_data_files
-    package_data["nuitka.tools.commercial.container_build"] = ["Containerfile"]
 
 try:
     import distutils.util
@@ -361,19 +335,12 @@ else:
         "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
     ]
 
-    if "nuitka.plugins.commercial" in nuitka_packages:
-        console_scripts.append(
-            "nuitka-decrypt = nuitka.tools.commercial.decrypt.__main__:main"
-        )
 
 scripts = []
 
 # For Windows, there are CMD batch files to launch Nuitka.
 if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.cmd", "misc/nuitka-run.cmd"]
-
-    if "nuitka.plugins.commercial" in nuitka_packages:
-        scripts.append("misc/nuitka-decrypt.cmd")
 
 
 # With this, we can enforce a binary package.
@@ -401,14 +368,24 @@ with open("README.rst", "rb") as input_file:
 install_requires = []
 if sys.version_info >= (3, 7):
     install_requires.append("ordered-set >= 4.1.0")
-if sys.version_info[:2] == (2, 7):
+if sys.version_info[:2] == (2, 7) and os.name == "nt":
     install_requires.append("subprocess32")
-if sys.version_info >= (3, 7):
-    install_requires.append("zstandard >= 0.15")
 if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
 if sys.platform == "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
+
+build_requires = ["setuptools>=42", "toml"]
+standalone_requires = []
+onefile_requires = []
+icon_conversion_requires = ["imageio"]
+package_requires = []
+
+if sys.version_info >= (3, 7):
+    onefile_requires.append("zstandard >= 0.15")
+
+    # TODO: Keep backward compatible until 2.8 at least
+    install_requires.append("zstandard >= 0.15")
 
 setup(
     name="Nuitka",
@@ -495,7 +472,20 @@ Python compiler with full language support and CPython compatibility""",
     },
     install_requires=install_requires,
     extras_require={
-        "build-wheel": ["setuptools>=42", "toml", "wheel"],
+        "build-wheel": build_requires + ["wheel"],
+        # TODO: Enable these, once our "build" integration allows for these build types.
+        #        "build-standalone": build_requires + standalone_requires,
+        #        "build-onefile": build_requires + standalone_requires + onefile_requires,
+        "package": package_requires,
+        "standalone": standalone_requires,
+        "onefile": standalone_requires + onefile_requires,
+        "app": (standalone_requires if isMacOS() else onefile_requires),
+        "icon-conversion": icon_conversion_requires,
+        "all": build_requires
+        + standalone_requires
+        + onefile_requires
+        + package_requires
+        + icon_conversion_requires,
     },
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.

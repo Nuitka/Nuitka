@@ -476,7 +476,7 @@ static PyObject *Nuitka_PyGen_Send(PyThreadState *tstate, PyGenObject *gen, PyOb
 // Not done for Python2, indicate usability for compiled generators, but it
 // seems that mostly coroutines need it anyway, so the benefit would be only for
 // performance and not by a lot.
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x3e0
 #define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
 #endif
 

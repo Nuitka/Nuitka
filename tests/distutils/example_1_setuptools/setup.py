@@ -14,13 +14,13 @@ files = ["data/package_data.txt"]
 data_files = [("some_datadir", ("data_files/some_datafile.txt",))]
 
 setup(
-    name="nuitka-example-1",
+    name="nuitka-example-setuptools",
     version="101",
     data_files=data_files,
     packages=["example1_package"],
     package_data={"example1_package": files},
     scripts=["runner"],
-    description="yadda yadda",
+    description="Nuitka setuptools example 1",
     author="Nobody really",
     author_email="email@someplace.com",
     url="whatever",

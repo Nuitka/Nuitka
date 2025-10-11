@@ -25,12 +25,12 @@ from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Errors import NuitkaSyntaxError
+from nuitka.Errors import NuitkaForbiddenImportEncounter, NuitkaSyntaxError
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import plugins_logger, printLine
+from nuitka.Tracing import plugins_logger, printLine, recursion_logger
 from nuitka.utils.CommandLineOptions import OurOptionGroup
 from nuitka.utils.FileOperations import (
     getDllBasename,
@@ -287,6 +287,8 @@ def _addPluginClass(plugin_class, detector):
 
 
 def _loadPluginClassesFromPackage(scan_package):
+    # We check many things here, pylint: disable=too-many-branches
+
     scan_path = scan_package.__path__
 
     for item in iter_modules(scan_path):
@@ -337,6 +339,12 @@ def _loadPluginClassesFromPackage(scan_package):
 
         # First the ones with detectors.
         for detector in detectors:
+            if detector.detector_for is None:
+                plugins_logger.sysexit(
+                    """Error, detector plugin %s without detector_for pointing to a plugin."""
+                    % detector
+                )
+
             plugin_class = detector.detector_for
 
             if detector.__name__.replace(
@@ -488,14 +496,26 @@ class Plugins(object):
             )
 
             if decision:
-                imported_module = recurseTo(
-                    module_name=full_name,
-                    module_filename=module_filename,
-                    module_kind=module_kind,
-                    source_ref=module.getSourceReference(),
-                    reason="implicit import",
-                    using_module_name=module.module_name,
-                )
+                try:
+                    imported_module = recurseTo(
+                        module_name=full_name,
+                        module_filename=module_filename,
+                        module_kind=module_kind,
+                        source_ref=module.getSourceReference(),
+                        reason="implicit import",
+                        using_module_name=module.module_name,
+                    )
+                except NuitkaForbiddenImportEncounter as e:
+                    plugins_logger.sysexit(
+                        """\
+Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' through \
+implicit import encountered."""
+                        % (
+                            e.args[0],
+                            e.args[1],
+                            module.module_name,
+                        )
+                    )
 
                 addUsedModule(
                     module=imported_module,
@@ -598,12 +618,10 @@ class Plugins(object):
             plugin.onBeforeCodeParsing()
 
     @staticmethod
-    def onStandaloneDistributionFinished(dist_dir):
+    def onStandaloneDistributionFinished(dist_dir, standalone_binary):
         """Let plugins post-process the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
-
-        standalone_binary = OutputDirectories.getResultFullpath(onefile=False)
 
         for plugin in getActivePlugins():
             plugin.onStandaloneBinary(standalone_binary)
@@ -797,7 +815,8 @@ class Plugins(object):
         # In debug mode, put the files in the build folder, so they can be looked up easily.
         if Options.is_debug and "HIDE_SOURCE" not in flags:
             source_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
+                OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+                module_name + ".py",
             )
 
             putTextFileContents(filename=source_path, contents=code)
@@ -1210,6 +1229,48 @@ class Plugins(object):
 
         return None
 
+    @staticmethod
+    def decideRecompileExtensionModules(module_name):
+        """Let plugins decide whether to re-compile an extension module from source code.
+
+        Notes:
+            The decision is made by the first plugin "never", otherwise a matching
+            "yes" config wins, "no" is allowed to be overridden by command line options.
+        """
+        result = None
+
+        for plugin in getActivePlugins():
+            plugin_result = plugin.decideRecompileExtensionModules(module_name)
+            if plugin_result is not None:
+                value, plugin_reason = plugin_result
+
+                if value is not None:
+                    assert value in ("yes", "no", "never"), value
+
+                    if value == "never":
+                        return False, plugin_reason
+                    elif value == "yes":
+                        result = True, plugin_reason
+                    elif value == "no" and result is None:
+                        result = False, plugin_reason
+
+        options_value = Options.shallRecompileExtensionModules(module_name)
+        if options_value[0] in (True, False):
+            return options_value
+
+        if result is None:
+            recursion_logger.info(
+                """\
+Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \
+existing '%s' extension module by default, but source code is available and \
+may work too."""
+                % (module_name)
+            )
+
+            return None, "default behavior"
+        else:
+            return result
+
     preprocessor_symbols = None
 
     @classmethod
@@ -1331,7 +1392,9 @@ class Plugins(object):
         # Circular dependency.
         from nuitka.tree.SourceHandling import writeSourceCode
 
-        source_dir = OutputDirectories.getSourceDirectoryPath(onefile=onefile)
+        source_dir = OutputDirectories.getSourceDirectoryPath(
+            onefile=onefile, create=True
+        )
 
         for filename, source_code in Plugins._getExtraCodeFiles(onefile).items():
             target_dir = os.path.join(source_dir, "plugins")
@@ -1632,21 +1695,26 @@ def listPlugins():
 
     plist = []
     max_name_length = 0
-    for plugin_name in sorted(plugin_name2plugin_classes):
+    for plugin_name, detector_info in sorted(plugin_name2plugin_classes.items()):
         plugin = plugin_name2plugin_classes[plugin_name][0]
 
         if plugin.isDeprecated():
             continue
 
-        if hasattr(plugin, "plugin_desc"):
-            plist.append((plugin_name, plugin.plugin_desc))
-        else:
-            plist.append((plugin_name, ""))
+        plugin_desc = getattr(plugin, "plugin_desc", None)
+
+        plist.append(
+            (
+                plugin_name,
+                plugin_desc,
+                "" if detector_info[1] is None else "Has detector.",
+            )
+        )
 
         max_name_length = max(len(plugin_name), max_name_length)
 
     for line in plist:
-        printLine(" " + line[0].ljust(max_name_length + 1), line[1])
+        printLine(" " + line[0].ljust(max_name_length + 1), line[1], line[2])
 
 
 def isObjectAUserPluginBaseClass(obj):

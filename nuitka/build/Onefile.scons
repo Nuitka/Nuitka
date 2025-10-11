@@ -196,8 +196,8 @@ macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 # gcc compiler cf_protection option
 cf_protection = getArgumentDefaulted("cf_protection", "auto")
 
-if getArgumentBool("progress_bar", True) and not show_scons_mode:
-    enableSconsProgressBar()
+progress_bar = getArgumentDefaulted("progress_bar", "auto")
+enableSconsProgressBar(progress_bar)
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
@@ -330,6 +330,7 @@ setupCCompiler(
     lto_mode=lto_mode,
     pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
     job_count=job_count,
+    exe_target=True,
     onefile_compile=True,
 )
 
@@ -364,17 +365,7 @@ if env.msvc_mode:
     env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
 if debug_mode:
-    if env.gcc_mode:
-        # Allow gcc/clang to point out all kinds of inconsistency to us by
-        # raising an error.
-        env.Append(
-            CCFLAGS=[
-                "-Wall",
-                "-Werror",
-            ]
-        )
-
-    elif env.msvc_mode:
+    if env.msvc_mode:
         # Disable warnings that system headers already show.
         env.Append(
             CCFLAGS=[
@@ -419,10 +410,6 @@ env.Append(
         os.path.join(env.nuitka_src, "inline_copy", "zstd"),
     ],
 )
-
-# Tell compiler to create a program.
-if env.msvc_mode:
-    env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if isMacOS():
     addConstantBlobFile(

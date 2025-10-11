@@ -41,6 +41,7 @@ static inline error_code_t getCurrentErrorCode(void) { return errno; }
 extern void printOSErrorMessage(char const *message, error_code_t error_code);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -23,6 +23,10 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.quality.yamllint.YamlChecker import checkYamlSchema
+from nuitka.tools.release.Copyright import (
+    attachLeadingComment,
+    getCopyrightClaim,
+)
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print, tools_logger
 from nuitka.utils.Execution import (
@@ -36,6 +40,7 @@ from nuitka.utils.FileOperations import (
     copyFile,
     getFileContentByLine,
     getFileContents,
+    getFilenameExtension,
     listDir,
     openTextFile,
     putBinaryFileContents,
@@ -45,6 +50,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
+from .BiomeFormatter import formatJsonFile
 from .YamlFormatter import formatYaml
 
 # black no longer supports Python 2 syntax, and sometimes removes import
@@ -613,8 +619,10 @@ def autoFormatFile(
     limit_c=False,
     limit_rst=False,
     limit_md=False,
+    limit_json=False,
     ignore_errors=False,
     ignore_yaml_diff=True,
+    assume_yes_for_downloads=False,
 ):  # a bit many knobs but that's fine, pylint: disable=too-many-arguments
     """Format source code with external tools
 
@@ -667,7 +675,6 @@ def autoFormatFile(
             ".gitignore",
             ".gitattributes",
             ".gitmodules",
-            ".json",
             ".spec",
             "-rpmlintrc",
             "Containerfile",
@@ -687,21 +694,24 @@ def autoFormatFile(
     is_rst = effective_filename.endswith((".rst", ".inc"))
     is_md = effective_filename.endswith(".md")
     is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
+    is_json = effective_filename.endswith(".json")
 
     is_png = effective_filename.endswith(".png")
     is_jpeg = effective_filename.endswith((".jpeg", ".jpg"))
 
     is_python = not (
-        is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg
+        is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg or is_json
     ) and isPythonFile(filename=filename, effective_filename=effective_filename)
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
-    if not (is_python or is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg):
+    if not (
+        is_python or is_c or is_cpp or is_txt or is_rst or is_png or is_jpeg or is_json
+    ):
         my_print("Ignored file type.")
         return
 
-    if limit_yaml or limit_python or limit_c or limit_rst or limit_md:
+    if limit_yaml or limit_python or limit_c or limit_rst or limit_md or limit_json:
         if is_package_config_yaml and not limit_yaml:
             return
 
@@ -717,18 +727,20 @@ def autoFormatFile(
         if is_md and not limit_md:
             return
 
-        if is_txt and not is_rst and not is_md and not is_package_config_yaml:
+        if is_json and not limit_json:
             return
 
-    # Work on a temporary copy
-    tmp_filename = filename + ".tmp"
+        if is_txt and not is_rst and not is_md and not is_package_config_yaml:
+            return
 
     if git_stage:
         old_code = getFileHashContent(git_stage["dst_hash"])
     else:
         old_code = getFileContents(filename, "rb")
 
-    with withTemporaryFile(mode="wb", delete=False) as output_file:
+    with withTemporaryFile(
+        mode="wb", delete=False, suffix=getFilenameExtension(filename)
+    ) as output_file:
         tmp_filename = output_file.name
         output_file.write(old_code)
         output_file.close()
@@ -822,6 +834,11 @@ def autoFormatFile(
             _cleanupPngImage(tmp_filename)
         elif is_jpeg:
             _cleanupJpegImage(tmp_filename)
+        elif is_json:
+            formatJsonFile(
+                tmp_filename, assume_yes_for_downloads=assume_yes_for_downloads
+            )
+            _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
@@ -848,7 +865,7 @@ def autoFormatFile(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
+def withFileOpenedAndAutoFormatted(filename, ignore_errors=False, claim=None):
     my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
@@ -873,7 +890,15 @@ def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
             ignore_errors=ignore_errors,
         )
 
-    shutil.copy(tmp_filename, filename)
+    if claim:
+        attachLeadingComment(
+            filename=tmp_filename,
+            effective_filename=filename,
+            comments=getCopyrightClaim(filename=filename, claim=claim),
+        )
+
+    if getFileContents(tmp_filename, mode="rb") != getFileContents(filename, mode="rb"):
+        shutil.copy(tmp_filename, filename)
     os.unlink(tmp_filename)
 
 

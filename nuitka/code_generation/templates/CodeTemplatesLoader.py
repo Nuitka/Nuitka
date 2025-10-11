@@ -44,7 +44,7 @@ template_metapath_loader_body = r"""
 #include "nuitka/tracing.h"
 #include "nuitka/unfreezing.h"
 
-/* Type bool */
+/* Type bool, spell-checker: ignore stdbool */
 #ifndef __cplusplus
 #include <stdbool.h>
 #endif

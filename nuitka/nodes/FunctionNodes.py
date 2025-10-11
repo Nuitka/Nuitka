@@ -34,6 +34,7 @@ from nuitka.Tracing import optimization_logger, printError
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.SourceHandling import readSourceLines
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
+from nuitka.utils.CStrings import decodePythonIdentifierFromC
 
 from .ChildrenHavingMixins import (
     ChildHavingBodyOptionalMixin,
@@ -1131,7 +1132,9 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
 
     def getFunctionBody(self):
         if self.function_body is None:
-            module_code_name, _ = self.code_name.split("$$$", 1)
+            code_name = decodePythonIdentifierFromC(self.code_name)
+
+            module_code_name, _ = code_name.split("$$$", 1)
 
             from nuitka.ModuleRegistry import getModuleFromCodeName
 

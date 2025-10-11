@@ -29,6 +29,7 @@ from .Execution import executeToolChecked
 from .FileOperations import getFileContentByLine, getFileList
 from .Utils import (
     getLinuxDistribution,
+    isAIX,
     isDebianBasedLinux,
     isMacOS,
     isWin32Windows,
@@ -165,6 +166,9 @@ def _getSystemStaticLibPythonPath():
     if isPythonBuildStandalonePython():
         return None
 
+    if isAIX():
+        return None
+
     if isSelfCompiledPythonUninstalled():
         candidate = os.path.join(sys_prefix, "libpython" + python_abi_version + ".a")
 
@@ -176,7 +180,7 @@ def _getSystemStaticLibPythonPath():
     if os.path.exists(candidate):
         return candidate
 
-    # For Python2 this works. TODO: Figure out Debian and Python3.
+    # For Python2 this works.
     if (
         python_version < 0x300
         and isDebianPackagePython()
@@ -198,6 +202,9 @@ def _getSystemStaticLibPythonPath():
     # This is not necessarily only for Python3 on Debian, but maybe others as well,
     # but that's what's been tested. spell-checker: ignore libpl
     if python_version >= 0x300 and isDebianPackagePython() and isDebianBasedLinux():
+        if python_version >= 0x3E0:
+            return None
+
         candidate = os.path.join(
             _getSysConfigVarLIBPL(),
             "libpython" + python_abi_version + "-pic.a",

@@ -125,7 +125,10 @@ class ConstantStreamWriter(object):
     def __init__(self, filename):
         self.count = 0
 
-        filename = os.path.join(OutputDirectories.getSourceDirectoryPath(), filename)
+        filename = os.path.join(
+            OutputDirectories.getSourceDirectoryPath(onefile=False, create=False),
+            filename,
+        )
         self.file, self.pickle = openPickleFile(filename, "wb")
 
         self.pickle.dispatch[type] = _pickleAnonValues
@@ -156,6 +159,8 @@ class ConstantStreamWriter(object):
 
 class ConstantStreamReader(object):
     def __init__(self, const_file):
+        # spell-checker: ignore Unpickler
+
         self.count = 0
         self.pickle = pickle.Unpickler(const_file)
 

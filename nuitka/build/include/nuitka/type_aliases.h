@@ -14,6 +14,7 @@ extern PyObject *MAKE_TYPE_VAR(PyThreadState *tstate, PyObject *name);
 extern PyObject *MAKE_TYPE_GENERIC(PyThreadState *tstate, PyObject *params);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

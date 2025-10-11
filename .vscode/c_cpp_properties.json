@@ -6,12 +6,7 @@
             "${workspaceFolder}/nuitka/build/inline_copy/zstd",
             "${workspaceFolder}/nuitka/build/inline_copy/zlib",
             "${workspaceFolder}/nuitka/build/inline_copy/libbacktrace",
-            "${workspaceFolder}/nuitka/plugins/standard/DillPlugin",
-            "${workspaceFolder}/nuitka/plugins/commercial/AntiDebuggerPlugin",
-            "${workspaceFolder}/nuitka/plugins/commercial/AutomaticUpdatesPlugin",
-            "${workspaceFolder}/nuitka/plugins/commercial/DataFileInclusionNgPlugin",
-            "${workspaceFolder}/nuitka/plugins/commercial/TracebackEncryptionPlugin",
-            "${workspaceFolder}/nuitka/plugins/commercial/WindowsServicePlugin"
+            "${workspaceFolder}/nuitka/plugins/standard/DillPlugin"
         ]
     },
     "configurations": [
@@ -152,6 +147,25 @@
             "intelliSenseMode": "msvc-x64"
         },
         {
+            "name": "Win32-Py26",
+            "includePath": [
+                "${myDefaultIncludePath}",
+                "C:\\Python26\\Include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x260"
+            ],
+            "windowsSdkVersion": "10.0.19041.0",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        },
+        {
             "name": "Linux-Python3.9",
             "includePath": [
                 "/usr/include",
@@ -175,14 +189,14 @@
             "includePath": [
                 "/usr/include",
                 "${myDefaultIncludePath}",
-                "/usr/include/python3.10"
+                "/usr/include/python3.12"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3a0",
+                "PYTHON_VERSION=0x3c0",
                 "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",
@@ -243,6 +257,26 @@
                 "_UNICODE",
                 "__IDE_ONLY__",
                 "PYTHON_VERSION=0x3D0",
+                "_NUITKA_USE_UNEXPOSED_API"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux-Python3.14",
+            "includePath": [
+                "/usr/include",
+                "${myDefaultIncludePath}",
+                "/usr/include/python3.14"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3E0",
                 "_NUITKA_USE_UNEXPOSED_API"
             ],
             "compilerPath": "/usr/bin/gcc",

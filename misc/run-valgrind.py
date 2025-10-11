@@ -71,7 +71,11 @@ sys.stdout.flush()
 
 
 ticks = runValgrind(
-    None, "callgrind", [output_binary], include_startup=False, save_logfilename=log_file
+    None,
+    "callgrind",
+    [output_binary],
+    include_startup=False,
+    save_log_filename=log_file,
 )
 
 if "number" in sys.argv or "numbers" in sys.argv:

@@ -28,10 +28,14 @@ from .FileOperations import (
 )
 from .Importing import importFromInlineCopy
 from .Utils import (
+    getOS,
     isAlpineLinux,
     isBSD,
+    isCoffUsingPlatform,
+    isElfUsingPlatform,
     isLinux,
     isMacOS,
+    isRPathUsingPlatform,
     isWin32Windows,
     raiseWindowsError,
 )
@@ -262,6 +266,39 @@ def _getSharedLibraryRPATHsElf(filename):
     return rpaths
 
 
+_dump_usage = "The 'dump' is used to analyse dependencies on COFF using systems and required to be found."
+
+
+def _getSharedLibraryRPATHsCoff(filename):
+    rpaths = []
+
+    output = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("dump", "-H", "-X", "any", filename),
+        absence_message=_dump_usage,
+        decoding=True,
+    )
+
+    assert (
+        "INDEX  PATH                          BASE                MEMBER" in output
+    ), output
+
+    output = output.split(
+        "INDEX  PATH                          BASE                MEMBER", 1
+    )[1]
+    start_offset = len("INDEX  P")
+
+    for line in output.split("\n"):
+        if len(line) < start_offset:
+            continue
+        if line[start_offset] != " ":
+            continue
+
+        rpaths.append(line[start_offset:])
+
+    return rpaths
+
+
 _otool_output_cache = {}
 
 
@@ -396,14 +433,18 @@ def _getSharedLibraryRPATHsDarwin(filename, cached):
 
 def getSharedLibraryRPATHs(filename, elements=False, cached=True):
     if isMacOS():
-        return _getSharedLibraryRPATHsDarwin(filename=filename, cached=cached)
-    else:
+        result = _getSharedLibraryRPATHsDarwin(filename=filename, cached=cached)
+    elif isElfUsingPlatform():
         result = _getSharedLibraryRPATHsElf(filename=filename)
+    elif isCoffUsingPlatform():
+        result = _getSharedLibraryRPATHsCoff(filename=filename)
+    else:
+        assert False, getOS()
 
-        if elements:
-            result = sum([r.split(":") for r in result], [])
+    if elements:
+        result = sum([r.split(":") for r in result], [])
 
-        return result
+    return result
 
 
 def _filterPatchelfErrorOutput(stderr):
@@ -440,8 +481,9 @@ def checkPatchElfPresenceAndUsability(logger):
         logger=logger,
         command=("patchelf", "--version"),
         absence_message="""\
-Error, standalone mode on Linux requires 'patchelf' to be \
-installed. Use 'apt/dnf/yum install patchelf' first.""",
+Error, standalone mode on %s requires 'patchelf' to be \
+installed. Use 'apt/dnf/yum install patchelf' first."""
+        % getOS(),
     )
 
     if output.split() == b"0.18.0":
@@ -752,7 +794,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
     if isMacOS() and getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
-    if isLinux():
+    if isRPathUsingPlatform():
         # Path must be normalized for this to be correct, but entry points enforced that.
         count = dest_path.count(os.path.sep)
 

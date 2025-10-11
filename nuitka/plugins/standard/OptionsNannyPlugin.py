@@ -39,10 +39,22 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
         if support_info == "ignore":
             return
 
+        # No issues at all, but remember that for code generation.
+        if support_info == "perfect":
+            from nuitka.code_generation.LoaderCodes import (
+                markModuleAsPerfectSupported,
+            )
+
+            markModuleAsPerfectSupported(full_name)
+            return
+
         if support_info == "parameter":
-            message = "Module has parameter: " + description
+            message = "Module '%s' has parameter: %s" % (full_name, description)
         elif support_info == "plugin":
-            message = "Module has plugin consideration: " + description
+            message = "Module '%s' has plugin consideration: %s" % (
+                full_name,
+                description,
+            )
         else:
             if condition != "True":
                 problem_desc = (
@@ -67,7 +79,7 @@ class NuitkaPluginOptionsNanny(NuitkaYamlPluginBase):
         else:
             self.sysexit(
                 "Error, unknown support_info level '%s' for module '%s'"
-                % full_name.asString()
+                % (support_info, full_name.asString())
             )
 
     def _checkMacOSBundleMode(self, full_name, macos_bundle):

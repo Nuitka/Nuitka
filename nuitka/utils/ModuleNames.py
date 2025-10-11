@@ -11,6 +11,8 @@ allow to easily make checks on them.
 import fnmatch
 import os
 
+from .Hashing import getStringHash
+
 
 def checkModuleName(value):
     return ".." not in str(value) and not (
@@ -87,6 +89,14 @@ class ModuleName(str):
 
     def asPath(self):
         return str(self).replace(".", os.path.sep)
+
+    def asLegalFilename(self, name_limit=240):
+        result = str(self)
+
+        if len(result) > name_limit:
+            result = getStringHash(result)
+
+        return result
 
     def getPackageName(self):
         """Get the package name if any.

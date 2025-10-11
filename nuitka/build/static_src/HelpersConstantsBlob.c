@@ -459,6 +459,11 @@ static PyObject *_unpackAnonValue(unsigned char anon_index) {
         return (PyObject *)&PyMethod_Type;
 #endif
 
+#if PYTHON_VERSION >= 0x3a0
+    case 10:
+        return (PyObject *)Nuitka_PyUnion_Type;
+#endif
+
     default:
         PRINT_FORMAT("Missing anon value for %d\n", (int)anon_index);
         NUITKA_CANNOT_GET_HERE("Corrupt constants blob");
@@ -516,7 +521,9 @@ static PyObject *_Nuitka_Unicode_ImmortalFromStringAndSize(PyThreadState *tstate
 #endif
 
     // Make sure our strings are consistent.
-#if PYTHON_VERSION >= 0x3c0 && !defined(__NUITKA_NO_ASSERT__)
+    // TODO: Check with an assertion making build of Python 3.13.0 if this is really true,
+    // for 3.14 it ought to not be done.
+#if PYTHON_VERSION >= 0x3c0 && PYTHON_VERSION < 0x3e0 && !defined(__NUITKA_NO_ASSERT__)
     // Note: Setting to immortal happens last, but we want to check now.
     Py_SET_REFCNT_IMMORTAL(u);
 
@@ -1367,17 +1374,23 @@ static int findMacOSDllImageId(void) {
 }
 #endif
 
+#ifdef __LP64__
+#define mach_header_arch mach_header_64
+#else
+#define mach_header_arch mach_header
+#endif
+
 unsigned char *findMacOSBinarySection(void) {
 #if _NUITKA_EXE_MODE
-    const struct mach_header *header = &_mh_execute_header;
+    const struct mach_header_arch *header = &_mh_execute_header;
 #else
     int image_id = findMacOSDllImageId();
     assert(image_id != -1);
 
-    const struct mach_header *header = _dyld_get_image_header(image_id);
+    const struct mach_header_arch *header = (const struct mach_header_arch *)_dyld_get_image_header(image_id);
 #endif
 
-    unsigned long *size;
+    unsigned long size;
     return getsectiondata(header, "constants", "constants", &size);
 }
 

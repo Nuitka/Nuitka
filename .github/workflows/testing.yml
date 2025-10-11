@@ -17,11 +17,10 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python_version:
-            - '3.7'
             - '3.8'
             - '3.9'
             - '3.10'
@@ -106,11 +105,11 @@ jobs:
           # Install clang-format that matches what we use in VS code.
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo apt-get install software-properties-common
-          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main'
+          sudo add-apt-repository 'deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main'
           sudo apt-get update
           sudo apt-get install clang-format-21
 
-          python ./bin/autoformat-nuitka-source --check-only
+          python ./bin/autoformat-nuitka-source --check-only --assume-yes-for-downloads
         if: matrix.python_version == '3.9'
 
   mac-python3:
@@ -155,6 +154,9 @@ jobs:
           python -m nuitka --mode=accelerated --show-scons --run --report=compilation-report-accelerated.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           python -m nuitka --mode=standalone --show-scons --run --report=compilation-report-standalone.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
           python -m nuitka --mode=onefile --show-scons --run --report=compilation-report-onefile.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+
+          # DLL mode has no run ability at this time.
+          python -m nuitka --mode=dll --show-scons --report=compilation-report-dll.xml --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
         shell: bash
 
       - name: Archive compilation reports for empty modules
@@ -163,6 +165,18 @@ jobs:
           name: compilation-reports-${{ runner.os }}-${{ matrix.python_version }}
           path: |
             *.xml
+
+      - name: Check all modes for debug output
+        run: |
+          set -x
+          python -m nuitka --mode=module --run --report=compilation-report-module.xml --debug tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=accelerated --run --report=compilation-report-accelerated.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=standalone --run --report=compilation-report-standalone.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+          python -m nuitka --mode=onefile --run --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+
+          # DLL mode has no run ability at this time.
+          python -m nuitka --mode=dll --report=compilation-report-onefile.xml --debug --experimental=debug-report-traceback tests/basics/EmptyModuleTest.py
+        shell: bash
 
       - name: Run Nuitka test suite
         run: |
@@ -181,8 +195,7 @@ jobs:
             - '3.10'
             - '3.11'
             - '3.12'
-            # TODO: Until it's not 3.13.4 anymore
-            # - '3.13'
+            - '3.13'
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout

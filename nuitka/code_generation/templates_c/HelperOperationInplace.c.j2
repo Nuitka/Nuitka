@@ -3,13 +3,13 @@
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 {% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
 {% macro inplace_fallback_operation(props, left, right, type1, type2) %}
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 

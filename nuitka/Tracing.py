@@ -66,7 +66,7 @@ def flushStandardOutputs():
     sys.stderr.flush()
 
 
-def _getEnableStyleCode(style):
+def getEnableStyleCode(style):
     style = _aliasStyle(style)
 
     if style == "pink":
@@ -87,6 +87,18 @@ def _getEnableStyleCode(style):
         style = None
 
     return style
+
+
+def wrapWithStyles(value, styles):
+    assert type(styles) is not str
+    result = (
+        "".join(getEnableStyleCode(style) for style in styles)
+        + value
+        + getDisableStylesCode()
+    )
+
+    assert type(result) is str
+    return result
 
 
 _enabled_ansi = False
@@ -138,7 +150,7 @@ def formatTerminalLink(text, link):
         return text
 
 
-def _getDisableStyleCode():
+def getDisableStylesCode():
     return "\033[0m"
 
 
@@ -247,7 +259,7 @@ def _my_print(file_output, is_atty, args, kwargs):
                 end = "\n"
 
             if style is not None and is_atty:
-                enable_style = _getEnableStyleCode(style)
+                enable_style = getEnableStyleCode(style)
 
                 if enable_style is None:
                     raise ValueError(
@@ -261,7 +273,7 @@ def _my_print(file_output, is_atty, args, kwargs):
             print(*args, end=end, **kwargs)
 
             if style is not None and is_atty:
-                print(_getDisableStyleCode(), end="", **kwargs)
+                print(getDisableStylesCode(), end="", **kwargs)
         else:
             print(*args, **kwargs)
 
@@ -319,7 +331,7 @@ class OurLogger(object):
 
         output_function(
             """    %sMore information can be found at %s%s"""
-            % (extra_prefix, _getEnableStyleCode("link"), url),
+            % (extra_prefix, getEnableStyleCode("link"), url),
             style=style,
         )
 

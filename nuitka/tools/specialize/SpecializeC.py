@@ -55,6 +55,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_str,
     tshape_tuple,
 )
+from nuitka.tools.release.Copyright import getLicenseTextStandard
 from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
@@ -561,8 +562,12 @@ def makeHelpersComparisonOperation(operand, op_code):
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -606,8 +611,12 @@ def makeHelpersComparisonDualOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/comparisons_dual_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -662,8 +671,12 @@ def makeHelpersBinaryOperation(operator, op_code):
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -708,8 +721,12 @@ def makeHelpersInplaceOperation(operator, op_code):
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -758,8 +775,12 @@ def makeHelpersBinaryDualOperation(operand, op_code):
         % op_code.lower()
     )
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -798,8 +819,12 @@ def makeHelpersImportHard():
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)
@@ -872,8 +897,12 @@ def makeHelperCalls():
     filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 assert args[0] != "extern "
@@ -893,6 +922,23 @@ def makeHelperCalls():
             emitGenerationWarning(emit, template.name)
 
             emitIDE(emit)
+
+            emit_c(
+                """\
+// We are switching some warnings off for this code, as they are triggered
+// by the generated code constructs in a way that is not useful.
+// spell-checker: ignore Wparentheses GNUC
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wparentheses-equality"
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+"""
+            )
 
             for args_count in range(max_quick_call + 1):
                 code = getQuickCallCode(args_count=args_count, has_tuple_arg=False)
@@ -948,13 +994,29 @@ def makeHelperCalls():
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
+            emit_c(
+                """\
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#pragma GCC diagnostic pop
+#endif
+#endif
+"""
+            )
+
 
 def makeHelperLists():
     filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
     filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 assert args[0] != "extern "
@@ -1232,7 +1294,9 @@ generate_builtin_type_operations = [
 def makeDictCopyHelperCodes():
     filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
 
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
 
         def emit(*args):
             writeLine(output_c, *args)
@@ -1277,8 +1341,12 @@ def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
-    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
-        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(
+        filename_c, claim=getLicenseTextStandard()
+    ) as output_c:
+        with withFileOpenedAndAutoFormatted(
+            filename_h, claim=getLicenseTextStandard()
+        ) as output_h:
 
             def emit_h(*args):
                 writeLine(output_h, *args)

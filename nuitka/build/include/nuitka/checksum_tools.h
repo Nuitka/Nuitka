@@ -12,6 +12,7 @@
 extern uint32_t calcCRC32(unsigned char const *message, uint32_t size);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -14,6 +14,7 @@ extern PyObject *UNICODE_RPARTITION(PyThreadState *tstate, PyObject *str, PyObje
 extern PyObject *NuitkaUnicode_FromWideChar(wchar_t const *str, Py_ssize_t size);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -40,7 +40,10 @@ from nuitka.nodes.OperatorNodes import (
     makeBinaryOperationNode,
     makeExpressionOperationBinaryInplace,
 )
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction,
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import (
     ExpressionSliceLookup,
@@ -1228,18 +1231,46 @@ def buildTypeVarNode(node, source_ref):
 def buildTypeAliasNode(provider, node, source_ref):
     """Python3.12 or higher, type alias statements."""
 
-    assert not node.type_params, node.type_params
-    type_alias_node = ExpressionTypeAlias(
-        type_params=buildNodeTuple(provider, node.type_params, source_ref),
-        value=buildNode(provider, node.value, source_ref),
-        source_ref=source_ref,
-    )
+    type_alias_name = mangleName(node.name.id, provider)
 
-    # TODO: A specialized assignment statement might be in order
+    def createTypeExpression():
+        helper_name = "create_type_expression"
+
+        outline_body = ExpressionOutlineFunction(
+            provider=provider, name=helper_name, source_ref=source_ref
+        )
+
+        assignments = []
+        for type_param in node.type_params:
+            type_var = buildTypeVarNode(type_param, source_ref=source_ref)
+            assign = StatementAssignmentVariableName(
+                provider=outline_body,
+                variable_name=type_param.name,
+                source=type_var,
+                source_ref=source_ref,
+            )
+            assignments.append(assign)
+
+        type_alias_node = ExpressionTypeAlias(
+            name=ExpressionVariableNameRef(
+                provider=provider, variable_name=type_alias_name, source_ref=source_ref
+            ),
+            type_params=buildNodeTuple(outline_body, node.type_params, source_ref),
+            value=buildNode(outline_body, node.value, source_ref),
+            source_ref=source_ref,
+        )
+        body = makeStatementsSequenceFromStatements(
+            assignments,
+            StatementReturn(expression=type_alias_node, source_ref=source_ref),
+        )
+        outline_body.setChildBody(body)
+
+        return outline_body
+
     return StatementAssignmentVariableName(
         provider=provider,
-        variable_name=mangleName(node.name.id, provider),
-        source=type_alias_node,
+        variable_name=type_alias_name,
+        source=createTypeExpression(),
         source_ref=source_ref,
     )
 

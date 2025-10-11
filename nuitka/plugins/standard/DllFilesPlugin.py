@@ -456,6 +456,21 @@ conditions are missing, or this version of the module needs treatment added."""
                     if os.path.isdir(package_directory):
                         yield dylib_directory
 
+    def decideRecompileExtensionModules(self, module_name):
+        for config_module_name, recompile_extensions in self.getYamlConfigItem(
+            module_name=module_name,
+            section="import-hacks",
+            item_name="recompile-extensions",
+            decide_relevant=None,
+            recursive=True,
+            default=None,
+        ):
+            return (
+                recompile_extensions,
+                "package configuration for '%s' module says '%s'"
+                % (config_module_name, recompile_extensions),
+            )
+
     def isAcceptableMissingDLL(self, package_name, dll_basename):
         if package_name is None:
             return None

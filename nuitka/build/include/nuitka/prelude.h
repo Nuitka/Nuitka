@@ -36,7 +36,7 @@
 #define initstate python_initstate
 
 // Python 3.11 headers give these warnings
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4200)
 #pragma warning(disable : 4244)
@@ -201,11 +201,21 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
 #include <internal/pycore_time.h>
 #endif
 
+#if PYTHON_VERSION >= 0x3e0
+#include <internal/pycore_interpframe.h>
+#include <internal/pycore_interpolation.h>
+#include <internal/pycore_list.h>
+#include <internal/pycore_template.h>
+#include <internal/pycore_tuple.h>
+#include <internal/pycore_typedefs.h>
+#include <internal/pycore_unicodeobject.h>
+#endif
+
 #undef Py_BUILD_CORE
 
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
@@ -252,7 +262,7 @@ NUITKA_MAY_BE_UNUSED static inline managed_static_type_state *Nuitka_PyStaticTyp
     PRINT_FORMAT("%s : %s\n", __FUNCTION__, #NAME);                                                                    \
     abort();
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 /* Using "_alloca" extension due to MSVC restrictions for array variables
  * on the local stack.
  */
@@ -606,6 +616,14 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #ifdef _NUITKA_EXPERIMENTAL_DUMP_C_TRACEBACKS
 extern void INIT_C_BACKTRACES(void);
 extern void DUMP_C_BACKTRACE(void);
+
+// For signal handlers, we can do this.
+#include <ucontext.h>
+extern void DUMP_C_BACKTRACE_FROM_CONTEXT(void *ucontext);
+#endif
+
+#if _NUITKA_PLUGIN_THEMIDA_ENABLED
+#include "nuitka_themida.h"
 #endif
 
 #endif

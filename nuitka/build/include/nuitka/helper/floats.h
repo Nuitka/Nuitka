@@ -16,6 +16,7 @@ extern PyObject *MAKE_FLOAT_FROM_DOUBLE(double value);
 extern PyObject *TO_FLOAT(PyObject *value);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

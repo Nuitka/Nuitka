@@ -1855,7 +1855,7 @@ PyObject *getDllFilenameObject(void) {
 #endif
 
 PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks) {
-#if defined(_NUITKA_EXE_MODE)
+#if _NUITKA_EXE_MODE
     return getBinaryDirectoryObject(resolve_symlinks);
 #else
     return getDllDirectoryObject();
@@ -1863,7 +1863,7 @@ PyObject *getPythonProgramDirectoryObject(bool resolve_symlinks) {
 }
 
 PyObject *getContainingDirectoryObject(bool resolve_symlinks) {
-#if defined(_NUITKA_ONEFILE_MODE)
+#if _NUITKA_ONEFILE_MODE
     environment_char_t const *onefile_directory = getEnvironmentVariable("NUITKA_ONEFILE_DIRECTORY");
     if (onefile_directory != NULL) {
         PyObject *result = Nuitka_String_FromFilename(onefile_directory);
@@ -1889,13 +1889,14 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 }
 #endif
 
-static void _initDeepCopy(void);
+static void _initDeepCopy(PyThreadState *tstate);
 
-void _initBuiltinModule(void) {
+void _initBuiltinModule(PyThreadState *tstate) {
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinTypeMethods().");
     _initBuiltinTypeMethods();
+
     NUITKA_PRINT_TRACE("main(): Calling _initDeepCopy().");
-    _initDeepCopy();
+    _initDeepCopy(tstate);
 
 #if _NUITKA_MODULE_MODE
     if (builtin_module != NULL) {

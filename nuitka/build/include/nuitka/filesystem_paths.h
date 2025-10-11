@@ -101,6 +101,7 @@ extern filename_char_t *stripBaseFilename(filename_char_t const *filename);
 extern void normalizePath(filename_char_t *filename);
 
 #endif
+
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
 //

@@ -222,6 +222,7 @@ def getCppPath():
             target_arch=getArchitecture(),
             assume_yes_for_downloads=assumeYesForDownloads(),
             download_ok=True,
+            experimental=False,
         )
 
         with withEnvironmentPathAdded("PATH", os.path.dirname(mingw64_gcc_path)):
