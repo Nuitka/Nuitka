@@ -673,10 +673,13 @@ the Python download page."""
         _warnOnefileOnlyOption("--onefile-windows-splash-screen-image")
 
     if options.onefile_child_grace_time is not None:
-        if not options.onefile_child_grace_time.isdigit():
+        if (
+            not options.onefile_child_grace_time.isdigit()
+            and options.onefile_child_grace_time != "infinity"
+        ):
             Tracing.options_logger.sysexit(
                 """\
-Error, the value given for '--onefile-child-grace-time' must be integer."""
+Error, the value given for '--onefile-child-grace-time' must be integer or 'infinity'."""
             )
 
         _warnOnefileOnlyOption("--onefile-child-grace-time")
@@ -2328,11 +2331,13 @@ def getOnefileTempDirSpec():
 
 def getOnefileChildGraceTime():
     """*int* = ``--onefile-child-grace-time``"""
-    return (
-        int(options.onefile_child_grace_time)
-        if options.onefile_child_grace_time is not None
-        else 5000
-    )
+    if options.onefile_child_grace_time is None:
+        return 5000
+    elif options.onefile_child_grace_time == "infinity":
+        # Using -1 to represent infinity for the C code.
+        return -1
+    else:
+        return int(options.onefile_child_grace_time)
 
 
 def shallNotCompressOnefile():
