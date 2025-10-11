@@ -681,6 +681,12 @@ static int waitpid_timeout(pid_t pid) {
         return 0;
     }
 
+    // A value of -1 means wait indefinitely.
+    if (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1) {
+        waitpid_retried(pid, NULL, false);
+        return 0;
+    }
+
     // Checking 5 times per second should be good enough.
     long ns = 200000000L; // 0.2s
 
@@ -745,7 +751,9 @@ static void cleanupChildProcess(bool send_sigint) {
         // this process to exist anymore if there is nothing to do.
 #if _NUITKA_ONEFILE_TEMP_BOOL || 1
         NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
-#if defined(_WIN32)
+#if defined(_WIN32) && _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT == -1
+        WaitForSingleObject(handle_process, INFINITE);
+#elif defined(_WIN32)
         if (WaitForSingleObject(handle_process, _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT) != 0) {
             TerminateProcess(handle_process, 0);
         }
@@ -753,7 +761,10 @@ static void cleanupChildProcess(bool send_sigint) {
         CloseHandle(handle_process);
 #else
         waitpid_timeout(handle_process);
+
+#if _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT != -1
         kill(handle_process, SIGKILL);
+#endif
 #endif
         NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif

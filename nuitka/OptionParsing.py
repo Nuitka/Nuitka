@@ -398,8 +398,9 @@ onefile_group.add_option(
     help="""\
 When stopping the child, e.g. due to CTRL-C or shutdown, etc. the
 Python code gets a "KeyboardInterrupt", that it may handle e.g. to
-flush data. This is the amount of time in ms, before the child it
-killed in the hard way. Unit is ms, and default 5000.""",
+flush data. This is the amount of time in ms, before the child is
+killed in a hard way. The special value 'infinity' disables this
+timeout. Unit is ms, and default 5000.""",
 )
 
 onefile_group.add_option(
