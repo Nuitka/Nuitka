@@ -400,6 +400,7 @@
     "RPATH",
     "rpaths",
     "RT_RCDATA",
+    "rusage",
     "Scons",
     "sendfunc",
     "setattrofunc",

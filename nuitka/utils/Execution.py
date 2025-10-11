@@ -503,6 +503,7 @@ def executeProcess(
     stdin=False,
     shell=False,
     external_cwd=False,
+    rusage=False,
     timeout=None,
     logger=None,
 ):
@@ -512,6 +513,7 @@ def executeProcess(
         stdin=stdin,
         shell=shell,
         external_cwd=external_cwd,
+        rusage=rusage,
         timeout=timeout,
         logger=logger,
     )
@@ -529,11 +531,13 @@ class Process(object):
         stderr=None,
         shell=False,
         external_cwd=False,
+        rusage=False,
         timeout=None,
         logger=None,
     ):
         self.stdin = stdin
         self.timeout = timeout
+        self.rusage = rusage
 
         # When running.
         self.process = None
@@ -565,14 +569,105 @@ class Process(object):
             if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
                 kw_args["timeout"] = self.timeout
 
-        stdout, stderr = self.process.communicate(input=process_input)
-        exit_code = self.process.wait()
+        # TODO: May introduce a namedtuple for the return value.
+        if self.rusage:
+            return _communicateWithRusage(
+                proc=self.process, process_input=process_input
+            )
+        else:
+            stdout, stderr = self.process.communicate(input=process_input)
+            exit_code = self.process.wait()
 
-        return stdout, stderr, exit_code
+            return stdout, stderr, exit_code
 
     def stop(self):
         if self.process is not None:
             self.process.terminate()
+
+
+def _communicateWithRusage(proc, process_input):
+    """
+    A correct implementation of communicate() that also returns resource usage.
+    This version uses the high-level 'selectors' module for robust I/O handling.
+    """
+
+    # Complex code to replace communicate of Python, pylint: disable=too-many-branches,too-many-locals
+
+    try:
+        import selectors
+    except ImportError:
+        selectors = None
+
+    if selectors is None or not hasattr(os, "wait4"):
+        stdout, stderr = proc.communicate(input=process_input)
+        exit_code = proc.wait()
+        rusage = {}
+    else:
+        # Use the best selector available for the current OS
+        with selectors.DefaultSelector() as selector:
+            # Register stdout and stderr for reading
+            if proc.stdout:
+                selector.register(proc.stdout, selectors.EVENT_READ)
+            if proc.stderr:
+                selector.register(proc.stderr, selectors.EVENT_READ)
+            if proc.stdin and process_input:
+                selector.register(proc.stdin, selectors.EVENT_WRITE)
+
+            input_offset = 0
+            if process_input is None:
+                process_input = b""
+
+            stdout_chunks = []
+            stderr_chunks = []
+
+            # The loop runs as long as there are file descriptors registered.
+            # This is the correct way to check if we're done.
+            while selector.get_map():
+                # Wait for any of the registered file descriptors to be ready
+                ready_events = selector.select()
+
+                for key, mask in ready_events:
+                    if mask & selectors.EVENT_READ:
+                        # key.fileobj is the original file object (e.g., proc.stdout)
+                        chunk = key.fileobj.read(8192)
+
+                        if not chunk:
+                            # If we read empty bytes, the pipe has closed.
+                            # Unregister it so the loop can terminate.
+                            selector.unregister(key.fileobj)
+                        elif key.fileobj is proc.stdout:
+                            stdout_chunks.append(chunk)
+                        else:  # key.fileobj is proc.stderr
+                            stderr_chunks.append(chunk)
+                    if mask & selectors.EVENT_WRITE:
+                        chunk = process_input[input_offset : input_offset + 8192]
+                        bytes_written = os.write(key.fileobj.fileno(), chunk)
+                        input_offset += bytes_written
+
+                        if input_offset >= len(process_input):
+                            # All input written, close and unregister stdin.
+                            selector.unregister(key.fileobj)
+                            key.fileobj.close()
+
+        # All I/O is done. Now, wait for the process and get the resource usage.
+        try:
+            _pid, status, rusage = os.wait4(proc.pid, 0)
+            exit_code = os.WEXITSTATUS(status)
+        except OSError as e:
+            # ECHILD means the process is already reaped, which can happen with SCons.
+            if e.errno == 10:  # ECHILD
+                exit_code = proc.wait()
+                rusage = {}
+            else:
+                raise
+
+        # Set the returncode on the original object for consistency
+        proc.returncode = exit_code
+
+        stdout = b"".join(stdout_chunks)
+        stderr = b"".join(stderr_chunks)
+
+    return stdout, stderr, exit_code, rusage
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
