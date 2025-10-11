@@ -769,9 +769,10 @@ static void cleanupChildProcess(bool send_sigint) {
 #endif
 }
 
-#if !_NUITKA_ONEFILE_DLL_MODE
 #if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
+    NUITKA_PRINT_TIMING("ONEFILE: ourConsoleCtrlHandler().");
+
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
     case CTRL_C_EVENT:
@@ -818,7 +819,6 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 
 #else
 void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
-#endif
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
@@ -1121,18 +1121,18 @@ int main(int argc, char **argv) {
     wprintf(L"payload path: '%lS'\n", payload_path);
 #endif
 
-#if !_NUITKA_ONEFILE_DLL_MODE
+    if (process_role == NULL) {
 #if defined(_WIN32)
-    bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
-    if (bool_res == false) {
-        fatalError("Error, failed to register signal handler.");
-    }
+        bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
+        if (bool_res == false) {
+            fatalError("Error, failed to register signal handler.");
+        }
 #else
-    signal(SIGINT, ourConsoleCtrlHandler);
-    signal(SIGQUIT, ourConsoleCtrlHandler);
-    signal(SIGTERM, ourConsoleCtrlHandler);
+        signal(SIGINT, ourConsoleCtrlHandler);
+        signal(SIGQUIT, ourConsoleCtrlHandler);
+        signal(SIGTERM, ourConsoleCtrlHandler);
 #endif
-#endif
+    }
 
 #if _NUITKA_AUTO_UPDATE_BOOL
     checkAutoUpdates();
