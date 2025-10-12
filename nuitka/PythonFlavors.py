@@ -185,7 +185,9 @@ def isTermuxPython():
 
 
 def isUninstalledPython():
-    # Debian package.
+    """Decide if this a Python that doesn't have a system wide DLL installation for its use."""
+    # return driven, pylint: disable=too-many-return-statements
+
     if isDebianPackagePython():
         return False
 
