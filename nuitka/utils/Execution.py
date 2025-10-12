@@ -7,6 +7,7 @@ Basically a layer for os, subprocess, shutil to come together. It can find
 binaries (needed for exec) and run them capturing outputs.
 """
 
+import errno
 import os
 import shlex
 from contextlib import contextmanager
@@ -423,18 +424,27 @@ def executeToolChecked(
             % (tool, command, command.index(None))
         )
 
-    with withEnvironmentVarOverridden("LC_ALL", "C"):
-        with getNullInput() as null_input:
-            process = subprocess.Popen(
-                command,
-                stdin=null_input,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=False,
-            )
+    try:
+        with withEnvironmentVarOverridden("LC_ALL", "C"):
+            with getNullInput() as null_input:
+                process = subprocess.Popen(
+                    command,
+                    stdin=null_input,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=False,
+                )
 
-    stdout, stderr = process.communicate()
-    result = process.poll()
+        stdout, stderr = process.communicate()
+        result = process.poll()
+    except OSError as e:
+        if e.errno != errno.E2BIG:
+            raise
+
+        logger.sysexit(
+            "Error, call to '%s' failed, command line was too long: %r"
+            % (tool, command)
+        )
 
     if stderr_filter is not None:
         new_result, stderr = stderr_filter(stderr, **(context or {}))
@@ -649,13 +659,15 @@ def _communicateWithRusage(proc, process_input):
                             selector.unregister(key.fileobj)
                             key.fileobj.close()
 
-        # All I/O is done. Now, wait for the process and get the resource usage.
+        # All I/O is done. Now, wait for the process and get the resource usage,
+        # spell-checker: ignore ECHILD,WEXITSTATUS
         try:
             _pid, status, rusage = os.wait4(proc.pid, 0)
             exit_code = os.WEXITSTATUS(status)
         except OSError as e:
-            # ECHILD means the process is already reaped, which can happen with SCons.
-            if e.errno == 10:  # ECHILD
+            # The ECHILD means the process is already reaped, which can happen with SCons
+            # due to races in error cases.
+            if e.errno == errno.ECHILD:
                 exit_code = proc.wait()
                 rusage = {}
             else:
