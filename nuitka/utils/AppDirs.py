@@ -18,7 +18,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.Tracing import general
 
-from .FileOperations import makePath
+from .FileOperations import getNormalizedPath, makePath
 from .Importing import importFromInlineCopy
 
 appdirs = importFromInlineCopy("appdirs", must_exist=False, delete_module=True)
@@ -49,6 +49,8 @@ def _getCacheDir():
             _cache_dir = appdirs.user_cache_dir("Nuitka", None)
         else:
             _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+
+        _cache_dir = getNormalizedPath(_cache_dir)
 
         # For people that build with HOME set this, e.g. Debian, and other package
         # managers. spell-checker: ignore sbuild
@@ -84,6 +86,8 @@ def getCacheDir(cache_basename):
     cache_dir = os.getenv(getCacheDirEnvironmentVariableName(cache_basename))
     if cache_dir is None:
         cache_dir = os.path.join(_getCacheDir(), cache_basename)
+    else:
+        cache_dir = getNormalizedPath(cache_dir)
 
     return cache_dir
 
