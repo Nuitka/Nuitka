@@ -9498,13 +9498,17 @@
     - patterns:
         - 'VERSION'
 
-- module-name: 'xgboost.core' # checksum: 2dcd7df3
+- module-name: 'xgboost.core' # checksum: fbacac5f
   dlls:
     - from_filenames:
         relative_path: 'lib'
         prefixes:
           - 'xgboost'
           - 'libxgboost'
+  anti-bloat:
+    - description: 'workaround for cleanup issue'
+      replacements_plain:
+        '_check_call(_LIB.XGBoosterFree(self.handle))': 'if False: _check_call(_LIB.XGBoosterFree(self.handle))'
 
 - module-name: 'xgboost.sklearn' # checksum: d0a963f4
   anti-bloat:
