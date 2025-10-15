@@ -215,29 +215,16 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         else:
             return bool(self.writers)
 
-    def getMatchingAssignTrace(self, assign_node):
-        for trace in self.traces:
-            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
-                return trace
-
-        return None
-
     def getMatchingUnescapedAssignTrace(self, assign_node):
         found = None
         for trace in self.traces:
-            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
-                found = trace
-            if trace.isEscapeTrace():
+            if trace.isAssignTrace():
+                if trace.getAssignNode() is assign_node:
+                    found = trace
+            elif trace.isEscapeTrace():
                 return None
 
         return found
-
-    def getMatchingDelTrace(self, del_node):
-        for trace in self.traces:
-            if trace.isDeletedTrace() and trace.getDelNode() is del_node:
-                return trace
-
-        return None
 
     def getTypeShapes(self):
         result = set()
