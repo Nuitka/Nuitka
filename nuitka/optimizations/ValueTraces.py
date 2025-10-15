@@ -122,8 +122,8 @@ class ValueTraceBase(object):
     def getMergeUsageCount(self):
         return self.merge_usage_count
 
-    def getMergeOrNameUsageCount(self):
-        return self.merge_usage_count + self.name_usage_count
+    def hasNoMergeOrNameUsage(self):
+        return (self.merge_usage_count | self.name_usage_count) == 0
 
     def getPrevious(self):
         return self.previous

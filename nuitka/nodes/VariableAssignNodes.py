@@ -532,12 +532,16 @@ class StatementAssignmentVariableIterator(
         source = trace_collection.onExpression(self.subnode_source)
 
         if (
-            self.tmp_iterated_variable is None
+            self.variable_trace is not None
+            and self.tmp_iterated_variable is None
             and self.is_indexable is None
             and source.isExpressionBuiltinIterForUnpack()
             and isExperimental("iterator-optimization")
         ):
             if variable.hasAccessesOutsideOf(provider) is False:
+                # TODO: Ought to become able to check if the self.variable_trace
+                # is escaped by annotating that upwards, so a search is not
+                # needed at all.
                 last_trace = variable.getMatchingUnescapedAssignTrace(self)
 
                 if last_trace is not None:
@@ -622,6 +626,7 @@ class StatementAssignmentVariableConstantMutable(
 
     def computeStatement(self, trace_collection):
         variable = self.variable
+        last_trace = self.variable_trace
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
@@ -632,37 +637,38 @@ class StatementAssignmentVariableConstantMutable(
 
         provider = trace_collection.getOwner()
 
-        if variable.hasAccessesOutsideOf(provider) is False:
-            last_trace = variable.getMatchingAssignTrace(self)
-
-            if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
-                if (
-                    variable.isModuleVariable()
-                    or variable.owner.locals_scope.isUnoptimizedFunctionScope()
-                ):
-                    # TODO: We do not trust these yet a lot, but more might be
-                    pass
-                else:
-                    # Unused constants can be eliminated in any case.
-                    if not last_trace.getUsageCount():
-                        if not last_trace.getPrevious().isUnassignedTrace():
-                            result = makeStatementDelVariable(
-                                variable=self.variable,
-                                version=self.variable_version,
-                                tolerant=True,
-                                source_ref=self.source_ref,
-                            )
-                        else:
-                            result = None
-
-                        return (
-                            result,
-                            "new_statements",
-                            "Dropped dead assignment statement to '%s'."
-                            % (self.getVariableName()),
+        if (
+            last_trace is not None
+            and last_trace.hasNoMergeOrNameUsage()
+            and variable.hasAccessesOutsideOf(provider) is False
+        ):
+            if (
+                variable.isModuleVariable()
+                or variable.owner.locals_scope.isUnoptimizedFunctionScope()
+            ):
+                # TODO: We do not trust these yet a lot, but more might be
+                pass
+            else:
+                # Unused constants can be eliminated in any case.
+                if not last_trace.getUsageCount():
+                    if not last_trace.getPrevious().isUnassignedTrace():
+                        result = makeStatementDelVariable(
+                            variable=self.variable,
+                            version=self.variable_version,
+                            tolerant=True,
+                            source_ref=self.source_ref,
                         )
+                    else:
+                        result = None
 
-                    # Can safely forward propagate only non-mutable constants.
+                    return (
+                        result,
+                        "new_statements",
+                        "Dropped dead assignment statement to '%s'."
+                        % (self.getVariableName()),
+                    )
+
+                # Can safely forward propagate only non-mutable constants.
 
         return self, None, None
 
@@ -710,69 +716,71 @@ class StatementAssignmentVariableConstantImmutable(
 
     def computeStatement(self, trace_collection):
         variable = self.variable
+        last_trace = self.variable_trace
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         provider = trace_collection.getOwner()
 
-        if variable.hasAccessesOutsideOf(provider) is False:
-            last_trace = variable.getMatchingAssignTrace(self)
-
-            if last_trace is not None and not last_trace.getMergeOrNameUsageCount():
-                if (
-                    variable.isModuleVariable()
-                    or variable.owner.locals_scope.isUnoptimizedFunctionScope()
-                ):
-                    # TODO: We do not trust these yet a lot, but more might be
-                    pass
-                else:
-                    # Unused constants can be eliminated in any case.
-                    if not last_trace.getUsageCount():
-                        if not last_trace.getPrevious().isUnassignedTrace():
-                            return trace_collection.computedStatementResult(
-                                statement=makeStatementDelVariable(
-                                    variable=self.variable,
-                                    version=self.variable_version,
-                                    tolerant=True,
-                                    source_ref=self.source_ref,
-                                ),
-                                change_tags="new_statements",
-                                change_desc="Lowered dead assignment statement to '%s' to previous value 'del'."
-                                % self.getVariableName(),
-                            )
-                        else:
-                            return (
-                                None,
-                                "new_statements",
-                                "Dropped dead assignment statement to '%s'."
-                                % (self.getVariableName()),
-                            )
-
-                    # Still trace or assignment, for the last time. TODO: Maybe this can be
-                    # used for the keeping of the "replacement node" as well.
-                    self.variable_trace = trace_collection.onVariableSetToUnescapablePropagatedValue(
-                        variable=variable,
-                        version=self.variable_version,
-                        assign_node=self,
-                        replacement=lambda _replaced_node: self.subnode_source.makeClone(),
-                    )
-
+        if (
+            last_trace is not None
+            and last_trace.hasNoMergeOrNameUsage()
+            and variable.hasAccessesOutsideOf(provider) is False
+        ):
+            if (
+                variable.isModuleVariable()
+                or variable.owner.locals_scope.isUnoptimizedFunctionScope()
+            ):
+                # TODO: We do not trust these yet a lot, but more might be
+                pass
+            else:
+                # Unused constants can be eliminated in any case.
+                if not last_trace.getUsageCount():
                     if not last_trace.getPrevious().isUnassignedTrace():
-                        result = makeStatementDelVariable(
-                            variable=self.variable,
-                            version=self.variable_version,
-                            tolerant=True,
-                            source_ref=self.source_ref,
+                        return trace_collection.computedStatementResult(
+                            statement=makeStatementDelVariable(
+                                variable=self.variable,
+                                version=self.variable_version,
+                                tolerant=True,
+                                source_ref=self.source_ref,
+                            ),
+                            change_tags="new_statements",
+                            change_desc="Lowered dead assignment statement to '%s' to previous value 'del'."
+                            % self.getVariableName(),
                         )
                     else:
-                        result = None
+                        return (
+                            None,
+                            "new_statements",
+                            "Dropped dead assignment statement to '%s'."
+                            % (self.getVariableName()),
+                        )
 
-                    return (
-                        result,
-                        "new_statements",
-                        "Dropped propagated assignment statement to '%s'."
-                        % self.getVariableName(),
+                # Still trace or assignment, for the last time. TODO: Maybe this can be
+                # used for the keeping of the "replacement node" as well.
+                self.variable_trace = trace_collection.onVariableSetToUnescapablePropagatedValue(
+                    variable=variable,
+                    version=self.variable_version,
+                    assign_node=self,
+                    replacement=lambda _replaced_node: self.subnode_source.makeClone(),
+                )
+
+                if not last_trace.getPrevious().isUnassignedTrace():
+                    result = makeStatementDelVariable(
+                        variable=self.variable,
+                        version=self.variable_version,
+                        tolerant=True,
+                        source_ref=self.source_ref,
                     )
+                else:
+                    result = None
+
+                return (
+                    result,
+                    "new_statements",
+                    "Dropped propagated assignment statement to '%s'."
+                    % self.getVariableName(),
+                )
 
         # Note: Keep this aligned with computeStatementAssignmentTraceUpdate
         self.variable_trace = trace_collection.onVariableSetToUnescapableValue(
