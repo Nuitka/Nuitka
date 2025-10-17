@@ -246,16 +246,8 @@ slower without it.
                 env.Append(CCFLAGS=["-flto=thin"])
                 env.Append(LINKFLAGS=["-flto=thin"])
         else:
-            if "thin-lto" not in env.experimental_flags:
-                env.Append(LINKFLAGS=["-flto=%d" % job_count])
-            else:
-                env.Append(CCFLAGS=["-flto=thin"])
-                env.Append(
-                    LINKFLAGS=[
-                        "-flto=thin",
-                        "-Wl,-plugin-opt,thinlto-jobs=%d" % job_count,
-                    ]
-                )
+            env.Append(CCFLAGS=["-flto=%d" % job_count])
+            env.Append(LINKFLAGS=["-flto=%d" % job_count])
 
             env.Append(CCFLAGS=["-fuse-linker-plugin", "-fno-fat-lto-objects"])
             env.Append(LINKFLAGS=["-fuse-linker-plugin"])
