@@ -239,8 +239,12 @@ slower without it.
 
     if env.gcc_mode and lto_mode:
         if env.clang_mode:
-            env.Append(CCFLAGS=["-flto"])
-            env.Append(LINKFLAGS=["-flto"])
+            if "thin-lto" not in env.experimental_flags:
+                env.Append(CCFLAGS=["-flto"])
+                env.Append(LINKFLAGS=["-flto"])
+            else:
+                env.Append(CCFLAGS=["-flto=thin"])
+                env.Append(LINKFLAGS=["-flto=thin"])
         else:
             env.Append(CCFLAGS=["-flto=%d" % job_count])
             env.Append(LINKFLAGS=["-flto=%d" % job_count])
