@@ -3699,6 +3699,12 @@
     - depends:
         - 'openvino.inference_engine.constants'
 
+- module-name: 'oracledb' # checksum: 8c1ebb99
+  implicit-imports:
+    - depends:
+        - 'cryptography.x509'
+        - 'cryptography.hazmat.primitives.kdf.pbkdf2'
+
 - module-name: 'orderedmultidict' # checksum: 43e79eae
   anti-bloat:
     - description: 'remove manual version file import'
