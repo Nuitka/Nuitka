@@ -355,7 +355,7 @@ def runScons(scons_options, env_values, scons_filename):
             )
 
             orig_result_exe = scons_options.get("result_exe")
-            if "result_exe" in scons_options:
+            if orig_result_exe is not None:
                 scons_options["result_exe"] = getExternalUsePath(
                     scons_options["result_exe"], only_dirname=True
                 )
