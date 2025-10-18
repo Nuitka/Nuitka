@@ -194,6 +194,10 @@ def addExtraSysPaths(directories):
         _extra_paths.add(directory)
 
 
+def getExtraSysPaths():
+    return _extra_paths
+
+
 def hasMainScriptDirectory():
     return bool(_main_paths)
 
