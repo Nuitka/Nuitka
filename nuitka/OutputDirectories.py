@@ -180,9 +180,9 @@ def renameStandaloneDirectory(dist_dir):
 
 
 def getResultBasePath(onefile=False, real=False):
-    if isOnefileMode() and onefile:
-        file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+    file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
 
+    if isOnefileMode() and onefile:
         if shallCreateAppBundle():
             file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
 
@@ -190,12 +190,10 @@ def getResultBasePath(onefile=False, real=False):
     elif isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(bundle=True, real=real),
-            os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
+            file_path,
         )
     else:
-        return getOutputPath(
-            path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
-        )
+        return getOutputPath(path=file_path)
 
 
 def getResultFullpath(onefile, real):
@@ -226,7 +224,7 @@ def getResultFullpath(onefile, real):
                 os.path.basename(output_filename),
             )
         elif output_filename is not None:
-            result = output_filename
+            result = getOutputPath(output_filename)
         elif not isWin32OrPosixWindows() and not shallCreateAppBundle():
             result = addFilenameExtension(result, ".bin")
 
