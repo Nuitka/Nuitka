@@ -34,6 +34,7 @@ def _cleanCacheDirectory(cache_name, cache_dir):
 def cleanCaches():
     _cleanCacheDirectory("ccache", getCacheDir("ccache"))
     _cleanCacheDirectory("clcache", getCacheDir("clcache"))
+    _cleanCacheDirectory("zig", getCacheDir("zig"))
     _cleanCacheDirectory("bytecode", getBytecodeCacheDir())
     _cleanCacheDirectory("dll-dependencies", getCacheDir("library_dependencies"))
 

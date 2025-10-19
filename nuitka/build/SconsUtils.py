@@ -149,36 +149,57 @@ def _enableFlagSettings(env, name, experimental_flags):
             env.Append(CPPDEFINES=["_NUITKA_%s" % flag_name])
 
 
-def prepareEnvironment(mingw_mode):
+def _prepareFromEnvironmentVar(var_name):
+    mingw_mode = False
+    zig_mode = False
+
     # Add environment specified compilers to the PATH variable.
-    if "CC" in os.environ:
-        scons_details_logger.info("CC='%s'" % os.environ["CC"])
+    if var_name in os.environ:
+        scons_details_logger.info("%s='%s'" % (var_name, os.environ[var_name]))
 
-        os.environ["CC"] = os.path.normpath(os.path.expanduser(os.environ["CC"]))
+        os.environ[var_name] = os.path.normpath(
+            os.path.expanduser(os.environ[var_name])
+        )
 
-        if os.path.isdir(os.environ["CC"]):
+        if os.path.isdir(os.environ[var_name]):
             scons_logger.sysexit(
-                "Error, the 'CC' variable must point to file, not directory."
+                "Error, the '%s' variable must point to file, not directory." % var_name
             )
 
-        if os.path.sep in os.environ["CC"]:
-            cc_dirname = os.path.dirname(os.environ["CC"])
+        if os.path.sep in os.environ[var_name]:
+            cc_dirname = os.path.dirname(os.environ[var_name])
             if os.path.isdir(cc_dirname):
                 addToPATH(None, cc_dirname, prefix=True)
 
-        if os.name == "nt" and isGccName(os.path.basename(os.environ["CC"])):
+        if os.name == "nt" and isGccName(os.path.basename(os.environ[var_name])):
             scons_details_logger.info(
-                "Environment CC seems to be a gcc, enabling mingw_mode."
+                "Environment %s seems to be a gcc, enabling mingw_mode." % var_name
             )
             mingw_mode = True
-    else:
-        anaconda_python = getArgumentBool("anaconda_python", False)
 
-        if isLinux() and anaconda_python:
-            python_prefix = getArgumentRequired("python_prefix")
-            addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
+        if isZigName(os.path.basename(os.environ[var_name])):
+            scons_details_logger.info(
+                "Environment %s seems to be a gcc, enabling zig_mode." % var_name
+            )
+            zig_mode = True
 
-    return mingw_mode
+    return mingw_mode, zig_mode
+
+
+def _prepareEnvironment(mingw_mode):
+    mingw_mode_from_env, zig_mode = _prepareFromEnvironmentVar("CC")
+    _prepareFromEnvironmentVar("CXX")
+
+    if mingw_mode_from_env:
+        mingw_mode = True
+
+    anaconda_python = getArgumentBool("anaconda_python", False)
+
+    if isLinux() and anaconda_python:
+        python_prefix = getArgumentRequired("python_prefix")
+        addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
+
+    return mingw_mode, zig_mode
 
 
 def createEnvironment(
@@ -186,6 +207,9 @@ def createEnvironment(
 ):
     # Many settings are directly handled here, getting us a lot of code in here.
     # pylint: disable=too-many-branches,too-many-statements
+
+    # Prepare environment for compiler detection.
+    mingw_mode, zig_mode = _prepareEnvironment(mingw_mode=mingw_mode)
 
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
@@ -204,13 +228,14 @@ def createEnvironment(
     if (
         os.name == "nt"
         and not mingw_mode
+        and not zig_mode
         and msvc_version is None
         and msvc_version != "latest"
         and (getExecutablePath("cl", env=None) is not None)
     ):
         args["MSVC_USE_SCRIPT"] = False
 
-    if mingw_mode or isPosixWindows():
+    if mingw_mode or zig_mode or isPosixWindows():
         # Force usage of MinGW64, not using MSVC tools.
         tools = ["mingw"]
 
@@ -222,6 +247,8 @@ def createEnvironment(
         SCons.Tool.msvc.msvc_exists = SCons.Tool.MSCommon.vc.msvc_exists = (
             lambda *args: False
         )
+    elif zig_mode:
+        tools = ["gcc"]
     else:
         # Everything else should use default, that is MSVC tools, but not MinGW64.
         tools = ["default"]
@@ -655,6 +682,8 @@ def addClangClPathFromMSVC(env):
 
 
 def isGccName(cc_name):
+    cc_name = os.path.normcase(os.path.basename(cc_name))
+
     return (
         "gcc" in cc_name
         or "g++" in cc_name
@@ -664,10 +693,14 @@ def isGccName(cc_name):
 
 
 def isClangName(cc_name):
+    cc_name = os.path.normcase(os.path.basename(cc_name))
+
     return ("clang" in cc_name and "-cl" not in cc_name) or isZigName(cc_name)
 
 
 def isZigName(cc_name):
+    cc_name = os.path.normcase(os.path.basename(cc_name))
+
     return "zig" in cc_name
 
 
