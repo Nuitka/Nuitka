@@ -893,7 +893,10 @@ class ExpressionStrOperationSplitlines1(ExpressionStrOperationSplitlines1Base):
 
 
 class ExpressionStrOperationSplitlines2(ExpressionStrOperationSplitlines2Base):
-    """This operation represents s.splitlines(keepends)."""
+    """This operation represents s.splitlines(keepends).
+
+    spell-checker: ignore keepends
+    """
 
     kind = "EXPRESSION_STR_OPERATION_SPLITLINES2"
 
