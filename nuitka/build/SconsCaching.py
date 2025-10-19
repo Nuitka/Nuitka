@@ -127,11 +127,14 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
 
         values = [ccache_binary, cc_path]
 
-        if isZigName(env.the_cc_name):
-            values.append("c++" if env.c11_mode else "cc")
+        if env.zig_mode:
+            values.append("cc" if env.c11_mode else "c++")
 
         # We use absolute paths for CC, pass it like this, as ccache does not like absolute.
         env["CXX"] = env["CC"] = " ".join('"%s"' % value for value in values)
+
+        if env.zig_mode:
+            env["LINK"] = " ".join('"%s"' % value for value in values[1:])
 
         return True
 
@@ -195,7 +198,7 @@ def enableCcache(
 
     # If we failed to inject zig argument into ccache command line, we need to
     # do it now.
-    if isZigName(env.the_cc_name) and inject_ccache is False:
+    if env.zig_mode and inject_ccache is False:
         env["CXX"] = env["CC"] = '"%s" "%s"' % (
             cc_path,
             "cc" if env.c11_mode else "c++",

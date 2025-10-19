@@ -107,10 +107,6 @@ def _enableC11Settings(env):
         c11_mode = True
     elif env.clang_mode:
         c11_mode = True
-
-        # For now, zig doesn't support C11 mode in the form needed by Nuitka
-        if isZigName(env.the_cc_name):
-            c11_mode = False
     elif env.gcc_mode and env.gcc_version >= (5,):
         c11_mode = True
     else:
@@ -478,6 +474,9 @@ def decideConstantsBlobResourceMode(env):
         # consider using "c23_embed" for it too.
         resource_mode = "mac_section"
         reason = "default for macOS"
+    elif env.zig_mode:
+        resource_mode = "c23_embed"
+        reason = "default for zig"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -792,9 +791,14 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
             env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
 
     # Support for clang.
-    if "clang" in env.the_cc_name:
+    if env.clang_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
-        env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
+
+        if not isClangName(env.the_cc_name):
+            env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
+
+    if isClangName(env.the_cc_name):
+        env.Append(CCFLAGS=["-Wno-constant-logical-operand"])
 
     env.warn_error_mode = (
         env.debug_mode
