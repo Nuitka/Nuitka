@@ -5578,6 +5578,22 @@
     - depends:
         - 'rasterio._features'
 
+- module-name: 'ray' # checksum: b0f3c435
+  import-hacks:
+    - global-sys-path:
+        # This package forces vendored packages into "sys.path" and causes
+        # absolute imports from there to be available.
+        - 'thirdparty_files'
+
+- module-name: 'ray._raylet' # checksum: b5e760d8
+  implicit-imports:
+    - depends:
+        - 'msgpack'
+        - 'ray.core.generated.gcs_service_pb2'
+        - 'ray._private.memory_monitor'
+        - 'ray._private.object_ref_generator'
+        - 'ray._private.gc_collect_manager'
+
 - module-name: 'rdkit' # checksum: e6ef3220
   anti-bloat:
     - description: 'remove IPython reference'

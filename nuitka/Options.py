@@ -770,11 +770,11 @@ mandatory."""
                 "--output-filename", output_filename, " for standalone mode"
             )
 
-        output_dir = os.path.join(
-            getOutputDir(), os.path.dirname(output_filename) or "."
-        )
+        output_filename_dir = os.path.dirname(output_filename) or "."
 
-        if not os.path.isdir(output_dir):
+        output_dir = os.path.join(getOutputDir(), output_filename_dir)
+
+        if output_filename_dir != "." and not os.path.isdir(output_dir):
             Tracing.options_logger.sysexit(
                 """\
 Error, specified output directory does not exist, you have to create \
