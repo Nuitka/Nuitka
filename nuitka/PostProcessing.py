@@ -499,7 +499,7 @@ def executePostProcessing(result_filename):
         and not Options.shallUseStaticLibPython()
     ):
         for dependency in parseOtoolListingOutput(
-            getOtoolDependencyOutput(result_filename, [])
+            getOtoolDependencyOutput(result_filename)
         ):
             if os.path.basename(dependency).lower().startswith(("python", "libpython")):
                 python_dll_filename = dependency

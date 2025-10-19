@@ -774,9 +774,10 @@ output_group.add_option(
     default=None,
     help="""\
 Specify how the executable should be named. For extension modules there is no
-choice, also not for standalone mode and using it will be an error. This may
-include path information that needs to exist though. Defaults to '%s' on this
-platform.
+choice and using it will be an error. For onefile mode this may include path
+information that needs to exist though. For standalone mode it can only be
+a name, and controls how the binary is named inside the dist folder. Defaults
+to '%s' on this platform.
 """
     % ("<program_name>" + (".exe" if isWin32OrPosixWindows() else ".bin")),
 )

@@ -102,10 +102,7 @@ def detectBinaryPathDLLsMacOS(
     )
 
     # This is recursive potentially and might add more and more.
-    stdout = getOtoolDependencyOutput(
-        filename=binary_filename,
-        package_specific_dirs=package_specific_dirs,
-    )
+    stdout = getOtoolDependencyOutput(binary_filename)
     paths = _parseOtoolListingOutput(stdout)
 
     had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
