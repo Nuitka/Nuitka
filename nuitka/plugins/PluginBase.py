@@ -87,6 +87,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Importing import (
     getExtensionModuleSuffix,
     isBuiltinModuleName,
+    withTemporarySysPathExtension,
 )
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -322,15 +323,23 @@ def _getPackageVersion(distribution_name):
         if result is None:
             # Fallback if nothing is available, which may happen if no package is installed,
             # but only source code is found.
+
+            # Circular imports
+            from nuitka.importing.Importing import getExtraSysPaths
+
+            package_name = _getPackageNameFromDistributionName(distribution_name)
+            extra_paths = getExtraSysPaths()
+
             try:
-                result = _convertVersionToTuple(
-                    distribution_name=distribution_name,
-                    version_str=__import__(
-                        _getPackageNameFromDistributionName(distribution_name)
-                    ).__version__,
-                )
+                with withTemporarySysPathExtension(extra_paths):
+                    module = __import__(package_name)
             except ImportError:
                 result = None
+            else:
+                result = _convertVersionToTuple(
+                    distribution_name=distribution_name,
+                    version_str=module.__version__,
+                )
 
         _package_versions[distribution_name] = result
 

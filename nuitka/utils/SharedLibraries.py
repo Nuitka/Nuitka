@@ -17,7 +17,7 @@ from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, withEnvironmentPathAdded
+from .Execution import executeToolChecked
 from .FileOperations import (
     addFileExecutablePermission,
     changeFilenameExtension,
@@ -359,9 +359,8 @@ def getOtoolListing(filename, cached):
     return _getOToolCommandOutput("-l", filename, cached=cached)
 
 
-def getOtoolDependencyOutput(filename, package_specific_dirs):
-    with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
-        return _getOToolCommandOutput("-L", filename, cached=True)
+def getOtoolDependencyOutput(filename):
+    return _getOToolCommandOutput("-L", filename, cached=True)
 
 
 def parseOtoolListingOutput(output):

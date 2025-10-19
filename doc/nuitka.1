@@ -166,7 +166,7 @@ Select what value "__name__" and "__package__" are going to be. With "runtime" (
 Output choices:
 .TP
 \fB\-\-output\-filename\fR=\fI\,FILENAME\/\fR
-Specify how the executable should be named. For extension modules there is no choice, also not for standalone mode and using it will be an error. This may include path information that needs to exist though. Defaults to '<program_name>.bin' on this platform.
+Specify how the executable should be named. For extension modules there is no choice and using it will be an error. For onefile mode this may include path information that needs to exist though. For standalone mode it can only be a name, and controls how the binary is named inside the dist folder. Defaults to '<program_name>.bin' on this platform.
 .TP
 \fB\-\-output\-folder\-name\fR=\fI\,FOLDER_NAME\/\fR
 Specify the name of the distribution folder (for standalone mode) or app bundle folder name (for macOS app mode). Defaults to the base filename of the main module, will add a '.dist' or '.app' suffix.
