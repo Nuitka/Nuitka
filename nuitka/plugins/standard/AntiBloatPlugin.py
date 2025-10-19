@@ -13,9 +13,11 @@ import re
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.importing.Importing import getExtraSysPaths
 from nuitka.ModuleRegistry import getModuleByName
 from nuitka.Options import isExperimental
 from nuitka.plugins.YamlPluginBase import NuitkaYamlPluginBase
+from nuitka.utils.Importing import withTemporarySysPathExtension
 from nuitka.utils.ModuleNames import ModuleName
 
 # spell-checker: ignore dask,numba,statsmodels,matplotlib,sqlalchemy,ipykernel,pyximport
@@ -394,15 +396,17 @@ which can and should be a top level package and then one choice, "error",
         if context_code not in self.context_codes:
             context = {}
 
-            try:
-                # We trust the yaml files, pylint: disable=exec-used
-                exec(context_code, context)
-            except Exception as e:  # pylint: disable=broad-except
-                self.sysexit(
-                    """\
+            extra_paths = getExtraSysPaths()
+            with withTemporarySysPathExtension(extra_paths):
+                try:
+                    # We trust the yaml files, pylint: disable=exec-used
+                    exec(context_code, context)
+                except Exception as e:  # pylint: disable=broad-except
+                    self.sysexit(
+                        """\
 Error, cannot exec module '%s', context code '%s' due to: %s"""
-                    % (module_name, context_code, e)
-                )
+                        % (module_name, context_code, e)
+                    )
 
             self.context_codes[context_code] = context
 

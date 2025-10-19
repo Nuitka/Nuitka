@@ -267,11 +267,11 @@ def _getReportInputData(aborted):
         getSourceDirectoryPath(onefile=False, create=False) if hasMainModule() else None
     )
 
-    cpp_flags = getSconsReportValue(source_dir, "cpp_flags")
-    c_flags = getSconsReportValue(source_dir, "c_flags")
-    cc_flags = getSconsReportValue(source_dir, "cc_flags")
-    cxx_flags = getSconsReportValue(source_dir, "cxx_flags")
-    ld_flags = getSconsReportValue(source_dir, "ld_flags")
+    cpp_flags = getSconsReportValue(source_dir, "cpp_flags", default=None)
+    c_flags = getSconsReportValue(source_dir, "c_flags", default=None)
+    cc_flags = getSconsReportValue(source_dir, "cc_flags", default=None)
+    cxx_flags = getSconsReportValue(source_dir, "cxx_flags", default=None)
+    ld_flags = getSconsReportValue(source_dir, "ld_flags", default=None)
 
     del source_dir
 
@@ -579,21 +579,30 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
 
         exception_xml_node.text = "\n" + traceback.format_exc()
 
-    scons_environment_xml_node = TreeXML.appendTreeElement(
-        root,
-        "scons_environment",
-    )
+    if report_input_data["cpp_flags"] is not None:
+        scons_environment_xml_node = TreeXML.appendTreeElement(
+            root,
+            "scons_environment",
+        )
 
-    if report_input_data["cpp_flags"] != "None":
-        scons_environment_xml_node.attrib["cpp_flags"] = report_input_data["cpp_flags"]
-    if report_input_data["c_flags"] != "None":
-        scons_environment_xml_node.attrib["c_flags"] = report_input_data["c_flags"]
-    if report_input_data["cc_flags"] != "None":
-        scons_environment_xml_node.attrib["cc_flags"] = report_input_data["cc_flags"]
-    if report_input_data["cxx_flags"] != "None":
-        scons_environment_xml_node.attrib["cxx_flags"] = report_input_data["cxx_flags"]
-    if report_input_data["ld_flags"] != "None":
-        scons_environment_xml_node.attrib["ld_flags"] = report_input_data["ld_flags"]
+        if report_input_data["cpp_flags"] != "":
+            scons_environment_xml_node.attrib["cpp_flags"] = report_input_data[
+                "cpp_flags"
+            ]
+        if report_input_data["c_flags"] != "":
+            scons_environment_xml_node.attrib["c_flags"] = report_input_data["c_flags"]
+        if report_input_data["cc_flags"] != "":
+            scons_environment_xml_node.attrib["cc_flags"] = report_input_data[
+                "cc_flags"
+            ]
+        if report_input_data["cxx_flags"] != "":
+            scons_environment_xml_node.attrib["cxx_flags"] = report_input_data[
+                "cxx_flags"
+            ]
+        if report_input_data["ld_flags"] != "":
+            scons_environment_xml_node.attrib["ld_flags"] = report_input_data[
+                "ld_flags"
+            ]
 
     if report_input_data["scons_error_report_data"]:
         scons_error_reports_node = TreeXML.appendTreeElement(

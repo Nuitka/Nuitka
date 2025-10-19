@@ -189,9 +189,7 @@ def runOnefileCompressor(
 
 
 def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir, start_binary):
-    postprocessing_logger.info(
-        "Creating single file from dist folder, this may take a while."
-    )
+    onefile_logger.info("Creating single file from dist folder, this may take a while.")
 
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
