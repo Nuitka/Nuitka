@@ -59,6 +59,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    isZigName,
     prepareEnvironment,
     setArguments,
 )
@@ -230,6 +231,7 @@ if isClangName(env.the_cc_name):
 # be compatible.
 env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
 env.clang_mode = clang_mode
+env.zig_mode = isZigName(env.the_cc_name)
 
 # Only use MSVC if not already clear, we are using MinGW.
 env.msvc_mode = os.name == "nt" and not env.gcc_mode
