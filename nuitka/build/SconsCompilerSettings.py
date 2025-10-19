@@ -91,7 +91,7 @@ def _enableC11Settings(env):
         bool - c11_mode flag
     """
 
-    # Lots of cases to deal with, pylint: disable=too-many-branches
+    # Lots of cases to deal with
 
     if "force-c11-mode" in env.experimental_flags:
         c11_mode = True
@@ -287,7 +287,7 @@ def checkWindowsCompilerFound(
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
     # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
 
-    if os.name == "nt":
+    if os.name == "nt" and not isZigName(env["CC"]):
         # On Windows, in case MSVC was not found and not previously forced, use the
         # winlibs MinGW64 as a download, and use it as a fallback.
         compiler_path = getExecutablePath(env["CC"], env=env)
@@ -682,8 +682,9 @@ def _enableWin32TargetSettings(env):
     """Set up environment for Windows target settings."""
     assert isWin32Windows()
     # The MinGW64 and ClangCL do not default for API level properly, so
-    # help it.
-    env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
+    # help it. For zig, it is hard coded.
+    if not env.zig_mode:
+        env.Append(CPPDEFINES=["_WIN32_WINNT=0x0601"])
 
 
 def enableWindowsStackSize(env, target_arch):
@@ -767,7 +768,8 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
 
         if isWin32Windows() and hasattr(env, "source_dir"):
             # On Windows, exporting to DLL need to be controlled.
-            env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
+            if not env.zig_mode:
+                env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
 
             # Make sure we handle import library on our own and put it into the
             # build directory.
@@ -791,10 +793,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
             env.Append(CCFLAGS=["-fcf-protection=%s" % env.cf_protection])
 
     # Support for clang.
-    if env.clang_mode:
+    if env.clang_mode or env.clangcl_mode:
         env.Append(CCFLAGS=["-Wno-deprecated-declarations"])
 
-        if not isClangName(env.the_cc_name):
+        if not isZigName(env.the_cc_name):
             env.Append(CPPDEFINES=["_XOPEN_SOURCE"])
 
     if isClangName(env.the_cc_name):
@@ -845,7 +847,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
         _enableWin32TargetSettings(env)
 
     # Unicode entry points for programs.
-    if env.mingw_mode:
+    if env.mingw_mode or (env.zig_mode and isWin32Windows()):
         env.Append(LINKFLAGS=["-municode"])
 
     # Detect the gcc version

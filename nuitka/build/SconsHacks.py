@@ -23,7 +23,7 @@ from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import openTextFile
 from nuitka.utils.Utils import isLinux, isMacOS
 
-from .SconsUtils import decodeData, getExecutablePath, isGccName
+from .SconsUtils import decodeData, getExecutablePath, isGccName, isZigName
 
 # Cache for detected versions.
 v_cache = {}
@@ -74,7 +74,7 @@ _blocked_tools = (
 
 
 def _myDetectVersion(cc):
-    if isGccName(cc) or "clang" in cc:
+    if isGccName(cc) or "clang" in cc or isZigName(cc):
         command = (
             cc,
             "-dumpversion",

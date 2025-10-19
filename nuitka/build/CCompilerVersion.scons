@@ -60,7 +60,6 @@ from .SconsUtils import (
     isClangName,
     isGccName,
     isZigName,
-    prepareEnvironment,
     setArguments,
 )
 
@@ -143,28 +142,6 @@ cf_protection = getArgumentDefaulted("cf_protection", "auto")
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
-
-# TODO: Merge to prepareEnvironment as well.
-if "CXX" in os.environ:
-    os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
-
-    if os.path.isdir(os.environ["CXX"]):
-        sys.exit("Error, the CXX variable must point to file, not directory.")
-
-    cxx_dirname = os.path.dirname(os.environ["CXX"])
-
-    if os.name == "nt" and isGccName(os.path.basename(os.environ["CXX"])):
-        if show_scons_mode:
-            my_print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
-        mingw_mode = True
-
-    if os.path.isdir(cxx_dirname):
-        os.environ["PATH"] = os.pathsep.join(
-            [cxx_dirname] + os.environ["PATH"].split(os.pathsep)
-        )
-
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
 
@@ -234,8 +211,8 @@ env.clang_mode = clang_mode
 env.zig_mode = isZigName(env.the_cc_name)
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = os.name == "nt" and not env.gcc_mode
-env.mingw_mode = os.name == "nt" and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode and not env.zig_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
 env.clangcl_mode = clangcl_mode
 
 # gcc compiler cf_protection option

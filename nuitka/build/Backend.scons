@@ -89,7 +89,6 @@ from .SconsUtils import (
     isGccName,
     isZigName,
     makeResultPathFileSystemEncodable,
-    prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     scanSourceDir,
@@ -284,9 +283,6 @@ enableSconsProgressBar(progress_bar)
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
-
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
 
@@ -360,8 +356,8 @@ env.zig_mode = isZigName(env.the_cc_name)
 
 
 # Only use MSVC if not already clear, we are using MinGW.
-env.msvc_mode = os.name == "nt" and not env.gcc_mode
-env.mingw_mode = os.name == "nt" and env.gcc_mode
+env.msvc_mode = os.name == "nt" and not env.gcc_mode and not env.zig_mode
+env.mingw_mode = os.name == "nt" and env.gcc_mode and not env.zig_mode
 env.clangcl_mode = clangcl_mode
 
 # For Python3.13, we need to enforce it for now to use MSVC
@@ -854,7 +850,7 @@ if env.module_mode and python_sysflag_verbose:
 # Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
 # which can make linking fail with many modules otherwise. Most needed on Windows,
 # but useful on other platforms too.
-if env.gcc_mode:
+if env.gcc_mode and (not env.clang_mode or env.zig_mode):
     makeGccUseLinkerFile(
         env=env,
         source_files=source_files,

@@ -30,7 +30,6 @@ from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
     getExecutablePath,
     getSconsReportValue,
-    isZigName,
     setEnvironmentVariable,
 )
 
@@ -144,7 +143,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
 def enableCcache(
     env, source_dir, python_prefix, assume_yes_for_downloads, disable_ccache
 ):
-    inject_ccache = not disable_ccache
+    inject_ccache = not disable_ccache and not env.zig_mode
 
     if inject_ccache:
         # The ccache needs absolute path, otherwise it will not work.
@@ -198,11 +197,30 @@ def enableCcache(
 
     # If we failed to inject zig argument into ccache command line, we need to
     # do it now.
-    if env.zig_mode and inject_ccache is False:
+    if env.zig_mode:
+        cc_path = getExecutablePath(env.the_compiler, env=env)
+
         env["CXX"] = env["CC"] = '"%s" "%s"' % (
             cc_path,
             "cc" if env.c11_mode else "c++",
         )
+
+        if "CCACHE_DIR" not in os.environ:
+            zig_cache_dir = getCacheDir("zig")
+
+            if not os.getenv("ZIG_LOCAL_CACHE_DIR"):
+                makePath(zig_cache_dir)
+                zig_cache_dir = getExternalUsePath(zig_cache_dir)
+                setEnvironmentVariable(
+                    env, "ZIG_LOCAL_CACHE_DIR", os.path.join(zig_cache_dir, "local")
+                )
+
+            if not os.getenv("ZIG_GLOBAL_CACHE_DIR"):
+                makePath(zig_cache_dir)
+                zig_cache_dir = getExternalUsePath(zig_cache_dir)
+                setEnvironmentVariable(
+                    env, "ZIG_GLOBAL_CACHE_DIR", os.path.join(zig_cache_dir, "global")
+                )
 
 
 def enableClcache(env, source_dir):

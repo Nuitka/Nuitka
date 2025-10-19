@@ -2086,7 +2086,7 @@ def getMsvcVersion():
 def shallCleanCache(cache_name):
     """:returns: bool derived from ``--clean-cache``"""
 
-    if cache_name == "clcache":
+    if cache_name in ("clcache", "zig"):
         cache_name = "ccache"
 
     return "all" in options.clean_caches or cache_name in options.clean_caches
