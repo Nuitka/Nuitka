@@ -8,6 +8,7 @@ Used for Nuitka plugins and for test code.
 
 import os
 import sys
+from contextlib import contextmanager
 
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
@@ -317,6 +318,16 @@ def getPackageDirFilename(path):
             return candidate
 
     return None
+
+
+@contextmanager
+def withTemporarySysPathExtension(extra_paths):
+    old_path = sys.path[:]
+    sys.path.extend(extra_paths)
+
+    yield
+
+    sys.path[:] = old_path
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

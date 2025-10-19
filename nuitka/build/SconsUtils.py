@@ -558,8 +558,14 @@ def readSconsReport(source_dir):
     return _scons_reports[source_dir]
 
 
-def getSconsReportValue(source_dir, key):
-    return readSconsReport(source_dir).get(key)
+def getSconsReportValue(source_dir, key, default=Ellipsis):
+    try:
+        return readSconsReport(source_dir).get(key)
+    except FileNotFoundError:
+        if default is not Ellipsis:
+            return default
+
+        raise
 
 
 def readSconsErrorReport(source_dir):
