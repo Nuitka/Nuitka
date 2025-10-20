@@ -35,7 +35,6 @@ from .Utils import (
     isElfUsingPlatform,
     isLinux,
     isMacOS,
-    isRPathUsingPlatform,
     isWin32Windows,
     raiseWindowsError,
 )
@@ -779,7 +778,7 @@ def makeMacOSThinBinary(dest_path, original_path):
         )
 
 
-def copyDllFile(source_path, dist_dir, dest_path, executable):
+def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points):
     """Copy an extension/DLL file making some adjustments on the way."""
 
     target_filename = os.path.join(dist_dir, dest_path)
@@ -793,15 +792,28 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
     if isMacOS() and getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
-    if isRPathUsingPlatform():
+    if isElfUsingPlatform():
         # Path must be normalized for this to be correct, but entry points enforced that.
         count = dest_path.count(os.path.sep)
 
-        # TODO: This ought to depend on actual presence of used DLLs with middle
-        # paths and not just do it, but maybe there is not much harm in it.
-        rpaths = OrderedSet(
-            os.path.join("$ORIGIN", *([".."] * c)) for c in range(count, -1, -1)
-        )
+        # TODO: This ought to depend even more on actual presence of used DLLs
+        # in middle paths and not just do it, but maybe there is not much harm
+        # in it.
+
+        rpaths = OrderedSet()
+        for c in range(count, -1, -1):
+            if c > 0:
+                dest_path_candidate = os.path.normpath(
+                    os.path.join(dest_path, *([".."] * c))
+                )
+
+                if all(
+                    os.path.dirname(other_entry_point.dest_path) != dest_path_candidate
+                    for other_entry_point in other_entry_points
+                ):
+                    continue
+
+            rpaths.add(os.path.join("$ORIGIN", *([".."] * c)))
 
         # Make sure, sub-folders use by the original DLL are actually still
         # included.
