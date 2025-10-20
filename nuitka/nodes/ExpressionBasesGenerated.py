@@ -34,6 +34,7 @@ spell-checker: ignore winmode zfill
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
 
+
 from abc import abstractmethod
 
 from .ExpressionBases import ExpressionBase
@@ -80,21 +81,23 @@ ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
 ExpressionImportlibMetadataEntryPointValueRefBase = NoChildHavingFinalNoRaiseMixin
 
 
-class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
+class NoChildHavingFinalNoRaiseNameVariantMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     # This is generated for use in
     #   ExpressionTypeVariable
 
-    def __init__(self, name, source_ref):
+    def __init__(self, name, variant, source_ref):
         self.name = name
+        self.variant = variant
 
         ExpressionBase.__init__(self, source_ref)
 
     def getDetails(self):
         return {
             "name": self.name,
+            "variant": self.variant,
         }
 
     def getVisitableNodes(self):
@@ -151,7 +154,7 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameVariantMixin
 
 
 class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):

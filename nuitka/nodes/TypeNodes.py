@@ -355,7 +355,7 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"
 
     auto_compute_handling = "final,no_raise"
-    node_attributes = ("name",)
+    node_attributes = ("name", "variant")
 
 
 class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, ExpressionBase):
