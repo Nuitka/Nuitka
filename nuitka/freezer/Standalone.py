@@ -220,6 +220,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             dist_dir=dist_dir,
             dest_path=standalone_entry_point.dest_path,
             executable=standalone_entry_point.executable,
+            other_entry_points=copy_standalone_entry_points,
         )
 
         if isMacOS():
