@@ -1167,6 +1167,7 @@ _stdlib_module_raises = {
     "_posixsubprocess": False,
     "_queue": False,
     "_random": False,
+    "_scproxy": False,
     "_sha": False,  # TODO: Not entirely clear if that's true
     "_sha1": False,
     "_sha2": False,
