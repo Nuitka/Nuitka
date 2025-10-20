@@ -911,6 +911,31 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     CHECK_OBJECT(function_name);
     assert(Nuitka_String_CheckExact(function_name));
 
+#if PYTHON_VERSION >= 0x3b0
+    if (function_qualname) {
+        CHECK_OBJECT(function_qualname);
+        PyUnicode_CheckExact(function_qualname);
+    }
+#endif
+
+#if PYTHON_VERSION >= 0x300
+    assert(kw_only_count >= 0);
+#endif
+#if PYTHON_VERSION >= 0x380
+    assert(pos_only_count >= 0);
+#endif
+    assert(flags >= 0);
+    assert(arg_count >= 0);
+
+// TODO: On macOS with zig, libpython asserts against values failing, but only if
+// debug mode is not on, these check without using the disabled assert.
+#if 0
+    if (pos_only_count < 0) abort();
+    if (kw_only_count < 0) abort();
+    if (flags < 0) abort();
+    if (arg_count < 0) abort();
+#endif
+
 #if PYTHON_VERSION < 0x300
     PyObject *filename_str = NULL;
 
@@ -1009,10 +1034,16 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
     PyObject *code = empty_code;
     CHECK_OBJECT(empty_code);
+    assert(PyBytes_Check(code));
     CHECK_OBJECT(lnotab);
+    assert(PyBytes_Check(lnotab));
     CHECK_OBJECT(consts);
+    assert(PyTuple_Check(consts));
     CHECK_OBJECT(names);
+    assert(PyTuple_Check(names));
     CHECK_OBJECT(exception_table);
+    assert(PyBytes_Check(exception_table));
+    assert(stacksize >= 0);
 #endif
 
     // For Python 3.11 this value is checked, even if not used.
