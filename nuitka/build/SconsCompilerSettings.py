@@ -173,7 +173,10 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "known to be not supported (CondaCC)"
     elif isMacOS() and env.gcc_mode and env.clang_mode:
-        if env.debugger_mode:
+        if env.zig_mode:
+            lto_mode = False
+            reason = "known to be not supported (zig on macOS)"
+        elif env.debugger_mode:
             lto_mode = False
             reason = "must be disabled to see line numbers (macOS clang)"
         else:
@@ -469,14 +472,14 @@ def decideConstantsBlobResourceMode(env):
     elif isPosixWindows():
         resource_mode = "linker"
         reason = "default MSYS2 Posix"
+    elif env.zig_mode:
+        resource_mode = "c23_embed"
+        reason = "default for zig"
     elif isMacOS():
         # TODO: The macOS has no Clang19 yet, once it does, we could also
         # consider using "c23_embed" for it too.
         resource_mode = "mac_section"
         reason = "default for macOS"
-    elif env.zig_mode:
-        resource_mode = "c23_embed"
-        reason = "default for zig"
     elif env.gcc_mode and env.clang_mode and env.clang_version >= (19,):
         resource_mode = "c23_embed"
         reason = "default for newer clang"
@@ -661,12 +664,15 @@ def _enableMacOSTargetSettings(env):
 
     setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 
-    target_flag = "--target=%s-apple-macos%s" % (
-        env.macos_target_arch,
-        env.macos_min_version,
-    )
-    env.Append(CCFLAGS=[target_flag])
-    env.Append(LINKFLAGS=[target_flag])
+    # TODO: The zig doesn't support the option given, not having "arm64" as a
+    # valid architecture.
+    if not env.zig_mode:
+        target_flag = "--target=%s-apple-macos%s" % (
+            env.macos_target_arch,
+            env.macos_min_version,
+        )
+        env.Append(CCFLAGS=[target_flag])
+        env.Append(LINKFLAGS=[target_flag])
 
 
 def _enableAIXTargetSettings(env):
