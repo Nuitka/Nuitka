@@ -846,7 +846,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable, other_entry_points
 
         executeToolChecked(
             logger=postprocessing_logger,
-            command=("xattr", "-c", target_filename),
+            command=("/usr/bin/xattr", "-c", target_filename),
             absence_message="needs 'xattr' to remove extended attributes",
         )
 
