@@ -53,9 +53,9 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
-from nuitka.tree.ReformulationAssignmentStatements import buildTypeVarNode
 
 from .FutureSpecState import getFutureSpec
+from .ReformulationAssignmentStatements import buildTypeVarNode
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
@@ -246,12 +246,12 @@ def wrapWithTypeAnnotations(provider, type_params, body, source_ref):
 
     outline_body.setChildBody(
         makeStatementsSequenceFromStatements(
-            *assignments,
-            StatementReturn(expression=body, source_ref=source_ref)
+            *assignments, StatementReturn(expression=body, source_ref=source_ref)
         )
     )
 
     return outline_body
+
 
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
@@ -382,7 +382,9 @@ def buildFunctionNode(provider, node, source_ref):
     )
 
     if python_version >= 0x3C0:
-        function_creation = wrapWithTypeAnnotations(provider, node.type_params, function_creation, source_ref)
+        function_creation = wrapWithTypeAnnotations(
+            provider, node.type_params, function_creation, source_ref
+        )
 
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 

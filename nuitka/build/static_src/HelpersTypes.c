@@ -242,8 +242,7 @@ typedef struct {
 } typevarobject;
 
 typedef struct {
-    PyObject_HEAD
-    PyObject *name;
+    PyObject_HEAD PyObject *name;
 #if PYTHON_VERSION >= 0x3d0
     PyObject *default_value;
     PyObject *evaluate_default;
@@ -251,8 +250,7 @@ typedef struct {
 } typevartupleobject;
 
 typedef struct {
-    PyObject_HEAD
-    PyObject *name;
+    PyObject_HEAD PyObject *name;
     PyObject *bound;
 #if PYTHON_VERSION >= 0x3d0
     PyObject *default_value;
@@ -298,9 +296,8 @@ static typevarobject *_Nuitka_typevar_alloc(PyThreadState *tstate, PyObject *nam
     return result;
 }
 
-static typevartupleobject *
-_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module, PyObject *default_value)
-{
+static typevartupleobject *_Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *module,
+                                                      PyObject *default_value) {
     PyTypeObject *tp = tstate->interp->cached_objects.typevartuple_type;
     typevartupleobject *tvt = Nuitka_GC_New(tp);
     if (tvt == NULL) {
@@ -321,10 +318,9 @@ _Nuitka_typevartuple_alloc(PyThreadState *tstate, PyObject *name, PyObject *modu
     return tvt;
 }
 
-static paramspecobject *
-_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound, PyObject *default_value, bool covariant,
-                        bool contravariant, bool infer_variance, PyObject *module)
-{
+static paramspecobject *_Nuitka_paramspec_alloc(PyThreadState *tstate, PyObject *name, PyObject *bound,
+                                                PyObject *default_value, bool covariant, bool contravariant,
+                                                bool infer_variance, PyObject *module) {
     PyTypeObject *tp = tstate->interp->cached_objects.paramspec_type;
     paramspecobject *ps = Nuitka_GC_New(tp);
     if (ps == NULL) {
