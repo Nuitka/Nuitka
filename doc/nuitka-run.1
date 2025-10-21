@@ -97,7 +97,7 @@ Include data files from complete directory in the distribution. This is recursiv
 Do not include data files matching the filename pattern given. This is against the target filename, not source paths. So to ignore a file pattern from package data for 'package_name' should be matched as 'package_name/*.txt'. Or for the whole directory simply use 'package_name'. Default empty.
 .TP
 \fB\-\-include\-data\-files\-external\fR=\fI\,PATTERN\/\fR
-Include the specified data file patterns outside of the onefile binary, rather than on the inside. Makes only sense in case of '\-\-onefile' compilation. First files have to be specified as included with other `\-\-include\-*data*` options, and then this refers to target paths inside the distribution. Default empty.
+Include the specified data file patterns outside of the onefile binary, rather than on the inside. First files have to be specified as included with other `\-\-include\-*data*` options, and then this refers to target paths inside the distribution that are then put external to it. Default empty.
 .TP
 \fB\-\-list\-package\-data\fR=\fI\,LIST_PACKAGE_DATA\/\fR
 Output the data files found for a given package name. Default not done.
