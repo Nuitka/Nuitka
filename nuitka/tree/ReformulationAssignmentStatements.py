@@ -1225,7 +1225,15 @@ def buildNamedExprNode(provider, node, source_ref):
 
 
 def buildTypeVarNode(node, source_ref):
-    return ExpressionTypeVariable(node.name, source_ref=source_ref)
+    node_type = type(node).__name__
+    if node_type == "TypeVar":
+        variant = 0
+    elif node_type == "TypeVarTuple":
+        variant = 1
+    else:
+        assert node_type == "ParamSpec", node_type
+        variant = 2
+    return ExpressionTypeVariable(node.name, variant, source_ref=source_ref)
 
 
 def buildTypeAliasNode(provider, node, source_ref):
