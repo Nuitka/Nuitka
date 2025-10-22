@@ -1127,9 +1127,9 @@ and recommended only for use in Nuitka development and testing."""
     if python_version == 0x3D4 and isWin32Windows() and isCPythonOfficialPackage():
         Tracing.general.sysexit(
             """\
-Due to a CPython bug of 3.13.4 precisely (not <3.13.4 and >3.14.5) \
-it's not possible to use Nuitka with this Python version, as it \
-broke the separation between GIL and no-GIL for the link \
+Due to a CPython bug of 3.13.4 precisely (<=3.13.4 is OK and >=3.13.5
+as well) it's not possible to use Nuitka with this Python version, as \
+it broke the separation between GIL and no-GIL for the link \
 library. Please upgrade/downgrade to a supported micro version."""
         )
 
