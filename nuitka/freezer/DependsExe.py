@@ -87,20 +87,22 @@ def _attemptToFindNotFoundDLL(dll_filename):
 
 # Names of MSVC redistributable DLLs to pick up
 # spell-checker: ignore concrt,msvcp,vcruntime,vcamp,vccorlib,codecvt,vcomp
-msvc_redist_dll_names = {
-    "concrt140.dll",
-    "msvcp140.dll",
-    "msvcp140_1.dll",
-    "msvcp140_2.dll",
-    "msvcp140_atomic_wait.dll",
-    "msvcp140_codecvt_ids.dll",
-    "vccorlib140.dll",
-    "vcruntime140.dll",
-    "vcruntime140_1.dll",
-    "vcruntime140_threads.dll",
-    "vcamp140.dll",
-    "vcomp140.dll",
-}
+msvc_redist_dll_names = set(
+    (
+        "concrt140.dll",
+        "msvcp140.dll",
+        "msvcp140_1.dll",
+        "msvcp140_2.dll",
+        "msvcp140_atomic_wait.dll",
+        "msvcp140_codecvt_ids.dll",
+        "vccorlib140.dll",
+        "vcruntime140.dll",
+        "vcruntime140_1.dll",
+        "vcruntime140_threads.dll",
+        "vcamp140.dll",
+        "vcomp140.dll",
+    )
+)
 
 
 def _parseDependsExeOutput2(lines):
