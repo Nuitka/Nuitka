@@ -19,7 +19,7 @@ import sys
 from nuitka import Options
 from nuitka.__past__ import unicode
 from nuitka.containers.Namedtuples import makeNamedtupleClass
-from nuitka.ModuleRegistry import getRootTopModule
+from nuitka.ModuleRegistry import getRootTopModule, hasDoneModule
 from nuitka.PythonVersions import python_version
 from nuitka.Serialization import GlobalConstantAccessor
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -143,7 +143,7 @@ def getConstantsDefinitionCode():
                 metadata_value.entry_points_data,
             ),
         )
-        for distribution_name, metadata_value in sorted(metadata_values.items())
+        for distribution_name, metadata_value in getDistributionMetadataValues()
     )
 
     metadata_values_code = constant_accessor.getConstantCode(runtime_metadata_values)
@@ -191,14 +191,14 @@ MetaDataDescription = makeNamedtupleClass(
     ),
 )
 
-metadata_values = {}
+_metadata_values = {}
 
 
 def addDistributionMetadataValue(distribution_name, distribution, reason):
     assert type(distribution_name) in (str, unicode), distribution_name
 
     # Extract what we need to from the distribution object.
-    if distribution_name not in metadata_values:
+    if distribution_name not in _metadata_values:
         # The user doesn't have this handy.
         if distribution is None:
             distribution = getDistribution(distribution_name)
@@ -213,18 +213,28 @@ def addDistributionMetadataValue(distribution_name, distribution, reason):
 
         module_name = getDistributionTopLevelPackageNames(distribution)[0]
 
-        metadata_values[distribution_name] = MetaDataDescription(
+        _metadata_values[distribution_name] = MetaDataDescription(
             module_name=module_name,
             metadata=metadata,
             entry_points_data=entry_points_data,
             reasons=[reason],
         )
     else:
-        metadata_values[distribution_name].reasons.append(reason)
+        _metadata_values[distribution_name].reasons.append(reason)
 
 
 def getDistributionMetadataValues():
-    return sorted(metadata_values.items())
+    result = []
+
+    for distribution_name, value in _metadata_values.items():
+        if "user requested" not in value.reasons and not hasDoneModule(
+            value.module_name
+        ):
+            continue
+
+        result.append((distribution_name, value))
+
+    return sorted(result)
 
 
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
