@@ -8666,7 +8666,7 @@
     - depends:
         - 'traitsui.null'
 
-- module-name: 'transformers' # checksum: fab655ad
+- module-name: 'transformers' # checksum: c5f6f755
   data-files:
     - include-metadata:
         - 'accelerate'
@@ -8696,6 +8696,7 @@
         - 'rich'
         - 'Pillow'
         - 'Pillow-SIMD'
+        - 'flash_attn'
 
   anti-bloat:
     - description: 'remove IPython reference'
