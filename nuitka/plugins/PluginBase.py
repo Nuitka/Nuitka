@@ -1901,13 +1901,22 @@ class NuitkaDetectorPluginBase(NuitkaPluginBase):
 class NuitkaNamespaceDetectorPluginBase(NuitkaDetectorPluginBase):
     """Base class for a detector just waiting for a namespace to appear."""
 
+    def _checkFor(self, module_name):
+        for detector_namespace in self.detector_namespaces:
+            if module_name.hasNamespace(detector_namespace):
+                self.warnUnusedPlugin("Missing '%s' support." % detector_namespace)
+
     # TODO: This actually would be done best when the module set is complete, as
     # in theory, this module using it could become unused again.
     def onModuleDiscovered(self, module):
         """This method checks whether detected plugin is required for a module."""
-        for detector_namespace in self.detector_namespaces:
-            if module.getFullName().hasNamespace(detector_namespace):
-                self.warnUnusedPlugin("Missing '%s' support." % detector_namespace)
+        self._checkFor(module_name=module.getFullName())
+
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
+        if shallMakeModule():
+            self._checkFor(module_name=module_name)
 
     # Should be a tuple
     detector_namespaces = ()
