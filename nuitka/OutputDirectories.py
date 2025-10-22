@@ -241,8 +241,9 @@ def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile, real=True)
 
     if shallCreateScriptFileForExecution():
-        result = getResultBasePath(onefile=onefile) + (
-            ".cmd" if isWin32Windows() else ".sh"
+        result = changeFilenameExtension(
+            result,
+            ".cmd" if isWin32Windows() else ".sh",
         )
 
     return result
