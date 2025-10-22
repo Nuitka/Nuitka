@@ -765,6 +765,11 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count, exe_target, onefile_compi
 
     _enableC11Settings(env)
 
+    # Some things are supposed to be only for use with zig, so we inject a
+    # define that allows us to test for it.
+    if env.zig_mode:
+        env.Append(CPPDEFINES=["__ZIG__"])
+
     if env.gcc_mode:
         # Support for gcc and clang, restricting visibility as much as possible.
         env.Append(CCFLAGS=["-fvisibility=hidden"])
@@ -1209,8 +1214,19 @@ def reportCCompiler(env, context, output_func):
             env.the_cc_name,
             ".".join(str(d) for d in env.gcc_version),
         )
+    elif isZigName(env.the_cc_name):
+        env.zig_version = myDetectVersion(env, env.the_compiler)
+
+        cc_output = "%s %s" % (
+            env.the_cc_name,
+            (
+                ".".join(str(d) for d in env.zig_version)
+                if env.zig_version is not None
+                else "not found"
+            ),
+        )
     elif isClangName(env.the_cc_name):
-        env.clang_version = myDetectVersion(env, env.the_cc_name)
+        env.clang_version = myDetectVersion(env, env.the_compiler)
 
         cc_output = "%s %s" % (
             env.the_cc_name,
