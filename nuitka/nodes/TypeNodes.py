@@ -29,8 +29,10 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import (
+    ExpressionParameterSpecificationBase,
     ExpressionSubtypeCheckBase,
     ExpressionTypeVariableBase,
+    ExpressionTypeVariableTupleBase,
 )
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
@@ -353,6 +355,22 @@ class ExpressionTypeAlias(ChildrenExpressionTypeAliasMixin, ExpressionBase):
 
 class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("name",)
+
+
+class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBase):
+    kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
+
+    auto_compute_handling = "final,no_raise"
+    node_attributes = ("name",)
+
+
+class ExpressionParameterSpecification(
+    ExpressionParameterSpecificationBase, ExpressionBase
+):
+    kind = "EXPRESSION_PARAMETER_SPECIFICATION"
 
     auto_compute_handling = "final,no_raise"
     node_attributes = ("name",)

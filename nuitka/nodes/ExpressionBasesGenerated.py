@@ -34,6 +34,7 @@ spell-checker: ignore winmode zfill
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
 
+
 from abc import abstractmethod
 
 from .ExpressionBases import ExpressionBase
@@ -85,7 +86,9 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionParameterSpecification
     #   ExpressionTypeVariable
+    #   ExpressionTypeVariableTuple
 
     def __init__(self, name, source_ref):
         self.name = name
@@ -151,7 +154,9 @@ class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
+ExpressionParameterSpecificationBase = NoChildHavingFinalNoRaiseNameMixin
 ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableTupleBase = NoChildHavingFinalNoRaiseNameMixin
 
 
 class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
