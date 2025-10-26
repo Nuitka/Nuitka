@@ -81,23 +81,23 @@ ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
 ExpressionImportlibMetadataEntryPointValueRefBase = NoChildHavingFinalNoRaiseMixin
 
 
-class NoChildHavingFinalNoRaiseNameVariantMixin(ExpressionBase):
+class NoChildHavingFinalNoRaiseNameMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     # This is generated for use in
+    #   ExpressionParameterSpecification
     #   ExpressionTypeVariable
+    #   ExpressionTypeVariableTuple
 
-    def __init__(self, name, variant, source_ref):
+    def __init__(self, name, source_ref):
         self.name = name
-        self.variant = variant
 
         ExpressionBase.__init__(self, source_ref)
 
     def getDetails(self):
         return {
             "name": self.name,
-            "variant": self.variant,
         }
 
     def getVisitableNodes(self):
@@ -154,7 +154,9 @@ class NoChildHavingFinalNoRaiseNameVariantMixin(ExpressionBase):
 
 
 # Assign the names that are easier to import with a stable name.
-ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameVariantMixin
+ExpressionParameterSpecificationBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableBase = NoChildHavingFinalNoRaiseNameMixin
+ExpressionTypeVariableTupleBase = NoChildHavingFinalNoRaiseNameMixin
 
 
 class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
