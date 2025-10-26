@@ -1233,12 +1233,12 @@ def buildTypeVarNode(node, source_ref):
     assert python_version >= 0x3C0
     from ast import ParamSpec, TypeVar, TypeVarTuple
 
-    if isinstance(node, TypeVar):
+    if type(node) is TypeVar:
         return ExpressionTypeVariable(node.name, source_ref=source_ref)
-    elif isinstance(node, TypeVarTuple):
+    elif type(node) is TypeVarTuple:
         return ExpressionTypeVariableTuple(node.name, source_ref=source_ref)
     else:
-        assert isinstance(node, ParamSpec)
+        assert type(node) is ParamSpec
         return ExpressionParameterSpecification(node.name, source_ref=source_ref)
 
 
