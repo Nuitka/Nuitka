@@ -56,7 +56,12 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.TypeNodes import ExpressionTypeAlias, ExpressionTypeVariable, ExpressionParameterSpecification, ExpressionTypeVariableTuple
+from nuitka.nodes.TypeNodes import (
+    ExpressionParameterSpecification,
+    ExpressionTypeAlias,
+    ExpressionTypeVariable,
+    ExpressionTypeVariableTuple,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
@@ -1226,7 +1231,8 @@ def buildNamedExprNode(provider, node, source_ref):
 
 def buildTypeVarNode(node, source_ref):
     assert python_version >= 0x3C0
-    from ast import TypeVar, TypeVarTuple, ParamSpec
+    from ast import ParamSpec, TypeVar, TypeVarTuple
+
     if isinstance(node, TypeVar):
         return ExpressionTypeVariable(node.name, source_ref=source_ref)
     elif isinstance(node, TypeVarTuple):

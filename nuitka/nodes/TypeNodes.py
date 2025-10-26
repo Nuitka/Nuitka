@@ -29,10 +29,10 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import (
+    ExpressionParameterSpecificationBase,
     ExpressionSubtypeCheckBase,
     ExpressionTypeVariableBase,
-    ExpressionParameterSpecificationBase,
-    ExpressionTypeVariableTupleBase
+    ExpressionTypeVariableTupleBase,
 )
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
@@ -367,7 +367,9 @@ class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBas
     node_attributes = ("name",)
 
 
-class ExpressionParameterSpecification(ExpressionParameterSpecificationBase, ExpressionBase):
+class ExpressionParameterSpecification(
+    ExpressionParameterSpecificationBase, ExpressionBase
+):
     kind = "EXPRESSION_PARAMETER_SPECIFICATION"
 
     auto_compute_handling = "final,no_raise"
