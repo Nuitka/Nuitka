@@ -111,11 +111,6 @@ def getStandardLibraryPaths():
 
 
 def _isStandardLibraryPath(filename):
-    # In virtualenv, the "site.py" lives in a place that suggests it is not in
-    # standard library, although it is.
-    if os.path.basename(filename) == "site.py":
-        return True
-
     # These never are in standard library paths.
     if (
         "dist-packages" in filename
