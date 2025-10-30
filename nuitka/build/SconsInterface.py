@@ -338,6 +338,14 @@ cd "${0%/*}"
     )
 
 
+def _removeUnwantedArtifacts(scons_created_exe):
+    if isWin32Windows():
+        for extension in (".exp", ".lib"):
+            linker_left_over = changeFilenameExtension(scons_created_exe, extension)
+
+            deleteFile(linker_left_over, must_exist=False)
+
+
 def runScons(scons_options, env_values, scons_filename):
     with _setupSconsEnvironment():
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
@@ -410,6 +418,8 @@ def runScons(scons_options, env_values, scons_filename):
                         "Error, scons failed to create the expected file %r. "
                         % scons_created_exe
                     )
+
+                _removeUnwantedArtifacts(scons_created_exe)
 
                 if not areSamePaths(scons_options["result_exe"], scons_created_exe):
                     renameFile(scons_created_exe, orig_result_exe)
