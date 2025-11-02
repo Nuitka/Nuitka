@@ -57,15 +57,15 @@ def generateTypeVarCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "type_var_value", expression, emit, context
     ) as value_name:
-        if expression.kind == "EXPRESSION_TYPE_VARIABLE":
+        if expression.isExpressionTypeVariable():
             # TypeVar
             function = "MAKE_TYPE_VAR"
-        elif expression.kind == "EXPRESSION_TYPE_VARIABLE_TUPLE":
+        elif expression.isExpressionTypeVariableTuple():
             # TypeVarTuple
             function = "MAKE_TYPE_VAR_TUPLE"
         else:
             # ParamSpec
-            assert expression.kind == "EXPRESSION_PARAMETER_SPECIFICATION"
+            assert expression.isExpressionParameterSpecification()
             function = "MAKE_PARAM_SPEC"
 
         emit(
