@@ -59,20 +59,20 @@ def generateTypeVarCode(to_name, expression, emit, context):
     ) as value_name:
         if expression.isExpressionTypeVariable():
             # TypeVar
-            function = "MAKE_TYPE_VAR"
+            helper_function = "MAKE_TYPE_VAR"
         elif expression.isExpressionTypeVariableTuple():
             # TypeVarTuple
-            function = "MAKE_TYPE_VAR_TUPLE"
+            helper_function = "MAKE_TYPE_VAR_TUPLE"
         else:
             # ParamSpec
             assert expression.isExpressionParameterSpecification()
-            function = "MAKE_PARAM_SPEC"
+            helper_function = "MAKE_PARAM_SPEC"
 
         emit(
             "%s = %s(tstate, %s);"
             % (
                 value_name,
-                function,
+                helper_function,
                 context.getConstantCode(constant=expression.name),
             )
         )
