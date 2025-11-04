@@ -1231,7 +1231,7 @@ def buildNamedExprNode(provider, node, source_ref):
 
 def buildTypeVarNode(node, source_ref):
     assert python_version >= 0x3C0
-    from ast import ParamSpec, TypeVar, TypeVarTuple
+    from ast import ParamSpec, TypeVar, TypeVarTuple  # pylint:disable=E0611,no-name-in-module
 
     if type(node) is TypeVar:
         return ExpressionTypeVariable(node.name, source_ref=source_ref)
