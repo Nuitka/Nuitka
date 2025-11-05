@@ -358,18 +358,18 @@ except Exception as e:
 # TODO: This is calls, not really builtins.
 a = 2
 
-print("Can optimize the star list argness away", int(*(a,)), end=" ")
+print("Can optimize the star list arg away", int(*(a,)), end=" ")
 print("Can optimize the empty star list arg away", int(*tuple()), end=" ")
 print("Can optimize the empty star dict arg away", int(**dict()))
 
 print("Dict building with keyword arguments", dict(), dict(a=f))
 print(
     "Dictionary entirely from constant args",
-    displayDict(dict(q="Guido", w="van", e="Rossum", r="invented", t="Python", y="")),
+    displayDict(dict(q="some_q", w="some_w", e="some_e", r="some_r", t="some_t", y="")),
 )
 
 a = 5
-print("Instance check recognises", isinstance(a, int))
+print("Instance check recognizes", isinstance(a, int))
 
 try:
     print("Instance check with too many arguments", isinstance(a, float, int))
