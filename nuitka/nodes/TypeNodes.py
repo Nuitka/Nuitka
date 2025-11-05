@@ -359,12 +359,16 @@ class ExpressionTypeVariable(ExpressionTypeVariableBase, ExpressionBase):
     auto_compute_handling = "final,no_raise"
     node_attributes = ("name",)
 
+    python_version_spec = ">= 0x3c0"
+
 
 class ExpressionTypeVariableTuple(ExpressionTypeVariableTupleBase, ExpressionBase):
     kind = "EXPRESSION_TYPE_VARIABLE_TUPLE"
 
     auto_compute_handling = "final,no_raise"
     node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0"
 
 
 class ExpressionParameterSpecification(
@@ -374,6 +378,8 @@ class ExpressionParameterSpecification(
 
     auto_compute_handling = "final,no_raise"
     node_attributes = ("name",)
+
+    python_version_spec = ">= 0x3c0"
 
 
 class ExpressionTypeMakeGeneric(ChildrenExpressionTypeMakeGenericMixin, ExpressionBase):
