@@ -100,6 +100,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getReportPath,
+    isFilesystemEncodable,
     openTextFile,
     removeDirectory,
 )
@@ -324,7 +325,7 @@ def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()
 
     def _getModuleFilenames(module):
-        base_filename = os.path.join(source_dir, "module." + module.getFullName())
+        nice_filename = os.path.join(source_dir, "module." + module.getFullName())
 
         # Note: Could detect if the file system is cases sensitive in source_dir
         # or not, but that's probably not worth the effort. False positives do
@@ -338,51 +339,48 @@ def pickSourceFilenames(source_dir, modules):
         # instead.
         hash_filename = os.path.join(
             source_dir,
-            "module.hashed_" + module.getFullName().asLegalFilename(),
+            "module.hashed_" + module.getFullName().asLegalFilename(name_limit=1),
         )
 
-        return base_filename, collision_filename, hash_filename
+        return nice_filename, collision_filename, hash_filename
 
-    seen_filenames = set()
+    colliding_filenames = set()
 
     # First pass, check for collisions.
     for module in modules:
         if module.isPythonExtensionModule():
             continue
 
-        _base_filename, collision_filename, _hash_filename = _getModuleFilenames(module)
+        _nice_filename, collision_filename, _hash_filename = _getModuleFilenames(module)
 
-        if collision_filename in seen_filenames:
+        if collision_filename in colliding_filenames:
             collision_filenames.add(collision_filename)
 
-        seen_filenames.add(collision_filename)
+        colliding_filenames.add(collision_filename)
 
     # Our output.
     module_filenames = {}
 
-    # Count up for colliding filenames as we go.
-    collision_counts = {}
-
-    # Second pass, this time sorted, so we get deterministic results. We will
-    # apply an "@1"/"@2",... to disambiguate the filenames.
-    for module in sorted(modules, key=lambda x: x.getFullName()):
+    # Second pass, handle collisions and encoding issues for filenames.
+    for module in modules:
         if module.isPythonExtensionModule():
             continue
 
-        base_filename, collision_filename, hash_filename = _getModuleFilenames(module)
+        nice_filename, collision_filename, hash_filename = _getModuleFilenames(module)
 
-        if collision_filename in collision_filenames:
-            collision_counts[collision_filename] = (
-                collision_counts.get(collision_filename, 0) + 1
-            )
-            base_filename += "@%d" % collision_counts[collision_filename]
+        base_filename = os.path.basename(nice_filename)
 
         # Allow for longer suffixes that .c, we use .const and might use others
-        # as well in the C compiler.
-        if len(base_filename) > 240:
-            base_filename = hash_filename
+        # as well in the C compiler and make sure we use only file system
+        # encodable names.
+        if (
+            collision_filename in collision_filenames
+            or len(base_filename) > 240
+            or not isFilesystemEncodable(base_filename)
+        ):
+            nice_filename = hash_filename
 
-        module_filenames[module] = base_filename + ".c"
+        module_filenames[module] = nice_filename + ".c"
 
     return module_filenames
 
