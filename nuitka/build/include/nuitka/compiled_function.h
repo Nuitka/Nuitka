@@ -67,6 +67,11 @@ struct Nuitka_FunctionObject {
 #endif
 
 #if PYTHON_VERSION >= 0x300
+    PyObject *m_annotate;
+#endif
+
+
+#if PYTHON_VERSION >= 0x300
     PyObject *m_qualname;
 #endif
 
