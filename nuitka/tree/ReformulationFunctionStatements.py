@@ -56,7 +56,6 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
-from .ReformulationAssignmentStatements import buildTypeVarNode
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
