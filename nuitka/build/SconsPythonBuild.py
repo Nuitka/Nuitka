@@ -142,7 +142,7 @@ def addWin32PythonLib(env):
 def addPythonHaclLib(env, link_module_libs):
     if env.static_libpython and not isMacOS():
         if env.python_version >= (3, 14):
-            hacl_version = "hacl_314"
+            hacl_version = None
         elif env.python_version >= (3, 12):
             hacl_version = "hacl_312"
         else:
