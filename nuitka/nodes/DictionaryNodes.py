@@ -233,19 +233,22 @@ class ExpressionMakeDict(
                     if pair2 is pair:
                         break
 
-                if python_version >= 0x3e0:
+                if python_version >= 0x3E0:
                     result = makeRaiseExceptionExpressionFromTemplate(
                         exception_type="TypeError",
                         template="cannot use '%s' as a dict key (unhashable type: '%s')",
-                        template_args=(makeExpressionAttributeLookup(
-                            expression=key.getTypeValue(),
-                            attribute_name="__name__",
-                            source_ref=key.source_ref,
-                        ), makeExpressionAttributeLookup(
-                            expression=key.extractUnhashableNodeType(),
-                            attribute_name="__name__",
-                            source_ref=key.source_ref,
-                        )),
+                        template_args=(
+                            makeExpressionAttributeLookup(
+                                expression=key.getTypeValue(),
+                                attribute_name="__name__",
+                                source_ref=key.source_ref,
+                            ),
+                            makeExpressionAttributeLookup(
+                                expression=key.extractUnhashableNodeType(),
+                                attribute_name="__name__",
+                                source_ref=key.source_ref,
+                            ),
+                        ),
                         source_ref=key.source_ref,
                     )
                     # For some reason, calling wrapExpressionWithSideEffects
