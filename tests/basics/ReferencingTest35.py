@@ -180,7 +180,7 @@ async def run():
 
 
 def simpleFunction10():
-    asyncio.get_event_loop().run_until_complete(run())
+    asyncio.new_event_loop().run_until_complete(run())
 
 
 def simpleFunction11():
