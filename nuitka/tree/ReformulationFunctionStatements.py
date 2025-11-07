@@ -19,11 +19,17 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef, makeExpressionBuiltinTypeRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    makeExpressionBuiltinTypeRef,
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonGt
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantIntRef, makeConstantRefNode
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantIntRef,
+    makeConstantRefNode,
+)
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
@@ -59,6 +65,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .FutureSpecState import getFutureSpec
+from .InternalModule import makeInternalHelperFunctionBody
 from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import (
     makeTryFinallyReleaseStatement,
@@ -80,7 +87,6 @@ from .TreeHelpers import (
     makeStatementsSequenceFromStatement,
     mangleName,
 )
-from .InternalModule import makeInternalHelperFunctionBody
 
 
 def _insertFinalReturnStatement(function_statements_body, return_statement):
@@ -581,7 +587,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
 def deferredAnnotateBody(provider, keys, values, source_ref):
     function_name = "__annotate__"
-    parameters=ParameterSpec(
+    parameters = ParameterSpec(
         ps_name=function_name,
         ps_normal_args=("format",),
         ps_list_star_arg=None,
@@ -623,10 +629,12 @@ def deferredAnnotateBody(provider, keys, values, source_ref):
         condition=ExpressionComparisonGt(
             ExpressionVariableLocalNameRef(outer_body, "format", source_ref=source_ref),
             ExpressionConstantIntRef(2, source_ref=source_ref),
-            source_ref
+            source_ref,
         ),
         yes_branch=StatementRaiseException(
-            exception_type=ExpressionBuiltinExceptionRef("NotImplementedError", source_ref=source_ref),
+            exception_type=ExpressionBuiltinExceptionRef(
+                "NotImplementedError", source_ref=source_ref
+            ),
             exception_value=None,
             exception_cause=None,
             exception_trace=None,
@@ -636,14 +644,13 @@ def deferredAnnotateBody(provider, keys, values, source_ref):
             expression=makeDictCreationOrConstant2(
                 keys=keys, values=values, source_ref=source_ref
             ),
-            source_ref=source_ref
+            source_ref=source_ref,
         ),
         source_ref=source_ref,
     )
 
     outer_body.setChildBody(body)
     return outer_body
-
 
 
 def makeDeferredAnnotateFunction(provider, keys, values, source_ref):
@@ -729,8 +736,10 @@ def buildParameterAnnotations(provider, node, source_ref):
 
     if keys:
         # On 3.14+, annotations are deferred by default.
-        if python_version >= 0x3e0:
-            return makeDeferredAnnotateFunction(provider=provider, keys=keys, values=values, source_ref=source_ref)
+        if python_version >= 0x3E0:
+            return makeDeferredAnnotateFunction(
+                provider=provider, keys=keys, values=values, source_ref=source_ref
+            )
         else:
             return makeDictCreationOrConstant2(
                 keys=keys, values=values, source_ref=source_ref

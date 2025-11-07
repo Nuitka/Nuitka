@@ -1603,7 +1603,6 @@ static PySendResult Nuitka_PyGen_gen_send_ex2(PyThreadState *tstate, PyGenObject
     _PyFrame_StackPush(frame, result);
 #endif
 
-
 #if PYTHON_VERSION < 0x3c0
     frame->previous = CURRENT_TSTATE_INTERPRETER_FRAME(tstate);
 #endif
