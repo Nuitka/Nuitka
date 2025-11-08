@@ -1491,15 +1491,15 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     result->m_kwdefaults = kw_defaults;
 #endif
 
-#if (PYTHON_VERSION >= 0x300) && (PYTHON_VERSION < 0x3e0)
-    assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
-    result->m_annotations = annotations;
-#elif PYTHON_VERSION >= 0x3e0
+#if PYTHON_VERSION >= 0x3e0
     // For simplicity's sake, the annotations parameter doubles as the __annotate__
     // parameter on 3.14+
     assert(annotations == NULL || PyCallable_Check(annotations));
     result->m_annotations = NULL;
     result->m_annotate = annotations;
+#elif PYTHON_VERSION >= 0x300
+    assert(annotations == NULL || (PyDict_Check(annotations) && DICT_SIZE(annotations) > 0));
+    result->m_annotations = annotations;
 #endif
 
     result->m_code_object = code_object;
