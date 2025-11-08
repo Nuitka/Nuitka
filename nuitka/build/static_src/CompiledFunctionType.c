@@ -464,7 +464,7 @@ static PyObject *Nuitka_Function_get_annotations(PyObject *self, void *data) {
         if (function->m_annotate == NULL) {
             return MAKE_DICT_EMPTY(tstate);
         }
-        function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, _PyLong_GetOne());
+        function->m_annotations = CALL_FUNCTION_WITH_SINGLE_ARG(tstate, function->m_annotate, const_int_pos_1);
         if (function->m_annotations == NULL) {
             return NULL;
         }
