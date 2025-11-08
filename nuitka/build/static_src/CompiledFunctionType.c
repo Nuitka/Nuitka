@@ -750,7 +750,18 @@ static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function, P
 
     PyThreadState *tstate = PyThreadState_GET();
 
+#if PYTHON_VERSION >= 0x3e0
     PyObject *annotations = function->m_annotate;
+#else
+    PyObject *annotations = function->m_annotations;
+    if (annotations != NULL) {
+        if (DICT_SIZE(annotations) != 0) {
+            annotations = DICT_COPY(tstate, annotations);
+        } else {
+            annotations = NULL;
+        }
+    }
+#endif
 
     PyObject *kwdefaults = function->m_kwdefaults;
     if (kwdefaults != NULL) {
