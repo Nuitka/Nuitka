@@ -1202,7 +1202,14 @@ PyObject *LOOKUP_SPECIAL(PyThreadState *tstate, PyObject *source, PyObject *attr
     if (attr_name == const_str_plain___exit__) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
             "'%s' object does not support the context manager protocol (missed __exit__ method)", source);
-    } else if (attr_name == const_str_plain___aexit__) {
+    }
+#if PYTHON_VERSION >= 0x3e0
+    else if (attr_name == const_str_plain___enter__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the context manager protocol (missed __enter__ method)", source);
+    }
+#endif
+    else if (attr_name == const_str_plain___aexit__) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
             "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
     } else if (attr_name == const_str_plain___aenter__) {
