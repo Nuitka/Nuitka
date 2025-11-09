@@ -316,9 +316,9 @@ def _updateCase(
 
     # Check if compilation is required.
     with withDirectoryChange(result_path):
-        if os.path.exists("compilation-report.xml"):
-            old_report_root = fromFile("compilation-report.xml")
+        old_report_root = fromFile("compilation-report.xml")
 
+        if old_report_root is not None:
             existing_hash = getFileContentsHash(lock_filename)
             old_report_root_hash = (
                 old_report_root.find("user-data").find("pipenv_hash").text

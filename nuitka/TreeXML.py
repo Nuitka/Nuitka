@@ -7,7 +7,9 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka.__past__ import BytesIO, StringIO
+import os
+
+from nuitka.__past__ import BytesIO, StringIO, basestring
 
 
 def _indent(elem, level=0, more_sibs=False):
@@ -101,12 +103,20 @@ def fromString(text, use_lxml=False):
 
 
 def fromFile(file_handle, use_lxml=False):
+    if isinstance(file_handle, basestring):
+        if not os.path.isfile(file_handle):
+            return None
+
     if use_lxml:
         from lxml import etree  # pylint: disable=I0021,import-error
 
+        # TODO: Catch parse error exception to return None as well.
         return etree.parse(file_handle).getroot()
     else:
-        return xml_module.parse(file_handle).getroot()
+        try:
+            return xml_module.parse(file_handle).getroot()
+        except xml.etree.ElementTree.ParseError:
+            return None
 
 
 def appendTreeElement(parent, *args, **kwargs):
