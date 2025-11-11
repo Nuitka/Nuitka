@@ -335,6 +335,19 @@ def isCompileTimeConstantValue(value):
         return False
 
 
+if python_version < 0x3C0:
+
+    def isConstantImmortal(value):
+        # Not happening before 3.12, pylint: disable=unused-argument
+        return False
+
+else:
+
+    def isConstantImmortal(value):
+        # TODO: Add way more than these few ones.
+        return value in (True, False, None)
+
+
 # Shared empty values, it would cost time to create them locally.
 the_empty_dict = {}
 the_empty_list = []
