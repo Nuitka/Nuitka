@@ -3,7 +3,13 @@
 
 """ Display the Distributions installed. """
 
+import os
+
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Importing import (
+    addMainScriptDirectory,
+    hasMainScriptDirectory,
+)
 from nuitka.Tracing import my_print
 from nuitka.utils.Distributions import (
     getDistributionInstallerName,
@@ -14,6 +20,9 @@ from nuitka.utils.Distributions import (
 
 
 def displayDistributions():
+    if not hasMainScriptDirectory():
+        addMainScriptDirectory(os.getcwd())
+
     output = OrderedSet()
 
     for distributions in getDistributions().values():
