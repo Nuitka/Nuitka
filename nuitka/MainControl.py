@@ -888,7 +888,7 @@ def compileTree():
         reportMemoryUsage(
             "before_c_code_generation",
             (
-                "Total memory usage before generating C code:"
+                "Total memory usage before generating C code"
                 if Options.isShowProgress() or Options.isShowMemory()
                 else None
             ),
@@ -1010,7 +1010,7 @@ def _main():
     reportMemoryUsage(
         "after_launch",
         (
-            "Total memory usage before processing:"
+            "Total memory usage before processing"
             if Options.isShowProgress() or Options.isShowMemory()
             else None
         ),
