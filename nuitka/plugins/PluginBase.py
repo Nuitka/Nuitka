@@ -366,13 +366,9 @@ def _getModuleDirectory(module_name):
 
 
 def _hasModule(module_name):
-    from nuitka.importing.Importing import locateModule
+    from nuitka.importing.Importing import hasModule
 
-    _module_name, _module_filename, _module_kind, finding = locateModule(
-        module_name=ModuleName(module_name), parent_package=None, level=0
-    )
-
-    return finding != "not-found"
+    return hasModule(module_name)
 
 
 def _getPackageData(package_name, resource, default=None):
