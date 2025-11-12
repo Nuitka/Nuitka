@@ -335,7 +335,7 @@ class OurLogger(object):
             style=style,
         )
 
-    def _printFormatted(self, prefix, leader, message, style, keep_format):
+    def _printFormatted(self, prefix, leader, message, style, keep_format, file_handle):
         style = style or self.base_style
 
         if sys.stderr.isatty() and not keep_format:
@@ -364,7 +364,7 @@ class OurLogger(object):
         if leader is not None:
             formatted_message = prefix + leader + "\n" + formatted_message
 
-        self.my_print(formatted_message, style=style, file=sys.stderr)
+        self.my_print(formatted_message, style=style, file=file_handle)
 
     def warning(
         self, message, style="yellow", mnemonic=None, keep_format=False, leader=None
@@ -386,6 +386,7 @@ class OurLogger(object):
             message=message,
             style=style,
             keep_format=keep_format,
+            file_handle=sys.stderr,
         )
 
         if mnemonic is not None:
@@ -452,6 +453,7 @@ class OurLogger(object):
                 message=message,
                 style=style,
                 keep_format=keep_format,
+                file_handle=sys.stderr,
             )
 
             if mnemonic is not None:
@@ -481,15 +483,31 @@ class FileLogger(OurLogger):
     def isFileOutput(self):
         return self.file_handle is not None
 
-    def info(self, message, style=None, mnemonic=None):
+    def info(
+        self,
+        message,
+        style=None,
+        mnemonic=None,
+        prefix=None,
+        keep_format=False,
+        leader=None,
+    ):
         if not self.isQuiet() or self.file_handle:
-            message = "%s: %s" % (self.name, message)
-
-            style = style or self.base_style
-            self.my_print(message, style=style)
+            self._printFormatted(
+                prefix=(
+                    "%s: " % self.name
+                    if prefix is None
+                    else "%s:%s: " % (self.name, prefix)
+                ),
+                leader=leader,
+                message=message,
+                style=style,
+                keep_format=keep_format,
+                file_handle=self.file_handle or sys.stderr,
+            )
 
             if mnemonic is not None:
-                self._warnMnemonic(mnemonic, style=style, output_function=self.my_print)
+                self._warnMnemonic(mnemonic, style=style, output_function=self.info)
 
     def debug(self, message, style=None):
         if self.file_handle:
