@@ -18,6 +18,8 @@ Values can be seen as:
 * LoopComplete (complete knowledge of loop types)
 """
 
+from abc import abstractmethod
+
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
@@ -127,6 +129,10 @@ class ValueTraceBase(object):
 
     def getPrevious(self):
         return self.previous
+
+    @abstractmethod
+    def isUsingTrace(self):
+        """Is the trace indicating a usage of the variable."""
 
     @staticmethod
     def isAssignTrace():
@@ -262,6 +268,8 @@ class ValueTraceBase(object):
 
 
 class ValueTraceUnassignedBase(ValueTraceBase):
+    # Base classes can be abstract, pylint: disable=I0021,abstract-method
+
     __slots__ = ()
 
     @staticmethod
@@ -299,6 +307,9 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
     def isUninitializedTrace():
         return True
 
+    def isUsingTrace(self):
+        return self.usage_count
+
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
@@ -319,6 +330,10 @@ class ValueTraceDeleted(ValueTraceUnassignedBase):
 
     @staticmethod
     def isDeletedTrace():
+        return True
+
+    @staticmethod
+    def isUsingTrace():
         return True
 
     def getDelNode(self):
@@ -345,6 +360,10 @@ class ValueTraceInit(ValueTraceBase):
 
     @staticmethod
     def isInitTrace():
+        return True
+
+    @staticmethod
+    def isUsingTrace():
         return True
 
     @staticmethod
@@ -415,6 +434,9 @@ class ValueTraceUnknown(ValueTraceBase):
     @staticmethod
     def isUnknownTrace():
         return True
+
+    def isUsingTrace(self):
+        return self.usage_count
 
     @staticmethod
     def isUnknownOrVeryTrustedTrace():
@@ -496,6 +518,9 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def isEscapeTrace():
         return True
 
+    def isUsingTrace(self):
+        return self.usage_count
+
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
@@ -537,6 +562,10 @@ class ValueTraceAssign(ValueTraceBase):
 
     @staticmethod
     def isAssignTrace():
+        return True
+
+    @staticmethod
+    def isUsingTrace():
         return True
 
     def compareValueTrace(self, other):
@@ -666,6 +695,10 @@ class ValueTraceMergeBase(ValueTraceBase):
         self.addUsage()
         self.merge_usage_count += 1
 
+    def isUsingTrace(self):
+        # Checking definite is enough, the merges, we shall see them as well.
+        return self.usage_count
+
 
 class ValueTraceMerge(ValueTraceMergeBase):
     """Merge of two or more traces.
@@ -737,6 +770,10 @@ class ValueTraceMerge(ValueTraceMergeBase):
     @staticmethod
     def isMergeTrace():
         return True
+
+    def isUsingTrace(self):
+        # Checking definite is enough, the merges, we shall see them as well.
+        return self.usage_count
 
     def compareValueTrace(self, other):
         if not other.isMergeTrace():
@@ -823,6 +860,10 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
 
     @staticmethod
     def isLoopTrace():
+        return True
+
+    @staticmethod
+    def isUsingTrace():
         return True
 
     def getTypeShape(self):

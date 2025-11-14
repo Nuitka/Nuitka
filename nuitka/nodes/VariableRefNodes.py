@@ -63,6 +63,11 @@ class ExpressionVariableRefBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
+    def setVariable(self, variable):
+        assert isinstance(variable, Variables.Variable), repr(variable)
+
+        self.variable = variable
+
     def getVariableTrace(self):
         return self.variable_trace
 
@@ -409,14 +414,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(variable=variable, source_ref=source_ref)
-
-    def getVariable(self):
-        return self.variable
-
-    def setVariable(self, variable):
-        assert isinstance(variable, Variables.Variable), repr(variable)
-
-        self.variable = variable
 
     def computeExpressionRaw(self, trace_collection):
         # Terribly detailed, pylint: disable=too-many-branches,too-many-statements

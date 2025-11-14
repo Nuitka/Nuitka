@@ -23,7 +23,7 @@ from .OutlineNodes import ExpressionOutlineFunctionBase
 class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
-    __slots__ = ("doc",)
+    __slots__ = ("doc", "locals_scope")
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunctionBase.__init__(

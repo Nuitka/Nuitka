@@ -93,7 +93,7 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
         return encodePythonIdentifierToC(self.variable_name)
 
     def allocateTargetNumber(self):
-        self.version_number += 1
+        self.version_number += 3
 
         return self.version_number
 
@@ -173,6 +173,13 @@ class Variable(getMetaClassBase("Variable", require_slots=True)):
     def getTraces(self):
         """For debugging only"""
         return self.traces
+
+    def hasEmptyTracesFor(self, owner):
+        for trace in self.traces:
+            if trace.owner is owner and trace.isUsingTrace():
+                return False
+
+        return True
 
     def updateUsageState(self):
         writers = set()
@@ -269,6 +276,9 @@ class LocalVariable(Variable):
     def __init__(self, owner, variable_name):
         Variable.__init__(self, owner=owner, variable_name=variable_name)
 
+    def makeClone(self, new_owner):
+        return LocalVariable(owner=new_owner, variable_name=self.variable_name)
+
     @staticmethod
     def isLocalVariable():
         return True
@@ -301,6 +311,9 @@ class ParameterVariable(LocalVariable):
 
     def __init__(self, owner, parameter_name):
         LocalVariable.__init__(self, owner=owner, variable_name=parameter_name)
+
+    def makeClone(self, new_owner):
+        return ParameterVariable(owner=new_owner, parameter_name=self.variable_name)
 
     def getDescription(self):
         return "parameter variable '%s'" % self.variable_name

@@ -190,8 +190,10 @@ class NodeBase(NodeMetaClassBase):
         """Return the parent that is module."""
         parent = self.parent
 
+        # TODO: Actually outline functions ought to not abort here, but we ought
+        # to get rid of the this function entirely in favor of a finalization
+        # annotation.
         while parent is not None and not parent.isExpressionFunctionBodyBase():
-
             if parent.isStatementLoop():
                 return parent
 
@@ -199,9 +201,10 @@ class NodeBase(NodeMetaClassBase):
 
         return parent
 
-    def isParentVariableProvider(self):
-        # Check if it's a closure giver, in which cases it can provide variables,
-        return isinstance(self, ClosureGiverNodeMixin)
+    @staticmethod
+    def isParentVariableProvider():
+        """Closure givers are providing variables."""
+        return False
 
     def getParentVariableProvider(self):
         parent = self.getParent()
@@ -552,13 +555,21 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
-        CodeNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+        CodeNodeMixin.__init__(
+            self,
+            name=name,
+            code_prefix=code_prefix,
+        )
 
         self.temp_variables = {}
 
         self.temp_scopes = {}
 
         self.preserver_id = 0
+
+    @staticmethod
+    def isParentVariableProvider():
+        return True
 
     def hasProvidedVariable(self, variable_name):
         return self.locals_scope.hasProvidedVariable(variable_name)
@@ -579,7 +590,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return "%s_%d" % (name, self.temp_scopes[name])
 
-    def allocateTempVariable(self, temp_scope, name, temp_type):
+    def allocateTempVariable(self, temp_scope, name, temp_type, outline=None):
         if temp_scope is not None:
             full_name = "%s__%s" % (temp_scope, name)
         else:
@@ -590,7 +601,9 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = self.createTempVariable(temp_name=full_name, temp_type=temp_type)
+        result = self.createTempVariable(
+            temp_name=full_name, temp_type=temp_type, outline=outline
+        )
 
         # Late added temp variables should be treated with care for the
         # remaining trace.
@@ -599,7 +612,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         return result
 
-    def createTempVariable(self, temp_name, temp_type):
+    def createTempVariable(self, temp_name, temp_type, outline):
         if temp_name in self.temp_variables:
             return self.temp_variables[temp_name]
 
@@ -609,7 +622,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             variable_type=temp_type,
         )
 
-        self.temp_variables[temp_name] = result
+        self.temp_variables[temp_name] = (result, outline)
 
         return result
 
@@ -619,10 +632,16 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         else:
             full_name = name
 
-        return self.temp_variables[full_name]
+        return self.temp_variables[full_name][0]
 
-    def getTempVariables(self):
-        return self.temp_variables.values()
+    def getAllTempVariables(self):
+        assert self.getEntryPoint() is self
+        return tuple(x[0] for x in self.temp_variables.values())
+
+    def getTempVariables(self, outline):
+        # TODO: Harden API to allow for removing this complexity.
+        assert self.getEntryPoint() is self
+        return tuple(x[0] for x in self.temp_variables.values() if x[1] is outline)
 
     def _removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
@@ -630,8 +649,8 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def optimizeUnusedTempVariables(self):
         remove = []
 
-        for temp_variable in self.getTempVariables():
-            empty = self.trace_collection.hasEmptyTraces(variable=temp_variable)
+        for temp_variable in self.getAllTempVariables():
+            empty = temp_variable.hasEmptyTracesFor(self)
 
             if empty:
                 remove.append(temp_variable)
@@ -660,6 +679,9 @@ class ClosureTakerMixin(object):
     def getParentVariableProvider(self):
         return self.provider
 
+    def getEntryPoint(self):
+        return self.provider.getEntryPoint()
+
     def getClosureVariable(self, variable_name):
         result = self.provider.getVariableForClosure(variable_name=variable_name)
         assert result is not None, variable_name
@@ -674,14 +696,6 @@ class ClosureTakerMixin(object):
 
         return variable
 
-    def getClosureVariables(self):
-        return tuple(
-            sorted(
-                [take for take in self.taken if not take.isModuleVariable()],
-                key=lambda x: x.getName(),
-            )
-        )
-
     def getClosureVariableIndex(self, variable):
         closure_variables = self.getClosureVariables()
 
@@ -690,6 +704,22 @@ class ClosureTakerMixin(object):
                 return count
 
         raise IndexError(variable)
+
+    def getClosureVariables(self):
+        return tuple(
+            sorted(
+                [take for take in self.taken if not take.isModuleVariable()],
+                key=lambda x: x.getName(),
+            )
+        )
+
+    def getModuleVariables(self):
+        return tuple(
+            sorted(
+                [take for take in self.taken if take.isModuleVariable()],
+                key=lambda x: x.getName(),
+            )
+        )
 
     def hasTakenVariable(self, variable_name):
         for variable in self.taken:
@@ -733,8 +763,6 @@ class StatementBase(NodeBase):
                 # They probably have changed.
                 expressions = self.getVisitableNodes()
 
-                child_name = expression.getChildNameNice()
-
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
                     expressions[: count + 1]
                 )
@@ -745,7 +773,7 @@ class StatementBase(NodeBase):
                     wrapped_expression,
                     "new_raise",
                     lambda: "For %s the child expression '%s' will raise."
-                    % (self.getStatementNiceName(), child_name),
+                    % (self.getStatementNiceName(), expression.getChildNameNice()),
                 )
 
         return self, None, None
