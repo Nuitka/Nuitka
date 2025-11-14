@@ -149,7 +149,7 @@ class StatementGeneratorReturn(StatementReturn):
 Return statement raises in returned expression, removed return.""",
             )
 
-        trace_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn(trace_collection)
 
         if expression.isExpressionConstantNoneRef():
             result = StatementGeneratorReturnNone(source_ref=self.source_ref)
