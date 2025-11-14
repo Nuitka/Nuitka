@@ -197,23 +197,29 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
     needs_check = expression.mayRaiseException(BaseException)
 
     if variable.isModuleVariable():
-        user = context.getOwner()
         variable_name = variable.getName()
 
         if python_version < 0x360:
             # Python2 doesn't have the means to do it, we got some acceleration
             # for it still, but no real caching.
             use_caching = False
-        elif user.isCompiledPythonModule():
-            # For module level code, cache module variable access only if inside
-            # a loop.
-            use_caching = False
-
-            if not context.isModuleVariableAccessorCaching(variable_name):
-                if expression.getContainingLoopNode() is not None:
-                    use_caching = True
         else:
-            use_caching = True
+            # For this it's OK the go to the containing context.
+            user = context.getOwner()
+            while user.isExpressionOutlineFunction():
+                user = user.provider
+                context = context.parent
+
+            if user.isCompiledPythonModule():
+                # For module level code, cache module variable access only if inside
+                # a loop.
+                use_caching = False
+
+                if not context.isModuleVariableAccessorCaching(variable_name):
+                    if expression.getContainingLoopNode() is not None:
+                        use_caching = True
+            else:
+                use_caching = True
 
         getModuleVariableReferenceCode(
             to_name=to_name,

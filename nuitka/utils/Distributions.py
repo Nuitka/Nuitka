@@ -255,14 +255,27 @@ def _getDistributionInstallerFileContents(distribution):
 
 def getDistributionTopLevelPackageNames(distribution):
     """Returns the top level package names for a distribution."""
+
+    result = OrderedSet()
+
     top_level_txt = _getDistributionMetadataFileContents(distribution, "top_level.txt")
 
     if top_level_txt is not None:
-        result = [dirname.replace("/", ".") for dirname in top_level_txt.splitlines()]
-    else:
-        # If the file is not present, fall back to scanning all files in the
-        # distribution.
-        result = OrderedSet()
+        from nuitka.importing.Importing import hasModule
+
+        # Filtering according to existence is necessary, since some packages
+        # put e.g. "__dummy__" there.
+        result.update(
+            module_name
+            for module_name in (
+                dirname.replace("/", ".") for dirname in top_level_txt.splitlines()
+            )
+            if hasModule(module_name)
+        )
+
+    if not result:
+        # If the file is not present or not satisfactory, fall back to scanning
+        # all files in the distribution.
 
         for filename in getDistributionFiles(distribution):
             if filename.startswith("."):
