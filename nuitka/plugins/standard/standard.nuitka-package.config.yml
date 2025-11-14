@@ -1075,10 +1075,13 @@
         '"_pytest" in sys.modules': 'False'
       when: 'not use_pytest'
 
-- module-name: 'dask' # checksum: d914a438
+- module-name: 'dask' # checksum: 75dc90c8
   data-files:
     - patterns:
         - 'dask.yaml'
+    - include-metadata:
+        - 'pandas'
+        - 'pyarrow'
 
 - module-name: 'dask.dataframe' # checksum: 54d2aebf
   anti-bloat:
@@ -2396,11 +2399,10 @@
     - depends:
         - 'keyring.backends.*'
 
-- module-name: 'keyring.backends.Windows' # checksum: a414afda
+- module-name: 'keyring.backends.Windows' # checksum: 2531fce0
   implicit-imports:
     - depends:
         - 'win32timezone'
-        - 'win32ctypes.core.ctypes.*'
 
 - module-name: 'kfactory' # checksum: 54fa1ca1
   anti-bloat:
@@ -9340,6 +9342,15 @@
   implicit-imports:
     - depends:
         - 'win32timezone'
+
+- module-name: 'win32ctypes.core' # checksum: cbc76f02
+  implicit-imports:
+    - depends:
+        - 'win32ctypes.core.ctypes.*'
+      when: 'win32 and not has_module("cffi")'
+    - depends:
+        - 'win32ctypes.core.cffi.*'
+      when: 'win32 and has_module("cffi")'
 
 - module-name: 'win32file' # checksum: 2531fce0
   implicit-imports:
