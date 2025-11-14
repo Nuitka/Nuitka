@@ -1789,12 +1789,17 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile or is_debug
+    return options.unstripped or isRuntimeProfile() or is_debug
 
 
-def isProfile():
-    """:returns: bool derived from ``--profile``"""
-    return options.profile
+def isRuntimeProfile():
+    """:returns: bool derived from ``--debug-profile-runtime``"""
+    return options.debug_profile_runtime
+
+
+def isCompileTimeProfile():
+    """:returns: bool derived from ``--devel-profile-compilation``"""
+    return options.devel_profile_compilation
 
 
 def shallCreateGraph():
